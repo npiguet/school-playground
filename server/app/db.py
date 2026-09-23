@@ -37,6 +37,15 @@ def db_path(request: Request) -> Path:
 
 
 def get_db(request: Request) -> Iterator[sqlite3.Connection]:
+    # The commit() after yield is a safety net, not the primary commit point: FastAPI
+    # runs the code after `yield` while tearing down the dependency's AsyncExitStack,
+    # which is not guaranteed to finish before the response reaches the client (our
+    # endpoints are sync `def`s dispatched to a worker thread, so the ordering between
+    # "response sent" and "generator resumed" is not fixed). A write followed
+    # immediately by a read (e.g. in a test, or two quick requests from the client) can
+    # therefore see the pre-write state if the endpoint relies on this implicit commit.
+    # Every endpoint that writes (INSERT/UPDATE/DELETE) must call conn.commit() itself
+    # before returning.
     conn = connect(db_path(request))
     try:
         yield conn

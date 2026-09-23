@@ -90,6 +90,17 @@ def test_missing_word_error_does_not_create_trap_word(client):
     assert client.get(f"/api/profiles/{p['id']}/trap-words").json() == []
 
 
+def test_write_then_immediate_read_sees_the_write(client):
+    # Regression test: get_db opens a fresh sqlite3 connection per request, so a write
+    # must be committed by the writing endpoint itself before returning. Otherwise an
+    # immediate read on a different connection can miss it (see app/db.py get_db).
+    p, t = setup(client)
+    session = post_session(client, p, t, 0.5)
+    stats = client.get(f"/api/profiles/{p['id']}/stats")
+    assert stats.status_code == 200
+    assert stats.json()["recent_sessions"][0]["id"] == session["id"]
+
+
 def test_session_404s(client):
     p, t = setup(client)
     body = {"profile_id": 999, "text_id": t["id"], "pace_level": 1, "help_stage": 1, "started_at": "x",

@@ -72,6 +72,7 @@ def patch_profile(profile_id: int, body: ProfilePatch, db: sqlite3.Connection = 
             db.execute(f"UPDATE profile SET {sets} WHERE id = ?", (*updates.values(), profile_id))
         except sqlite3.IntegrityError:
             raise HTTPException(409, "Ce nom est déjà pris")
+        db.commit()
     return to_out(fetch_profile(db, profile_id))
 
 
@@ -79,6 +80,7 @@ def patch_profile(profile_id: int, body: ProfilePatch, db: sqlite3.Connection = 
 def delete_profile(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
     fetch_profile(db, profile_id)
     db.execute("DELETE FROM profile WHERE id = ?", (profile_id,))
+    db.commit()
     return Response(status_code=204)
 
 

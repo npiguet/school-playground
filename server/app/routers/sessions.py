@@ -50,5 +50,6 @@ def create_session(body: SessionCreate, db: sqlite3.Connection = Depends(get_db)
         db.execute("UPDATE profile SET help_stage = ? WHERE id = ?", (help_stage_after, body.profile_id))
         message = UP_MESSAGE if help_stage_after > help_stage_before else DOWN_MESSAGE
 
+    db.commit()
     return {"id": session_id, "help_stage_before": help_stage_before,
             "help_stage_after": help_stage_after, "help_stage_message": message}

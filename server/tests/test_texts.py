@@ -51,3 +51,13 @@ def test_delete_custom_but_not_seed(client, settings):
     conn.commit()
     seed_id = conn.execute("SELECT id FROM text WHERE seed_key = '999-s'").fetchone()[0]
     assert client.delete(f"/api/texts/{seed_id}").status_code == 403
+
+
+def test_write_then_immediate_read_sees_the_write(client):
+    # Regression test: get_db opens a fresh sqlite3 connection per request, so a write
+    # must be committed by the writing endpoint itself before returning. Otherwise an
+    # immediate read on a different connection can miss it (see app/db.py get_db).
+    t = client.post("/api/texts", json={"title": "T", "body": FEES, "level": "8H", "source": "custom"}).json()
+    r = client.get(f"/api/texts/{t['id']}")
+    assert r.status_code == 200, r.text
+    assert r.json()["body"] == FEES

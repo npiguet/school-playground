@@ -82,6 +82,7 @@ def create_text(body: TextCreate, db: sqlite3.Connection = Depends(get_db),
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
         (body.title.strip(), text, body.source, body.level, body.author, body.translator, body.work,
          credits, body.added_by_profile_id, body.due_date, json.dumps(annotation, ensure_ascii=False), now()))
+    db.commit()
     return to_full(fetch_text(db, cur.lastrowid))
 
 
@@ -96,4 +97,5 @@ def delete_text(text_id: int, db: sqlite3.Connection = Depends(get_db)):
     if row["source"] == "seed":
         raise HTTPException(403, "Les textes du jeu ne peuvent pas être supprimés")
     db.execute("DELETE FROM text WHERE id = ?", (text_id,))
+    db.commit()
     return Response(status_code=204)
