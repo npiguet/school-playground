@@ -48,3 +48,47 @@ class ProfileOut(BaseModel):
 
 class PinCheck(BaseModel):
     pin: str
+
+
+class TextCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    body: str = Field(min_length=1, max_length=4000)
+    level: str
+    source: str = "custom"
+    author: str | None = None
+    translator: str | None = None
+    work: str | None = None
+    credits: str | None = None
+    added_by_profile_id: int | None = None
+    due_date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
+class TextHistory(BaseModel):
+    times_played: int
+    best_score: int | None
+    best_catch_rate: float | None
+
+
+class TextSummary(BaseModel):
+    id: int
+    title: str
+    level: str
+    source: str
+    author: str | None
+    translator: str | None
+    work: str | None
+    credits: str | None
+    word_count: int
+    added_by_profile_id: int | None
+    added_by_name: str | None
+    due_date: str | None
+    created_at: str
+
+
+class TextSummaryWithHistory(TextSummary):
+    history: TextHistory | None = None
+
+
+class TextFull(TextSummaryWithHistory):
+    body: str
+    annotation: dict[str, Any]

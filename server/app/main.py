@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from app.config import Settings
 from app.db import connect, migrate, DB_FILENAME
-from app.routers import profiles
+from app.routers import profiles, texts
 
 VERSION = "0.1.0"
 
@@ -19,6 +19,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.settings = settings
         conn = connect(settings.data_dir / DB_FILENAME)
         migrate(conn)
+        if settings.seed_on_startup:
+            from app.deps import make_annotator
+            from app.seed import import_seed
+            annotator = make_annotator(settings)
+            app.state.annotator = annotator
+            import_seed(conn, settings.content_dir, annotator)
         conn.close()
         yield
 
@@ -29,6 +35,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok", "version": VERSION}
 
     app.include_router(profiles.router)
+    app.include_router(texts.router)
 
     # Later tasks insert app.include_router(...) lines HERE, above the /api catch-all.
 
