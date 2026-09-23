@@ -27,11 +27,37 @@ interface Unit {
   text: string;
 }
 
+// Title abbreviations that must be read as the full word they stand for,
+// never spelled out letter by letter. Two shapes: a bare word ("Mme",
+// "Mlle" - no period in French usage) and a word that swallows a following
+// abbreviation period ("M." -> "monsieur", never "M, point,").
+const ABBREVIATION_WORDS: Record<string, string> = {
+  Mme: 'madame',
+  Mlle: 'mademoiselle',
+};
+const ABBREVIATION_WITH_PERIOD: Record<string, string> = {
+  M: 'monsieur',
+  MM: 'messieurs',
+  St: 'saint',
+  Ste: 'sainte',
+};
+
 export function spokenForm(chunk: string, opts?: { newParagraph?: boolean }): string {
   const tokens = tokenize(chunk);
   const units: Unit[] = [];
-  for (const t of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
     if (t.kind === 'word') {
+      if (ABBREVIATION_WORDS[t.text]) {
+        units.push({ isWord: true, text: ABBREVIATION_WORDS[t.text] });
+        continue;
+      }
+      const expanded = ABBREVIATION_WITH_PERIOD[t.text];
+      if (expanded && tokens[i + 1]?.kind === 'punct' && tokens[i + 1].text === '.') {
+        units.push({ isWord: true, text: expanded });
+        i++; // swallow the abbreviation period, it is not spoken as "point"
+        continue;
+      }
       units.push({ isWord: true, text: t.text });
     } else {
       const name = PUNCT_NAMES[t.text];

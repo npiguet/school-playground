@@ -21,4 +21,10 @@ describe('spokenForm', () => {
   it('adds a final period to a chunk without terminal punctuation', () => {
     expect(spokenForm('Le loup, affamé,')).toBe('Le loup, virgule, affamé, virgule.');
   });
+  it('reads "M." as "monsieur", swallowing the abbreviation period', () => {
+    expect(spokenForm('Elle rencontra M. Seguin.')).toBe('Elle rencontra monsieur Seguin, point.');
+  });
+  it('reads "Mme" as "madame"', () => {
+    expect(spokenForm('Mme Loisel dansait.')).toBe('madame Loisel dansait, point.');
+  });
 });
