@@ -39,6 +39,7 @@ def create_profile(body: ProfileCreate, db: sqlite3.Connection = Depends(get_db)
             (body.name.strip(), body.avatar, body.level, hash_pin(body.pin) if body.pin else None, now()))
     except sqlite3.IntegrityError:
         raise HTTPException(409, "Ce nom est déjà pris")
+    db.commit()
     return to_out(fetch_profile(db, cur.lastrowid))
 
 
