@@ -145,6 +145,11 @@
     gap: 8px;
     margin-bottom: 20px;
   }
+  /* Interactive level-filter chips need a full touch target; the decorative
+     .chips spans on text cards (below) stay compact via their own override. */
+  .filters .chip {
+    min-height: 48px;
+  }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));

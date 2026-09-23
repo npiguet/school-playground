@@ -83,7 +83,7 @@
   .icon {
     font-size: 20px;
   }
-  @media (max-width: 700px) {
+  @media (max-width: 900px) {
     .label {
       display: none;
     }

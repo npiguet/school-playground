@@ -68,12 +68,3 @@ export function clearProfile() {
     writeUnlocked(readUnlocked().filter((x) => x !== id));
   }
 }
-
-export function storedProfileId(): number | null {
-  try {
-    const raw = localStorage.getItem(PROFILE_ID_KEY);
-    return raw ? Number(raw) : null;
-  } catch {
-    return null;
-  }
-}

@@ -49,23 +49,25 @@
 {:else if route.name === 'profile-new'}
   <ProfileCreate />
 {:else if profileId !== null}
-  {#if gateLoading && !gateProfile}
-    <div class="screen"><p class="muted">Les Muses cherchent ce héros…</p></div>
-  {:else if gateError}
-    <div class="screen"><p class="orange">Impossible de charger ce héros : {gateError}</p></div>
-  {:else if gateProfile}
-    {#if gateProfile.has_pin && !unlocked}
-      <PinGate profile={gateProfile} {onUnlocked} />
-    {:else if route.name === 'library'}
-      <Library profile={gateProfile} />
-    {:else if route.name === 'text-new'}
-      <TextCreate profile={gateProfile} />
-    {:else if route.name === 'play'}
-      <Play profile={gateProfile} textId={route.params.textId} />
-    {:else if route.name === 'stats'}
-      <Stats profile={gateProfile} />
-    {:else if route.name === 'settings'}
-      <Settings profile={gateProfile} />
+  {#key profileId}
+    {#if gateLoading && !gateProfile}
+      <div class="screen"><p class="muted">Les Muses cherchent ce héros…</p></div>
+    {:else if gateError}
+      <div class="screen"><p class="orange">Impossible de charger ce héros : {gateError}</p></div>
+    {:else if gateProfile}
+      {#if gateProfile.has_pin && !unlocked}
+        <PinGate profile={gateProfile} {onUnlocked} />
+      {:else if route.name === 'library'}
+        <Library profile={gateProfile} />
+      {:else if route.name === 'text-new'}
+        <TextCreate profile={gateProfile} />
+      {:else if route.name === 'play'}
+        <Play profile={gateProfile} textId={route.params.textId} />
+      {:else if route.name === 'stats'}
+        <Stats profile={gateProfile} />
+      {:else if route.name === 'settings'}
+        <Settings profile={gateProfile} />
+      {/if}
     {/if}
-  {/if}
+  {/key}
 {/if}
