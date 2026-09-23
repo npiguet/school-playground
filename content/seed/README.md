@@ -48,7 +48,7 @@ written by Les Muses de la Discorde instead of translated.
 | 021-hugo-miserables-cosette | 10H | Victor Hugo — Les Misérables | https://fr.wikisource.org/wiki/Page:Hugo_-_Les_Misérables_Tome_II_(1890).djvu/162 |
 | 022-sand-mare-au-diable | 10H | George Sand — La Mare au diable | https://fr.wikisource.org/wiki/Page:Sand_-_Œuvres_illustrées_de_George_Sand,_vol_1,_1852.djvu/11 |
 | 023-maupassant-la-parure | 11H | Guy de Maupassant — Contes du jour et de la nuit | https://fr.wikisource.org/wiki/Contes_du_jour_et_de_la_nuit_(éd._Flammarion,_1885)/La_Parure |
-| 024-hugo-notre-dame-de-paris | 11H | Victor Hugo — Notre-Dame de Paris | https://fr.wikisource.org/wiki/Notre-Dame_de_Paris/Livre_troisième |
+| 024-hugo-notre-dame-de-paris | 11H | Victor Hugo — Notre-Dame de Paris | https://fr.wikisource.org/wiki/Page:Hugo_-_Œuvres_complètes,_Impr._nat.,_Roman,_tome_II.djvu/109 |
 | 025-topffer-col-anterne | 11H | Rodolphe Töpffer — Nouvelles genevoises | https://fr.wikisource.org/wiki/Le_Col_d’Anterne |
 | 026-ramuz-aline | 11H | Charles-Ferdinand Ramuz — Aline | https://fr.wikisource.org/wiki/Aline_(Ramuz)/I |
 | 027-muses-pomme-or | 5H | Les Muses de la Discorde — Textes originaux | original |
@@ -72,12 +72,86 @@ Verne 1905 · Guy de Maupassant 1893 · George Sand 1876 · Alexandre Dumas
 1870 · Victor Hugo 1885 · Rodolphe Töpffer 1846 · Charles-Ferdinand Ramuz
 1947 · Victor Bérard 1931 (translation not usable, see above).
 
-## Cutting notes
+## Editing notes
 
-Every passage is verbatim from its source (original spelling and
-punctuation kept, only cut at sentence boundaries; a few connecting
-sentences were dropped to fit the 80–200 word window, never rewritten).
-None contains digits — numbers, where the source used any, were avoided
-by choosing a different cut. `server/app/tools/seed_check.py` (added in a
-later task) annotates these files with spaCy and checks the minimum
-verb/nominal-group counts referenced in the plan.
+Every non-original passage is cut from its source at real sentence
+boundaries; no wording is invented or paraphrased. Within that rule, the
+following kinds of edits were made while assembling each file — this
+section replaces an earlier, less precise "verbatim, never edited" claim
+with an accurate list of what was actually done:
+
+- **Sentences dropped between the kept sentences**, to fit the 80–200
+  word window or to reduce dialogue density, in most files (e.g. 001, 002,
+  003, 006, 007, 009, 010, 018, 019, 021, 022, 023, 024). Nothing inside a
+  *kept* sentence was reworded.
+- **Mid-sentence parentheticals/asides removed**, where a source sentence
+  contained a clause that could be dropped without touching the
+  surrounding wording:
+  - `004-perrault-chat-botte`: the source's `(car il était beau et bien
+    fait de sa personne)` was kept but its parentheses were replaced with
+    commas (the words themselves are unchanged).
+  - `020-dumas-trois-mousquetaires`: the source's `et, disons-le à la
+    louange de M. d'Artagnan fils, quelques efforts...` had `disons-le à
+    la louange de M. d'Artagnan fils,` removed; `et quelques efforts...`
+    reads on cleanly.
+  - `022-sand-mare-au-diable`: the source's `...rappelaient celui
+    d'Holbein, mais dont les vêtements n'annonçaient pas la misère,
+    poussait...` had `mais dont les vêtements n'annonçaient pas la
+    misère,` removed.
+- **Typography modernised** for a dictation-friendly answer key (the
+  source uses 19th-century conventions; the game's grading treats the
+  seed body as ground truth, so trailing punctuation must sit where a
+  modern reader expects it):
+  - `002-andersen-vilain-petit-canard`: `jusques dans l'eau` → `jusque
+    dans l'eau` (obsolete form); `« pi-pip ; »` → `« pi-pip » ;` (the
+    semicolon belongs to the frame sentence, not the interjection, so it
+    moves outside the guillemets).
+  - `004-perrault-chat-botte`: `« C'est à monsieur le marquis de Carabas,
+    » dirent-ils` → `« C'est à monsieur le marquis de Carabas », dirent-
+    ils` (comma moved outside the guillemets for the same reason).
+  - `006-carroll-alice-terrier`: source `très-extraordinaire` (old
+    hyphenated intensifier) rendered as `très extraordinaire`.
+  - `020-dumas-trois-mousquetaires`: source `grand'peine` (obsolete
+    apostrophe elision) rendered as `grand-peine`.
+  - Passages ending mid-list before the source sentence continues (e.g.
+    `022-sand-mare-au-diable` ends `...les cornes longues et rabattues.`
+    where the source has a comma and keeps going) get a closing period in
+    place of the source's comma, since the excerpt must end in valid
+    punctuation; no words are added.
+- **One case of a source OCR/typographical inconsistency resolved**:
+  `007-renard-mouches-eau` — the scanned page renders the capitalised
+  word as `Acres`; the correct spelling `Âcres` (accent restored) is used,
+  matching the word everywhere else it is not capitalised in the source
+  and standard modern French.
+- **One spelling made consistent with the work's own title**:
+  `005-grimm-musiciens-breme` — the city name appears as both `Brème` and
+  `Brême` within the same Wikisource page (OCR/edition inconsistency);
+  the file now uses `Brême` throughout, matching the page title
+  ("Les Musiciens de Br**ê**me") and the seed file's own slug/title.
+- **`012-kipling-rikki-tikki` was recut** after review: an earlier
+  version had spliced in a sentence from a different scene of the same
+  chapter (the "found and revived" scene, djvu page 191) to raise the
+  verb count. It now stays inside a single contiguous scene (djvu pages
+  193–194: Rikki-tikki exploring the garden, then meeting Darzee the
+  tailor-bird), extended forward with the source's own next sentences
+  rather than importing text from elsewhere.
+- **`017-maupassant-papa-de-simon` had its first paragraph dropped**
+  (the sentence "Il voulait se noyer dans la rivière." and its lead-in),
+  by editorial ruling, as unsuitable for the game's younger siblings; the
+  remaining two paragraphs (Simon watching the fish, then dozing in the
+  warm grass) still meet the 80-word floor on their own.
+- **`024-hugo-notre-dame-de-paris` was recut** after review: the earlier
+  cut began "Elle est sœur ; produit prodigieux..." which is not a
+  sentence (it continues a sentence from the page before the excerpted
+  range). It now starts at the chapter's actual opening sentence, "Sans
+  doute c'est encore aujourd'hui un majestueux et sublime édifice que
+  l'église de Notre-Dame de Paris."
+- **`034-muses-nausicaa`** (original text, not a reuse): `couvrant sa
+  nudité d'un rameau feuillu` simplified to `couvert d'un rameau feuillu`.
+
+None of the 35 bodies contain digits — numbers, where a source used any,
+were avoided by choosing a different cut rather than spelling them out.
+`server/app/tools/seed_check.py` annotates every file with spaCy and
+reports/flags passages under the minimum verb and nominal-group counts
+used to sanity-check this content; run it with
+`scripts/py.sh python -m app.tools.seed_check`.
