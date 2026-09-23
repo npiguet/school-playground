@@ -1,1 +1,36 @@
-{"version": 1, "sets": []}
+{
+  "version": 1,
+  "sets": [
+    {"id": "a", "words": ["a", "à", "as"], "hint": "« a » (et « as ») peut se remplacer par « avait » : « il avait » → « a ». Sinon, c'est « à » avec un accent."},
+    {"id": "et", "words": ["et", "est", "es"], "hint": "« est » peut se remplacer par « était ». « et » veut dire « et puis »."},
+    {"id": "ces", "words": ["ces", "ses", "c'est", "s'est", "sais", "sait"], "hint": "« ses » = les siens (« ses livres » → « son livre »). « ces » = ceux-là (« ces livres » → « ce livre »). « c'est » = « cela est ». « s'est » est suivi d'un participe passé (« il s'est levé »)."},
+    {"id": "son", "words": ["son", "sont"], "hint": "« sont » peut se remplacer par « étaient ». « son » = le sien."},
+    {"id": "on", "words": ["on", "ont"], "hint": "« ont » peut se remplacer par « avaient ». « on » peut se remplacer par « il »."},
+    {"id": "ou", "words": ["ou", "où"], "hint": "« ou » peut se remplacer par « ou bien ». « où » indique un lieu ou un moment."},
+    {"id": "leur", "words": ["leur", "leurs"], "hint": "Devant un verbe, « leur » ne prend jamais de s (« il leur parle »). Devant un nom, il s'accorde avec le nom (« leurs chevaux »)."},
+    {"id": "la", "words": ["la", "l'a", "là", "l'as"], "hint": "« l'a » peut se remplacer par « l'avait ». « là » indique un lieu (« ici ou là »). « la » est un article ou un pronom."},
+    {"id": "ce", "words": ["ce", "se", "ceux"], "hint": "« se » est toujours devant un verbe (« il se lave » → « je me lave »). « ce » est devant un nom ou dans « ce qui / ce que »."},
+    {"id": "peu", "words": ["peu", "peut", "peux"], "hint": "« peut » et « peux » peuvent se remplacer par « pouvait » / « pouvais ». « peu » = pas beaucoup."},
+    {"id": "quel", "words": ["quel", "quelle", "quels", "quelles", "qu'elle", "qu'elles"], "hint": "« qu'elle » peut se remplacer par « qu'il ». « quel(le)(s) » s'accorde avec le nom qui suit."},
+    {"id": "mes", "words": ["mes", "mais", "met", "mets", "m'est", "m'es"], "hint": "« mais » = pourtant. « mes » = les miens. « met / mets » viennent du verbe mettre."},
+    {"id": "ni", "words": ["ni", "n'y"], "hint": "« n'y » = « ne … y » (« il n'y va pas » → « il y va »). « ni » relie deux négations."},
+    {"id": "si", "words": ["si", "s'y"], "hint": "« s'y » = « se … y » (« il s'y rend » → « je m'y rends »)."},
+    {"id": "dans", "words": ["dans", "d'en"], "hint": "« d'en » = « de … en » (« il vient d'en manger »). « dans » = à l'intérieur de."},
+    {"id": "sans", "words": ["sans", "s'en", "cent", "sang"], "hint": "« s'en » = « se … en » (« il s'en va » → « je m'en vais »). « sans » = le contraire de « avec »."},
+    {"id": "ma", "words": ["ma", "m'a", "m'as"], "hint": "« m'a » peut se remplacer par « m'avait ». « ma » = la mienne."},
+    {"id": "ta", "words": ["ta", "t'a", "t'as"], "hint": "« t'a » peut se remplacer par « t'avait ». « ta » = la tienne."},
+    {"id": "sa", "words": ["sa", "ça", "çà"], "hint": "« ça » peut se remplacer par « cela ». « sa » = la sienne."},
+    {"id": "quand", "words": ["quand", "quant", "qu'en"], "hint": "« quand » = à quel moment. « quant à » = en ce qui concerne. « qu'en » = « que … en »."},
+    {"id": "tout", "words": ["tout", "tous"], "hint": "« tous » se dit devant un nom au pluriel (« tous les jours »). « tout » devant un adjectif ou un nom singulier."},
+    {"id": "notre", "words": ["notre", "nôtre"], "hint": "« le nôtre » a un accent et un article devant. « notre maison » n'a pas d'accent."},
+    {"id": "votre", "words": ["votre", "vôtre"], "hint": "« le vôtre » a un accent et un article devant. « votre maison » n'a pas d'accent."},
+    {"id": "près", "words": ["près", "prêt"], "hint": "« près » = pas loin. « prêt » = préparé (« prête » au féminin)."},
+    {"id": "dont", "words": ["dont", "donc"], "hint": "« donc » = par conséquent. « dont » remplace « de qui / de quoi »."},
+    {"id": "foi", "words": ["foi", "foie", "fois"], "hint": "« une fois, deux fois » ; « le foie » est un organe ; « la foi » est la croyance."},
+    {"id": "voie", "words": ["voie", "voix", "vois", "voit"], "hint": "« vois / voit » viennent du verbe voir. « la voix » chante ; « la voie » est un chemin."},
+    {"id": "ver", "words": ["ver", "vers", "vert", "verre", "vair"], "hint": "« vert » est une couleur ; « le verre » se boit ; « vers » = en direction de ; « un ver » de terre."},
+    {"id": "cour", "words": ["cour", "cours", "court"], "hint": "« court » vient du verbe courir (« il court ») ou veut dire petit ; « la cour » de l'école ; « le cours »."},
+    {"id": "cette", "words": ["cette", "sept"], "hint": "« cette » est devant un nom féminin ; « sept » est un nombre."},
+    {"id": "davantage", "words": ["davantage", "d'avantage", "d'avantages"], "hint": "« davantage » = plus. « d'avantage(s) » = de bénéfice(s)."}
+  ]
+}
