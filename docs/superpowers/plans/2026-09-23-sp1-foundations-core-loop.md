@@ -31,7 +31,7 @@
 3. **Server does not re-grade in SP1.** The client submits `result_json` (per-token errors, caught/missed/introduced, opportunities); the server derives `profile_stat`, `profile_stat_day` and `trap_word` from it and stores the raw draft/final so a later re-grade is possible (spec §4 "the server stores the raw texts too").
 4. **Single homophone table** at `content/homophones.json`, read by Python (annotation flags) and by TypeScript (classification) — Vite alias `@content` → `../content`.
 5. **Client tokenizer ≠ spaCy tokenizer.** Both produce character offsets; the client maps its reference tokens to spaCy tokens by span overlap. This keeps grading independent from NLP.
-6. **Help stage 3** shows the number of errors *at the start* of proofreading and does not refresh it (closer to class; refreshing would leak feedback on every edit). Chouette hints per stage: 3 / 2 / 1 / 0.
+6. **Help stage 3** shows the number of errors *at the start* of proofreading and does not refresh it (closer to class; refreshing would leak feedback on every edit). This is this plan's explicit interpretation of spec §3.4's « 4 pièges sont cachés » as "remaining at the start of proofreading" rather than a live count, because a live counter would grade every edit, contrary to §1.1's focused proofreading and §1.5's fading scaffold; the controller may overrule, in which case the only change is `initialErrors` → `$derived(grade.errors.length)` in `Proofreading.svelte`. Chouette hints per stage: 3 / 2 / 1 / 0.
 7. **Pace 3 and 4 have no replays**; the player can pause. Pace 2 has 3 replays per text. Pace 1 is unlimited.
 8. **Default pace by level:** 5H–6H → 1, 7H–8H → 2, 9H–11H → 3. The player can change it before every dictation.
 9. **Score** = `2 × correct words + 20 × caught errors + bonus`, bonus = `round(100 × catch rate)` or 50 when the draft had no errors, then `× pace multiplier [1, 1.25, 1.5, 2]`, rounded. Never negative by construction.
@@ -69,20 +69,26 @@ server/app/levels.py           LEVELS, level ordinal
 server/app/nlp/homophones.py   loads content/homophones.json
 server/app/nlp/model.py        get_nlp() lazy loader
 server/app/nlp/annotate.py     annotate(text, nlp) -> dict ; derive_categories(tokens)
+server/app/deps.py             make_annotator(settings) -> Callable[[str], dict]
+server/app/textutil.py         word_count(), words(), has_digits(), build_credits()
 server/app/seed.py             import_seed(conn, content_dir, nlp)
 server/app/stats.py            apply_session_to_stats(), next_help_stage(), trap word updates
 server/app/routers/profiles.py, texts.py, sessions.py, stats.py
 server/tests/conftest.py, test_*.py, fixtures/
 web/package.json, vite.config.ts, tsconfig.json, svelte.config.js, playwright.config.ts
-web/index.html, public/manifest.webmanifest, public/icons/*, public/icon.svg
+web/index.html, public/manifest.json, public/icons/*, public/icon.svg
 web/scripts/make-icons.mjs
 web/src/main.ts, App.svelte, app.css (theme tokens)
 web/src/lib/types.ts           shared API/domain types
 web/src/lib/api.ts             fetch wrappers
 web/src/lib/router.svelte.ts   hash router
-web/src/lib/session.ts         current profile + localStorage session cache
+web/src/lib/routes.ts          route pattern list, matchRoute()/href()
+web/src/lib/levels.ts          LEVELS, AVATARS
+web/src/lib/profileStore.svelte.ts   current profile ($state) + localStorage unlock cache
+web/src/lib/playState.ts       PlayState type + helpers
+web/src/lib/textEdit.ts        sentenceSpans() and other text-editing helpers
 web/src/lib/grading/normalize.ts, tokenize.ts, align.ts, homophones.ts, classify.ts,
-                    annotationMap.ts, grade.ts, index.ts   (pure, unit-tested)
+                    annotationMap.ts, types.ts, grade.ts, index.ts   (pure, unit-tested)
 web/src/lib/dictation/segment.ts, spoken.ts, tts.ts, script.ts       (pure except tts)
 web/src/lib/argus.ts           pass order + category mapping for the proofreading screen
 web/src/lib/explain.ts         explanation templates (French)
@@ -140,7 +146,8 @@ export MSYS_NO_PATHCONV=1
 export COMPOSE_PROJECT_NAME=discorde
 
 TTY_FLAGS=""
-if [ -t 0 ] && [ -t 1 ]; then TTY_FLAGS="-it"; fi
+# No -it: nothing in this toolchain is interactive, and docker run -it fails under
+# mintty (Git Bash's default terminal) with "the input device is not a TTY".
 
 NODE_IMAGE="node:22"
 PLAYWRIGHT_VERSION="1.55.0"
@@ -157,7 +164,9 @@ ensure_volumes() {
 }
 
 build_server_dev_image() {
-  docker build -q -t "$SERVER_DEV_IMAGE" -f "$ROOT/server/Dockerfile.dev" "$ROOT/server" >/dev/null
+  # Anything handed to docker/docker compose as a path uses $HOST_ROOT (or is relative
+  # after `cd "$ROOT"`); $ROOT itself is only for bash's own file operations.
+  docker build -q -t "$SERVER_DEV_IMAGE" -f "$HOST_ROOT/server/Dockerfile.dev" "$HOST_ROOT/server" >/dev/null
 }
 ```
 
@@ -210,7 +219,7 @@ ensure_volumes
 cd "$ROOT"
 docker compose -f compose.e2e.yaml build app
 set +e
-docker compose -f compose.e2e.yaml run --rm playwright npx playwright test "$@"
+docker compose -f compose.e2e.yaml run --rm -T playwright npx playwright test "$@"
 status=$?
 set -e
 docker compose -f compose.e2e.yaml down -v --remove-orphans
@@ -428,7 +437,7 @@ Run: `scripts/pytest.sh -v`  Expected: `2 passed`.
 ```
 `web/vite.config.ts`:
 ```ts
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { fileURLToPath } from 'node:url';
 
@@ -553,12 +562,12 @@ data
 docs
 .claude
 ```
-`content/homophones.json` placeholder (Task 3 fills it): `{"version": 1, "sets": [], "hints": {}}`.
+`content/homophones.json` placeholder (Task 3 fills it): `{"version": 1, "sets": []}`.
 
 `Dockerfile`:
 ```dockerfile
 # Stage 1: build the SPA
-FROM node:22-alpine AS web
+FROM node:22 AS web
 WORKDIR /work
 COPY content/homophones.json content/homophones.json
 COPY web/package.json web/package-lock.json web/
@@ -1238,7 +1247,7 @@ def test_derive_categories_and_subject():
     h = load_homophones(CONTENT)
     tokens = [
         tok(0, "Les", "DET", {"Number": "Plur"}, head=1, dep="det"),
-        tok(1, "fées", "NOUN", {"Gender": "Fem", "Number": "Plur"}, head=2, dep="nsubj"),
+        tok(1, "fées", "NOUN", {"Gender": "Fem", "Number": "Plur"}, head=3, dep="nsubj"),
         tok(2, "ont", "AUX", {"VerbForm": "Fin", "Number": "Plur"}, head=3, dep="aux:tense"),
         tok(3, "dansé", "VERB", {"VerbForm": "Part"}, head=3, dep="ROOT"),
         tok(4, "à", "ADP", {}, head=6, dep="case"),
@@ -1251,7 +1260,7 @@ def test_derive_categories_and_subject():
     cats = {t["text"]: set(t["categories"]) for t in out}
     assert cats["Les"] == {"nominal_group"}
     assert cats["fées"] == {"nominal_group"}
-    assert cats["ont"] == {"verb"}
+    assert cats["ont"] == {"verb", "homophone"}
     assert cats["dansé"] == {"participle"}
     assert cats["à"] == {"homophone"}
     assert cats["la"] == {"nominal_group", "homophone"}
@@ -1528,6 +1537,16 @@ def test_delete_custom_but_not_seed(client, settings):
     t = client.post("/api/texts", json={"title": "T", "body": FEES, "level": "8H", "source": "custom"}).json()
     assert client.delete(f"/api/texts/{t['id']}").status_code == 204
     assert client.get(f"/api/texts/{t['id']}").status_code == 404
+
+    from app.db import connect
+    conn = connect(settings.data_dir / "discorde.sqlite3")
+    conn.execute(
+        "INSERT INTO text(title, body, source, seed_key, level, created_at) "
+        "VALUES ('S', 'x y z', 'seed', '999-s', '8H', 'now')"
+    )
+    conn.commit()
+    seed_id = conn.execute("SELECT id FROM text WHERE seed_key = '999-s'").fetchone()[0]
+    assert client.delete(f"/api/texts/{seed_id}").status_code == 403
 ```
 `server/tests/test_seed.py`:
 ```python
@@ -1588,7 +1607,6 @@ def test_seed_file_is_valid(path):
     assert d["level"] in LEVELS
     assert 80 <= word_count(d["body"]) <= 200, word_count(d["body"])
     assert not has_digits(d["body"]), "numbers must be written as words"
-    assert "\n\n" not in d["body"].strip() or True  # paragraphs allowed
     if d["original"]:
         assert d["author"] == "Les Muses de la Discorde"
     else:
@@ -2052,7 +2070,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 This task needs web access (WebFetch/WebSearch). **Fetch the real text from fr.wikisource.org or gutenberg.org; do not reconstruct classic passages from memory.** Memory-written "Daudet" is not Daudet. Only the six original myth passages are written by the implementer, in careful French.
 
 **Files:**
-- Create: `content/seed/001-….json` … `content/seed/0NN-….json` (30–34 files, schema from Task 4)
+- Create: `content/seed/001-….json` … `content/seed/0NN-….json` (the passage table in Step 2 is authoritative: 35 entries, #30–35 originals, plus one more original per dropped Bérard passage; treat "30–34 files" and the per-level spread below as indicative only — floor is ≥ 30 files after any drops, and T9/T13 only require ≥ 25 seed texts; schema from Task 4)
 - Create: `server/app/tools/__init__.py`, `server/app/tools/seed_check.py`
 - Create: `content/seed/README.md` (sources, one line per file, plus the public-domain rule)
 
@@ -2066,7 +2084,7 @@ For each name below, fetch the French Wikipedia page and record the death year i
 
 - [ ] **Step 2: Fetch and cut the passages**
 
-Target list (level in brackets; adjust ±1 level if the fetched passage is clearly easier/harder; keep the overall spread 5H: 3, 6H: 4, 7H: 4, 8H: 5, 9H: 6, 10H: 5, 11H: 3):
+Target list (level in brackets; adjust ±1 level if the fetched passage is clearly easier/harder; aim for a spread across levels — indicative only, the table's per-passage levels win over any target total):
 
 | # | Author / translator | Work | Passage hint | Level |
 |---|---|---|---|---|
@@ -2099,7 +2117,7 @@ Target list (level in brackets; adjust ±1 level if the fetched passage is clear
 | 27 | Hugo | Notre-Dame de Paris | the cathedral, a descriptive paragraph | 11H |
 | 28 | Töpffer | Nouvelles genevoises | an alpine walk | 11H |
 | 29 | Ramuz | Derborence or Aline | a narrative paragraph (no dialect) | 11H |
-| 30–35 | Les Muses de la Discorde (original) | Textes originaux | see Step 3 | 5H–10H |
+| 30–35 (+36, 37, … if Bérard passages are dropped) | Les Muses de la Discorde (original) | Textes originaux | see Step 3 | 5H–10H |
 
 Rules for cutting:
 - 80–200 words, cut at sentence boundaries, verbatim otherwise. Do not modernise spelling, but avoid passages with pre-1835 spelling (`étoit`, `enfans`), heavy dialogue, verse, or many proper nouns. If a Perrault text on Wikisource is in old spelling, take a modernised edition on Wikisource or drop it.
@@ -2107,11 +2125,11 @@ Rules for cutting:
 - Numbers must be written as words; if a passage contains a digit, either spell it out (`quatre-vingts`) or choose another cut.
 - Use typographic apostrophes as in the source or straight ones; the client normalises both. Use `«` `»` for quotes when the source does. Paragraphs are separated by `\n\n`.
 - `source_url` = the exact Wikisource/Gutenberg page. `license_note` = `"Domaine public : auteur mort en 1897."` or `"Domaine public : auteur mort en 1936, traducteurs morts en 1933 et 1915."`
-- For Bérard's Odyssey: search fr.wikisource.org for "Odyssée Bérard"; if his translation is not available online, use Leconte de Lisle's (died 1894), set the translator accordingly, and say so in `content/seed/README.md`.
+- For Bérard's Odyssey: search fr.wikisource.org for "Odyssée Bérard"; if his translation is not available online, **do not** fall back to Leconte de Lisle's (his Hellenised proper names — "Akhilleus" and the like — are unsuitable for this game). Instead, drop the affected Odyssey passage(s) (#19–21) and write one additional original myth passage per dropped passage (same style and rules as Step 3, at a comparable level) to keep the file count at or above the floor in Step 3; say so in `content/seed/README.md`.
 
 - [ ] **Step 3: Write the original myth passages (French, careful, proofread twice)**
 
-Six originals, one each at 5H, 6H, 7H, 8H, 9H, 10H, 90–150 words, narrative, plenty of plural subjects and feminine agreements, no dialogue longer than one line, no digits. Subjects: (30) *La pomme d'or* — Éris throws the golden apple at the wedding of Thétis and Pélée (5H); (31) *Le dragon des Muses* — how the Muses entrust a dragon egg to young heroes (6H); (32) *Argus aux cent yeux* — the guardian whose eyes never all sleep (7H); (33) *Le fil d'Ariane* — Thésée in the labyrinth (8H); (34) *Le bouclier de Persée* — the polished shield and Méduse (9H); (35) *La chouette d'Athéna* — the owl that sees in the dark (10H). The style is warm and vivid, never scholarly. Example for #30 (use it as written, then proofread it once more):
+Six originals, one each at 5H, 6H, 7H, 8H, 9H, 10H, 90–150 words, narrative, plenty of plural subjects and feminine agreements, no dialogue longer than one line, no digits. Subjects: (30) *La pomme d'or* — Éris throws the golden apple at the wedding of Thétis and Pélée (5H); (31) *Le dragon des Muses* — how the Muses entrust a dragon egg to young heroes (6H); (32) *Argus aux cent yeux* — the guardian whose eyes never all sleep (7H); (33) *Le fil d'Ariane* — Thésée in the labyrinth (8H); (34) *Le bouclier de Persée* — the polished shield and Méduse (9H); (35) *La chouette d'Athéna* — the owl that sees in the dark (10H). If Step 2 dropped any Bérard/Odyssey passage (#19–21), write one further original myth passage per drop (numbered #36, #37, … in the same style, at 9H or 10H to replace the level(s) lost) instead of substituting Leconte de Lisle. The style is warm and vivid, never scholarly. Example for #30 (use it as written, then proofread it once more):
 
 > Au mariage de Thétis et de Pélée, tous les dieux étaient invités, sauf une : Éris, la déesse de la Discorde. Furieuse, elle s'approcha sans bruit de la grande table. Les invités riaient, les coupes brillaient, les musiciennes jouaient des airs joyeux. Alors Éris lança une pomme d'or au milieu des plats. Sur la pomme, quelques mots étaient gravés : « À la plus belle. » Aussitôt, trois déesses tendirent la main. Héra, Athéna et Aphrodite se regardèrent, les yeux pleins de colère. Les rires cessèrent, les musiciennes s'arrêtèrent, et les dieux, embarrassés, baissèrent la tête. Éris, cachée derrière une colonne, souriait. Sa pomme avait réussi : la dispute était semée, et elle ne s'arrêterait plus.
 
@@ -2162,6 +2180,8 @@ This is the heart of the game (spec §3.5). Pure functions, no DOM, no Svelte. E
   export interface Annotation { version: number; model: string; tokens: AnnotToken[]; sentences: { start: number; end: number }[] }
   export interface GradeResult { refTokens: Token[]; typedTokens: Token[]; pairs: AlignedPair[]; errors: TokenError[]; correctWords: number; totalWords: number }
   export type StatKey = 'agreement:verb' | 'agreement:participle' | 'agreement:number' | 'agreement:gender' | 'agreement:other' | 'homophone' | 'accent' | 'punctuation_case' | 'lexical';
+  // Single source of truth for ArgusPass too (Task 11's argus.ts and Task 9's types.ts import/re-export this — do not redeclare it).
+  export type ArgusPass = 'verbes' | 'groupes_nominaux' | 'homophones' | 'mots_pieges';
   export interface CategoryStat { opportunities: number; draft: number; caught: number; missed: number; introduced: number }
   export interface SessionResult { version: 1; byCategory: Partial<Record<StatKey, CategoryStat>>; draftErrors: TokenError[]; finalErrors: TokenError[];
     caught: TokenError[]; missed: TokenError[]; introduced: TokenError[]; correctWords: number; totalWords: number; catchRate: number | null; score: number }
@@ -2173,7 +2193,7 @@ This is the heart of the game (spec §3.5). Pure functions, no DOM, no Svelte. E
   - `align.ts`: `alignTokens(ref: Token[], typed: Token[]): AlignedPair[]` — Needleman–Wunsch; costs: equal norm & kind 0; word↔word substitution 0.6 if `similar` else 1.2; punct↔punct substitution 0.5; word↔punct 3; gap 1. `similar(a, b)` = same homophone set, or `1 - levenshtein(a.norm, b.norm) / max(len) >= 0.5`. Traceback ties: diagonal first, then "missing" (ref unpaired), then "extra".
   - `classify.ts`: `classifyPair(ref: Token | null, typed: Token | null, annot: AnnotToken | undefined, anchor: number): TokenError | null` and helpers `isVerbEndingHomophone(r, t)`, `isAgreement(r, t)`, `agreementSub(r, t, annot)`.
   - `annotationMap.ts`: `mapAnnotation(refTokens: Token[], annotation: Annotation | null): (AnnotToken | undefined)[]` (largest span overlap wins; ties → first), `refCategories(annot: AnnotToken | undefined): string[]`.
-  - `grade.ts`: `gradeText(reference, typed, annotation): GradeResult`, `errorKey(e: TokenError): string` (`r<refIndex>` or `x<anchor>:<typed norm>`), `gradeSession(reference, draft, final, annotation, { paceLevel }): SessionResult`, `computeScore(correctWords, caughtCount, catchRate, paceLevel): number`.
+  - `grade.ts`: `gradeText(reference, typed, annotation): GradeResult`, `errorKey(e: TokenError): string` (`r<refIndex>` or `x<anchor>:<typed norm>`), `gradeSession(reference, draft, final, annotation, { paceLevel }): SessionResult`, `computeScore(correctWords, caughtCount, catchRate, paceLevel): number`, `statKey(e: TokenError): StatKey` (`agreement:${sub ?? 'other'}` or the category; the one implementation — Task 12's `explain.ts` imports and re-exports this as `statKeyOf` rather than recomputing it).
   - `index.ts` re-exports everything.
 
 **Classification rules (exact, applied in this order to a word↔word pair with `r = ref.norm`, `t = typed.norm`):**
@@ -2233,7 +2253,7 @@ Implementation:
 ```ts
 const APOSTROPHES = /[’ʼ‘′]/g;
 const DQUOTES = /[“”„″]/g;
-const NBSP = /[   ]/g;
+const NBSP = /[\u00A0\u202F\u2007]/g; // no-break, narrow no-break, figure space — written as escapes, not literal invisible characters
 
 export function caseNormalizeWord(s: string): string {
   return s.replace(APOSTROPHES, "'").replace(DQUOTES, '"').replace(NBSP, ' ')
@@ -2497,11 +2517,12 @@ function ann(): Annotation {
 // words with diacritics 3 (fées, clairière, écoutent), words 13.
 
 describe('gradeText', () => {
-  it('finds no errors on a perfect text, including quote/ligature variants', () => {
+  it('finds no errors on a perfect text', () => {
     const g = gradeText(REF, REF, ann());
     expect(g.errors).toEqual([]);
     expect(g.totalWords).toBe(13);
     expect(g.correctWords).toBe(13);
+    expect(gradeText("cœur d’or", "coeur d'or", null).errors).toEqual([]);
   });
   it('classifies each wrong token with the reference index', () => {
     const typed = 'Les fée danse dans la clairiere. Elles chantent est les oiseaux les écoute.';
@@ -2595,7 +2616,7 @@ export function gradeText(reference: string, typed: string, annotation: Annotati
   return { refTokens, typedTokens, pairs, errors, correctWords, totalWords };
 }
 ```
-`gradeSession`: grade draft and final; build maps by `errorKey`; `caught` = draft errors whose key is absent from final; `missed` = final errors whose key is present in draft (use the final error object, so `typed` reflects what she left); `introduced` = final errors whose key is absent from draft; `catchRate = draftErrors.length ? caught.length / draftErrors.length : null`; `byCategory` from opportunities + counting each list by `statKey(e)` (`agreement:${sub ?? 'other'}` or the category).
+`gradeSession`: grade draft and final; build maps by `errorKey`; `caught` = draft errors whose key is absent from final; `missed` = draft errors whose key is present in final, **copied from the draft error object** with `typed` (and `typedIndex`) overwritten from the matching final error (category/sub stay those of the draft error, so per-key `draft === caught + missed` always holds, even when a wrong word is re-typed into a *different* wrong word); `introduced` = final errors whose key is absent from draft; `catchRate = draftErrors.length ? caught.length / draftErrors.length : null`; `byCategory` from opportunities + counting each list by `statKey(e)` (`agreement:${sub ?? 'other'}` or the category).
 
 - [ ] **Step 7: `index.ts`, full run, svelte-check**
 
@@ -2653,6 +2674,7 @@ Pure TypeScript except `tts.ts`, which wraps `speechSynthesis` and is tested wit
     | { kind: 'wait'; ms: number }
     | { kind: 'manual'; index: number }
     | { kind: 'done' };
+  export type SayStep = Extract<Step, { kind: 'say' }>; // Task 10's runner.ts imports this for RunnerState.lastSay
   export function buildPlan(text: string): DictationPlan;
   export function buildScript(plan: DictationPlan, pace: Pace): Step[];
   export function replayLimit(pace: Pace): number;        // 1: Infinity, 2: 3, 3: 0, 4: 0
@@ -2878,7 +2900,7 @@ Svelte 5 with runes (`$state`, `$derived`, `$effect`, `$props`). All UI text in 
 
 **Interfaces:**
 - Consumes: API endpoints from Tasks 2, 4, 5; `listFrenchVoices`, `pickVoice`, `waitForVoices`, `speak` from Task 8.
-- Produces (`types.ts`, mirrors the server schemas): `Profile { id; name; avatar; level; has_pin; help_stage; created_at; settings: { voice?: string } }`, `TextSummary { id; title; level; source; author; translator; work; credits; word_count; added_by_profile_id; added_by_name; due_date; created_at; history: { times_played; best_score; best_catch_rate } | null }`, `TextFull extends TextSummary { body; annotation: Annotation }`, `SessionCreate`, `SessionCreated { id; help_stage_before; help_stage_after; help_stage_message: string | null }`, `StatsResponse { profile; categories: CategoryRow[]; recent_sessions; trap_words: TrapWord[]; totals; argus_order: ArgusPass[] }`, `type ArgusPass = 'verbes' | 'groupes_nominaux' | 'homophones' | 'mots_pieges'`, `TrapWord { word; box; misses; last_seen }`.
+- Produces (`types.ts`, mirrors the server schemas): `Profile { id; name; avatar; level; has_pin; help_stage; created_at; settings: { voice?: string } }`, `TextSummary { id; title; level; source; author; translator; work; credits; word_count; added_by_profile_id; added_by_name; due_date; created_at; history: { times_played; best_score; best_catch_rate } | null }`, `TextFull extends TextSummary { body; annotation: Annotation }`, `SessionCreate`, `SessionCreated { id; help_stage_before; help_stage_after; help_stage_message: string | null }`, `StatsResponse { profile; categories: CategoryRow[]; recent_sessions; trap_words: TrapWord[]; totals; argus_order: ArgusPass[] }`, `TrapWord { word; box; misses; last_seen }`. `types.ts` re-exports `ArgusPass` from `./grading/types` (`export type { ArgusPass } from './grading/types';`) rather than redeclaring it.
 - Produces (`api.ts`): `class ApiError extends Error { status: number; detail: string }`; `api.profiles.list() / create(body) / get(id) / patch(id, body) / verifyPin(id, pin) / stats(id) / trapWords(id)`; `api.texts.list(profileId?) / create(body) / get(id)`; `api.sessions.create(body)`. All return parsed JSON; non-2xx throws `ApiError` with `detail` from the JSON body (`detail` may be a string or a pydantic error list — flatten to a string).
 - Produces (`routes.ts`): `type RouteName = 'profiles' | 'profile-new' | 'library' | 'text-new' | 'play' | 'stats' | 'settings'`; `interface Route { name: RouteName; params: Record<string, string> }`; `matchRoute(hash: string): Route` (patterns: `/` → profiles, `/profiles/new`, `/p/:profileId/camp` → library, `/p/:profileId/texts/new` → text-new, `/p/:profileId/play/:textId` → play, `/p/:profileId/stats`, `/p/:profileId/settings`; anything else → profiles); `href(name, params)` builder.
 - Produces (`router.svelte.ts`): `export const router = $state({ route: matchRoute(location.hash) })`, `startRouter()`, `navigate(path: string)` (sets `location.hash`).
@@ -2943,7 +2965,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 
 - [ ] **Step 3: Screens (French copy below is normative; adjust wording only if it reads badly)**
 
-`ProfilePicker.svelte`: heading `La Discorde`, subtitle `Choisis ton héros`. Grid of `.card` buttons: `<Avatar avatar size=72/>`, name (display font), level chip. Last card: `+ Nouveau héros` → `#/profiles/new`. Empty state: `Aucun héros pour l'instant. Crée le tien !`. Tap → `navigate(href('library', { profileId }))` (the gate handles the PIN).
+`ProfilePicker.svelte`: heading `La Discorde`, subtitle `Choisis ton héros`. Grid of `.card` buttons: `<Avatar avatar size=72/>`, name (display font), level chip. Last card: `<button type="button" class="card">+ Nouveau héros</button>` → `#/profiles/new` (a real `<button>`, not an `<a>`, so `getByRole('button')` in the e2e specs finds it). Empty state: `Aucun héros pour l'instant. Crée le tien !`. Tap → `navigate(href('library', { profileId }))` (the gate handles the PIN).
 
 `PinGate.svelte` (props `profile`, `onUnlocked`): title `Code de {name}`, one `<input inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">` (large digits), auto-submit at 4 digits via `api.profiles.verifyPin`; wrong → message in orange `Ce n'est pas le bon code. Réessaie.` and clear; right → `markUnlocked(id)`, `onUnlocked()`. Link `Changer de héros` → `#/`.
 
@@ -2951,7 +2973,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 
 `TopBar.svelte` (props `profile`, `title?`): left: `Avatar` + name; centre: title; right: links `Progrès` (`stats`), `Réglages` (`settings`), `Changer de héros` (`clearProfile()` then `#/`). Collapses to icons + labels under 700 px width.
 
-`Library.svelte` (`Les Parchemins`): loads `api.texts.list(profileId)`. Subtitle `Choisis un texte à protéger des dés-accords d'Éris.` Level filter chips: `Tous` + one per level; default selection `Tous`. Two sections when `Tous`: `À ton niveau ({level})` then `Autres parchemins` (sorted by level then title). Text card: title (display font), credits line (`{credits}` or `Ajouté par {added_by_name}` for custom), chips `{level}` and `≈ {word_count} mots`, history line `Jamais joué` / `Joué {n}× · meilleur taux de pièges déjoués {pct} %` (`best_catch_rate` null → `Joué {n}×`). Tap → play route. Floating button `+ Ajouter un texte` → text-new. Loading: `Les Muses déroulent les parchemins…`. Error: `Impossible de lire les parchemins : {detail}`.
+`Library.svelte` (`Les Parchemins`): loads `api.texts.list(profileId)`. Subtitle `Choisis un texte à protéger des dés-accords d'Éris.` Level filter chips: `Tous` + one per level; default selection `Tous`. Two sections when `Tous`: `À ton niveau ({level})` then `Autres parchemins` (sorted by level then title). Text card: title (display font), credits line (`{credits}` or `Ajouté par {added_by_name}` for custom), chips `{level}` and `≈ {word_count} mots`, history line `Jamais joué` / `Joué {n}× · meilleur taux de pièges déjoués {pct} %` (`best_catch_rate` null → `Joué {n}×`). Tap → play route. Floating button `<button type="button">+ Ajouter un texte</button>` → text-new (a real `<button>`, not an `<a>`, so `getByRole('button')` in the e2e specs finds it). Loading: `Les Muses déroulent les parchemins…`. Error: `Impossible de lire les parchemins : {detail}`.
 
 `TextCreate.svelte` (`Nouveau parchemin`): fields `Titre`, `Texte` (textarea 12 rows with `autocorrect="off" autocapitalize="sentences" spellcheck="true"` — spellcheck is fine here, this is the parent/child entering a reference), `Niveau`, optional `Auteur`, `Œuvre`, `Traducteur`. Live word count `{n} mots` (`countWords`), hint `Entre quatre-vingts et deux cents mots, nombres écrits en lettres.` Submit `Sauvegarder dans les Parchemins` → `api.texts.create({ ..., source: 'custom', added_by_profile_id })` → navigate to library. 422 detail shown as-is (server already says `Écris les nombres en lettres`).
 
@@ -2971,7 +2993,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 ```
 `web/index.html` head additions: `<link rel="manifest" href="/manifest.json">`, `<meta name="theme-color" content="#C0623B">`, `<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">`, `<meta name="apple-mobile-web-app-capable" content="yes">`, `<meta name="apple-mobile-web-app-status-bar-style" content="default">`, `<meta name="apple-mobile-web-app-title" content="La Discorde">`.
 `web/public/icon.svg` (512×512): rounded square (`rx=96`) filled `#C0623B`; the golden apple of Discord: circle `cx=256 cy=290 r=150` fill `#E1B93A` with a lighter highlight ellipse `#F3D97A`, a stem (`stroke #6B4A1E width 14`) and an olive leaf (`#6B7A3A`) at the top; a thin marble-white (`#F4EFE6`) ring at `r=232` `stroke-width=10` `opacity=.5`.
-`web/scripts/make-icons.mjs` with `sharp`: render `public/icon.svg` to `icons/icon-192.png` (192), `icons/icon-512.png` (512), `icons/apple-touch-icon.png` (180), and `icons/icon-maskable-512.png` (the SVG scaled to 80 % centred on a `#C0623B` 512×512 background). Run `scripts/npm.sh run icons` and commit the PNGs. If `sharp` fails to load its binary in the container, run `scripts/npm.sh rebuild sharp` once.
+`web/scripts/make-icons.mjs` with `sharp`: render `public/icon.svg` to `public/icons/icon-192.png` (192), `public/icons/icon-512.png` (512), `public/icons/apple-touch-icon.png` (180), and `public/icons/icon-maskable-512.png` (the SVG scaled to 80 % centred on a `#C0623B` 512×512 background) — outputs land under `public/icons/`, matching the Files list, `manifest.json` and `index.html`. Run `scripts/npm.sh run icons` and commit the PNGs. If `sharp` fails to load its binary in the container, run `scripts/npm.sh rebuild sharp` once.
 
 - [ ] **Step 5: E2E for profiles and library**
 
@@ -3164,7 +3186,7 @@ Spec §3.4. This is the main game. The player's text is the only text on screen;
 - Consumes: `gradeText`, `tokenize`, `errorKey`, `homophoneSetOf` (Task 7); `splitSentences` (Task 8); `includesParticiplesInVerbPass` (Task 9); `PlayState` (Task 10); `argus_order` and trap words from the API.
 - Produces (`argus.ts`):
   ```ts
-  export type ArgusPass = 'verbes' | 'groupes_nominaux' | 'homophones' | 'mots_pieges';
+  export type { ArgusPass } from './grading/types'; // single source of truth; do not redeclare here
   export const ARGUS_PASSES: ArgusPass[] = ['verbes', 'groupes_nominaux', 'homophones', 'mots_pieges'];
   export const ARGUS_LABELS: Record<ArgusPass, { title: string; hint: string }> = {
     verbes: { title: 'Verbes', hint: 'Pour chaque verbe, cherche son sujet : singulier ou pluriel ?' },
@@ -3302,12 +3324,12 @@ Spec §3.5 and §1.6: orange, never red; specific, kind explanations; Éris fram
 - Consumes: `gradeSession`, `mapAnnotation`, `homophoneHint`, `TokenError`, `SessionResult` (Task 7); `api.sessions.create`, `api.profiles.stats` (Task 9); `PlayState` (Task 10).
 - Produces (`explain.ts`):
   ```ts
-  export type StatKey = /* same as grading */;
+  export type { StatKey } from './grading/types'; // single source of truth; do not redeclare here
   export const CATEGORY_LABELS: Record<StatKey, string> = {
     'agreement:verb': "Accord du verbe avec son sujet (L'Hydre)", 'agreement:number': "Accord en nombre (L'Hydre)",
     'agreement:gender': 'Accord en genre (La Chimère)', 'agreement:participle': 'Participes passés (Protée)',
     'agreement:other': 'Accords', homophone: 'Homophones (Écho)', accent: 'Accents', punctuation_case: 'Majuscules et ponctuation', lexical: 'Orthographe des mots' };
-  export function statKeyOf(e: TokenError): StatKey;
+  export { statKey as statKeyOf } from './grading/grade'; // re-export, one implementation
   export interface ExplainContext { refTokens: Token[]; annots: (AnnotToken | undefined)[]; annotation: Annotation | null }
   export function explain(e: TokenError, ctx: ExplainContext): { title: string; text: string };
   export function erisLine(catchRate: number | null, draftErrors: number, introduced: number): string;
@@ -3434,6 +3456,8 @@ Spec §6.1. The e2e suite runs against the production image (`scripts/playwright
 - Consumes: every screen from Tasks 9–12; `data-testid`s: `text-card` (library), add the following in this task where missing: `pace-option-<n>` on pace cards, `dictation-textarea`, `btn-next` (`Suivant`), `btn-finish-writing` (`J'ai fini d'écrire`), `btn-next-pass` (`Passe suivante`), `btn-done-proofreading` (`J'ai terminé ma relecture`), `tok-<index>` on proofreading tokens, `word-editor` input, `results-catch-rate`, `results-score`, `btn-back-library`.
 - Produces: `stubSpeech(page)` helper installed with `page.addInitScript` **before** navigation:
   ```ts
+  import type { Page } from '@playwright/test';
+
   export async function stubSpeech(page: Page) {
     await page.addInitScript(() => {
       class U { text: string; rate = 1; lang = ''; voice: unknown = null; pitch = 1; onend: null | ((e: unknown) => void) = null; onerror: null | ((e: unknown) => void) = null; constructor(t: string) { this.text = t; } }
@@ -3464,7 +3488,7 @@ test('image serves API, SPA assets, PWA files and seed texts', async ({ request 
   expect(texts.length).toBeGreaterThanOrEqual(25);
   const seed = texts.filter((t: { source: string }) => t.source === 'seed');
   expect(seed.length).toBeGreaterThanOrEqual(25);
-  expect(seed.some((t: { credits: string }) => /Bérard|Leconte de Lisle/.test(t.credits))).toBeTruthy();
+  expect(seed.some((t: { credits: string }) => /trad\. /.test(t.credits))).toBeTruthy();
   const full = await (await request.get(`/api/texts/${seed[0].id}`)).json();
   expect(full.annotation.tokens.length).toBeGreaterThan(50);
   expect(full.annotation.model).toBe('core_news_lg');
@@ -3590,7 +3614,9 @@ export default defineConfig({
 
 - [ ] **Step 2: `playability.spec.ts` — walk every screen and screenshot it**
 
-One test per project that: creates a profile (`Léa`, 10H, no PIN), and saves `docs/reviews/sp1/<project>-NN-<screen>.png` (`page.screenshot({ path: `/work/docs/reviews/sp1/${project}-01-profiles.png`, fullPage: true })`) for: `01-profiles`, `02-profile-new` (form filled), `03-library`, `04-text-new`, `05-play-intro`, `06-dictation-listening` (right after start), `07-dictation-typing` (with a draft containing 3 planted errors typed into the textarea, at pace 1 after `Suivant`), `08-proofreading-verbes` (stage 1 first pass), `09-proofreading-gn` (after `Passe suivante`), `10-proofreading-edit` (word editor open), `11-bouclier` (Bouclier on), `12-chouette` (after one hint), `13-results`, `14-results-explanation` (after tapping an error), `15-stats`, `16-settings`, `17-pin-gate` (create a second profile with a PIN and come back to it). Use a seed text (the first card) for the full loop so the review sees real content; type a draft made from the reference body fetched through `request.get('/api/texts/{id}')` with three deliberate errors (`replace(/ent\b/, 'e')` on the first verb ending, one `à`→`a`, one accent dropped) — the draft is derived in the test, never shown by the app.
+Both projects run against the same live container, so profile names must be unique per project (otherwise the second project's profile creation gets 409 `Ce nom est déjà pris`): use `` `Léa-${testInfo.project.name}` `` for the main profile and `` `Max-${testInfo.project.name}` `` for the PIN profile in Step 17 (`PinGate` title `Code de {name}` still matches `/Code de/`).
+
+One test per project that: creates a profile (`` `Léa-${testInfo.project.name}` ``, 10H, no PIN), and saves `docs/reviews/sp1/<project>-NN-<screen>.png` (`page.screenshot({ path: `/work/docs/reviews/sp1/${project}-01-profiles.png`, fullPage: true })`) for: `01-profiles`, `02-profile-new` (form filled), `03-library`, `04-text-new`, `05-play-intro`, `06-dictation-listening` (right after start), `07-dictation-typing` (with a draft containing 3 planted errors typed into the textarea, at pace 1 after `Suivant`), `08-proofreading-verbes` (stage 1 first pass), `09-proofreading-gn` (after `Passe suivante`), `10-proofreading-edit` (word editor open), `11-bouclier` (Bouclier on), `12-chouette` (after one hint), `13-results`, `14-results-explanation` (after tapping an error), `15-stats`, `16-settings`, `17-pin-gate` (create a second profile, `` `Max-${testInfo.project.name}` ``, with a PIN and come back to it). Use a seed text (the first card) for the full loop so the review sees real content; type a draft made from the reference body fetched through `request.get('/api/texts/{id}')` with three deliberate errors (`replace(/ent\b/, 'e')` on the first verb ending, one `à`→`a`, one accent dropped) — the draft is derived in the test, never shown by the app.
 
 Run: `scripts/playwright.sh --config playwright.playability.config.ts` → 2 tests pass and 34 PNGs exist under `docs/reviews/sp1/`.
 
