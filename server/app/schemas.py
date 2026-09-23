@@ -92,3 +92,16 @@ class TextSummaryWithHistory(TextSummary):
 class TextFull(TextSummaryWithHistory):
     body: str
     annotation: dict[str, Any]
+
+
+class SessionCreate(BaseModel):
+    profile_id: int
+    text_id: int
+    pace_level: int = Field(ge=1, le=4)
+    help_stage: int = Field(ge=1, le=4)
+    started_at: str
+    draft: str
+    final: str
+    result: dict[str, Any]
+    score: int = Field(ge=0)
+    catch_rate: float | None = Field(default=None, ge=0, le=1)
