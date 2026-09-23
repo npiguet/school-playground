@@ -51,17 +51,12 @@ export function splitSentences(text: string): Sentence[] {
     const terminalChars = m[0].replace(/["»”)]$/, '');
     if (terminalChars === '.') {
       const before = text.slice(0, m.index);
-      const wordMatch = before.match(/(\p{L}+)\.?$/u);
-      // The word immediately preceding this '.' (abbreviations are followed by their own '.').
+      // The word immediately preceding this '.'.
       const precedingWordMatch = before.match(/(\p{L}+)$/u);
-      const word = precedingWordMatch ? precedingWordMatch[0] : wordMatch?.[1];
-      if (word && ABBREVIATIONS.has(word)) continue;
+      if (precedingWordMatch && ABBREVIATIONS.has(precedingWordMatch[0])) continue;
     }
 
     boundaries.push(matchEnd);
-  }
-  if (text.length > 0 && (boundaries.length === 0 || boundaries[boundaries.length - 1] < text.length)) {
-    // no trailing terminal punctuation - handled by paragraph breaks / raw text below
   }
 
   // Merge terminal-punctuation boundaries with paragraph-break boundaries and text end.
