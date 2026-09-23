@@ -1,0 +1,24 @@
+services:
+  server:
+    image: discorde-server-dev
+    working_dir: /work/server
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+    environment:
+      DISCORDE_DATA_DIR: /data
+      DISCORDE_CONTENT_DIR: /work/content
+      DISCORDE_STATIC_DIR: /nonexistent
+      SPACY_MODEL: fr_core_news_sm
+    volumes: [".:/work", "discorde-dev-data:/data"]
+    ports: ["8080:8080"]
+  web:
+    image: node:22
+    working_dir: /work/web
+    command: npm run dev
+    environment: { API_PROXY: "http://server:8080" }
+    volumes: [".:/work", "discorde-web-node_modules:/work/web/node_modules"]
+    ports: ["5173:5173"]
+    depends_on: [server]
+volumes:
+  discorde-dev-data:
+  discorde-web-node_modules:
+    external: true

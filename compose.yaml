@@ -1,0 +1,10 @@
+services:
+  discorde:
+    image: discorde:local
+    build: .
+    container_name: discorde
+    ports: ["8080:8080"]
+    volumes: ["discorde-data:/data"]
+    restart: unless-stopped
+volumes:
+  discorde-data:

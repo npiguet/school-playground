@@ -8,3 +8,5 @@ web/dist/
 test-results/
 playwright-report/
 .env
+web/node_modules/
+server/.pytest_cache/

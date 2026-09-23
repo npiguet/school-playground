@@ -1,0 +1,6 @@
+FROM python:3.12-slim
+ENV PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+WORKDIR /work/server
+COPY requirements.txt requirements-dev.txt ./
+RUN pip install --no-cache-dir -r requirements-dev.txt \
+ && python -m spacy download fr_core_news_sm

@@ -1,0 +1,24 @@
+"""Environment-driven settings. Every path has a sane default for the production image."""
+from __future__ import annotations
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+
+@dataclass(frozen=True)
+class Settings:
+    data_dir: Path = Path("/data")
+    content_dir: Path = Path("/app/content")
+    static_dir: Path = Path("/app/static")
+    spacy_model: str = "fr_core_news_lg"
+    seed_on_startup: bool = True
+
+    @classmethod
+    def from_env(cls) -> "Settings":
+        return cls(
+            data_dir=Path(os.environ.get("DISCORDE_DATA_DIR", "/data")),
+            content_dir=Path(os.environ.get("DISCORDE_CONTENT_DIR", "/app/content")),
+            static_dir=Path(os.environ.get("DISCORDE_STATIC_DIR", "/app/static")),
+            spacy_model=os.environ.get("SPACY_MODEL", "fr_core_news_lg"),
+            seed_on_startup=os.environ.get("DISCORDE_SEED", "1") == "1",
+        )
