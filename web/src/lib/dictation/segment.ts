@@ -47,8 +47,10 @@ export function splitSentences(text: string): Sentence[] {
     const nextNonSpace = nextNonSpaceMatch ? nextNonSpaceMatch[0] : '';
     if (/\p{Ll}/u.test(nextNonSpace)) continue;
 
-    // Check for abbreviation before a single '.'.
-    const terminalChars = m[0].replace(/["»”)]$/, '');
+    // Check for abbreviation before a single '.'. Trim first: the optional
+    // closing quote can be separated from the '.' by whitespace (e.g. ". »"),
+    // and that whitespace must not make this look like more than a bare '.'.
+    const terminalChars = m[0].replace(/["»”)]$/, '').trim();
     if (terminalChars === '.') {
       const before = text.slice(0, m.index);
       // The word immediately preceding this '.'.

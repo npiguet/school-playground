@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { listFrenchVoices, pickVoice, speak, ttsAvailable, unlockSpeech } from './tts';
+import { cancelSpeech, listFrenchVoices, pickVoice, speak, ttsAvailable, unlockSpeech, waitForVoices } from './tts';
 
 const v = (name: string, lang: string) => ({ name, lang, default: false, localService: true, voiceURI: name }) as SpeechSynthesisVoice;
 
@@ -46,5 +46,60 @@ describe('speak', () => {
     expect(spoken).toEqual([{ text: '', rate: 1 }]);
     delete (globalThis as any).speechSynthesis;
     expect(() => unlockSpeech()).not.toThrow();
+  });
+  it('defers the next speak() by a short tick when something was speaking or pending (iOS cancel bug)', async () => {
+    (globalThis as any).speechSynthesis.speaking = true;
+    const promise = speak('Après.', { rate: 1 });
+    // Not spoken synchronously nor on the same tick as cancel() — gives iOS
+    // a moment to actually apply the cancel before the next speak().
+    expect(spoken).toEqual([]);
+    await promise;
+    expect(spoken).toEqual([{ text: 'Après.', rate: 1 }]);
+  });
+});
+
+describe('waitForVoices', () => {
+  afterEach(() => {
+    delete (globalThis as any).speechSynthesis;
+  });
+
+  it('resolves via the voiceschanged event when voices load asynchronously', async () => {
+    const handlers: { onVoicesChanged: (() => void) | null } = { onVoicesChanged: null };
+    let voices: SpeechSynthesisVoice[] = [];
+    (globalThis as any).speechSynthesis = {
+      getVoices: () => voices,
+      addEventListener: (event: string, handler: () => void) => {
+        if (event === 'voiceschanged') handlers.onVoicesChanged = handler;
+      },
+      removeEventListener: () => {},
+    };
+    const promise = waitForVoices(1000);
+    voices = [v('Zoe', 'fr-FR')];
+    handlers.onVoicesChanged?.();
+    const result = await promise;
+    expect(result.map((x) => x.name)).toEqual(['Zoe']);
+  });
+
+  it('resolves with whatever getVoices() returns once the timeout elapses', async () => {
+    (globalThis as any).speechSynthesis = {
+      getVoices: () => [],
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    };
+    const t0 = Date.now();
+    const result = await waitForVoices(30);
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(25);
+    expect(result).toEqual([]);
+  });
+});
+
+describe('cancelSpeech', () => {
+  it('calls speechSynthesis.cancel() when available and is a no-op otherwise', () => {
+    const cancel = vi.fn();
+    (globalThis as any).speechSynthesis = { cancel };
+    cancelSpeech();
+    expect(cancel).toHaveBeenCalled();
+    delete (globalThis as any).speechSynthesis;
+    expect(() => cancelSpeech()).not.toThrow();
   });
 });

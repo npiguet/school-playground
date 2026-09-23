@@ -19,6 +19,13 @@ describe('splitSentences', () => {
     expect(s.map((x) => [x.text, x.newParagraph])).toEqual([['Fin du premier', false], ['Début du second.', true], ['Suite.', false]]);
   });
   it('returns nothing for blank text', () => expect(splitSentences('  ')).toEqual([]));
+  it('does not bypass the abbreviation guard when a closing quote follows the abbreviation dot', () => {
+    // Regression: the closing quote is separated from the '.' by a space
+    // ("M. »"), which must not make the abbreviation-dot check see anything
+    // other than a bare '.'.
+    const s = splitSentences('Elle salua poliment M. » Puis elle partit.');
+    expect(s.map((x) => x.text)).toEqual(['Elle salua poliment M. » Puis elle partit.']);
+  });
 });
 
 describe('splitChunks', () => {

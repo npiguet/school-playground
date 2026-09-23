@@ -6,6 +6,17 @@
 
 const NATURAL_RE = /natural|premium|enhanced|amélior/i;
 
+// A short tick (ms) to defer synth.speak() by after synth.cancel(), but only
+// when something was actually speaking/pending. Works around iOS Safari
+// sometimes silently no-op'ing a speak() called immediately after cancel().
+const CANCEL_SETTLE_MS = 30;
+
+// Module-level reference to the utterance currently being spoken. Some
+// browsers (notably iOS Safari) can garbage-collect a SpeechSynthesisUtterance
+// mid-speech if nothing keeps it alive outside the closure passed to
+// speechSynthesis.speak(); holding a reference here prevents that.
+let activeUtterance: SpeechSynthesisUtterance | null = null;
+
 export function ttsAvailable(): boolean {
   return typeof (globalThis as any).speechSynthesis !== 'undefined';
 }
@@ -71,6 +82,8 @@ export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesi
     return new Promise((resolve) => setTimeout(resolve, delay));
   }
 
+  // Capture this before cancel(), which clears speaking/pending immediately.
+  const wasActive = Boolean(synth.speaking || synth.pending);
   synth.cancel();
 
   return new Promise((resolve) => {
@@ -79,10 +92,27 @@ export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesi
     utterance.rate = opts.rate;
     utterance.pitch = 1;
     if (opts.voice) utterance.voice = opts.voice;
-    const finish = () => resolve();
+    const finish = () => {
+      activeUtterance = null;
+      resolve();
+    };
     utterance.onend = finish;
     utterance.onerror = finish;
-    synth.speak(utterance);
+
+    const startSpeaking = () => {
+      activeUtterance = utterance;
+      synth.speak(utterance);
+    };
+
+    // iOS Safari can silently no-op a speak() issued right after cancel();
+    // give it a short tick to settle first, but only when there was
+    // something to cancel (otherwise this would just add latency for no
+    // reason on every single line).
+    if (wasActive) {
+      setTimeout(startSpeaking, CANCEL_SETTLE_MS);
+    } else {
+      startSpeaking();
+    }
   });
 }
 
