@@ -65,6 +65,31 @@ export function isAgreement(r: string, t: string): boolean {
   return false;
 }
 
+// Endings that only make sense on a verb (the union of the INF/IMP/PP/PAST classes below).
+// Ruling: the verb_ending homophone rule and these agreement endings (e.g. -er/-é) must only
+// fire when the reference token's annotation says VERB/AUX, or when there is no annotation at
+// all (too ambiguous to tell). Otherwise known non-verbs (papier, premier, chez, assez, jamais)
+// would be misclassified as verb-form confusions when misspelled with a verb-like ending.
+const VERB_ONLY_ENDINGS = new Set(['er', 'ez', 'é', 'ée', 'és', 'ées', 'ai', 'ais', 'ait', 'aient']);
+
+function allowsVerbSpecificEndings(annot: AnnotToken | undefined): boolean {
+  return annot === undefined || annot.pos === 'VERB' || annot.pos === 'AUX';
+}
+
+/** Like isAgreement, but ignores ending pairs that involve a verb-only ending unless `annot` says VERB/AUX. */
+function agreementEndingMatch(r: string, t: string, annot: AnnotToken | undefined): boolean {
+  const verbAllowed = allowsVerbSpecificEndings(annot);
+  for (const a of ENDINGS) {
+    for (const b of ENDINGS) {
+      if (a === b) continue;
+      if (!verbAllowed && (VERB_ONLY_ENDINGS.has(a) || VERB_ONLY_ENDINGS.has(b))) continue;
+      const stem = stemIf(r, t, a, b);
+      if (stem !== null && stem.length >= 1) return true;
+    }
+  }
+  return false;
+}
+
 const INF = ['er'];
 const IMP = ['ez'];
 const PP = ['é', 'ée', 'és', 'ées'];
@@ -207,7 +232,7 @@ export function classifyPair(
       anchor,
     };
   }
-  if (isVerbEndingHomophone(r, t)) {
+  if (allowsVerbSpecificEndings(annot) && isVerbEndingHomophone(r, t)) {
     return {
       refIndex: null,
       typedIndex: null,
@@ -231,7 +256,7 @@ export function classifyPair(
       anchor,
     };
   }
-  if (isAgreement(r, t)) {
+  if (agreementEndingMatch(r, t, annot)) {
     return {
       refIndex: null,
       typedIndex: null,

@@ -38,6 +38,10 @@ describe('rule 0: identical and case', () => {
   it('flags a case-only difference as punctuation_case', () => {
     expect(cls('Marie', 'marie')).toMatchObject({ category: 'punctuation_case', expected: 'Marie', typed: 'marie' });
   });
+  // Ruling: typographic punctuation variants are not graded (spec §3.5).
+  it('does not grade an em dash typed as a plain hyphen', () => {
+    expect(cls('—', '-')).toBeNull();
+  });
 });
 
 describe('rule 1: homophones come first', () => {
@@ -83,6 +87,16 @@ describe('rule 2: agreement', () => {
   it('knows irregular gender pairs', () => {
     expect(cls('la', 'le', annot('DET'))).toMatchObject({ category: 'agreement', sub: 'gender' });
     expect(cls('belle', 'beau')).toMatchObject({ category: 'agreement', sub: 'gender' });
+  });
+});
+
+describe('ruling: verb-only endings require a VERB/AUX annotation (or none)', () => {
+  it('falls through to lexical for known non-verbs misspelled with a verb-like ending', () => {
+    expect(cls('papier', 'papié', annot('NOUN'))).toMatchObject({ category: 'lexical' });
+    expect(cls('premier', 'premié', annot('NOUN'))).toMatchObject({ category: 'lexical' });
+    expect(cls('chez', 'ché', annot('ADP'))).toMatchObject({ category: 'lexical' });
+    expect(cls('assez', 'assé', annot('ADV'))).toMatchObject({ category: 'lexical' });
+    expect(cls('jamais', 'jamé', annot('ADV'))).toMatchObject({ category: 'lexical' });
   });
 });
 

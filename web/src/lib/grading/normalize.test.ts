@@ -19,6 +19,22 @@ describe('normalizeWord', () => {
   it('keeps accents (accents are graded separately)', () => {
     expect(normalizeWord('élève')).toBe('élève');
   });
+  // Ruling: typographic punctuation variants are not graded (spec §3.5 "typographic
+  // apostrophes/quotes unified"; the iPad keyboard can't easily produce them).
+  it('unifies guillemets into straight double quotes', () => {
+    expect(normalizeWord('«')).toBe('"');
+    expect(normalizeWord('»')).toBe('"');
+    expect(normalizeWord('‹')).toBe('"');
+    expect(normalizeWord('›')).toBe('"');
+  });
+  it('unifies the single ellipsis glyph into three dots', () => {
+    expect(normalizeWord('…')).toBe('...');
+  });
+  it('unifies en/em dashes and the Unicode hyphen into the ASCII hyphen-minus', () => {
+    expect(normalizeWord('—')).toBe('-');
+    expect(normalizeWord('–')).toBe('-');
+    expect(normalizeWord('‐')).toBe('-');
+  });
 });
 
 describe('caseNormalizeWord', () => {

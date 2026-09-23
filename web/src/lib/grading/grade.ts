@@ -62,9 +62,15 @@ export function statKey(e: TokenError): StatKey {
   return e.category;
 }
 
+/** Clamps to a valid pace level (1-4); a non-finite input (e.g. NaN) defaults to 1. */
+function clampPaceLevel(paceLevel: number): number {
+  if (!Number.isFinite(paceLevel)) return 1;
+  return Math.min(4, Math.max(1, Math.round(paceLevel)));
+}
+
 export function computeScore(correctWords: number, caughtCount: number, catchRate: number | null, paceLevel: number): number {
   const bonus = catchRate === null ? 50 : Math.round(100 * catchRate);
-  const multiplier = PACE_MULTIPLIERS[paceLevel - 1];
+  const multiplier = PACE_MULTIPLIERS[clampPaceLevel(paceLevel) - 1];
   return Math.round((2 * correctWords + 20 * caughtCount + bonus) * multiplier);
 }
 

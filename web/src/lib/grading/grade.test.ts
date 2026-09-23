@@ -57,6 +57,11 @@ describe('gradeText', () => {
     expect(g.correctWords).toBe(13);
     expect(gradeText("cœur d’or", "coeur d'or", null).errors).toEqual([]);
   });
+  // Ruling: the tokenizer must treat "…" and "..." consistently so both sides compare equal
+  // (spec §3.5, typographic variants are not graded).
+  it('treats the single ellipsis glyph and three dots as the same token', () => {
+    expect(gradeText('Il part…', 'Il part...', null).errors).toEqual([]);
+  });
   it('classifies each wrong token with the reference index', () => {
     const typed = 'Les fée danse dans la clairiere. Elles chantent est les oiseaux les écoute.';
     const g = gradeText(REF, typed, ann());
@@ -92,6 +97,14 @@ describe('computeScore', () => {
     expect(computeScore(10, 2, 0.5, 1)).toBe(110);          // 20 + 40 + 50
     expect(computeScore(10, 2, 0.5, 4)).toBe(220);
     expect(computeScore(0, 0, 0, 2)).toBe(0);
+  });
+  it('clamps paceLevel into 1-4 and never produces NaN', () => {
+    expect(computeScore(10, 0, null, 0)).toBe(computeScore(10, 0, null, 1));
+    expect(computeScore(10, 0, null, -3)).toBe(computeScore(10, 0, null, 1));
+    expect(computeScore(10, 0, null, 5)).toBe(computeScore(10, 0, null, 4));
+    expect(computeScore(10, 0, null, 99)).toBe(computeScore(10, 0, null, 4));
+    expect(computeScore(10, 0, null, NaN)).toBe(computeScore(10, 0, null, 1));
+    expect(Number.isNaN(computeScore(10, 0, null, NaN))).toBe(false);
   });
 });
 
