@@ -69,6 +69,27 @@ def test_null_catch_rate_is_ignored_for_adaptation(client):
     assert post_session(client, p, t, 0.8)["help_stage_after"] == 2
 
 
+def test_missing_word_error_does_not_create_trap_word(client):
+    p, t = setup(client)
+    result = {"version": 1, "byCategory": {},
+              "draftErrors": [
+                  {"refIndex": 5, "typedIndex": None, "expected": "clairière", "typed": None,
+                   "category": "lexical", "sub": "missing"},
+                  {"refIndex": None, "typedIndex": 3, "expected": None, "typed": "vraiment",
+                   "category": "lexical", "sub": "extra"},
+              ],
+              "finalErrors": [], "caught": [], "missed": [], "introduced": [],
+              "correctWords": 10, "totalWords": 13, "catchRate": 0.5, "score": 100}
+    body = {"profile_id": p["id"], "text_id": t["id"], "pace_level": 2,
+            "help_stage": client.get(f"/api/profiles/{p['id']}").json()["help_stage"],
+            "started_at": "2026-09-23T10:00:00+00:00", "draft": "x", "final": "y",
+            "result": result, "score": 100, "catch_rate": 0.5}
+    r = client.post("/api/sessions", json=body)
+    assert r.status_code == 201, r.text
+    # a skipped word or line is not a spelling mistake and must not flood mots-pièges
+    assert client.get(f"/api/profiles/{p['id']}/trap-words").json() == []
+
+
 def test_session_404s(client):
     p, t = setup(client)
     body = {"profile_id": 999, "text_id": t["id"], "pace_level": 1, "help_stage": 1, "started_at": "x",

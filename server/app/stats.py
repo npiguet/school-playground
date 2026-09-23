@@ -11,6 +11,7 @@ PASS_BUCKETS = {
     "mots_pieges": {"lexical", "accent"},
 }
 TRAP_CATEGORIES = {"lexical", "accent"}
+NON_TRAP_SUBS = {"missing", "extra"}
 
 
 def stat_key(error: dict) -> str:
@@ -64,7 +65,8 @@ def apply_session_to_stats(conn: sqlite3.Connection, profile_id: int, result: di
 def update_trap_words(conn: sqlite3.Connection, profile_id: int, result: dict, reference_body: str, now: str) -> None:
     errors = result.get("draftErrors", []) + result.get("finalErrors", [])
     missed_words = {e["expected"].lower() for e in errors
-                    if e.get("category") in TRAP_CATEGORIES and e.get("expected") and WORD_RE.fullmatch(e["expected"])}
+                    if e.get("category") in TRAP_CATEGORIES and e.get("sub") not in NON_TRAP_SUBS
+                    and e.get("expected") and WORD_RE.fullmatch(e["expected"])}
     for w in missed_words:
         conn.execute("""INSERT INTO trap_word(profile_id, word, box, last_seen, misses) VALUES (?,?,1,?,1)
                         ON CONFLICT(profile_id, word) DO UPDATE SET misses = misses + 1, box = 1, last_seen = excluded.last_seen""",
