@@ -65,12 +65,17 @@ export function isAgreement(r: string, t: string): boolean {
   return false;
 }
 
-// Endings that only make sense on a verb (the union of the INF/IMP/PP/PAST classes below).
-// Ruling: the verb_ending homophone rule and these agreement endings (e.g. -er/-é) must only
-// fire when the reference token's annotation says VERB/AUX, or when there is no annotation at
-// all (too ambiguous to tell). Otherwise known non-verbs (papier, premier, chez, assez, jamais)
-// would be misclassified as verb-form confusions when misspelled with a verb-like ending.
-const VERB_ONLY_ENDINGS = new Set(['er', 'ez', 'é', 'ée', 'és', 'ées', 'ai', 'ais', 'ait', 'aient']);
+// Endings that unambiguously signal a verb form: infinitive -er, imperative/2nd-plural -ez, and
+// the imparfait -ai/-ais/-ait/-aient. The participle/adjective -é family (é, ée, és, ées) is
+// deliberately NOT in this set: spaCy frequently tags adjectival participles as ADJ rather than
+// VERB ("les portes fermées", "fatiguée"), and gender/number variation within that family (e.g.
+// "fermées" -> "fermé") is a genuine agreement error regardless of POS. Ruling (fix round 2):
+// only gate a pair when it involves one of THESE endings (including é-family vs one of these —
+// the infinitive/participle/imperfect confusion, e.g. "mangé"/"manger") behind the reference
+// token's annotation POS being VERB/AUX, or there being no annotation at all (too ambiguous to
+// tell). Otherwise known non-verbs (papier, premier, chez, assez, jamais) would be misclassified
+// as verb-form confusions when misspelled with a verb-like ending.
+const VERB_ONLY_ENDINGS = new Set(['er', 'ez', 'ai', 'ais', 'ait', 'aient']);
 
 function allowsVerbSpecificEndings(annot: AnnotToken | undefined): boolean {
   return annot === undefined || annot.pos === 'VERB' || annot.pos === 'AUX';

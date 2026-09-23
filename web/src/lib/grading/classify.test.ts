@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { tokenize } from './tokenize';
-import { classifyPair, isAgreement, isVerbEndingHomophone } from './classify';
+import { classifyPair, isAgreement, isVerbEndingHomophone, agreementSub } from './classify';
 import type { AnnotToken } from './types';
 
 // content/homophones.json is a placeholder maintained by another task in a parallel lane
@@ -97,6 +97,14 @@ describe('ruling: verb-only endings require a VERB/AUX annotation (or none)', ()
     expect(cls('chez', 'ché', annot('ADP'))).toMatchObject({ category: 'lexical' });
     expect(cls('assez', 'assé', annot('ADV'))).toMatchObject({ category: 'lexical' });
     expect(cls('jamais', 'jamé', annot('ADV'))).toMatchObject({ category: 'lexical' });
+  });
+  // Fix round 2: spaCy frequently tags adjectival participles as ADJ rather than VERB, so
+  // gender/number variation within the -é family (é/ée/és/ées) must always be graded as
+  // agreement, regardless of POS — only a pair against a truly verb-only ending (-er/-ez/-ai...)
+  // needs the VERB/AUX gate.
+  it('still grades é-family gender/number agreement on an ADJ-tagged participle', () => {
+    expect(cls('fermées', 'fermé', annot('ADJ'))).toMatchObject({ category: 'agreement', sub: agreementSub('fermées', 'fermé', annot('ADJ')) });
+    expect(cls('fatiguée', 'fatigué', annot('ADJ'))).toMatchObject({ category: 'agreement', sub: agreementSub('fatiguée', 'fatigué', annot('ADJ')) });
   });
 });
 
