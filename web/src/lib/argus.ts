@@ -1,0 +1,75 @@
+// Argus passes for the proofreading screen (spec §3.4): pass order, French labels and the
+// mapping of grammatical categories onto the *player's* tokens through the alignment.
+import { mapAnnotation, refCategories } from './grading/annotationMap';
+import { homophoneSetOf } from './grading/homophones';
+import { normalizeWord } from './grading/normalize';
+import type { Annotation, ArgusPass, GradeResult } from './grading/types';
+import { includesParticiplesInVerbPass } from './levels';
+
+export type { ArgusPass } from './grading/types'; // single source of truth; do not redeclare here
+
+export const ARGUS_PASSES: ArgusPass[] = ['verbes', 'groupes_nominaux', 'homophones', 'mots_pieges'];
+
+export const ARGUS_LABELS: Record<ArgusPass, { title: string; hint: string }> = {
+  verbes: { title: 'Verbes', hint: 'Pour chaque verbe, cherche son sujet : singulier ou pluriel ?' },
+  groupes_nominaux: { title: 'Groupes nominaux', hint: "Déterminant, nom, adjectif : ils s'accordent ensemble." },
+  homophones: { title: 'Homophones', hint: 'a ou à ? et ou est ? Remplace par un autre mot pour vérifier.' },
+  mots_pieges: { title: 'Mots-pièges', hint: "Les mots qui t'ont déjà piégée. Regarde chaque lettre." },
+};
+
+/** Chouette d'Athéna hints per help stage (plan decision #6). */
+export const HINTS_PER_STAGE: Record<1 | 2 | 3 | 4, number> = { 1: 3, 2: 2, 3: 1, 4: 0 };
+
+/**
+ * For each typed token, the set of Argus passes that light it. A typed token aligned to a
+ * reference token inherits that token's annotation categories; an unaligned (extra) typed
+ * word is lit only by what can be known from the word itself (homophone table, trap words).
+ * Punctuation tokens get an empty set.
+ */
+export function typedPassSets(
+  grade: GradeResult,
+  annotation: Annotation | null,
+  trapWords: string[],
+  level: string,
+): Set<ArgusPass>[] {
+  const annots = mapAnnotation(grade.refTokens, annotation);
+  const traps = new Set(trapWords.map(normalizeWord));
+  const participlesAreVerbs = includesParticiplesInVerbPass(level);
+  const sets = grade.typedTokens.map(() => new Set<ArgusPass>());
+
+  for (const pair of grade.pairs) {
+    if (pair.typedIndex === null) continue;
+    const typed = grade.typedTokens[pair.typedIndex];
+    if (typed.kind !== 'word') continue;
+    const set = sets[pair.typedIndex];
+
+    if (pair.refIndex === null) {
+      if (homophoneSetOf(typed.norm) !== undefined) set.add('homophones');
+      if (traps.has(typed.norm)) set.add('mots_pieges');
+      continue;
+    }
+
+    const ref = grade.refTokens[pair.refIndex];
+    const cats = refCategories(annots[pair.refIndex]);
+    if (cats.includes('verb')) set.add('verbes');
+    if (cats.includes('participle') && participlesAreVerbs) set.add('verbes');
+    if (cats.includes('nominal_group')) set.add('groupes_nominaux');
+    if (cats.includes('homophone')) set.add('homophones');
+    if (traps.has(ref.norm) || traps.has(typed.norm)) set.add('mots_pieges');
+  }
+  return sets;
+}
+
+/**
+ * Validates a pass order coming from the server (`argus_order`): keeps the valid, distinct
+ * passes in the given order and appends the missing ones in default order, so the result is
+ * always a permutation of `ARGUS_PASSES`.
+ */
+export function orderPasses(order: ArgusPass[] | undefined): ArgusPass[] {
+  const result: ArgusPass[] = [];
+  for (const p of order ?? []) {
+    if (ARGUS_PASSES.includes(p) && !result.includes(p)) result.push(p);
+  }
+  for (const p of ARGUS_PASSES) if (!result.includes(p)) result.push(p);
+  return result;
+}

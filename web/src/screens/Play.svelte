@@ -2,6 +2,7 @@
   import TopBar from '../components/TopBar.svelte';
   import PaceSelect from '../components/PaceSelect.svelte';
   import Dictation from '../components/Dictation.svelte';
+  import Proofreading from '../components/Proofreading.svelte';
   import { api, ApiError } from '../lib/api';
   import { buildPlan, defaultPace, type DictationPlan } from '../lib/dictation/script';
   import { pickVoice, ttsAvailable, unlockSpeech, waitForVoices } from '../lib/dictation/tts';
@@ -11,6 +12,7 @@
   let { profile, textId }: { profile: Profile; textId: string } = $props();
 
   const id = $derived(Number(textId));
+  const helpStage = $derived(Math.min(4, Math.max(1, Math.round(profile.help_stage))) as 1 | 2 | 3 | 4);
 
   let text = $state<TextFull | null>(null);
   let trapWords = $state<TrapWord[]>([]);
@@ -83,6 +85,12 @@
     save();
   }
 
+  function onProofreadingDone() {
+    if (!playState) return;
+    playState.phase = 'results';
+    save();
+  }
+
   function credits(t: TextFull): string {
     if (t.credits) return t.credits;
     if (t.source === 'custom' && t.added_by_name) return `Ajouté par ${t.added_by_name}`;
@@ -90,7 +98,7 @@
   }
 </script>
 
-{#if !playState || playState.phase !== 'dictation'}
+{#if !playState || (playState.phase !== 'dictation' && playState.phase !== 'proofreading')}
   <TopBar {profile} title={text?.title ?? ''} />
 {/if}
 
@@ -131,8 +139,18 @@
     </div>
   {:else if playState.phase === 'dictation'}
     <Dictation {plan} pace={playState.pace} {voice} bind:text={playState.draft} onFinish={onDictationFinish} />
+  {:else if playState.phase === 'proofreading'}
+    <Proofreading
+      reference={text}
+      bind:state={playState}
+      {helpStage}
+      argusOrder={stats?.argus_order ?? []}
+      trapWords={trapWords.map((t) => t.word)}
+      level={profile.level}
+      onDone={onProofreadingDone}
+    />
   {:else}
-    <div class="screen"><p>Relecture au prochain chapitre.</p></div>
+    <div class="screen"><p>Résultats au prochain chapitre.</p></div>
   {/if}
 {/if}
 

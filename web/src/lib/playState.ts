@@ -24,6 +24,8 @@ export interface PlayState {
   bouclier: boolean;
   submitted: boolean;
   sessionId: number | null;
+  /** Draft error count frozen when proofreading starts (help stage 3 shows it; plan decision #6). */
+  initialErrors?: number;
 }
 
 export function playKey(profileId: number, textId: number): string {
