@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from app.config import Settings
+from app.db import connect, migrate, DB_FILENAME
+from app.routers import profiles
 
 VERSION = "0.1.0"
 
@@ -15,6 +17,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         settings.data_dir.mkdir(parents=True, exist_ok=True)
         app.state.settings = settings
+        conn = connect(settings.data_dir / DB_FILENAME)
+        migrate(conn)
+        conn.close()
         yield
 
     app = FastAPI(title="La Discorde", version=VERSION, lifespan=lifespan)
@@ -22,6 +27,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/health")
     def health():
         return {"status": "ok", "version": VERSION}
+
+    app.include_router(profiles.router)
 
     # Later tasks insert app.include_router(...) lines HERE, above the /api catch-all.
 
