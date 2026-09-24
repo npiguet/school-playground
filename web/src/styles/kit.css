@@ -18,6 +18,13 @@
   --night: #15121a;
   --scrim: rgba(21, 18, 26, 0.55);
   --kit-radius: 12px;
+
+  /* Stacking (plan Ruling P6): RotateScreen must paint above every overlay and modal, including
+     Onboarding (z-index: 50, see Onboarding.svelte) and Task 6's Overlay component. RotateScreen
+     is portalled to <body> (outside `.scene-stage`'s own stacking context, itself unavoidable
+     since `position: fixed` always creates one) and uses this token; any future overlay/modal
+     z-index must stay below it. */
+  --z-rotate-screen: 1000;
 }
 
 .kit-parchment {
