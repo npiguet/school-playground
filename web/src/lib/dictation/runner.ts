@@ -19,11 +19,17 @@ export interface RunnerDeps {
   pace: Pace;
   speak: (spoken: string, rate: number) => Promise<void>;
   sleep: (ms: number) => Promise<void>;
+  // Silences whatever is currently being spoken. Called by pause() and
+  // stop() - the in-flight speak() promise from deps.speak may still resolve
+  // later (or never), but the player must not keep hearing it.
+  cancel: () => void;
   onChange: (s: RunnerState) => void;
 }
 
 export function createRunner(steps: Step[], deps: RunnerDeps) {
-  const total = steps.filter((s): s is SayStep => s.kind === 'say' && s.repeat === 1).length;
+  const total = steps.filter(
+    (s): s is SayStep => s.kind === 'say' && s.repeat === 1 && s.unit === 'chunk',
+  ).length;
 
   let index = 0;
   let status: RunnerStatus = 'idle';
@@ -57,7 +63,7 @@ export function createRunner(steps: Step[], deps: RunnerDeps) {
         lastSay = step;
         await deps.speak(step.spoken, step.rate);
         if (stopped || paused) return;
-        if (step.repeat === 1) done++;
+        if (step.repeat === 1 && step.unit === 'chunk') done++;
         index++;
       } else if (step.kind === 'wait') {
         await deps.sleep(step.ms);
@@ -95,6 +101,7 @@ export function createRunner(steps: Step[], deps: RunnerDeps) {
       if (stopped || status !== 'playing') return;
       paused = true;
       status = 'paused';
+      deps.cancel();
       emit();
     },
     resume() {
@@ -103,6 +110,7 @@ export function createRunner(steps: Step[], deps: RunnerDeps) {
     },
     stop() {
       stopped = true;
+      deps.cancel();
     },
     state: snapshot,
   };

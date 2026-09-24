@@ -67,6 +67,15 @@
     showResumeBanner = false;
   }
 
+  // Tapped from the resume banner, which is itself a tap - a safe place to
+  // unlock iOS speech even when we're resuming straight into the dictation
+  // phase (whose own Dictation.svelte onMount starts the runner with no
+  // further user gesture available).
+  function continueSession() {
+    unlockSpeech();
+    showResumeBanner = false;
+  }
+
   // iOS Safari only allows speechSynthesis to start from inside a user
   // gesture - unlockSpeech() must run synchronously, first, in this handler.
   function startDictation() {
@@ -74,7 +83,6 @@
     if (!playState) return;
     playState.startedAt = new Date().toISOString();
     playState.phase = 'dictation';
-    showResumeBanner = false;
     save();
   }
 
@@ -98,7 +106,7 @@
   }
 </script>
 
-{#if !playState || (playState.phase !== 'dictation' && playState.phase !== 'proofreading')}
+{#if !playState || showResumeBanner || (playState.phase !== 'dictation' && playState.phase !== 'proofreading')}
   <TopBar {profile} title={text?.title ?? ''} />
 {/if}
 
@@ -107,7 +115,18 @@
 {:else if error}
   <div class="screen"><p class="orange">Impossible de charger ce parchemin : {error}</p></div>
 {:else if text && plan && playState}
-  {#if playState.phase === 'intro'}
+  {#if showResumeBanner}
+    <div class="screen">
+      <h1>{text.title}</h1>
+      <div class="banner">
+        <p>Tu reprends là où tu t’étais arrêtée.</p>
+        <div class="banner-actions">
+          <button type="button" class="btn btn-primary" onclick={continueSession}>Continuer</button>
+          <button type="button" class="btn" onclick={restart}>Recommencer</button>
+        </div>
+      </div>
+    </div>
+  {:else if playState.phase === 'intro'}
     <div class="screen">
       <h1>{text.title}</h1>
       {#if credits(text)}<p class="credits muted">{credits(text)}</p>{/if}
@@ -115,13 +134,6 @@
         <span class="chip">{text.level}</span>
         <span class="chip">≈ {text.word_count} mots</span>
       </div>
-
-      {#if showResumeBanner}
-        <div class="banner">
-          <p>Tu reprends là où tu t’étais arrêtée.</p>
-          <button type="button" class="btn" onclick={restart}>Recommencer</button>
-        </div>
-      {/if}
 
       {#if !ttsAvailable()}
         <p class="orange">
@@ -174,6 +186,11 @@
   }
   .banner p {
     margin: 0;
+  }
+  .banner-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
   }
   h2 {
     margin-top: 24px;

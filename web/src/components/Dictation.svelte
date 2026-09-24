@@ -31,6 +31,7 @@
     pace,
     speak: (spoken, rate) => speak(spoken, { rate, voice }),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    cancel: cancelSpeech,
     onChange: (s) => (runnerState = s),
   });
 
@@ -40,6 +41,9 @@
 
   onDestroy(() => {
     runner.stop();
+    // Belt and braces: stop() already cancels via deps.cancel(), but a
+    // stray utterance must never keep talking past this component's life.
+    cancelSpeech();
   });
 
   // Header/progress line: which unit is currently being said (defaults to
@@ -94,6 +98,7 @@
     return () => {
       vv?.removeEventListener('resize', update);
       vv?.removeEventListener('scroll', update);
+      document.documentElement.style.removeProperty('--vvh');
     };
   });
 </script>

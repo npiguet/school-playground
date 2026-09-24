@@ -41,6 +41,21 @@ describe('buildScript', () => {
     expect(steps.at(-2)).toMatchObject({ kind: 'say', label: 'full', rate: 0.95, repeat: 2 });
     expect(steps.at(-1)).toEqual({ kind: 'done' });
   });
+  it('pace 4: only chunk steps count as progress units, not the bookend full reads', () => {
+    const sayLabels = buildScript(plan, 4)
+      .filter((s) => s.kind === 'say')
+      .map((s) => [s.label, (s as { unit: string }).unit]);
+    expect(sayLabels).toEqual([
+      ['full', 'full'],
+      ['chunk', 'chunk'],
+      ['chunk', 'chunk'],
+      ['chunk', 'chunk'],
+      ['chunk', 'chunk'],
+      ['chunk', 'chunk'],
+      ['chunk', 'chunk'],
+      ['full', 'full'],
+    ]);
+  });
 });
 
 describe('parameters', () => {

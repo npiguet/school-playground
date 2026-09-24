@@ -28,7 +28,20 @@ export interface DictationPlan {
 }
 
 export type Step =
-  | { kind: 'say'; text: string; spoken: string; rate: number; label: 'full' | 'sentence' | 'chunk'; index: number; repeat: 1 | 2 }
+  | {
+      kind: 'say';
+      text: string;
+      spoken: string;
+      rate: number;
+      label: 'full' | 'sentence' | 'chunk';
+      // Whether this step counts toward the runner's done/total progress:
+      // 'chunk' for the countable units (sentences at pace 1, chunks at
+      // paces 2-4), 'full' for pace 4's whole-text bookend reads, which are
+      // not part of the "Groupe X sur Y" count.
+      unit: 'chunk' | 'full';
+      index: number;
+      repeat: 1 | 2;
+    }
   | { kind: 'wait'; ms: number }
   | { kind: 'manual'; index: number }
   | { kind: 'done' };
@@ -79,6 +92,7 @@ export function buildScript(plan: DictationPlan, pace: Pace): Step[] {
         spoken: spokenForm(sentence.text, { newParagraph: sentence.newParagraph }),
         rate: PACE_RATES[1],
         label: 'sentence',
+        unit: 'chunk',
         index: i,
         repeat: 1,
       });
@@ -92,6 +106,7 @@ export function buildScript(plan: DictationPlan, pace: Pace): Step[] {
         spoken: chunk.spoken,
         rate: PACE_RATES[2],
         label: 'chunk',
+        unit: 'chunk',
         index: i,
         repeat: 1,
       });
@@ -108,6 +123,7 @@ export function buildScript(plan: DictationPlan, pace: Pace): Step[] {
       spoken: plan.full,
       rate: PACE_RATES[4],
       label: 'full',
+      unit: 'full',
       index: 0,
       repeat: 1,
     });
@@ -122,6 +138,7 @@ export function buildScript(plan: DictationPlan, pace: Pace): Step[] {
       spoken: plan.full,
       rate: 0.95,
       label: 'full',
+      unit: 'full',
       index: 0,
       repeat: 2,
     });
@@ -132,8 +149,8 @@ export function buildScript(plan: DictationPlan, pace: Pace): Step[] {
 }
 
 function pushChunkTwice(steps: Step[], chunk: Chunk, index: number, rate: number): void {
-  steps.push({ kind: 'say', text: chunk.text, spoken: chunk.spoken, rate, label: 'chunk', index, repeat: 1 });
+  steps.push({ kind: 'say', text: chunk.text, spoken: chunk.spoken, rate, label: 'chunk', unit: 'chunk', index, repeat: 1 });
   steps.push({ kind: 'wait', ms: 600 });
-  steps.push({ kind: 'say', text: chunk.text, spoken: chunk.spoken, rate, label: 'chunk', index, repeat: 2 });
+  steps.push({ kind: 'say', text: chunk.text, spoken: chunk.spoken, rate, label: 'chunk', unit: 'chunk', index, repeat: 2 });
   steps.push({ kind: 'wait', ms: pauseMs(chunk.text) });
 }

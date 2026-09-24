@@ -1,17 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createRunner } from './runner';
 import type { Step } from './script';
 
-const say = (i: number, repeat: 1 | 2 = 1): Step => ({ kind: 'say', text: `t${i}`, spoken: `s${i}`, rate: 0.85, label: 'chunk', index: i, repeat });
+const say = (i: number, repeat: 1 | 2 = 1): Step => ({ kind: 'say', text: `t${i}`, spoken: `s${i}`, rate: 0.85, label: 'chunk', unit: 'chunk', index: i, repeat });
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 function harness(steps: Step[], pace: 1 | 2 | 3 | 4) {
   const spoken: string[] = []; const states: string[] = [];
+  const cancel = vi.fn();
   const runner = createRunner(steps, {
-    pace, speak: async (s) => { spoken.push(s); }, sleep: async () => {},
+    pace, speak: async (s) => { spoken.push(s); }, sleep: async () => {}, cancel,
     onChange: (st) => states.push(st.status),
   });
-  return { runner, spoken, states };
+  return { runner, spoken, states, cancel };
 }
 
 describe('createRunner', () => {
@@ -42,7 +43,7 @@ describe('createRunner', () => {
     const spoken: string[] = [];
     const runner = createRunner([say(0), { kind: 'wait', ms: 600 }, say(0, 2), { kind: 'wait', ms: 3000 }, say(1), { kind: 'done' }], {
       pace: 3, speak: (s) => { spoken.push(s); return new Promise<void>((r) => { release = r; }); },
-      sleep: async () => {}, onChange: () => {},
+      sleep: async () => {}, cancel: () => {}, onChange: () => {},
     });
     runner.start(); await flush();
     expect(spoken).toEqual(['s0']);
@@ -52,5 +53,24 @@ describe('createRunner', () => {
     expect(spoken).toEqual(['s0', 's0']); // the paused utterance is repeated
     release!(); await flush(); release!(); await flush(); release!(); await flush();
     expect(runner.state().status).toBe('finished');
+  });
+  it('pause() silences the in-flight utterance via cancel()', async () => {
+    const cancel = vi.fn();
+    const runner = createRunner([say(0), { kind: 'wait', ms: 600 }, say(1), { kind: 'done' }], {
+      pace: 3, speak: () => new Promise<void>(() => {}), sleep: async () => {}, cancel, onChange: () => {},
+    });
+    runner.start(); await flush();
+    expect(runner.state().status).toBe('playing'); // still awaiting the never-resolving speak()
+    expect(cancel).not.toHaveBeenCalled();
+    runner.pause();
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(runner.state().status).toBe('paused');
+  });
+  it('stop() silences the in-flight utterance via cancel()', async () => {
+    const { runner, cancel } = harness([say(0), { kind: 'manual', index: 0 }, { kind: 'done' }], 2);
+    runner.start(); await flush();
+    expect(cancel).not.toHaveBeenCalled();
+    runner.stop();
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 });
