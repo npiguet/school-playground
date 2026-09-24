@@ -8,6 +8,7 @@ and quotes so the OCR output reads like normal French prose.
 from __future__ import annotations
 import io
 import re
+import statistics
 from dataclasses import dataclass
 
 from PIL import Image, ImageOps
@@ -17,6 +18,12 @@ import pytesseract
 MAX_SIDE = 2200
 LOW_CONF = 60
 TESSERACT_CONFIG = "--psm 6"
+# `--psm 6` ("assume a single uniform block of text") makes Tesseract report a printed
+# handout's title and body as the same (block, par) - real handouts almost always set a title
+# apart with visibly more vertical space than between two body lines, so relying on Tesseract's
+# own grouping alone would glue the title onto the first sentence. A gap this many times the
+# document's median line height is treated as a paragraph break within a (block, par) group too.
+PARAGRAPH_GAP_FACTOR = 1.6
 
 DIGIT_OR_PUNCT_LINE_RE = re.compile(r"^[\d\W]+$")
 
@@ -83,17 +90,28 @@ def assemble(words: list[OcrWord]) -> tuple[str, list[str]]:
             para_order.append(key)
         paragraphs[key].setdefault(word.line, []).append(word)
 
+    heights = [word.height for word in words if word.height > 0]
+    gap_threshold = statistics.median(heights) * PARAGRAPH_GAP_FACTOR if heights else 0
+
     paragraph_texts: list[str] = []
     for key in para_order:
         lines_by_num = paragraphs[key]
-        lines: list[str] = []
+        groups: list[list[str]] = [[]]
+        prev_bottom: int | None = None
         for line_num in sorted(lines_by_num):
-            line_text = " ".join(w.text for w in lines_by_num[line_num])
+            line_words = lines_by_num[line_num]
+            line_text = " ".join(w.text for w in line_words)
             if DIGIT_OR_PUNCT_LINE_RE.match(line_text):
                 continue
-            lines.append(line_text)
-        if lines:
-            paragraph_texts.append(_join_lines(lines))
+            line_top = min(w.top for w in line_words)
+            line_bottom = max(w.top + w.height for w in line_words)
+            if prev_bottom is not None and (line_top - prev_bottom) > gap_threshold:
+                groups.append([])
+            groups[-1].append(line_text)
+            prev_bottom = line_bottom
+        for lines in groups:
+            if lines:
+                paragraph_texts.append(_join_lines(lines))
 
     text = clean_ocr_text("\n\n".join(paragraph_texts))
 
