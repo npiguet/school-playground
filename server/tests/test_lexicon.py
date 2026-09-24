@@ -1,4 +1,4 @@
-from app.lexicon import verb_code
+from app.lexicon import Entry, Lexicon, verb_code
 
 
 def test_lookup_and_known(lexicon):
@@ -49,3 +49,71 @@ def test_sound_alikes(lexicon):
     assert "mère" in lexicon.sound_alikes("mer")
     assert "mer" not in lexicon.sound_alikes("mer")
     assert len(lexicon.sound_alikes("vert")) <= 5 and "verre" in lexicon.sound_alikes("vert")
+
+
+# --- Fix round 1 ---------------------------------------------------------------
+
+def test_flip_gender_cette_next_word(lexicon):
+    fem = {"Gender": "Fem", "Number": "Sing"}
+    assert lexicon.flip_gender("cette", "ce", fem) == "ce"                        # no next_word: default "ce"
+    assert lexicon.flip_gender("cette", "ce", fem, next_word="ami") == "cet"       # vowel-initial
+    assert lexicon.flip_gender("cette", "ce", fem, next_word="homme") == "cet"     # known h muet
+    assert lexicon.flip_gender("cette", "ce", fem, next_word="héros") == "ce"      # h aspiré: not in the mute-h list
+    assert lexicon.flip_gender("cette", "ce", fem, next_word="table") == "ce"      # consonant-initial
+    # forward direction (masculine -> "cette") is untouched by the many-to-one fix
+    assert lexicon.flip_gender("ce", "ce", {}) == "cette"
+    assert lexicon.flip_gender("cet", "ce", {}) == "cette"
+
+
+def test_flip_gender_ambiguous_noun_skips_rather_than_guess(lexicon):
+    # Lexique leaves "poste" (le poste / la poste) with a blank genre: genuinely
+    # gender-ambiguous, and it is spelled the same either way. Must never guess.
+    assert lexicon.flip_gender("poste", "poste", {}) is None
+    assert lexicon.flip_gender("poste", "poste", {"Gender": "Masc", "Number": "Sing"}) is None
+
+
+def test_flip_number_ambiguous_gender_noun_still_flips(lexicon):
+    # A blank genre on a lexicon row must not make the (permissive) genre filter
+    # reject an otherwise valid plural/singular match.
+    assert lexicon.flip_number("poste", "poste", {"Gender": "Masc", "Number": "Sing"}) == "postes"
+    assert lexicon.flip_number("postes", "poste", {"Gender": "Masc", "Number": "Plur"}) == "poste"
+
+
+def test_flip_number_and_gender_prefer_entry_agreeing_with_morph(lexicon):
+    # "table" is both a feminine noun (le/la table -> "table") and a homograph verb
+    # form of "tabler" (VER, blank genre/nombre). Picking the wrong homograph would
+    # make flip_gender's own-feature resolution see no gender at all.
+    assert lexicon.flip_gender("table", "table", {"Gender": "Fem", "Number": "Sing"}) is None
+    assert lexicon.is_known("table")
+
+
+def _synthetic_lexicon() -> Lexicon:
+    entries = [
+        Entry("mange", "mAZ", "manger", "VER", "", "", "ind:pre:1s;ind:pre:3s;imp:pre:2s", 100.0),
+        Entry("manges", "mAZ", "manger", "VER", "", "", "ind:pre:2s", 20.0),
+        Entry("mangeons", "mAZ§", "manger", "VER", "", "", "ind:pre:1p;imp:pre:1p", 10.0),
+        Entry("mangeaient", "mAZE", "manger", "VER", "", "", "ind:imp:3p", 5.0),
+        Entry("manger", "mAZe", "manger", "VER", "", "", "inf", 200.0),
+        Entry("mangé", "mAZe", "manger", "VER", "m", "s", "par:pas", 60.0),
+        # Homograph sharing the ortho "mange" under an unrelated lemma. Its own finite
+        # code (ind:imp:3s) must not leak into forms_of("mange", lemma="manger")'s
+        # "finite" set, or it would wrongly make "mangeaient" (ind:imp:3p) look like a
+        # sibling of "mange" (which has no imparfait forms of its own).
+        Entry("mange", "mAZ", "mangelemma2", "VER", "", "", "ind:imp:3s", 1.0),
+    ]
+    by_ortho: dict[str, list[Entry]] = {}
+    by_lemme: dict[str, list[Entry]] = {}
+    by_phon: dict[str, list[Entry]] = {}
+    for e in entries:
+        by_ortho.setdefault(e.ortho, []).append(e)
+        by_lemme.setdefault(e.lemme, []).append(e)
+        by_phon.setdefault(e.phon, []).append(e)
+    return Lexicon(by_ortho, by_lemme, by_phon)
+
+
+def test_forms_of_finite_scoped_to_resolved_lemma():
+    lex = _synthetic_lexicon()
+    forms = lex.forms_of("mange", lemma="manger")
+    assert "mangeons" in forms          # true sibling: same mood:tense:person, other number
+    assert "mangeaient" not in forms    # only matches via the OTHER lemma's homograph if finite leaks
+    assert "manger" not in forms        # infinitive excluded

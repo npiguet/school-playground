@@ -46,9 +46,34 @@ DET_GENDER = {
     "le": "la", "un": "une", "ce": "cette", "cet": "cette", "mon": "ma", "ton": "ta", "son": "sa",
     "quel": "quelle", "quels": "quelles", "tout": "toute", "tous": "toutes",
     "nouveau": "nouvelle", "beau": "belle", "vieux": "vieille",
-}  # + reverse map built below
+}  # + reverse map built below; "ce"/"cet" both flip to "cette" (many-to-one), handled specially below
 
-DET_GENDER_REVERSE = {v: k for k, v in DET_GENDER.items()}
+# "ce" and "cet" both map to "cette" in DET_GENDER, so a naive reverse loses "ce". "cette" is
+# excluded here and resolved by _masculine_demonstrative(next_word) instead.
+DET_GENDER_REVERSE = {v: k for k, v in DET_GENDER.items() if k not in ("ce", "cet")}
+
+# Small, deliberately conservative list of common "h muet" words (liaison applies, so the
+# masculine demonstrative is "cet"). Absent from this list, an h-initial word is treated as
+# "h aspiré" (no liaison, "ce"), per the ruling: "if unsure, choose 'ce' for h".
+_MUTE_H_WORDS = {
+    "homme", "heure", "hiver", "histoire", "horizon", "hôtel", "habit", "herbe", "huile",
+    "humain", "hôpital", "habitude", "horaire",
+}
+_VOWELS_OR_MUTE_H = set("aeiouyàâäéèêëïîôöùûüœ")
+
+
+def _masculine_demonstrative(next_word: str | None) -> str:
+    """"cette" flipped to masculine: "cet" before a vowel sound (incl. mute h), else "ce"."""
+    if not next_word:
+        return "ce"
+    w = next_word.lower().lstrip("'’")
+    if not w:
+        return "ce"
+    if w[0] in _VOWELS_OR_MUTE_H:
+        return "cet"
+    if w[0] == "h" and w in _MUTE_H_WORDS:
+        return "cet"
+    return "ce"
 
 SPACY_TO_LEXIQUE = {
     ("Ind", "Pres"): "ind:pre", ("Ind", "Imp"): "ind:imp", ("Ind", "Past"): "ind:pas", ("Ind", "Fut"): "ind:fut",
@@ -96,14 +121,44 @@ class Lexicon:
     def is_known(self, word: str) -> bool:
         return bool(self.lookup(word))
 
+    def _candidate_lemmas(self, word: str, lemma: str | None) -> list[str]:
+        """The lemma to search under: the given spaCy lemma when the lexicon knows it,
+        else every lemma of the word's own lexicon entries."""
+        if lemma and lemma in self.by_lemme:
+            return [lemma]
+        return sorted({e.lemme for e in self.lookup(word)})
+
+    def _own_features(self, word: str, cgram_prefixes: tuple[str, ...], morph: dict) -> tuple[str | None, str | None]:
+        """Resolve (genre, nombre) for word's own entries restricted to cgram_prefixes.
+
+        Among several candidate entries (e.g. a NOM/VER homograph), prefers the one
+        agreeing with morph's Gender/Number. Lexique leaves genre blank for genuinely
+        gender-ambiguous nouns (le/la poste); in that case, and whenever the chosen
+        entry has no value for a feature, falls back to morph rather than guessing.
+        """
+        candidates = [e for e in self.lookup(word) if e.cgram.split(":")[0] in cgram_prefixes]
+        morph_genre = _GENDER_MAP.get(morph.get("Gender"))
+        morph_nombre = {"Sing": "s", "Plur": "p"}.get(morph.get("Number"))
+        entry: Entry | None = None
+        if candidates:
+            def score(e: Entry) -> int:
+                s = 0
+                if morph_genre and e.genre == morph_genre:
+                    s += 1
+                if morph_nombre and e.nombre == morph_nombre:
+                    s += 1
+                return s
+            entry = max(candidates, key=score) if len(candidates) > 1 else candidates[0]
+        genre = (entry.genre if entry else "") or morph_genre
+        nombre = (entry.nombre if entry else "") or morph_nombre
+        return genre, nombre
+
     def forms_of(self, word: str, lemma: str | None = None, limit: int = 12) -> dict[str, dict]:
         w = word.lower().replace("’", "'")
-        if lemma and lemma in self.by_lemme:
-            lemmas = [lemma]
-        else:
-            lemmas = sorted({e.lemme for e in self.lookup(word)})
+        lemmas = self._candidate_lemmas(word, lemma)
         own = self.lookup(word)
-        finite = [c for e in own for c in e.infover.split(";") if c and c != "inf" and not c.startswith("par:")]
+        finite = [c for e in own if e.lemme in lemmas
+                  for c in e.infover.split(";") if c and c != "inf" and not c.startswith("par:")]
         # Infinitive spellings are excluded even when a homograph of a different cgram
         # (e.g. the archaic noun "le manger") shares the verb's lemma and ortho.
         infinitives = {e.ortho for l in lemmas for e in self.by_lemme.get(l, [])
@@ -203,7 +258,7 @@ class Lexicon:
             code = verb_code(morph)
             if code is not None:
                 target = code[:-1] + ("s" if code.endswith("p") else "p")
-                lemmas = [lemma] if lemma and lemma in self.by_lemme else sorted({e.lemme for e in self.lookup(word)})
+                lemmas = self._candidate_lemmas(word, lemma)
                 best: Entry | None = None
                 for l in lemmas:
                     for e in self.by_lemme.get(l, []):
@@ -216,21 +271,10 @@ class Lexicon:
                     result = best.ortho
 
         if result is None:
-            own = self.lookup(word)
-            own_entry = next((e for e in own if e.cgram.split(":")[0] in ("NOM", "ADJ")), None)
-            genre = None
-            if own_entry is not None:
-                genre = own_entry.genre or None
-            elif morph.get("Gender") in _GENDER_MAP:
-                genre = _GENDER_MAP[morph["Gender"]]
-            own_nombre = own_entry.nombre if own_entry is not None else morph.get("Number")
-            if own_nombre in ("Sing",):
-                own_nombre = "s"
-            elif own_nombre in ("Plur",):
-                own_nombre = "p"
+            genre, own_nombre = self._own_features(word, ("NOM", "ADJ"), morph)
             target_nombre = "p" if own_nombre == "s" else ("s" if own_nombre == "p" else None)
             if target_nombre is not None:
-                lemmas = [lemma] if lemma and lemma in self.by_lemme else sorted({e.lemme for e in self.lookup(word)})
+                lemmas = self._candidate_lemmas(word, lemma)
                 best = None
                 for l in lemmas:
                     for e in self.by_lemme.get(l, []):
@@ -238,7 +282,10 @@ class Lexicon:
                             continue
                         if e.nombre != target_nombre:
                             continue
-                        if genre is not None and (e.genre or None) != genre:
+                        # A blank genre on the candidate means Lexique itself leaves the
+                        # noun's gender ambiguous (e.g. poste/postes); treat it as a
+                        # wildcard rather than excluding a valid match.
+                        if genre is not None and e.genre and e.genre != genre:
                             continue
                         if best is None or e.freq > best.freq:
                             best = e
@@ -249,31 +296,22 @@ class Lexicon:
             return None
         return result
 
-    def flip_gender(self, word: str, lemma: str, morph: dict) -> str | None:
+    def flip_gender(self, word: str, lemma: str, morph: dict, next_word: str | None = None) -> str | None:
         w = word.lower().replace("’", "'")
         result: str | None = None
 
-        if w in DET_GENDER:
+        if w == "cette":
+            result = _masculine_demonstrative(next_word)
+        elif w in DET_GENDER:
             result = DET_GENDER[w]
         elif w in DET_GENDER_REVERSE:
             result = DET_GENDER_REVERSE[w]
 
         if result is None:
-            own = self.lookup(word)
-            own_entry = next((e for e in own if e.cgram.split(":")[0] in ("NOM", "ADJ", "VER", "AUX")), None)
-            nombre = None
-            if own_entry is not None:
-                nombre = own_entry.nombre or None
-            elif morph.get("Number") in ("Sing", "Plur"):
-                nombre = "s" if morph["Number"] == "Sing" else "p"
-            genre = None
-            if own_entry is not None:
-                genre = own_entry.genre or None
-            elif morph.get("Gender") in _GENDER_MAP:
-                genre = _GENDER_MAP[morph["Gender"]]
+            genre, nombre = self._own_features(word, ("NOM", "ADJ", "VER", "AUX"), morph)
             target_genre = "f" if genre == "m" else ("m" if genre == "f" else None)
             if target_genre is not None:
-                lemmas = [lemma] if lemma and lemma in self.by_lemme else sorted({e.lemme for e in self.lookup(word)})
+                lemmas = self._candidate_lemmas(word, lemma)
                 best: Entry | None = None
                 for l in lemmas:
                     for e in self.by_lemme.get(l, []):
@@ -282,9 +320,11 @@ class Lexicon:
                             continue
                         if cgram_prefix in ("VER", "AUX") and "par:pas" not in e.infover.split(";"):
                             continue
+                        # The target gender must be a definite match: an entry with no
+                        # genre at all (ambiguous noun) is never a valid gender flip.
                         if e.genre != target_genre:
                             continue
-                        if nombre is not None and (e.nombre or None) != nombre:
+                        if nombre is not None and e.nombre and e.nombre != nombre:
                             continue
                         if best is None or e.freq > best.freq:
                             best = e
