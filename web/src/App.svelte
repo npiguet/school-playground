@@ -21,6 +21,8 @@
   import Oracle from './screens/Oracle.svelte';
   import QuestBoard from './screens/QuestBoard.svelte';
   import Boss from './screens/Boss.svelte';
+  import DragonScreen from './screens/DragonScreen.svelte';
+  import Cabin from './screens/Cabin.svelte';
 
   const route = $derived(router.route);
   const profileId = $derived(route.params.profileId ? Number(route.params.profileId) : null);
@@ -102,6 +104,10 @@
         <QuestBoard profile={gateProfile} />
       {:else if route.name === 'boss'}
         <Boss profile={gateProfile} />
+      {:else if route.name === 'dragon'}
+        <DragonScreen profile={gateProfile} />
+      {:else if route.name === 'cabin'}
+        <Cabin profile={gateProfile} />
       {/if}
     {/if}
   {/key}

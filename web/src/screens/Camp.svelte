@@ -5,10 +5,12 @@
   // (the "Les Parchemins" card) stays reachable even then, since it doesn't need camp data.
   import TopBar from '../components/TopBar.svelte';
   import Onboarding from '../components/Onboarding.svelte';
+  import Dragon from '../components/Dragon.svelte';
   import Gauge from '../components/juice/Gauge.svelte';
   import { ART } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp } from '../lib/world/campStore.svelte';
+  import { stageLine } from '../lib/world/dragon';
   import type { WorldCatalog } from '../lib/world/types';
   import { initSound } from '../lib/juice/soundStore.svelte';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
@@ -47,14 +49,8 @@
   const dragonSpeech = $derived.by(() => {
     const d = campStore.data?.dragon;
     if (!d) return '';
-    const name = d.name ?? 'Ton dragon';
-    if (d.stage === 'egg') return "L'œuf frémit chaque fois qu'un piège d'Éris est déjoué.";
-    if (d.stage === 'hatchling') return `${name} te regarde avec de grands yeux ambre.`;
-    if (d.stage === 'young') {
-      const remaining = Math.max(0, d.available - d.neutralised);
-      return `${name} bat des ailes : encore ${remaining} technique(s) à neutraliser.`;
-    }
-    return `${name} veille sur le camp. Éris n'a qu'à bien se tenir.`;
+    const remaining = Math.max(0, d.available - d.neutralised);
+    return stageLine(d.stage, d.name, remaining);
   });
 
   const nearestProphecy = $derived.by(() => {
@@ -125,14 +121,15 @@
 
   {#if campStore.data}
     <button type="button" class="card dragon-card" data-testid="camp-dragon" onclick={() => go('dragon')}>
-      <img
-        src={ART.dragon[campStore.data.dragon.stage]}
-        alt=""
-        loading="eager"
-        decoding="async"
-        class="dragon-art"
-        class:float={campStore.data.dragon.stage === 'egg'}
-      />
+      <span class="dragon-art">
+        <Dragon
+          stage={campStore.data.dragon.stage}
+          tint={campStore.data.dragon.tint}
+          size={84}
+          mood="idle"
+          name={campStore.data.dragon.name}
+        />
+      </span>
       <span class="dragon-bubble">
         <span class="dragon-name">{campStore.data.dragon.name ?? 'Un œuf de dragon'}</span>
         <span class="dragon-line">{dragonSpeech}</span>
@@ -279,13 +276,8 @@
     gap: 16px;
   }
   .dragon-art {
-    width: 84px;
-    height: 84px;
-    object-fit: contain;
+    display: flex;
     flex-shrink: 0;
-  }
-  .dragon-art.float {
-    animation: float 3s ease-in-out infinite;
   }
   .dragon-bubble {
     display: flex;

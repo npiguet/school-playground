@@ -5,6 +5,7 @@
   import Proofreading from '../components/Proofreading.svelte';
   import Results from '../components/Results.svelte';
   import BreakNudge from '../components/BreakNudge.svelte';
+  import ProgressionReveal from '../components/ProgressionReveal.svelte';
   import { api, ApiError } from '../lib/api';
   import { debounce } from '../lib/debounce';
   import { formatSwissDate, isProphecy } from '../lib/dates';
@@ -17,7 +18,7 @@
   import { navigate } from '../lib/router.svelte';
   import { href } from '../lib/routes';
   import { withDerivedCategories } from '../lib/world/derived';
-  import { campStore } from '../lib/world/campStore.svelte';
+  import { campStore, refreshCamp } from '../lib/world/campStore.svelte';
   import { clockReset, clockStart, clockStop, clockTick, playClock } from '../lib/world/playClock.svelte';
   import type { PlayMode, Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
 
@@ -55,6 +56,9 @@
   let helpMessage = $state<string | null>(null);
   let submitError = $state<string | null>(null);
   let submitting = $state(false);
+  // SP3 Task 8: the progression reveal (XP, quests, dragon growth...) plays once above the
+  // results screen, then collapses; `restart()` (replay) needs a fresh one.
+  let revealDone = $state(false);
   // Set once the player has explicitly left this session (toLibrary/clearPlayState): guards a
   // still-in-flight submitSession() from resurrecting the play state into localStorage after
   // it was deliberately cleared. Unlike a replay (which swaps `playState` for a fresh object,
@@ -125,6 +129,7 @@
     helpMessage = null;
     submitError = null;
     corruptError = null;
+    revealDone = false;
     left = false;
   }
 
@@ -267,8 +272,10 @@
       stateAtSubmit.progression = created.progression;
       helpMessage = created.help_stage_message;
       save();
-      // Refreshes profileStore's help_stage so the next play session uses it.
-      await loadProfile(profile.id);
+      // Refreshes profileStore's help_stage so the next play session uses it, and campStore so
+      // the dragon/XP/quests the ProgressionReveal reads (and the camp screen on return) are
+      // fresh with this session's progression already applied server-side.
+      await Promise.all([loadProfile(profile.id), refreshCamp(profile.id)]);
     } catch (e) {
       if (left || playState !== stateAtSubmit) return;
       submitError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
@@ -281,6 +288,14 @@
     computeResult();
     if (playState && !playState.submitted) await submitSession();
   }
+
+  // Lieutenant key -> French name for ProgressionReveal's quest/neutralised titles (SP3 Task 8);
+  // 'eris' is added for the boss quest title, which the camp's lieutenant list doesn't carry.
+  const progressionNames = $derived.by(() => {
+    const out: Record<string, string> = { eris: 'Éris' };
+    for (const l of campStore.data?.lieutenants ?? []) out[l.key] = l.name;
+    return out;
+  });
 
   function credits(t: TextFull): string {
     if (t.credits) return t.credits;
@@ -420,6 +435,15 @@
         dragonName={campStore.data?.dragon.name ?? 'Ton dragon'}
         onPause={toLibraryCamp}
         onContinue={() => clockReset()}
+      />
+    {/if}
+    {#if playState.progression && !revealDone}
+      <ProgressionReveal
+        progression={playState.progression}
+        {profile}
+        dragon={campStore.data?.dragon ?? null}
+        names={progressionNames}
+        onDone={() => (revealDone = true)}
       />
     {/if}
     <Results

@@ -3,6 +3,7 @@
   // costs anything - the button always reads "Affronter Éris" again, the quest stays active - so
   // this screen never needs a "you lost" state of its own; Results.svelte handles that.
   import TopBar from '../components/TopBar.svelte';
+  import Dragon from '../components/Dragon.svelte';
   import { ART } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
@@ -22,6 +23,7 @@
   const activeBossQuest = $derived(campStore.data?.quests.find((q) => q.kind === 'boss' && q.status === 'active') ?? null);
   const tier = $derived(campStore.data?.boss.tier_available ?? activeBossQuest?.goal.tier ?? 1);
   const dragonStage = $derived(campStore.data?.dragon.stage ?? 'egg');
+  const dragonTint = $derived(campStore.data?.dragon.tint ?? 'bronze');
 
   const CHALLENGE_LINES: Record<number, string> = {
     1: '« Deux de mes ruses réduites au silence ? Voyons si mes pièges tiennent quand ils jouent tous ensemble. »',
@@ -61,7 +63,9 @@
 
 <div class="screen boss">
   <div class="scene battlefield" style="background-image:url({ART.scenes.battle})">
-    <img src={ART.dragon[dragonStage]} alt="" class="combatant dragon" />
+    <span class="combatant dragon">
+      <Dragon stage={dragonStage} tint={dragonTint} size={260} mood="idle" />
+    </span>
     <img src={ART.erisSmug} alt="Éris" class="combatant eris" />
   </div>
 
@@ -103,6 +107,7 @@
     position: relative;
     z-index: 1;
     object-fit: contain;
+    display: flex;
   }
   .combatant.dragon {
     max-height: 40vh;
