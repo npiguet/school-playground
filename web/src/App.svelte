@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
+  import { fade } from 'svelte/transition';
   import { router } from './lib/router.svelte';
   import { loadProfile, isUnlocked, profileStore } from './lib/profileStore.svelte';
   import { ApiError } from './lib/api';
@@ -55,6 +57,20 @@
   function onUnlocked() {
     unlocked = true;
   }
+
+  // Playability #12: the camp fades to night before it hands over (Camp.svelte's exit veil); the
+  // screen it leads to then rises out of that night instead of cutting in.
+  let arriving = $state(false);
+  let lastRoute = untrack(() => route.name);
+  $effect(() => {
+    const name = route.name;
+    const from = lastRoute;
+    lastRoute = name;
+    if (from !== 'camp' || name === 'camp') return;
+    arriving = true;
+    const t = setTimeout(() => (arriving = false), 30);
+    return () => clearTimeout(t);
+  });
 </script>
 
 {#if route.name === 'profiles'}
@@ -112,3 +128,17 @@
     {/if}
   {/key}
 {/if}
+
+{#if arriving}
+  <div class="arrive-veil" aria-hidden="true" out:fade={{ duration: 320 }}></div>
+{/if}
+
+<style>
+  .arrive-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--night);
+    pointer-events: none;
+  }
+</style>

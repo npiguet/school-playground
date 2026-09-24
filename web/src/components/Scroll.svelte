@@ -136,7 +136,8 @@
   .reward-line {
     margin: 0;
     font-weight: 600;
-    color: var(--gold);
+    /* A darker bronze: gold on cream was too faint to read (UI1 playability #13). */
+    color: #8a5a1c;
   }
   .content {
     display: flex;

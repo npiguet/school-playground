@@ -1,6 +1,7 @@
 <script lang="ts">
   // The slim scene HUD (scenes UI spec §4): hero chip (opens the hero panel), XP laurel, dragon
-  // mini-portrait, sound toggle. Viewport-anchored over the stage, inside the safe-area insets.
+  // mini-portrait, sound toggle. Anchored to the on-screen part of the art box (SceneStage's
+  // .stage-hud, final review M13), inside the safe-area insets.
   // Audio channels and their sliders arrive in UI5; UI1 keeps the existing single mute.
   // Task 10b round 1 #3: the dragon's ambient status (what it's up to) lives on the camp-dragon
   // hotspot's caption instead of a `title` here (see camp.ts) - a `title` tooltip never shows on
@@ -28,7 +29,7 @@
 
 <header class="hud">
   <button type="button" class="hud-hero" data-testid="hud-hero" aria-label="Ton héros : {profile.name}" onclick={onHero}>
-    <Avatar avatar={profile.avatar} size={40} />
+    <Avatar avatar={profile.avatar} size={40} ring />
     <span class="hud-name">{profile.name}</span>
   </button>
   <div class="hud-center">
@@ -48,7 +49,18 @@
       </a>
     {/if}
     <button type="button" class="hud-round" data-testid="hud-mute" aria-pressed={soundStore.muted} aria-label="Son" onclick={toggleMute}>
-      <span aria-hidden="true">{soundStore.muted ? '🔇' : '🔊'}</span>
+      <!-- Playability #9: a bronze lyre (struck through when muted), not an emoji. -->
+      <svg class="lyre" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+        <path d="M11 27C6 22 4 14 7 8c1-2 3-3 4-2M21 27c5-5 7-13 4-19-1-2-3-3-4-2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+        <path d="M7 10h18M10 27h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+        <path d="M13 10v17M16 10v17M19 10v17" stroke="currentColor" stroke-width="1.3" />
+        {#if soundStore.muted}<path d="M5 27L27 5" stroke="var(--night)" stroke-width="5" stroke-linecap="round" /><path
+            d="M5 27L27 5"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          />{/if}
+      </svg>
     </button>
   </div>
 </header>
@@ -85,10 +97,15 @@
     color: var(--bronze-ink);
     cursor: pointer;
   }
+  /* Playability #10: Alegreya small caps are much narrower than Cinzel caps, and the chip may
+     grow to ~260 px, so real names such as « Anne-Charlotte » fit whole. */
   .hud-name {
-    font-family: var(--font-display);
+    font-family: var(--font-body);
     font-weight: 700;
-    max-width: 160px;
+    font-size: 18px;
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+    max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -108,6 +125,7 @@
     border: 2px solid var(--bronze-light);
     background: rgba(21, 18, 26, 0.6);
     font-size: 22px;
+    color: var(--bronze-light);
     cursor: pointer;
   }
   .hud-dragon img {

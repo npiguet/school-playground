@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { validateScene } from '../../scene/validate';
 import type { CampResponse, LieutenantState, QuestOut, WorldCatalog } from '../types';
-import { CAMP_HOTSPOTS, CAMP_SCENE, campGreeting, dragonCaption } from './camp';
+import {
+  CAMP_DRAGON_LAYER,
+  CAMP_HOTSPOTS,
+  CAMP_SCENE,
+  bestiaryCaption,
+  campGreeting,
+  dragonCaption,
+  nearestProphecy,
+  nextStepLine,
+  prophecyWhen,
+  treasureCaption,
+  weeklyCaption,
+} from './camp';
 
 function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {
@@ -75,8 +87,8 @@ describe('camp hub scene', () => {
       { neutralised: false, available: true },
       { neutralised: false, available: false },
     ] as LieutenantState[];
-    expect(state('bestiary', camp({ lieutenants })).caption).toBe('1 / 2 ruses neutralisées · les vrais mythes');
-    expect(state('cabin', camp({ rewards_count: 3 })).caption).toBe('3 trésor(s)');
+    expect(state('bestiary', camp({ lieutenants })).caption).toBe("1 ruse d'Éris déjouée");
+    expect(state('cabin', camp({ rewards_count: 3 })).caption).toBe('3 trésors');
   });
 
   it('opens the battle path only when Éris can be fought, naming the reward known in advance', () => {
@@ -91,12 +103,51 @@ describe('camp hub scene', () => {
     expect(state('boss', engaged, catalog)).toMatchObject({ visible: true, isNew: false, caption: 'Un combat est déjà engagé contre Éris.' });
   });
 
-  it('greets with two static dragon lines', () => {
+  it('greets with three static dragon lines, the last one pointing at the next step', () => {
     const lines = campGreeting('Ariane', camp());
     expect(lines.map((l) => l.text)).toEqual([
       'Bienvenue au camp, Ariane.',
       "L'œuf frémit chaque fois qu'un piège d'Éris est déjoué.",
+      "Les parchemins t'attendent, sous la tente.",
     ]);
     expect(lines[0]).toMatchObject({ speaker: 'dragon', name: "L'œuf", portrait: '/art/dragon/dragon_egg_cut.webp', portraitFilter: 'none' });
+  });
+});
+
+describe('camp hub wording (playability #2, #6, #16)', () => {
+  it('pluralises the treasures and the foiled tricks properly', () => {
+    expect([0, 1, 2].map(treasureCaption)).toEqual(['Aucun trésor encore', '1 trésor', '2 trésors']);
+    expect([0, 1, 2].map(bestiaryCaption)).toEqual(["Les ruses d'Éris t'attendent", "1 ruse d'Éris déjouée", "2 ruses d'Éris déjouées"]);
+  });
+
+  it('says when a prophecy falls due in words', () => {
+    expect([0, 1, 3].map(prophecyWhen)).toEqual(["aujourd'hui", 'demain', 'dans 3 jours']);
+  });
+
+  it('shows the weekly goal as parchments defended', () => {
+    expect(weeklyCaption({ week: 'w', target: 3, done: 1, reached: false })).toBe('Cette semaine : 1 / 3 parchemins défendus');
+    expect(weeklyCaption({ week: 'w', target: 3, done: 3, reached: true })).toBe('Objectif atteint ! Les Muses sont fières.');
+  });
+
+  it('points the new hero at the parchments tent, with a caption and the new glow', () => {
+    expect(state('parchemins', camp())).toMatchObject({ caption: 'Choisis un texte à défendre', isNew: true });
+    expect(state('parchemins', camp({ xp: { total: 40, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 } })).isNew).toBe(false);
+  });
+
+  it('ends the greeting on the next step: a near prophecy, else a ready battle, else the tent', () => {
+    const prophecies = [
+      { text_id: 2, title: 'Les fées', due_date: '2026-10-01', days_left: 7 },
+      { text_id: 1, title: 'La mer', due_date: '2026-09-27', days_left: 3 },
+    ];
+    expect(nearestProphecy(camp({ prophecies }))?.title).toBe('La mer');
+    expect(nextStepLine(camp({ prophecies }))).toBe('La Pythie a vu ta prochaine épreuve, dans 3 jours. Viens la réviser !');
+    const ready = camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null } });
+    expect(nextStepLine(ready)).toBe("Le sentier de la bataille est ouvert : Éris t'attend.");
+    expect(nextStepLine(camp())).toBe("Les parchemins t'attendent, sous la tente.");
+  });
+
+  it('keeps the dragon cut-out on a shallow parallax plane and preloads the likely next scenes', () => {
+    expect(CAMP_DRAGON_LAYER.depth).toBeLessThanOrEqual(1);
+    expect(CAMP_SCENE.preload).toEqual(['/art/scenes/delphes.webp', '/art/scenes/battle.webp']);
   });
 });

@@ -28,7 +28,7 @@
   <h1 class="title">{title}</h1>
   <nav class="right">
     <a class="link" data-testid="topbar-camp" href={href('camp', { profileId })}
-      ><span class="icon">🏕️</span><span class="label">Camp</span></a
+      ><span class="icon" aria-hidden="true">←</span><span class="label">Retour au camp</span></a
     >
     <a class="link" href={href('dossier', { profileId })}><span class="icon">📊</span><span class="label">Progrès</span></a>
     <a class="link" href={href('settings', { profileId })}><span class="icon">⚙️</span><span class="label">Réglages</span></a>

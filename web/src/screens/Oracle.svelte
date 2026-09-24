@@ -16,6 +16,7 @@
   import { formatSwissDate } from '../lib/dates';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
   import { href } from '../lib/routes';
+  import { prophecyWhen } from '../lib/world/scenes/camp';
   import type { Profile } from '../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -158,14 +159,13 @@
       <section>
         <h2>Prophéties</h2>
         <p class="muted">
-          L'Oracle a vu une dictée arriver à l'école. Révise-la avant le jour dit : l'XP est multipliée par 1,5.
+          La Pythie a vu une épreuve se préparer dans ta classe. Révise-la avant le jour dit : l'XP est multipliée par 1,5.
         </p>
         <ul class="prophecy-list">
           {#each oracle.prophecies as p (p.text_id)}
             <li class="parchment prophecy-row" data-testid="oracle-prophecy-{p.text_id}">
               <p>
-                « {p.title} » — dictée le {formatSwissDate(p.due_date)} ·
-                {p.days_left === 0 ? "c'est aujourd'hui" : `dans ${p.days_left} jour(s)`}
+                « {p.title} » — le {formatSwissDate(p.due_date)} · {prophecyWhen(p.days_left)}
               </p>
               <a class="btn btn-primary" href={href('play', { profileId, textId: String(p.text_id) })}>Réviser</a>
             </li>

@@ -1,6 +1,6 @@
 <script lang="ts">
   // The laurel XP bar (scenes UI spec §6 UI kit): a branch of leaves that light up toward the next
-  // rank. Olive, never orange (orange is Éris's colour). Accessible as a progressbar.
+  // rank. Gold on a bronze outline, never orange (orange is Éris's colour). Accessible as a progressbar.
   import { LAUREL_LEAVES, laurelLeaves } from '../../lib/ui/laurel';
 
   let { value, max, label, testId }: { value: number; max: number; label: string; testId?: string } = $props();
@@ -26,11 +26,17 @@
 </div>
 
 <style>
+  /* Playability #8: title and branch sit on a soft dark scrim (like the place plaques), so the
+     leaves read over a bright sky. */
   .laurel {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
+    padding: 4px 14px 6px;
+    border-radius: 12px;
+    background: rgba(21, 18, 26, 0.55);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
     color: var(--bronze-ink);
   }
   .laurel-caption {
@@ -48,14 +54,18 @@
     width: 12px;
     height: 20px;
     border-radius: 100% 0;
-    background: var(--laurel-off);
+    /* An empty leaf is a dim bronze outline; a won leaf is gold (playability #8). */
+    background: rgba(200, 148, 80, 0.12);
+    border: 1px solid rgba(200, 148, 80, 0.7);
+    box-sizing: border-box;
     transform: rotate(-30deg);
   }
   .leaf.right {
     transform: rotate(30deg) scaleX(-1);
   }
   .leaf.lit {
-    background: linear-gradient(135deg, var(--laurel-light), var(--laurel));
-    box-shadow: 0 0 6px rgba(164, 179, 106, 0.6);
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    border-color: var(--bronze-dark);
+    box-shadow: 0 0 6px rgba(241, 220, 154, 0.6);
   }
 </style>

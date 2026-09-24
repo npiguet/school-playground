@@ -33,6 +33,37 @@ export function bossRewardName(camp: CampResponse, catalog: WorldCatalog | null)
   return name ?? 'une récompense';
 }
 
+/** « 1 trésor », « 2 trésors », « Aucun trésor encore » (playability #6: no form-style « trésor(s) »). */
+export function treasureCaption(n: number): string {
+  if (n <= 0) return 'Aucun trésor encore';
+  return n === 1 ? '1 trésor' : `${n} trésors`;
+}
+
+/** The bestiary caption: how many of Éris's tricks are foiled (playability #6). */
+export function bestiaryCaption(neutralised: number): string {
+  if (neutralised <= 0) return "Les ruses d'Éris t'attendent";
+  return neutralised === 1 ? "1 ruse d'Éris déjouée" : `${neutralised} ruses d'Éris déjouées`;
+}
+
+/** When a prophecy falls due, in words (playability #16: a real plural, no « jour(s) »). */
+export function prophecyWhen(daysLeft: number): string {
+  if (daysLeft <= 0) return "aujourd'hui";
+  if (daysLeft === 1) return 'demain';
+  return `dans ${daysLeft} jours`;
+}
+
+/** The prophecy the camp shows: the one falling due first. */
+export function nearestProphecy(camp: CampResponse): CampResponse['prophecies'][number] | null {
+  const list = camp.prophecies;
+  return list.length ? [...list].sort((a, b) => a.due_date.localeCompare(b.due_date))[0] : null;
+}
+
+/** The weekly goal banner (playability #6: in-world words, not a dashboard counter). */
+export function weeklyCaption(w: CampResponse['weekly']): string {
+  if (w.reached) return 'Objectif atteint ! Les Muses sont fières.';
+  return `Cette semaine : ${w.done} / ${w.target} parchemins défendus`;
+}
+
 export const CAMP_HOTSPOTS: HotspotDef[] = [
   {
     id: 'dragon',
@@ -75,7 +106,9 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     target: 'library',
     shape: CAMP_SHAPES.parchemins,
     labelPos: 'above',
-    state: () => st(),
+    // Playability #2: the tent where the dictations are fought says so, and glows until the first
+    // text has been defended (no XP yet = no session played).
+    state: ({ camp }) => st({ caption: 'Choisis un texte à défendre', isNew: camp !== null && camp.xp.total === 0 }),
   },
   {
     id: 'dossier',
@@ -93,9 +126,7 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     labelPos: 'below',
     state: ({ camp }) => {
       if (!camp) return st();
-      const available = camp.lieutenants.filter((l) => l.available).length;
-      const neutralised = camp.lieutenants.filter((l) => l.neutralised).length;
-      return st({ caption: `${neutralised} / ${available} ruses neutralisées · les vrais mythes` });
+      return st({ caption: bestiaryCaption(camp.lieutenants.filter((l) => l.neutralised).length) });
     },
   },
   {
@@ -104,7 +135,7 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     target: 'cabin',
     shape: CAMP_SHAPES.cabin,
     labelPos: 'below',
-    state: ({ camp }) => st({ caption: camp ? `${camp.rewards_count} trésor(s)` : null }),
+    state: ({ camp }) => st({ caption: camp ? treasureCaption(camp.rewards_count) : null }),
   },
   {
     id: 'boss',
@@ -133,7 +164,8 @@ export const CAMP_SCENE: SceneDef = {
   hotspots: CAMP_HOTSPOTS,
   ambience: { particles: 'embers', music: null },
   narrator: { enter: 'camp.enter', firstVisit: 'camp.first' },
-  preload: [ART.scenes.delphes, ART.scenes.parchemins],
+  // Final review M5: the scenes the hub leads to next (the Oracle's path, the battle).
+  preload: [ART.scenes.delphes, ART.scenes.battle],
 };
 
 /** Where the player's dragon cut-out stands (its image depends on the stage, so Camp.svelte
@@ -142,9 +174,22 @@ export const CAMP_DRAGON_LAYER: Omit<SceneLayerDef, 'id' | 'src' | 'alt'> = {
   x: 18,
   y: 80,
   scale: 9,
-  depth: 2,
+  // Final review M2: depth 1, not 2 - at most ~9 px of drift on an iPad, well inside its
+  // hotspot (rx 5 % = 73 px), so the nest stays under the finger (Ruling 7).
+  depth: 1,
   idle: 'breathe',
 };
+
+/** The greeting's last line: where to go next (playability #2 - the hub points at the next
+ *  action). A prophecy due within a week first, then a battle ready to be fought, else the tent
+ *  where the texts are defended. */
+export function nextStepLine(camp: CampResponse): string {
+  const p = nearestProphecy(camp);
+  if (p && p.days_left <= 7) return `La Pythie a vu ta prochaine épreuve, ${prophecyWhen(p.days_left)}. Viens la réviser !`;
+  const engaged = camp.quests.some((q) => q.kind === 'boss' && q.status === 'active');
+  if (camp.boss.tier_available !== null && !engaged) return "Le sentier de la bataille est ouvert : Éris t'attend.";
+  return "Les parchemins t'attendent, sous la tente.";
+}
 
 /** UI1's static greeting (dialogue content files arrive in UI5). */
 export function campGreeting(profileName: string, camp: CampResponse): DialogueLine[] {
@@ -158,5 +203,6 @@ export function campGreeting(profileName: string, camp: CampResponse): DialogueL
   return [
     { ...who, text: `Bienvenue au camp, ${profileName}.` },
     { ...who, text: stageLine(d.stage, d.name, Math.max(0, d.available - d.neutralised)) },
+    { ...who, text: nextStepLine(camp) },
   ];
 }
