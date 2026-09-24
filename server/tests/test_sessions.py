@@ -48,6 +48,41 @@ def test_session_updates_stats_history_and_trap_words(client):
     assert client.get(f"/api/profiles/{p['id']}/trap-words").json()[0]["box"] == 2
 
 
+def grimoire_result(draft_words, final_words):
+    """Éris planted `draft_words` (accent errors in the draft); the child left `final_words` wrong."""
+    def err(w):
+        return {"refIndex": 5, "typedIndex": 5, "expected": w, "typed": w.replace("è", "e").replace("é", "e"), "category": "accent"}
+    return {"version": 1, "byCategory": {"accent": {"opportunities": 2, "draft": len(draft_words), "caught": len(draft_words) - len(final_words),
+                                                    "missed": len(final_words), "introduced": 0}},
+            "draftErrors": [err(w) for w in draft_words], "finalErrors": [err(w) for w in final_words],
+            "caught": [], "missed": [], "introduced": [], "correctWords": 11, "totalWords": 13, "catchRate": 0.5, "score": 100}
+
+
+def test_grimoire_session_never_creates_or_resets_trap_words(client):
+    p, t = setup(client)
+    post_session(client, p, t, 0.5, lexical_expected="clairière")           # a real dictation miss: box 1
+    trap = client.get(f"/api/profiles/{p['id']}/trap-words").json()
+    assert [(w["word"], w["box"], w["misses"]) for w in trap] == [("clairière", 1, 1)]
+
+    def grimoire(result):
+        body = {"profile_id": p["id"], "text_id": t["id"], "pace_level": 2, "help_stage": 1, "mode": "grimoire",
+                "started_at": "2026-09-23T10:00:00+00:00", "draft": "x", "final": "y", "result": result, "score": 100, "catch_rate": 0.5}
+        assert client.post("/api/sessions", json=body).status_code == 201
+
+    # Éris plants « clairière » and « fées »; the child misses « clairière » and catches « fées »: nothing is
+    # created for « fées », « clairière » is neither reset nor counted as a new miss — it just isn't promoted
+    grimoire(grimoire_result(["clairière", "fées"], ["clairière"]))
+    trap = client.get(f"/api/profiles/{p['id']}/trap-words").json()
+    assert [(w["word"], w["box"], w["misses"]) for w in trap] == [("clairière", 1, 1)]
+    # she catches the planted « clairière »: seen and correct → promoted like in a dictation
+    grimoire(grimoire_result(["clairière"], []))
+    trap = client.get(f"/api/profiles/{p['id']}/trap-words").json()
+    assert [(w["word"], w["box"], w["misses"]) for w in trap] == [("clairière", 2, 1)]
+    # category stats still count the grimoire rounds
+    accent = next(c for c in client.get(f"/api/profiles/{p['id']}/stats").json()["categories"] if c["category"] == "accent")
+    assert accent["errors_in_draft"] == 1 + 2 + 1
+
+
 def test_help_stage_adapts(client):
     p, t = setup(client)
     assert post_session(client, p, t, 0.8)["help_stage_after"] == 1

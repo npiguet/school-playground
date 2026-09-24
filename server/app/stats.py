@@ -62,15 +62,21 @@ def apply_session_to_stats(conn: sqlite3.Connection, profile_id: int, result: di
                      (profile_id, day, key, *vals))
 
 
-def update_trap_words(conn: sqlite3.Connection, profile_id: int, result: dict, reference_body: str, now: str) -> None:
-    errors = result.get("draftErrors", []) + result.get("finalErrors", [])
+def update_trap_words(conn: sqlite3.Connection, profile_id: int, result: dict, reference_body: str, now: str,
+                      record_misses: bool = True) -> None:
+    """Leitner boxes of the profile's mots-pièges. A dictation's draft errors are the child's own
+    mistakes: each one enters (or resets) a trap word. In the Grimoire corrompu (`record_misses=False`)
+    the draft errors are Éris's plants, so no word is added or reset — a planted word she left wrong
+    (a final error) merely misses its promotion, and one she caught or spelt right moves up a box."""
+    errors = result.get("finalErrors", []) + (result.get("draftErrors", []) if record_misses else [])
     missed_words = {e["expected"].lower() for e in errors
                     if e.get("category") in TRAP_CATEGORIES and e.get("sub") not in NON_TRAP_SUBS
                     and e.get("expected") and WORD_RE.fullmatch(e["expected"])}
-    for w in missed_words:
-        conn.execute("""INSERT INTO trap_word(profile_id, word, box, last_seen, misses) VALUES (?,?,1,?,1)
-                        ON CONFLICT(profile_id, word) DO UPDATE SET misses = misses + 1, box = 1, last_seen = excluded.last_seen""",
-                     (profile_id, w, now))
+    if record_misses:
+        for w in missed_words:
+            conn.execute("""INSERT INTO trap_word(profile_id, word, box, last_seen, misses) VALUES (?,?,1,?,1)
+                            ON CONFLICT(profile_id, word) DO UPDATE SET misses = misses + 1, box = 1, last_seen = excluded.last_seen""",
+                         (profile_id, w, now))
     present = set(words(reference_body)) - missed_words
     for r in conn.execute("SELECT word, box FROM trap_word WHERE profile_id = ?", (profile_id,)).fetchall():
         if r["word"] in present:

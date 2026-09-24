@@ -35,17 +35,21 @@ def create_session(body: SessionCreate, db: sqlite3.Connection = Depends(get_db)
          body.draft, body.final, json.dumps(body.result, ensure_ascii=False), body.score, body.catch_rate))
     session_id = cur.lastrowid
 
+    grimoire = body.mode == "grimoire"
     apply_session_to_stats(db, body.profile_id, body.result, day, finished_at)
-    update_trap_words(db, body.profile_id, body.result, text["body"], finished_at)
+    # In the Grimoire the draft errors are Éris's plants, not the child's mistakes: they feed the
+    # category stats but never create or reset a mot-piège (a trap word is planted 3× more often,
+    # so counting plants as misses would pin it in box 1 forever).
+    update_trap_words(db, body.profile_id, body.result, text["body"], finished_at, record_misses=not grimoire)
 
     # Grimoire corrompu sessions are deliberately weighted toward the profile's weaknesses,
-    # so they never move the adaptive help stage (plan decision 8); they still feed stats and
-    # trap words above. Recent-rate history for the help stage only ever looks at dictation
-    # sessions, so a grimoire round never counts toward a dictation-mode change either.
+    # so they never move the adaptive help stage (plan decision 8); they still feed stats
+    # above. Recent-rate history for the help stage only ever looks at dictation sessions,
+    # so a grimoire round never counts toward a dictation-mode change either.
     help_stage_before = profile["help_stage"]
     help_stage_after = help_stage_before
     message = None
-    if body.mode != "grimoire":
+    if not grimoire:
         rates = [r["catch_rate"] for r in db.execute(
             "SELECT catch_rate FROM session WHERE profile_id = ? AND help_stage = ? AND mode = 'dictation' "
             "AND catch_rate IS NOT NULL ORDER BY finished_at DESC, id DESC LIMIT 3",
