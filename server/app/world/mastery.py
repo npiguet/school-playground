@@ -18,10 +18,7 @@ def lieutenants_for_level(level: str) -> list[str]:
 def mastery_window(day_rows: list[dict]) -> Window:
     days = traps = caught = 0
     for r in sorted((r for r in day_rows if r["errors_in_draft"] > 0), key=lambda r: r["day"], reverse=True):
-        # Strict '>' (not '>=') on traps: once the window already satisfies both minimums,
-        # one more day is still folded in as long as it doesn't overshoot the trap minimum.
-        # (See task-1-report.md for why '>=' here breaks test_window_extends_until_ten_traps.)
-        if days >= MASTERY["min_days"] and traps > MASTERY["min_traps"]:
+        if days >= MASTERY["min_days"] and traps >= MASTERY["min_traps"]:
             break
         days += 1; traps += r["errors_in_draft"]; caught += r["caught"]
     complete = days >= MASTERY["min_days"] and traps >= MASTERY["min_traps"]

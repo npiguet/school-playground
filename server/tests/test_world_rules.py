@@ -28,7 +28,14 @@ def test_window_is_the_most_recent_minimal_span_and_ignores_empty_days():
 
 def test_window_extends_until_ten_traps():
     w = mastery_window(rows(("2026-09-19", 1, 0), ("2026-09-20", 2, 2), ("2026-09-21", 2, 2), ("2026-09-22", 2, 2), ("2026-09-23", 4, 4)))
-    assert w.days == 5 and w.traps == 11 and w.rate == pytest.approx(10 / 11) and is_neutralised(w)
+    assert w.days == 4 and w.traps == 10 and w.rate == pytest.approx(1.0) and is_neutralised(w)
+
+
+def test_window_does_not_dilute_with_older_unrelated_bad_day():
+    # A legitimate minimal 3-day/10-trap window (09-20..09-22) must not be diluted by
+    # folding in an older, unrelated bad day (09-15) once the window is already complete.
+    w = mastery_window(rows(("2026-09-15", 5, 0), ("2026-09-20", 3, 3), ("2026-09-21", 3, 3), ("2026-09-22", 4, 4)))
+    assert w.days == 3 and w.traps == 10 and w.rate == pytest.approx(1.0) and is_neutralised(w)
 
 
 def test_window_no_data():

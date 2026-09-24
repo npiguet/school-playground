@@ -16,3 +16,8 @@ def test_iso_week():
 def test_week_days():
     days = week_days("2026-W39")
     assert days[0] == "2026-09-21" and days[-1] == "2026-09-27" and len(days) == 7
+
+
+def test_week_days_crosses_year_boundary():
+    days = week_days("2026-W53")
+    assert days[0] == "2026-12-28" and days[-1] == "2027-01-03" and len(days) == 7
