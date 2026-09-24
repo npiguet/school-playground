@@ -47,13 +47,14 @@ reads instantly. Gold accents stay small except on the dragon and the emblems.
   (thick heavy outline:-1.5) (shadow:-2)`. A first try with a heavy comic outline cut out
   perfectly but looked too heavy; `(thick heavy outline:-1.5)` is what lightens it. Use it
   for new cut-out assets; the older ones still use `discorde-inked`.
+- `.claude/skills/krea2/styles/discorde-texture.txt`: low-contrast UI surface tiles (marble).
 - `.claude/skills/krea2/styles/discorde-emblem.txt`: round bronze/gold medallion UI emblems
   (add "a clean dark ink outline around the medallion's outer rim" to the prompt).
 
 Prompt recipe (see the sidecars): framing → lighting → `subject:` block (longest) →
 negatives as `(word:-2..-3)` → `isolated on a flat plain white background` for anything
 that gets cut out. Generated with `--vscale 1.0` so the negative weights bite. Portrait
-cards 768×1344, creatures/emblems 1024×1024, scenes 1344×768 with an "open empty sky in the
+cards 768×1344, creatures/emblems 1024×1024, scenes 1344×768 (UI2 scenes: 2048×1152, see §5) with an "open empty sky in the
 upper third" for the UI.
 
 ## 4. Character sheets
@@ -134,9 +135,68 @@ All under `assets/art/`. `*_cut.png` = same image with the white background remo
 | Lieutenants | `lieutenants/{hydre,echo,chimere,protee,sirenes,lethe}.png` + `_cut` | 768×1344 |
 | Scenes: camp (hub, dawn), Delphes, Alexandrie, Parchemins, Argus sanctuary, battle | `scenes/{camp,delphes,alexandrie,parchemins,argus,battle}.png` | 1344×768 |
 | Emblems: Yeux d'Argus, Fil d'Ariane, Bouclier de Persée, Chouette d'Athéna, golden apple | `emblems/{argus,ariane,persee,athena,apple}.png` + `_cut` | 1024×1024 |
+| Scenes UI (UI2): title gates, camp hub, nest, Delphi, library tent, war tent, cabin, Éris's lair, 3 battle backdrops | `scenes/{title_gates,hub_camp,nest,delphi,library_tent,war_tent,cabin,eris_lair,battle_river,battle_coast,battle_temple}.png` | 2048×1152 |
+| Pythia, Athena's owl | `characters/{pythia,owl}.png` + `_cut` | 768×1344, 1024² |
+| Props: votive tablets, codex on a lectern, trophy shelf | `props/{votive_tablets,codex_lectern,trophy_shelf}.png` + `_cut` | 1024², 768×1344, 1344×768 |
+| Marble texture tile | `textures/marble.png` | 1024² |
 
-Scenes keep the upper third calm for the HUD; the battle backdrop keeps its centre empty so
-the lieutenant card and the dragon can be composited over it.
+The older 1344×768 scenes keep the upper third calm for the HUD, and the old battle backdrop keeps
+its centre empty so the lieutenant card and the dragon can be composited over it. They stay in place
+for the current screens. The UI2 scenes are covered in the next subsection, and their landmark boxes for hotspots are
+in `docs/art/scenes.md`.
+
+### Scenes UI (UI2, 2026-09-24)
+
+Native **2048×1152** (Krea 2 Turbo is happiest around 2–2.5 MP; nothing was upscaled), style
+`discorde-illustration`, `--vscale 1.0`, 8 steps. The cut-outs use `discorde-inked-clean` and the
+unchanged `cutout.py`. The scene WebPs are exported at 2048 px wide, q88, 190–294 KB each, under the
+600 KB budget. Export them with `webify.py --src <folder with only the new PNGs> --dst
+web/public/art/scenes --max-px 2048 --quality 88` from a staging folder, so the old scene WebPs are
+not rewritten.
+
+**Seeds** (the sidecars hold the exact prompts): title_gates 602, hub_camp 601, nest 603,
+delphi 604, library_tent 605, war_tent 806, cabin 507, eris_lair 608, battle_river 509,
+battle_coast 510, battle_temple 511, pythia 701, owl 802, votive_tablets 703,
+codex_lectern 704, trophy_shelf 705, marble 902 (style `discorde-texture`). 28 generations in total.
+
+**Composition sentence** appended to every scene prompt (it's in the sidecars):
+*"Composition: a wide 16:9 game background seen from a little distance, all the important objects
+are grouped in the middle of the picture, the outer eighth on the far left and on the far right
+holds only soft background scenery such as plain wall, foliage or sky; the ground in the lower part
+of the picture continues naturally with the same texture and light but with few small details; the
+top edge is calm."* followed by `(people:-2) (text:-3) (letters:-3) (signs:-3) (busy details:-2)`.
+
+Prompt tips from this batch:
+- **Never ask for a "calm, plain, uncluttered bottom fifth".** Krea paints a flat blank beige band
+  across the bottom 30 % (nest, war tent and library first tries). Ask for "the ground continues
+  naturally with the same texture and light but with few small details" instead.
+- "Every important element sits in the middle three quarters" is not enough to keep things out of
+  the iPad crop. **Name positions**: "about one fifth in from the left edge", "left of centre, set
+  in from the left edge", "right of centre, well inside the picture". Even so, the hub's nest and
+  cabin still overhang the 12.5 / 87.5 lines slightly, so clip those hotspots (see `scenes.md`).
+- Six landmarks in one hub works if each gets its own sentence with a position, a strong colour
+  identity (cream-and-blue striped library pavilion, red-and-bronze war tent, white cabin with a
+  terracotta roof, marble temple on a hill, a nest on a rock, a wooden archway toward stormy
+  hills), and "each standing alone with open grass between them".
+- A "tripod stool" gives a bar stool. Write "a tall ancient Greek bronze tripod, three long curved
+  bronze legs holding a wide round shallow bronze bowl as a seat" plus `(bar stool:-3)`.
+- For empty slots the game fills (shield hooks, portrait sheets), say "bare hooks with nothing
+  hanging on them" plus `(shields:-3)`, or "blank empty sheets of parchment each fixed only by one
+  small bronze pin at its top edge" plus `(daggers on the sheets:-3)`. With "pinned with daggers"
+  the dagger covers the middle of every sheet.
+- For the "empty dragon spot" in the nest, say "the middle of the nest is completely empty and
+  open, a soft hollow waiting for a dragon" plus `(dragon:-3) (creature:-3)`.
+- A villain lair came out as a daylit courtyard until the prompt said "a dim enclosed hall at
+  night lit only by poison purple and acid green light from below", "deep inside a mountain", and
+  `(daylight:-3) (sky:-3)`. Keep `(skulls:-3) (blood:-3)` so it stays ominous, not horror.
+- In `discorde-inked-clean`, a plain "Athena's owl" comes out as a naturalistic field-guide bird.
+  "A lively story character, a small stylised little owl ... simple clean feather shapes ...
+  clever amused look" plus `(realistic photo:-2) (detailed realistic feathers:-2)` gives the
+  sidekick look. Also ask for "plenty of empty white room" or the perch gets cropped.
+- Painted scrolls and journals still get illegible pseudo-writing (library notes, cabin journal).
+  It reads as texture, not text, and was accepted.
+- Textures: `discorde-texture` (in `styles/`) plus "uniform all over so it can repeat". Marble
+  worked. Parchment got a vignette and bronze turned into honeycomb, so CSS does those better.
 
 Not yet made (candidates for a later batch): player avatar options, the Muses, per-stage
 dragon colour variants, a title/hero banner 1536×640, small item icons (scroll, quill, laurel).
@@ -163,3 +223,7 @@ sidecar>" --style discorde-illustration --size 768x1344 --seed <seed> --vscale 1
 assets/art/...`, look at it, then rerun the Docker tools.
 
 No text is baked into images; the game adds all text in HTML.
+
+`run_docker.sh` resolves the repo path with `pwd -W` under Git Bash. Before UI2, a precedence
+slip made it print two paths, so `docker run -v` failed. That's fixed now, and `props/` is among
+the default cut-out targets.
