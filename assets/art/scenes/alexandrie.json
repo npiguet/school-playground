@@ -1,0 +1,34 @@
+{
+  "prompt": "wide interior shot, eye level, warm light streaming from tall windows with floating dust motes. subject: the great Library of Alexandria, foreground a wide marble reading table with a few open papyrus scrolls and a bronze oil lamp, midground rows of tall wooden shelves filled with rolled scrolls in pigeonholes, marble columns, a bronze armillary sphere and a statue of Athena, background a huge vaulted hall receding into soft golden haze, the upper third of the image calm and uncluttered, (busy details:-2) (people:-2) (readable text letters:-3).\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1344,
+  "height": 768,
+  "seed": 401,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}

@@ -1,0 +1,34 @@
+{
+  "prompt": "full body, centered, three-quarter view, soft even lighting. subject: a tiny newborn hatchling dragon of the Discorde species, burnished bronze-gold scales, big round amber eyes, a pale cream belly, two tiny ivory horn nubs, stubby wings with copper-coloured membranes far too small to fly, sitting in the broken halves of its bronze-gold scaled eggshell, tilting its head with curious wonder, a wisp of golden smoke from its nostrils, (scenery:-3) (cast shadow:-2) (busy background:-3), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1024,
+  "height": 1024,
+  "seed": 202,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}

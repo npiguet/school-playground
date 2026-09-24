@@ -1,0 +1,34 @@
+{
+  "prompt": "wide shot, eye level, cool serene moonlit light with a soft gold glow. subject: the sanctuary of Argus the hundred-eyed watchman, a circular open-air marble temple at night, foreground a smooth marble floor with a mosaic of concentric rings of stylised open eyes in blue and gold tesserae, midground a ring of white columns each topped with a bronze peacock feather ornament, tall peacock feathers with glowing eye-spots standing in bronze vases, a central shallow pool of still water reflecting the stars, background dark olive hills under a deep Aegean-blue starry night sky, calm open empty sky in the upper third, (busy details:-2) (people:-2) (creepy horror:-3) (text signs:-3).\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1344,
+  "height": 768,
+  "seed": 402,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}

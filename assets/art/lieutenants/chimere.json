@@ -1,0 +1,34 @@
+{
+  "prompt": "full-body portrait card, creature centered, dramatic warm rim light from the side, soft even lighting. subject: La Chimère, the chimera of Greek myth, a creature with the body and head of a lioness in warm terracotta-gold fur with a fiery mane, a second head of a goat with curled horns growing from the middle of its back looking the other way, and a tail that ends in a living olive-green snake head, standing on a chunk of broken marble, a small puff of flame from the lion mouth, the three heads arguing with each other with comical mismatched expressions, (blood gore:-3) (scenery:-3) (cast shadow:-2), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 768,
+  "height": 1344,
+  "seed": 303,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}

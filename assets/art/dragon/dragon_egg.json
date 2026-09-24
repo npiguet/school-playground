@@ -1,0 +1,34 @@
+{
+  "prompt": "product shot, centered, full view, soft even lighting. subject: a single large dragon egg standing upright, its shell made of overlapping burnished bronze-gold metallic scales with a faint amber glow leaking from a few thin cracks near the top, a small curl of golden light rising from the tip, resting on a small nest of olive branches and a few white marble pebbles, (scenery:-3) (cast shadow:-2) (busy background:-3), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1024,
+  "height": 1024,
+  "seed": 201,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}

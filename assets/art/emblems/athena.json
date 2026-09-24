@@ -1,0 +1,34 @@
+{
+  "prompt": "subject: an emblem of Athena's owl, a small stocky little owl seen from the front with large round golden eyes and folded wings, perched on a short olive branch with a few leaves, wise and slightly amused, (text letters:-3) (scenery:-3) (cast shadow:-2).\n\nStyle: a single game UI emblem, a round bronze-and-gold medallion with bold simple shapes, thick clean outlines, flat cel shading with a soft metallic sheen, Greek key meander border, terracotta and Aegean blue enamel accents, readable at small icon size, centered, isolated on a flat plain white background.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1024,
+  "height": 1024,
+  "seed": 501,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-emblem"
+}

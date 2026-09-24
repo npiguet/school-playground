@@ -1,0 +1,34 @@
+{
+  "prompt": "wide interior shot, eye level, warm cosy lamplight mixed with cool evening light from a small round window. subject: Les Parchemins, a cosy shared scroll library inside a round stone tower, foreground a low wooden desk with a quill, an inkpot and a few rolled parchments tied with coloured ribbons, midground curved walls lined with honeycomb pigeonholes stuffed with hundreds of rolled scrolls each with a small coloured tag, a wooden ladder, a small terracotta stove, olive-green cushions on a window bench, background the curved wall continuing up into soft shadow, the upper third calm and uncluttered, (busy details:-2) (people:-2) (readable text letters:-3).\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1344,
+  "height": 768,
+  "seed": 402,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}
