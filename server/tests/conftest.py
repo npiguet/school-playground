@@ -14,6 +14,8 @@ def settings(tmp_path):
     content = tmp_path / "content"
     content.mkdir()
     shutil.copy(REPO_CONTENT / "homophones.json", content / "homophones.json")
+    (content / "lexique").mkdir()
+    shutil.copy(REPO_CONTENT / "lexique" / "lexique383-trimmed.tsv.gz", content / "lexique" / "lexique383-trimmed.tsv.gz")
     return Settings(data_dir=tmp_path / "data", content_dir=content,
                     static_dir=tmp_path / "static", spacy_model="fr_core_news_sm",
                     seed_on_startup=False)
@@ -29,3 +31,9 @@ def client(settings):
 def nlp():
     from app.nlp.model import get_nlp
     return get_nlp("fr_core_news_sm")
+
+
+@pytest.fixture(scope="session")
+def lexicon():
+    from app.lexicon import load_lexicon
+    return load_lexicon(REPO_CONTENT)
