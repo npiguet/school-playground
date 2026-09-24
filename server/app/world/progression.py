@@ -91,6 +91,14 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
             won = outcome == "won"
             progress["log"].append({"session_id": session_id, "ok": won})
             boss_out = {"tier": goal["tier"], "won": won, "too_easy": outcome == "too_easy"}
+            # Controller ruling (re-review, P1-5 follow-up): "reviens avec un texte plus long" was
+            # false - the boss text is already the longest candidate, fixed for the quest. A
+            # too_easy draw instead flags the quest for a Grimoire corrompu retry (Éris plants
+            # errors herself on the SAME text), so a skilled player always has something to catch.
+            # Sticky once set: a later grimoire-mode loss must not fall back to plain dictation.
+            if outcome == "too_easy" and goal.get("mode") != "grimoire":
+                goal["mode"] = "grimoire"
+                conn.execute("UPDATE quest SET goal_json = ? WHERE id = ?", (json.dumps(goal), q["id"]))
             if won: _complete_quest(conn, q, pid, now, bonuses, rewards)
             conn.execute("UPDATE quest SET progress_json = ? WHERE id = ?", (json.dumps(progress), q["id"]))
             quest_out.append({"id": q["id"], "kind": "boss", "target": "eris", "counted": won, "progress": 1 if won else 0, "goal": 1,

@@ -24,6 +24,11 @@
   const tier = $derived(campStore.data?.boss.tier_available ?? activeBossQuest?.goal.tier ?? 1);
   const dragonStage = $derived(campStore.data?.dragon.stage ?? 'egg');
   const dragonTint = $derived(campStore.data?.dragon.tint ?? 'bronze');
+  // P1-5 follow-up (controller ruling): after a too_easy draw the active boss quest is flagged
+  // 'grimoire' server-side - the retry has to run as a Grimoire corrompu session on the same
+  // (already-longest) text instead of plain dictation, since "reviens avec un texte plus long"
+  // was never actually possible.
+  const isGrimoireRetry = $derived(activeBossQuest?.goal.mode === 'grimoire');
 
   const CHALLENGE_LINES: Record<number, string> = {
     1: '« Deux de mes ruses réduites au silence ? Voyons si mes pièges tiennent quand ils jouent tous ensemble. »',
@@ -44,13 +49,12 @@
     startError = '';
     try {
       const { quest, text_id, help_stage } = await worldApi.boss(profile.id);
-      navigate(
-        href(
-          'play',
-          { profileId: String(profile.id), textId: String(text_id) },
-          { quest: String(quest.id), encounter: 'eris', help: String(help_stage) },
-        ),
-      );
+      const params = { profileId: String(profile.id), textId: String(text_id) };
+      const query = { quest: String(quest.id), encounter: 'eris', help: String(help_stage) };
+      // A grimoire-flagged retry (P1-5 follow-up) opens the 'grimoire' route instead of 'play':
+      // Play.svelte then corrupts the same text server-side (POST /corrupt) rather than dictating
+      // it, so there's always something real to catch.
+      navigate(href(quest.goal.mode === 'grimoire' ? 'grimoire' : 'play', params, query));
     } catch (e) {
       startError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
@@ -84,7 +88,7 @@
     {#if startError}<p class="orange" role="alert">{startError}</p>{/if}
 
     <button type="button" class="btn btn-primary" data-testid="boss-start" disabled={starting} onclick={start}>
-      Affronter Éris
+      {isGrimoireRetry ? 'Relancer le combat' : 'Affronter Éris'}
     </button>
   </div>
 </div>

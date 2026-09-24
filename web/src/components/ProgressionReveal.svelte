@@ -376,7 +376,10 @@
         </div>
       {:else if progression.boss.too_easy}
         <div class="parchment reveal-card boss-result" data-testid="reveal-boss-too-easy">
-          <p class="line">Éris n'a rien pu saboter : reviens avec un texte plus long.</p>
+          <p class="line">
+            Dictée parfaite : Éris n'a rien pu saboter ! Furieuse, elle va corrompre le parchemin elle-même. Relance le
+            combat pour démasquer ses pièges.
+          </p>
         </div>
       {:else}
         <div class="parchment reveal-card boss-result" data-testid="reveal-boss">

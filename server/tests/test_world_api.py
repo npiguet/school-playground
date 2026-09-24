@@ -139,8 +139,18 @@ def test_boss_flow(client):
     # over the tier's XP/gear, and the quest must stay active (nothing lost) just like a real loss.
     too_easy = post(client, pid, long_text, hydre_result(draft=0, caught=0), quest_id=b["quest"]["id"], encounter="eris", help_stage=3)["progression"]
     assert too_easy["boss"] == {"tier": 1, "won": False, "too_easy": True} and too_easy["rewards"] == []
-    assert client.get(f"/api/profiles/{pid}/quests?status=active").json()[0]["kind"] == "boss"     # still nothing lost
-    won = post(client, pid, long_text, hydre_result(draft=5, caught=4), quest_id=b["quest"]["id"], encounter="eris", help_stage=3)["progression"]
+    active_after_too_easy = client.get(f"/api/profiles/{pid}/quests?status=active").json()
+    assert active_after_too_easy[0]["kind"] == "boss"     # still nothing lost
+    # Controller ruling (P1-5 follow-up): "reviens avec un texte plus long" was false - the boss
+    # text is already the longest candidate. A too_easy draw instead flags the quest for a
+    # Grimoire corrompu retry on the SAME text; re-fetching the boss (idempotent branch) must
+    # surface that flag and the same text so the client routes to the grimoire, not dictation.
+    assert active_after_too_easy[0]["goal"]["mode"] == "grimoire"
+    b2 = client.post(f"/api/profiles/{pid}/boss").json()
+    assert b2["quest"]["id"] == b["quest"]["id"] and b2["quest"]["goal"]["mode"] == "grimoire" and b2["text_id"] == long_text
+    # Winning the grimoire session (planted errors count as draft errors, same win condition)
+    # grants the tier exactly like an ordinary boss win.
+    won = post(client, pid, long_text, hydre_result(draft=5, caught=4), quest_id=b["quest"]["id"], encounter="eris", help_stage=3, mode="grimoire")["progression"]
     assert won["boss"] == {"tier": 1, "won": True, "too_easy": False} and [r["id"] for r in won["rewards"]] == ["sandales_hermes"]
     rewards = client.get(f"/api/profiles/{pid}/rewards").json()
     assert {r["id"] for r in rewards} == {"ecaille_hydre", "voix_echo", "sandales_hermes"}

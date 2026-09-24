@@ -7,6 +7,39 @@ import { stubSpeech, createText, makeResult, postSession } from './helpers';
 // and the break nudge, and a no-red/no-guilt scan. One profile, one describe.serial: each step
 // depends on state the previous one left on the server (quests, mastery, rewards, dragon stage).
 
+// Paces 3-4 auto-advance through real setTimeout pauses (600 ms + a per-chunk pause): a boss
+// dictation is >= 150 words, so without this a real-time run would take minutes and blow past the
+// test timeout. Ported from playability-sp3.spec.ts (installFastTimers/dictate) - only test 7
+// needs it, for the too_easy real-dictation check (P1-5 follow-up).
+async function installFastTimers(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as any;
+    const orig = w.setTimeout;
+    w.setTimeout = function (fn: TimerHandler, ms?: number, ...args: unknown[]) {
+      if (w.__fastTimers && typeof ms === 'number' && ms >= 500) ms = Math.ceil(ms / 25);
+      return orig.call(w, fn, ms, ...args);
+    };
+  });
+}
+
+async function dictate(page: Page, draft: string, maxSteps = 120) {
+  const ta = page.getByTestId('dictation-textarea');
+  const next = page.getByTestId('btn-next');
+  const finish = page.getByTestId('btn-finish-writing');
+  await expect(ta).toBeVisible({ timeout: 10_000 });
+  await page.evaluate(() => ((window as any).__fastTimers = true));
+  for (let i = 0; i < maxSteps; i++) {
+    if (await finish.isVisible()) break;
+    if ((await next.count()) === 0) break;
+    await expect(next).toBeEnabled({ timeout: 10_000 });
+    await next.click();
+    await page.waitForTimeout(60);
+  }
+  await expect(finish).toBeVisible({ timeout: 120_000 });
+  await page.evaluate(() => ((window as any).__fastTimers = false));
+  await ta.fill(draft);
+}
+
 test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
   let profileId: string;
   let textId: number;
@@ -202,6 +235,13 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     page,
     request,
   }) => {
+    test.setTimeout(120_000); // a real (fast-timer) boss dictation is added below, P1-5 follow-up
+    // Must be registered before this test's first navigation (an SPA route change afterwards
+    // never re-runs init scripts) - only takes effect for the too_easy dictation further down.
+    // `page` is a fresh fixture per test even inside describe.serial, so both stubs need to be
+    // (re-)installed here too, exactly as test 1 does for itself.
+    await stubSpeech(page);
+    await installFastTimers(page);
     // A guaranteed >=150-word 10H text so the boss endpoint always has a candidate, regardless
     // of what the seed happens to include.
     await createText(request, {
@@ -228,12 +268,40 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await expect(page).toHaveURL(/encounter=eris/);
     await expect(page.getByTestId('play-boss-banner')).toBeVisible();
 
-    // Rather than play the long text in the UI, read the boss quest/text straight from the API.
     const active = await (await request.get(`/api/profiles/${profileId}/quests?status=active`)).json();
     const bossQuest = active.find((q: { kind: string }) => q.kind === 'boss');
     expect(bossQuest).toBeTruthy();
     const bossTextId = bossQuest.goal.text_id as number;
     const today = new Date().toISOString().slice(0, 10);
+
+    // P1-5 follow-up (controller ruling): a perfect dictation ("nothing to catch") must not win
+    // the boss - it's a draw, and "reviens avec un texte plus long" would be false (the boss text
+    // is already the longest candidate). Play the boss text for real, unmodified, and check the
+    // reveal's too_easy card and its exact message.
+    const bossBody = ((await (await request.get(`/api/texts/${bossTextId}`)).json()) as { body: string }).body;
+    await page.locator('[data-testid^="pace-option-"]:not(.disabled)').first().click();
+    await page.getByRole('button', { name: 'Commencer la dictée' }).click();
+    await dictate(page, bossBody);
+    await page.getByTestId('btn-finish-writing').click();
+    await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
+    await page.getByTestId('btn-done-proofreading').click();
+    const perfectConfirm = page.getByRole('button', { name: 'Oui, valider' });
+    if (await perfectConfirm.isVisible()) await perfectConfirm.click();
+    await expect(page.getByTestId('reveal-boss-too-easy')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('reveal-boss-too-easy')).toContainText(
+      "Dictée parfaite : Éris n'a rien pu saboter ! Furieuse, elle va corrompre le parchemin elle-même. Relance le combat pour démasquer ses pièges.",
+    );
+    await page.getByTestId('reveal-continue').click();
+    await expect(page.getByTestId('results-catch-rate')).toBeVisible();
+
+    // Nothing lost: the quest is still active, now flagged for a Grimoire corrompu retry on the
+    // same text, and the boss screen's button/label reflects it.
+    const afterTooEasy = await (await request.get(`/api/profiles/${profileId}/quests?status=active`)).json();
+    const bossAfterTooEasy = afterTooEasy.find((q: { kind: string }) => q.kind === 'boss');
+    expect(bossAfterTooEasy.id).toBe(bossQuest.id);
+    expect(bossAfterTooEasy.goal.mode).toBe('grimoire');
+    await page.goto(`/#/p/${profileId}/eris`);
+    await expect(page.getByTestId('boss-start')).toContainText('Relancer le combat');
 
     const lost = await postSession(request, {
       profileId: Number(profileId),
