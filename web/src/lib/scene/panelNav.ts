@@ -5,6 +5,7 @@
 // overlay's own entry with the bare scene.
 import { href } from '../routes';
 import { navigate, replaceRoute } from '../router.svelte';
+import type { HotspotDef } from './types';
 
 export const PANEL_TAG = 'discordePanel';
 
@@ -37,4 +38,10 @@ export function closePanel(scenePath: string, h: HistoryLike = history): void {
 /** Where the HUD's hero chip leads (UI3b Task 6 moves the hero panel into the cabin). */
 export function heroPanelHref(profileId: number): string {
   return href('camp', { profileId: String(profileId) }, { panel: 'heros' });
+}
+
+/** The route a hotspot opens, or null when the scene handles the tap itself. */
+export function hotspotHref(def: HotspotDef, profileId: number): string | null {
+  if (!def.target) return null;
+  return href(def.target, { profileId: String(profileId), ...(def.params ?? {}) }, def.query);
 }

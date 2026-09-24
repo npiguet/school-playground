@@ -74,6 +74,13 @@
     runtime.artH = box.height;
   });
 
+  // UI3 Ruling A6: a place stays mounted under its overlays, so the one-tap-at-a-time guard is
+  // released on every route change (the camp is unmounted by its own navigation anyway).
+  $effect(() => {
+    void router.route;
+    runtime.activating = false;
+  });
+
   onMount(() => {
     // Warm the cache for the scenes the player is likely to open next (spec §4 performance).
     const t = setTimeout(() => {

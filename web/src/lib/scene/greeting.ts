@@ -10,7 +10,19 @@ export function markGreeted(profileId: number): void {
   greeted.add(profileId);
 }
 
+// UI3 Ruling A9: the places' static greetings (owl, Pythia...), keyed `<place>:<profileId>`.
+const greetedKeys = new Set<string>();
+
+export function shouldGreetKey(key: string): boolean {
+  return !greetedKeys.has(key);
+}
+
+export function markGreetedKey(key: string): void {
+  greetedKeys.add(key);
+}
+
 /** Test helper: forget every greeting (what a page reload does). */
 export function resetGreetings(): void {
   greeted.clear();
+  greetedKeys.clear();
 }

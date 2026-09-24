@@ -32,7 +32,7 @@
   import { clearProfile } from '../lib/profileStore.svelte';
   import { href } from '../lib/routes';
   import { navigate, router } from '../lib/router.svelte';
-  import { closePanel, heroPanelHref, openPanel } from '../lib/scene/panelNav';
+  import { closePanel, heroPanelHref, hotspotHref, openPanel } from '../lib/scene/panelNav';
   import type { Profile } from '../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -87,9 +87,11 @@
   }
 
   function activate(def: HotspotDef) {
+    const to = hotspotHref(def, profile.id);
+    if (!to) return;
     unlockAudio();
     playSfx('tap');
-    leaveTo(href(def.target, { profileId }));
+    leaveTo(to);
   }
 
   // UI3 Ruling A2: the shared overlay navigation (UI1's hero-panel tag, generalised).

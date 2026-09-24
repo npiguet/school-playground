@@ -36,7 +36,10 @@ export interface Box {
 export type Depth = 0 | 1 | 2 | 3;
 export type IdlePreset = 'none' | 'bob' | 'sway' | 'breathe';
 export type FxPreset = 'none' | 'embers' | 'dust';
-export type SceneId = 'camp';
+export type SceneId = 'camp' | 'title' | 'library' | 'delphi';
+/** Where a hotspot's plaque sits: above or below its shape, or written `on` the landmark itself
+ *  (ink on parchment, e.g. the war tent's portrait sheets). */
+export type LabelPos = 'above' | 'below' | 'on';
 
 /** A positioned cut-out image. `x` = horizontal centre, `y` = bottom edge (feet on the ground),
  *  `scale` = width, all in art %. */
@@ -74,9 +77,17 @@ export interface HotspotDef {
   id: string;
   /** Place name shown on the label (Cinzel caps). */
   label: string;
-  target: RouteName;
+  /** Route opened on tap; null when the scene screen handles the tap itself (the title's gate). */
+  target: RouteName | null;
+  /** Extra route params (e.g. `{ key: 'hydre' }`) and hash query (e.g. `{ panel: 'soin' }`). */
+  params?: Record<string, string>;
+  query?: Record<string, string>;
+  /** A painted icon (`ART.icons...` path) drawn on the plaque before the name. */
+  icon?: string;
   shape: HotspotShape;
-  labelPos: 'above' | 'below';
+  labelPos: LabelPos;
+  /** A short bronze leader line + pin from the shape to its plaque (UI1 carry #17). */
+  leader?: boolean;
   state: (ctx: SceneContext) => HotspotState;
 }
 

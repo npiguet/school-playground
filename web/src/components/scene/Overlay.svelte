@@ -11,6 +11,7 @@
 
   let {
     variant,
+    size = 'md',
     title,
     testId,
     onClose,
@@ -18,6 +19,7 @@
     children,
   }: {
     variant: 'scroll' | 'codex' | 'table';
+    size?: 'md' | 'wide';
     title: string;
     testId: string;
     onClose: () => void;
@@ -56,6 +58,7 @@
   class="overlay-panel overlay-{variant}"
   class:kit-parchment={variant === 'scroll'}
   class:kit-scroll={variant === 'scroll'}
+  class:overlay-wide={size === 'wide'}
   role="dialog"
   aria-modal="true"
   aria-label={title}
@@ -73,7 +76,7 @@
       </svg>
     </button>
   </header>
-  <div class="overlay-body">{@render children()}</div>
+  <div class="overlay-body kit-form">{@render children()}</div>
 </div>
 
 <style>
@@ -97,6 +100,10 @@
     overflow: auto;
     padding: 24px 28px;
     outline: none;
+  }
+  /* UI3: the scan's verify step, the three Oracle scrolls and the dossier need room. */
+  .overlay-wide {
+    width: min(1040px, calc(100vw - 32px));
   }
   .overlay-codex {
     background:

@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, type APIRequestContext, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 // Stubs the Web Speech API before any navigation so the dictation runner never depends on a
 // real TTS engine (none is available in the headless Playwright container anyway). Installed
@@ -55,6 +55,14 @@ export async function stubSpeech(page: Page) {
 export async function skipOnboarding(page: Page) {
   const btn = page.getByTestId('onboarding-skip');
   if (await btn.isVisible()) await btn.click();
+}
+
+// Taps (iPad) or clicks (desktop) a locator - a finger on the iPad project, a mouse on the desktop
+// one (final review M9): there is no touch device to tap with on `desktop`, and WebKit's mouse
+// click doesn't fire the touch-only events some flows depend on.
+export async function tap(locator: Locator, testInfo: TestInfo) {
+  if (testInfo.project.name === 'ipad') await locator.tap();
+  else await locator.click();
 }
 
 // UI1 (scenes spec §9): the camp is a hub scene. The old « Bienvenue au camp, X. » heading is now
@@ -221,4 +229,112 @@ export async function postSession(
   });
   expect(res.ok()).toBeTruthy();
   return res.json();
+}
+
+// Final review I6: prophecies are global (every text with a due date, server/app/routers/world.py),
+// so texts other specs create in parallel could be the one the camp shows. The camp response is
+// filtered down to the caller's own prophecy, so its assertions always exercise their own fixture.
+export async function onlyOwnProphecy(page: Page, textId: number) {
+  await page.route('**/api/profiles/*/camp', async (route) => {
+    const res = await route.fetch();
+    const json = await res.json();
+    json.prophecies = json.prophecies.filter((p: { text_id: number }) => p.text_id === textId);
+    await route.fulfill({ response: res, json });
+  });
+}
+
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// Reads every requested box in one browser round trip (UI1 round 1 review #2): separate
+// boundingBox() calls can straddle a layout-changing frame.
+export async function measureBoxes(page: Page, selectors: Record<string, string>): Promise<Record<string, Rect | null>> {
+  return page.evaluate((sel) => {
+    const out: Record<string, { x: number; y: number; width: number; height: number } | null> = {};
+    for (const [key, selector] of Object.entries(sel)) {
+      const el = document.querySelector(selector);
+      if (!el) {
+        out[key] = null;
+        continue;
+      }
+      const r = el.getBoundingClientRect();
+      out[key] = { x: r.x, y: r.y, width: r.width, height: r.height };
+    }
+    return out;
+  }, selectors);
+}
+
+// UI3: a place scene is on screen and has finished its entry (never click into the zoom-in).
+export async function expectScene(page: Page, sceneId: string) {
+  await expect(page.getByTestId(`scene-${sceneId}`)).toBeVisible();
+  await waitForSceneSettled(page);
+}
+
+// Closes the topmost overlay (wax seal) and waits until only it has left: closing a work overlay
+// steps back to the portal overlay underneath it rather than waiting for every overlay to close
+// (controller ruling U2 - a deep overlay stack must be closed one level at a time).
+export async function closeOverlay(page: Page) {
+  const top = page.locator('.overlay-panel').last();
+  if ((await top.count()) === 0) return;
+  const id = await top.getAttribute('data-testid');
+  await top.getByTestId('overlay-close').click();
+  await expect(page.getByTestId(id!)).toHaveCount(0);
+}
+
+// Every listed hotspot and its label plaque sit inside the art's 4:3 safe zone (x 12.5-87.5 %,
+// hotspots below the HUD band at y 14 %) and on screen; every hotspot is a 48 px touch target.
+export async function expectInSafeZone(page: Page, sceneId: string, testIds: string[]) {
+  const sel: Record<string, string> = { art: `[data-testid="scene-${sceneId}"] .art` };
+  for (const id of testIds) {
+    sel[id] = `[data-testid="${id}"]`;
+    sel[`${id}-label`] = `[data-testid="${id}"] .hotspot-label`;
+  }
+  const b = await measureBoxes(page, sel);
+  const art = b.art;
+  if (!art) throw new Error(`scene-${sceneId} .art did not render`);
+  const zone = {
+    left: art.x + art.width * 0.125,
+    right: art.x + art.width * 0.875,
+    top: art.y + art.height * 0.14,
+    bottom: art.y + art.height,
+  };
+  const EPS = 0.5; // sub-pixel rounding of shapes authored flush with the zone edge
+  const vw = page.viewportSize()!.width;
+  for (const id of testIds) {
+    const h = b[id];
+    const l = b[`${id}-label`];
+    if (!h || !l) throw new Error(`${id} or its label did not render`);
+    expect(h.x, `${id} left edge in the safe zone`).toBeGreaterThanOrEqual(zone.left - EPS);
+    expect(h.x + h.width, `${id} right edge in the safe zone`).toBeLessThanOrEqual(zone.right + EPS);
+    expect(h.y, `${id} top edge below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);
+    expect(h.y + h.height, `${id} bottom edge in the art`).toBeLessThanOrEqual(zone.bottom + EPS);
+    expect(Math.min(h.width, h.height), `${id} is a 48 px touch target`).toBeGreaterThanOrEqual(48);
+    expect(l.x, `${id} label left edge in the safe zone`).toBeGreaterThanOrEqual(Math.max(0, zone.left - EPS));
+    expect(l.x + l.width, `${id} label right edge in the safe zone`).toBeLessThanOrEqual(Math.min(vw, zone.right + EPS));
+  }
+}
+
+// Every hotspot label that covers another hotspot or another label of the same scene.
+export async function labelOverlaps(page: Page, sceneId: string): Promise<string[]> {
+  return page.evaluate((sid) => {
+    const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    const spots = Array.from(document.querySelectorAll(`[data-testid="scene-${sid}"] button.hotspot`));
+    const out: string[] = [];
+    for (const s of spots) {
+      const label = s.querySelector('.hotspot-label');
+      if (!label) continue;
+      const lr = label.getBoundingClientRect();
+      for (const o of spots) {
+        if (o === s) continue;
+        if (hit(lr, o.getBoundingClientRect())) out.push(`${s.getAttribute('data-testid')} label over ${o.getAttribute('data-testid')}`);
+        const ol = o.querySelector('.hotspot-label');
+        if (ol && hit(lr, ol.getBoundingClientRect())) out.push(`${s.getAttribute('data-testid')} label over ${o.getAttribute('data-testid')} label`);
+      }
+    }
+    return out;
+  }, sceneId);
 }

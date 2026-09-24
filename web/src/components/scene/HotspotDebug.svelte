@@ -4,7 +4,7 @@
   // and dialogue dock, so hotspots authored as data (docs/art/scenes.md) can be checked visually
   // in screenshots. Entirely pointer-events: none so hotspots underneath stay clickable.
   import { DIALOGUE_DOCK, HUD_BAND, SAFE_ZONE, shapeBox } from '../../lib/scene/geometry';
-  import type { Box, HotspotDef } from '../../lib/scene/types';
+  import type { Box, HotspotDef, LabelPos } from '../../lib/scene/types';
 
   let { sceneId, hotspots }: { sceneId: string; hotspots: HotspotDef[] } = $props();
 
@@ -16,8 +16,11 @@
   }
 
   const LABEL_BOX_H = 8;
-  function labelBox(box: Box, labelPos: 'above' | 'below'): Box {
-    return labelPos === 'below' ? { x: box.x, y: box.y + box.h, w: box.w, h: LABEL_BOX_H } : { x: box.x, y: box.y - LABEL_BOX_H, w: box.w, h: LABEL_BOX_H };
+  function labelBox(box: Box, labelPos: LabelPos): Box {
+    if (labelPos === 'on') return { x: box.x, y: box.y + box.h - LABEL_BOX_H / 2, w: box.w, h: LABEL_BOX_H / 2 };
+    return labelPos === 'below'
+      ? { x: box.x, y: box.y + box.h, w: box.w, h: LABEL_BOX_H }
+      : { x: box.x, y: box.y - LABEL_BOX_H, w: box.w, h: LABEL_BOX_H };
   }
 </script>
 

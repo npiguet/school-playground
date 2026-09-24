@@ -1,5 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createProfileApi, createText, expectCamp, makeResult, postSession, redScan, waitForSceneSettled } from './helpers';
+import {
+  createProfileApi,
+  createText,
+  expectCamp,
+  makeResult,
+  measureBoxes,
+  onlyOwnProphecy,
+  postSession,
+  redScan,
+  tap,
+  waitForSceneSettled,
+} from './helpers';
 
 // UI1 (scenes spec §9, §10): the camp as a hub scene, in both WebKit projects (desktop 1280x720
 // and iPad landscape 1180x820). Every place is a real button that routes to its (unchanged)
@@ -27,43 +38,6 @@ async function openCamp(page: Page, profileId: number) {
   await waitForSceneSettled(page);
 }
 
-interface Rect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-// Reads every requested box in one browser round trip (round 1 review #2: separate boundingBox()
-// calls are separate CDP round trips, each its own chance to straddle a layout-changing frame -
-// batching them removes that source of skew between boxes measured for the same comparison).
-async function measureBoxes(page: Page, selectors: Record<string, string>): Promise<Record<string, Rect | null>> {
-  return page.evaluate((sel) => {
-    const rect = (el: Element): Rect => {
-      const r = el.getBoundingClientRect();
-      return { x: r.x, y: r.y, width: r.width, height: r.height };
-    };
-    const out: Record<string, Rect | null> = {};
-    for (const [key, selector] of Object.entries(sel)) {
-      const el = document.querySelector(selector);
-      out[key] = el ? rect(el) : null;
-    }
-    return out;
-  }, selectors);
-}
-
-// Final review I6: prophecies are global (every text with a due date, server/app/routers/world.py),
-// so texts other specs create in parallel could be the one the camp shows. The camp response is
-// filtered down to this test's own prophecy, so the assertions always exercise their own fixture.
-async function onlyOwnProphecy(page: Page, textId: number) {
-  await page.route('**/api/profiles/*/camp', async (route) => {
-    const res = await route.fetch();
-    const json = await res.json();
-    json.prophecies = json.prophecies.filter((p: { text_id: number }) => p.text_id === textId);
-    await route.fulfill({ response: res, json });
-  });
-}
-
 // Neutralise two lieutenants over three days (SP3 decision 3) -> boss tier 1 (decision 8).
 async function readyTheBattle(request: Parameters<typeof createText>[0], profileId: number, project: string) {
   const text = await createText(request, { title: `Veillée ${project} ${Date.now()}`, body: BODY, level: '10H' });
@@ -82,8 +56,7 @@ test('every place routes to its screen and Back returns to the hub', async ({ pa
     await expect(spot).toBeVisible();
     await expect(spot).toHaveAccessibleName(place.name);
     // Final review M9: a finger on the iPad, a mouse on the desktop.
-    if (testInfo.project.name === 'ipad') await spot.tap();
-    else await spot.click();
+    await tap(spot, testInfo);
     await expect(page).toHaveURL(place.path);
     await page.goBack();
     await expectCamp(page);
