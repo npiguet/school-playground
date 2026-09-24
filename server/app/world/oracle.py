@@ -43,6 +43,8 @@ def get_or_seal(conn, profile, week, available, neutralised, now) -> dict:
     if row is None:
         scrolls = compute_scrolls(conn, profile, available, neutralised)
         conn.execute("INSERT INTO oracle(profile_id, week, scrolls_json) VALUES (?,?,?)", (profile["id"], week, json.dumps(scrolls)))
-        conn.execute("UPDATE quest SET status = 'expired' WHERE profile_id = ? AND kind = 'oracle' AND status = 'active' AND week <> ?", (profile["id"], week))
+        # The previous week's still-active oracle quest is expired inside consult() (world.py),
+        # not here (plan Decision 7 "replaced quietly at the next consultation"; SP3 batch
+        # review I3) — sealing a new week must not retire a quest the player hasn't replaced yet.
         row = conn.execute("SELECT * FROM oracle WHERE profile_id = ? AND week = ?", (profile["id"], week)).fetchone()
     return dict(row)

@@ -190,11 +190,9 @@ def create_boss_quest(conn: sqlite3.Connection, profile: sqlite3.Row, now: str) 
     text_id = _pick_boss_text(conn, profile)
     if text_id is None:
         raise HTTPException(409, "Éris ne trouve pas de texte assez long pour ce combat.")
-    # Decision 8 reads "clamp(profile.help_stage + 1, 2, 4)"; the +1 is dropped here because it
-    # contradicts the verbatim acceptance test (test_boss_flow expects help_stage == 2 when the
-    # profile's adaptive help_stage is already 2 after the neutralisation prep sessions) — see the
-    # task report for the full mismatch analysis.
-    help_stage = max(2, min(4, profile["help_stage"]))
+    # Decision 8: "clamp(profile.help_stage + 1, 2, 4)" — a boss fight starts one help stage above
+    # the profile's current adaptive stage (SP3 batch review I1; controller ruling).
+    help_stage = max(2, min(4, profile["help_stage"] + 1))
     goal = {"tier": tier, "min_rate": 0.7, "min_draft": 3, "text_id": text_id, "help_stage": help_stage}
     reward = {"xp": QUEST_BONUS["boss"], "reward_id": BOSS_REWARDS[tier], "bestiary": False}
     quest = create_quest(conn, profile, "boss", "eris", None, goal, reward, now)
@@ -216,7 +214,10 @@ def oracle_out(conn: sqlite3.Connection, profile: sqlite3.Row, row: dict, day: s
         if key == chosen:
             lieutenant = quest["target"] if quest is not None else scrolls_json.get(key)
         scrolls.append({**s, "lieutenant": lieutenant})
-    reward_id = oracle_mod.oracle_reward_for(conn, profile["id"])
+    # Once a scroll is chosen, the reward line must name *this* quest's reward, not next week's
+    # (SP3 batch review M3) — oracle_reward_for() is recomputed from the done count, which already
+    # advanced once this quest completes.
+    reward_id = quest["reward"]["reward_id"] if quest is not None else oracle_mod.oracle_reward_for(conn, profile["id"])
     return {"week": row["week"], "status": "chosen" if chosen else "sealed", "reward_id": reward_id,
             "scrolls": scrolls, "quest": quest, "prophecies": prophecies(conn, day)}
 
@@ -233,8 +234,15 @@ def consult(conn: sqlite3.Connection, profile: sqlite3.Row, week: str, scroll: s
         if lieutenant is not None and lieutenant not in LIEUTENANTS:
             raise ValueError("unknown lieutenant")
         target = scrolls_json[scroll]
+    # Decision 7: the previous week's Oracle quest is "replaced quietly at the next consultation",
+    # not at the Monday seal (SP3 batch review I3) — so it stays open until the player actually
+    # opens a new scroll, here.
+    conn.execute("UPDATE quest SET status = 'expired' WHERE profile_id = ? AND kind = 'oracle' AND status = 'active' AND week <> ?",
+                 (pid, week))
+    played = {r[0] for r in conn.execute("SELECT DISTINCT text_id FROM session WHERE profile_id = ?", (pid,))}
+    texts = recommend_texts(text_rows_with_density(conn, target), target, profile["level"], played)
     reward = {"xp": QUEST_BONUS["oracle"], "reward_id": oracle_mod.oracle_reward_for(conn, pid), "bestiary": True}
-    goal = {"sessions": 3, "min_rate": 0.5}
+    goal = {"sessions": 3, "min_rate": 0.5, "texts": texts}
     quest = create_quest(conn, profile, "oracle", target, week, goal, reward, now)
     conn.execute("UPDATE oracle SET chosen = ?, quest_id = ?, consulted_at = ? WHERE profile_id = ? AND week = ?",
                  (scroll, quest["id"], now, pid, week))
@@ -337,6 +345,8 @@ def shelve_quest(profile_id: int, quest_id: int, db: sqlite3.Connection = Depend
     row = db.execute("SELECT * FROM quest WHERE id = ? AND profile_id = ?", (quest_id, profile_id)).fetchone()
     if row is None:
         raise HTTPException(404, "Quest not found")
+    if row["status"] != "active" or row["kind"] != "board":
+        raise HTTPException(409, "Seule une quête du tableau en cours peut être rangée.")
     db.execute("UPDATE quest SET status = 'shelved' WHERE id = ?", (quest_id,))
     db.commit()
     row = db.execute("SELECT * FROM quest WHERE id = ?", (quest_id,)).fetchone()
