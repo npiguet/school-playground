@@ -6,6 +6,8 @@ export type RouteName =
   | 'profiles'
   | 'profile-new'
   | 'camp'
+  | 'library-tent'
+  | 'delphi'
   | 'library'
   | 'text-new'
   | 'text-scan'
@@ -45,6 +47,9 @@ const PATTERNS: Pattern[] = [
   // The hub took over `/camp` (SP3 decision 14); the library moved to `/parchemins`, but the
   // route *name* stays `library` so every existing `href('library', ...)` call keeps working.
   { name: 'library', segments: ['p', { param: 'profileId' }, 'parchemins'] },
+  // UI3 Ruling A1: the bare district scenes; the legacy routes open them with an overlay.
+  { name: 'library-tent', segments: ['p', { param: 'profileId' }, 'tente-parchemins'] },
+  { name: 'delphi', segments: ['p', { param: 'profileId' }, 'temple'] },
   { name: 'text-new', segments: ['p', { param: 'profileId' }, 'texts', 'new'] },
   { name: 'text-scan', segments: ['p', { param: 'profileId' }, 'texts', 'scan'] },
   { name: 'grimoire', segments: ['p', { param: 'profileId' }, 'grimoire', { param: 'textId' }] },
@@ -105,6 +110,10 @@ export function href(name: RouteName, params: Record<string, string> = {}, query
         return `#/p/${params.profileId}/camp`;
       case 'library':
         return `#/p/${params.profileId}/parchemins`;
+      case 'library-tent':
+        return `#/p/${params.profileId}/tente-parchemins`;
+      case 'delphi':
+        return `#/p/${params.profileId}/temple`;
       case 'text-new':
         return `#/p/${params.profileId}/texts/new`;
       case 'text-scan':

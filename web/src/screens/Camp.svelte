@@ -31,7 +31,8 @@
   import { reducedMotion } from '../lib/juice/motion';
   import { clearProfile } from '../lib/profileStore.svelte';
   import { href } from '../lib/routes';
-  import { navigate, replaceRoute, router } from '../lib/router.svelte';
+  import { navigate, router } from '../lib/router.svelte';
+  import { closePanel, heroPanelHref, openPanel } from '../lib/scene/panelNav';
   import type { Profile } from '../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -91,21 +92,15 @@
     leaveTo(href(def.target, { profileId }));
   }
 
-  // The hero panel entry pushed by openHero() is tagged in history.state, so closing it steps
-  // back to the camp entry it came from instead of pushing a new one (final review I1: otherwise
-  // Back from the camp would reopen the panel).
-  const PANEL_TAG = 'discordeHeroPanel';
-
+  // UI3 Ruling A2: the shared overlay navigation (UI1's hero-panel tag, generalised).
   function openHero() {
     unlockAudio();
     playSfx('tap');
-    navigate(href('camp', { profileId }, { panel: 'heros' }));
-    history.replaceState({ ...(history.state ?? {}), [PANEL_TAG]: true }, '');
+    openPanel(heroPanelHref(profile.id));
   }
 
-  function closePanel() {
-    if (history.state?.[PANEL_TAG]) history.back();
-    else replaceRoute(href('camp', { profileId })); // deep link or reload: no camp entry behind it
+  function closeHeroPanel() {
+    closePanel(href('camp', { profileId }));
   }
 
   function review(textId: number) {
@@ -174,7 +169,7 @@
 <!-- Onboarding takes precedence (fix wave 3): a deep link to ?panel=heros for a hero who hasn't
      been welcomed yet opens the panel only once the Muses' card has closed. -->
 {#if panel === 'heros' && profile.settings.onboarded}
-  <Overlay variant="scroll" title="Ton héros" testId="overlay-heros" onClose={closePanel} returnFocus={'[data-testid="hud-hero"]'}>
+  <Overlay variant="scroll" title="Ton héros" testId="overlay-heros" onClose={closeHeroPanel} returnFocus={'[data-testid="hud-hero"]'}>
     <div class="hero-panel">
       <Avatar avatar={profile.avatar} size={72} ring />
       <p class="hero-name">{profile.name}</p>
