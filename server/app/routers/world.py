@@ -17,8 +17,7 @@ from app.textutil import word_count
 from app.world import oracle as oracle_mod
 from app.world.catalog import (BOSS_REWARDS, LIEUTENANT_ORDER, LIEUTENANTS, MASTERY, ORACLE_REWARDS, QUEST_BONUS,
                                RANKS, REWARDS, TINTS)
-from app.world.mastery import (boss_tiers, dragon_stage, is_neutralised, lieutenants_for_level, mastery_window,
-                               next_stage_at, tier_available)
+from app.world.mastery import dragon_stage, lieutenants_for_level, mastery_window, next_stage_at, tier_available
 from app.world.progression import boss_tiers_won, ensure_dragon, lieutenant_day_rows, neutralised_set, weekly_done, xp_total
 from app.world.quests import density, recommend_texts
 from app.world.xp import rank_for
