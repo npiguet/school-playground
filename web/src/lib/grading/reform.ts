@@ -46,29 +46,42 @@ const elerRegexes: ElerRule[] = data.eler_eter_stems.map((stem) => {
 });
 
 // Words where the circumflex on i/u is kept because dropping it would collide with an unrelated
-// word (dû/du, mûr/mur, sûr/sur, jeûne/jeune, croît/croît family). "fût" is added here rather
-// than left to the ENDING regex below: it shares its bare "-ût" ending with ordinary nouns that
-// DO lose the circumflex under the reform (coût -> cout, affût -> affut), so the ambiguity can
-// only be resolved per-word, not by a suffix pattern.
-const CIRCUMFLEX_PROTECTED = new Set([...data.circumflex_protected, 'fût']);
+// word (dû/du, mûr/mur, sûr/sur, jeûne/jeune, croît/croît family, fût/fut — see fix round 1:
+// "fût" moved here from a code-level addition since it's a per-word ambiguity, not a productive
+// verb-tense pattern).
+const CIRCUMFLEX_PROTECTED = new Set(data.circumflex_protected);
 
-// Verb-tense endings that keep the circumflex under the reform regardless of which verb: 1st/2nd
-// person plural of the simple past ("-îmes"/"-ûmes", "-îtes"/"-ûtes"), 3rd singular imperfect
-// subjunctive ("-ît"/"-ût"), and the venir/tenir-family irregular 3rd singular ("-înt"). Unlike
-// the bare "-t" ending (see CIRCUMFLEX_PROTECTED above), these multi-letter suffixes are
-// effectively verb-only in French, so a plain regex is safe here.
-const VERB_ENDING = /[îû](mes|tes|nt)$/;
+// Fix round 1, CRITICAL 1: common nouns that happen to end in the same letters as a protected
+// verb tense (see CIRCUMFLEX_KEEP_RE below) but must still lose the circumflex under the reform.
+const CIRCUMFLEX_STRIP_NOUNS = new Set(['coût', 'goût', 'août', 'dégoût', 'ragoût', 'moût', 'affût', 'surcoût', 'gît']);
+
+// Verb-tense endings that keep the circumflex under the reform regardless of which specific verb:
+// 1st/2nd person plural of the simple past ("-îmes"/"-ûmes", "-îtes"/"-ûtes"), the venir/tenir
+// family's irregular 3rd singular ("-înt"), and the 3rd singular imperfect subjunctive
+// ("-ît"/"-ût", e.g. qu'il fît/pût/dût/prît/sût/vît/mît/reçût/voulût/finît/partît/eût) — except
+// when the word ends in "-aît"/"-oît" (connaît, plaît, naît, paraît, accroît: present-tense
+// indicative forms, not the subjunctive, so they DO lose the circumflex). "-ût" alone is also
+// kept in general (dût, eût, ...), with CIRCUMFLEX_STRIP_NOUNS above overriding it for ordinary
+// nouns that happen to end the same way (coût, goût, août, ...).
+const CIRCUMFLEX_KEEP_RE = /[îû](mes|tes)$|[îû]nt$|[^ao]ît$|ût$/;
 
 export function reformCanon(norm: string): string {
   const explicit = toTraditional.get(norm);
   if (explicit !== undefined) return explicit;
+  // Fix round 1, IMPORTANT 3: an inflected plural of an explicit pair (either spelling) is also
+  // accepted, e.g. "évènements"/"événements", "ognons"/"oignons", "aigües"/"aiguës".
+  if (norm.length > 1 && (norm.endsWith('s') || norm.endsWith('x'))) {
+    const suffix = norm.slice(-1);
+    const stemTraditional = toTraditional.get(norm.slice(0, -1));
+    if (stemTraditional !== undefined) return stemTraditional + suffix;
+  }
   for (const { re, replacement } of elerRegexes) {
     if (re.test(norm)) return norm.replace(re, replacement);
   }
-  if (!CIRCUMFLEX_PROTECTED.has(norm) && !VERB_ENDING.test(norm)) {
-    return norm.replace(/î/g, 'i').replace(/û/g, 'u');
+  if (!CIRCUMFLEX_STRIP_NOUNS.has(norm) && (CIRCUMFLEX_PROTECTED.has(norm) || CIRCUMFLEX_KEEP_RE.test(norm))) {
+    return norm;
   }
-  return norm;
+  return norm.replace(/î/g, 'i').replace(/û/g, 'u');
 }
 
 export function isReformEquivalent(a: string, b: string): boolean {
@@ -121,7 +134,9 @@ const NUMBER_HYPHEN_RE = new RegExp(
  * part of one match removes the boundary the next match needs (e.g. "vingt-et-un").
  */
 export function numberHyphensToSpaces(text: string): string {
-  let result = text;
+  // Fix round 1, Minor: a Unicode hyphen (U+2010) between number words counts too. Same length
+  // as the ASCII hyphen it replaces, so offsets computed downstream stay valid.
+  let result = text.replace(/‐/g, '-');
   for (;;) {
     const next = result.replace(NUMBER_HYPHEN_RE, '$1$2 ');
     if (next === result) return result;

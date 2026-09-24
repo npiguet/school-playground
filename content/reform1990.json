@@ -11,12 +11,12 @@
     ["pique-nique", "piquenique"], ["cache-cache", "cachecache"], ["croque-monsieur", "croquemonsieur"], ["cow-boy", "cowboy"], ["hot-dog", "hotdog"],
     ["pop-corn", "popcorn"], ["plate-forme", "plateforme"], ["auto-stop", "autostop"], ["bas-fond", "basfond"], ["pousse-pousse", "poussepousse"],
     ["asseoir", "assoir"], ["surseoir", "sursoir"], ["joaillier", "joailler"], ["quincaillier", "quincailler"], ["serpillière", "serpillère"],
-    ["révolver", "revolver"], ["saccharine", "saccarine"], ["bonhomie", "bonhommie"], ["douceâtre", "douçâtre"], ["levraut", "levreau"],
-    ["relais", "relai"], ["tocade", "toquade"], ["eczéma", "exéma"], ["sorgho", "sorgo"], ["chausse-trape", "chaussetrappe"]
+    ["revolver", "révolver"], ["saccharine", "saccarine"], ["bonhomie", "bonhommie"], ["douceâtre", "douçâtre"], ["levraut", "levreau"],
+    ["relais", "relai"], ["toquade", "tocade"], ["eczéma", "exéma"], ["sorgho", "sorgo"], ["chausse-trape", "chaussetrappe"]
   ],
   "eler_eter_stems": [
-    "épel", "ruissel", "étiquet", "feuillet", "nivel", "renouvel", "ficel", "chancel", "harcel", "amoncel", "cachet", "halet", "morcel",
-    "volet", "attel", "détel", "ensorcel", "grommel", "musel", "dentel", "bottel", "carrel", "décachet", "craquel", "écartel", "étincel", "martel"
+    "épel", "ruissel", "étiquet", "feuillet", "nivel", "renouvel", "ficel", "chancel", "amoncel", "cachet", "morcel",
+    "volet", "attel", "détel", "ensorcel", "grommel", "musel", "dentel", "bottel", "carrel", "décachet", "craquel", "étincel"
   ],
-  "circumflex_protected": ["dû", "mûr", "sûr", "jeûne", "jeûnes", "croît", "croîs", "crû", "crûe", "crûs", "crûes", "crût"]
+  "circumflex_protected": ["dû", "mûr", "sûr", "jeûne", "jeûnes", "croît", "croîs", "crû", "crûs", "crût", "fût"]
 }

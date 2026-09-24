@@ -42,6 +42,15 @@ describe('rule 0: identical and case', () => {
   it('does not grade an em dash typed as a plain hyphen', () => {
     expect(cls('—', '-')).toBeNull();
   });
+  // Fix round 1, IMPORTANT 2: `norm` is reform-canonical, so a reform/traditional spelling
+  // difference (extra/different letters) must not be read as a case difference, but a genuine
+  // dropped/added capital must still be caught even when a reform variant is also involved.
+  it('still flags a dropped capital when a reform variant is also typed', () => {
+    expect(cls('Maître', 'maitre')).toMatchObject({ category: 'punctuation_case' });
+  });
+  it('does not flag a reform spelling variant as a case error', () => {
+    expect(cls('Ognon', 'Oignon')).toBeNull();
+  });
 });
 
 describe('rule 1: homophones come first', () => {
@@ -159,5 +168,11 @@ describe('classify v2', () => {
     expect(classifyPair(tk('mère'), tk('mer'), mere, -1)).toMatchObject({ category: 'lexical', sub: 'sound_alike' });
     const a = ann('AUX', { VerbForm: 'Fin' }, { sound_alikes: ['à'] });
     expect(classifyPair(tk('a'), tk('à'), a, -1)).toMatchObject({ category: 'homophone' });
+  });
+  // Fix round 1, Minor: a `forms` key isn't guaranteed to already be reform-canonical — it must
+  // be canonicalised (normalizeWord + reformCanon) the same way the typed word is before matching.
+  it('canonicalises forms map keys before matching', () => {
+    const noun = ann('NOUN', { Gender: 'Masc', Number: 'Sing' }, { forms: { 'coût': { g: 'm', n: 's' } } });
+    expect(classifyPair(tk('chose'), tk('cout'), noun, -1)).toMatchObject({ category: 'agreement' });
   });
 });
