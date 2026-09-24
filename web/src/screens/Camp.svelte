@@ -171,7 +171,9 @@
   {/if}
 </SceneStage>
 
-{#if panel === 'heros'}
+<!-- Onboarding takes precedence (fix wave 3): a deep link to ?panel=heros for a hero who hasn't
+     been welcomed yet opens the panel only once the Muses' card has closed. -->
+{#if panel === 'heros' && profile.settings.onboarded}
   <Overlay variant="scroll" title="Ton héros" testId="overlay-heros" onClose={closePanel} returnFocus={'[data-testid="hud-hero"]'}>
     <div class="hero-panel">
       <Avatar avatar={profile.avatar} size={72} ring />

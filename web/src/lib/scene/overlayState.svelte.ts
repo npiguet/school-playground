@@ -17,6 +17,10 @@ export function registerOverlay(): () => void {
   };
 }
 
+// Open modals, oldest first. Only the topmost one traps Tab (fix wave 3: two modals open at once
+// used to both trap, and whichever registered last won by accident).
+const stack: HTMLElement[] = [];
+
 const FOCUSABLE = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
@@ -32,8 +36,10 @@ export function modal(node: HTMLElement, opts: { returnFocus?: string } = {}) {
   const unregister = registerOverlay();
   node.focus();
 
+  stack.push(node);
+
   function onKey(e: KeyboardEvent) {
-    if (e.key !== 'Tab') return;
+    if (e.key !== 'Tab' || stack[stack.length - 1] !== node) return;
     e.preventDefault();
     const items = Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE));
     if (items.length === 0) {
@@ -52,6 +58,8 @@ export function modal(node: HTMLElement, opts: { returnFocus?: string } = {}) {
     },
     destroy() {
       document.removeEventListener('keydown', onKey, true);
+      const at = stack.indexOf(node);
+      if (at !== -1) stack.splice(at, 1);
       unregister();
       // After the stage has dropped `inert` (next flush), or focus() on it would be ignored.
       void tick().then(() => {

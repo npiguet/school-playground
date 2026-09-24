@@ -19,6 +19,7 @@ function clean(s: string | null | undefined): string {
 }
 
 async function dismissGreeting(page: Page) {
+  await waitForSceneSettled(page); // never click into a scene that is still zooming in
   await expect(page.getByTestId('dialogue-box')).toBeVisible();
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
@@ -64,6 +65,7 @@ test('UI1 playability walk', async ({ page, request }, testInfo) => {
 
     await shot(page, project, '01-camp-onboarding', 1500);
     await skipOnboarding(page);
+    await waitForSceneSettled(page);
 
     // ---- 02-04 The dragon's greeting, then the fresh hub -------------------------------------
     const line = page.getByTestId('dialogue-text');

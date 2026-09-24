@@ -74,6 +74,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
 
   test('2. Oracle: sealed scrolls, reward known, choose the school scroll', async ({ page }) => {
     await page.goto(`/#/p/${profileId}/camp`);
+    await expectCamp(page); // settled: never click into the zoom-in
     await page.getByTestId('camp-oracle').click();
 
     // Three sealed scrolls, each with its own opener; the reward is shown before any is opened
@@ -260,6 +261,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     }
 
     await page.goto(`/#/p/${profileId}/camp`);
+    await expectCamp(page); // settled: never click into the zoom-in
     await expect(page.getByTestId('camp-boss')).toBeVisible();
     await expect(page.getByTestId('camp-boss')).toContainText("Sandales d'Hermès");
 

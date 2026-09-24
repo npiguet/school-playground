@@ -118,6 +118,35 @@ test('two places tapped at once lead to the first one only', async ({ page, requ
   await expect(page).toHaveURL(/\/parchemins$/);
 });
 
+test('a deep link to the hero panel waits for the onboarding card: one modal at a time', async ({ page, request }, testInfo) => {
+  // Fix wave 3: onboarding takes precedence; the panel opens only once the Muses' card has closed,
+  // so there is never more than one focus trap.
+  const res = await request.post('/api/profiles', { data: { name: heroName(testInfo.project.name), avatar: 'chouette', level: '10H' } });
+  expect(res.ok()).toBeTruthy();
+  const id = (await res.json()).id as number;
+  await page.goto(`/#/p/${id}/camp?panel=heros`);
+  await expectCamp(page);
+  const card = page.getByTestId('onboarding');
+  const panel = page.getByTestId('overlay-heros');
+  await expect(card).toBeVisible();
+  await expect(panel).toHaveCount(0);
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press('Tab');
+    expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="onboarding"]')), `card Tab ${i + 1}`).toBe(true);
+  }
+  await page.getByTestId('onboarding-skip').click();
+  await expect(card).toHaveCount(0);
+  await expect(panel).toBeVisible();
+  await expect(page.getByTestId('scene-camp')).toHaveAttribute('inert', '');
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Tab');
+    expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="overlay-heros"]')), `panel Tab ${i + 1}`).toBe(true);
+  }
+  await page.getByTestId('overlay-close').click();
+  await expect(panel).toHaveCount(0);
+  await expect(page.getByTestId('scene-camp')).not.toHaveAttribute('inert', '');
+});
+
 test('Back during the fade out of the camp is not overridden by the pending navigation', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.goto(`/#/p/${id}/parchemins`);

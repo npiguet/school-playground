@@ -61,6 +61,10 @@ export async function skipOnboarding(page: Page) {
 // the dragon's first dialogue line, so specs wait for the scene stage itself.
 export async function expectCamp(page: Page) {
   await expect(page.getByTestId('scene-camp')).toBeVisible();
+  // UI1 fix wave 3: never act on a camp that is still zooming in. At scale 1.04 the places and the
+  // dialogue box poke past the viewport, and a click scrolls its target into view - that once
+  // panned the whole stage 139 px sideways. Every spec that arrives on the camp waits here.
+  await waitForSceneSettled(page);
 }
 
 // Round 1 review #2: SceneTransition (kind="zoom") scales the whole art box in from 1.04 to 1
