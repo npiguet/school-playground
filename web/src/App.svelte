@@ -14,6 +14,10 @@
   import Play from './screens/Play.svelte';
   import Stats from './screens/Stats.svelte';
   import Settings from './screens/Settings.svelte';
+  import Dossier from './screens/Dossier.svelte';
+  import Bestiaire from './screens/Bestiaire.svelte';
+  import BestiaireEntry from './screens/BestiaireEntry.svelte';
+  import Lieutenant from './screens/Lieutenant.svelte';
 
   const route = $derived(router.route);
   const profileId = $derived(route.params.profileId ? Number(route.params.profileId) : null);
@@ -81,6 +85,14 @@
         <Stats profile={gateProfile} />
       {:else if route.name === 'settings'}
         <Settings profile={gateProfile} />
+      {:else if route.name === 'dossier'}
+        <Dossier profile={gateProfile} />
+      {:else if route.name === 'bestiaire'}
+        <Bestiaire profile={gateProfile} />
+      {:else if route.name === 'bestiaire-entry'}
+        <BestiaireEntry profile={gateProfile} entryKey={route.params.key} />
+      {:else if route.name === 'lieutenant'}
+        <Lieutenant profile={gateProfile} lieutenantKey={route.params.key} />
       {/if}
     {/if}
   {/key}

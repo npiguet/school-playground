@@ -60,11 +60,12 @@ test('create profile → add text → dictation → proofreading → results →
   await expect(page.getByTestId('results-score')).not.toContainText('NaN');
   await expect(page.getByText(/chantent/).first()).toBeVisible();
 
-  // Stats reflect the session. Navigated to directly rather than via the TopBar's "Progrès" link:
-  // that link now points at `dossier` (SP3 decision 14), whose route lands in Task 6.
+  // Stats reflect the session. The TopBar's "Progrès" link now points at `dossier` (SP3 decision
+  // 14, wired in Task 6); its own "Voir les chiffres bruts" link goes on to the raw stats page.
   await page.getByTestId('btn-back-library').click();
-  const profileId = new URL(page.url()).hash.match(/\/p\/(\d+)\//)?.[1];
-  await page.goto(`/#/p/${profileId}/stats`);
+  await page.getByRole('link', { name: 'Progrès' }).click();
+  await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
+  await page.getByRole('link', { name: 'Voir les chiffres bruts' }).click();
   await expect(page.getByText(/1 parties?/).first()).toBeVisible();
   await expect(page.getByText("Accord du verbe avec son sujet (L'Hydre)").first()).toBeVisible();
 });

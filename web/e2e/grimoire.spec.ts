@@ -44,10 +44,11 @@ test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', asyn
   const m = /sur (\d+)/.exec((await page.getByTestId('results-catch-rate').textContent()) ?? '');
   expect(Number(m?.[1])).toBeGreaterThanOrEqual(3);
   await page.getByTestId('btn-back-library').click();
-  // Navigated to directly rather than via the TopBar's "Progrès" link: that link now points at
-  // `dossier` (SP3 decision 14), whose route lands in Task 6.
-  const profileId = new URL(page.url()).hash.match(/\/p\/(\d+)\//)?.[1];
-  await page.goto(`/#/p/${profileId}/stats`);
+  // The TopBar's "Progrès" link now points at `dossier` (SP3 decision 14, wired in Task 6); its
+  // own "Voir les chiffres bruts" link goes on to the raw stats page.
+  await page.getByRole('link', { name: 'Progrès' }).click();
+  await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
+  await page.getByRole('link', { name: 'Voir les chiffres bruts' }).click();
   await expect(page.getByText('Grimoire').first()).toBeVisible();
   expect(t.id).toBeGreaterThan(0);
 });

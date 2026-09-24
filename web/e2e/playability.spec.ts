@@ -315,9 +315,11 @@ test('playability walk', async ({ page, request }, testInfo) => {
   await page.getByTestId('btn-back-library').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
   await shot(page, project, '15b-library-after-play');
-  // Navigated to directly rather than via the TopBar's "Progrès" link: that link now points at
-  // `dossier` (SP3 decision 14), whose route lands in Task 6.
-  await page.goto(`/#/p/${profileId}/stats`);
+  // The TopBar's "Progrès" link now points at `dossier` (SP3 decision 14, wired in Task 6); its
+  // own "Voir les chiffres bruts" link goes on to the raw stats page.
+  await page.getByRole('link', { name: 'Progrès' }).click();
+  await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
+  await page.getByRole('link', { name: 'Voir les chiffres bruts' }).click();
   await expect(page.getByRole('heading', { name: 'Progrès' })).toBeVisible();
   await expect(page.getByText(/1 parties?/).first()).toBeVisible();
   await shot(page, project, '15-stats');
