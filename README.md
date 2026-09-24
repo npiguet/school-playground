@@ -29,6 +29,28 @@ scripts/check.sh
 To run only the e2e suite (e.g. while iterating on a spec): `scripts/playwright.sh`. Pass
 extra `npx playwright test` arguments through, e.g. `scripts/playwright.sh e2e/seed.spec.ts`.
 
+## SP2 features
+
+**Scanner une feuille** — the "Scanner une feuille" entry of the add-text menu photographs a
+printed handout (one photo per page, JPEG/PNG/WEBP) and reads it with Tesseract OCR. Handwriting
+is not supported — printed handouts only. The child must verify the OCR text against the photo
+before saving: it becomes the answer key, so an uncorrected OCR mistake would otherwise be graded
+as always correct. Low-confidence words are flagged for a closer look. The original photos are
+kept in the data volume alongside the text.
+
+**Bibliothèque d'Alexandrie** — the "Bibliothèque d'Alexandrie" entry lets a child adopt scored
+excerpts ("rouleaux") from public-domain classics (Wikisource/Gutenberg) into their own library.
+Refreshing a work's excerpts needs Internet access on the *server* (not the child's device);
+results are cached under `/data` so a later refresh failure still leaves the previously fetched
+excerpts available. Tests and e2e never hit the network: set `DISCORDE_ALEXANDRIA_OFFLINE_DIR` to
+a directory of `wikisource/<slug>.html` / `gutenberg/pg<id>.txt` fixtures (see
+`server/tests/fixtures/alexandria/` and `compose.e2e.yaml`) to read from disk instead.
+
+**Lexique 3.83** — the vendored, trimmed lexicon (`content/lexique/lexique383-trimmed.tsv.gz`)
+that powers word-form and homophone lookups is derived from Lexique 3.83 (New, Pallier, Brysbaert
+& Ferrand), licensed CC BY-SA 4.0; see `content/lexique/LICENSE.md` for attribution and how the
+derived file was built.
+
 ## Deployment on TrueNAS SCALE 25.10
 
 Build the image on a machine with Docker:
