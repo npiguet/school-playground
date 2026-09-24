@@ -116,3 +116,22 @@ class SessionCreate(BaseModel):
 class CorruptRequest(BaseModel):
     profile_id: int
     seed: int | None = None
+    focus: str | None = None
+
+
+class DragonPatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=20)
+    tint: str | None = None
+
+
+class QuestCreate(BaseModel):
+    target: str
+
+
+class OracleChoice(BaseModel):
+    scroll: Literal["faible", "ecole", "destin"]
+    lieutenant: str | None = None
+
+
+class RewardPatch(BaseModel):
+    equipped: bool

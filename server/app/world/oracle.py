@@ -1,0 +1,48 @@
+"""Consultation de l'Oracle: three sealed scrolls, one choice per ISO week (spec §3.6; plan Decision 9)."""
+from __future__ import annotations
+import json
+from app.world.catalog import LIEUTENANTS, ORACLE_REWARDS
+
+SCROLLS = [
+    {"key": "faible", "title": "Le point faible", "hint": "Le monstre qui te piège le plus souvent en ce moment."},
+    {"key": "ecole", "title": "Ce qui arrive à l'école", "hint": "Choisis le monstre qui ressemble à ce que ta classe étudie."},
+    {"key": "destin", "title": "Le choix du destin", "hint": "Un monstre que tu n'as pas affronté depuis longtemps."},
+]
+
+
+def scroll_meta() -> list[dict]:
+    return [dict(s) for s in SCROLLS]
+
+
+def compute_scrolls(conn, profile, available, neutralised) -> dict:
+    pid = profile["id"]
+    candidates = [k for k in available if k not in neutralised] or list(available)
+    rates, last = {}, {}
+    for k in candidates:
+        cats = LIEUTENANTS[k]["categories"]; marks = ",".join("?" * len(cats))
+        row = conn.execute(f"SELECT SUM(errors_in_draft) d, SUM(caught) c, SUM(missed) m, MAX(day) last FROM profile_stat_day "
+                           f"WHERE profile_id = ? AND category IN ({marks})", (pid, *cats)).fetchone()
+        d, c, m = row["d"] or 0, row["c"] or 0, row["m"] or 0
+        rates[k] = (c / d if d >= 5 else None, m); last[k] = row["last"] or ""
+    with_rate = [k for k in candidates if rates[k][0] is not None]
+    if with_rate: faible = min(with_rate, key=lambda k: (rates[k][0], candidates.index(k)))
+    elif any(rates[k][1] for k in candidates): faible = max(candidates, key=lambda k: rates[k][1])
+    else: faible = candidates[0]
+    others = [k for k in candidates if k != faible] or candidates
+    destin = min(others, key=lambda k: (last[k], candidates.index(k)))
+    return {"faible": faible, "destin": destin}
+
+
+def oracle_reward_for(conn, profile_id) -> str | None:
+    n = conn.execute("SELECT COUNT(*) FROM quest WHERE profile_id = ? AND kind = 'oracle' AND status = 'done'", (profile_id,)).fetchone()[0]
+    return ORACLE_REWARDS[n] if n < len(ORACLE_REWARDS) else None
+
+
+def get_or_seal(conn, profile, week, available, neutralised, now) -> dict:
+    row = conn.execute("SELECT * FROM oracle WHERE profile_id = ? AND week = ?", (profile["id"], week)).fetchone()
+    if row is None:
+        scrolls = compute_scrolls(conn, profile, available, neutralised)
+        conn.execute("INSERT INTO oracle(profile_id, week, scrolls_json) VALUES (?,?,?)", (profile["id"], week, json.dumps(scrolls)))
+        conn.execute("UPDATE quest SET status = 'expired' WHERE profile_id = ? AND kind = 'oracle' AND status = 'active' AND week <> ?", (profile["id"], week))
+        row = conn.execute("SELECT * FROM oracle WHERE profile_id = ? AND week = ?", (profile["id"], week)).fetchone()
+    return dict(row)
