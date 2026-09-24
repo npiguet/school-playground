@@ -11,7 +11,13 @@ DB_FILENAME = "discorde.sqlite3"
 
 def connect(path: Path) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, check_same_thread=False)
+    # Transaction control pinned explicitly (fix round 5): the code base commits by hand and relies
+    # on the legacy implicit BEGIN (DEFERRED) before a write; `_begin_write` (alexandria/service.py)
+    # then takes the write lock early with its own BEGIN IMMEDIATE when `in_transaction` is False.
+    # A different default (autocommit=False opens a transaction on connect and after every commit,
+    # autocommit=True never does) would silently turn that BEGIN IMMEDIATE into a no-op.
+    conn = sqlite3.connect(path, check_same_thread=False, isolation_level="DEFERRED",
+                           autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA foreign_keys = ON")

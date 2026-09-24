@@ -20,8 +20,20 @@ import { createProfile, uniqueName } from './helpers';
 //   never runs dry. Only the 201 owner ever deletes, and no other run ever plays a text it got a
 //   200 for, so a release can never pull a text out from under another run (the round-3 repro of
 //   that was "Impossible de charger ce parchemin : Text not found").
+// Time budget (fix round 5): the waits below used to claim up to 120 s under a 60 s test timeout,
+// so they could never apply. Sized to the worst case instead, each inner wait under this total:
+// profile + navigation (~15 s under load) + the failing Daudet refresh (30 s) + the Verne refresh
+// and its list reload (45 s) + the claim loop (45 s) + adopt/play (~15 s) = 150 s. Refreshes run
+// one at a time server-side and merge per work (app/alexandria/flights.py), so a refresh waits at
+// most for the one already in flight.
+const DAUDET_REFRESH_MS = 30_000;
+const VERNE_REFRESH_MS = 45_000;
+const CLAIM_MS = 45_000;
+test.setTimeout(150_000);
+
 test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scroll', async ({ page, request }, testInfo) => {
   let adoptedTextId: string | null = null;
+  let bodyPassed = false;
   try {
     await createProfile(page, uniqueName('Alex'), '9H');
     await page.getByTestId('btn-add-text').click();
@@ -35,7 +47,7 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
     // a work without fixtures fails gracefully
     await page.locator('[data-testid="work-card"]', { hasText: 'Lettres de mon moulin' }).click();
     await page.getByTestId('btn-refresh-work').click();
-    await expect(page.getByTestId('alexandria-error')).toContainText("hors d'atteinte", { timeout: 60_000 });
+    await expect(page.getByTestId('alexandria-error')).toContainText("hors d'atteinte", { timeout: DAUDET_REFRESH_MS });
     await page.goBack();
     // the Verne work has one fixture page
     await page.locator('[data-testid="work-card"]', { hasText: 'Vingt mille lieues' }).click();
@@ -48,7 +60,7 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
       const path = new URL(r.url()).pathname;
       if (r.request().method() === 'POST' && path.endsWith('/works/verne-vingt-mille-lieues/refresh')) refreshAnswered = true;
       return refreshAnswered && r.request().method() === 'GET' && path.endsWith('/works/verne-vingt-mille-lieues/chunks');
-    }, { timeout: 120_000 });
+    }, { timeout: VERNE_REFRESH_MS });
     await page.getByTestId('btn-refresh-work').click();
     await listReloaded;
     await expect(page.getByTestId('chunk-card').first()).toBeVisible();
@@ -84,18 +96,26 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
       }
       await page.reload();
       throw new Error('every chunk is held by another run: waiting for one to be released');
-    }).toPass({ timeout: 45_000 });
+    }).toPass({ timeout: CLAIM_MS });
     expect(unexpectedStatus).toBeNull();
     if (!target) throw new Error('no chunk claimed');
     await expect(target.getByText('Rouleau ajouté aux Parchemins.')).toBeVisible();
     await target.getByTestId('btn-adopt-play').click();
     await expect(page.getByRole('button', { name: 'Commencer la dictée' })).toBeVisible();
     await expect(page.getByText(/Jules Verne/)).toBeVisible();
+    bodyPassed = true;
   } finally {
-    // Only the run whose adopt created the text (201) releases it.
+    // Only the run whose adopt created the text (201) releases it. The release is asserted only
+    // when the body passed: after a failure it is still attempted, best effort, but must not
+    // replace the original error with its own.
     if (adoptedTextId) {
-      const released = await request.delete(`/api/texts/${adoptedTextId}`);
-      expect(released.status(), await released.text()).toBe(204);
+      const path = `/api/texts/${adoptedTextId}`;
+      if (bodyPassed) {
+        const released = await request.delete(path);
+        expect(released.status(), await released.text()).toBe(204);
+      } else {
+        await request.delete(path).catch(() => undefined);
+      }
     }
   }
 });

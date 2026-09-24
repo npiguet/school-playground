@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from app.alexandria.allowlist import Work, load_allowlist
 from app.alexandria.fetch import make_fetcher
 from app.alexandria.service import adopt_chunk, list_chunks, list_works, refresh_work
-from app.db import get_db
+from app.db import connect, db_path, get_db
 from app.deps import get_annotator
 from app.lexicon import load_lexicon
 from app.routers.texts import to_full
@@ -48,12 +48,25 @@ def get_works(request: Request, db: sqlite3.Connection = Depends(get_db)):
 
 
 @router.post("/works/{work_id}/refresh")
-def refresh(work_id: str, request: Request, db: sqlite3.Connection = Depends(get_db),
-            fetcher=Depends(get_fetcher), annotate_fn=Depends(get_annotator)):
+async def refresh(work_id: str, request: Request):
+    # async + RefreshFlights (fix round 5): the refresh's seconds of fetching and spaCy run on a
+    # bounded limiter of their own, once per work however many presses arrive meanwhile (the others
+    # wait on the event loop for that same result), never in the shared request threadpool.
     work = _work_or_404(_works(request), work_id)
     settings = request.app.state.settings
-    lexicon = load_lexicon(settings.content_dir)
-    return refresh_work(db, work, fetcher, annotate_fn, lexicon)
+
+    def run() -> dict:
+        # Resolved inside the flight, so only the one refresh actually running loads them.
+        fetcher = get_fetcher(request)
+        annotate_fn = get_annotator(request)
+        lexicon = load_lexicon(settings.content_dir)
+        conn = connect(db_path(request))
+        try:
+            return refresh_work(conn, work, fetcher, annotate_fn, lexicon)
+        finally:
+            conn.close()
+
+    return await request.app.state.alexandria_refreshes.run(work.id, run)
 
 
 @router.get("/works/{work_id}/chunks")
