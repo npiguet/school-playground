@@ -5,7 +5,7 @@
   import { flushSync, untrack } from 'svelte';
   import TokenText from './TokenText.svelte';
   import WordEditor from './WordEditor.svelte';
-  import { ARGUS_LABELS, HINTS_PER_STAGE, orderPasses, typedPassSets } from '$lib/argus';
+  import { activePasses, ARGUS_LABELS, HINTS_PER_STAGE, typedPassSets } from '$lib/argus';
   import { mapAnnotation } from '$lib/grading/annotationMap';
   import { errorKey, gradeText } from '$lib/grading/grade';
   import type { Annotation, ArgusPass, GradeResult, TokenError } from '$lib/grading/types';
@@ -33,11 +33,15 @@
   } = $props();
 
   const annotation = $derived(reference.annotation as Annotation);
-  const passes = $derived(orderPasses(argusOrder));
+  const passes = $derived(activePasses(argusOrder, trapWords));
 
   const grade = $derived(gradeText(reference.body, play.current, annotation));
   const passSets = $derived(typedPassSets(grade, annotation, trapWords, level));
   const activePass = $derived(helpStage <= 2 ? passes[play.passIndex] : null);
+  // P1-6 (spec §3.4): stage 2 is "named passes without spotlight" — the chips and hint above
+  // still name the current pass (`activePass`), but the text itself must not light up. Only
+  // stage 1 spotlights; `null` here means TokenText's `.lit`/`.dim` never apply.
+  const spotlightPass = $derived(helpStage === 1 ? activePass : null);
   const hintsLeft = $derived(HINTS_PER_STAGE[helpStage] - play.hintsUsed);
   const spans = $derived(sentenceSpans(play.current));
 
@@ -399,8 +403,8 @@
       <TokenText
         text={play.current}
         {passSets}
-        {activePass}
-        dim={helpStage === 1}
+        activePass={spotlightPass}
+        dim={spotlightPass !== null}
         {hintedTokenIndexes}
         {range}
         onEditToken={editToken}
