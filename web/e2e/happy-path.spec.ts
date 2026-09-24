@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { expectCamp, stubSpeech, skipOnboarding } from './helpers';
+import { expectCamp, stubSpeech, skipOnboarding, uniqueName } from './helpers';
 
 const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
 
 test('create profile → add text → dictation → proofreading → results → stats', async ({ page }) => {
   await stubSpeech(page);
-  const name = 'Test' + Date.now().toString().slice(-6);
+  const name = uniqueName('Test');
 
   // Profile
   await page.goto('/');

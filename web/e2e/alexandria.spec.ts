@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { createProfile } from './helpers';
+import { createProfile, uniqueName } from './helpers';
 
 test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scroll', async ({ page }) => {
-  await createProfile(page, 'Alex' + Date.now().toString().slice(-6), '9H');
+  await createProfile(page, uniqueName('Alex'), '9H');
   await page.getByTestId('btn-add-text').click();
   await page.getByTestId('menu-add-alexandria').click();
   await expect(page.getByRole('heading', { name: "Bibliothèque d'Alexandrie" })).toBeVisible();

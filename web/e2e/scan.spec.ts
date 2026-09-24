@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { confirmScanVerified, createProfile } from './helpers';
+import { confirmScanVerified, createProfile, uniqueName } from './helpers';
 
 test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
-  await createProfile(page, 'Scan' + Date.now().toString().slice(-6), '9H');
+  await createProfile(page, uniqueName('Scan'), '9H');
   await page.getByTestId('btn-add-text').click();
   await page.getByTestId('menu-add-scan').click();
   await page.getByTestId('scan-input').first().setInputFiles('/work/server/tests/fixtures/scan/handout.png');
@@ -38,7 +38,7 @@ test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
 // them has to be tapped (each tap selects the word in the textarea) before « Le texte est juste »
 // is even enabled.
 test('a phone photo shows « À vérifier » chips that must each be looked at', async ({ page }) => {
-  await createProfile(page, 'Chip' + Date.now().toString().slice(-6), '9H');
+  await createProfile(page, uniqueName('Chip'), '9H');
   await page.getByTestId('btn-add-text').click();
   await page.getByTestId('menu-add-scan').click();
   await page.getByTestId('scan-input').first().setInputFiles('/work/server/tests/fixtures/scan/handout-phone.jpg');

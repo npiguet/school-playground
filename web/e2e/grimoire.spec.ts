@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { createProfile, createText, stubSpeech } from './helpers';
+import { createProfile, createText, stubSpeech, uniqueName } from './helpers';
 
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent. Le vent emporte leurs chansons jusqu\'au village. Les enfants sortent de leurs maisons, émerveillés. La musique descend de la forêt et la nuit est douce.';
 
 test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', async ({ page, request }) => {
   await stubSpeech(page);
-  await createProfile(page, 'Grim' + Date.now().toString().slice(-6), '10H');
+  await createProfile(page, uniqueName('Grim'), '10H');
   const t = await createText(request, { title: 'Fées grimoire', body: BODY, level: '8H', source: 'custom' });
   // createText bypasses the UI (API only): the library's list was already fetched on mount, so
   // it needs a reload to pick up a text added out-of-band this way.

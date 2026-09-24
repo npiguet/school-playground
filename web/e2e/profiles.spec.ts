@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { expectCamp, skipOnboarding } from './helpers';
+import { expectCamp, skipOnboarding, uniqueName } from './helpers';
 
-const unique = () => 'Héros' + Date.now().toString().slice(-6);
+const unique = () => uniqueName('Héros');
 
 test('create a profile and reach the library with seed texts', async ({ page }) => {
   await page.goto('/');
