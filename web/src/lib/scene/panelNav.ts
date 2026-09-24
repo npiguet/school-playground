@@ -43,5 +43,6 @@ export function heroPanelHref(profileId: number): string {
 /** The route a hotspot opens, or null when the scene handles the tap itself. */
 export function hotspotHref(def: HotspotDef, profileId: number): string | null {
   if (!def.target) return null;
-  return href(def.target, { profileId: String(profileId), ...(def.params ?? {}) }, def.query);
+  // profileId is spread last so it always wins over a stray same-named key in def.params.
+  return href(def.target, { ...(def.params ?? {}), profileId: String(profileId) }, def.query);
 }

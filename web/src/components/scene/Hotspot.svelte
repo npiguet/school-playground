@@ -8,6 +8,7 @@
   // such as the audio unlock and the tilt permission, UI3 Ruling A5).
   import { clipPath, labelShift, shapeBox } from '../../lib/scene/geometry';
   import { useSceneRuntime } from '../../lib/scene/runtime.svelte';
+  import { router } from '../../lib/router.svelte';
   import type { HotspotDef, HotspotState } from '../../lib/scene/types';
 
   let {
@@ -36,10 +37,16 @@
   let labelW = $state(0);
   const shift = $derived(inked ? 0 : labelShift(box.x + box.w / 2, labelW, rt.artW));
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let releaseTimer: ReturnType<typeof setTimeout> | undefined;
 
-  $effect(() => () => clearTimeout(timer));
+  $effect(() => () => {
+    clearTimeout(timer);
+    clearTimeout(releaseTimer);
+  });
 
   function onclick() {
+    // Task 9b: the read-only `?debug` overlay must not block hotspot clicks (HotspotDebug.svelte
+    // is pointer-events: none over it anyway).
     // Final review M3 + UI3 Ruling A6: one tap at a time per stage; SceneStage releases the guard
     // on the next route change (a place stays mounted under its overlays).
     if (rt.activating) return;
@@ -50,10 +57,22 @@
     onPress?.(def);
     rt.activating = true;
     flashing = true;
+    // A stale timer can only still be pending here if something outside this tap already reset
+    // `rt.activating` (e.g. SceneStage's route-change effect firing for an unrelated reason)
+    // while our own flash was still running - clear it so its onActivate never fires twice.
+    clearTimeout(timer);
+    const routeBefore = router.route;
     timer = setTimeout(
       () => {
         flashing = false;
         onActivate(def);
+        // A `target: null` hotspot (types.ts) handles the tap itself and never navigates, so
+        // SceneStage's route-change effect never runs to release the guard for it. Release it
+        // here instead, once the route is confirmed unchanged on the next tick, so the scene's
+        // other hotspots stay clickable (fix round 1 minor #2).
+        releaseTimer = setTimeout(() => {
+          if (router.route === routeBefore) rt.activating = false;
+        });
       },
       rt.reduced ? 0 : 160,
     );

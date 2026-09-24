@@ -77,7 +77,11 @@ export interface HotspotDef {
   id: string;
   /** Place name shown on the label (Cinzel caps). */
   label: string;
-  /** Route opened on tap; null when the scene screen handles the tap itself (the title's gate). */
+  /** Route opened on tap; null when the scene screen handles the tap itself (the title's gate).
+   *  Contract: a null-target hotspot's own `onActivate` handler must not navigate away from the
+   *  scene. `Hotspot.svelte` never gets a route-change effect to release its one-tap-at-a-time
+   *  guard for it (that effect lives on `SceneStage`, keyed off the route), so it releases the
+   *  guard itself once the route is confirmed unchanged after the tap. */
   target: RouteName | null;
   /** Extra route params (e.g. `{ key: 'hydre' }`) and hash query (e.g. `{ panel: 'soin' }`). */
   params?: Record<string, string>;

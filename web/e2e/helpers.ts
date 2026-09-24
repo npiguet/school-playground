@@ -83,9 +83,22 @@ export async function expectCamp(page: Page) {
 // Final review M10: a bare `transform: none` check could pass *before* the zoom had even started.
 // SceneTransition now flags the real end of its entry (`data-settled`, set on introend), and on top
 // of that no Web Animation may still be running on it.
+// Fix round 1 minor #1: an explicit 15s timeout (cold load + a shared 4-worker container can starve
+// WebKit past the default 5s), and diagnostics attached to the failure message rather than a bare
+// timeout, since "which animation, still running or never started" is what actually explains it.
 export async function waitForSceneSettled(page: Page) {
   const t = page.locator('.scene-transition');
-  await expect(t).toHaveAttribute('data-settled', 'true');
+  try {
+    await expect(t).toHaveAttribute('data-settled', 'true', { timeout: 15_000 });
+  } catch (e) {
+    const diag = await t
+      .evaluate((el) => ({
+        anims: el.getAnimations().map((a) => [a.playState, a.currentTime]),
+        visibility: document.visibilityState,
+      }))
+      .catch((diagErr) => ({ error: String(diagErr) }));
+    throw new Error(`scene never settled (data-settled stayed "false"); diagnostics: ${JSON.stringify(diag)}\n${(e as Error).message}`);
+  }
   await expect.poll(() => t.evaluate((el) => el.getAnimations().length)).toBe(0);
 }
 
