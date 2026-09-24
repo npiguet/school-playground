@@ -6,10 +6,10 @@
   import TokenText from './TokenText.svelte';
   import WordEditor from './WordEditor.svelte';
   import { activePasses, ARGUS_LABELS, HINTS_PER_STAGE, typedPassSets } from '$lib/argus';
-  import { mapAnnotation } from '$lib/grading/annotationMap';
+  import { mapAnnotation, reverseAnnotationMap } from '$lib/grading/annotationMap';
   import { errorKey, gradeText } from '$lib/grading/grade';
   import type { Annotation, ArgusPass, GradeResult, TokenError } from '$lib/grading/types';
-  import { filExit, filStart, filTap, type FilState } from '$lib/fil';
+  import { filExit, filStart, filTap, type FilState, type TypedTextLookup } from '$lib/fil';
   import { savePlayState, type PlayState } from '$lib/playState';
   import { replaceSpan, sentenceSpans } from '$lib/textEdit';
   import type { TextFull } from '$lib/types';
@@ -53,8 +53,9 @@
 
   const annots = $derived(mapAnnotation(grade.refTokens, annotation));
   // annotation token id -> reference token index (for a reference token spaCy actually
-  // annotated; unmapped tokens are simply absent).
-  const refByAnnot = $derived(new Map(annots.flatMap((a, r) => (a ? ([[a.i, r]] as const) : []))));
+  // annotated; unmapped tokens are simply absent). Shared with explain.ts's P1-1 fix rather than
+  // hand-rolled here (fix round 1 minor).
+  const refByAnnot = $derived(reverseAnnotationMap(annots));
   // reference token index -> typed (player's) token index, via the current alignment.
   const typedByRef = $derived(
     new Map(
@@ -73,6 +74,15 @@
     return typedByRef.get(refIndex) ?? null;
   }
 
+  // Fix round 1 (critical): the Fil's messages must quote the PLAYER's typed words, never the
+  // reference spelling — reading `reference.body`/`annotation.tokens[...].text` would hand out
+  // the correct answer at every help stage. This resolves an annotation token id to the text of
+  // whatever the player actually typed for it right now (or `undefined` if unaligned/deleted).
+  const typedTextOf: TypedTextLookup = (annotIndex) => {
+    const t = annotToTyped(annotIndex);
+    return t === null ? undefined : grade.typedTokens[t]?.text;
+  };
+
   const filVerb = $derived(annotToTyped(fil.highlightVerb));
   const filSubjects = $derived.by(() => {
     const out = new Set<number>();
@@ -83,8 +93,8 @@
     return out;
   });
 
-  function activateFil() {
-    fil = filStart({ drawn: fil.drawn, correct: fil.correct });
+  function toggleFil() {
+    fil = fil.step === 'idle' ? filStart({ drawn: fil.drawn, correct: fil.correct }) : filExit(fil);
   }
 
   function exitFil() {
@@ -97,7 +107,7 @@
   function tapFil(typedIndex: number) {
     const refIndex = refByTyped.get(typedIndex);
     const annotIndex = refIndex !== undefined ? annots[refIndex]?.i : undefined;
-    fil = filTap(fil, annotIndex, annotation, reference.body);
+    fil = filTap(fil, annotIndex, annotation, typedTextOf);
     play.fil = { drawn: fil.drawn, correct: fil.correct };
   }
 
@@ -236,8 +246,19 @@
   // --- Editing ------------------------------------------------------------------------
 
   function editToken(index: number) {
-    // The Fil never edits text (spec §3.4): a tap while it's active drives the state machine
-    // instead of opening the word editor.
+    // Fix round 1 item 4: once a thread is drawn (`done`), tapping any token — including the
+    // highlighted verb — exits the Fil and opens the normal word editor for that token, instead
+    // of silently starting a new thread from that tap. The Fil only ever drives the state
+    // machine while actively picking a verb/subject.
+    if (fil.step === 'done') {
+      fil = filExit(fil);
+      flushSync(() => {
+        editing = index;
+      });
+      return;
+    }
+    // The Fil never edits text otherwise (spec §3.4): a tap while picking drives the state
+    // machine instead of opening the word editor.
     if (fil.step !== 'idle') {
       tapFil(index);
       return;
@@ -338,7 +359,7 @@
       class:chip-active={fil.step !== 'idle'}
       aria-pressed={fil.step !== 'idle'}
       data-testid="btn-fil"
-      onclick={activateFil}
+      onclick={toggleFil}
     >
       🧵 Fil d'Ariane
     </button>
@@ -412,6 +433,7 @@
         {editor}
         {filVerb}
         {filSubjects}
+        filActive={fil.step !== 'idle'}
       />
     {/if}
   </div>

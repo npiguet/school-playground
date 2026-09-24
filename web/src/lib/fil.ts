@@ -4,10 +4,23 @@
 // here touches the DOM or the player's text. Only `explainChain(..., 'high')` chains are ever
 // used to judge a tap (spec §1.3): a verb whose only chain is medium/low confidence is refused
 // with "s'emmêle" rather than silently guessed at.
-import { explainChain, groupText, numberWord } from './chains';
-import type { Annotation } from './grading/types';
+//
+// Fix round 1 (Fable review, critical): messages must quote the PLAYER's typed words, never the
+// reference spelling — this tool runs live during proofreading, before mistakes are revealed, so
+// reading `annotation.tokens[...].text` (or slicing the reference body) would hand out the
+// answer at every help stage. Every caller passes a `typedTextOf` lookup (annotation token id ->
+// the text of the typed token it's currently aligned to, or `undefined` when unaligned); the
+// annotation itself is only ever read for structure (POS/categories, chains, features), never
+// for a word to display.
+import { explainChain, numberWord } from './chains';
+import type { Annotation, Chain } from './grading/types';
 
 export type FilStep = 'idle' | 'pick-verb' | 'pick-subject' | 'done';
+
+/** Resolves an annotation token id to the text of the typed token currently aligned to it, or
+ *  `undefined` when there is no typed counterpart (unaligned/deleted word). Built by the caller
+ *  (Proofreading.svelte) from the live alignment — never from the reference text. */
+export type TypedTextLookup = (annotIndex: number) => string | undefined;
 
 export interface FilState {
   step: FilStep;
@@ -53,7 +66,19 @@ export function filExit(state: FilState): FilState {
   };
 }
 
-function pickVerb(state: FilState, annotIndex: number | undefined, annotation: Annotation): FilState {
+/** The controller group's typed wording, in the group's given order, omitting any member with
+ *  no typed counterpart — never the reference spelling (see module comment). */
+function typedGroupText(chain: Chain, typedTextOf: TypedTextLookup): string {
+  const texts = chain.controller_group.map(typedTextOf).filter((t): t is string => t !== undefined);
+  return texts.join(chain.via === 'conj' ? ' et ' : ' ');
+}
+
+function pickVerb(
+  state: FilState,
+  annotIndex: number | undefined,
+  annotation: Annotation,
+  typedTextOf: TypedTextLookup,
+): FilState {
   if (annotIndex === undefined) {
     return { ...state, message: "Le fil d'Ariane ne s'accroche pas à ce mot. Cherche un verbe conjugué." };
   }
@@ -68,6 +93,7 @@ function pickVerb(state: FilState, annotIndex: number | undefined, annotation: A
   if (!chain || chain.kind !== 'subject_verb') {
     return { ...state, message: "Le fil d'Ariane s'emmêle sur ce verbe. Essaie un autre verbe." };
   }
+  const verbText = typedTextOf(annotIndex) ?? '';
   return {
     ...state,
     step: 'pick-subject',
@@ -76,7 +102,7 @@ function pickVerb(state: FilState, annotIndex: number | undefined, annotation: A
     attempts: 0,
     highlightVerb: annotIndex,
     highlightSubject: [],
-    message: `Verbe : « ${token.text} ». Maintenant, touche son sujet.`,
+    message: `Verbe : « ${verbText} ». Maintenant, touche son sujet.`,
   };
 }
 
@@ -84,19 +110,19 @@ function pickSubject(
   state: FilState,
   annotIndex: number | undefined,
   annotation: Annotation,
-  body: string,
+  typedTextOf: TypedTextLookup,
 ): FilState {
   if (annotIndex === state.verbRef) {
     return filStart({ drawn: state.drawn, correct: state.correct });
   }
   const chain = annotation.chains?.find((c) => c.id === state.chainId);
-  const verb = state.verbRef !== null ? annotation.tokens[state.verbRef]?.text ?? '' : '';
+  const verb = state.verbRef !== null ? typedTextOf(state.verbRef) ?? '' : '';
   if (!chain) {
     // Defensive: the chain the verb pick relied on has vanished (shouldn't happen — the
     // annotation is immutable for the session). Bail out to a fresh pick rather than crash.
     return filStart({ drawn: state.drawn, correct: state.correct });
   }
-  const group = groupText(annotation, chain, body);
+  const group = typedGroupText(chain, typedTextOf);
   const num = numberWord(chain.features) ?? 'singulier';
   const isCorrect =
     annotIndex !== undefined && (chain.controller_group.includes(annotIndex) || annotIndex === chain.via_token);
@@ -134,15 +160,15 @@ export function filTap(
   state: FilState,
   annotIndex: number | undefined,
   annotation: Annotation,
-  body: string,
+  typedTextOf: TypedTextLookup,
 ): FilState {
   switch (state.step) {
     case 'pick-verb':
-      return pickVerb(state, annotIndex, annotation);
+      return pickVerb(state, annotIndex, annotation, typedTextOf);
     case 'pick-subject':
-      return pickSubject(state, annotIndex, annotation, body);
+      return pickSubject(state, annotIndex, annotation, typedTextOf);
     case 'done':
-      return filTap(filStart({ drawn: state.drawn, correct: state.correct }), annotIndex, annotation, body);
+      return filTap(filStart({ drawn: state.drawn, correct: state.correct }), annotIndex, annotation, typedTextOf);
     case 'idle':
     default:
       return state;

@@ -242,6 +242,126 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     );
   });
 
+  // Fix round 1 item 2: an empty featureWords (no Gender/Number known on the chain at all) must
+  // not produce a dangling "→ " — fall back to the SP1 generic template instead.
+  it('falls back to the generic template when the chain has no known features', () => {
+    const REF5 = 'Elles sont parties.';
+    const chainsNoFeatures: Chain[] = [
+      {
+        id: 0,
+        kind: 'participle_etre',
+        controller: 0,
+        controller_group: [0],
+        targets: [2],
+        via: 'aux',
+        via_token: 1,
+        features: {},
+        confidence: 'high',
+        distance: 1,
+        rule: null,
+      },
+    ];
+    const spec: [string, string[], Record<string, string>?][] = [
+      ['PRON', []],
+      ['AUX', [], { VerbForm: 'Fin' }],
+      ['VERB', ['verb'], { VerbForm: 'Part' }],
+      ['PUNCT', []],
+    ];
+    const annotation: Annotation = {
+      version: 2,
+      model: 't',
+      tokens: tokenize(REF5).map((t, i) => ({
+        i,
+        text: t.text,
+        start: t.start,
+        end: t.end,
+        lemma: t.norm,
+        pos: spec[i][0],
+        morph: spec[i][2] ?? {},
+        head: 2,
+        dep: 'dep',
+        categories: spec[i][1],
+        homophone: null,
+        subject: null,
+      })),
+      sentences: [],
+      chains: chainsNoFeatures,
+    };
+    const g = gradeText(REF5, 'Elles sont partie.', annotation);
+    const ctx = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation), annotation, body: REF5 };
+    expect(explain(g.errors[0], ctx).text).toBe(
+      'Participe passé « parties » : avec être, il s\'accorde avec le sujet ; ' +
+        'avec avoir, seulement si le complément est placé avant.',
+    );
+    expect(explain(g.errors[0], ctx).text).not.toMatch(/→\s*$/);
+  });
+
+  // Fix round 1 item 3: without `ctx.body`, chain templates must not reconstruct the text from
+  // `refTokens.join(' ')` — they must be skipped entirely, falling back to the SP1 template.
+  it('falls back to the generic template when ctx.body is not supplied, even with a usable chain', () => {
+    const { g, ctx } = ctxFor2('Les fées qui chantent danse.');
+    const ctxNoBody = { ...ctx, body: undefined };
+    expect(explain(g.errors[0], ctxNoBody).text).toBe(
+      'Le verbe « dansent » s\'accorde avec son sujet. Cherche qui fait l\'action.',
+    );
+  });
+
+  // Minor fix round 1 item: attribute/participle_etre via a relative pronoun use the same
+  // "« qui », qui reprend « NP »" phrasing as subject_verb, instead of naming "qui" as if it were
+  // the subject's own text.
+  it('uses the "qui reprend" phrasing for a participle_etre chain through a relative pronoun', () => {
+    const REF6 = 'Les fées qui sont parties dansent.';
+    const chainsQui: Chain[] = [
+      {
+        id: 0,
+        kind: 'participle_etre',
+        controller: 1,
+        controller_group: [0, 1],
+        targets: [4],
+        via: 'qui',
+        via_token: 2,
+        features: { Gender: 'Fem', Number: 'Plur' },
+        confidence: 'high',
+        distance: 2,
+        rule: null,
+      },
+    ];
+    const spec: [string, string[], Record<string, string>?][] = [
+      ['DET', ['nominal_group']],
+      ['NOUN', ['nominal_group'], { Gender: 'Fem', Number: 'Plur' }],
+      ['PRON', []],
+      ['AUX', [], { VerbForm: 'Fin' }],
+      ['VERB', ['verb'], { VerbForm: 'Part' }],
+      ['VERB', ['verb'], { VerbForm: 'Fin' }],
+      ['PUNCT', []],
+    ];
+    const annotation: Annotation = {
+      version: 2,
+      model: 't',
+      tokens: tokenize(REF6).map((t, i) => ({
+        i,
+        text: t.text,
+        start: t.start,
+        end: t.end,
+        lemma: t.norm,
+        pos: spec[i][0],
+        morph: spec[i][2] ?? {},
+        head: 1,
+        dep: 'dep',
+        categories: spec[i][1],
+        homophone: null,
+        subject: null,
+      })),
+      sentences: [],
+      chains: chainsQui,
+    };
+    const g = gradeText(REF6, 'Les fées qui sont partie dansent.', annotation);
+    const ctx = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation), annotation, body: REF6 };
+    expect(explain(g.errors[0], ctx).text).toBe(
+      'Avec « être », le participe « parties » s\'accorde avec le sujet « qui », qui reprend « Les fées » → féminin pluriel',
+    );
+  });
+
   it('explains a lexical sound-alike error without ever naming the typed spelling as correct', () => {
     const { ctx } = ctxFor2(REF2);
     const soundAlikeErr: TokenError = {

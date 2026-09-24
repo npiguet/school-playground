@@ -18,6 +18,7 @@
     editor,
     filVerb = null,
     filSubjects = new Set(),
+    filActive = false,
   }: {
     text: string;
     passSets: Set<ArgusPass>[];
@@ -34,6 +35,9 @@
      *  mapped from annotation indexes by Proofreading.svelte. */
     filVerb?: number | null;
     filSubjects?: Set<number>;
+    /** Fix round 1 item 4: while the Fil is active, a tap picks a verb/subject rather than
+     *  opening the word editor — the token's aria-label must say so, not "Modifier". */
+    filActive?: boolean;
   } = $props();
 
   const tokens = $derived(tokenize(text));
@@ -72,7 +76,9 @@
       class:fil-verb={filVerb === piece.index}
       class:fil-subject={filSubjects.has(piece.index)}
       data-testid={`tok-${piece.index}`}
-      aria-label="Modifier « {tokens[piece.index].text} »"
+      aria-label={filActive
+        ? `Fil d'Ariane : choisir « ${tokens[piece.index].text} »`
+        : `Modifier « ${tokens[piece.index].text} »`}
       onclick={() => onEditToken(piece.index)}>{tokens[piece.index].text}</button>{/if}{/each}</p>
 
 <style>

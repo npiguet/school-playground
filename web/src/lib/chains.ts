@@ -64,14 +64,13 @@ export function explainChain(
 export function groupText(annotation: Annotation, chain: Chain, body: string): string {
   const ids = chain.controller_group;
   if (ids.length === 0) return '';
+  const byId = new Map(annotation.tokens.map((t) => [t.i, t]));
   if (chain.via === 'conj') {
-    const byId = new Map(annotation.tokens.map((t) => [t.i, t]));
     return ids
       .map((id) => byId.get(id)?.text)
       .filter((t): t is string => t !== undefined)
       .join(' et ');
   }
-  const byId = new Map(annotation.tokens.map((t) => [t.i, t]));
   const members = ids.map((id) => byId.get(id)).filter((t) => t !== undefined);
   if (members.length === 0) return '';
   const start = Math.min(...members.map((t) => t.start));

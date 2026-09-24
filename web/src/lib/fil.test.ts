@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { FIL_START, filExit, filStart, filTap } from './fil';
+import { FIL_START, filExit, filStart, filTap, type TypedTextLookup } from './fil';
+import { gradeText } from './grading/grade';
+import { mapAnnotation, reverseAnnotationMap } from './grading/annotationMap';
 import { tokenize } from './grading/tokenize';
 import type { Annotation, AnnotToken, Chain } from './grading/types';
 
@@ -78,21 +80,26 @@ function ann(): Annotation {
 
 const ANN = ann();
 
+// This fixture never introduces a typo, so the typed word and the reference word are always
+// identical — a lookup straight into the fixture's own annotation tokens is a faithful stand-in
+// for the real (typed-alignment-based) lookup Proofreading.svelte builds, for these tests only.
+const identityTypedTextOf: TypedTextLookup = (annotIndex) => ANN.tokens[annotIndex]?.text;
+
 describe('filTap', () => {
   it('walks verb → subject and counts a correct thread', () => {
     let s = filStart();
     expect(s.step).toBe('pick-verb');
-    s = filTap(s, 0, ANN, BODY); // "Les" is not a verb
+    s = filTap(s, 0, ANN, identityTypedTextOf); // "Les" is not a verb
     expect(s.step).toBe('pick-verb');
     expect(s.message).toMatch(/ne semble pas être un verbe/);
-    s = filTap(s, 3, ANN, BODY); // "chantent": verb but only a medium chain
+    s = filTap(s, 3, ANN, identityTypedTextOf); // "chantent": verb but only a medium chain
     expect(s.step).toBe('pick-verb');
     expect(s.message).toMatch(/s'emmêle/);
-    s = filTap(s, 4, ANN, BODY); // "dansent": high chain
+    s = filTap(s, 4, ANN, identityTypedTextOf); // "dansent": high chain
     expect(s.step).toBe('pick-subject');
     expect(s.highlightVerb).toBe(4);
     expect(s.message).toBe('Verbe : « dansent ». Maintenant, touche son sujet.');
-    s = filTap(s, 0, ANN, BODY); // "Les" belongs to the subject group → correct
+    s = filTap(s, 0, ANN, identityTypedTextOf); // "Les" belongs to the subject group → correct
     expect(s.step).toBe('done');
     expect(s.correct).toBe(1);
     expect(s.drawn).toBe(1);
@@ -101,12 +108,12 @@ describe('filTap', () => {
   });
 
   it('reveals the subject after two wrong taps and counts the thread as drawn but not correct', () => {
-    let s = filTap(filStart(), 4, ANN, BODY);
-    s = filTap(s, 3, ANN, BODY);
+    let s = filTap(filStart(), 4, ANN, identityTypedTextOf);
+    s = filTap(s, 3, ANN, identityTypedTextOf);
     expect(s.step).toBe('pick-subject');
     expect(s.attempts).toBe(1);
     expect(s.message).toMatch(/Le fil ne tient pas/);
-    s = filTap(s, 5, ANN, BODY);
+    s = filTap(s, 5, ANN, identityTypedTextOf);
     expect(s.step).toBe('done');
     expect(s.drawn).toBe(1);
     expect(s.correct).toBe(0);
@@ -114,10 +121,10 @@ describe('filTap', () => {
   });
 
   it("tapping the verb again cancels; unaligned taps and exit", () => {
-    let s = filTap(filStart(), 4, ANN, BODY);
-    s = filTap(s, 4, ANN, BODY);
+    let s = filTap(filStart(), 4, ANN, identityTypedTextOf);
+    s = filTap(s, 4, ANN, identityTypedTextOf);
     expect(s.step).toBe('pick-verb');
-    s = filTap(s, undefined, ANN, BODY);
+    s = filTap(s, undefined, ANN, identityTypedTextOf);
     expect(s.message).toMatch(/ne s'accroche pas/);
     expect(filExit(s).step).toBe('idle');
     expect(filStart({ drawn: 2, correct: 1 })).toMatchObject({
@@ -126,5 +133,37 @@ describe('filTap', () => {
       step: 'pick-verb',
       message: FIL_START,
     });
+  });
+
+  // Fix round 1 (Fable review, critical): the Fil must never leak the reference spelling. Build
+  // the same annotIndex<->typedIndex lookup Proofreading.svelte builds, from a real typo'd
+  // alignment, and check the messages quote the typed words, never the reference ones.
+  it("uses the player's typed words in its messages, never the reference spelling", () => {
+    const typed = 'Les fée qui chantent danse.'; // "fées"->"fée", "dansent"->"danse"
+    const g = gradeText(BODY, typed, ANN);
+    const annots = mapAnnotation(g.refTokens, ANN);
+    const refByAnnot = reverseAnnotationMap(annots);
+    const typedByRef = new Map(
+      g.pairs
+        .filter((p): p is { refIndex: number; typedIndex: number } => p.refIndex !== null && p.typedIndex !== null)
+        .map((p) => [p.refIndex, p.typedIndex] as const),
+    );
+    const typedTextOf: TypedTextLookup = (annotIndex) => {
+      const refIndex = refByAnnot.get(annotIndex);
+      if (refIndex === undefined) return undefined;
+      const typedIndex = typedByRef.get(refIndex);
+      return typedIndex === undefined ? undefined : g.typedTokens[typedIndex]?.text;
+    };
+
+    let s = filTap(filStart(), 4, ANN, typedTextOf); // "dansent" -> typed "danse"
+    expect(s.step).toBe('pick-subject');
+    expect(s.message).toBe('Verbe : « danse ». Maintenant, touche son sujet.');
+    s = filTap(s, 0, ANN, typedTextOf); // "Les" (unchanged) belongs to the subject group
+    expect(s.step).toBe('done');
+    expect(s.message).toBe(
+      'Le fil est tendu : « danse » ↔ « Les fée » (pluriel). Vérifie la terminaison du verbe.',
+    );
+    expect(s.message).not.toMatch(/dansent/);
+    expect(s.message).not.toMatch(/fées/);
   });
 });
