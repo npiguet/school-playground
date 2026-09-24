@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
 // Run with scripts/playwright.sh --config playwright.playability.config.ts [playability-sp2]
 export default defineConfig({
   testDir: './e2e',
-  testMatch: ['**/playability.spec.ts', '**/playability-sp2.spec.ts'],
+  testMatch: ['**/playability.spec.ts', '**/playability-sp2.spec.ts', '**/playability-sp3.spec.ts'],
   timeout: 600_000,
   retries: 0,
   reporter: [['list']],
