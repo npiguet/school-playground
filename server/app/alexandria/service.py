@@ -29,6 +29,14 @@ def _upsert_online_work(conn: sqlite3.Connection, work_id: str, status: str, err
         (work_id, status, error, now(), json.dumps(stats, ensure_ascii=False)))
 
 
+def _begin_write(conn: sqlite3.Connection) -> None:
+    """Take SQLite's write lock now, so the reads that follow and the writes they decide cannot be
+    interleaved with another request's writes (the default deferred transaction only locks at the
+    first write, after the reads). Joins a transaction already open on this connection instead."""
+    if not conn.in_transaction:
+        conn.execute("BEGIN IMMEDIATE")
+
+
 # Accepted chunks annotated and cached per refresh (final review I-6): bounds the synchronous
 # spaCy work and the cache size whatever the length of the work (a Gutenberg novel is ~1,500 chunks).
 MAX_CHUNKS = 40
@@ -91,7 +99,12 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
     note = " ".join(notes) or None
     stats = {"pages_ok": pages_ok, "failed": failed, "rejected": dict(rejected), "truncated": truncated}
     # A scroll adopted into the library keeps its link across a refresh (matched by body), so
-    # « Recopier à nouveau » never offers the same passage a second time.
+    # « Recopier à nouveau » never offers the same passage a second time. The links are read under
+    # the write lock (fix round 4): read outside it, an adopt (or a text deletion) committed by
+    # another request between this snapshot and the rewrite below was silently undone (the link
+    # reset to NULL, the passage offered again) or wrote back a deleted text's id (foreign key
+    # failure, a 500 on refresh).
+    _begin_write(conn)
     linked = {r["body"]: r["text_id"] for r in conn.execute(
         "SELECT body, text_id FROM online_chunk WHERE work_id = ? AND text_id IS NOT NULL", (work.id,))}
     # online_chunk.work_id is a foreign key: the online_work row must exist first.
@@ -159,17 +172,24 @@ def list_chunks(conn: sqlite3.Connection, work_id: str, level: str | None = None
 
 def adopt_chunk(conn: sqlite3.Connection, chunk_id: int, profile_id: int, works: list[Work],
                  title: str | None = None) -> tuple[sqlite3.Row | None, bool]:
+    # Check-then-create under the write lock (fix round 4): two players adopting the same scroll at
+    # once used to both read text_id NULL, both create a text and both get 201 - the passage adopted
+    # twice, one copy unlinked from its scroll. Now exactly one creates it; the other gets it back.
+    _begin_write(conn)
     chunk = conn.execute("SELECT * FROM online_chunk WHERE id = ?", (chunk_id,)).fetchone()
     if chunk is None:
+        conn.rollback()
         return None, False
 
     if chunk["text_id"] is not None:
         existing = conn.execute(f"{TEXT_SELECT} WHERE t.id = ?", (chunk["text_id"],)).fetchone()
         if existing is not None:
+            conn.rollback()
             return existing, False
 
     work = next((w for w in works if w.id == chunk["work_id"]), None)
     if work is None:
+        conn.rollback()
         return None, False
 
     final_title = (title or "").strip() or f"{work.title} — rouleau {chunk['seq']}"

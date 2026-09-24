@@ -3,6 +3,7 @@
   // source (graceful on network failure, spec §5 SP2), filter by level, adopt a chunk
   // into Les Parchemins. Credits (author/translator/work) stay visible at all times —
   // the spec requires public-domain attribution wherever an adopted text is offered.
+  import { onDestroy } from 'svelte';
   import TopBar from '../components/TopBar.svelte';
   import { api, ApiError, isTimeout } from '../lib/api';
   import { LEVELS } from '../lib/levels';
@@ -56,6 +57,15 @@
   loadWork();
   loadChunks();
 
+  // A refresh can take a minute, and the player may leave meanwhile (adopt a cached scroll and
+  // "Jouer maintenant", or go back): once this screen is gone its `workId` prop reads undefined,
+  // so the reload at the end of that refresh must not run (it used to GET
+  // /api/alexandria/works/undefined/chunks, a 404, found by the fix-round-4 e2e stress run).
+  let destroyed = false;
+  onDestroy(() => {
+    destroyed = true;
+  });
+
   // --- Refresh from the online source ---------------------------------------------------
   let refreshing = $state(false);
   let refreshNote = $state<{ kind: 'error' | 'olive'; message: string } | null>(null);
@@ -89,7 +99,7 @@
       };
     } finally {
       refreshing = false;
-      await Promise.all([loadWork(), loadChunks()]);
+      if (!destroyed) await Promise.all([loadWork(), loadChunks()]);
     }
   }
 

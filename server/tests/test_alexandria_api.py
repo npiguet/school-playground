@@ -1,8 +1,9 @@
 import json
+import threading
 from pathlib import Path
 from fastapi.testclient import TestClient
 from app.alexandria.allowlist import Work
-from app.alexandria.service import refresh_work
+from app.alexandria.service import adopt_chunk, refresh_work
 from app.db import connect, migrate
 from app.lexicon import load_lexicon
 from app.main import create_app
@@ -111,3 +112,120 @@ def test_refresh_annotates_at_most_max_chunks(tmp_path, settings):
     assert "7 rouleaux" in result["error"]
     assert conn.execute("SELECT COUNT(*) FROM online_chunk WHERE work_id = 'w'").fetchone()[0] == 7
     assert json.loads(conn.execute("SELECT stats_json FROM online_work WHERE id = 'w'").fetchone()[0])["truncated"] >= 20
+
+
+# --- Fix round 4: adopt/refresh are atomic against each other (two players, or two e2e workers) ---
+
+class _ThreeChunks:
+    def wikisource_page(self, title):
+        return '<div class="mw-parser-output">' + f"<p>{PROSE * 2}</p>" * 3 + "</div>"
+
+
+def _fake_annotate(body):
+    return {"version": 3, "tokens": [], "chains": [], "sentences": []}
+
+
+_WORK = Work(id="w", title="T", author="A", author_death=1900, translator=None, translator_death=None,
+             source="wikisource", pages=("P",), ebook_id=None, level_hint="8H", note="")
+
+
+class _Rows(list):
+    def fetchone(self):
+        return self[0] if self else None
+
+
+class _Interleave:
+    """Proxy for a sqlite3.Connection: right after the first statement containing `marker` has read
+    its rows, runs `other` in a second thread (on its own connection) and gives it `grace` seconds
+    to finish before handing the rows back - a deterministic stand-in for another request landing
+    between this one's read and its write."""
+
+    def __init__(self, conn, marker, other, grace=0.5):
+        self._conn, self._marker, self._other, self._grace = conn, marker, other, grace
+        self.thread = None
+
+    def execute(self, sql, params=()):
+        cur = self._conn.execute(sql, params)
+        if self.thread is not None or self._marker not in sql:
+            return cur
+        rows = cur.fetchall()
+        self.thread = threading.Thread(target=self._other)
+        self.thread.start()
+        self.thread.join(self._grace)
+        return _Rows(rows)
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
+def _db_with_chunks(tmp_path, settings):
+    path = tmp_path / "race.sqlite3"
+    conn = connect(path)
+    migrate(conn)
+    lexicon = load_lexicon(settings.content_dir)
+    assert refresh_work(conn, _WORK, _ThreeChunks(), _fake_annotate, lexicon)["chunk_count"] >= 1
+    conn.execute("INSERT INTO profile(name, level, created_at) VALUES ('P', '8H', 'now')")
+    conn.commit()
+    return path, conn, lexicon
+
+
+def test_two_concurrent_adopts_of_one_chunk_create_a_single_text(tmp_path, settings):
+    # Two players adopting the same scroll at once used to both read text_id NULL, both INSERT a
+    # text and both get 201: a duplicate adoption (the passage offered twice), and one of the two
+    # texts silently unlinked from its scroll. The read now happens under the write lock.
+    path, conn, _ = _db_with_chunks(tmp_path, settings)
+    chunk_id = conn.execute("SELECT id FROM online_chunk ORDER BY seq LIMIT 1").fetchone()[0]
+    results = []
+
+    def other():
+        c = connect(path)
+        row, created = adopt_chunk(c, chunk_id, 1, [_WORK])
+        results.append((row["id"], created))
+        c.close()
+
+    spy = _Interleave(conn, "SELECT * FROM online_chunk WHERE id", other)
+    row, created = adopt_chunk(spy, chunk_id, 1, [_WORK])
+    spy.thread.join(10)
+    results.append((row["id"], created))
+    assert sorted(c for _, c in results) == [False, True]
+    assert len({text_id for text_id, _ in results}) == 1
+    assert conn.execute("SELECT COUNT(*) FROM text").fetchone()[0] == 1
+
+
+def test_an_adopt_during_a_refresh_keeps_its_link(tmp_path, settings):
+    # refresh_work read the adopted links, then rewrote every chunk row from that snapshot: an adopt
+    # (or a text deletion) landing in between was silently undone (link reset to NULL, the passage
+    # offered again) or wrote back a deleted text's id (foreign key failure, a 500 on refresh). The
+    # snapshot is now read under the write lock.
+    path, conn, lexicon = _db_with_chunks(tmp_path, settings)
+    chunk_id = conn.execute("SELECT id FROM online_chunk ORDER BY seq LIMIT 1").fetchone()[0]
+    adopted = []
+
+    def other():
+        c = connect(path)
+        row, created = adopt_chunk(c, chunk_id, 1, [_WORK])
+        adopted.append((row["id"], created))
+        c.close()
+
+    spy = _Interleave(conn, "SELECT body, text_id FROM online_chunk", other)
+    assert refresh_work(spy, _WORK, _ThreeChunks(), _fake_annotate, lexicon)["status"] == "ok"
+    spy.thread.join(10)
+    assert adopted and adopted[0][1] is True
+    assert conn.execute("SELECT text_id FROM online_chunk WHERE id = ?", (chunk_id,)).fetchone()[0] == adopted[0][0]
+
+
+def test_a_text_deleted_during_a_refresh_does_not_break_it(tmp_path, settings):
+    path, conn, lexicon = _db_with_chunks(tmp_path, settings)
+    chunk_id = conn.execute("SELECT id FROM online_chunk ORDER BY seq LIMIT 1").fetchone()[0]
+    text_id = adopt_chunk(conn, chunk_id, 1, [_WORK])[0]["id"]
+
+    def other():
+        c = connect(path)
+        c.execute("DELETE FROM text WHERE id = ?", (text_id,))
+        c.commit()
+        c.close()
+
+    spy = _Interleave(conn, "SELECT body, text_id FROM online_chunk", other)
+    assert refresh_work(spy, _WORK, _ThreeChunks(), _fake_annotate, lexicon)["status"] == "ok"
+    spy.thread.join(10)
+    assert conn.execute("SELECT text_id FROM online_chunk WHERE id = ?", (chunk_id,)).fetchone()[0] is None

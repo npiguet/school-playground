@@ -1,33 +1,25 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import { createProfile, uniqueName } from './helpers';
 
-// Fix round 3: "Vingt mille lieues" only has one offline fixture page, so its whole online
-// library (server/app/alexandria) is a finite, server-wide pool of 7 clean chunks - not
-// per-profile, by design (service.py: a chunk's adoption link is shared and survives a refresh,
-// so the same passage is never offered twice, to anyone). Under `--repeat-each` with several
-// workers, every run of this spec used to race for the same single highest-scored chunk
-// (`btn-adopt().first()`, deterministic - every concurrent run picks the exact same one): whoever
-// won left it permanently "already adopted" for every future run, and 7 permanent adoptions
-// exhaust the pool, timing out `btn-adopt` forever after (verified from
-// test-results/*/error-context.md: every chunk-card showed "Déjà dans les Parchemins" once the
-// pool ran dry). Two changes fix this:
-// 1. Spread concurrent runs across *different* chunks instead of racing for the same one:
-//    `testInfo.parallelIndex` is unique among concurrently running tests (Playwright's guarantee),
-//    so indexing by it picks a different chunk per concurrently-running test whenever the pool (7)
-//    covers the worker count. The index is taken from `chunk-card`'s count, not `btn-adopt`'s: the
-//    full chunk-card list (and its score/seq order) is stable regardless of who has adopted what,
-//    while the set of *unadopted* cards shrinks and reorders live as other workers adopt/release -
-//    indexing off that shrinking set let two workers converge on the same physical chunk whenever
-//    their two "available count" reads landed either side of a third worker's adopt or release
-//    (reproduced once even with a first attempt at this fix: see "Text not found" below).
-// 2. Release the adopted text once done (DELETE /api/texts/{id}, which the online_chunk.text_id
-//    foreign key's ON DELETE SET NULL then frees back to "unadopted") so a later repeat can adopt
-//    it again - captured from the adopt response itself (not re-derived from the play URL later),
-//    so a downstream assertion failure still leaves the pool in a clean state for the next repeat -
-//    but only when this run's own POST .../adopt actually created it (201, not a 200 reuse of
-//    another run's already-created text): deleting a text a concurrent run's own adopt-then-play
-//    still depends on is exactly what produced "Impossible de charger ce parchemin : Text not
-//    found" during this fix's own repro, so only the true creator ever deletes it.
+// "Vingt mille lieues" only has one offline fixture page, so its whole online library
+// (server/app/alexandria) is a finite, server-wide pool of 7 clean chunks - not per-profile, by
+// design (service.py: a chunk's adoption link is shared and survives a refresh, so the same passage
+// is never offered twice, to anyone). Every run of this spec adopts one of them, so concurrent runs
+// (`--repeat-each`, any number of workers) compete for that pool. The spec stays correct for ANY
+// worker count by *claiming* a chunk instead of assuming one is free (fix round 4 - round 3 spread
+// runs over `parallelIndex % 7`, which only held up to 7 concurrent workers):
+// - Claim: try the unadopted cards in turn (starting at `parallelIndex` to spread concurrent runs
+//   out); the server's adopt is an atomic check-then-create (service.adopt_chunk, under SQLite's
+//   write lock), so exactly one run gets 201 "created" for a chunk - that run owns the text. A 200
+//   means another run owns it: leave it alone and try the next card. If every card is held, reload
+//   the list and try again (bounded `toPass`): holders release theirs within seconds. The loop
+//   only starts once this run's own refresh has finished reloading the list, and waits for each
+//   adopt to settle in the UI before the next click (see the comments inline).
+// - Release: the owner deletes its text in `finally` (DELETE /api/texts/{id}; the
+//   online_chunk.text_id foreign key's ON DELETE SET NULL frees the chunk again), so the pool
+//   never runs dry. Only the 201 owner ever deletes, and no other run ever plays a text it got a
+//   200 for, so a release can never pull a text out from under another run (the round-3 repro of
+//   that was "Impossible de charger ce parchemin : Text not found").
 test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scroll', async ({ page, request }, testInfo) => {
   let adoptedTextId: string | null = null;
   try {
@@ -47,24 +39,63 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
     await page.goBack();
     // the Verne work has one fixture page
     await page.locator('[data-testid="work-card"]', { hasText: 'Vingt mille lieues' }).click();
+    // Wait for the refresh *and* the chunk list reload it ends with, not just for a first card:
+    // earlier runs already cached this work's chunks, so cards show up at once while the refresh
+    // is still running - and its closing reload swaps the whole list out (a loading line in place
+    // of the cards) under the claim loop below.
+    let refreshAnswered = false;
+    const listReloaded = page.waitForResponse((r) => {
+      const path = new URL(r.url()).pathname;
+      if (r.request().method() === 'POST' && path.endsWith('/works/verne-vingt-mille-lieues/refresh')) refreshAnswered = true;
+      return refreshAnswered && r.request().method() === 'GET' && path.endsWith('/works/verne-vingt-mille-lieues/chunks');
+    }, { timeout: 120_000 });
     await page.getByTestId('btn-refresh-work').click();
-    await expect(page.getByTestId('chunk-card').first()).toBeVisible({ timeout: 120_000 });
+    await listReloaded;
+    await expect(page.getByTestId('chunk-card').first()).toBeVisible();
     await expect(page.getByTestId('chunk-card').first()).toContainText(/Rouleau \d+/);
     const chunkCards = page.getByTestId('chunk-card');
-    const total = await chunkCards.count();
-    const target = chunkCards.nth(testInfo.parallelIndex % total);
-    const [adoptResponse] = await Promise.all([
-      page.waitForResponse((r) => /\/api\/alexandria\/chunks\/\d+\/adopt$/.test(r.url()) && r.request().method() === 'POST'),
-      target.getByTestId('btn-adopt').click(),
-    ]);
-    if (adoptResponse.status() === 201) adoptedTextId = String((await adoptResponse.json()).id);
+    let target = null as Locator | null; // `as`: assigned in the toPass closure, keep TS from narrowing it to null
+    let unexpectedStatus = null as number | null;
+    await expect(async () => {
+      const total = await chunkCards.count();
+      expect(total).toBeGreaterThan(0);
+      for (let k = 0; k < total; k++) {
+        const card = chunkCards.nth((testInfo.parallelIndex + k) % total);
+        const adoptButton = card.getByTestId('btn-adopt');
+        if (!(await adoptButton.isVisible())) continue;
+        const [adoptResponse] = await Promise.all([
+          page.waitForResponse((r) => /\/api\/alexandria\/chunks\/\d+\/adopt$/.test(r.url()) && r.request().method() === 'POST'),
+          adoptButton.click(),
+        ]);
+        if (adoptResponse.status() === 201) {
+          adoptedTextId = String((await adoptResponse.json()).id);
+          target = card;
+          return;
+        }
+        if (adoptResponse.status() !== 200) {
+          unexpectedStatus = adoptResponse.status(); // a real failure: stop retrying, fail below
+          return;
+        }
+        // Let the screen finish this adopt before the next click: the response reaches Playwright
+        // before the app's adopt() has run its `finally` (adoptingId = null), and a click in
+        // between is dropped by its one-at-a-time guard - no request, and the waitForResponse
+        // above would then wait forever.
+        await expect(card.getByText('Rouleau ajouté aux Parchemins.')).toBeVisible();
+      }
+      await page.reload();
+      throw new Error('every chunk is held by another run: waiting for one to be released');
+    }).toPass({ timeout: 45_000 });
+    expect(unexpectedStatus).toBeNull();
+    if (!target) throw new Error('no chunk claimed');
     await expect(target.getByText('Rouleau ajouté aux Parchemins.')).toBeVisible();
     await target.getByTestId('btn-adopt-play').click();
     await expect(page.getByRole('button', { name: 'Commencer la dictée' })).toBeVisible();
     await expect(page.getByText(/Jules Verne/)).toBeVisible();
   } finally {
-    // Best-effort: a run whose adopt POST got a 200 (another run already created this text) has
-    // nothing of its own to release.
-    if (adoptedTextId) await request.delete(`/api/texts/${adoptedTextId}`);
+    // Only the run whose adopt created the text (201) releases it.
+    if (adoptedTextId) {
+      const released = await request.delete(`/api/texts/${adoptedTextId}`);
+      expect(released.status(), await released.text()).toBe(204);
+    }
   }
 });
