@@ -39,6 +39,14 @@ reads instantly. Gold accents stay small except on the dragon and the emblems.
   Écho's copies, Protée's water) keep their concept but as solid inked shapes, "like a
   carved marble relief". This exists because soft strands and glow are what background
   removal gets wrong.
+- `.claude/skills/krea2/styles/discorde-inked-clean.txt`: the cleaner-line variant of
+  `discorde-inked`, used for the dragon stages, Écho and L'Hydre (2026-09-24 regeneration).
+  Keeps the gouache/acrylic shading ("warm and cool colour variation inside every shape")
+  but asks for *one clean medium-weight* outline of even thickness, finer interior lines,
+  and negatives `(sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2)
+  (thick heavy outline:-1.5) (shadow:-2)`. A first try with a heavy comic outline cut out
+  perfectly but looked too heavy; `(thick heavy outline:-1.5)` is what lightens it. Use it
+  for new cut-out assets; the older ones still use `discorde-inked`.
 - `.claude/skills/krea2/styles/discorde-emblem.txt`: round bronze/gold medallion UI emblems
   (add "a clean dark ink outline around the medallion's outer rim" to the prompt).
 
@@ -66,7 +74,23 @@ spiky golden crown, gold arm bracelets, holding a shining golden apple.*
 Attitude: theatrical diva, smug, sore loser. Never sweet, never scary. Always add
 `(sweet friendly kind smile:-3)`.
 
-**The dragon companion** (seeds 201–204): *a dragon of the Discorde species, burnished
+**Cleaner-line pass (2026-09-24, `discorde-inked-clean`)**: dragon egg 201, hatchling 202,
+adult 204, young 283, Écho 392, Hydre 331 (before/after in
+`docs/art/cutout-comparison/04-lines-dragons-echo-hydre.png`). Prompt tips from it:
+- "dramatic warm/cool rim light from the side" paints a coloured band *outside* the ink
+  line, which reads as a sticker rim once cut out. Drop it for cut-outs and write "whole
+  creature visible with room around it, soft even lighting"; for the Hydre also add
+  `(orange rim light:-2) (glow:-2)`. Do not add `(sticker border:-3) (halo around the
+  outline:-2)` on top: it made the edge blotchier, not cleaner.
+- Pose words drift with this style: the young dragon sat down until the prompt said
+  "standing proudly upright on all four legs ... legs straight" plus `(sitting:-2)`.
+- Écho lost her feet or got a knee-length dress until the prompt said "the whole figure
+  visible from the top of the head down to the bare feet with room above and below" and
+  "ankle-length chiton".
+- The Hydre prompt (five heads + a stump sprouting two small heads) now gives six equal
+  heads and no visible stump; accepted, as the regrowth reads as part of the myth.
+
+**The dragon companion** (seeds 201–204, young 283 since the cleaner-line pass): *a dragon of the Discorde species, burnished
 bronze-gold scales, amber eyes, a pale cream belly, curved ivory horns, leathery wings with
 copper-coloured membranes, a row of ivory spines down its back.* Stages: egg (bronze-gold
 scaled shell, amber glow through cracks, nest of olive branches) → hatchling (horn nubs,
@@ -74,7 +98,7 @@ stubby wings, sitting in the shell) → young (large-dog size, half-spread wings
 → adult (long horns, huge wings spread, noble stance). The player recolours it later: keep
 the hue shift in CSS/canvas, not in new generations.
 
-**Lieutenants** (seeds: Hydre 321, Écho 312, Chimère 333, Protée 304, Sirènes 305, Léthé 316):
+**Lieutenants** (seeds: Hydre 331, Écho 392, Chimère 333, Protée 304, Sirènes 305, Léthé 316):
 - L'Hydre: five-headed serpent, olive-green scales fading to Aegean blue, cream belly, one
   cut stump sprouting two small heads. Each head has a different expression. Say "all five
   heads are snake heads" and add `(human face:-3)`, or one head turns human.
