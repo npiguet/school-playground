@@ -5,7 +5,7 @@
   // server Tasks 2-3): the technique/state sections just stay empty rather than crash.
   import TopBar from '../components/TopBar.svelte';
   import Medallion from '../components/juice/Medallion.svelte';
-  import { ART } from '../lib/world/art';
+  import { ART, RELIC_OF } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../lib/world/types';
@@ -21,15 +21,6 @@
   const profileId = $derived(String(profile.id));
   const isKnownKey = $derived(LIEUTENANT_ORDER.includes(lieutenantKey as LieutenantKey));
 
-  const FALLBACK_GLYPHS: Record<LieutenantKey, string> = {
-    hydre: '🐍',
-    echo: '🔊',
-    chimere: '🦁',
-    protee: '🌊',
-    sirenes: '🎶',
-    lethe: '🌫️',
-  };
-
   $effect(() => {
     void refreshCamp(profile.id);
     void loadCatalog();
@@ -39,9 +30,6 @@
   const catalogEntry = $derived(campStore.catalog?.lieutenants.find((l) => l.key === lieutenantKey) ?? null);
   const name = $derived(
     lieutenantState?.name ?? catalogEntry?.name ?? bestiaryEntry(lieutenantKey)?.name ?? lieutenantKey,
-  );
-  const glyph = $derived(
-    catalogEntry?.glyph ?? (isKnownKey ? FALLBACK_GLYPHS[lieutenantKey as LieutenantKey] : '❓'),
   );
   const art = $derived(isKnownKey ? ART.lieutenants[lieutenantKey as LieutenantKey] : ART.erisSmug);
   const band = $derived(lieutenantState ? bandFor(lieutenantState) : 'none');
@@ -120,7 +108,7 @@
 
       {#if lieutenantState.neutralised}
         <div class="parchment neutralised-banner" data-testid="lieutenant-neutralised">
-          <Medallion glyph={catalogEntry?.glyph ?? glyph} kind="relic" size={64} />
+          <Medallion rewardId={RELIC_OF[lieutenantKey as LieutenantKey]} kind="relic" size={64} />
           <p>{agree('Neutralisé', lieutenantKey as LieutenantKey)} le {neutralisedDate()}</p>
         </div>
       {/if}

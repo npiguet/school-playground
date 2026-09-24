@@ -4,7 +4,9 @@
   // active board quest, a no-penalty "Ranger" (shelve) action with an inline confirm (spec ethics:
   // nothing is ever taken away, so shelving needs no scary warning, just a plain confirmation).
   import Gauge from './juice/Gauge.svelte';
+  import Medallion from './juice/Medallion.svelte';
   import { worldApi } from '../lib/world/api';
+  import { rewardKindOf } from '../lib/world/art';
   import { questProgressLabel, questTitle, rewardLabel } from '../lib/world/quests';
   import type { QuestOut, WorldCatalog } from '../lib/world/types';
   import { ApiError } from '../lib/api';
@@ -60,7 +62,12 @@
 
   <Gauge value={gaugeValue} max={gaugeMax} label={progressLabel} />
 
-  <p class="reward-line">Récompense connue : {rewardLabel(quest, catalog)}</p>
+  <p class="reward-line">
+    {#if quest.reward.reward_id}
+      <Medallion rewardId={quest.reward.reward_id} kind={rewardKindOf(quest.reward.reward_id)} size={32} />
+    {/if}
+    <span>Récompense connue : {rewardLabel(quest, catalog)}</span>
+  </p>
 
   {#if quest.status === 'done' && quest.completed_at}
     <span class="chip chip-gold">Terminée le {formatSwissDate(quest.completed_at.slice(0, 10))}</span>
@@ -130,6 +137,9 @@
     margin: 0;
     font-weight: 600;
     color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .texts {
     display: flex;

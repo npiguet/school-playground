@@ -83,6 +83,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     // (ethics: no gamble - spec §1, plan decision 9).
     await expect(page.getByTestId('scroll-open')).toHaveCount(3);
     await expect(page.getByTestId('oracle-reward')).toContainText('Teinte Écume');
+    await expect(page.getByTestId('scroll-faible').locator('[data-reward="tint:ecume"] .swatch')).toBeVisible();
 
     await page.getByTestId('scroll-ecole').getByTestId('scroll-open').click();
     await page.getByTestId('oracle-monster-hydre').click();
@@ -306,6 +307,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     expect(bossAfterTooEasy.goal.mode).toBe('grimoire');
     await page.goto(`/#/p/${profileId}/eris`);
     await expect(page.getByTestId('boss-start')).toContainText('Relancer le combat');
+    await expect(page.getByTestId('boss-reward').locator('img[src="/art/icons/sandales_hermes.webp"]')).toBeVisible();
 
     const lost = await postSession(request, {
       profileId: Number(profileId),
@@ -334,6 +336,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
 
     await page.goto(`/#/p/${profileId}/cabane`);
     await expect(page.getByTestId('cabin-reward-sandales_hermes')).toHaveAttribute('data-owned', 'true');
+    await expect(page.getByTestId('cabin-reward-sandales_hermes').locator('img[src="/art/icons/sandales_hermes.webp"]')).toBeVisible();
     await page.getByTestId('cabin-equip-sandales_hermes').click();
     await expect(page.getByTestId('cabin-equip-sandales_hermes')).toContainText('Ranger');
   });

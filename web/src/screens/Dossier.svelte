@@ -7,7 +7,7 @@
   import TopBar from '../components/TopBar.svelte';
   import Gauge from '../components/juice/Gauge.svelte';
   import Reveal from '../components/juice/Reveal.svelte';
-  import { ART } from '../lib/world/art';
+  import { ART, lieutenantIcon } from '../lib/world/art';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey } from '../lib/world/types';
   import { agree, bandFor, dossierLine, dossierIntro, smallTricksLine } from '../lib/world/eris';
@@ -20,16 +20,6 @@
   let { profile }: { profile: Profile } = $props();
 
   const profileId = $derived(String(profile.id));
-
-  // Fallback glyphs used only until the world catalog loads (or if it never does).
-  const FALLBACK_GLYPHS: Record<LieutenantKey, string> = {
-    hydre: '🐍',
-    echo: '🔊',
-    chimere: '🦁',
-    protee: '🌊',
-    sirenes: '🎶',
-    lethe: '🌫️',
-  };
 
   const SMALL_TRICK_CATEGORIES = ['accent', 'lexical', 'punctuation_case'];
 
@@ -52,10 +42,6 @@
         statsLoading = false;
       });
   });
-
-  function glyphFor(key: LieutenantKey): string {
-    return campStore.catalog?.lieutenants.find((l) => l.key === key)?.glyph ?? FALLBACK_GLYPHS[key];
-  }
 
   function nameFor(key: LieutenantKey): string {
     const l = campStore.data?.lieutenants.find((x) => x.key === key);
@@ -117,7 +103,7 @@
             <li>
               {#if !l || !l.available}
                 <div class="parchment row row-locked">
-                  <span class="glyph" aria-hidden="true">{glyphFor(key)}</span>
+                  <img class="glyph" src={lieutenantIcon(key) ?? ''} alt="" aria-hidden="true" />
                   <span class="row-name">{nameFor(key)}</span>
                   <span class="muted">Protée dort encore à ce niveau.</span>
                 </div>
@@ -125,7 +111,7 @@
                 {@const band = bandFor(l)}
                 <button type="button" class="parchment row" onclick={() => goLieutenant(key)}>
                   <span class="row-head">
-                    <span class="glyph" aria-hidden="true">{glyphFor(key)}</span>
+                    <img class="glyph" src={lieutenantIcon(key) ?? ''} alt="" aria-hidden="true" />
                     <span class="row-name">{nameFor(key)}</span>
                     {#if l.neutralised}<span class="chip chip-gold">{agree('Neutralisé', key)}</span>{/if}
                   </span>
@@ -234,7 +220,9 @@
     gap: 10px;
   }
   .glyph {
-    font-size: 24px;
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
   }
   .row-name {
     font-family: var(--font-display);

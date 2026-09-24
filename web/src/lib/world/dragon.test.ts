@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TINT_FILTERS, stageActivity, stageLabel, stageLine, validName } from './dragon';
+import { TINT_FILTERS, TINT_SWATCH, stageActivity, stageLabel, stageLine, validName } from './dragon';
 
 describe('dragon helpers', () => {
   it('never offers violet (reserved for Éris) and has six tints', () => {
@@ -25,5 +25,13 @@ describe('dragon helpers', () => {
     expect(validName('')).toBe(false);
     expect(validName('a'.repeat(21))).toBe(false);
     expect(validName('a\nb')).toBe(false);
+  });
+  it('has a flat swatch per tint, never a red (UI3 Ruling A12)', () => {
+    expect(Object.keys(TINT_SWATCH).sort()).toEqual(['argent', 'braise', 'bronze', 'ecume', 'jade', 'olivier']);
+    for (const [tint, hex] of Object.entries(TINT_SWATCH)) {
+      const n = parseInt(hex.slice(1), 16);
+      const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      expect(r >= 200 && g < 60 && b < 60, tint).toBe(false);
+    }
   });
 });

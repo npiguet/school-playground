@@ -18,6 +18,17 @@ export const TINT_FILTERS: Record<Tint, string> = {
   argent: 'saturate(0) brightness(1.15)',
 };
 
+/** Flat colour swatches for the tint rewards (UI3 Ruling A12): a tint is a colour, not an object.
+ *  Braise is an ember orange, never a red. */
+export const TINT_SWATCH: Record<Tint, string> = {
+  bronze: '#b8863b',
+  ecume: '#3f8fb0',
+  olivier: '#7a8a4b',
+  braise: '#d06a2c',
+  jade: '#3a9a78',
+  argent: '#c4c8d0',
+};
+
 export const TINT_NAMES: Record<Tint, string> = {
   bronze: 'Bronze',
   ecume: 'Écume',

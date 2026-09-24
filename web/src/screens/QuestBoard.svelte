@@ -3,7 +3,8 @@
   // at the edge of the camp once enough lieutenants are neutralised (spec §3.6, plan Task 7).
   import TopBar from '../components/TopBar.svelte';
   import QuestCard from '../components/QuestCard.svelte';
-  import { ART } from '../lib/world/art';
+  import Medallion from '../components/juice/Medallion.svelte';
+  import { ART, lieutenantIcon } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../lib/world/types';
@@ -15,15 +16,6 @@
   import type { Profile } from '../lib/types';
 
   let { profile }: { profile: Profile } = $props();
-
-  const FALLBACK_GLYPHS: Record<LieutenantKey, string> = {
-    hydre: '🐍',
-    echo: '🔊',
-    chimere: '🦁',
-    protee: '🌊',
-    sirenes: '🎶',
-    lethe: '🌫️',
-  };
 
   let allQuests = $state<QuestOut[]>([]);
   let loadingQuests = $state(true);
@@ -57,10 +49,6 @@
     for (const l of campStore.catalog?.lieutenants ?? []) out[l.key] = l.name;
     return out;
   });
-
-  function glyphFor(key: LieutenantKey): string {
-    return campStore.catalog?.lieutenants.find((l) => l.key === key)?.glyph ?? FALLBACK_GLYPHS[key];
-  }
 
   function technique(key: LieutenantKey): string {
     return campStore.catalog?.lieutenants.find((l) => l.key === key)?.technique ?? '';
@@ -105,6 +93,11 @@
     const rewardId = campStore.catalog?.boss_rewards[String(tier)];
     return (rewardId ? campStore.catalog?.rewards[rewardId]?.name : undefined) ?? 'une récompense';
   }
+
+  function bossRewardId(tier: number | null): string | null {
+    if (tier === null) return null;
+    return campStore.catalog?.boss_rewards[String(tier)] ?? null;
+  }
 </script>
 
 <TopBar {profile} title="Tableau des quêtes" />
@@ -135,7 +128,7 @@
         {@const l = lieutenantState(key)}
         {@const decor = nextDecor()}
         <div class="card challenge-card" data-testid="board-challenge-{key}">
-          <span class="glyph" aria-hidden="true">{glyphFor(key)}</span>
+          <img class="glyph" src={lieutenantIcon(key) ?? ''} alt="" aria-hidden="true" />
           <span class="name">{names[key] ?? key}</span>
           <p class="technique muted">{technique(key)}</p>
           {#if !l || !l.available}
@@ -164,10 +157,14 @@
       <h2>Éris</h2>
       <div class="parchment eris-panel" data-testid="board-boss">
         {#if campStore.data.boss.tier_available !== null || campStore.data.boss.active_quest_id !== null}
-          <p>
-            Combat {romanTier(campStore.data.boss.tier_available ?? 1)} — récompense : {bossRewardName(
-              campStore.data.boss.tier_available,
-            )}
+          {@const rewardId = bossRewardId(campStore.data.boss.tier_available)}
+          <p class="boss-reward-line">
+            {#if rewardId}<Medallion {rewardId} kind="gear" size={40} />{/if}
+            <span>
+              Combat {romanTier(campStore.data.boss.tier_available ?? 1)} — récompense : {bossRewardName(
+                campStore.data.boss.tier_available,
+              )}
+            </span>
           </p>
           <button
             type="button"
@@ -245,7 +242,9 @@
     cursor: default;
   }
   .glyph {
-    font-size: 26px;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
   }
   .name {
     font-family: var(--font-display);
@@ -288,6 +287,11 @@
   }
   .eris-panel p {
     margin: 0;
+  }
+  .boss-reward-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .inline-summary {
     display: inline;

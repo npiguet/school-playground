@@ -128,6 +128,15 @@ often but not every session; low = rare, edge-case, or dev-only.
 
 ## Summary
 
+UI3a Task 4: the 35 painted icons this sweep called for have landed at `web/public/art/icons/`,
+mapped by `web/src/lib/world/art.ts`'s `ART.icons` — real file names are `<id>.webp` for
+gear/relic rewards (e.g. `sandales_hermes.webp`), `avatar-*.webp`, `lt-*.webp` (lieutenants),
+`decor-*.webp` (the four cabin decor rewards + the fresque, `:` swapped for `-`), `add-*.webp`,
+`tool-*.webp`, `seal-oracle.webp` and `lock.webp` — not the `avatar_*`/`glyph_*`/`icon_*` names
+proposed below. Reward medallions (rows 26-27) and the lieutenants' five duplicated glyph tables
+(rows 29-35) are wired up; avatars (row 1-7), the TopBar/tool/add-menu/mark icons (rows 8-21,
+38-45) still consume `AVATAR_ICONS`/`TOOL_ICONS`/`ADD_ICONS`/`MARK_ICONS` in a later task.
+
 **Distinct new painted icons needed (deduplicated): 21**, beyond the 8 reward icons already being
 generated elsewhere. Where an existing painted asset can plausibly be cropped instead of painted
 from scratch, that's noted below — but each still needs a new *icon-sized* file, so it's counted.

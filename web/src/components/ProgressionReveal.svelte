@@ -11,7 +11,7 @@
   import Medallion from './juice/Medallion.svelte';
   import Particles from './juice/Particles.svelte';
   import Dragon from './Dragon.svelte';
-  import { ART } from '../lib/world/art';
+  import { ART, RELIC_OF } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
   import { campStore, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
   import { stageLabel, validName } from '../lib/world/dragon';
@@ -20,7 +20,7 @@
   import { ApiError } from '../lib/api';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
   import { reducedMotion } from '../lib/juice/motion';
-  import type { DragonOut, LieutenantKey, Progression, RewardKind } from '../lib/world/types';
+  import type { DragonOut, LieutenantKey, Progression } from '../lib/world/types';
   import type { Profile } from '../lib/types';
 
   let {
@@ -42,34 +42,6 @@
     mastery: 'Ruse neutralisée',
     weekly: 'Objectif de la semaine',
   };
-
-  const FIXED_GLYPHS: Record<string, string> = {
-    sandales_hermes: '👟',
-    egide: '🛡️',
-    foudre_zeus: '⚡',
-    'decor:lanterne': '🏮',
-    'decor:tapis': '🧶',
-    'decor:bibliotheque': '📚',
-    'decor:trophee': '🍎',
-    'decor:fresque': '🎨',
-  };
-
-  const LIEUTENANT_GLYPHS: Record<string, string> = {
-    hydre: '🐍',
-    echo: '🔊',
-    chimere: '🦁',
-    protee: '🌊',
-    sirenes: '🎶',
-    lethe: '🌫️',
-  };
-
-  function glyphFor(id: string, kind: RewardKind): string {
-    if (kind === 'relic') {
-      const l = campStore.catalog?.lieutenants.find((x) => x.relic === id);
-      return l?.glyph ?? FIXED_GLYPHS[id] ?? '❔';
-    }
-    return FIXED_GLYPHS[id] ?? '❔';
-  }
 
   // XP card ------------------------------------------------------------------------------------
   // A rank-up (`rank_after > rank_before`) must animate the OLD rank's scale to its own max first,
@@ -307,7 +279,7 @@
         <div class="neutralised-body">
           <p class="title">{names[key] ?? key} — {agree('neutralisé', key as LieutenantKey)} !</p>
           <p>Sa ruse ne te piège plus : taux ≥ 80 % sur trois jours.</p>
-          <Medallion glyph={LIEUTENANT_GLYPHS[key] ?? '❔'} kind="relic" size={56} />
+          <Medallion rewardId={RELIC_OF[key as LieutenantKey] ?? ''} kind="relic" size={56} />
         </div>
         <Particles trigger={neutralisedTriggers[i]} kind="burst" />
       </div>
@@ -317,7 +289,7 @@
   {#each extraRewards as r (r.id)}
     <Reveal delay={nextDelay()}>
       <div class="card reveal-card reward" data-testid="reveal-reward-{r.id}">
-        <Medallion glyph={glyphFor(r.id, r.kind)} kind={r.kind} />
+        <Medallion rewardId={r.id} kind={r.kind} />
         <span class="name">{r.name}</span>
       </div>
     </Reveal>
@@ -357,7 +329,7 @@
     <Reveal delay={nextDelay()}>
       <div class="card reveal-card" data-testid="reveal-weekly">
         <span class="laurels" aria-hidden="true">
-          {#each Array.from({ length: progression.weekly.target }) as _, i (i)}<span class="leaf">🌿</span>{/each}
+          {#each Array.from({ length: progression.weekly.target }) as _, i (i)}<span class="leaf filled"></span>{/each}
         </span>
         <p class="title">
           Objectif de la semaine atteint ! +{progression.xp.bonuses.find((b) => b.reason === 'weekly')?.amount ?? 40} XP
@@ -374,7 +346,12 @@
           <img src={ART.erisSmug} alt="" class="eris-art flipped" />
           <div>
             <p class="line">« Impossible ! Garde ta pomme, je reviendrai avec de nouvelles ruses. »</p>
-            {#if bossReward}<p class="reward-line">{bossReward.name}</p>{/if}
+            {#if bossReward}
+              <p class="reward-line">
+                <Medallion rewardId={bossReward.id} kind="gear" size={48} />
+                <span>{bossReward.name}</span>
+              </p>
+            {/if}
           </div>
         </div>
       {:else if progression.boss.too_easy}
@@ -470,6 +447,10 @@
     margin: 0;
     font-weight: 600;
     color: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
   .lieutenant-art {
     width: 88px;
@@ -501,8 +482,21 @@
     font-size: 16px;
   }
   .laurels {
-    font-size: 24px;
-    letter-spacing: 2px;
+    display: inline-flex;
+    gap: 4px;
+  }
+  /* Same CSS-only leaf shape as `Camp.svelte`'s weekly ribbon (UI3 Ruling A12: no emoji) - every
+     leaf is filled here since this card only shows once the goal is actually reached. */
+  .leaf {
+    width: 12px;
+    height: 19px;
+    box-sizing: border-box;
+    border-radius: 100% 0;
+    border: 1px solid var(--bronze-dark);
+    transform: rotate(-30deg);
+  }
+  .leaf.filled {
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
   }
   .boss-result {
     flex-direction: row;

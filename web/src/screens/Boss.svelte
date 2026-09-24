@@ -4,6 +4,7 @@
   // this screen never needs a "you lost" state of its own; Results.svelte handles that.
   import TopBar from '../components/TopBar.svelte';
   import Dragon from '../components/Dragon.svelte';
+  import Medallion from '../components/juice/Medallion.svelte';
   import { ART } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
@@ -40,6 +41,8 @@
     const rewardId = campStore.catalog?.boss_rewards[String(tier)];
     return (rewardId ? campStore.catalog?.rewards[rewardId]?.name : undefined) ?? 'une récompense';
   }
+
+  const bossRewardId = $derived(campStore.catalog?.boss_rewards[String(tier)] ?? null);
 
   let starting = $state(false);
   let startError = $state('');
@@ -79,7 +82,10 @@
 
   <div class="card info-card">
     <p class="tier" data-testid="boss-tier">Combat {romanTier(tier)}</p>
-    <p class="reward" data-testid="boss-reward">Récompense si tu gagnes : {campStore.catalog?.quest_bonus.boss ?? 300} XP · {bossRewardName()}</p>
+    <p class="reward" data-testid="boss-reward">
+      {#if bossRewardId}<Medallion rewardId={bossRewardId} kind="gear" size={40} />{/if}
+      <span>Récompense si tu gagnes : {campStore.catalog?.quest_bonus.boss ?? 300} XP · {bossRewardName()}</span>
+    </p>
     <p class="rules muted">
       Un long texte · les Yeux d'Argus restent éteints · aucun piège n'est perdu si Éris s'enfuit : tu pourras
       recommencer.
@@ -143,6 +149,9 @@
     margin: 0;
     font-weight: 600;
     color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .rules {
     margin: 0;

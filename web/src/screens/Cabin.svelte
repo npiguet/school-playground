@@ -49,27 +49,6 @@
     return Object.values(campStore.catalog?.rewards ?? {}).filter((r) => r.kind === kind);
   }
 
-  const FIXED_GLYPHS: Record<string, string> = {
-    sandales_hermes: '👟',
-    egide: '🛡️',
-    foudre_zeus: '⚡',
-    'decor:lanterne': '🏮',
-    'decor:tapis': '🧶',
-    'decor:bibliotheque': '📚',
-    'decor:trophee': '🍎',
-    'decor:fresque': '🎨',
-  };
-
-  function relicGlyph(id: string): string {
-    const l = campStore.catalog?.lieutenants.find((x) => x.relic === id);
-    return l?.glyph ?? '❔';
-  }
-
-  function glyphFor(id: string, kind: RewardKind): string {
-    if (kind === 'relic') return relicGlyph(id);
-    return FIXED_GLYPHS[id] ?? '❔';
-  }
-
   function tintKey(id: string): Tint {
     return id.slice('tint:'.length) as Tint;
   }
@@ -113,7 +92,7 @@
     {#each equippedDecor as r, i (r.id)}
       {@const slot = DECOR_SLOTS[i % DECOR_SLOTS.length]}
       <div class="decor-pin" style="top:{slot.top};left:{slot.left}">
-        <Medallion glyph={glyphFor(r.id, 'decor')} kind="decor" size={48} />
+        <Medallion rewardId={r.id} kind="decor" size={48} />
       </div>
     {/each}
     <h1>Ta cabane</h1>
@@ -146,7 +125,7 @@
                 <img src={ART.dragon.egg} alt="" />
               </span>
             {:else}
-              <Medallion glyph={glyphFor(item.id, section.kind)} kind={section.kind} locked={!isOwned} />
+              <Medallion rewardId={item.id} kind={section.kind} locked={!isOwned} />
             {/if}
             <span class="name">{item.name}</span>
             <p class="desc muted">{item.desc}</p>

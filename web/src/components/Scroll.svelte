@@ -8,6 +8,8 @@
   import type { Snippet } from 'svelte';
   import { untrack } from 'svelte';
   import Particles from './juice/Particles.svelte';
+  import Medallion from './juice/Medallion.svelte';
+  import { rewardKindOf } from '../lib/world/art';
   import { playSfx } from '../lib/juice/sfx';
 
   let {
@@ -16,6 +18,7 @@
     sealed,
     revealed = null,
     reward,
+    rewardId = null,
     onOpen,
     testid,
     busy = false,
@@ -28,6 +31,7 @@
     sealed: boolean;
     revealed?: { name: string; art: string } | null;
     reward: string;
+    rewardId?: string | null;
     onOpen: () => void;
     testid: string;
     busy?: boolean;
@@ -69,7 +73,10 @@
 
   {#if sealed}
     <p class="hint muted">{hint}</p>
-    <p class="reward-line">Récompense de la semaine : {reward}</p>
+    <p class="reward-line">
+      {#if rewardId}<Medallion {rewardId} kind={rewardKindOf(rewardId)} size={36} />{/if}
+      <span>Récompense de la semaine : {reward}</span>
+    </p>
     {#if sealedStep}
       {@render sealedStep()}
     {:else}
@@ -138,6 +145,10 @@
     font-weight: 600;
     /* A darker bronze: gold on cream was too faint to read (UI1 playability #13). */
     color: #8a5a1c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
   .content {
     display: flex;

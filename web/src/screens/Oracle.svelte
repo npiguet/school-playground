@@ -6,7 +6,8 @@
   import Scroll from '../components/Scroll.svelte';
   import QuestCard from '../components/QuestCard.svelte';
   import Particles from '../components/juice/Particles.svelte';
-  import { ART } from '../lib/world/art';
+  import Medallion from '../components/juice/Medallion.svelte';
+  import { ART, lieutenantIcon, rewardKindOf } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type OracleOut, type ScrollKey } from '../lib/world/types';
@@ -22,15 +23,6 @@
   let { profile }: { profile: Profile } = $props();
 
   const profileId = $derived(String(profile.id));
-
-  const FALLBACK_GLYPHS: Record<LieutenantKey, string> = {
-    hydre: '🐍',
-    echo: '🔊',
-    chimere: '🦁',
-    protee: '🌊',
-    sirenes: '🎶',
-    lethe: '🌫️',
-  };
 
   let oracle = $state<OracleOut | null>(null);
   let loading = $state(true);
@@ -77,10 +69,6 @@
 
   function isAvailable(key: LieutenantKey): boolean {
     return campStore.data?.lieutenants.find((l) => l.key === key)?.available ?? true;
-  }
-
-  function glyphFor(key: LieutenantKey): string {
-    return campStore.catalog?.lieutenants.find((l) => l.key === key)?.glyph ?? FALLBACK_GLYPHS[key];
   }
 
   function nameFor(key: string): string {
@@ -177,7 +165,8 @@
     <section>
       <h2>Les trois rouleaux</h2>
       <p class="reward-line" data-testid="oracle-reward">
-        Cette semaine, ouvrir un rouleau rapporte : {oracleRewardLine()}
+        {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} kind={rewardKindOf(oracle.reward_id)} size={36} />{/if}
+        <span>Cette semaine, ouvrir un rouleau rapporte : {oracleRewardLine()}</span>
       </p>
 
       {#if consultError}
@@ -197,7 +186,7 @@
                 disabled={!isAvailable(key)}
                 onclick={() => (selectedMonster = key)}
               >
-                <span aria-hidden="true">{glyphFor(key)}</span>
+                <img class="chip-icon" src={lieutenantIcon(key) ?? ''} alt="" aria-hidden="true" />
                 {nameFor(key)}{!isAvailable(key) ? ' · dort encore' : ''}
               </button>
             {/each}
@@ -226,6 +215,7 @@
             sealed={globallySealed}
             revealed={revealedFor(s.key)}
             reward={oracleRewardLine()}
+            rewardId={oracle.reward_id}
             busy={consultingScroll === s.key}
             onOpen={() => openScroll(s.key)}
             sealedStep={s.key === 'ecole' && ecolePickerOpen ? ecolePicker : undefined}
@@ -292,6 +282,9 @@
   .reward-line {
     font-weight: 600;
     color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .scrolls-wrap {
     position: relative;
@@ -321,6 +314,11 @@
      48px; the generic .chip is only 40px). */
   .picker-grid :global(.chip) {
     min-height: 48px;
+  }
+  .chip-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
   }
   .picker-actions {
     display: flex;
