@@ -30,3 +30,12 @@ def test_profile_delete_cascades(tmp_path):
     conn.execute("INSERT INTO trap_word(profile_id, word, box, last_seen, misses) VALUES (1, 'maison', 1, 'now', 1)")
     conn.execute("DELETE FROM profile WHERE id = 1")
     assert conn.execute("SELECT COUNT(*) FROM trap_word").fetchone()[0] == 0
+
+
+def test_migration_004_creates_world_tables(tmp_path):
+    conn = connect(tmp_path / "x.sqlite3")
+    assert migrate(conn) >= 4
+    names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert {"quest", "oracle", "dragon", "reward", "xp_event", "mastery"} <= names
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(session)")}
+    assert {"encounter", "quest_id"} <= cols
