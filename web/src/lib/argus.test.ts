@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gradeText, tokenize } from '$lib/grading';
-import { typedPassSets, orderPasses } from './argus';
+import { typedPassSets, orderPasses, activePasses } from './argus';
 import type { Annotation, AnnotToken } from '$lib/grading/types';
 
 const REF = 'Les fées ont dansé. Il a chanté.';
@@ -36,5 +36,17 @@ describe('orderPasses', () => {
     expect(orderPasses(['homophones', 'verbes', 'groupes_nominaux', 'mots_pieges'])).toEqual(['homophones', 'verbes', 'groupes_nominaux', 'mots_pieges']);
     expect(orderPasses(['homophones'])).toEqual(['homophones', 'verbes', 'groupes_nominaux', 'mots_pieges']);
     expect(orderPasses(undefined)).toEqual(['verbes', 'groupes_nominaux', 'homophones', 'mots_pieges']);
+  });
+});
+
+// P1-5: a profile with no trap words yet must never get the Mots-pièges pass offered — spotlighting
+// it dims the whole text (nothing can ever be in its pass set) and lights nothing.
+describe('activePasses', () => {
+  it('drops mots_pieges when there are no trap words', () => {
+    expect(activePasses(undefined, [])).toEqual(['verbes', 'groupes_nominaux', 'homophones']);
+    expect(activePasses(['mots_pieges', 'verbes'], [])).toEqual(['verbes', 'groupes_nominaux', 'homophones']);
+  });
+  it('keeps mots_pieges once the profile has at least one trap word', () => {
+    expect(activePasses(undefined, ['attentive'])).toEqual(['verbes', 'groupes_nominaux', 'homophones', 'mots_pieges']);
   });
 });

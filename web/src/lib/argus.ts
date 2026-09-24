@@ -73,3 +73,15 @@ export function orderPasses(order: ArgusPass[] | undefined): ArgusPass[] {
   for (const p of ARGUS_PASSES) if (!result.includes(p)) result.push(p);
   return result;
 }
+
+/**
+ * The passes actually offered this session (P1-5): `orderPasses`'s result, minus `mots_pieges`
+ * when the profile has no trap words yet. Spotlighting an empty pass has no token to light, so
+ * `TokenText` (dim = every token not in the active pass) would dim the whole text for nothing —
+ * skip the pass instead. Used for the pass chips *and* the active pass, so Bouclier/Chouette
+ * (which render through the same `activePass`/`dim` props) can never land on it either.
+ */
+export function activePasses(order: ArgusPass[] | undefined, trapWords: string[]): ArgusPass[] {
+  const passes = orderPasses(order);
+  return trapWords.length > 0 ? passes : passes.filter((p) => p !== 'mots_pieges');
+}
