@@ -14,9 +14,9 @@ judged in §2 and §4.
   fixture image `server/tests/fixtures/scan/handout.png`, exactly like the SP2 e2e specs.
 - **Viewports:** `ipad-landscape` 1180×820 and `ipad-portrait` 820×1180 (WebKit, touch, 1×).
 - **TTS:** stubbed (`web/e2e/helpers.ts` `stubSpeech`).
-- **Spec:** `web/e2e/playability-sp2.spec.ts` (copied here under `tooling/`), run with the SP1
-  playability config (`testMatch` extended to the SP2 spec, timeout raised) →
-  `2 passed (54.1s)`, **68 PNGs** in `docs/reviews/sp2/` (34 per orientation).
+- **Spec:** `web/e2e/playability-sp2.spec.ts` (see §7), run with the SP1 playability config
+  (`testMatch` extended to the SP2 spec, timeout raised) → `2 passed (54.1s)`, **68 PNGs** in
+  `docs/reviews/sp2/` (34 per orientation).
 - **The walk** (per orientation), profile `Ariane-<project>` (10H):
   1. FAB → « Ajouter un parchemin » menu → **scan** the fixture handout → verify → title + due date
      (today + 21 days) → library (« Prophéties de l'Oracle ») → intro with « Voir la feuille » →
@@ -517,9 +517,10 @@ Legend: **P0** blocks play · **P1** hurts the core loop / teaches something wro
 
 ## 7. Reproduction
 
-The Playwright spec that produced these screenshots is kept under `docs/reviews/sp2/tooling/`
-(`playability-sp2.spec.ts` and the `playwright.playability.config.ts` with `testMatch` extended and
-the timeout raised to 600 s), because the review was made in an isolated worktree and only
-`docs/reviews/sp2/` is committed to the main tree while SP2 fix work is in progress in `web/`.
-To rerun: copy the spec to `web/e2e/`, the config over `web/playwright.playability.config.ts`,
-then `scripts/playwright.sh --config playwright.playability.config.ts playability-sp2`.
+The Playwright spec that produced these screenshots lives in `web/e2e/playability-sp2.spec.ts`,
+next to the SP1 walk; `web/playwright.playability.config.ts` matches both walks (timeout 600 s).
+It was first kept under `docs/reviews/sp2/tooling/` because the review was made in an isolated
+worktree while SP2 fix work was in progress in `web/`, and moved with the P1 fixes (as for SP1).
+To rerun: `scripts/playwright.sh --config playwright.playability.config.ts playability-sp2`.
+The spec was updated with the P1 fixes: the scan verify step now goes through the chips and the
+confirmation (P1-8), and the second Fil thread is started directly after the first (P1-7).

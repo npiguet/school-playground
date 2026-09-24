@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createProfile, createText, stubSpeech } from './helpers';
+import { confirmScanVerified, createProfile, createText, stubSpeech } from './helpers';
 
 // Playability walk for the SP2 review (spec §6.2): one long test per iPad orientation, every
 // screen screenshotted into docs/reviews/sp2/<project>-NN-<screen>.png. Covers the SP2 features
@@ -149,8 +149,8 @@ async function gotoPlay(page: Page, profileId: number, textId: number) {
   await page.goto(`/#/p/${profileId}/play/${textId}`);
 }
 
-// After a drawn thread the Fil panel stays open in its "done" state (a further tap opens the
-// word editor instead of picking a verb), so the tool has to be exited, then started again.
+// After a drawn thread the Fil stays armed (P1-7 fix: the next tap on another verb starts a new
+// thread); this puts it back to a clean « Touche un verbe » start whatever state it is in.
 async function rearmFil(page: Page) {
   if (await page.getByTestId('fil-message').isVisible()) await page.getByTestId('btn-fil-exit').click();
   await page.getByTestId('btn-fil').click();
@@ -214,7 +214,8 @@ test('SP2 playability walk', async ({ page, request }, testInfo) => {
   notes.push(`red scan (scan verify): ${JSON.stringify(await redScan(page))}`);
   const value = await sta.inputValue();
   await sta.fill(value.split('\n\n').filter((p) => !p.startsWith('Dictée')).join('\n\n'));
-  await page.getByTestId('btn-scan-verified').click();
+  // P1-8 fix: every chip has to be tapped, then « Le texte est juste » asks for a confirmation.
+  await confirmScanVerified(page);
 
   // ---- 04 Scan: details -------------------------------------------------------------------
   await expect(page.getByRole('heading', { name: 'Détails du parchemin' })).toBeVisible();
@@ -296,11 +297,10 @@ test('SP2 playability walk', async ({ page, request }, testInfo) => {
   await tok(page, shown('filles')).first().click();
   notes.push(`Fil tap subject « ${shown('filles')} »: ${await filMsg()}`);
   await shot(page, project, '10-fil-thread');
-  // Once a thread is drawn, the next tap leaves the Fil and opens the word editor (observed in
-  // run 3: the second verb tap opened « Nouveau mot »), so the tool has to be re-armed first.
+  // P1-7 fix: once a thread is drawn the Fil stays armed and the next tap on another verb starts
+  // a second thread directly (no re-arming). Let this one fail twice to see the guided message.
   notes.push(`Fil still active after a drawn thread: ${await page.getByTestId('fil-message').isVisible()}`);
-  await rearmFil(page);
-  // Second thread, let it fail twice to see the guided message.
+  notes.push(`Fil done-state hint: ${(await page.getByTestId('fil-next').textContent())?.trim()}`);
   await tok(page, shown('roula')).first().click();
   notes.push(`Fil tap « ${shown('roula')} »: ${await filMsg()}`);
   await tok(page, shown('loin')).first().click();
