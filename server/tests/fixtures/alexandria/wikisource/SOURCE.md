@@ -1,0 +1,1 @@
+Snapshot fetched from https://fr.wikisource.org/w/api.php?action=parse&page=Vingt_mille_lieues_sous_les_mers/Partie_1/Chapitre_1 on 2026-09-24. Text is public domain (Jules Verne, died 1905); the Wikisource transcription itself is CC BY-SA.

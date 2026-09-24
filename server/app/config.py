@@ -12,13 +12,16 @@ class Settings:
     static_dir: Path = Path("/app/static")
     spacy_model: str = "fr_core_news_lg"
     seed_on_startup: bool = True
+    alexandria_offline_dir: Path | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
+        offline_dir = os.environ.get("DISCORDE_ALEXANDRIA_OFFLINE_DIR")
         return cls(
             data_dir=Path(os.environ.get("DISCORDE_DATA_DIR", "/data")),
             content_dir=Path(os.environ.get("DISCORDE_CONTENT_DIR", "/app/content")),
             static_dir=Path(os.environ.get("DISCORDE_STATIC_DIR", "/app/static")),
             spacy_model=os.environ.get("SPACY_MODEL", "fr_core_news_lg"),
             seed_on_startup=os.environ.get("DISCORDE_SEED", "1") == "1",
+            alexandria_offline_dir=Path(offline_dir) if offline_dir else None,
         )
