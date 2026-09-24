@@ -9,6 +9,7 @@ import {
   postSession,
   redScan,
   tap,
+  uniqueName,
   waitForSceneSettled,
 } from './helpers';
 
@@ -29,7 +30,9 @@ const PLACES: { id: string; path: RegExp; name: RegExp }[] = [
 
 const BODY = 'Les héros reviennent au camp. Ils racontent leurs voyages et les Muses les écoutent.';
 
-const heroName = (project: string) => `Hub-${project}-${Date.now() % 1e6}`;
+// Fix round 1 #6: `Date.now() % 1e6` alone collided across workers under `--repeat-each` (see
+// uniqueName's own comment in helpers.ts).
+const heroName = (project: string) => uniqueName(`Hub-${project}`);
 
 async function openCamp(page: Page, profileId: number) {
   await page.goto(`/#/p/${profileId}/camp`);

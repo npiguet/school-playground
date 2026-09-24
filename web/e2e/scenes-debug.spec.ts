@@ -1,12 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { createProfileApi, expectCamp } from './helpers';
+import { createProfileApi, expectCamp, uniqueName } from './helpers';
 
 // Task 9b: the read-only `?debug` hotspot outline overlay (replaces the interactive `?edit`
 // editor the user decided against). Runs on both WebKit projects (scenes-*.spec.ts matches the
 // `ipad` project too). Hotspots are authored as data and checked visually in screenshots, so this
 // spec only proves the overlay's wiring, not the shapes themselves.
 
-const heroName = (project: string) => `Debug-${project}-${Date.now() % 1e6}`;
+// Fix round 1 #6: `Date.now() % 1e6` alone collided across workers under `--repeat-each` (see
+// uniqueName's own comment in helpers.ts).
+const heroName = (project: string) => uniqueName(`Debug-${project}`);
 
 test('?debug shows one outline per visible camp hotspot and hotspots stay clickable', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));

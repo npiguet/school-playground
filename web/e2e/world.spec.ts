@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { expectCamp, stubSpeech, createText, makeResult, postSession, redScan } from './helpers';
+import { expectCamp, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -47,7 +47,9 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
 
   test('1. camp is home', async ({ page }) => {
     await stubSpeech(page);
-    const name = `Ariane-${Date.now() % 1e6}`;
+    // Fix round 1 #6: `Date.now() % 1e6` alone collided under `--repeat-each` elsewhere in the
+    // suite (see uniqueName's own comment in helpers.ts) - same weak pattern, fixed here too.
+    const name = uniqueName('Ariane');
 
     await page.goto('/');
     await page.getByRole('button', { name: /Nouveau héros/ }).click();

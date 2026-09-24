@@ -65,6 +65,20 @@ export async function tap(locator: Locator, testInfo: TestInfo) {
   else await locator.click();
 }
 
+// Fix round 1 #6: a unique fixture name (hero, text title...) for specs that must not collide
+// with another run's. `Date.now()` alone (its former shape, `${prefix}-${Date.now() % 1e6}`)
+// collides under `--repeat-each` with several workers - reproduced as a genuine 409 Conflict from
+// the server's (correct) UNIQUE constraint on profile.name, traced from the app container's own
+// access log (`docker logs`), not a 5xx or a SQLite error: several workers landed on the exact
+// same millisecond and so the exact same name. `Math.random()`'s per-process RNG state makes two
+// processes colliding on both the millisecond and the random suffix astronomically unlikely.
+// Base36 (not decimal) keeps the suffix short: profile.name has a 30-char server limit
+// (server/app/schemas.py ProfileCreate.name, max_length=30), and every call site's prefix plus
+// this suffix must fit under it.
+export function uniqueName(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+}
+
 // UI1 (scenes spec §9): the camp is a hub scene. The old « Bienvenue au camp, X. » heading is now
 // the dragon's first dialogue line, so specs wait for the scene stage itself.
 export async function expectCamp(page: Page) {
