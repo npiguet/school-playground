@@ -1,5 +1,6 @@
 export * from './types';
 export * from './normalize';
+export * from './reform';
 export * from './tokenize';
 export * from './homophones';
 export * from './align';

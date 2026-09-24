@@ -24,4 +24,17 @@ describe('tokenize', () => {
   it('ignores whitespace and returns nothing for blank input', () => {
     expect(tokenize('  \n\t ')).toEqual([]);
   });
+  it('canonicalises reform spellings in norm but keeps the original text', () => {
+    const t = tokenize('Le maître arrive.')[1];
+    expect(t.text).toBe('maître');
+    expect(t.norm).toBe('maitre');
+  });
+  it('splits hyphenated number words but not other compounds, with exact offsets', () => {
+    const toks = tokenize('vingt-et-un porte-monnaie');
+    expect(toks.map((t) => t.text)).toEqual(['vingt', 'et', 'un', 'porte-monnaie']);
+    expect(toks[2]).toMatchObject({ start: 9, end: 11 });
+  });
+  it('keeps a Unicode hyphen inside a word', () => {
+    expect(tokenize('grand‐père').map((t) => t.text)).toEqual(['grand‐père']);
+  });
 });

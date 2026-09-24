@@ -4,7 +4,7 @@
 
 export type Category = 'homophone' | 'agreement' | 'accent' | 'punctuation_case' | 'lexical';
 export type AgreementSub = 'number' | 'gender' | 'verb' | 'participle';
-export type ErrorSub = AgreementSub | 'verb_ending' | 'missing' | 'extra';
+export type ErrorSub = AgreementSub | 'verb_ending' | 'missing' | 'extra' | 'sound_alike';
 
 export interface Token {
   text: string;
@@ -31,6 +31,35 @@ export interface TokenError {
   anchor: number; // refIndex of the nearest preceding aligned reference token (-1 at start); used to key extra words
 }
 
+// Annotation v2 additions (SP2 Task 6). `forms` maps sibling inflections of the reference
+// token's lemma (lowercase, never the token itself) to their gender/number features, so the
+// client can classify an irregular agreement error (e.g. "chevaux" -> "cheval") without
+// shipping the lexicon. `sound_alikes` lists same-pronunciation, different-spelling words
+// (excluding forms and homophone-set members) for the lexical sound-alike sub-category.
+// `chains` are ids into the top-level `Annotation.chains` list (Fil d'Ariane / explanations);
+// SP2 Task 6 only carries the shape through — chain-aware grading lands in a later task.
+export interface FormFeatures {
+  g: 'm' | 'f' | null;
+  n: 's' | 'p' | null;
+}
+
+export type ChainKind = 'subject_verb' | 'nominal' | 'attribute' | 'participle_etre' | 'participle_avoir';
+export type Confidence = 'high' | 'medium' | 'low';
+
+export interface Chain {
+  id: number;
+  kind: ChainKind;
+  controller: number;
+  controller_group: number[];
+  targets: number[];
+  via: 'qui' | 'conj' | 'aux' | 'que' | null;
+  via_token: number | null;
+  features: Record<string, string>;
+  confidence: Confidence;
+  distance: number;
+  rule: 'no_agreement' | 'cod_before' | null;
+}
+
 export interface AnnotToken {
   i: number;
   text: string;
@@ -44,6 +73,9 @@ export interface AnnotToken {
   categories: string[];
   homophone: string | null;
   subject: number | null;
+  forms?: Record<string, FormFeatures>;
+  sound_alikes?: string[];
+  chains?: number[];
 }
 
 export interface Annotation {
@@ -51,6 +83,7 @@ export interface Annotation {
   model: string;
   tokens: AnnotToken[];
   sentences: { start: number; end: number }[];
+  chains?: Chain[];
 }
 
 export interface GradeResult {

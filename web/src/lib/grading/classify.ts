@@ -1,4 +1,4 @@
-import type { AnnotToken, ErrorSub, Token, TokenError } from './types';
+import type { AnnotToken, ErrorSub, FormFeatures, Token, TokenError } from './types';
 import { homophoneSetOf } from './homophones';
 import { stripDiacritics } from './normalize';
 
@@ -133,6 +133,28 @@ export function agreementSub(r: string, t: string, annot: AnnotToken | undefined
   return undefined;
 }
 
+/**
+ * Subcategory for an irregular form found via the annotation's `forms` map (e.g. "chevaux" ->
+ * "cheval", "belle" -> "beau"): a sibling inflection of the reference lemma that the typed word
+ * happens to match. VERB/AUX go straight to verb/participle (no gender/number to compare for a
+ * finite verb); everything else compares the reference token's own Gender/Number morphology
+ * against the typed form's features, falling back to the regular agreementSub heuristic when
+ * neither the annotation's Gender nor Number distinguishes the two forms.
+ */
+function formsSub(r: string, t: string, annot: AnnotToken): ErrorSub | undefined {
+  if (annot.pos === 'VERB' || annot.pos === 'AUX') {
+    return annot.morph.VerbForm === 'Part' ? 'participle' : 'verb';
+  }
+  const rf: FormFeatures = {
+    g: annot.morph.Gender === 'Fem' ? 'f' : annot.morph.Gender === 'Masc' ? 'm' : null,
+    n: annot.morph.Number === 'Plur' ? 'p' : annot.morph.Number === 'Sing' ? 's' : null,
+  };
+  const tf = annot.forms![t];
+  if (rf.n && tf.n && rf.n !== tf.n) return 'number';
+  if (rf.g && tf.g && rf.g !== tf.g) return 'gender';
+  return agreementSub(r, t, annot);
+}
+
 export function classifyPair(
   ref: Token | null,
   typed: Token | null,
@@ -214,6 +236,11 @@ export function classifyPair(
   // Rule 0: identical and case.
   if (r === t) {
     if (ref.caseNorm === typed.caseNorm) return null;
+    // `norm` is reform-canonical (SP2 Task 6) but `caseNorm` isn't: a circumflex/reform spelling
+    // difference (e.g. "maître" vs "maitre") makes caseNorm differ too even though the word is
+    // correct. Only flag punctuation_case when the two caseNorms are the same word case aside —
+    // i.e. a genuine case-only difference, not a reform spelling variant.
+    if (ref.caseNorm.toLowerCase() !== typed.caseNorm.toLowerCase()) return null;
     return {
       refIndex: null,
       typedIndex: null,
@@ -245,6 +272,22 @@ export function classifyPair(
       typed: typed.text,
       category: 'homophone',
       sub: 'verb_ending',
+      anchor,
+    };
+  }
+
+  // Rule 1.5: lexicon forms (annotation v2). The typed word matches a known sibling inflection
+  // of the reference token's lemma (irregular plurals/feminines the ending-based heuristic below
+  // can't reach, e.g. "chevaux"/"cheval", "belle"/"beau") — classify as agreement with a
+  // subcategory derived from the reference token's own morphology vs. that form's features.
+  if (annot?.forms && Object.prototype.hasOwnProperty.call(annot.forms, t)) {
+    return {
+      refIndex: null,
+      typedIndex: null,
+      expected: ref.text,
+      typed: typed.text,
+      category: 'agreement',
+      sub: formsSub(r, t, annot),
       anchor,
     };
   }
@@ -281,6 +324,21 @@ export function classifyPair(
       expected: ref.text,
       typed: typed.text,
       category: 'accent',
+      anchor,
+    };
+  }
+
+  // Rule 4.5: lexicon sound-alikes (annotation v2). Same pronunciation, different spelling,
+  // frequent enough to be worth calling out explicitly — stays in the lexical category (Écho is
+  // grammatical homophones only, plan decision 6) but with its own subcategory/explanation.
+  if (annot?.sound_alikes?.includes(t)) {
+    return {
+      refIndex: null,
+      typedIndex: null,
+      expected: ref.text,
+      typed: typed.text,
+      category: 'lexical',
+      sub: 'sound_alike',
       anchor,
     };
   }

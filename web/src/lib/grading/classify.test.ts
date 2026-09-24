@@ -130,3 +130,34 @@ describe('rule 5: lexical', () => {
   it('missing word', () => expect(classifyPair(tok('noir'), null, undefined, 1)).toMatchObject({ category: 'lexical', sub: 'missing', anchor: 1 }));
   it('extra word', () => expect(classifyPair(null, tok('petit'), undefined, 0)).toMatchObject({ category: 'lexical', sub: 'extra', anchor: 0 }));
 });
+
+const tk = (w: string) => tokenize(w)[0];
+function ann(pos: string, morph: Record<string, string>, extra: Partial<AnnotToken> = {}): AnnotToken {
+  return { i: 0, text: '', start: 0, end: 0, lemma: '', pos, morph, head: 0, dep: 'dep', categories: [], homophone: null, subject: null, ...extra };
+}
+describe('classify v2', () => {
+  it('accepts 1990 reform spellings as correct', () => {
+    expect(classifyPair(tk('maître'), tk('maitre'), undefined, -1)).toBeNull();
+    expect(classifyPair(tk('oignon'), tk('ognon'), undefined, -1)).toBeNull();
+    expect(classifyPair(tk('ruisselle'), tk('ruissèle'), undefined, -1)).toBeNull();
+    expect(classifyPair(tk('dû'), tk('du'), undefined, -1)).toMatchObject({ category: 'accent' });
+  });
+  it('uses lexicon forms for irregular agreement and picks the subcategory from features', () => {
+    const chevaux = ann('NOUN', { Gender: 'Masc', Number: 'Plur' }, { forms: { cheval: { g: 'm', n: 's' } } });
+    expect(classifyPair(tk('chevaux'), tk('cheval'), chevaux, -1)).toMatchObject({ category: 'agreement', sub: 'number' });
+    const belle = ann('ADJ', { Gender: 'Fem', Number: 'Sing' }, { forms: { beau: { g: 'm', n: 's' }, belles: { g: 'f', n: 'p' }, beaux: { g: 'm', n: 'p' } } });
+    expect(classifyPair(tk('belle'), tk('beau'), belle, -1)).toMatchObject({ category: 'agreement', sub: 'gender' });
+    expect(classifyPair(tk('belle'), tk('belles'), belle, -1)).toMatchObject({ category: 'agreement', sub: 'number' });
+    expect(classifyPair(tk('belle'), tk('beaux'), belle, -1)).toMatchObject({ category: 'agreement', sub: 'number' });
+    const parties = ann('VERB', { VerbForm: 'Part', Gender: 'Fem', Number: 'Plur' }, { forms: { parti: { g: 'm', n: 's' } } });
+    expect(classifyPair(tk('parties'), tk('parti'), parties, -1)).toMatchObject({ category: 'agreement', sub: 'participle' });
+    const vont = ann('VERB', { VerbForm: 'Fin', Number: 'Plur' }, { forms: { va: { g: null, n: 's' } } });
+    expect(classifyPair(tk('vont'), tk('va'), vont, -1)).toMatchObject({ category: 'agreement', sub: 'verb' });
+  });
+  it('marks lexicon sound-alikes as lexical with a sub, still after homophone sets', () => {
+    const mere = ann('NOUN', { Gender: 'Fem', Number: 'Sing' }, { sound_alikes: ['mer', 'maire'] });
+    expect(classifyPair(tk('mère'), tk('mer'), mere, -1)).toMatchObject({ category: 'lexical', sub: 'sound_alike' });
+    const a = ann('AUX', { VerbForm: 'Fin' }, { sound_alikes: ['à'] });
+    expect(classifyPair(tk('a'), tk('à'), a, -1)).toMatchObject({ category: 'homophone' });
+  });
+});

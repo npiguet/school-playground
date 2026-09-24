@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "pairs": [
+    ["oignon", "ognon"], ["nénuphar", "nénufar"], ["événement", "évènement"], ["réglementaire", "règlementaire"], ["réglementation", "règlementation"],
+    ["réglementer", "règlementer"], ["allégement", "allègement"], ["céleri", "cèleri"], ["crémerie", "crèmerie"], ["sécheresse", "sècheresse"],
+    ["ambiguë", "ambigüe"], ["aiguë", "aigüe"], ["exiguë", "exigüe"], ["contiguë", "contigüe"], ["ambiguïté", "ambigüité"], ["ciguë", "cigüe"],
+    ["chariot", "charriot"], ["imbécillité", "imbécilité"], ["combatif", "combattif"], ["combativité", "combattivité"], ["persifler", "persiffler"],
+    ["boursoufler", "boursouffler"], ["boursouflure", "boursoufflure"], ["interpeller", "interpeler"], ["dentellière", "dentelière"],
+    ["prunellier", "prunelier"], ["lunetier", "lunettier"], ["cahute", "cahutte"], ["week-end", "weekend"], ["porte-monnaie", "portemonnaie"],
+    ["tire-bouchon", "tirebouchon"], ["chauve-souris", "chauvesouris"], ["mille-pattes", "millepattes"], ["mille-feuille", "millefeuille"],
+    ["pique-nique", "piquenique"], ["cache-cache", "cachecache"], ["croque-monsieur", "croquemonsieur"], ["cow-boy", "cowboy"], ["hot-dog", "hotdog"],
+    ["pop-corn", "popcorn"], ["plate-forme", "plateforme"], ["auto-stop", "autostop"], ["bas-fond", "basfond"], ["pousse-pousse", "poussepousse"],
+    ["asseoir", "assoir"], ["surseoir", "sursoir"], ["joaillier", "joailler"], ["quincaillier", "quincailler"], ["serpillière", "serpillère"],
+    ["révolver", "revolver"], ["saccharine", "saccarine"], ["bonhomie", "bonhommie"], ["douceâtre", "douçâtre"], ["levraut", "levreau"],
+    ["relais", "relai"], ["tocade", "toquade"], ["eczéma", "exéma"], ["sorgho", "sorgo"], ["chausse-trape", "chaussetrappe"]
+  ],
+  "eler_eter_stems": [
+    "épel", "ruissel", "étiquet", "feuillet", "nivel", "renouvel", "ficel", "chancel", "harcel", "amoncel", "cachet", "halet", "morcel",
+    "volet", "attel", "détel", "ensorcel", "grommel", "musel", "dentel", "bottel", "carrel", "décachet", "craquel", "écartel", "étincel", "martel"
+  ],
+  "circumflex_protected": ["dû", "mûr", "sûr", "jeûne", "jeûnes", "croît", "croîs", "crû", "crûe", "crûs", "crûes", "crût"]
+}

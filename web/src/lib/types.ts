@@ -3,7 +3,7 @@
 // re-export ArgusPass from there rather than redeclaring it.
 import type { Avatar } from './levels';
 
-export type { ArgusPass } from './grading/types';
+export type { ArgusPass, Annotation } from './grading/types';
 
 export interface ProfileSettings {
   voice?: string;
@@ -43,16 +43,9 @@ export interface TextSummary {
   history: TextHistory | null;
 }
 
-export interface Annotation {
-  version: number;
-  model: string;
-  tokens: unknown[];
-  sentences: { start: number; end: number }[];
-}
-
 export interface TextFull extends TextSummary {
   body: string;
-  annotation: Annotation;
+  annotation: import('./grading/types').Annotation;
 }
 
 export interface TextCreateBody {
