@@ -21,6 +21,11 @@ describe('validateShapes', () => {
       'a: a polygon needs at least 3 points',
     ]);
   });
+  it('rejects a zero-area polygon (collinear points), which would clip-path to NaN%', () => {
+    expect(validateShapes({ a: { kind: 'polygon', points: [[50, 50], [60, 50], [55, 50]] } })).toEqual([
+      'a: polygon has zero area',
+    ]);
+  });
 });
 
 describe('validateScene', () => {

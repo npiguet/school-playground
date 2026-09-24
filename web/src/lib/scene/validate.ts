@@ -10,6 +10,9 @@ export function validateShapes(shapes: ShapeMap): string[] {
     if (s.kind === 'ellipse' && (s.rx <= 0 || s.ry <= 0)) problems.push(`${id}: radii must be > 0`);
     if (s.kind === 'polygon' && s.points.length < 3) problems.push(`${id}: a polygon needs at least 3 points`);
     const b = shapeBox(s);
+    // A zero-width or zero-height box (collinear points) would make clipPath() divide by zero and
+    // emit an NaN% clip-path; reject it here so no hotspot data can ever produce one.
+    if (s.kind === 'polygon' && (b.w <= 0 || b.h <= 0)) problems.push(`${id}: polygon has zero area`);
     if (!boxInside(b, SAFE_ZONE)) {
       problems.push(`${id}: outside the 4:3 safe zone (x ${SAFE_ZONE.x}-${SAFE_ZONE.x + SAFE_ZONE.w})`);
     }
