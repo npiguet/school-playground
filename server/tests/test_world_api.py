@@ -1,4 +1,4 @@
-from tests.test_sessions import make_profile, make_text
+from tests.test_sessions import FEES, make_profile, make_text
 from tests.test_progression import hydre_result, post
 
 
@@ -71,7 +71,9 @@ def test_oracle_consultation(client):
 def test_oracle_quest_has_recommended_texts(client):
     # I5: Oracle quests carry three recommended texts, exactly like board quests (Decision 7) -
     # otherwise the week's centrepiece quest has no « play » entry point on its QuestCard.
-    pid = make_profile(client, level="10H"); make_text(client)
+    # P1-3: `recommend_texts` now needs >= 60 words, so the fixture text must clear that floor
+    # (FEES alone is 13 words - repeat it, as `test_boss_flow`'s long_text does).
+    pid = make_profile(client, level="10H"); make_text(client, body=" ".join([FEES] * 6))
     r = client.post(f"/api/profiles/{pid}/oracle", json={"scroll": "faible"}).json()
     assert r["quest"]["target"] == "hydre" and len(r["quest"]["texts"]) > 0
 
@@ -131,10 +133,15 @@ def test_boss_flow(client):
     assert b["tier"] == 1 and b["text_id"] == long_text and b["help_stage"] == 3 and b["quest"]["kind"] == "boss"
     assert client.post(f"/api/profiles/{pid}/boss").json()["quest"]["id"] == b["quest"]["id"]   # idempotent while active
     lost = post(client, pid, long_text, hydre_result(draft=5, caught=2), quest_id=b["quest"]["id"], encounter="eris", help_stage=3)["progression"]
-    assert lost["boss"] == {"tier": 1, "won": False}
+    assert lost["boss"] == {"tier": 1, "won": False, "too_easy": False}
     assert client.get(f"/api/profiles/{pid}/quests?status=active").json()[0]["kind"] == "boss"     # nothing lost
+    # P1-5: a perfect dictation (no draft errors at all) is a draw, not a win - it must not hand
+    # over the tier's XP/gear, and the quest must stay active (nothing lost) just like a real loss.
+    too_easy = post(client, pid, long_text, hydre_result(draft=0, caught=0), quest_id=b["quest"]["id"], encounter="eris", help_stage=3)["progression"]
+    assert too_easy["boss"] == {"tier": 1, "won": False, "too_easy": True} and too_easy["rewards"] == []
+    assert client.get(f"/api/profiles/{pid}/quests?status=active").json()[0]["kind"] == "boss"     # still nothing lost
     won = post(client, pid, long_text, hydre_result(draft=5, caught=4), quest_id=b["quest"]["id"], encounter="eris", help_stage=3)["progression"]
-    assert won["boss"] == {"tier": 1, "won": True} and [r["id"] for r in won["rewards"]] == ["sandales_hermes"]
+    assert won["boss"] == {"tier": 1, "won": True, "too_easy": False} and [r["id"] for r in won["rewards"]] == ["sandales_hermes"]
     rewards = client.get(f"/api/profiles/{pid}/rewards").json()
     assert {r["id"] for r in rewards} == {"ecaille_hydre", "voix_echo", "sandales_hermes"}
     # I2: a done boss quest can't be shelved either (only an active board quest can).

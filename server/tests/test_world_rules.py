@@ -78,15 +78,39 @@ def test_lieutenant_totals_and_session_counts():
     assert lieutenant_totals(bc, ["agreement:number", "agreement:verb"]) == {"opportunities": 12, "draft": 4, "caught": 2, "missed": 2}
     assert session_counts_for(bc, ["agreement:number", "agreement:verb"], 0.5) is True
     assert session_counts_for(bc, ["agreement:number", "agreement:verb"], 0.6) is False
-    assert session_counts_for({"homophone": {"opportunities": 3, "draft": 0, "caught": 0, "missed": 0, "introduced": 0}}, ["homophone"], 0.5) is True
+    # P1-4 controller ruling: 3 opportunities with 0 draft errors no longer counts on its own - a
+    # 13-word text could offer exactly 3 clean opportunities and finish a quest without the monster
+    # ever tripping the player. It now needs >= 6 occurrences to count with a clean draft.
+    assert session_counts_for({"homophone": {"opportunities": 3, "draft": 0, "caught": 0, "missed": 0, "introduced": 0}}, ["homophone"], 0.5) is False
     assert session_counts_for({"homophone": {"opportunities": 2, "draft": 0, "caught": 0, "missed": 0, "introduced": 0}}, ["homophone"], 0.5) is False
     assert session_counts_for({}, ["homophone"], 0.5) is False
 
 
+def test_session_counts_for_p1_4_farming_rule():
+    # The new rule (>= 3 opportunities AND (draft errors >= 1 OR opportunities >= 6)) in full:
+    def bc(opportunities, draft, caught):
+        return {"homophone": {"opportunities": opportunities, "draft": draft, "caught": caught, "missed": 0, "introduced": 0}}
+
+    # Below the opportunity floor: never counts, even with a perfect catch rate on what little there was.
+    assert session_counts_for(bc(2, 1, 1), ["homophone"], 0.5) is False
+    # >= 3 opportunities and >= 1 real draft error: judged on catch rate, as before (the monster
+    # showed up and tripped the player at least once).
+    assert session_counts_for(bc(3, 1, 1), ["homophone"], 0.5) is True
+    assert session_counts_for(bc(3, 1, 0), ["homophone"], 0.5) is False
+    # >= 3 but < 6 opportunities, 0 draft errors: still too trivial to count on its own.
+    assert session_counts_for(bc(5, 0, 0), ["homophone"], 0.5) is False
+    # >= 6 opportunities, 0 draft errors: a long enough clean run counts (the monster had a real
+    # chance to trip the player and didn't - that is the skill being trained).
+    assert session_counts_for(bc(6, 0, 0), ["homophone"], 0.5) is True
+
+
 def test_evaluate_boss():
-    assert evaluate_boss(result(draft=5, caught=4, rate=0.8)) is True
-    assert evaluate_boss(result(draft=5, caught=3, rate=0.6)) is False
-    assert evaluate_boss(result(draft=2, caught=0, rate=0.0)) is True     # fewer than 3 traps: nothing to sabotage
+    assert evaluate_boss(result(draft=5, caught=4, rate=0.8)) == "won"
+    assert evaluate_boss(result(draft=5, caught=3, rate=0.6)) == "lost"
+    # P1-5 fix: fewer than min_draft errors in the draft is no longer an outright win ("nothing to
+    # sabotage" must not hand over the tier's XP/gear for zero proofreading) - it is a draw.
+    assert evaluate_boss(result(draft=2, caught=0, rate=0.0)) == "too_easy"
+    assert evaluate_boss(result(draft=0, caught=0, rate=None)) == "too_easy"   # a perfect dictation
 
 
 def tok(i, pos, **kw):
@@ -110,10 +134,36 @@ def test_density():
 
 
 def test_recommend_texts_prefers_level_unplayed_and_density():
+    # P1-3 fix: level distance <= 1 from the player (10H) is preferred, in both directions - 11H
+    # (id 3) is no longer excluded for being above level, it competes on density like the rest.
     rows_ = [{"id": 1, "title": "a", "level": "10H", "word_count": 100, "density": 4.0},
              {"id": 2, "title": "b", "level": "10H", "word_count": 100, "density": 9.0},
-             {"id": 3, "title": "c", "level": "11H", "word_count": 100, "density": 9.0},   # above level: excluded
+             {"id": 3, "title": "c", "level": "11H", "word_count": 100, "density": 9.0},
              {"id": 4, "title": "d", "level": "9H", "word_count": 100, "density": 6.0},
              {"id": 5, "title": "e", "level": "10H", "word_count": 100, "density": 7.0}]
-    assert [r["id"] for r in recommend_texts(rows_, "hydre", "10H", played={2}, n=3)] == [5, 4, 1]
-    assert [r["id"] for r in recommend_texts(rows_, "hydre", "10H", played=set(), n=2)] == [2, 5]
+    assert [r["id"] for r in recommend_texts(rows_, "hydre", "10H", played={2}, n=3)] == [3, 5, 4]
+    assert [r["id"] for r in recommend_texts(rows_, "hydre", "10H", played=set(), n=2)] == [2, 3]
+
+
+def test_recommend_texts_never_goes_below_level_minus_two():
+    # P1-3: a 10H player must never be sent to a 7H text (level - 3) even if nothing closer exists;
+    # 8H (level - 2) is the floor and is used as a last resort.
+    rows_ = [{"id": 1, "title": "too low", "level": "7H", "word_count": 100, "density": 9.0},
+             {"id": 2, "title": "floor", "level": "8H", "word_count": 100, "density": 5.0}]
+    out = [r["id"] for r in recommend_texts(rows_, "hydre", "10H", played=set(), n=3)]
+    assert out == [2]
+
+
+def test_recommend_texts_enforces_minimum_length():
+    # P1-3: density alone let a 13-word text with one hit "count" as a perfect recommendation -
+    # too short to reliably meet the monster at all. word_count < 60 is excluded outright.
+    rows_ = [{"id": 1, "title": "tiny", "level": "10H", "word_count": 13, "density": 30.0},
+             {"id": 2, "title": "long enough", "level": "10H", "word_count": 60, "density": 5.0}]
+    assert [r["id"] for r in recommend_texts(rows_, "hydre", "10H", played=set(), n=3)] == [2]
+
+
+def test_recommend_texts_widens_from_one_step_to_two_then_any():
+    # P1-3: the preference tiers only widen when the closer tier is short of `n` candidates.
+    rows_ = [{"id": 1, "title": "near", "level": "10H", "word_count": 100, "density": 5.0},   # distance 0
+             {"id": 2, "title": "two steps", "level": "8H", "word_count": 100, "density": 9.0}]  # distance 2
+    assert [r["id"] for r in recommend_texts(rows_, "hydre", "10H", played=set(), n=2)] == [1, 2]

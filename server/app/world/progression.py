@@ -87,9 +87,10 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
         progress.setdefault("sessions", 0); progress.setdefault("log", [])
         if q["kind"] == "boss":
             if body.quest_id != q["id"]: continue
-            won = evaluate_boss(result, goal["min_rate"], goal["min_draft"])
+            outcome = evaluate_boss(result, goal["min_rate"], goal["min_draft"])
+            won = outcome == "won"
             progress["log"].append({"session_id": session_id, "ok": won})
-            boss_out = {"tier": goal["tier"], "won": won}
+            boss_out = {"tier": goal["tier"], "won": won, "too_easy": outcome == "too_easy"}
             if won: _complete_quest(conn, q, pid, now, bonuses, rewards)
             conn.execute("UPDATE quest SET progress_json = ? WHERE id = ?", (json.dumps(progress), q["id"]))
             quest_out.append({"id": q["id"], "kind": "boss", "target": "eris", "counted": won, "progress": 1 if won else 0, "goal": 1,
