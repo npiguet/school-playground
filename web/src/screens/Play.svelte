@@ -21,12 +21,26 @@
   import { clockReset, clockStart, clockStop, clockTick, playClock } from '../lib/world/playClock.svelte';
   import type { PlayMode, Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
 
-  let { profile, textId, mode = 'dictation' }: { profile: Profile; textId: string; mode?: PlayMode } = $props();
+  let {
+    profile,
+    textId,
+    mode = 'dictation',
+    query = {},
+  }: { profile: Profile; textId: string; mode?: PlayMode; query?: Record<string, string> } = $props();
 
   const id = $derived(Number(textId));
-  const helpStage = $derived(Math.min(4, Math.max(1, Math.round(profile.help_stage))) as 1 | 2 | 3 | 4);
+  // Quest-aware Play (SP3 Task 7): `quest`/`encounter` come from a QuestCard/lieutenant/boss link
+  // (`?quest=...&encounter=...`); `help` overrides the profile's adaptive help stage for a single
+  // session (boss fights force it a stage down, never up the aids).
+  const questId = $derived(query.quest ? Number(query.quest) : null);
+  const encounter = $derived(query.encounter ?? null);
+  const helpOverride = $derived(query.help ? Number(query.help) : null);
+  const helpStage = $derived(Math.min(4, Math.max(1, Math.round(helpOverride ?? profile.help_stage))) as 1 | 2 | 3 | 4);
   // Grimoire corrompu has no pace selector (plan decision #8: session.pace_level is always 1).
   const initialPace = $derived(mode === 'grimoire' ? 1 : defaultPace(profile.level));
+  // A boss fight never slows down below the profile's own default pace (Decision 8: fewer aids,
+  // never an easier one) - lower pace options stay visible but disabled (PaceSelect's `minPace`).
+  const minPace = $derived(encounter === 'eris' ? defaultPace(profile.level) : 1);
 
   let text = $state<TextFull | null>(null);
   let trapWords = $state<TrapWord[]>([]);
@@ -177,7 +191,7 @@
     corrupting = true;
     corruptError = null;
     try {
-      const { corrupted, plants } = await api.texts.corrupt(id, { profile_id: profile.id });
+      const { corrupted, plants } = await api.texts.corrupt(id, { profile_id: profile.id, focus: query.focus });
       playState.draft = corrupted;
       playState.current = corrupted;
       playState.plants = plants;
@@ -236,7 +250,7 @@
         profile_id: profile.id,
         text_id: id,
         pace_level: mode === 'grimoire' ? 1 : stateAtSubmit.pace,
-        help_stage: profile.help_stage,
+        help_stage: helpStage,
         mode,
         started_at: stateAtSubmit.startedAt,
         draft: stateAtSubmit.draft,
@@ -244,10 +258,13 @@
         result: resultAtSubmit,
         score: resultAtSubmit.score,
         catch_rate: resultAtSubmit.catchRate,
+        encounter,
+        quest_id: questId,
       });
       if (left || playState !== stateAtSubmit) return;
       stateAtSubmit.submitted = true;
       stateAtSubmit.sessionId = created.id;
+      stateAtSubmit.progression = created.progression;
       helpMessage = created.help_stage_message;
       save();
       // Refreshes profileStore's help_stage so the next play session uses it.
@@ -307,6 +324,18 @@
         </p>
       {/if}
 
+      {#if questId}
+        <div class="parchment quest-banner" data-testid="play-quest-banner">
+          <p>Ce texte compte pour ta quête.</p>
+        </div>
+      {/if}
+
+      {#if encounter === 'eris'}
+        <div class="eris-panel boss-banner" data-testid="play-boss-banner">
+          <p>Combat contre Éris — les Yeux d'Argus restent éteints.</p>
+        </div>
+      {/if}
+
       {#if text.photo_count > 0}
         <button type="button" class="btn photos-toggle" onclick={() => (showPhotos = !showPhotos)}>
           {showPhotos ? 'Cacher la feuille' : 'Voir la feuille'}
@@ -345,7 +374,7 @@
         {/if}
 
         <h2>Choisis ton rythme</h2>
-        <PaceSelect bind:pace={playState.pace} />
+        <PaceSelect bind:pace={playState.pace} {minPace} />
         <p class="muted">Les récompenses augmentent avec le rythme.</p>
 
         <button type="button" class="btn btn-primary" onclick={startDictation}>
@@ -421,6 +450,16 @@
     color: var(--gold);
     font-weight: 600;
     margin: 0 0 16px;
+  }
+  .quest-banner,
+  .boss-banner {
+    padding: 12px 16px;
+    margin: 0 0 16px;
+  }
+  .quest-banner p,
+  .boss-banner p {
+    margin: 0;
+    font-weight: 600;
   }
   .photos-toggle {
     margin-bottom: 16px;

@@ -5,6 +5,7 @@
 // mode, quota errors).
 import type { Pace } from './dictation/script';
 import type { Plant, PlayMode } from './types';
+import type { Progression } from './world/types';
 
 const VERSION = 1;
 
@@ -36,6 +37,10 @@ export interface PlayState {
   /** The errors Éris planted (SP2 Task 9, grimoire mode only); set once by `corrupt` and kept for
    *  the life of the session. No version bump: an optional field, absent in dictation mode. */
   plants?: Plant[];
+  /** SP3 Task 7: the progression `POST /api/sessions` returned (XP, quests, neutralisations,
+   *  dragon stage, weekly goal, boss outcome) - stored so a reload can still render it (Task 8).
+   *  No version bump: an optional field, absent until a session is actually submitted. */
+  progression?: Progression;
 }
 
 /** The localStorage key for a play session: distinct per mode so a dictation session and a

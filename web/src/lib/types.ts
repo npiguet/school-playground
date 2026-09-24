@@ -168,6 +168,11 @@ export interface SessionCreate {
   result: unknown;
   score: number;
   catch_rate: number | null;
+  /** SP3 Task 7: which lieutenant/boss this session was played against, if any (world/quests.ts'
+   *  quest-aware Play). */
+  encounter?: string | null;
+  /** SP3 Task 7: the quest this session counts towards, if the player launched it from one. */
+  quest_id?: number | null;
 }
 
 export interface SessionCreated {
@@ -175,6 +180,9 @@ export interface SessionCreated {
   help_stage_before: number;
   help_stage_after: number;
   help_stage_message: string | null;
+  /** SP3 Task 7: the progression this session earned (XP, quests, neutralisations, dragon stage,
+   *  weekly goal, boss outcome) - `undefined` until the server lane lands. */
+  progression?: import('./world/types').Progression;
 }
 
 export interface CategoryRow {

@@ -72,7 +72,9 @@ export interface QuestOut {
   target: string;
   week: string | null;
   status: QuestStatus;
-  goal: { sessions?: number; min_rate: number; min_draft?: number };
+  // `tier` is present only on boss quests (server's `create_boss_quest` stores it in `goal_json`
+  // alongside `text_id`/`help_stage`, which the client never needs to read).
+  goal: { sessions?: number; min_rate: number; min_draft?: number; tier?: number };
   progress: { sessions: number; log: { session_id: number; ok: boolean }[] };
   reward: { xp: number; reward_id: string | null; bestiary: boolean };
   texts: { id: number; title: string; level: string; word_count: number }[];

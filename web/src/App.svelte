@@ -18,6 +18,9 @@
   import Bestiaire from './screens/Bestiaire.svelte';
   import BestiaireEntry from './screens/BestiaireEntry.svelte';
   import Lieutenant from './screens/Lieutenant.svelte';
+  import Oracle from './screens/Oracle.svelte';
+  import QuestBoard from './screens/QuestBoard.svelte';
+  import Boss from './screens/Boss.svelte';
 
   const route = $derived(router.route);
   const profileId = $derived(route.params.profileId ? Number(route.params.profileId) : null);
@@ -78,9 +81,9 @@
       {:else if route.name === 'alexandria-work'}
         <AlexandriaWork profile={gateProfile} workId={route.params.workId} />
       {:else if route.name === 'play'}
-        <Play profile={gateProfile} textId={route.params.textId} />
+        <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
       {:else if route.name === 'grimoire'}
-        <Play profile={gateProfile} textId={route.params.textId} mode="grimoire" />
+        <Play profile={gateProfile} textId={route.params.textId} mode="grimoire" query={route.query} />
       {:else if route.name === 'stats'}
         <Stats profile={gateProfile} />
       {:else if route.name === 'settings'}
@@ -93,6 +96,12 @@
         <BestiaireEntry profile={gateProfile} entryKey={route.params.key} />
       {:else if route.name === 'lieutenant'}
         <Lieutenant profile={gateProfile} lieutenantKey={route.params.key} />
+      {:else if route.name === 'oracle'}
+        <Oracle profile={gateProfile} />
+      {:else if route.name === 'quests'}
+        <QuestBoard profile={gateProfile} />
+      {:else if route.name === 'boss'}
+        <Boss profile={gateProfile} />
       {/if}
     {/if}
   {/key}

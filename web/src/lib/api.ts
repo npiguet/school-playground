@@ -83,7 +83,7 @@ export const api = {
       ),
     create: (body: TextCreateBody) => request<TextFull>('POST', '/api/texts', body),
     get: (id: number) => request<TextFull>('GET', `/api/texts/${id}`),
-    corrupt: (id: number, body: { profile_id: number; seed?: number }) =>
+    corrupt: (id: number, body: { profile_id: number; seed?: number; focus?: string }) =>
       request<CorruptResult>('POST', `/api/texts/${id}/corrupt`, body),
   },
   sessions: {

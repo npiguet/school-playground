@@ -1,0 +1,43 @@
+import { describe, it, expect } from 'vitest';
+import { questProgressLabel, questTitle, rewardLabel, romanTier } from './quests';
+
+const names = { hydre: "L'Hydre", echo: 'Écho' };
+const q = (o: object) =>
+  ({
+    id: 1,
+    kind: 'board',
+    target: 'hydre',
+    week: null,
+    status: 'active',
+    goal: { sessions: 3, min_rate: 0.5 },
+    progress: { sessions: 2, log: [] },
+    reward: { xp: 60, reward_id: null, bestiary: true },
+    texts: [],
+    created_at: '',
+    completed_at: null,
+    ...o,
+  }) as never;
+const catalog = { rewards: { 'tint:ecume': { name: 'Teinte Écume' }, sandales_hermes: { name: "Sandales d'Hermès" } } } as never;
+
+describe('quest labels', () => {
+  it('titles', () => {
+    expect(questTitle(q({}), names)).toBe("Tenir l'Hydre en échec");
+    expect(questTitle(q({ kind: 'oracle', target: 'echo' }), names)).toBe("Rouleau de l'Oracle : Écho");
+    expect(questTitle(q({ kind: 'boss', target: 'eris', goal: { tier: 2, min_rate: 0.7, min_draft: 3 } }), names)).toBe(
+      'Combat contre Éris (II)',
+    );
+  });
+
+  it('progress and rewards', () => {
+    expect(questProgressLabel(q({}))).toBe('2 / 3 textes');
+    expect(questProgressLabel(q({ kind: 'boss', goal: { tier: 1, min_rate: 0.7, min_draft: 3 } }))).toBe('Un combat');
+    expect(rewardLabel(q({}), catalog)).toBe('60 XP · page du bestiaire');
+    expect(rewardLabel(q({ kind: 'oracle', reward: { xp: 150, reward_id: 'tint:ecume', bestiary: true } }), catalog)).toBe(
+      '150 XP · Teinte Écume · page du bestiaire',
+    );
+    expect(rewardLabel(q({ kind: 'boss', reward: { xp: 300, reward_id: 'sandales_hermes', bestiary: false } }), catalog)).toBe(
+      "300 XP · Sandales d'Hermès",
+    );
+    expect(romanTier(3)).toBe('III');
+  });
+});
