@@ -1,0 +1,34 @@
+{
+  "prompt": "wide interior shot, eye level, a dim enclosed hall at night lit only by poison purple and acid green light from below and a few bronze braziers with green flames. subject: the lair of Éris, goddess of discord, a vast ancient hall deep inside a mountain, dark bronze columns and dark stone walls on all sides, heavy purple silk drapes, in the centre a throne of twisted dark bronze on a stepped dais, in front of it a golden apple glowing on a black marble pedestal, low purple and green smoke curling along a floor of dark polished black-green marble with thin glowing green veins, grand, ominous and elegant like a villain's stage, never horror. Composition: a wide 16:9 game background, the throne and apple in the middle, the outer eighth on the far left and far right holds only dark columns and drapes; the dark floor in the lower part continues naturally with few small details; the top edge is dark ceiling. (daylight:-3) (sky:-3) (skulls:-3) (blood:-3) (people:-2) (text:-3) (letters:-3)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 2048,
+  "height": 1152,
+  "seed": 608,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}

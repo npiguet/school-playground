@@ -1,0 +1,34 @@
+{
+  "prompt": "wide shot, eye level, dramatic dusk light, a deep orange and violet sunset sky. subject: the monumental gates of a demigod camp in ancient Greece at dusk, two tall white marble gate pillars with bronze torches burning, a great arched wooden double gate in the centre, a long smooth pale stone wall on both sides of the gate with a row of empty bronze hooks along the wall close to the gate, bare hooks with nothing hanging on them, waiting for round shields, the wall surface plain and uncluttered (shields:-3). High in the sky above the gate, the huge faint translucent silhouette of a tall goddess made of violet clouds, Éris, with wild hair and a spiky crown, holding a golden apple that glints, watching the camp. Cypress trees and olive trees framing the gate, a stone path leading to the gate in the foreground. Composition: a wide 16:9 game background seen from a little distance, all the important objects are grouped in the middle of the picture, the outer eighth on the far left and on the far right holds only soft background scenery such as plain wall, foliage or sky; the ground in the lower part of the picture continues naturally with the same texture and light but with few small details; the top edge is calm. (people:-2) (text:-3) (letters:-3) (signs:-3) (busy details:-2)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 2048,
+  "height": 1152,
+  "seed": 602,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}

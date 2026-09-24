@@ -1,0 +1,34 @@
+{
+  "prompt": "a flat top-down texture tile filling the whole frame, even soft light: polished warm white marble slab, soft grey and faint gold veins running diagonally, gentle painterly tone variation, no edges, no objects, uniform all over so it can repeat as a seamless tile. (text:-3) (border:-3) (vignette:-3) (objects:-3) (tiles:-2)\n\nStyle: a subtle painterly game UI surface texture in a sun-bleached Mediterranean palette, soft gouache tone variation, no linework, no outlines, no drawn objects, low contrast so text stays readable on top of it.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1024,
+  "height": 1024,
+  "seed": 902,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-texture"
+}

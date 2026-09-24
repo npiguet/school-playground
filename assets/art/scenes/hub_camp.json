@@ -1,0 +1,34 @@
+{
+  "prompt": "wide establishing shot from a slightly high viewpoint, warm late-afternoon golden light. subject: a demigod camp in a green Greek valley with six clearly separate landmarks spread across the picture, each standing alone with open grass between them. About one fifth in from the left edge, a rocky outcrop with a large round dragon's nest of woven olive branches and golden straw on top. Between the nest and the centre, a winding white stone path climbing a hill toward a small white marble temple of Delphi on the far hilltop. In the centre, a large cream-and-blue striped canvas pavilion tent, the library tent, with scrolls visible at its open door. Right of centre, a big red-and-bronze war tent with a bronze shield and crossed spears above its entrance. About one fifth in from the right edge, one small cosy white-washed cabin with a terracotta roof and a lit window. Right of centre in the middle distance, between the war tent and the cabin, a dirt path leading out through a plain wooden archway toward distant stormy purple hills. Olive trees and cypresses between the landmarks, distant Aegean sea on the horizon. Composition: a wide 16:9 game background seen from a little distance, all the important objects are grouped in the middle of the picture, the outer eighth on the far left and on the far right holds only soft background scenery such as plain wall, foliage or sky; the ground in the lower part of the picture continues naturally with the same texture and light but with few small details; the top edge is calm. (people:-2) (text:-3) (letters:-3) (signs:-3) (busy details:-2)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 2048,
+  "height": 1152,
+  "seed": 601,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}

@@ -1,0 +1,34 @@
+{
+  "prompt": "wide shot, eye level, golden late light with a faint violet haze of discord. subject: an epic battlefield in a ruined Greek temple, broken white marble columns standing on the far left and far right, a flat cracked marble floor on the left and on the right, fallen column drums, ivy and olive trees growing through the ruins, open sky and distant hills in the middle. The ground on the left third and the right third is open flat and clear for two fighters to stand on, the centre of the picture is a calm, soft, low-detail area of sky and distance, open and empty. Composition: a wide 16:9 game background seen from a little distance, all the important objects are grouped in the middle of the picture, the outer eighth on the far left and on the far right holds only soft background scenery such as plain wall, foliage or sky; the ground in the lower part of the picture continues naturally with the same texture and light but with few small details; the top edge is calm. (people:-3) (creature:-3) (people:-2) (text:-3) (letters:-3) (signs:-3) (busy details:-2)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 2048,
+  "height": 1152,
+  "seed": 511,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}
