@@ -93,7 +93,15 @@ const CIRCUMFLEX_STRIP_WORDS = new Set(data.circumflex_strip_words);
 // (vînmes, tîntes).
 const CIRCUMFLEX_KEEP_RE = /(^|[^o])[îû]n?(mes|tes)$|[îû]nt$|[^ao]ît$|ût$/;
 
+// SP2 playability P1-1: the client tokenizer keeps an elided article/pronoun attached to its
+// word (« l'évènement », « d'ognons », « qu'il connaisse »), so the table lookups below must run
+// on the part after the apostrophe (already straightened by normalizeWord) and the elision be
+// put back unchanged — otherwise a reform spelling behind an elision was flagged as an error.
+const ELISION_RE = /^(l|d|qu|j|n|m|t|s|c|jusqu|lorsqu|puisqu|quoiqu)'(.+)$/u;
+
 export function reformCanon(norm: string): string {
+  const elided = ELISION_RE.exec(norm);
+  if (elided !== null) return `${elided[1]}'${reformCanon(elided[2])}`;
   const explicit = toTraditional.get(norm);
   if (explicit !== undefined) return explicit;
   // Fix round 1, IMPORTANT 3: an inflected plural of an explicit pair (either spelling) is also

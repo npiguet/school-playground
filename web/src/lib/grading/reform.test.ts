@@ -147,6 +147,34 @@ describe('reformCanon: doublets and -ayer verbs (final review I-4)', () => {
   });
 });
 
+// SP2 playability P1-1: « l'évènement » was flagged (« Un accent change tout : « l'événement »,
+// pas « l'évènement ». ») because the whole elided client token was looked up in the table.
+describe('reformCanon: elided tokens (SP2 playability P1-1)', () => {
+  it('canonicalises the part after the elision and keeps the elision', () => {
+    expect(reformCanon("l'évènement")).toBe("l'événement");
+    expect(reformCanon("l'événement")).toBe("l'événement");
+    expect(reformCanon("d'évènements")).toBe("d'événements");
+    expect(reformCanon("d'ognon")).toBe("d'oignon");
+    expect(reformCanon("l'ognon")).toBe("l'oignon");
+    expect(reformCanon("qu'il")).toBe("qu'il");
+    expect(reformCanon("s'il")).toBe("s'il");
+    expect(reformCanon("l'île")).toBe("l'ile");
+    expect(reformCanon("jusqu'à")).toBe("jusqu'à");
+    expect(reformCanon("qu'eût")).toBe("qu'eût"); // the protected subjunctive stays protected behind an elision
+  });
+  it('grades an elided reform spelling as correct, in both directions', () => {
+    expect(isReformEquivalent("l'évènement", "l'événement")).toBe(true);
+    expect(isReformEquivalent("d'ognons", "d'oignons")).toBe(true);
+    expect(isReformEquivalent("l'abîme", "l'abime")).toBe(true);
+    expect(classifyPair(tk("l'événement"), tk("l'évènement"), undefined, -1)).toBeNull();
+    expect(classifyPair(tk("d'oignon"), tk("d'ognon"), undefined, -1)).toBeNull();
+    expect(classifyPair(tk("l'évènement"), tk("l'événement"), undefined, -1)).toBeNull();
+    // a genuine accent error behind an elision is still an error
+    expect(classifyPair(tk("l'élève"), tk("l'eleve"), undefined, -1)).toMatchObject({ category: 'accent' });
+    expect(classifyPair(tk("l'eût"), tk("l'eut"), undefined, -1)).toMatchObject({ category: 'accent' });
+  });
+});
+
 describe('numberHyphensToSpaces', () => {
   it('keeps length and only touches hyphens between number words', () => {
     expect(numberHyphensToSpaces('vingt-et-un chats')).toBe('vingt et un chats');
