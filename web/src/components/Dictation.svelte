@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, untrack } from 'svelte';
   import { createRunner, type RunnerState } from '../lib/dictation/runner';
   import { buildScript, type DictationPlan, type Pace } from '../lib/dictation/script';
   import { cancelSpeech, speak } from '../lib/dictation/tts';
@@ -29,13 +29,18 @@
     total: 0,
   });
 
-  const runner = createRunner(buildScript(plan, pace), {
-    pace,
-    speak: (spoken, rate) => speak(spoken, { rate, voice }),
-    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-    cancel: cancelSpeech,
-    onChange: (s) => (runnerState = s),
-  });
+  // The runner is built once from this run's plan/pace (a new Dictation instance is mounted for
+  // each run, per the caller), so `plan` and `pace` here are deliberately read only once, not
+  // tracked - untrack() says so explicitly instead of looking like an accidental one-shot read.
+  const runner = untrack(() =>
+    createRunner(buildScript(plan, pace), {
+      pace,
+      speak: (spoken, rate) => speak(spoken, { rate, voice }),
+      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      cancel: cancelSpeech,
+      onChange: (s) => (runnerState = s),
+    }),
+  );
 
   onMount(() => {
     runner.start();

@@ -5,6 +5,7 @@
   // the weekly goal and a boss outcome. Every reward here was already known in advance (the quest
   // board / lieutenant page / boss screen showed it before the player committed) - this screen
   // only confirms it happened.
+  import { untrack } from 'svelte';
   import Reveal from './juice/Reveal.svelte';
   import Gauge from './juice/Gauge.svelte';
   import Medallion from './juice/Medallion.svelte';
@@ -170,7 +171,9 @@
   // always plays (mute is the only gate, inside `playSfx`); particles render nothing under
   // reduced motion (handled inside `Particles` itself).
   let xpBurstTrigger = $state(0);
-  let neutralisedTriggers = $state<number[]>(progression.neutralised.map(() => 0));
+  // One trigger slot per lieutenant neutralised in this reveal, sized once from the progression
+  // passed in on mount (this component doesn't re-run its reveal if `progression` changes later).
+  let neutralisedTriggers = $state<number[]>(untrack(() => progression.neutralised.map(() => 0)));
   let dragonSparkleTrigger = $state(0);
   let weeklyLaurelTrigger = $state(0);
 

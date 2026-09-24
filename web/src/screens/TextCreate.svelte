@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import TopBar from '../components/TopBar.svelte';
   import LevelSelect from '../components/LevelSelect.svelte';
   import { api, ApiError } from '../lib/api';
@@ -11,7 +12,10 @@
 
   let title = $state('');
   let body = $state('');
-  let level = $state(profile.level);
+  // Local, editable copy of the hero's level: seeded once from `profile` (the form field below
+  // then owns it), so it must not track `profile.level` afterwards - untrack() makes that intent
+  // explicit to the compiler instead of leaving it to look like an accidental one-shot read.
+  let level = $state(untrack(() => profile.level));
   let author = $state('');
   let work = $state('');
   let translator = $state('');

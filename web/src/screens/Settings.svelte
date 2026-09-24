@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import TopBar from '../components/TopBar.svelte';
   import LevelSelect from '../components/LevelSelect.svelte';
   import { api, ApiError } from '../lib/api';
@@ -10,9 +11,11 @@
   let { profile }: { profile: Profile } = $props();
 
   let voices = $state<SpeechSynthesisVoice[]>([]);
-  let voiceName = $state(profile.settings.voice ?? '');
-  let level = $state(profile.level);
-  let weeklyGoal = $state(profile.settings.weekly_goal ?? 3);
+  // Local, editable copies of the profile's settings: each field is seeded once from `profile`
+  // and then owned by its own form control, so they must not track `profile` afterwards.
+  let voiceName = $state(untrack(() => profile.settings.voice ?? ''));
+  let level = $state(untrack(() => profile.level));
+  let weeklyGoal = $state(untrack(() => profile.settings.weekly_goal ?? 3));
   let newPin = $state('');
   let error = $state('');
   let toast = $state('');

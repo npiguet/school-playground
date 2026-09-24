@@ -3,7 +3,7 @@
   // against the paper -> save with optional due date (a *dictée préparée* becomes a prophecy,
   // spec's "Decisions" #14). The reference text is always the answer key, so the verify step
   // is not a formality: an uncorrected OCR mistake would silently become "correct" forever.
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import TopBar from '../components/TopBar.svelte';
   import LevelSelect from '../components/LevelSelect.svelte';
   import { api, ApiError } from '../lib/api';
@@ -114,7 +114,8 @@
 
   // --- Step 3: details ---------------------------------------------------------------------
   let title = $state('');
-  let level = $state(profile.level);
+  // Local, editable copy seeded once from `profile` (see TextCreate.svelte for the same pattern).
+  let level = $state(untrack(() => profile.level));
   let dueDate = $state('');
   let author = $state('');
   let work = $state('');
