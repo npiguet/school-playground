@@ -10,13 +10,19 @@ import io
 import re
 import statistics
 from dataclasses import dataclass
+from typing import Callable
 
 from PIL import Image, ImageOps
 from pytesseract import Output
 import pytesseract
 
 MAX_SIDE = 2200
-LOW_CONF = 60
+# Per-word Tesseract confidence under which a word is listed « À vérifier ». Calibrated on the
+# fixtures (SP2 playability P1-8): a clean print scores 89–97 on every word, so the old 60 never
+# fired; a phone-like photo of the same handout (handout-phone.jpg: downscaled, blurred, JPEG-
+# compressed, slightly rotated) scores 0–56 on its misreads and 67–68 on the shaky accented
+# words that are right — exactly the ones the child must compare with the paper.
+LOW_CONF = 75
 TESSERACT_CONFIG = "--psm 6"
 # `--psm 6` ("assume a single uniform block of text") makes Tesseract report a printed
 # handout's title and body as the same (block, par) - real handouts almost always set a title
@@ -26,6 +32,9 @@ TESSERACT_CONFIG = "--psm 6"
 PARAGRAPH_GAP_FACTOR = 1.6
 
 DIGIT_OR_PUNCT_LINE_RE = re.compile(r"^[\d\W]+$")
+# A word of the assembled text, elisions and hyphens kept (« l'enfant », « porte-monnaie »).
+WORD_RE = re.compile(r"[^\W\d_]+(?:['-][^\W\d_]+)*")
+_EDGE_PUNCT_RE = re.compile(r"^[^\w]+|[^\w]+$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,7 +89,29 @@ def _join_lines(lines: list[str]) -> str:
     return result
 
 
-def assemble(words: list[OcrWord]) -> tuple[str, list[str]]:
+def _chip(text: str) -> str:
+    """The word as the verify screen lists it: without the punctuation Tesseract glued to it
+    (« forêt. » → « forêt »), so the chip matches a word of the textarea."""
+    word = _EDGE_PUNCT_RE.sub("", text)
+    return word if any(ch.isalpha() for ch in word) else ""
+
+
+def unknown_words(text: str, is_known: Callable[[str], bool]) -> list[str]:
+    """Words of the assembled text the lexicon does not know, in order, once each: a misread
+    the OCR was confident about (« oissaux »), or a proper name — both worth a look at the paper.
+    Hyphenated compounds are checked part by part (after dehyphenation, so a line-end split like
+    « vil-lage » never shows up)."""
+    out: list[str] = []
+    for word in WORD_RE.findall(text):
+        if word in out:
+            continue
+        if all(is_known(part) for part in word.split("-") if part):
+            continue
+        out.append(word)
+    return out
+
+
+def assemble(words: list[OcrWord], is_known: Callable[[str], bool] | None = None) -> tuple[str, list[str]]:
     paragraphs: dict[tuple[int, int], dict[int, list[OcrWord]]] = {}
     para_order: list[tuple[int, int]] = []
     for word in words:
@@ -116,11 +147,12 @@ def assemble(words: list[OcrWord]) -> tuple[str, list[str]]:
     text = clean_ocr_text("\n\n".join(paragraph_texts))
 
     low_confidence: list[str] = []
-    seen: set[str] = set()
     for word in words:
-        if 0 <= word.conf < LOW_CONF and any(ch.isalpha() for ch in word.text) and word.text not in seen:
-            seen.add(word.text)
-            low_confidence.append(word.text)
+        chip = _chip(word.text) if 0 <= word.conf < LOW_CONF else ""
+        if chip and chip not in low_confidence:
+            low_confidence.append(chip)
+    if is_known is not None:
+        low_confidence += [w for w in unknown_words(text, is_known) if w not in low_confidence]
 
     return text, low_confidence
 
@@ -150,7 +182,7 @@ def clean_ocr_text(text: str) -> str:
     return text.strip()
 
 
-def ocr_page(data: bytes, ocr=run_tesseract) -> dict:
+def ocr_page(data: bytes, ocr=run_tesseract, is_known: Callable[[str], bool] | None = None) -> dict:
     img = preprocess(data)
-    text, low_confidence = assemble(ocr(img))
+    text, low_confidence = assemble(ocr(img), is_known)
     return {"text": text, "low_confidence": low_confidence, "width": img.width, "height": img.height}

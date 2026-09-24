@@ -70,15 +70,46 @@
   }
 
   // --- Step 2: verify --------------------------------------------------------------------
+  // SP2 playability P1-8: she is the answer key, so « Le texte est juste » must not be a
+  // formality. Every « À vérifier » word (low OCR confidence or unknown to the lexicon) has to
+  // be tapped once — the tap selects it in the textarea so she compares it with the paper — and
+  // the button then asks her to confirm she has read every line against the sheet.
   const lowConfidence = $derived(
     scanResult ? Array.from(new Set(scanResult.pages.flatMap((p) => p.low_confidence))) : [],
   );
   const wordCount = $derived(countWords(text));
+  let viewed = $state(new Set<string>());
+  let confirming = $state(false);
+  let textarea = $state<HTMLTextAreaElement | null>(null);
+  const unviewed = $derived(lowConfidence.filter((w) => !viewed.has(w)));
+
+  function showWord(word: string) {
+    viewed = new Set([...viewed, word]);
+    const ta = textarea;
+    if (!ta) return;
+    const lower = text.toLowerCase();
+    const at = text.indexOf(word) >= 0 ? text.indexOf(word) : lower.indexOf(word.toLowerCase());
+    if (at < 0) return;
+    ta.focus();
+    ta.setSelectionRange(at, at + word.length);
+    // Scroll the selection into view: a textarea only scrolls to the caret when it is typed
+    // into, so set the scroll position from the character's line.
+    const line = text.slice(0, at).split('\n').length - 1;
+    const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 28;
+    ta.scrollTop = Math.max(0, line * lineHeight - ta.clientHeight / 2);
+  }
+
+  function askConfirmation() {
+    if (wordCount < 5 || unviewed.length > 0) return;
+    confirming = true;
+  }
 
   function retakePhotos() {
     step = 'capture';
     scanResult = null;
     uploadError = '';
+    viewed = new Set();
+    confirming = false;
   }
 
   // --- Step 3: details ---------------------------------------------------------------------
@@ -190,11 +221,28 @@
 
       <div class="text-col">
         {#if lowConfidence.length > 0}
-          <p class="verify-label">
-            À vérifier :
+          <div class="verify-label">
+            <span>À vérifier :</span>
             <span class="chips" data-testid="scan-low-confidence">
-              {#each lowConfidence as w (w)}<span class="chip chip-warn">{w}</span>{/each}
+              {#each lowConfidence as w (w)}
+                <button
+                  type="button"
+                  class="chip chip-warn"
+                  class:chip-viewed={viewed.has(w)}
+                  aria-pressed={viewed.has(w)}
+                  onclick={() => showWord(w)}
+                >
+                  {viewed.has(w) ? '✓ ' : ''}{w}
+                </button>
+              {/each}
             </span>
+          </div>
+          <p class="hint verify-hint" data-testid="scan-verify-hint">
+            {#if unviewed.length > 0}
+              Touche chaque mot à vérifier : il se surligne dans le texte, compare-le avec la feuille.
+            {:else}
+              Chaque mot à vérifier a été regardé. Relis quand même chaque ligne avec la feuille.
+            {/if}
           </p>
         {/if}
         <textarea
@@ -204,27 +252,45 @@
           spellcheck="false"
           rows="14"
           bind:value={text}
+          bind:this={textarea}
           {...{ autocorrect: 'off' }}
         ></textarea>
         <p class="wordcount muted">{wordCount} mots</p>
-        <p class="hint muted">
+        <p class="hint key-hint">
           Corrige chaque mot qui diffère de la feuille : ce texte devient la clé de correction.
         </p>
       </div>
     </div>
 
-    <div class="actions">
-      <button type="button" class="btn" onclick={retakePhotos}>Reprendre une photo</button>
-      <button
-        type="button"
-        class="btn btn-primary"
-        data-testid="btn-scan-verified"
-        disabled={wordCount < 5}
-        onclick={() => (step = 'details')}
-      >
-        Le texte est juste
-      </button>
-    </div>
+    {#if confirming}
+      <div class="confirm" data-testid="scan-confirm" role="group" aria-label="Confirmation">
+        <p class="confirm-question">As-tu comparé chaque ligne avec la feuille ?</p>
+        <div class="actions">
+          <button type="button" class="btn" onclick={() => (confirming = false)}>Pas encore</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-testid="btn-scan-confirm"
+            onclick={() => (step = 'details')}
+          >
+            Oui, le texte est juste
+          </button>
+        </div>
+      </div>
+    {:else}
+      <div class="actions">
+        <button type="button" class="btn" onclick={retakePhotos}>Reprendre une photo</button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          data-testid="btn-scan-verified"
+          disabled={wordCount < 5 || unviewed.length > 0}
+          onclick={askConfirmation}
+        >
+          Le texte est juste
+        </button>
+      </div>
+    {/if}
   {:else if step === 'details'}
     <h2>Détails du parchemin</h2>
     <form onsubmit={saveScan}>
@@ -366,13 +432,20 @@
     gap: 6px;
   }
   .chip-warn {
+    min-height: 44px;
     border-color: var(--orange);
     color: var(--orange);
     font-weight: 600;
+    font-size: 17px;
+  }
+  .chip-viewed {
+    border-color: var(--olive);
+    color: var(--olive);
   }
   textarea {
     width: 100%;
     font-size: 18px;
+    line-height: 1.5;
     font-family: var(--font-body);
     resize: vertical;
   }
@@ -381,13 +454,32 @@
     font-weight: 600;
   }
   .hint {
-    font-size: 14px;
+    font-size: 16px;
     margin: 2px 0 0;
+  }
+  .verify-hint {
+    margin: 0 0 10px;
+    color: var(--ink-soft);
+  }
+  .key-hint {
+    color: var(--ink);
+    font-weight: 600;
   }
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+  }
+  .confirm {
+    background: var(--aegean-light);
+    border: 1px solid var(--aegean);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .confirm-question {
+    margin: 0 0 12px;
+    font-size: 18px;
+    font-weight: 600;
   }
   .field {
     margin-bottom: 20px;

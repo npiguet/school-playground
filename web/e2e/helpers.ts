@@ -78,6 +78,18 @@ export async function createProfile(page: Page, name: string, level: string) {
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
 }
 
+// Passes the scan verify step the way the child has to (SP2 playability P1-8): every
+// « À vérifier » chip must be tapped (it selects the word in the textarea), then « Le texte est
+// juste » asks « As-tu comparé chaque ligne avec la feuille ? » and only the confirmation moves
+// on to the details form.
+export async function confirmScanVerified(page: Page) {
+  const chips = page.getByTestId('scan-low-confidence').locator('button');
+  for (let i = 0; i < (await chips.count()); i++) await chips.nth(i).click();
+  await page.getByTestId('btn-scan-verified').click();
+  await expect(page.getByTestId('scan-confirm')).toContainText('As-tu comparé chaque ligne avec la feuille ?');
+  await page.getByTestId('btn-scan-confirm').click();
+}
+
 // Minimal mirror of the server's TextCreate schema (server/app/schemas.py) - kept local rather
 // than imported from web/src so the e2e project (excluded from web/tsconfig.json) stays free of
 // a cross-project source dependency.

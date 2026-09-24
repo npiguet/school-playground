@@ -10,6 +10,11 @@ def fake_ocr(img):
     return [OcrWord("Les", 95, 1, 1, 1, 0, 0, 1, 1), OcrWord("fées", 40, 1, 1, 1, 0, 0, 1, 1), OcrWord("dansent.", 95, 1, 1, 1, 0, 0, 1, 1)]
 
 
+def misread_ocr(img):
+    # a confident misread (« oissaux ») is unknown to the lexicon: it joins the « À vérifier » list
+    return [OcrWord("Les", 95, 1, 1, 1, 0, 0, 1, 1), OcrWord("oissaux", 92, 1, 1, 1, 0, 0, 1, 1), OcrWord("chantent.", 95, 1, 1, 1, 0, 0, 1, 1)]
+
+
 def upload(client, names):
     files = [("photos", (n, (FIX / n).read_bytes(), "image/png" if n.endswith(".png") else "image/jpeg")) for n in names]
     return client.post("/api/scan", files=files)
@@ -30,6 +35,9 @@ def test_scan_stores_photos_and_returns_text(client, settings):
     assert page.status_code == 200 and page.headers["content-type"].startswith("image/jpeg")
     assert client.get(f"/api/scan/{d['scan_id']}/page/3").status_code == 404
     assert client.get("/api/scan/../etc/page/1").status_code in (404, 422)
+    client.app.state.ocr = misread_ocr
+    page = upload(client, ["handout.png"]).json()["pages"][0]
+    assert page["text"] == "Les oissaux chantent." and page["low_confidence"] == ["oissaux"]
 
 
 def test_scan_validation(client):

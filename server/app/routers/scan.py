@@ -13,6 +13,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from fastapi.responses import FileResponse
 
+from app.lexicon import load_lexicon
 from app.ocr import ocr_page, run_tesseract
 
 router = APIRouter(prefix="/api/scan", tags=["scan"])
@@ -56,11 +57,14 @@ def scan(request: Request, photos: list[UploadFile] = File(...)):
         contents.append((data, ext))
 
     folder.mkdir(parents=True, exist_ok=True)
+    # Words the lexicon does not know join the « À vérifier » list (SP2 playability P1-8): a
+    # confident misread is as dangerous for the answer key as a hesitant one.
+    is_known = load_lexicon(settings.content_dir).is_known
     pages = []
     try:
         for n, (data, ext) in enumerate(contents, start=1):
             (folder / f"page-{n}.{ext}").write_bytes(data)
-            page = ocr_page(data, ocr)
+            page = ocr_page(data, ocr, is_known)
             pages.append({"index": n, **page})
     except Exception:
         shutil.rmtree(folder, ignore_errors=True)
