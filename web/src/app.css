@@ -198,3 +198,110 @@ label {
   font-weight: 600;
   margin-bottom: 4px;
 }
+
+/* SP3 world/juice tokens, keyframes and reduced-motion rule (spec §5, decision 18). */
+:root {
+  --violet: #5b2c83;
+  --violet-dark: #1b1421;
+  --gold-light: #f1dc9a;
+  --olive-light: #e4e9d3;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes wobble {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+.parchment {
+  background: linear-gradient(#fbf6ea, #f1e7d0);
+  border: 1px solid #d9c9a3;
+  border-radius: 10px;
+  box-shadow:
+    inset 0 0 24px rgba(120, 90, 30, 0.12),
+    0 2px 6px rgba(43, 42, 40, 0.12);
+}
+
+.scene {
+  position: relative;
+  background-size: cover;
+  background-position: center bottom;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(244, 239, 230, 0.75), rgba(244, 239, 230, 0.15) 35%, rgba(244, 239, 230, 0));
+  pointer-events: none;
+}
+
+.eris-panel {
+  background: linear-gradient(135deg, var(--violet-dark), var(--violet));
+  color: var(--marble);
+  border-radius: var(--radius);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

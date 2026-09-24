@@ -44,7 +44,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return data as T;
 }
 
-async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
+export async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method,
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},

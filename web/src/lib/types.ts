@@ -7,6 +7,13 @@ export type { ArgusPass, Annotation } from './grading/types';
 
 export interface ProfileSettings {
   voice?: string;
+  /** Mirrors instantly to `localStorage` (SP3 Task 4/decision 17) so muting takes effect before
+   *  the PATCH round-trip completes. */
+  mute?: boolean;
+  /** Sessions per ISO week (decision 15), adjustable 2-5 in Réglages; defaults to 3 client-side. */
+  weekly_goal?: number;
+  /** First-visit onboarding cards on the camp (decision 22); skippable, never re-shown once true. */
+  onboarded?: boolean;
 }
 
 export interface Profile {
