@@ -141,6 +141,11 @@
     // case the response below must not mutate/save a session that's no longer the current one.
     const stateAtSubmit = playState;
     const resultAtSubmit = result;
+    resultAtSubmit.tools = {
+      hints: stateAtSubmit.hintsUsed,
+      threadsDrawn: stateAtSubmit.fil?.drawn ?? 0,
+      threadsCorrect: stateAtSubmit.fil?.correct ?? 0,
+    };
     submitting = true;
     submitError = null;
     try {
@@ -246,6 +251,7 @@
       {helpMessage}
       {submitError}
       {submitting}
+      level={profile.level}
       onReplay={restart}
       onLibrary={toLibrary}
       onRetry={submitSession}

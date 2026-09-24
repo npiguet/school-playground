@@ -6,8 +6,10 @@
   import TokenText from './TokenText.svelte';
   import WordEditor from './WordEditor.svelte';
   import { ARGUS_LABELS, HINTS_PER_STAGE, orderPasses, typedPassSets } from '$lib/argus';
+  import { mapAnnotation } from '$lib/grading/annotationMap';
   import { errorKey, gradeText } from '$lib/grading/grade';
   import type { Annotation, ArgusPass, GradeResult, TokenError } from '$lib/grading/types';
+  import { filExit, filStart, filTap, type FilState } from '$lib/fil';
   import { savePlayState, type PlayState } from '$lib/playState';
   import { replaceSpan, sentenceSpans } from '$lib/textEdit';
   import type { TextFull } from '$lib/types';
@@ -38,6 +40,62 @@
   const activePass = $derived(helpStage <= 2 ? passes[play.passIndex] : null);
   const hintsLeft = $derived(HINTS_PER_STAGE[helpStage] - play.hintsUsed);
   const spans = $derived(sentenceSpans(play.current));
+
+  // --- Fil d'Ariane (spec §3.4: "tap a verb, then its subject") -----------------------
+  // `fil` is the pure state machine (`$lib/fil.ts`); everything here just maps between the
+  // player's typed-token space (what TokenText renders) and the annotation's token space
+  // (what `filTap` reasons about), via the reference token each typed token is aligned to.
+  let fil = $state<FilState>(filExit(filStart(play.fil)));
+
+  const annots = $derived(mapAnnotation(grade.refTokens, annotation));
+  // annotation token id -> reference token index (for a reference token spaCy actually
+  // annotated; unmapped tokens are simply absent).
+  const refByAnnot = $derived(new Map(annots.flatMap((a, r) => (a ? ([[a.i, r]] as const) : []))));
+  // reference token index -> typed (player's) token index, via the current alignment.
+  const typedByRef = $derived(
+    new Map(
+      grade.pairs
+        .filter((p): p is { refIndex: number; typedIndex: number } => p.refIndex !== null && p.typedIndex !== null)
+        .map((p) => [p.refIndex, p.typedIndex] as const),
+    ),
+  );
+  // The inverse of typedByRef: typed token index -> reference token index.
+  const refByTyped = $derived(new Map([...typedByRef].map(([r, t]) => [t, r] as const)));
+
+  function annotToTyped(annotIndex: number | null): number | null {
+    if (annotIndex === null) return null;
+    const refIndex = refByAnnot.get(annotIndex);
+    if (refIndex === undefined) return null;
+    return typedByRef.get(refIndex) ?? null;
+  }
+
+  const filVerb = $derived(annotToTyped(fil.highlightVerb));
+  const filSubjects = $derived.by(() => {
+    const out = new Set<number>();
+    for (const a of fil.highlightSubject) {
+      const t = annotToTyped(a);
+      if (t !== null) out.add(t);
+    }
+    return out;
+  });
+
+  function activateFil() {
+    fil = filStart({ drawn: fil.drawn, correct: fil.correct });
+  }
+
+  function exitFil() {
+    fil = filExit(fil);
+  }
+
+  /** A tap on typed token `typedIndex` while the Fil is active: mapped to the annotation token
+   *  its aligned reference token carries (undefined for an unaligned/extra typed word), then
+   *  handed to the state machine. Never edits `play.current`. */
+  function tapFil(typedIndex: number) {
+    const refIndex = refByTyped.get(typedIndex);
+    const annotIndex = refIndex !== undefined ? annots[refIndex]?.i : undefined;
+    fil = filTap(fil, annotIndex, annotation, reference.body);
+    play.fil = { drawn: fil.drawn, correct: fil.correct };
+  }
 
   // The stage-3 count is frozen at the start of proofreading (plan decision #6): a live
   // count would grade every edit.
@@ -174,6 +232,12 @@
   // --- Editing ------------------------------------------------------------------------
 
   function editToken(index: number) {
+    // The Fil never edits text (spec §3.4): a tap while it's active drives the state machine
+    // instead of opening the word editor.
+    if (fil.step !== 'idle') {
+      tapFil(index);
+      return;
+    }
     // flushSync so the editor mounts (and focuses) inside the tap's user gesture: iOS only
     // opens the keyboard for a focus() that happens synchronously in a gesture handler.
     flushSync(() => {
@@ -267,6 +331,16 @@
     <button
       type="button"
       class="chip tool"
+      class:chip-active={fil.step !== 'idle'}
+      aria-pressed={fil.step !== 'idle'}
+      data-testid="btn-fil"
+      onclick={activateFil}
+    >
+      🧵 Fil d'Ariane
+    </button>
+    <button
+      type="button"
+      class="chip tool"
       class:chip-active={wholeText}
       aria-pressed={wholeText}
       onclick={toggleWholeText}
@@ -274,6 +348,13 @@
       ✏️ Modifier tout le texte
     </button>
   </div>
+
+  {#if fil.step !== 'idle'}
+    <div class="fil-panel" role="status">
+      <p class="fil-message" data-testid="fil-message">{fil.message}</p>
+      <button type="button" class="btn" data-testid="btn-fil-exit" onclick={exitFil}>Quitter le fil</button>
+    </div>
+  {/if}
 
   {#if play.bouclier && spans.length > 0 && !wholeText}
     <div class="sentence-nav">
@@ -325,6 +406,8 @@
         onEditToken={editToken}
         editingIndex={editing}
         {editor}
+        {filVerb}
+        {filSubjects}
       />
     {/if}
   </div>
@@ -418,6 +501,22 @@
   .chouette {
     margin: 0;
     font-weight: 600;
+  }
+  .fil-panel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--aegean-light);
+    border: 1px solid var(--aegean);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+  }
+  .fil-message {
+    margin: 0;
+    font-weight: 600;
+    color: var(--aegean);
   }
   .text {
     flex: 1;

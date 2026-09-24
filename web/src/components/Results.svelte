@@ -14,6 +14,7 @@
     helpMessage,
     submitError,
     submitting,
+    level,
     onReplay,
     onLibrary,
     onRetry,
@@ -23,6 +24,9 @@
     finalText: string;
     helpMessage: string | null;
     submitError: string | null;
+    /** The player's HarmoS level (SP2 Task 7): threaded into `ExplainContext` so the
+     *  participle_avoir chain explanation only shows from 9H (spec §3.4). */
+    level: string;
     onReplay: () => void;
     onLibrary: () => void;
     /** Not in the task brief's prop list, but needed for the "Réessayer" retry button the brief
@@ -39,7 +43,7 @@
   // of what Play.svelte already computed in `result`.
   const grade = $derived(gradeText(reference.body, finalText, annotation));
   const annots = $derived(mapAnnotation(grade.refTokens, annotation));
-  const ctx = $derived({ refTokens: grade.refTokens, annots, annotation });
+  const ctx = $derived({ refTokens: grade.refTokens, annots, annotation, level, body: reference.body });
 
   const draftCount = $derived(result.draftErrors.length);
   const caughtCount = $derived(result.caught.length);
@@ -172,6 +176,11 @@
     </p>
     <p class="hero-line" data-testid="results-score">Score : {result.score}</p>
     <p class="hero-line">Mots justes : {result.correctWords} / {result.totalWords}</p>
+    {#if result.tools && result.tools.threadsDrawn > 0}
+      <p class="hero-line" data-testid="results-threads">
+        Fils d'Ariane tendus : {result.tools.threadsCorrect} sur {result.tools.threadsDrawn}
+      </p>
+    {/if}
     {#if introducedCount > 0}
       <p class="hero-line muted">
         Éris a profité de la relecture pour glisser {introducedCount} nouveau(x) piège(s). Ça arrive

@@ -16,6 +16,8 @@
     onEditToken,
     editingIndex = null,
     editor,
+    filVerb = null,
+    filSubjects = new Set(),
   }: {
     text: string;
     passSets: Set<ArgusPass>[];
@@ -27,6 +29,11 @@
     /** Token currently being edited; `editor` is rendered in its place. */
     editingIndex?: number | null;
     editor?: Snippet<[number]>;
+    /** Fil d'Ariane (SP2 Task 7): the typed token index of the picked verb, and the typed token
+     *  indexes of its subject once revealed — both in the *player's* token space, already
+     *  mapped from annotation indexes by Proofreading.svelte. */
+    filVerb?: number | null;
+    filSubjects?: Set<number>;
   } = $props();
 
   const tokens = $derived(tokenize(text));
@@ -62,6 +69,8 @@
       class:lit={inActivePass(piece.index)}
       class:dim={dim && activePass !== null && !inActivePass(piece.index)}
       class:hint={hintedTokenIndexes.has(piece.index)}
+      class:fil-verb={filVerb === piece.index}
+      class:fil-subject={filSubjects.has(piece.index)}
       data-testid={`tok-${piece.index}`}
       aria-label="Modifier « {tokens[piece.index].text} »"
       onclick={() => onEditToken(piece.index)}>{tokens[piece.index].text}</button>{/if}{/each}</p>
@@ -119,5 +128,14 @@
     background: var(--orange-light);
     box-shadow: inset 0 -3px 0 var(--orange);
     opacity: 1;
+  }
+  .tok.fil-verb {
+    outline: 3px solid var(--aegean);
+    border-radius: 6px;
+  }
+  .tok.fil-subject {
+    text-decoration: underline;
+    text-decoration-color: var(--gold);
+    text-decoration-thickness: 3px;
   }
 </style>

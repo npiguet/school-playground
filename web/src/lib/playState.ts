@@ -26,6 +26,9 @@ export interface PlayState {
   sessionId: number | null;
   /** Draft error count frozen when proofreading starts (help stage 3 shows it; plan decision #6). */
   initialErrors?: number;
+  /** Fil d'Ariane thread counters (SP2 Task 7), restored across a reload/resume; missing (older
+   *  saved state, or never used) means `{0, 0}`. No version bump: an optional field. */
+  fil?: { drawn: number; correct: number };
 }
 
 export function playKey(profileId: number, textId: number): string {

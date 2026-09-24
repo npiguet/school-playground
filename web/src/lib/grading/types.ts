@@ -130,4 +130,6 @@ export interface SessionResult {
   totalWords: number;
   catchRate: number | null;
   score: number;
+  /** Tool usage for this session (SP2 Task 7): Chouette hints and Fil d'Ariane threads. */
+  tools?: { hints: number; threadsDrawn: number; threadsCorrect: number };
 }

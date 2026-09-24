@@ -4,9 +4,17 @@
 // template falls back to a generic-but-correct sentence for its category rather than risk being
 // wrong (spec §1.3 "when NLP is uncertain, the game skips the feature ... rather than risk
 // teaching something wrong").
+import {
+  numberWord as chainNumberWord,
+  genderWord as chainGenderWord,
+  featureWords,
+  explainChain,
+  groupText,
+} from './chains';
 import { statKey as statKeyOf } from './grading/grade';
 import { homophoneHint } from './grading/homophones';
 import type { Annotation, AnnotToken, StatKey, Token, TokenError } from './grading/types';
+import { levelIndex } from './levels';
 
 export type { StatKey } from './grading/types'; // single source of truth; do not redeclare here
 export { statKey as statKeyOf } from './grading/grade'; // re-export, one implementation
@@ -27,6 +35,12 @@ export interface ExplainContext {
   refTokens: Token[];
   annots: (AnnotToken | undefined)[];
   annotation: Annotation | null;
+  /** The player's HarmoS level (e.g. `'9H'`); gates the participle_avoir chain explanation,
+   *  which isn't taught before 9H (spec §3.4 Argus "Verbes" pass). */
+  level?: string;
+  /** The reference text; needed to read a controller group's exact wording (`groupText`).
+   *  Falls back to `refTokens` joined with spaces when omitted (SP1 callers). */
+  body?: string;
 }
 
 /** The part of `expected` after its longest common prefix with `typed` (the changed suffix,
@@ -69,7 +83,70 @@ function genericAgreement(expected: string): string {
   return `« ${expected} » doit s'accorder. Regarde le mot avec lequel il va.`;
 }
 
+/**
+ * The chain-aware agreement explanation (SP2 Task 7; spec §3.5 "using the subject from the
+ * annotation when available"). Tries every chain kind the server may have produced for this
+ * reference token, high or medium confidence (`explainChain`'s default); returns `null` when
+ * there's no chain, the confidence is too low, or the kind is gated out for this level — the
+ * caller then falls back to the SP1 templates below, which never name a subject/head that
+ * wasn't confidently identified (spec §1.3 "when uncertain, skip").
+ */
+function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string): string | null {
+  const refIndex = e.refIndex;
+  if (refIndex === null || !ctx.annotation) return null;
+  const annot = ctx.annots[refIndex];
+  if (!annot) return null;
+  const chain = explainChain(ctx.annotation, annot.i);
+  if (!chain) return null;
+  const body = ctx.body ?? ctx.refTokens.map((t) => t.text).join(' ');
+  const NP = groupText(ctx.annotation, chain, body);
+
+  if (chain.kind === 'subject_verb') {
+    const num = chainNumberWord(chain.features) ?? 'singulier';
+    const ending = verbEnding(expected, e.typed ?? '');
+    if (chain.via === 'qui') {
+      return `« ${expected} » s'accorde avec « qui », qui reprend « ${NP} » → ${num} → terminaison « ${ending} »`;
+    }
+    if (chain.via === 'conj') {
+      return `« ${expected} » a plusieurs sujets : « ${NP} » → pluriel → terminaison « ${ending} »`;
+    }
+    return `« ${expected} » s'accorde avec son sujet « ${NP} » → ${num} → terminaison « ${ending} »`;
+  }
+
+  if (chain.kind === 'attribute') {
+    return `« ${expected} » est attribut du sujet « ${NP} » → ${featureWords(chain.features)}`;
+  }
+
+  if (chain.kind === 'participle_etre') {
+    return `Avec « être », le participe « ${expected} » s'accorde avec le sujet « ${NP} » → ${featureWords(chain.features)}`;
+  }
+
+  if (chain.kind === 'participle_avoir') {
+    // Not taught before 9H (spec §3.4): without a level, or below it, fall back to the SP1
+    // generic participle sentence rather than teach the avoir/COD rule early.
+    if (ctx.level === undefined || levelIndex(ctx.level) < levelIndex('9H')) return null;
+    if (chain.rule === 'no_agreement') {
+      return `Avec « avoir », le participe « ${expected} » ne s'accorde pas avec le sujet : aucun complément n'est placé avant → « ${expected} »`;
+    }
+    if (chain.rule === 'cod_before') {
+      return `Avec « avoir », le participe « ${expected} » s'accorde avec le complément « ${NP} » placé avant → ${featureWords(chain.features)}`;
+    }
+    return null;
+  }
+
+  if (chain.kind === 'nominal') {
+    const controller = ctx.annotation.tokens.find((t) => t.i === chain.controller);
+    if (!controller) return null;
+    return `« ${expected} » s'accorde avec le nom « ${controller.text} » → ${featureWords(chain.features)}`;
+  }
+
+  return null;
+}
+
 function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string): string {
+  const chainText = chainAgreementText(e, ctx, expected);
+  if (chainText !== null) return chainText;
+
   const refIndex = e.refIndex;
   const annot = refIndex !== null ? ctx.annots[refIndex] : undefined;
 
@@ -130,6 +207,8 @@ export function explain(e: TokenError, ctx: ExplainContext): { title: string; te
     // lexical
     if (e.sub === 'missing') text = `Un mot a disparu : « ${expected} ».`;
     else if (e.sub === 'extra') text = `Un mot en trop : « ${typed} ».`;
+    else if (e.sub === 'sound_alike')
+      text = `« ${typed} » se prononce comme « ${expected} », mais ici c'est « ${expected} ». Il rejoint tes mots-pièges.`;
     else text = `Ce mot s'écrit « ${expected} ». Il rejoint tes mots-pièges pour t'entraîner.`;
   }
 
