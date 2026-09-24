@@ -50,14 +50,31 @@ export async function stubSpeech(page: Page) {
   });
 }
 
+// Dismisses the first-visit onboarding modal (spec's decision 22) if it's showing - tolerant so
+// it's safe to call after any camp arrival, whether or not this is the profile's first visit.
+export async function skipOnboarding(page: Page) {
+  const btn = page.getByTestId('onboarding-skip');
+  if (await btn.isVisible()) await btn.click();
+}
+
+// Navigates straight to a profile's library (SP3: the camp is the new home, the library moved to
+// `/parchemins` - route name `library` unchanged).
+export async function goToLibrary(page: Page, profileId: number | string) {
+  await page.goto('/#/p/' + profileId + '/parchemins');
+}
+
 // UI profile creation (mirrors profiles.spec.ts): starts from the profile picker, fills the
-// "Nouveau héros" form and waits for the library so callers can chain straight into it.
+// "Nouveau héros" form, lands on the camp (SP3: the new home), skips onboarding and heads
+// straight into the library so callers can chain straight into it.
 export async function createProfile(page: Page, name: string, level: string) {
   await page.goto('/');
   await page.getByRole('button', { name: /Nouveau héros/ }).click();
   await page.getByLabel('Ton prénom').fill(name);
   await page.getByLabel('Ton niveau').selectOption(level);
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await skipOnboarding(page);
+  await page.getByTestId('camp-parchemins').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
 }
 

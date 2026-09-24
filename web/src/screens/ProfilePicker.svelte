@@ -24,7 +24,7 @@
   load();
 
   function pick(profile: Profile) {
-    navigate(href('library', { profileId: String(profile.id) }));
+    navigate(href('camp', { profileId: String(profile.id) }));
   }
 
   function createNew() {

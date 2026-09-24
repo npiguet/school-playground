@@ -31,7 +31,7 @@
         pin: pin ? pin : null,
       });
       markUnlocked(profile.id);
-      navigate(href('library', { profileId: String(profile.id) }));
+      navigate(href('camp', { profileId: String(profile.id) }));
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
         error = 'Ce nom est déjà pris.';

@@ -4,6 +4,7 @@
   import Dictation from '../components/Dictation.svelte';
   import Proofreading from '../components/Proofreading.svelte';
   import Results from '../components/Results.svelte';
+  import BreakNudge from '../components/BreakNudge.svelte';
   import { api, ApiError } from '../lib/api';
   import { debounce } from '../lib/debounce';
   import { formatSwissDate, isProphecy } from '../lib/dates';
@@ -15,6 +16,9 @@
   import { loadProfile } from '../lib/profileStore.svelte';
   import { navigate } from '../lib/router.svelte';
   import { href } from '../lib/routes';
+  import { withDerivedCategories } from '../lib/world/derived';
+  import { campStore } from '../lib/world/campStore.svelte';
+  import { clockReset, clockStart, clockStop, clockTick, playClock } from '../lib/world/playClock.svelte';
   import type { PlayMode, Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
 
   let { profile, textId, mode = 'dictation' }: { profile: Profile; textId: string; mode?: PlayMode } = $props();
@@ -116,6 +120,29 @@
     navigate(href('library', { profileId: String(profile.id) }));
   }
 
+  // "Pause" on the break nudge (spec §3.6, decision 16): back to the camp rather than the library,
+  // since the camp is home now.
+  function toLibraryCamp() {
+    left = true;
+    clearPlayState(profile.id, id, mode);
+    navigate(href('camp', { profileId: String(profile.id) }));
+  }
+
+  // Active play time (dictation + proofreading only) drives the ~25-minute break nudge. Ticking
+  // every 15s is frequent enough to notice 25 minutes promptly without hammering sessionStorage.
+  $effect(() => {
+    const phase = playState?.phase;
+    if (phase === 'dictation' || phase === 'proofreading') {
+      clockStart();
+      const intervalId = setInterval(() => clockTick(), 15_000);
+      return () => {
+        clearInterval(intervalId);
+        clockStop();
+      };
+    }
+    clockStop();
+  });
+
   // Tapped from the resume banner, which is itself a tap - a safe place to
   // unlock iOS speech even when we're resuming straight into the dictation
   // phase (whose own Dictation.svelte onMount starts the runner with no
@@ -180,9 +207,14 @@
 
   function computeResult() {
     if (!text || !playState) return;
-    result = gradeSession(text.body, playState.draft, playState.current, text.annotation as Annotation, {
-      paceLevel: playState.pace,
-    });
+    result = withDerivedCategories(
+      gradeSession(text.body, playState.draft, playState.current, text.annotation as Annotation, {
+        paceLevel: playState.pace,
+      }),
+      text.body,
+      playState.draft,
+      text.annotation as Annotation,
+    );
   }
 
   async function submitSession() {
@@ -354,6 +386,13 @@
       onDone={onProofreadingDone}
     />
   {:else if result}
+    {#if playClock.needsBreak}
+      <BreakNudge
+        dragonName={campStore.data?.dragon.name ?? 'Ton dragon'}
+        onPause={toLibraryCamp}
+        onContinue={() => clockReset()}
+      />
+    {/if}
     <Results
       reference={text}
       {result}

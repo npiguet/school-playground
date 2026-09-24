@@ -4,6 +4,7 @@
   import { api, ApiError } from '../lib/api';
   import { listFrenchVoices, pickVoice, speak, waitForVoices } from '../lib/dictation/tts';
   import { profileStore } from '../lib/profileStore.svelte';
+  import { soundStore, setMuted } from '../lib/juice/soundStore.svelte';
   import type { Profile } from '../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -11,11 +12,16 @@
   let voices = $state<SpeechSynthesisVoice[]>([]);
   let voiceName = $state(profile.settings.voice ?? '');
   let level = $state(profile.level);
+  let weeklyGoal = $state(profile.settings.weekly_goal ?? 3);
   let newPin = $state('');
   let error = $state('');
   let toast = $state('');
   let saving = $state(false);
   let removingPin = $state(false);
+
+  function onMuteChange(event: Event) {
+    void setMuted(profile.id, (event.target as HTMLInputElement).checked);
+  }
 
   async function loadVoices() {
     const all = await waitForVoices();
@@ -51,8 +57,8 @@
     saving = true;
     error = '';
     try {
-      const body: { settings: { voice?: string }; level: string; pin?: string } = {
-        settings: { voice: voiceName || undefined },
+      const body: { settings: { voice?: string; weekly_goal?: number }; level: string; pin?: string } = {
+        settings: { voice: voiceName || undefined, weekly_goal: weeklyGoal },
         level,
       };
       if (newPin) body.pin = newPin;
@@ -113,6 +119,26 @@
     </section>
 
     <section>
+      <h2>Son</h2>
+      <label class="checkbox-field">
+        <input type="checkbox" checked={soundStore.muted} onchange={onMuteChange} />
+        Couper les sons du jeu (la dictée reste lue)
+      </label>
+    </section>
+
+    <section>
+      <h2>Objectif de la semaine</h2>
+      <div class="field">
+        <label for="weekly-goal">Textes par semaine</label>
+        <select id="weekly-goal" bind:value={weeklyGoal}>
+          {#each [2, 3, 4, 5] as n (n)}
+            <option value={n}>{n}</option>
+          {/each}
+        </select>
+      </div>
+    </section>
+
+    <section>
       <h2>Code</h2>
       <div class="field">
         <label for="new-pin">Nouveau code (quatre chiffres)</label>
@@ -150,6 +176,18 @@
   }
   .field {
     margin-bottom: 12px;
+  }
+  .checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: normal;
+    min-height: 48px;
+  }
+  .checkbox-field input {
+    min-height: unset;
+    width: 22px;
+    height: 22px;
   }
   select {
     width: 100%;

@@ -5,6 +5,7 @@
   import PinGate from './components/PinGate.svelte';
   import ProfilePicker from './screens/ProfilePicker.svelte';
   import ProfileCreate from './screens/ProfileCreate.svelte';
+  import Camp from './screens/Camp.svelte';
   import Library from './screens/Library.svelte';
   import TextCreate from './screens/TextCreate.svelte';
   import ScanText from './screens/ScanText.svelte';
@@ -60,6 +61,8 @@
     {:else if gateProfile}
       {#if gateProfile.has_pin && !unlocked}
         <PinGate profile={gateProfile} {onUnlocked} />
+      {:else if route.name === 'camp'}
+        <Camp profile={gateProfile} />
       {:else if route.name === 'library'}
         <Library profile={gateProfile} />
       {:else if route.name === 'text-new'}

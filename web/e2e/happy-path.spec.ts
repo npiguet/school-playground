@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { stubSpeech } from './helpers';
+import { stubSpeech, skipOnboarding } from './helpers';
 
 const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
@@ -14,6 +14,9 @@ test('create profile → add text → dictation → proofreading → results →
   await page.getByLabel('Ton prénom').fill(name);
   await page.getByLabel('Ton niveau').selectOption('10H');
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await skipOnboarding(page);
+  await page.getByTestId('camp-parchemins').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
 
   // Custom text (the FAB opens the add menu, spec's "Decisions" #12; Task 8)
@@ -57,9 +60,11 @@ test('create profile → add text → dictation → proofreading → results →
   await expect(page.getByTestId('results-score')).not.toContainText('NaN');
   await expect(page.getByText(/chantent/).first()).toBeVisible();
 
-  // Stats reflect the session
+  // Stats reflect the session. Navigated to directly rather than via the TopBar's "Progrès" link:
+  // that link now points at `dossier` (SP3 decision 14), whose route lands in Task 6.
   await page.getByTestId('btn-back-library').click();
-  await page.getByRole('link', { name: 'Progrès' }).click();
+  const profileId = new URL(page.url()).hash.match(/\/p\/(\d+)\//)?.[1];
+  await page.goto(`/#/p/${profileId}/stats`);
   await expect(page.getByText(/1 parties?/).first()).toBeVisible();
   await expect(page.getByText("Accord du verbe avec son sujet (L'Hydre)").first()).toBeVisible();
 });

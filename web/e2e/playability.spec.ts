@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { stubSpeech } from './helpers';
+import { stubSpeech, skipOnboarding } from './helpers';
 
 // Playability walk for the SP1 review (spec §6.2). One test per iPad orientation; every screen
 // is screenshotted into docs/reviews/sp1/<project>-NN-<screen>.png. The draft typed during the
@@ -157,9 +157,12 @@ test('playability walk', async ({ page, request }, testInfo) => {
   await page.getByLabel('Ton niveau').selectOption('10H');
   await shot(page, project, '02-profile-new');
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await skipOnboarding(page);
   const profileId = Number(page.url().match(/#\/p\/(\d+)\//)?.[1]);
   expect(profileId).toBeGreaterThan(0);
+  await page.getByTestId('camp-parchemins').click();
+  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
 
   // ---- 03 Library --------------------------------------------------------------------------
   await expect(page.locator('[data-testid="text-card"]').first()).toBeVisible();
@@ -312,7 +315,9 @@ test('playability walk', async ({ page, request }, testInfo) => {
   await page.getByTestId('btn-back-library').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
   await shot(page, project, '15b-library-after-play');
-  await page.locator('.topbar a[href$="/stats"]').click();
+  // Navigated to directly rather than via the TopBar's "Progrès" link: that link now points at
+  // `dossier` (SP3 decision 14), whose route lands in Task 6.
+  await page.goto(`/#/p/${profileId}/stats`);
   await expect(page.getByRole('heading', { name: 'Progrès' })).toBeVisible();
   await expect(page.getByText(/1 parties?/).first()).toBeVisible();
   await shot(page, project, '15-stats');
@@ -399,6 +404,9 @@ test('playability walk', async ({ page, request }, testInfo) => {
   await page.getByLabel(/Un code à quatre chiffres/).fill('1234');
   await shot(page, project, '02b-profile-new-with-code');
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await skipOnboarding(page);
+  await page.getByTestId('camp-parchemins').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
   await shot(page, project, '03b-library-7H');
   await page.locator('.topbar a[href="#/"]').click();
@@ -411,7 +419,7 @@ test('playability walk', async ({ page, request }, testInfo) => {
   await expect(page.getByText("Ce n'est pas le bon code")).toBeVisible();
   await shot(page, project, '17b-pin-gate-wrong');
   await page.getByLabel(/Code de/).fill('1234');
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
 
   console.log(`\n===== NOTES ${project} =====\n${notes.join('\n')}\n`);
 });
