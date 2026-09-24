@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TINT_FILTERS, stageLabel, stageLine, validName } from './dragon';
+import { TINT_FILTERS, stageActivity, stageLabel, stageLine, validName } from './dragon';
 
 describe('dragon helpers', () => {
   it('never offers violet (reserved for Éris) and has six tints', () => {
@@ -13,6 +13,12 @@ describe('dragon helpers', () => {
     expect(stageLine('young', 'Braise', 2)).toBe('Braise bat des ailes : encore 2 techniques à neutraliser.');
     expect(stageLine('young', 'Braise', 1)).toBe('Braise bat des ailes : encore 1 technique à neutraliser.');
     expect(stageLine('adult', 'Braise', null)).toBe("Braise veille sur le camp. Éris n'a qu'à bien se tenir.");
+  });
+  it('has a short ambient activity per stage, for a hotspot caption (unlike stageLine, no title tooltip on iPad)', () => {
+    expect(stageActivity('egg')).toBe('Frémit');
+    expect(stageActivity('hatchling')).toBe('Curieux');
+    expect(stageActivity('young')).toBe("S'entraîne");
+    expect(stageActivity('adult')).toBe('Monte la garde');
   });
   it('validates names', () => {
     expect(validName('  Braise ')).toBe(true);

@@ -48,10 +48,13 @@ describe('camp hub scene', () => {
     for (const h of CAMP_HOTSPOTS) expect(h.state({ camp: null, catalog: null }).visible, h.id).toBe(h.id !== 'boss');
   });
 
-  it('captions the dragon with its name, or its stage before it is named', () => {
+  it('captions the dragon with its name, or its stage before it is named, plus its short ambient activity', () => {
     expect(dragonCaption(camp().dragon)).toBe('Un œuf de dragon');
     expect(dragonCaption({ ...camp().dragon, stage: 'hatchling' })).toBe('Dragonnet');
-    expect(state('dragon', camp({ dragon: { ...camp().dragon, stage: 'hatchling', name: 'Braise' } })).caption).toBe('Braise');
+    expect(state('dragon', camp()).caption).toBe('Un œuf de dragon · Frémit');
+    expect(state('dragon', camp({ dragon: { ...camp().dragon, stage: 'hatchling', name: 'Braise' } })).caption).toBe(
+      'Braise · Curieux',
+    );
   });
 
   it('marks the sealed Oracle as new, counts active quests, counts neutralised tricks', () => {

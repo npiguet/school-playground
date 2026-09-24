@@ -2,13 +2,13 @@
   // The slim scene HUD (scenes UI spec §4): hero chip (opens the hero panel), XP laurel, dragon
   // mini-portrait, sound toggle. Viewport-anchored over the stage, inside the safe-area insets.
   // Audio channels and their sliders arrive in UI5; UI1 keeps the existing single mute.
-  // Task 10b #11: the dragon mini-portrait carries its `stageLine` (what it's up to) as a title,
-  // restoring the ambient status the old always-visible camp card used to show (now the greeting
-  // dialogue only shows it once, on the first visit of the day).
+  // Task 10b round 1 #3: the dragon's ambient status (what it's up to) lives on the camp-dragon
+  // hotspot's caption instead of a `title` here (see camp.ts) - a `title` tooltip never shows on
+  // iPad, the target device, since there's no mouse hover to trigger it.
   import Avatar from '../Avatar.svelte';
   import LaurelBar from '../ui/LaurelBar.svelte';
   import { ART } from '../../lib/world/art';
-  import { TINT_FILTERS, stageLine } from '../../lib/world/dragon';
+  import { TINT_FILTERS } from '../../lib/world/dragon';
   import { hudXp } from '../../lib/scene/hud';
   import { setMuted, soundStore } from '../../lib/juice/soundStore.svelte';
   import { unlockAudio } from '../../lib/juice/sfx';
@@ -43,7 +43,6 @@
         data-testid="hud-dragon"
         href={href('dragon', { profileId: String(profile.id) })}
         aria-label="Ton dragon"
-        title={stageLine(camp.dragon.stage, camp.dragon.name, Math.max(0, camp.dragon.available - camp.dragon.neutralised))}
       >
         <img src={ART.dragon[camp.dragon.stage]} alt="" style="filter:{TINT_FILTERS[camp.dragon.tint]}" />
       </a>

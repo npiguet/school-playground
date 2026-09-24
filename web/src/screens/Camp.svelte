@@ -152,22 +152,25 @@
 {/if}
 
 <style>
-  /* Positioned (and capped) in the zone free of every CAMP_HOTSPOTS shape box AND label (see
-     camp.shapes.ts): a hotspot's label pill is wider than its shape and was measured (?debug,
-     real boundingBox()es at both 1180x820 and 1366x1024) rather than assumed, since "below"/
-     "above" labels extend well past their shape's own box. x 27-52% clears oracle's label (right
-     edge measured up to ~25.1%) and quests' label (left edge measured down to ~55.8%); y 15-41%
-     clears the HUD band (< 14%) above and parchemins/bestiary (min y 44%) below.
-     `overflow: hidden auto` is a hard guarantee, not just a style choice: it caps both axes to
-     these exact box dimensions (a scrollbar for height, a clip for width) so a longer prophecy
-     title can never silently grow the column past the clearance above. */
+  /* Positioned in the zone free of every CAMP_HOTSPOTS shape box AND label (see camp.shapes.ts):
+     a hotspot's label pill is wider than its shape and was measured (?debug, real boundingBox()es
+     at both 1180x820 and 1366x1024) rather than assumed, since "below"/"above" labels extend well
+     past their shape's own box. x 27-52% clears oracle's label (right edge measured up to ~25.1%)
+     and quests' label (left edge measured down to ~55.8%); y 15-41%-ish clears the HUD band
+     (< 14%) above and parchemins/bestiary (min y 44%) below.
+     No `overflow`/`max-height` here on purpose (round 1 review): that combination scrolled
+     « Réviser » out of view for a long prophecy title (the server allows up to 120 characters,
+     server/app/schemas.py). The prophecy paragraph below is `-webkit-line-clamp`-ed instead, which
+     bounds its own height regardless of title length, so the button after it is always laid out
+     and always visible without ever needing to scroll the column. (The earlier "content grows past
+     width: 25%" reading behind that `overflow` was also a misdiagnosis: SceneTransition zooms the
+     whole art box in from scale 1.04 over 450ms - a transform, not layout - so a box measured
+     mid-transition reads wider than its settled CSS width; there is no real overflow to guard.) */
   .camp-column {
     position: absolute;
     left: 27%;
     top: 15%;
     width: 25%;
-    max-height: 26%;
-    overflow: hidden auto;
     z-index: 3;
     display: flex;
     flex-direction: column;
@@ -195,6 +198,17 @@
   .prophecy p,
   .status p {
     margin: 0;
+  }
+  .prophecy p {
+    /* Clamp instead of scroll (round 1 review): a 120-char title (the server's own max, see
+       schemas.py) is still just 3 lines, not a box that grows past its column and pushes
+       « Réviser » out of reach. -webkit-line-clamp only clips the box visually - the full text
+       stays in the DOM, so it's still exposed in full to assistive tech. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
   }
   .status {
     margin: 0;

@@ -3,7 +3,7 @@
 // camp.shapes.ts (pure data, authored by hand from docs/art/scenes.md and re-checked with the
 // `?debug` overlay whenever UI2 repaints the camp).
 import { ART } from '../art';
-import { TINT_FILTERS, stageLabel, stageLine } from '../dragon';
+import { TINT_FILTERS, stageActivity, stageLabel, stageLine } from '../dragon';
 import type { CampResponse, DragonOut, WorldCatalog } from '../types';
 import {
   IDLE_HOTSPOT,
@@ -40,7 +40,11 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     target: 'dragon',
     shape: CAMP_SHAPES.dragon,
     labelPos: 'below',
-    state: ({ camp }) => st({ caption: camp ? dragonCaption(camp.dragon) : null }),
+    // Task 10b round 1 #3: a `title` tooltip never shows on iPad (no mouse hover on the target
+    // device), so what the dragon is up to (stageActivity, a short version of dragon.ts's
+    // stageLine) rides along here instead, next to its identity (dragonCaption).
+    state: ({ camp }) =>
+      st({ caption: camp ? `${dragonCaption(camp.dragon)} · ${stageActivity(camp.dragon.stage)}` : null }),
   },
   {
     id: 'oracle',

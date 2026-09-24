@@ -53,6 +53,22 @@ export function stageLine(stage: DragonStage, name: string | null, remaining: nu
   return `${label} veille sur le camp. Éris n'a qu'à bien se tenir.`;
 }
 
+// Task 10b round 1 #3: `stageLine()` above (up to 64 chars) is what the dragon is up to, but a
+// `title` tooltip carrying it never shows on iPad (the target device has no mouse hover), and it's
+// too long for a hotspot label pill (`white-space: nowrap`). This is the same ambient status,
+// short enough to sit in the `camp-dragon` hotspot's caption instead (Camp.svelte's HUD dragon
+// button is icon-only, unchanged) - same thematic words as stageLine, just not a full sentence.
+const STAGE_ACTIVITY: Record<DragonStage, string> = {
+  egg: 'Frémit',
+  hatchling: 'Curieux',
+  young: "S'entraîne",
+  adult: 'Monte la garde',
+};
+
+export function stageActivity(stage: DragonStage): string {
+  return STAGE_ACTIVITY[stage];
+}
+
 /** 1-20 characters after trim, no line breaks (server mirrors the length bounds in
  *  `DragonPatch`; this also rejects the newline the server schema doesn't check). */
 export function validName(name: string): boolean {
