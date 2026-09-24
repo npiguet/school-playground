@@ -14,11 +14,12 @@
   import { worldApi } from '../lib/world/api';
   import { campStore, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
   import { stageLabel, validName } from '../lib/world/dragon';
-  import { romanTier } from '../lib/world/quests';
+  import { lowerLeadingArticle, romanTier } from '../lib/world/quests';
+  import { agree } from '../lib/world/eris';
   import { ApiError } from '../lib/api';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
   import { reducedMotion } from '../lib/juice/motion';
-  import type { DragonOut, Progression, RewardKind } from '../lib/world/types';
+  import type { DragonOut, LieutenantKey, Progression, RewardKind } from '../lib/world/types';
   import type { Profile } from '../lib/types';
 
   let {
@@ -70,28 +71,53 @@
   }
 
   // XP card ------------------------------------------------------------------------------------
-  const rankFloor = $derived(campStore.catalog?.ranks[progression.xp.rank_before - 1]?.xp ?? 0);
-  const rankNextThreshold = $derived(campStore.catalog?.ranks[progression.xp.rank_before]?.xp ?? null);
-  const gaugeMax = $derived(
-    Math.max(1, (rankNextThreshold ?? Math.max(progression.xp.total_after, rankFloor + 1)) - rankFloor),
+  // A rank-up (`rank_after > rank_before`) must animate the OLD rank's scale to its own max first,
+  // then switch the gauge to the NEW rank's floor/next thresholds (P1-2): otherwise the bar reads
+  // "Sentinelle des textes 441 / 250" - full and past its own max at the exact moment the game
+  // says "Nouveau rang". `rankBefore*`/`rankAfter*` are kept as separate derived values (not one
+  // mutated in place) so both stay reactive to a still-loading world catalog the whole time.
+  const rankBeforeFloor = $derived(campStore.catalog?.ranks[progression.xp.rank_before - 1]?.xp ?? 0);
+  const rankBeforeNextThreshold = $derived(campStore.catalog?.ranks[progression.xp.rank_before]?.xp ?? null);
+  const rankBeforeMax = $derived(
+    Math.max(1, (rankBeforeNextThreshold ?? Math.max(progression.xp.total_before, rankBeforeFloor + 1)) - rankBeforeFloor),
   );
+  const rankBeforeTitle = $derived(campStore.catalog?.ranks[progression.xp.rank_before - 1]?.title ?? progression.xp.title_after);
+
+  const rankAfterFloor = $derived(campStore.catalog?.ranks[progression.xp.rank_after - 1]?.xp ?? 0);
+  const rankAfterNextThreshold = $derived(campStore.catalog?.ranks[progression.xp.rank_after]?.xp ?? null);
+  const rankAfterMax = $derived(
+    Math.max(1, (rankAfterNextThreshold ?? Math.max(progression.xp.total_after, rankAfterFloor + 1)) - rankAfterFloor),
+  );
+
   const rankedUp = $derived(progression.xp.rank_after > progression.xp.rank_before);
 
-  // `rankFloor` needs the world catalog, which may still be loading (`loadCatalog()` above) when
+  // Which scale the gauge currently shows: the old one until the rank-up switch fires (below),
+  // the new one immediately when there is no rank-up at all.
+  let gaugePhase = $state<'before' | 'after'>('before');
+  const showingAfterRank = $derived(!rankedUp || gaugePhase === 'after');
+  const gaugeFloor = $derived(showingAfterRank ? rankAfterFloor : rankBeforeFloor);
+  const gaugeMax = $derived(showingAfterRank ? rankAfterMax : rankBeforeMax);
+  const gaugeTitle = $derived(showingAfterRank ? progression.xp.title_after : rankBeforeTitle);
+
+  // `gaugeFloor` needs the world catalog, which may still be loading (`loadCatalog()` above) when
   // this mounts - keep tracking it until the delayed "to" step below takes over, so a slow fetch
   // doesn't freeze the gauge at the wrong scale.
   let xpValue = $state(0);
   let xpAnimated = false;
   $effect(() => {
-    if (!xpAnimated) xpValue = Math.max(0, progression.xp.total_before - rankFloor);
+    if (!xpAnimated) xpValue = Math.max(0, progression.xp.total_before - gaugeFloor);
   });
   const bonusChips = $derived([{ reason: 'session', amount: progression.xp.session }, ...progression.xp.bonuses]);
 
   // Quest cards ----------------------------------------------------------------------------------
+  // Mirrors `questTitle()` in `./quests.ts` (the board/quest board/Oracle screens) - this reveal's
+  // `Progression['quests']` entries carry a `number | null` goal instead of `QuestOut`'s `goal.tier`
+  // object, so it cannot call that function directly, but it must lower a leading article the same
+  // way ("Tenir l'Hydre en échec", not "Tenir L'Hydre en échec") (P1-1).
   function questLabel(q: Progression['quests'][number]): string {
     if (q.kind === 'boss') return `Combat contre ${names.eris ?? 'Éris'} (${romanTier(progression.boss?.tier ?? 1)})`;
     const name = names[q.target] ?? q.target;
-    return q.kind === 'oracle' ? `Rouleau de l'Oracle : ${name}` : `Tenir ${name} en échec`;
+    return q.kind === 'oracle' ? `Rouleau de l'Oracle : ${name}` : `Tenir ${lowerLeadingArticle(name)} en échec`;
   }
 
   function questBonus(q: Progression['quests'][number]): { xp: number | null; rewardName: string | null } {
@@ -150,14 +176,24 @@
 
   $effect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
-    // The XP gauge itself animates shortly after mount, independent of the other cues.
+    // The XP gauge itself animates shortly after mount, independent of the other cues. A rank-up
+    // fills the OLD scale to its max first, then (after the burst) switches the gauge to the NEW
+    // rank's floor/next and animates to `total_after` on that scale (P1-2).
     timers.push(
       setTimeout(() => {
         xpAnimated = true;
-        xpValue = Math.max(0, progression.xp.total_after - rankFloor);
         if (rankedUp) {
+          xpValue = rankBeforeMax;
           playSfx('chime');
           xpBurstTrigger += 1;
+          timers.push(
+            setTimeout(() => {
+              gaugePhase = 'after';
+              xpValue = Math.max(0, progression.xp.total_after - rankAfterFloor);
+            }, 400),
+          );
+        } else {
+          xpValue = Math.max(0, progression.xp.total_after - rankAfterFloor);
         }
       }, 150),
     );
@@ -191,7 +227,9 @@
       );
       t += 300;
     }
-    if (progression.boss && !progression.boss.won) {
+    // Éris's "hmpf" is her mocking a real loss - it doesn't fit a fight she never got to fight
+    // (P1-5's 'too_easy' draw), so it only plays on an actual loss.
+    if (progression.boss && !progression.boss.won && !progression.boss.too_easy) {
       const at = t;
       timers.push(setTimeout(() => playSfx('hmpf'), at));
     }
@@ -221,7 +259,7 @@
     <div class="card reveal-card" data-testid="reveal-xp">
       <p class="headline">+{progression.xp.session} XP</p>
       <div class="gauge-wrap">
-        <Gauge value={xpValue} max={gaugeMax} label={progression.xp.title_after} />
+        <Gauge value={xpValue} max={gaugeMax} label={gaugeTitle} />
         {#if rankedUp}<Particles trigger={xpBurstTrigger} kind="burst" />{/if}
       </div>
       <div class="chips">
@@ -264,7 +302,7 @@
           class="lieutenant-art"
         />
         <div class="neutralised-body">
-          <p class="title">{names[key] ?? key} — neutralisé !</p>
+          <p class="title">{names[key] ?? key} — {agree('neutralisé', key as LieutenantKey)} !</p>
           <p>Sa ruse ne te piège plus : taux ≥ 80 % sur trois jours.</p>
           <Medallion glyph={LIEUTENANT_GLYPHS[key] ?? '❔'} kind="relic" size={56} />
         </div>
@@ -335,6 +373,10 @@
             <p class="line">« Impossible ! Garde ta pomme, je reviendrai avec de nouvelles ruses. »</p>
             {#if bossReward}<p class="reward-line">{bossReward.name}</p>{/if}
           </div>
+        </div>
+      {:else if progression.boss.too_easy}
+        <div class="parchment reveal-card boss-result" data-testid="reveal-boss-too-easy">
+          <p class="line">Éris n'a rien pu saboter : reviens avec un texte plus long.</p>
         </div>
       {:else}
         <div class="parchment reveal-card boss-result" data-testid="reveal-boss">

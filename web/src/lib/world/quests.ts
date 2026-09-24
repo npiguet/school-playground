@@ -7,7 +7,10 @@ import type { QuestOut, WorldCatalog } from './types';
 // mid-sentence ("Tenir L'Hydre en échec") - lower-case it, same rule for every article.
 const LEADING_ARTICLE = /^(L'|La |Le |Les )/;
 
-function lowerLeadingArticle(name: string): string {
+// Exported so screens that build their own quest label from a differently-shaped quest object
+// (e.g. `ProgressionReveal.svelte`'s `Progression['quests']`, which has no `QuestOut.goal.tier`)
+// still lower the article the same way instead of re-deriving the regex.
+export function lowerLeadingArticle(name: string): string {
   return name.replace(LEADING_ARTICLE, (m) => m.toLowerCase());
 }
 

@@ -49,6 +49,19 @@ describe('French gender agreement (I7)', () => {
     expect(agree('Neutralisé', 'sirenes')).toBe('Neutralisées');
   });
 
+  // P1-1 (SP3 playability): the progression reveal's neutralisation card hard-coded "neutralisé"
+  // ("L'Hydre — neutralisé !"), which is wrong for every feminine/plural lieutenant. It now builds
+  // the line with `agree()`, lower-case base like the dossier/lieutenant page - covered directly
+  // since ProgressionReveal.svelte has no component test in this codebase (pure functions only).
+  it('agrees the reveal neutralisation line for every lieutenant', () => {
+    expect(agree('neutralisé', 'hydre')).toBe('neutralisée');
+    expect(agree('neutralisé', 'echo')).toBe('neutralisée');
+    expect(agree('neutralisé', 'chimere')).toBe('neutralisée');
+    expect(agree('neutralisé', 'lethe')).toBe('neutralisée');
+    expect(agree('neutralisé', 'sirenes')).toBe('neutralisées');
+    expect(agree('neutralisé', 'protee')).toBe('neutralisé');
+  });
+
   it('picks the right stressed pronoun after "contre"', () => {
     expect(pronounFor('chimere')).toBe('elle');
     expect(pronounFor('protee')).toBe('lui');

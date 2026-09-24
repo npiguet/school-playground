@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { questProgressLabel, questTitle, rewardLabel, romanTier } from './quests';
+import { lowerLeadingArticle, questProgressLabel, questTitle, rewardLabel, romanTier } from './quests';
 
 const names = { hydre: "L'Hydre", echo: 'Écho' };
 const q = (o: object) =>
@@ -39,5 +39,15 @@ describe('quest labels', () => {
       "300 XP · Sandales d'Hermès",
     );
     expect(romanTier(3)).toBe('III');
+  });
+
+  // P1-1 (SP3 playability): mid-sentence, a leading French article reads oddly capitalised
+  // ("Tenir L'Hydre en échec") - screens that build their own quest label from a shape other than
+  // `QuestOut` (ProgressionReveal.svelte) must still lower it the same way as `questTitle()`.
+  it('lowers a leading article mid-title, exported for callers that cannot use questTitle directly', () => {
+    expect(lowerLeadingArticle("L'Hydre")).toBe("l'Hydre");
+    expect(lowerLeadingArticle('La Chimère')).toBe('la Chimère');
+    expect(lowerLeadingArticle('Les Sirènes')).toBe('les Sirènes');
+    expect(lowerLeadingArticle('Écho')).toBe('Écho');
   });
 });
