@@ -17,7 +17,7 @@
     level,
     mode = 'dictation',
     onReplay,
-    onLibrary,
+    onCamp,
     onRetry,
   }: {
     reference: TextFull;
@@ -31,7 +31,11 @@
     /** SP2 Task 9: picks Éris's grimoire-flavoured line and the "Dés-accords retrouvés" wording. */
     mode?: PlayMode;
     onReplay: () => void;
-    onLibrary: () => void;
+    /** P2-2 (SP3 playability): the results screen's only exit besides replay goes to the camp,
+     *  not the library - after a session the camp is the screen that just changed (egg, quest
+     *  counters, boss panel), so the loop should close there instead of dropping the player one
+     *  more tap away from it. Renamed from `onLibrary` (was wired to the library route). */
+    onCamp: () => void;
     /** Not in the task brief's prop list, but needed for the "Réessayer" retry button the brief
      *  describes (Play.svelte step 3): retries the session submission without leaving the screen. */
     onRetry?: () => void;
@@ -259,7 +263,7 @@
 
   <div class="actions">
     <button type="button" class="btn btn-primary" onclick={onReplay}>Rejouer ce texte</button>
-    <button type="button" class="btn" data-testid="btn-back-library" onclick={onLibrary}>Retour aux Parchemins</button>
+    <button type="button" class="btn" data-testid="btn-back-camp" onclick={onCamp}>Retour au camp</button>
   </div>
 </div>
 

@@ -456,7 +456,7 @@
       level={profile.level}
       {mode}
       onReplay={restart}
-      onLibrary={toLibrary}
+      onCamp={toLibraryCamp}
       onRetry={submitSession}
     />
   {:else}
