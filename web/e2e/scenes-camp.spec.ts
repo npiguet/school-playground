@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createProfileApi, createText, expectCamp, makeResult, postSession } from './helpers';
+import { createProfileApi, createText, expectCamp, makeResult, postSession, waitForSceneSettled } from './helpers';
 
 // UI1 (scenes spec §9, §10): the camp as a hub scene, in both WebKit projects (desktop 1280x720
 // and iPad landscape 1180x820). Every place is a real button that routes to its (unchanged)
@@ -17,14 +17,6 @@ const PLACES: { id: string; path: RegExp; name: RegExp }[] = [
 ];
 
 const heroName = (project: string) => `Hub-${project}-${Date.now() % 1e6}`;
-
-// Round 1 review #2: SceneTransition (kind="zoom") scales the whole art box in from 1.04 to 1
-// over 450ms on mount (SceneTransition.svelte) - a `transform`, not layout, so any boundingBox()
-// read taken mid-animation reads a box that's still shrinking (up to ~4% oversized). Every test
-// below that measures element geometry waits for this first.
-async function waitForSceneSettled(page: Page) {
-  await expect(page.locator('.scene-transition')).toHaveCSS('transform', 'none');
-}
 
 async function openCamp(page: Page, profileId: number) {
   await page.goto(`/#/p/${profileId}/camp`);

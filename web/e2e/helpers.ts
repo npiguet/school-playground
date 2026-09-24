@@ -63,6 +63,15 @@ export async function expectCamp(page: Page) {
   await expect(page.getByTestId('scene-camp')).toBeVisible();
 }
 
+// Round 1 review #2: SceneTransition (kind="zoom") scales the whole art box in from 1.04 to 1
+// over 450ms on mount (SceneTransition.svelte) - a `transform`, not layout, so any boundingBox()
+// read (or screenshot) taken mid-animation reads a box that's still shrinking (up to ~4%
+// oversized). Every spec that measures element geometry or takes a screenshot waits for this
+// first.
+export async function waitForSceneSettled(page: Page) {
+  await expect(page.locator('.scene-transition')).toHaveCSS('transform', 'none');
+}
+
 // Creates an already-onboarded profile through the API (no first-visit modal), for specs that
 // start straight on the camp hub. Returns its id.
 export async function createProfileApi(request: APIRequestContext, name: string, level = '10H'): Promise<number> {
