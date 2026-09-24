@@ -59,6 +59,8 @@
           alt=""
           class="thumb"
           class:locked={!unlocked}
+          loading="lazy"
+          decoding="async"
         />
         <span class="name">{e.name}</span>
         <span class="teaser muted">{e.teaser}</span>
