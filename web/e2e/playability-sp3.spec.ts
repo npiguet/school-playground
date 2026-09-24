@@ -60,17 +60,62 @@ const BOSS_PLANTS: { re: RegExp; to: string; kind: string }[] = [
   { re: /(?<!\p{L})(\p{L}+)ée(?!\p{L})/u, to: '$1é', kind: 'feminine -ée → -é (Protée / Chimère)' },
 ];
 
-function plantBoss(body: string): { draft: string; planted: string[]; missing: string[] } {
+// The single word that changed between a plant's original phrase and its corrupted one (some
+// patterns match a short phrase, e.g. "les fées" -> "les fée", but only one word inside it
+// actually differs - that's the token `editWord` needs during proofreading), and its position in
+// the *matched phrase* (0 for a single-word match, 1 for "les X"/"des X").
+function diffWord(before: string, after: string): { indexInMatch: number; wrong: string; correct: string } | null {
+  const b = before.split(/\s+/);
+  const a = after.split(/\s+/);
+  for (let i = 0; i < Math.max(b.length, a.length); i++) {
+    if (b[i] !== a[i]) return { indexInMatch: i, correct: b[i] ?? '', wrong: a[i] ?? '' };
+  }
+  return null;
+}
+
+function wordCountBefore(text: string, charIndex: number): number {
+  const head = text.slice(0, charIndex).trim();
+  return head ? head.split(/\s+/).length : 0;
+}
+
+// A plant's absolute word position (0-based, over the whole text split on whitespace) plus its
+// wrong/correct text, so the "won" pass can locate the exact on-screen token to fix - not just
+// "some token with this text", since a boss text can naturally contain the same short word
+// («et», «à», «ses»…) more than once (P1-5: real proofreading must catch the RIGHT occurrence).
+type BossFix = { wordIndex: number; wrong: string; correct: string };
+
+function plantBoss(body: string): { draft: string; planted: string[]; missing: string[]; fixes: BossFix[] } {
   let draft = body;
   const planted: string[] = [];
   const missing: string[] = [];
+  const fixes: BossFix[] = [];
   for (const p of BOSS_PLANTS) {
-    if (p.re.test(draft)) {
+    const m = p.re.exec(draft);
+    if (m) {
+      const before = m[0];
+      const after = before.replace(p.re, p.to);
+      const diff = diffWord(before, after);
+      if (diff && diff.wrong !== diff.correct) {
+        fixes.push({ wordIndex: wordCountBefore(draft, m.index) + diff.indexInMatch, wrong: diff.wrong, correct: diff.correct });
+      }
       draft = draft.replace(p.re, p.to);
       planted.push(p.kind);
     } else missing.push(p.kind);
   }
-  return { draft, planted, missing };
+  return { draft, planted, missing, fixes };
+}
+
+// How many earlier words in `text` (word index < `beforeIndex`) have exactly the same text as
+// `word` once punctuation is stripped - the DOM's `tok-` elements carry pure word text, so this is
+// the `.nth()` a Playwright locator needs to hit the one at `beforeIndex` and not an earlier one.
+function stripPunct(w: string): string {
+  return w.replace(/^[«»""'’.,;:!?…()—–-]+|[«»""'’.,;:!?…()—–-]+$/g, '');
+}
+
+function occurrenceIndex(text: string, wordIndex: number): number {
+  const words = text.trim().split(/\s+/).map(stripPunct);
+  const target = words[wordIndex];
+  return words.slice(0, wordIndex).filter((w) => w === target).length;
 }
 
 async function shot(page: Page, project: string, name: string, settleMs = 700) {
@@ -87,12 +132,19 @@ function tok(page: Page, word: string) {
   return page.locator('[data-testid^="tok-"]', { hasText: new RegExp(`^${esc(word)}$`) });
 }
 
-async function editWord(page: Page, from: string, to: string) {
-  await tok(page, from).first().click();
+// `fromOccurrence`/`toOccurrence` pick the nth on-screen token with that exact text (0-based) -
+// needed once a fix targets a common word (« et », « à », « ses »…) that may also occur naturally
+// elsewhere in a long boss text (P1-5: real proofreading, on whatever text the boss endpoint
+// serves). They are computed against DIFFERENT texts and so are usually different numbers: `from`
+// is searched for in the corrupted draft still on screen (how many earlier "avait"s precede the
+// one that used to be "avaient"), `to` is verified against the ORIGINAL text once restored (how
+// many earlier "avaient"s there were - often none, even when "avait" collided four times).
+async function editWord(page: Page, from: string, to: string, fromOccurrence = 0, toOccurrence = fromOccurrence) {
+  await tok(page, from).nth(fromOccurrence).click();
   const editor = page.getByTestId('word-editor');
   await editor.fill(to);
   await editor.press('Enter');
-  await expect(tok(page, to).first()).toBeVisible();
+  await expect(tok(page, to).nth(toOccurrence)).toBeVisible();
 }
 
 // Paces 3-4 auto-advance through real setTimeout pauses (600 ms + a per-chunk pause): while
@@ -556,7 +608,7 @@ test('SP3 playability walk', async ({ page, request }, testInfo) => {
   notes.push(`boss pace cards: ${JSON.stringify(await texts(page, '[data-testid^="pace-option-"]'))}`);
   await shot(page, project, '22-play-boss-intro');
   const paceUsed = await pickLowestPace(page);
-  const { draft: bossDraft, planted, missing } = plantBoss(bossBody);
+  const { draft: bossDraft, planted, missing, fixes: bossFixes } = plantBoss(bossBody);
   notes.push(`boss pace used: ${paceUsed}; planted (${planted.length}): ${planted.join(' | ')}${missing.length ? `; NOT planted: ${missing.join(' | ')}` : ''}`);
   await page.getByRole('button', { name: 'Commencer la dictée' }).click();
   await dictate(page, bossDraft);
@@ -579,7 +631,13 @@ test('SP3 playability walk', async ({ page, request }, testInfo) => {
   notes.push(`boss screen after loss: ${clean(await page.locator('.boss').textContent())}`);
   await shot(page, project, '23c-boss-after-loss');
 
-  // ---- The fight again, won this time (a perfect draft: Éris has nothing to sabotage) --------
+  // ---- The fight again, won this time (P1-5: real proofreading, not a perfect dictation) ------
+  // A perfect/near-perfect draft is no longer a win (that was the P1-5 bug - "Éris n'a rien trouvé
+  // à saboter" handed over the tier's biggest reward for zero proofreading); a real win needs a
+  // catch rate >= 0.7 over >= 3 draft errors, so this pass plants the same errors as the lost
+  // fight and then actually catches them during relecture, at their exact position (`bossFixes`),
+  // since a common word like « et »/« à » can also occur naturally elsewhere in the text.
+  expect(bossFixes.length, `boss text offered too few plantable errors to prove a real win: ${JSON.stringify(missing)}`).toBeGreaterThanOrEqual(3);
   await page.getByTestId('boss-start').click();
   await expect(page).toHaveURL(/encounter=eris/);
   // The lost fight's results are the saved play state for this text: the screen resumes there
@@ -591,13 +649,22 @@ test('SP3 playability walk', async ({ page, request }, testInfo) => {
   await expect(commence).toBeVisible();
   await pickLowestPace(page);
   await page.getByRole('button', { name: 'Commencer la dictée' }).click();
-  await dictate(page, bossBody);
+  await dictate(page, bossDraft);
   await page.getByTestId('btn-finish-writing').click();
   await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
-  notes.push(`boss (perfect draft) proofreading subtitle: ${clean(await page.locator('.proof .subtitle').textContent())}`);
+  notes.push(`boss (real proofreading) proofreading subtitle: ${clean(await page.locator('.proof .subtitle').textContent())}`);
+  for (const fix of bossFixes) {
+    await editWord(
+      page,
+      fix.wrong,
+      fix.correct,
+      occurrenceIndex(bossDraft, fix.wordIndex),
+      occurrenceIndex(bossBody, fix.wordIndex),
+    );
+  }
   await finishProofreading(page);
   await expect(page.getByTestId('reveal-boss')).toBeVisible({ timeout: 15_000 });
-  notes.push(`reveal (boss won): ${clean(await page.locator('.reveal-stack').textContent())}`);
+  notes.push(`reveal (boss won, caught all ${bossFixes.length} planted errors): ${clean(await page.locator('.reveal-stack').textContent())}`);
   await shot(page, project, '23f-reveal-boss-won', 2600);
   await page.getByTestId('reveal-continue').click();
   await expect(page.getByTestId('results-catch-rate')).toBeVisible();

@@ -43,7 +43,7 @@ test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', asyn
   await expect(page.getByTestId('results-catch-rate')).toContainText(/Dés-accords retrouvés : \d+ sur \d+/);
   const m = /sur (\d+)/.exec((await page.getByTestId('results-catch-rate').textContent()) ?? '');
   expect(Number(m?.[1])).toBeGreaterThanOrEqual(3);
-  await page.getByTestId('btn-back-library').click();
+  await page.getByTestId('btn-back-camp').click();
   // The TopBar's "Progrès" link now points at `dossier` (SP3 decision 14, wired in Task 6); its
   // own "Voir les chiffres bruts" link goes on to the raw stats page.
   await page.getByRole('link', { name: 'Progrès' }).click();

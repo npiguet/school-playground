@@ -62,7 +62,7 @@ test('create profile → add text → dictation → proofreading → results →
 
   // Stats reflect the session. The TopBar's "Progrès" link now points at `dossier` (SP3 decision
   // 14, wired in Task 6); its own "Voir les chiffres bruts" link goes on to the raw stats page.
-  await page.getByTestId('btn-back-library').click();
+  await page.getByTestId('btn-back-camp').click();
   await page.getByRole('link', { name: 'Progrès' }).click();
   await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
   await page.getByRole('link', { name: 'Voir les chiffres bruts' }).click();

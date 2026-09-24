@@ -312,9 +312,10 @@ test('playability walk', async ({ page, request }, testInfo) => {
   notes.push(`category explanations:\n  - ${expl.map((s) => s.replace(/\s+/g, ' ').trim()).join('\n  - ')}`);
 
   // ---- 15 Stats / 16 Settings ---------------------------------------------------------------
-  await page.getByTestId('btn-back-library').click();
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
-  await shot(page, project, '15b-library-after-play');
+  // P2-2 (SP3 playability): results' back button now returns to the camp, not the library.
+  await page.getByTestId('btn-back-camp').click();
+  await expect(page.getByRole('heading', { name: /^Bienvenue au camp/ })).toBeVisible();
+  await shot(page, project, '15b-camp-after-play');
   // The TopBar's "Progrès" link now points at `dossier` (SP3 decision 14, wired in Task 6); its
   // own "Voir les chiffres bruts" link goes on to the raw stats page.
   await page.getByRole('link', { name: 'Progrès' }).click();

@@ -339,7 +339,7 @@ test('SP2 playability walk', async ({ page, request }, testInfo) => {
     notes.push(`grimoire popover (« ${(await firstErr.textContent())?.trim()} »): ${((await page.locator('.popover-panel').textContent()) ?? '').replace(/\s+/g, ' ').trim()}`);
   }
   notes.push(`red scan (grimoire results): ${JSON.stringify(await redScan(page))}`);
-  await page.getByTestId('btn-back-library').click();
+  await page.getByTestId('btn-back-camp').click();
   await page.locator('.topbar a[href$="/stats"]').click();
   await expect(page.getByRole('heading', { name: 'Progrès' })).toBeVisible();
   await shot(page, project, '11c-stats-after-grimoire');
