@@ -89,6 +89,64 @@ describe('reformCanon: inflected plurals of explicit pairs (fix round 1, IMPORTA
   });
 });
 
+// Final review I-1: "-îmes/-ûmes/-îtes/-ûtes" protects the simple past (an open class of verbs),
+// not the ordinary nouns and present-tense forms that happen to end the same way.
+describe('reformCanon: -ûtes/-îtes/-îmes nouns vs the simple past (final review I-1)', () => {
+  it('drops the circumflex on nouns and present-tense forms', () => {
+    expect(reformCanon('croûtes')).toBe('croutes');
+    expect(reformCanon('croûte')).toBe('croute');
+    expect(reformCanon('flûtes')).toBe('flutes');
+    expect(reformCanon('voûtes')).toBe('voutes');
+    expect(reformCanon('boîtes')).toBe('boites');
+    expect(reformCanon('gîtes')).toBe('gites');
+    expect(reformCanon('abîmes')).toBe('abimes');
+    expect(reformCanon('emboîtes')).toBe('emboites');
+    expect(reformCanon('goûtes')).toBe('goutes');
+  });
+  it('keeps the circumflex on 1st/2nd plural simple-past forms', () => {
+    expect(reformCanon('fûmes')).toBe('fûmes');
+    expect(reformCanon('fûtes')).toBe('fûtes');
+    expect(reformCanon('eûtes')).toBe('eûtes');
+    expect(reformCanon('fîtes')).toBe('fîtes');
+    expect(reformCanon('vînmes')).toBe('vînmes');
+    expect(reformCanon('tîntes')).toBe('tîntes');
+    expect(reformCanon('finîmes')).toBe('finîmes');
+    expect(reformCanon('subîmes')).toBe('subîmes');
+    expect(reformCanon('écrivîtes')).toBe('écrivîtes');
+    expect(reformCanon('voulûmes')).toBe('voulûmes');
+    expect(reformCanon('dîmes')).toBe('dîmes');
+  });
+  it('grades a reform-spelt plural noun as correct, and a simple-past mix-up as an accent error', () => {
+    expect(tokenize('croûtes')[0].norm).toBe(tokenize('croutes')[0].norm);
+    expect(classifyPair(tk('fûtes'), tk('futes'), undefined, -1)).toMatchObject({ category: 'accent' });
+  });
+});
+
+// Final review I-4: orthographic doublets outside the reform are both correct too.
+describe('reformCanon: doublets and -ayer verbs (final review I-4)', () => {
+  it('accepts both members of a doublet, including inflected plurals', () => {
+    expect(isReformEquivalent('clé', 'clef')).toBe(true);
+    expect(isReformEquivalent('clés', 'clefs')).toBe(true);
+    expect(isReformEquivalent('paie', 'paye')).toBe(true);
+    expect(isReformEquivalent('cuillère', 'cuiller')).toBe(true);
+    expect(isReformEquivalent('bistrot', 'bistro')).toBe(true);
+    expect(tokenize('clef')[0].norm).toBe(tokenize('clé')[0].norm);
+  });
+  it('accepts the i/y spellings of -ayer verbs before a mute e', () => {
+    expect(isReformEquivalent('essaie', 'essaye')).toBe(true);
+    expect(isReformEquivalent('paient', 'payent')).toBe(true);
+    expect(isReformEquivalent('balaiera', 'balayera')).toBe(true);
+    expect(isReformEquivalent('effraies', 'effrayes')).toBe(true);
+    expect(isReformEquivalent('payons', 'paions')).toBe(false); // no mute e: only « payons »
+  });
+  it('never lets a doublet swallow an unrelated word', () => {
+    expect(isReformEquivalent('lis', 'lys')).toBe(false); // je lis
+    expect(isReformEquivalent('raie', 'raye')).toBe(false); // la raie
+    expect(isReformEquivalent('baie', 'baye')).toBe(false); // la baie
+    expect(isReformEquivalent('clé', 'clés')).toBe(false);
+  });
+});
+
 describe('numberHyphensToSpaces', () => {
   it('keeps length and only touches hyphens between number words', () => {
     expect(numberHyphensToSpaces('vingt-et-un chats')).toBe('vingt et un chats');

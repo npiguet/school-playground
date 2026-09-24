@@ -7,16 +7,27 @@ import table from '@content/reform1990.json';
 interface ReformTable {
   version: number;
   pairs: [string, string][];
+  /** Orthographic doublets that are both correct outside the 1990 reform (clé/clef, paie/paye…);
+   *  graded exactly like a reform pair. `lis`/`lys` is deliberately absent: `lis` is far more
+   *  often the verb (je lis), which `lys` must not silently match. */
+  variants: [string, string][];
+  /** -ayer verbs: before a mute e both « il paie » and « il paye » are correct (stem = infinitive
+   *  minus "yer"). `ba`/`ra` are absent so the nouns « baie »/« raie » never accept a `y`. */
+  ayer_stems: string[];
   eler_eter_stems: string[];
   circumflex_protected: string[];
+  /** Nouns (and present-tense verb forms) that lose the circumflex although they end like a
+   *  protected verb tense; shared with the server's corrupt engine (server/app/corrupt.py). */
+  circumflex_strip_words: string[];
 }
 
 const data = table as ReformTable;
 
 // reform spelling -> traditional spelling, plus traditional -> itself so a lookup always
-// resolves to the canonical (traditional) form regardless of which variant was typed.
+// resolves to the canonical (traditional) form regardless of which variant was typed. Doublets
+// (`variants`) canonicalise onto their first member the same way.
 const toTraditional = new Map<string, string>();
-for (const [traditional, reform] of data.pairs) {
+for (const [traditional, reform] of [...data.pairs, ...data.variants]) {
   toTraditional.set(reform, traditional);
   toTraditional.set(traditional, traditional);
 }
@@ -45,25 +56,42 @@ const elerRegexes: ElerRule[] = data.eler_eter_stems.map((stem) => {
   };
 });
 
+// -ayer verbs: « je paie » / « je paye », « ils essaient » / « ils essayent », « il balaiera » /
+// « il balayera » are all correct. The y-spelling is the canonical one; `AYER_ENDINGS` is what
+// follows the i/y.
+const AYER_ENDINGS = '(e|es|ent|era|eras|erai|erons|erez|eront|erais|erait|erions|eriez|eraient)';
+const ayerRegexes: ElerRule[] = data.ayer_stems.map((stem) => ({
+  re: new RegExp(`^${escapeRegExp(stem)}i${AYER_ENDINGS}$`),
+  replacement: `${stem}y$1`,
+}));
+
 // Words where the circumflex on i/u is kept because dropping it would collide with an unrelated
 // word (dû/du, mûr/mur, sûr/sur, jeûne/jeune, croît/croît family, fût/fut — see fix round 1:
 // "fût" moved here from a code-level addition since it's a per-word ambiguity, not a productive
 // verb-tense pattern).
 const CIRCUMFLEX_PROTECTED = new Set(data.circumflex_protected);
 
-// Fix round 1, CRITICAL 1: common nouns that happen to end in the same letters as a protected
-// verb tense (see CIRCUMFLEX_KEEP_RE below) but must still lose the circumflex under the reform.
-const CIRCUMFLEX_STRIP_NOUNS = new Set(['coût', 'goût', 'août', 'dégoût', 'ragoût', 'moût', 'affût', 'surcoût', 'gît']);
+// Fix round 1, CRITICAL 1 / final review I-1: common nouns (and present-tense verb forms) that
+// happen to end in the same letters as a protected verb tense (see CIRCUMFLEX_KEEP_RE below) but
+// must still lose the circumflex under the reform: coût, goût, flûtes, gîtes, abîmes… The list
+// lives in content/reform1990.json so the server's corrupt engine reads the very same words.
+const CIRCUMFLEX_STRIP_WORDS = new Set(data.circumflex_strip_words);
 
 // Verb-tense endings that keep the circumflex under the reform regardless of which specific verb:
-// 1st/2nd person plural of the simple past ("-îmes"/"-ûmes", "-îtes"/"-ûtes"), the venir/tenir
-// family's irregular 3rd singular ("-înt"), and the 3rd singular imperfect subjunctive
-// ("-ît"/"-ût", e.g. qu'il fît/pût/dût/prît/sût/vît/mît/reçût/voulût/finît/partît/eût) — except
-// when the word ends in "-aît"/"-oît" (connaît, plaît, naît, paraît, accroît: present-tense
-// indicative forms, not the subjunctive, so they DO lose the circumflex). "-ût" alone is also
-// kept in general (dût, eût, ...), with CIRCUMFLEX_STRIP_NOUNS above overriding it for ordinary
-// nouns that happen to end the same way (coût, goût, août, ...).
-const CIRCUMFLEX_KEEP_RE = /[îû](mes|tes)$|[îû]nt$|[^ao]ît$|ût$/;
+// 1st/2nd person plural of the simple past ("-îmes"/"-ûmes", "-îtes"/"-ûtes" — an open class:
+// fûmes, eûtes, finîmes, prîtes, écrivîmes…), the venir/tenir family's irregular 3rd singular
+// ("-înt"), and the 3rd singular imperfect subjunctive ("-ît"/"-ût", e.g. qu'il
+// fît/pût/dût/prît/sût/vît/mît/reçût/voulût/finît/partît/eût) — except when the word ends in
+// "-aît"/"-oît" (connaît, plaît, naît, paraît, accroît: present-tense indicative forms, not the
+// subjunctive, so they DO lose the circumflex). "-ût" alone is also kept in general (dût, eût,
+// ...), with CIRCUMFLEX_STRIP_WORDS above overriding it for ordinary nouns that happen to end the
+// same way (coût, goût, août, ...).
+// Final review I-1: no simple past ends in "-oîmes/-oûmes/-oîtes/-oûtes" (pouvoir → pûmes, boire →
+// bûmes, croire → crûmes), so an "o" before the circumflex marks a noun or a present-tense form
+// (boîtes, croûtes, voûtes, goûtes, emboîtes) that loses its circumflex; the remaining nouns
+// (flûtes, gîtes, abîmes) are listed explicitly. The optional "n" is the venir/tenir family
+// (vînmes, tîntes).
+const CIRCUMFLEX_KEEP_RE = /(^|[^o])[îû]n?(mes|tes)$|[îû]nt$|[^ao]ît$|ût$/;
 
 export function reformCanon(norm: string): string {
   const explicit = toTraditional.get(norm);
@@ -78,7 +106,10 @@ export function reformCanon(norm: string): string {
   for (const { re, replacement } of elerRegexes) {
     if (re.test(norm)) return norm.replace(re, replacement);
   }
-  if (!CIRCUMFLEX_STRIP_NOUNS.has(norm) && (CIRCUMFLEX_PROTECTED.has(norm) || CIRCUMFLEX_KEEP_RE.test(norm))) {
+  for (const { re, replacement } of ayerRegexes) {
+    if (re.test(norm)) return norm.replace(re, replacement);
+  }
+  if (!CIRCUMFLEX_STRIP_WORDS.has(norm) && (CIRCUMFLEX_PROTECTED.has(norm) || CIRCUMFLEX_KEEP_RE.test(norm))) {
     return norm;
   }
   return norm.replace(/î/g, 'i').replace(/û/g, 'u');

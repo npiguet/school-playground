@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "pairs": [
     ["oignon", "ognon"], ["nénuphar", "nénufar"], ["événement", "évènement"], ["réglementaire", "règlementaire"], ["réglementation", "règlementation"],
     ["réglementer", "règlementer"], ["allégement", "allègement"], ["céleri", "cèleri"], ["crémerie", "crèmerie"], ["sécheresse", "sècheresse"],
@@ -14,9 +14,21 @@
     ["revolver", "révolver"], ["saccharine", "saccarine"], ["bonhomie", "bonhommie"], ["douceâtre", "douçâtre"], ["levraut", "levreau"],
     ["relais", "relai"], ["toquade", "tocade"], ["eczéma", "exéma"], ["sorgho", "sorgo"], ["chausse-trape", "chaussetrappe"]
   ],
+  "variants": [
+    ["clé", "clef"], ["paie", "paye"], ["cuiller", "cuillère"], ["bistro", "bistrot"], ["yaourt", "yogourt"], ["tsar", "tzar"],
+    ["cacahuète", "cacahouète"], ["gaieté", "gaîté"]
+  ],
+  "ayer_stems": [
+    "pa", "bala", "essa", "béga", "effra", "éga", "déla", "éta", "fra", "enra", "débra", "embra", "monna", "rela", "paga",
+    "rembla", "débla", "zéza", "défra"
+  ],
   "eler_eter_stems": [
     "épel", "ruissel", "étiquet", "feuillet", "nivel", "renouvel", "ficel", "chancel", "amoncel", "cachet", "morcel",
     "volet", "attel", "détel", "ensorcel", "grommel", "musel", "dentel", "bottel", "carrel", "décachet", "craquel", "étincel"
   ],
-  "circumflex_protected": ["dû", "mûr", "sûr", "jeûne", "jeûnes", "croît", "croîs", "crû", "crûs", "crût", "fût"]
+  "circumflex_protected": ["dû", "mûr", "sûr", "jeûne", "jeûnes", "croît", "croîs", "crû", "crûs", "crût", "fût"],
+  "circumflex_strip_words": [
+    "coût", "goût", "août", "dégoût", "ragoût", "moût", "affût", "surcoût", "gît",
+    "flûte", "flûtes", "gîte", "gîtes", "abîme", "abîmes", "croûte", "croûtes", "voûte", "voûtes", "boîte", "boîtes", "emboîte", "emboîtes"
+  ]
 }
