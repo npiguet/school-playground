@@ -105,6 +105,51 @@ test('two places tapped at once lead to the first one only', async ({ page, requ
   await expect(page).toHaveURL(/\/parchemins$/);
   await page.waitForTimeout(600);
   await expect(page).toHaveURL(/\/parchemins$/);
+
+  // Fix wave 2: the guard holds after the flash too, through the fade to night (the navigation
+  // itself only happens ~180 ms later) - e.g. a Tab+Enter on another place in that window.
+  await openCamp(page, id);
+  await page.evaluate(() => {
+    (document.querySelector('[data-testid="camp-parchemins"]') as HTMLElement).click();
+    setTimeout(() => (document.querySelector('[data-testid="camp-oracle"]') as HTMLElement | null)?.click(), 250);
+  });
+  await expect(page).toHaveURL(/\/parchemins$/);
+  await page.waitForTimeout(600);
+  await expect(page).toHaveURL(/\/parchemins$/);
+});
+
+test('Back during the fade out of the camp is not overridden by the pending navigation', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/parchemins`);
+  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await openCamp(page, id);
+  // Tap the war tent, then Back after its flash (160 ms) but before the fade hands over (~340 ms).
+  await page.evaluate(() => {
+    (document.querySelector('[data-testid="camp-dossier"]') as HTMLElement).click();
+    setTimeout(() => history.back(), 250);
+  });
+  await expect(page).toHaveURL(/\/parchemins$/);
+  await page.waitForTimeout(800);
+  await expect(page).toHaveURL(/\/parchemins$/);
+});
+
+test('the onboarding card is a real modal: the camp is inert, Tab stays on the card', async ({ page, request }, testInfo) => {
+  // Fix wave 2: same `modal` action as the hero panel. A hero straight from the API, not onboarded.
+  const res = await request.post('/api/profiles', { data: { name: heroName(testInfo.project.name), avatar: 'chouette', level: '10H' } });
+  expect(res.ok()).toBeTruthy();
+  const id = (await res.json()).id as number;
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  const card = page.getByTestId('onboarding');
+  await expect(card).toBeVisible();
+  await expect(page.getByTestId('scene-camp')).toHaveAttribute('inert', '');
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Tab');
+    expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="onboarding"]')), `Tab ${i + 1}`).toBe(true);
+  }
+  await page.getByTestId('onboarding-skip').click();
+  await expect(card).toHaveCount(0);
+  await expect(page.getByTestId('scene-camp')).not.toHaveAttribute('inert', '');
 });
 
 test('places and their labels sit inside the visible safe zone and work from the keyboard', async ({ page, request }, testInfo) => {
@@ -210,6 +255,24 @@ test('the camp loads its data once per visit', async ({ page, request }, testInf
 
 test('the hero panel: its own route, medallions, focus kept inside, closing never leaves a Back trap', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
+  // Fix wave 2: opening/closing the panel once re-ran its register effect in a loop (hundreds of
+  // focus() calls, Svelte's effect-depth error): no console error or page error allowed.
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  let focusCalls = 0;
+  await page.exposeFunction('__countFocus', () => {
+    focusCalls += 1;
+  });
+  await page.addInitScript(() => {
+    const f = HTMLElement.prototype.focus;
+    HTMLElement.prototype.focus = function (o?: FocusOptions) {
+      if (this.getAttribute('data-testid') === 'hud-hero') (window as any).__countFocus();
+      return f.call(this, o);
+    };
+  });
   await page.goto(`/#/p/${id}/parchemins`);
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
   await openCamp(page, id);
@@ -235,6 +298,9 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   await expect(stage).not.toHaveAttribute('inert', '');
   await expect(page.getByTestId('hud-hero')).toBeFocused();
   await expect(page.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'false');
+  await page.waitForTimeout(300);
+  expect(focusCalls, 'focus handed back to the hero chip once').toBe(1);
+  expect(errors).toEqual([]);
 
   // Back from the panel closes it.
   await page.getByTestId('hud-hero').click();
@@ -308,6 +374,8 @@ test('portrait shows the rotate screen instead of the scene', async ({ page, req
   await expect(page.getByTestId('rotate-screen')).toBeHidden();
   await expect(page.getByTestId('camp-parchemins')).toBeVisible();
   await expect(page.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'false');
+  // Fix wave 2: the rotation paused and resumed the particle loop; it never rebuilt it.
+  await expect(page.getByTestId('fx-canvas')).toHaveAttribute('data-starts', '1');
 
   // The spec's rule is "portrait AND aspect < 1" - `orientation: portrait` alone also matches an
   // exactly square viewport (aspect ratio 1), which must NOT show the rotate screen

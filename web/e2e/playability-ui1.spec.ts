@@ -159,7 +159,19 @@ test('UI1 playability walk', async ({ page, request }, testInfo) => {
     await expect(page.getByTestId('hotspot-debug')).toBeVisible();
     await shot(page, project, '14-hotspot-debug');
 
-    // ---- 14b A prophecy on the hub (final review M9, playability #16) ------------------------
+    // ---- 15-16 Laptop and ultra-wide framings ---------------------------------------------------
+    await page.goto(`/#/p/${profileId}/camp`);
+    await expectCamp(page);
+    await waitForSceneSettled(page);
+    await dismissGreeting(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await waitForSceneSettled(page);
+    await shot(page, project, '15-laptop-1440x900');
+    await page.setViewportSize({ width: 2560, height: 1080 });
+    await waitForSceneSettled(page);
+    await shot(page, project, '16-ultrawide-2560x1080');
+
+    // ---- 17 A prophecy on the hub, back at iPad size (final review M9, playability #16) ------
     const dueIn3 = new Date(Date.now() + 3 * 864e5).toLocaleDateString('sv-SE', { timeZone: 'Europe/Zurich' });
     await createText(request, {
       title: 'Les fées de la clairière',
@@ -167,24 +179,17 @@ test('UI1 playability walk', async ({ page, request }, testInfo) => {
       level: '10H',
       due_date: dueIn3,
     });
-    await page.goto(`/#/p/${profileId}/camp`);
+    await page.setViewportSize({ width: 1180, height: 820 });
+    await page.reload();
     await expectCamp(page);
-    await dismissGreeting(page);
+    // Settled first: a click during the zoom-in is what once scrolled the stage sideways.
     await waitForSceneSettled(page);
+    await dismissGreeting(page);
     const prophecy = page.getByTestId('camp-prophecy');
     await expect(prophecy).toContainText('La Pythie a vu ton épreuve');
     await expect(prophecy).toContainText('Les fées de la clairière');
     await expect(prophecy).not.toContainText(/dictée|jour\(s\)/);
     await expect(prophecy.getByRole('button', { name: 'Réviser' })).toBeVisible();
-    await shot(page, project, '14b-camp-prophecy');
-
-    // ---- 15-16 Laptop and ultra-wide framings (last: the emulated iPad keeps a wide layout
-    // viewport after these resizes, so nothing is shot at 1180x820 after them) -----------------
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await waitForSceneSettled(page);
-    await shot(page, project, '15-laptop-1440x900');
-    await page.setViewportSize({ width: 2560, height: 1080 });
-    await waitForSceneSettled(page);
-    await shot(page, project, '16-ultrawide-2560x1080');
+    await shot(page, project, '17-camp-prophecy');
   }
 });
