@@ -14,6 +14,8 @@ def settings(tmp_path):
     content = tmp_path / "content"
     content.mkdir()
     shutil.copy(REPO_CONTENT / "homophones.json", content / "homophones.json")
+    # The corrupt engine's reform safety net (never plant an accepted spelling) must be exercised too.
+    shutil.copy(REPO_CONTENT / "reform1990.json", content / "reform1990.json")
     (content / "lexique").mkdir()
     shutil.copy(REPO_CONTENT / "lexique" / "lexique383-trimmed.tsv.gz", content / "lexique" / "lexique383-trimmed.tsv.gz")
     (content / "alexandria").mkdir()

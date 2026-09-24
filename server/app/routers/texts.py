@@ -116,6 +116,9 @@ def corrupt_text(text_id: int, body: CorruptRequest, request: Request, db: sqlit
     profile = fetch_profile(db, body.profile_id)
     text = row["body"]
     annotation = json.loads(row["annotation_json"])
+    if annotation.get("version", 1) < 2:
+        # A pre-SP2 annotation has no agreement chains (only re-annotated at seed time).
+        raise HTTPException(422, "Ce parchemin doit d'abord être relu par les Muses")
 
     settings = request.app.state.settings
     lexicon = load_lexicon(settings.content_dir)
