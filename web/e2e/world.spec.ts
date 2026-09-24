@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { stubSpeech, createText, makeResult, postSession } from './helpers';
+import { expectCamp, stubSpeech, createText, makeResult, postSession } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -54,7 +54,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.getByLabel('Ton prénom').fill(name);
     await page.getByLabel('Ton niveau').selectOption('10H');
     await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-    await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+    await expectCamp(page);
 
     // First visit: walk the onboarding (spec decision 22) instead of skipping it, so this spec
     // also exercises the full flow once. Two "Suivant" taps reach the last card, whose button
@@ -63,7 +63,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.getByTestId('onboarding-next').click();
     await page.getByRole('button', { name: 'Entrer au camp' }).click();
 
-    await expect(page.getByTestId('camp-xp')).toContainText('Recrue du camp');
+    await expect(page.getByTestId('hud-xp')).toContainText('Recrue du camp');
     await expect(page.getByTestId('camp-dragon')).toContainText('Un œuf de dragon');
     await expect(page.getByTestId('camp-weekly')).toContainText('0 / 3');
 
@@ -104,7 +104,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
   test('3. quest board shows it, lieutenant page gauges', async ({ page }) => {
     await page.goto(`/#/p/${profileId}/dossier`);
     await page.getByTestId('topbar-camp').click();
-    await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+    await expectCamp(page);
     await page.getByTestId('camp-quests').click();
 
     await expect(page.getByTestId(`quest-card-${oracleQuestId}`)).toContainText('Récompense connue : 150 XP · Teinte Écume');
@@ -340,17 +340,17 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await expect(page.getByTestId('camp-weekly')).toContainText('Objectif atteint');
 
     await stubSpeech(page);
-    await page.goto(`/#/p/${profileId}/play/${textId}`);
-    // playClock reads sessionStorage once, at module init: setting it here (after this first,
-    // hash-only route change already ran Play.svelte's own clockStop()/persist() once) and
-    // reloading is what makes the fresh module actually pick up the 26-minute clock below -
-    // setting it before navigating here would just get overwritten by that same persist().
-    await page.evaluate(() =>
-      sessionStorage.setItem(
-        'discorde.playClock',
-        JSON.stringify({ activeMs: 26 * 60000, running: false, lastTick: null, lastStop: Date.now() }),
-      ),
+    // Seeds the ~26-minute break-nudge clock via an init script (applied fresh to every future
+    // navigation, including the reload below) rather than a live page.evaluate() + reload(): a
+    // reload after mutating sessionStorage on an already-mounted page races the app's own
+    // clockStop()/persist() calls (mount, phase changes, visibility changes), which can write the
+    // page's still-zero in-memory clock back over the injected value before the reload lands -
+    // this became newly flaky once the heavier Camp hub scene shifted that timing (UI1).
+    await page.addInitScript(
+      (seed) => sessionStorage.setItem(seed.key, seed.value),
+      { key: 'discorde.playClock', value: JSON.stringify({ activeMs: 26 * 60000, running: false, lastTick: null, lastStop: Date.now() }) },
     );
+    await page.goto(`/#/p/${profileId}/play/${textId}`);
     await page.reload();
 
     // This text was already fully played in step 4: the play screen resumes straight to its old
@@ -380,7 +380,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
 
   test('9. no red, no guilt', async ({ page }) => {
     await page.goto(`/#/p/${profileId}/camp`);
-    await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+    await expectCamp(page);
     expect(await redScan(page)).toEqual([]);
     await expect(page.locator('body')).not.toContainText(/manqué|raté|perdu/i);
 

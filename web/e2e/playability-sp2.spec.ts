@@ -164,6 +164,9 @@ function plusDays(days: number): string {
 }
 
 test('SP2 playability walk', async ({ page, request }, testInfo) => {
+  // P3: the camp is a hub scene now; `createProfile` below clicks camp-parchemins, hidden in
+  // portrait by design (rotate screen). This walk stays landscape-only.
+  test.skip(testInfo.project.name === 'ipad-portrait', 'camp hotspots are hidden in portrait by design');
   const project = testInfo.project.name;
   const notes: string[] = [];
   await stubSpeech(page);

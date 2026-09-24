@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { skipOnboarding } from './helpers';
+import { expectCamp, skipOnboarding } from './helpers';
 
 const unique = () => 'Héros' + Date.now().toString().slice(-6);
 
@@ -9,7 +9,7 @@ test('create a profile and reach the library with seed texts', async ({ page }) 
   await page.getByLabel('Ton prénom').fill(unique());
   await page.getByLabel('Ton niveau').selectOption('10H');
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await expectCamp(page);
   await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
@@ -25,12 +25,13 @@ test('a profile with a code asks for it', async ({ page }) => {
   await page.getByLabel('Ton prénom').fill(name);
   await page.getByLabel(/Un code à quatre chiffres/).fill('1234');
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await expectCamp(page);
   await skipOnboarding(page);
+  await page.getByTestId('hud-hero').click();
   await page.getByRole('link', { name: 'Changer de héros' }).click();
   await page.getByRole('button', { name: new RegExp(name) }).click();
   await page.getByLabel(/Code de/).fill('0000');
   await expect(page.getByText("Ce n'est pas le bon code")).toBeVisible();
   await page.getByLabel(/Code de/).fill('1234');
-  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await expectCamp(page);
 });

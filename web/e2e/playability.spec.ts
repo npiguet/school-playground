@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { stubSpeech, skipOnboarding } from './helpers';
+import { expectCamp, stubSpeech, skipOnboarding } from './helpers';
 
 // Playability walk for the SP1 review (spec §6.2). One test per iPad orientation; every screen
 // is screenshotted into docs/reviews/sp1/<project>-NN-<screen>.png. The draft typed during the
@@ -139,6 +139,10 @@ async function promoteToStage(request: APIRequestContext, profileId: number, tex
 }
 
 test('playability walk', async ({ page, request }, testInfo) => {
+  // P3: the camp is a hub scene now, and its hotspots (e.g. camp-parchemins, used right after
+  // profile creation below) are hidden in portrait by design (rotate screen). This walk stays
+  // landscape-only; the portrait rotate screen itself is covered by the UI1 walk (Task 8/10).
+  test.skip(testInfo.project.name === 'ipad-portrait', 'camp hotspots are hidden in portrait by design');
   const project = testInfo.project.name;
   const notes: string[] = [];
   await stubSpeech(page);
@@ -157,7 +161,7 @@ test('playability walk', async ({ page, request }, testInfo) => {
   await page.getByLabel('Ton niveau').selectOption('10H');
   await shot(page, project, '02-profile-new');
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await expectCamp(page);
   await skipOnboarding(page);
   const profileId = Number(page.url().match(/#\/p\/(\d+)\//)?.[1]);
   expect(profileId).toBeGreaterThan(0);
@@ -314,10 +318,11 @@ test('playability walk', async ({ page, request }, testInfo) => {
   // ---- 15 Stats / 16 Settings ---------------------------------------------------------------
   // P2-2 (SP3 playability): results' back button now returns to the camp, not the library.
   await page.getByTestId('btn-back-camp').click();
-  await expect(page.getByRole('heading', { name: /^Bienvenue au camp/ })).toBeVisible();
+  await expectCamp(page);
   await shot(page, project, '15b-camp-after-play');
-  // The TopBar's "Progrès" link now points at `dossier` (SP3 decision 14, wired in Task 6); its
-  // own "Voir les chiffres bruts" link goes on to the raw stats page.
+  // The hero panel's "Progrès" link now points at `dossier` (SP3 decision 14, wired in Task 6);
+  // its own "Voir les chiffres bruts" link goes on to the raw stats page.
+  await page.getByTestId('hud-hero').click();
   await page.getByRole('link', { name: 'Progrès' }).click();
   await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
   await page.getByRole('link', { name: 'Voir les chiffres bruts' }).click();
@@ -407,7 +412,7 @@ test('playability walk', async ({ page, request }, testInfo) => {
   await page.getByLabel(/Un code à quatre chiffres/).fill('1234');
   await shot(page, project, '02b-profile-new-with-code');
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await expectCamp(page);
   await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
@@ -422,7 +427,7 @@ test('playability walk', async ({ page, request }, testInfo) => {
   await expect(page.getByText("Ce n'est pas le bon code")).toBeVisible();
   await shot(page, project, '17b-pin-gate-wrong');
   await page.getByLabel(/Code de/).fill('1234');
-  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await expectCamp(page);
 
   console.log(`\n===== NOTES ${project} =====\n${notes.join('\n')}\n`);
 });

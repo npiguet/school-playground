@@ -57,6 +57,23 @@ export async function skipOnboarding(page: Page) {
   if (await btn.isVisible()) await btn.click();
 }
 
+// UI1 (scenes spec §9): the camp is a hub scene. The old « Bienvenue au camp, X. » heading is now
+// the dragon's first dialogue line, so specs wait for the scene stage itself.
+export async function expectCamp(page: Page) {
+  await expect(page.getByTestId('scene-camp')).toBeVisible();
+}
+
+// Creates an already-onboarded profile through the API (no first-visit modal), for specs that
+// start straight on the camp hub. Returns its id.
+export async function createProfileApi(request: APIRequestContext, name: string, level = '10H'): Promise<number> {
+  const res = await request.post('/api/profiles', { data: { name, avatar: 'chouette', level } });
+  expect(res.ok()).toBeTruthy();
+  const profile = await res.json();
+  const patch = await request.patch(`/api/profiles/${profile.id}`, { data: { settings: { onboarded: true } } });
+  expect(patch.ok()).toBeTruthy();
+  return profile.id as number;
+}
+
 // Navigates straight to a profile's library (SP3: the camp is the new home, the library moved to
 // `/parchemins` - route name `library` unchanged).
 export async function goToLibrary(page: Page, profileId: number | string) {
@@ -72,7 +89,7 @@ export async function createProfile(page: Page, name: string, level: string) {
   await page.getByLabel('Ton prénom').fill(name);
   await page.getByLabel('Ton niveau').selectOption(level);
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await expectCamp(page);
   await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();

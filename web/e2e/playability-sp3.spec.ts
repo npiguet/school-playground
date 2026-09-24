@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { createText, makeResult, postSession, stubSpeech } from './helpers';
+import { createText, expectCamp, makeResult, postSession, stubSpeech } from './helpers';
 
 // Playability walk for the SP3 review (spec §6.2): one long test per iPad orientation, every
 // world/progression screen screenshotted into docs/reviews/sp3/<project>-NN-<screen>.png. Covers
@@ -255,7 +255,7 @@ async function createProfileUi(page: Page, name: string, level: string) {
   await page.getByLabel('Ton prénom').fill(name);
   await page.getByLabel('Ton niveau').selectOption(level);
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-  await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+  await expectCamp(page);
 }
 
 // Per-screen art accounting: bytes transferred for /art/* on the current page since the last
@@ -297,6 +297,9 @@ function artMeter(page: Page) {
 }
 
 test('SP3 playability walk', async ({ page, request }, testInfo) => {
+  // P3: the camp is a hub scene now; createProfileUi/camp hotspots are hidden in portrait by
+  // design (rotate screen). This walk stays landscape-only.
+  test.skip(testInfo.project.name === 'ipad-portrait', 'camp hotspots are hidden in portrait by design');
   test.setTimeout(900_000);
   const project = testInfo.project.name;
   const notes: string[] = [];
@@ -337,23 +340,23 @@ test('SP3 playability walk', async ({ page, request }, testInfo) => {
   await shot(page, project, '02-camp-onboarding-3');
   await page.getByRole('button', { name: 'Entrer au camp' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByTestId('camp-xp')).toContainText('Recrue du camp');
+  await expect(page.getByTestId('hud-xp')).toContainText('Recrue du camp');
   await expect(page.getByTestId('camp-dragon')).toContainText('Un œuf de dragon');
-  notes.push(`camp fresh: ${clean(await page.locator('.camp').textContent())}`);
-  notes.push(`camp scene box: ${JSON.stringify(await page.locator('.camp .scene').boundingBox())}`);
+  notes.push(`camp fresh: ${clean(await page.getByTestId('scene-camp').textContent())}`);
+  notes.push(`camp scene box: ${JSON.stringify(await page.getByTestId('scene-camp').locator('.art').boundingBox())}`);
   notes.push(`camp dragon card box: ${JSON.stringify(await page.getByTestId('camp-dragon').boundingBox())}`);
   await shot(page, project, '03-camp-egg');
   notes.push(`red scan (camp): ${JSON.stringify(await redScan(page))}`);
   notes.push(`imgs without alt (camp): ${await imgsWithoutAlt(page)}`);
   notes.push(`small targets (camp): ${JSON.stringify(await smallTargets(page))}`);
   // Mute toggle: aria-pressed must follow the state.
-  const mute = page.getByTestId('topbar-mute');
+  const mute = page.getByTestId('hud-mute');
   const pressedBefore = await mute.getAttribute('aria-pressed');
   await mute.click();
   await expect(mute).toHaveAttribute('aria-pressed', pressedBefore === 'true' ? 'false' : 'true');
   const pressedAfter = await mute.getAttribute('aria-pressed');
   await mute.click();
-  notes.push(`topbar-mute aria-pressed: before=${pressedBefore} after toggle=${pressedAfter} (then toggled back)`);
+  notes.push(`hud-mute aria-pressed: before=${pressedBefore} after toggle=${pressedAfter} (then toggled back)`);
 
   // ---- 04-06 Delphes ------------------------------------------------------------------------
   art.start('delphes');
@@ -521,7 +524,7 @@ test('SP3 playability walk', async ({ page, request }, testInfo) => {
   art.start('camp (hatchling)');
   await page.goto(`/#/p/${profileId}/camp`);
   await expect(page.getByTestId('camp-dragon')).toContainText('Braise');
-  notes.push(`camp hatchling: ${clean(await page.locator('.camp').textContent())}`);
+  notes.push(`camp hatchling: ${clean(await page.getByTestId('scene-camp').textContent())}`);
   await shot(page, project, '16-camp-hatchling');
 
   // ---- 17 Dragon screen: tints (Écume unlocked) ---------------------------------------------
@@ -719,7 +722,7 @@ test('SP3 playability walk', async ({ page, request }, testInfo) => {
   art.start('camp (weekly)');
   await page.goto(`/#/p/${profileId}/camp`);
   await expect(page.getByTestId('camp-weekly')).toContainText('Objectif atteint');
-  notes.push(`camp weekly reached: ${clean(await page.locator('.camp').textContent())}`);
+  notes.push(`camp weekly reached: ${clean(await page.getByTestId('scene-camp').textContent())}`);
   await shot(page, project, '26-camp-weekly-reached');
   await expect(page.locator('body')).not.toContainText(/manqué|raté|perdu|échec\b/i);
 
@@ -727,7 +730,7 @@ test('SP3 playability walk', async ({ page, request }, testInfo) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(`/#/p/${profileId}/camp`);
   await expect(page.getByTestId('camp-dragon')).toContainText('Braise');
-  const opacities = await page.locator('.camp .card, .camp .scene h1, .camp .eris-panel').evaluateAll((els) =>
+  const opacities = await page.locator('[data-testid="scene-camp"] .hotspot, [data-testid="scene-camp"] .stage-plaque').evaluateAll((els) =>
     els.map((e) => getComputedStyle(e).opacity),
   );
   notes.push(`reduced-motion camp opacities: ${JSON.stringify(opacities)}`);
@@ -747,7 +750,7 @@ test('SP3 playability walk', async ({ page, request }, testInfo) => {
   await page.getByTestId('onboarding-skip').click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByTestId('camp-bestiary')).toBeVisible();
-  notes.push(`sibling camp: ${clean(await page.locator('.camp').textContent())}`);
+  notes.push(`sibling camp: ${clean(await page.getByTestId('scene-camp').textContent())}`);
   await shot(page, project, '28-sibling-camp');
   await page.goto(`/#/p/${siblingId}/dossier`);
   await expect(page.getByTestId('dossier-line-hydre')).toBeVisible();
