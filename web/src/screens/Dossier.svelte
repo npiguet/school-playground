@@ -10,7 +10,7 @@
   import { ART, lieutenantIcon } from '../lib/world/art';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey } from '../lib/world/types';
-  import { agree, bandFor, dossierLine, dossierIntro, smallTricksLine } from '../lib/world/eris';
+  import { agree, bandFor, dossierLine, dossierIntro, lockedLine, smallTricksLine } from '../lib/world/eris';
   import { entry as bestiaryEntry } from '../lib/world/bestiary';
   import { api, ApiError } from '../lib/api';
   import type { Profile, StatsResponse } from '../lib/types';
@@ -103,15 +103,15 @@
             <li>
               {#if !l || !l.available}
                 <div class="parchment row row-locked">
-                  <img class="glyph" src={lieutenantIcon(key) ?? ''} alt="" aria-hidden="true" />
+                  <img class="glyph" src={lieutenantIcon(key)} alt="" aria-hidden="true" />
                   <span class="row-name">{nameFor(key)}</span>
-                  <span class="muted">Protée dort encore à ce niveau.</span>
+                  <span class="muted">{lockedLine(nameFor(key))}</span>
                 </div>
               {:else}
                 {@const band = bandFor(l)}
                 <button type="button" class="parchment row" onclick={() => goLieutenant(key)}>
                   <span class="row-head">
-                    <img class="glyph" src={lieutenantIcon(key) ?? ''} alt="" aria-hidden="true" />
+                    <img class="glyph" src={lieutenantIcon(key)} alt="" aria-hidden="true" />
                     <span class="row-name">{nameFor(key)}</span>
                     {#if l.neutralised}<span class="chip chip-gold">{agree('Neutralisé', key)}</span>{/if}
                   </span>

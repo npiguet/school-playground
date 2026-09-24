@@ -99,6 +99,14 @@
     return { xp: bonus?.amount ?? null, rewardName: reward?.name ?? null };
   }
 
+  // Screen-reader name for the neutralised card's relic medallion, which sits with no visible
+  // name of its own next to it (the card's own title/line already name the lieutenant, not the
+  // relic - review round 1 #2).
+  function relicName(key: string): string {
+    const id = RELIC_OF[key as LieutenantKey];
+    return campStore.catalog?.rewards[id]?.name ?? `Relique de ${names[key] ?? key}`;
+  }
+
   // Rewards not already shown by the quest cards (their own `reward_id`) or the neutralised cards
   // (every relic-kind reward always comes from a neutralisation this session).
   const shownRewardIds = $derived(
@@ -279,7 +287,7 @@
         <div class="neutralised-body">
           <p class="title">{names[key] ?? key} — {agree('neutralisé', key as LieutenantKey)} !</p>
           <p>Sa ruse ne te piège plus : taux ≥ 80 % sur trois jours.</p>
-          <Medallion rewardId={RELIC_OF[key as LieutenantKey] ?? ''} kind="relic" size={56} />
+          <Medallion rewardId={RELIC_OF[key as LieutenantKey] ?? ''} kind="relic" size={56} label={relicName(key)} />
         </div>
         <Particles trigger={neutralisedTriggers[i]} kind="burst" />
       </div>
@@ -347,10 +355,10 @@
           <div>
             <p class="line">« Impossible ! Garde ta pomme, je reviendrai avec de nouvelles ruses. »</p>
             {#if bossReward}
-              <p class="reward-line">
+              <div class="reward-line">
                 <Medallion rewardId={bossReward.id} kind="gear" size={48} />
                 <span>{bossReward.name}</span>
-              </p>
+              </div>
             {/if}
           </div>
         </div>
@@ -451,6 +459,11 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+  }
+  /* The boss-won card is left-aligned (.boss-result), unlike every other card this rule sits in
+     (all centred) - review round 1 #5. */
+  .boss-result .reward-line {
+    justify-content: flex-start;
   }
   .lieutenant-art {
     width: 88px;

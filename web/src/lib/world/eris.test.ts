@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FORBIDDEN, agree, bandFor, confirmChoiceLabel, dossierLine, genderFor, pronounFor } from './eris';
+import { FORBIDDEN, agree, bandFor, confirmChoiceLabel, dossierLine, genderFor, lockedLine, pronounFor } from './eris';
 import { LIEUTENANT_ORDER } from './types';
 
 const BANDS = ['none', 'strong', 'contested', 'weak', 'neutralised'] as const;
@@ -28,6 +28,17 @@ describe("Éris's dossier lines", () => {
     expect(bandFor(l(5, 0.5))).toBe('contested');
     expect(bandFor(l(5, 0.85))).toBe('weak');
     expect(bandFor(l(5, 0.1, true))).toBe('neutralised');
+  });
+
+  // Dossier.svelte's locked-row caption used to hardcode "Protée" (the only lieutenant that can
+  // actually be locked today, since every other one's min_level is the game's own floor, 5H) -
+  // this proves the line is parameterised by name, for any lieutenant, not just Protée
+  // (review round 1 #1). No other lieutenant can be reached locked through the running app
+  // (Ruling: level 5H, the lowest playable level, already unlocks all but Protée), so this is
+  // covered at the unit level instead of e2e.
+  it('names whichever lieutenant is actually locked, not a fixed one', () => {
+    expect(lockedLine('Protée')).toBe('Protée dort encore à ce niveau.');
+    expect(lockedLine("L'Hydre")).toBe("L'Hydre dort encore à ce niveau.");
   });
 });
 

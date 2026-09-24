@@ -128,7 +128,7 @@
         {@const l = lieutenantState(key)}
         {@const decor = nextDecor()}
         <div class="card challenge-card" data-testid="board-challenge-{key}">
-          <img class="glyph" src={lieutenantIcon(key) ?? ''} alt="" aria-hidden="true" />
+          <img class="glyph" src={lieutenantIcon(key)} alt="" aria-hidden="true" />
           <span class="name">{names[key] ?? key}</span>
           <p class="technique muted">{technique(key)}</p>
           {#if !l || !l.available}
@@ -158,14 +158,14 @@
       <div class="parchment eris-panel" data-testid="board-boss">
         {#if campStore.data.boss.tier_available !== null || campStore.data.boss.active_quest_id !== null}
           {@const rewardId = bossRewardId(campStore.data.boss.tier_available)}
-          <p class="boss-reward-line">
+          <div class="boss-reward-line">
             {#if rewardId}<Medallion {rewardId} kind="gear" size={40} />{/if}
             <span>
               Combat {romanTier(campStore.data.boss.tier_available ?? 1)} — récompense : {bossRewardName(
                 campStore.data.boss.tier_available,
               )}
             </span>
-          </p>
+          </div>
           <button
             type="button"
             class="btn btn-primary"

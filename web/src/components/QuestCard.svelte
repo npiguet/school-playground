@@ -62,12 +62,12 @@
 
   <Gauge value={gaugeValue} max={gaugeMax} label={progressLabel} />
 
-  <p class="reward-line">
+  <div class="reward-line">
     {#if quest.reward.reward_id}
-      <Medallion rewardId={quest.reward.reward_id} kind={rewardKindOf(quest.reward.reward_id)} size={32} />
+      <Medallion rewardId={quest.reward.reward_id} kind={rewardKindOf(quest.reward.reward_id, catalog)} size={32} />
     {/if}
     <span>Récompense connue : {rewardLabel(quest, catalog)}</span>
-  </p>
+  </div>
 
   {#if quest.status === 'done' && quest.completed_at}
     <span class="chip chip-gold">Terminée le {formatSwissDate(quest.completed_at.slice(0, 10))}</span>

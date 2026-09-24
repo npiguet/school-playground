@@ -164,10 +164,10 @@
 
     <section>
       <h2>Les trois rouleaux</h2>
-      <p class="reward-line" data-testid="oracle-reward">
-        {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} kind={rewardKindOf(oracle.reward_id)} size={36} />{/if}
+      <div class="reward-line" data-testid="oracle-reward">
+        {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} kind={rewardKindOf(oracle.reward_id, campStore.catalog)} size={36} />{/if}
         <span>Cette semaine, ouvrir un rouleau rapporte : {oracleRewardLine()}</span>
-      </p>
+      </div>
 
       {#if consultError}
         <p class="orange" role="alert">{consultError}</p>
@@ -186,7 +186,7 @@
                 disabled={!isAvailable(key)}
                 onclick={() => (selectedMonster = key)}
               >
-                <img class="chip-icon" src={lieutenantIcon(key) ?? ''} alt="" aria-hidden="true" />
+                <img class="chip-icon" src={lieutenantIcon(key)} alt="" aria-hidden="true" />
                 {nameFor(key)}{!isAvailable(key) ? ' · dort encore' : ''}
               </button>
             {/each}

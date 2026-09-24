@@ -1,7 +1,10 @@
 <script lang="ts">
   // A reward medallion (UI3 Ruling A12): the painted reward icon in a gold ring; a tint is a flat
   // colour swatch; `locked` greys the ring and shows a plain « ? » so an undiscovered reward reads
-  // as a mystery, never a blank (an unknown id falls back to the same « ? »).
+  // as a mystery, never a blank (an unknown id falls back to the same « ? », also announced as
+  // such - review round 1 #3). `label` names the reward for screen readers when no visible text
+  // sits next to this medallion (review round 1 #2); it never overrides the locked/unknown mystery
+  // state, which must never leak which reward it is.
   import { rewardIcon } from '../../lib/world/art';
   import { TINT_SWATCH } from '../../lib/world/dragon';
   import type { RewardKind, Tint } from '../../lib/world/types';
@@ -11,10 +14,13 @@
     kind,
     size = 72,
     locked = false,
-  }: { rewardId: string; kind: RewardKind; size?: number; locked?: boolean } = $props();
+    label,
+  }: { rewardId: string; kind: RewardKind; size?: number; locked?: boolean; label?: string } = $props();
 
   const swatch = $derived(kind === 'tint' ? (TINT_SWATCH[rewardId.slice('tint:'.length) as Tint] ?? null) : null);
   const icon = $derived(kind === 'tint' ? null : rewardIcon(rewardId));
+  const isUnknown = $derived(!swatch && !icon);
+  const mysteryLabel = $derived(locked ? 'Récompense à découvrir' : isUnknown ? 'Récompense inconnue' : undefined);
 </script>
 
 <div
@@ -23,13 +29,13 @@
   data-kind={kind}
   data-reward={rewardId}
   style="width:{size}px;height:{size}px;font-size:{size * 0.5}px"
-  role={locked ? 'img' : undefined}
-  aria-label={locked ? 'Récompense à découvrir' : undefined}
+  role={mysteryLabel ? 'img' : undefined}
+  aria-label={mysteryLabel}
 >
   {#if !locked && swatch}
     <span class="swatch" style="background:radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.55), {swatch} 62%)" aria-hidden="true"></span>
   {:else if !locked && icon}
-    <img class="icon" src={icon} alt="" draggable="false" />
+    <img class="icon" src={icon} alt={label ?? ''} draggable="false" />
   {:else}
     <span class="mystery" aria-hidden="true">?</span>
   {/if}

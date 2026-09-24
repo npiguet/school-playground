@@ -32,6 +32,8 @@
     lieutenantState?.name ?? catalogEntry?.name ?? bestiaryEntry(lieutenantKey)?.name ?? lieutenantKey,
   );
   const art = $derived(isKnownKey ? ART.lieutenants[lieutenantKey as LieutenantKey] : ART.erisSmug);
+  const relicId = $derived(isKnownKey ? RELIC_OF[lieutenantKey as LieutenantKey] : '');
+  const relicName = $derived(campStore.catalog?.rewards[relicId]?.name ?? `Relique de ${name}`);
   const band = $derived(lieutenantState ? bandFor(lieutenantState) : 'none');
   const questXp = $derived(campStore.catalog?.quest_bonus.board ?? 60);
 
@@ -108,7 +110,7 @@
 
       {#if lieutenantState.neutralised}
         <div class="parchment neutralised-banner" data-testid="lieutenant-neutralised">
-          <Medallion rewardId={RELIC_OF[lieutenantKey as LieutenantKey]} kind="relic" size={64} />
+          <Medallion rewardId={relicId} kind="relic" size={64} label={relicName} />
           <p>{agree('Neutralisé', lieutenantKey as LieutenantKey)} le {neutralisedDate()}</p>
         </div>
       {/if}

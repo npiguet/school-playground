@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import type { WorldCatalog } from './types';
 import {
   ADD_ICONS,
   ART,
@@ -89,5 +90,18 @@ describe('art map', () => {
     expect(avatarIcon('medusa')).toBe('/art/icons/avatar-chouette.webp');
     expect(lieutenantIcon('hydre')).toBe('/art/icons/lt-hydre.webp');
     expect(lieutenantIcon('medusa')).toBeNull();
+  });
+
+  it('prefers the camp catalog\'s own kind over the id-prefix/RELIC_OF guess when it is given (review round 1 #7)', () => {
+    const catalog = {
+      rewards: { egide: { id: 'egide', kind: 'decor', name: 'Égide', desc: '', source: '' } },
+    } as unknown as WorldCatalog;
+    // Without a catalog, `egide` isn't a tint/decor id nor a relic, so the fallback guesses 'gear'.
+    expect(rewardKindOf('egide')).toBe('gear');
+    // A catalog that (hypothetically) disagrees wins.
+    expect(rewardKindOf('egide', catalog)).toBe('decor');
+    // A catalog that doesn't know this id at all still falls back to the guess.
+    expect(rewardKindOf('egide', { rewards: {} } as unknown as WorldCatalog)).toBe('gear');
+    expect(rewardKindOf('egide', null)).toBe('gear');
   });
 });

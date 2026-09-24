@@ -82,10 +82,10 @@
 
   <div class="card info-card">
     <p class="tier" data-testid="boss-tier">Combat {romanTier(tier)}</p>
-    <p class="reward" data-testid="boss-reward">
+    <div class="reward" data-testid="boss-reward">
       {#if bossRewardId}<Medallion rewardId={bossRewardId} kind="gear" size={40} />{/if}
       <span>Récompense si tu gagnes : {campStore.catalog?.quest_bonus.boss ?? 300} XP · {bossRewardName()}</span>
-    </p>
+    </div>
     <p class="rules muted">
       Un long texte · les Yeux d'Argus restent éteints · aucun piège n'est perdu si Éris s'enfuit : tu pourras
       recommencer.

@@ -2,7 +2,7 @@
 // Only the cut (alpha) variants are served for characters/dragon/lieutenants/emblems;
 // scenes are full-bleed backgrounds and keep their flat background.
 import type { Avatar } from '../levels';
-import type { LieutenantKey, RewardKind } from './types';
+import type { LieutenantKey, RewardKind, WorldCatalog } from './types';
 
 const icon = (name: string) => `/art/icons/${name}.webp`;
 
@@ -169,7 +169,12 @@ export function lieutenantIcon(key: string): string | null {
   return LIEUTENANT_ICONS[key as LieutenantKey] ?? null;
 }
 
-export function rewardKindOf(id: string): RewardKind {
+/** The server's own catalog is the source of truth for a reward's kind when it's cheaply
+ *  available to the caller (review round 1 #7); the id-prefix/RELIC_OF guess below only covers
+ *  the callers that don't have the catalog in hand (e.g. a purely presentational component). */
+export function rewardKindOf(id: string, catalog?: WorldCatalog | null): RewardKind {
+  const fromCatalog = catalog?.rewards[id]?.kind;
+  if (fromCatalog) return fromCatalog;
   if (id.startsWith('tint:')) return 'tint';
   if (id.startsWith('decor:')) return 'decor';
   return (Object.values(RELIC_OF) as string[]).includes(id) ? 'relic' : 'gear';

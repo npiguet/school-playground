@@ -133,6 +133,14 @@ export function smallTricksLine(traps: number, caught: number): string {
   return `Mes petites ruses (accents, lettres, majuscules) : ${traps} tentative${traps > 1 ? 's' : ''}, ${caught} déjouée${caught > 1 ? 's' : ''}. Je note.`;
 }
 
+/** The "still asleep at this level" caption for a locked/unavailable lieutenant row (Dossier) -
+ *  parameterised by name so it's correct for any lieutenant, not only Protée, the one that
+ *  happens to need the highest level today (review round 1 #1: the row used to say "Protée"
+ *  whichever lieutenant it was). */
+export function lockedLine(name: string): string {
+  return `${name} dort encore à ce niveau.`;
+}
+
 export function campGreeting(hour: number): string {
   return hour < 5 ? 'Bonne nuit au camp.' : hour < 12 ? 'Bonjour au camp.' : hour < 18 ? 'Bel après-midi au camp.' : 'Bonsoir au camp.';
 }

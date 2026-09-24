@@ -73,10 +73,10 @@
 
   {#if sealed}
     <p class="hint muted">{hint}</p>
-    <p class="reward-line">
+    <div class="reward-line">
       {#if rewardId}<Medallion {rewardId} kind={rewardKindOf(rewardId)} size={36} />{/if}
       <span>Récompense de la semaine : {reward}</span>
-    </p>
+    </div>
     {#if sealedStep}
       {@render sealedStep()}
     {:else}
