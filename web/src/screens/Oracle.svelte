@@ -229,6 +229,7 @@
             busy={consultingScroll === s.key}
             onOpen={() => openScroll(s.key)}
             sealedStep={s.key === 'ecole' && ecolePickerOpen ? ecolePicker : undefined}
+            quiet={oracle.status === 'chosen' && chosenKey !== s.key}
           >
             {#if oracle.status === 'chosen' && chosenKey !== s.key}
               <p class="muted closed-note">Refermé jusqu'à lundi.</p>
@@ -316,9 +317,10 @@
     gap: 8px;
   }
   /* M10: these chips are the primary tap targets for choosing a monster, not decorative
-     labels - bump them to the SP1 ≥44px convention (app.css's generic .chip is 40px). */
+     labels - bump them to the project's ≥48px convention (app.css's .btn/.card/inputs are all
+     48px; the generic .chip is only 40px). */
   .picker-grid :global(.chip) {
-    min-height: 44px;
+    min-height: 48px;
   }
   .picker-actions {
     display: flex;

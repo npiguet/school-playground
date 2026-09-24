@@ -21,6 +21,7 @@
     busy = false,
     children,
     sealedStep,
+    quiet = false,
   }: {
     title: string;
     hint: string;
@@ -35,6 +36,11 @@
     // still sealed - it must not itself unseal the scroll (M4): only actually consulting it does,
     // via `onOpen`/`sealed` flipping from the *caller*, never by this step's own presence.
     sealedStep?: Snippet;
+    // M4: when a consult succeeds, all three scrolls' `sealed` flip false together (one choice
+    // seals the whole week) - but only the chosen scroll should play the seal-break/unroll sound
+    // and sparkle burst. The two not chosen pass `quiet` so they still fade open to their "closed
+    // until Monday" note, without the sound/sparkle effects.
+    quiet?: boolean;
   } = $props();
 
   let sparkleTrigger = $state(0);
@@ -42,9 +48,9 @@
 
   // Fires the seal-break -> unroll sound pair and the sparkle burst exactly once, the moment this
   // scroll transitions from sealed to open (never on first mount if it starts open, never again
-  // once it has opened).
+  // once it has opened, never at all when `quiet`).
   $effect(() => {
-    if (previousSealed && !sealed) {
+    if (previousSealed && !sealed && !quiet) {
       playSfx('seal');
       setTimeout(() => playSfx('unroll'), 130);
       sparkleTrigger += 1;
