@@ -259,6 +259,61 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
   });
 });
 
+// P1-1 regression: `annot.subject`/`annot.head` are spaCy (annotation-space) token indexes, not
+// client (reference) token indexes. An elision earlier in the sentence ("D'abord" -> spaCy splits
+// "D'" + "abord", the client keeps "D'abord" as one token) shifts every later spaCy index by one
+// relative to the client's, exactly like "n'intriguait"/"d'Athéna"/"l'avait" did in the reviewed
+// build (playability.md P1-1: "« taisaient » s'accorde avec son sujet « taisaient »").
+describe('explain (P1-1 elided-text regression)', () => {
+  it('names the real subject, not the verb itself, when an earlier elision shifts spaCy indexes', () => {
+    // "D'abord, les enfants chantent." — client tokens: 0 D'abord, 1 ',', 2 les, 3 enfants,
+    // 4 chantent, 5 '.'. spaCy tokens: 0 D', 1 abord, 2 ',', 3 les, 4 enfants, 5 chantent, 6 '.'.
+    // annot.subject on "chantent" is 4 (spaCy id of "enfants") — the *client* index 4 is
+    // "chantent" itself, so the old bug named the verb as its own subject.
+    const REF = "D'abord, les enfants chantent.";
+    const spacyTokens: AnnotToken[] = [
+      { i: 0, text: "D'", start: 0, end: 2, lemma: "d'", pos: 'DET', morph: {}, head: 1, dep: 'det', categories: [], homophone: null, subject: null },
+      { i: 1, text: 'abord', start: 2, end: 7, lemma: 'abord', pos: 'ADV', morph: {}, head: 5, dep: 'advmod', categories: [], homophone: null, subject: null },
+      { i: 2, text: ',', start: 7, end: 8, lemma: ',', pos: 'PUNCT', morph: {}, head: 5, dep: 'punct', categories: [], homophone: null, subject: null },
+      { i: 3, text: 'les', start: 9, end: 12, lemma: 'le', pos: 'DET', morph: {}, head: 4, dep: 'det', categories: ['nominal_group'], homophone: null, subject: null },
+      { i: 4, text: 'enfants', start: 13, end: 20, lemma: 'enfant', pos: 'NOUN', morph: { Gender: 'Masc', Number: 'Plur' }, head: 5, dep: 'nsubj', categories: ['nominal_group'], homophone: null, subject: null },
+      { i: 5, text: 'chantent', start: 21, end: 29, lemma: 'chanter', pos: 'VERB', morph: { VerbForm: 'Fin', Number: 'Plur', Person: '3' }, head: 5, dep: 'root', categories: ['verb'], homophone: null, subject: 4 },
+      { i: 6, text: '.', start: 29, end: 30, lemma: '.', pos: 'PUNCT', morph: {}, head: 5, dep: 'punct', categories: [], homophone: null, subject: null },
+    ];
+    const annotation: Annotation = { version: 1, model: 't', tokens: spacyTokens, sentences: [] };
+    expect(REF.length).toBe(30); // sanity: fixture offsets above match the literal string
+    const g = gradeText(REF, "D'abord, les enfants chante.", annotation);
+    const ctx = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation), annotation };
+    const err = g.errors.find((e) => e.category === 'agreement' && e.sub === 'verb');
+    expect(err).toBeDefined();
+    expect(explain(err!, ctx).text).toBe(
+      '« chantent » s\'accorde avec son sujet « enfants » → pluriel → terminaison « nt »',
+    );
+  });
+
+  it('names the real head noun, not the adjective itself, when an earlier elision shifts spaCy indexes', () => {
+    // "D'abord, les ruelles étroites." — client ref index 4 is "étroites" itself; annot.head on
+    // "étroites" is spaCy id 4 ("ruelles"), which the old bug looked up as client index 4.
+    const REF = "D'abord, les ruelles étroites.";
+    const spacyTokens: AnnotToken[] = [
+      { i: 0, text: "D'", start: 0, end: 2, lemma: "d'", pos: 'DET', morph: {}, head: 1, dep: 'det', categories: [], homophone: null, subject: null },
+      { i: 1, text: 'abord', start: 2, end: 7, lemma: 'abord', pos: 'ADV', morph: {}, head: 5, dep: 'advmod', categories: [], homophone: null, subject: null },
+      { i: 2, text: ',', start: 7, end: 8, lemma: ',', pos: 'PUNCT', morph: {}, head: 5, dep: 'punct', categories: [], homophone: null, subject: null },
+      { i: 3, text: 'les', start: 9, end: 12, lemma: 'le', pos: 'DET', morph: {}, head: 4, dep: 'det', categories: ['nominal_group'], homophone: null, subject: null },
+      { i: 4, text: 'ruelles', start: 13, end: 20, lemma: 'ruelle', pos: 'NOUN', morph: { Gender: 'Fem', Number: 'Plur' }, head: 4, dep: 'root', categories: ['nominal_group'], homophone: null, subject: null },
+      { i: 5, text: 'étroites', start: 21, end: 29, lemma: 'étroit', pos: 'ADJ', morph: { Gender: 'Fem', Number: 'Plur' }, head: 4, dep: 'amod', categories: ['nominal_group'], homophone: null, subject: null },
+      { i: 6, text: '.', start: 29, end: 30, lemma: '.', pos: 'PUNCT', morph: {}, head: 4, dep: 'punct', categories: [], homophone: null, subject: null },
+    ];
+    const annotation: Annotation = { version: 1, model: 't', tokens: spacyTokens, sentences: [] };
+    expect(REF.length).toBe(30);
+    const g = gradeText(REF, "D'abord, les ruelles étroite.", annotation);
+    const ctx = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation), annotation };
+    const err = g.errors.find((e) => e.category === 'agreement' && e.sub === 'number');
+    expect(err).toBeDefined();
+    expect(explain(err!, ctx).text).toBe('« étroites » s\'accorde avec « ruelles » → pluriel');
+  });
+});
+
 describe('erisLine', () => {
   it('never blames the player', () => {
     expect(erisLine(null, 0, 0)).toMatch(/reviendrai/);

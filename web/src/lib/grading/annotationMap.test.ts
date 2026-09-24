@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { tokenize } from './tokenize';
-import { mapAnnotation } from './annotationMap';
+import { mapAnnotation, reverseAnnotationMap } from './annotationMap';
 import type { Annotation } from './types';
 
 const a = (i: number, text: string, start: number, pos: string, categories: string[]): Annotation['tokens'][number] =>
@@ -19,5 +19,18 @@ describe('mapAnnotation', () => {
     expect(mapAnnotation(tokenize('a b'), null)).toEqual([undefined, undefined]);
     const annotation: Annotation = { version: 1, model: 't', sentences: [], tokens: [a(0, 'zzz', 40, 'X', [])] };
     expect(mapAnnotation(tokenize('a b'), annotation)).toEqual([undefined, undefined]);
+  });
+});
+
+describe('reverseAnnotationMap', () => {
+  it('maps a spaCy token id back to the client ref index it was matched to (P1-1)', () => {
+    // "L'enfant dort." — spaCy splits the elision ("L'" + "enfant") into two tokens (ids 0, 1)
+    // while the client keeps "L'enfant" as one token (ref index 0): id 1 -> ref 0, id 2 -> ref 1.
+    const text = "L'enfant dort.";
+    const annotation: Annotation = { version: 1, model: 't', sentences: [], tokens: [
+      a(0, "L'", 0, 'DET', ['nominal_group']), a(1, 'enfant', 2, 'NOUN', ['nominal_group']),
+      a(2, 'dort', 9, 'VERB', ['verb']), a(3, '.', 13, 'PUNCT', [])] };
+    const annots = mapAnnotation(tokenize(text), annotation);
+    expect(Object.fromEntries(reverseAnnotationMap(annots))).toEqual({ 1: 0, 2: 1, 3: 2 });
   });
 });

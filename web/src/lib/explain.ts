@@ -13,6 +13,7 @@ import {
 } from './chains';
 import { statKey as statKeyOf } from './grading/grade';
 import { homophoneHint } from './grading/homophones';
+import { reverseAnnotationMap } from './grading/annotationMap';
 import type { Annotation, AnnotToken, StatKey, Token, TokenError } from './grading/types';
 import { levelIndex } from './levels';
 
@@ -65,14 +66,33 @@ function genderWord(g: string | undefined): string | null {
   return null;
 }
 
+// P1-1: `annot.head`/`annot.subject` are spaCy (annotation-space) token indexes, not client
+// (reference) token indexes — the two disagree whenever an elision ("n'", "d'", "l'", "qu'"...)
+// makes spaCy split a token the client tokenizer keeps whole. `refIndexOf` resolves an
+// annotation-space index to the client ref index it was matched to, via `reverseAnnotationMap`
+// (built from the same `mapAnnotation` output as `ctx.annots`, so both directions agree); the
+// map is cached per `ctx.annots` array since `explain()` is called once per error but they all
+// share the same context.
+const reverseMapCache = new WeakMap<(AnnotToken | undefined)[], Map<number, number>>();
+function refIndexOf(ctx: ExplainContext, annotIndex: number | null | undefined): number | undefined {
+  if (annotIndex === null || annotIndex === undefined) return undefined;
+  let map = reverseMapCache.get(ctx.annots);
+  if (!map) {
+    map = reverseAnnotationMap(ctx.annots);
+    reverseMapCache.set(ctx.annots, map);
+  }
+  return map.get(annotIndex);
+}
+
 /** The reference token text of `refIndex`'s head, when that head is a NOUN; else `null` (falls
  *  back to the generic "the noun it goes with" phrase). */
 function headNounText(ctx: ExplainContext, refIndex: number): string | null {
   const annot = ctx.annots[refIndex];
   if (!annot) return null;
-  const head = ctx.annots[annot.head];
+  const headRef = refIndexOf(ctx, annot.head);
+  const head = headRef !== undefined ? ctx.annots[headRef] : undefined;
   if (head?.pos !== 'NOUN') return null;
-  return ctx.refTokens[annot.head]?.text ?? null;
+  return headRef !== undefined ? (ctx.refTokens[headRef]?.text ?? null) : null;
 }
 
 function agreementWith(head: string | null): string {
@@ -151,10 +171,10 @@ function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string):
   const annot = refIndex !== null ? ctx.annots[refIndex] : undefined;
 
   if (e.sub === 'verb') {
-    const subjectIndex = annot?.subject;
-    if (subjectIndex !== null && subjectIndex !== undefined) {
-      const subject = ctx.refTokens[subjectIndex]?.text;
-      const number = numberWord(ctx.annots[subjectIndex]?.morph.Number);
+    const subjectRef = refIndexOf(ctx, annot?.subject);
+    if (subjectRef !== undefined) {
+      const subject = ctx.refTokens[subjectRef]?.text;
+      const number = numberWord(ctx.annots[subjectRef]?.morph.Number);
       if (subject && number) {
         const ending = verbEnding(expected, e.typed ?? '');
         return `« ${expected} » s'accorde avec son sujet « ${subject} » → ${number} → terminaison « ${ending} »`;
