@@ -115,6 +115,7 @@
         {#each stats.recent_sessions as s (s.id)}
           <li>
             {s.title} · {formatDate(s.finished_at)} · {s.score} pts · {pct(s.catch_rate)}
+            {#if s.mode === 'grimoire'}<span class="chip chip-mode">Grimoire</span>{/if}
           </li>
         {/each}
       </ul>
@@ -181,5 +182,12 @@
     border: 1px solid var(--marble-dark);
     border-radius: var(--radius);
     padding: 10px 14px;
+  }
+  .chip-mode {
+    cursor: default;
+    margin-left: 8px;
+    min-height: auto;
+    padding: 2px 10px;
+    font-size: 13px;
   }
 </style>

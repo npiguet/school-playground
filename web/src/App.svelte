@@ -66,6 +66,8 @@
         <ScanText profile={gateProfile} />
       {:else if route.name === 'play'}
         <Play profile={gateProfile} textId={route.params.textId} />
+      {:else if route.name === 'grimoire'}
+        <Play profile={gateProfile} textId={route.params.textId} mode="grimoire" />
       {:else if route.name === 'stats'}
         <Stats profile={gateProfile} />
       {:else if route.name === 'settings'}

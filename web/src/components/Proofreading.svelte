@@ -12,7 +12,7 @@
   import { filExit, filStart, filTap, type FilState, type TypedTextLookup } from '$lib/fil';
   import { savePlayState, type PlayState } from '$lib/playState';
   import { replaceSpan, sentenceSpans } from '$lib/textEdit';
-  import type { TextFull } from '$lib/types';
+  import type { PlayMode, TextFull } from '$lib/types';
 
   let {
     reference,
@@ -21,6 +21,7 @@
     argusOrder,
     trapWords,
     level,
+    mode = 'dictation',
     onDone,
   }: {
     reference: TextFull;
@@ -29,6 +30,10 @@
     argusOrder: ArgusPass[];
     trapWords: string[];
     level: string;
+    /** SP2 Task 9: 'grimoire' swaps the header title and prefixes the stage sentence with Éris's
+     *  framing line; the stage-3 count itself is unchanged (always `gradeText`'s own count, never
+     *  the plant count - see `freezeInitialErrors` below). */
+    mode?: PlayMode;
     onDone: () => void;
   } = $props();
 
@@ -151,7 +156,7 @@
     };
   });
 
-  const subtitle = $derived.by(() => {
+  const stageSentence = $derived.by(() => {
     switch (helpStage) {
       case 1:
         return "Les Yeux d'Argus éclairent une catégorie à la fois.";
@@ -166,6 +171,8 @@
         return 'À toi de jouer. Valide quand tu es sûre.';
     }
   });
+  // SP2 Task 9: the grimoire flow frames every stage sentence with Éris's own line first.
+  const subtitle = $derived(mode === 'grimoire' ? `Éris a corrompu ce grimoire. ${stageSentence}` : stageSentence);
 
   // --- Argus passes -------------------------------------------------------------------
 
@@ -311,7 +318,7 @@
 
 <section class="proof" aria-label="Relecture">
   <header class="head">
-    <h2>Relecture</h2>
+    <h2>{mode === 'grimoire' ? 'Grimoire corrompu' : 'Relecture'}</h2>
     <p class="subtitle muted">{subtitle}</p>
   </header>
 

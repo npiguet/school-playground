@@ -15,12 +15,14 @@
   import { loadProfile } from '../lib/profileStore.svelte';
   import { navigate } from '../lib/router.svelte';
   import { href } from '../lib/routes';
-  import type { Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
+  import type { PlayMode, Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
 
-  let { profile, textId }: { profile: Profile; textId: string } = $props();
+  let { profile, textId, mode = 'dictation' }: { profile: Profile; textId: string; mode?: PlayMode } = $props();
 
   const id = $derived(Number(textId));
   const helpStage = $derived(Math.min(4, Math.max(1, Math.round(profile.help_stage))) as 1 | 2 | 3 | 4);
+  // Grimoire corrompu has no pace selector (plan decision #8: session.pace_level is always 1).
+  const initialPace = $derived(mode === 'grimoire' ? 1 : defaultPace(profile.level));
 
   let text = $state<TextFull | null>(null);
   let trapWords = $state<TrapWord[]>([]);
@@ -44,6 +46,10 @@
   // Intro-only: never toggled during dictation/proofreading (the photo is the reference,
   // spec §3.2 - it must stay hidden while the child is writing).
   let showPhotos = $state(false);
+  // Grimoire intro only: true while awaiting `api.texts.corrupt`; corruptError holds its detail
+  // on failure (422 "not enough grip on this text" - spec §5, plan decision #8).
+  let corrupting = $state(false);
+  let corruptError = $state<string | null>(null);
 
   async function load() {
     loading = true;
@@ -59,12 +65,12 @@
       stats = st;
       plan = buildPlan(t.body);
 
-      const saved = loadPlayState(profile.id, id);
+      const saved = loadPlayState(profile.id, id, mode);
       if (saved) {
         playState = saved;
         showResumeBanner = saved.phase !== 'results';
       } else {
-        playState = newPlayState(profile.id, id, defaultPace(profile.level));
+        playState = newPlayState(profile.id, id, initialPace, mode);
       }
       if (playState.phase === 'results') void ensureResults();
 
@@ -94,18 +100,19 @@
   });
 
   function restart() {
-    clearPlayState(profile.id, id);
-    playState = newPlayState(profile.id, id, defaultPace(profile.level));
+    clearPlayState(profile.id, id, mode);
+    playState = newPlayState(profile.id, id, initialPace, mode);
     showResumeBanner = false;
     result = null;
     helpMessage = null;
     submitError = null;
+    corruptError = null;
     left = false;
   }
 
   function toLibrary() {
     left = true;
-    clearPlayState(profile.id, id);
+    clearPlayState(profile.id, id, mode);
     navigate(href('library', { profileId: String(profile.id) }));
   }
 
@@ -134,6 +141,27 @@
   function quitDictation() {
     save();
     showResumeBanner = true;
+  }
+
+  // Grimoire intro's "Ouvrir le grimoire" button: Éris has already corrupted the text server-side
+  // (spec §5, plan decision #8) - no dictation step, straight to proofreading the corrupted draft.
+  async function openGrimoire() {
+    if (!playState) return;
+    corrupting = true;
+    corruptError = null;
+    try {
+      const { corrupted, plants } = await api.texts.corrupt(id, { profile_id: profile.id });
+      playState.draft = corrupted;
+      playState.current = corrupted;
+      playState.plants = plants;
+      playState.phase = 'proofreading';
+      playState.startedAt = new Date().toISOString();
+      save();
+    } catch (e) {
+      corruptError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
+    } finally {
+      corrupting = false;
+    }
   }
 
   function onDictationFinish() {
@@ -175,8 +203,9 @@
       const created = await api.sessions.create({
         profile_id: profile.id,
         text_id: id,
-        pace_level: stateAtSubmit.pace,
+        pace_level: mode === 'grimoire' ? 1 : stateAtSubmit.pace,
         help_stage: profile.help_stage,
+        mode,
         started_at: stateAtSubmit.startedAt,
         draft: stateAtSubmit.draft,
         final: stateAtSubmit.current,
@@ -233,7 +262,7 @@
     </div>
   {:else if playState.phase === 'intro'}
     <div class="screen">
-      <h1>{text.title}</h1>
+      <h1>{mode === 'grimoire' ? 'Grimoire corrompu' : text.title}</h1>
       {#if credits(text)}<p class="credits muted">{credits(text)}</p>{/if}
       <div class="chips">
         <span class="chip">{text.level}</span>
@@ -263,19 +292,46 @@
         {/if}
       {/if}
 
-      {#if !ttsAvailable()}
-        <p class="orange">
-          Cet appareil ne sait pas lire à voix haute. La dictée avancera toute seule, sans son.
+      {#if mode === 'grimoire'}
+        <p>Éris a recopié ce parchemin en y semant ses dés-accords. Pas de dictée cette fois : retrouve-les et répare-les.</p>
+
+        {#if corruptError}
+          <p class="orange">{corruptError}</p>
+          <button type="button" class="btn" data-testid="btn-back-library" onclick={toLibrary}>Retour aux Parchemins</button>
+        {:else if corrupting}
+          <p class="muted">Éris corrompt le grimoire…</p>
+        {:else}
+          <button type="button" class="btn btn-primary" data-testid="btn-open-grimoire" onclick={openGrimoire}>
+            Ouvrir le grimoire
+          </button>
+        {/if}
+      {:else}
+        {#if !ttsAvailable()}
+          <p class="orange">
+            Cet appareil ne sait pas lire à voix haute. La dictée avancera toute seule, sans son.
+          </p>
+        {/if}
+
+        <h2>Choisis ton rythme</h2>
+        <PaceSelect bind:pace={playState.pace} />
+        <p class="muted">Les récompenses augmentent avec le rythme.</p>
+
+        <button type="button" class="btn btn-primary" onclick={startDictation}>
+          Commencer la dictée
+        </button>
+
+        <button
+          type="button"
+          class="btn"
+          data-testid="btn-grimoire"
+          onclick={() => navigate(href('grimoire', { profileId: String(profile.id), textId: String(id) }))}
+        >
+          Grimoire corrompu
+        </button>
+        <p class="muted">
+          Éris a déjà recopié ce texte… avec ses dés-accords. Pas de dictée : relis et répare.
         </p>
       {/if}
-
-      <h2>Choisis ton rythme</h2>
-      <PaceSelect bind:pace={playState.pace} />
-      <p class="muted">Les récompenses augmentent avec le rythme.</p>
-
-      <button type="button" class="btn btn-primary" onclick={startDictation}>
-        Commencer la dictée
-      </button>
     </div>
   {:else if playState.phase === 'dictation'}
     <Dictation
@@ -294,6 +350,7 @@
       argusOrder={stats?.argus_order ?? []}
       trapWords={trapWords.map((t) => t.word)}
       level={profile.level}
+      {mode}
       onDone={onProofreadingDone}
     />
   {:else if result}
@@ -305,6 +362,7 @@
       {submitError}
       {submitting}
       level={profile.level}
+      {mode}
       onReplay={restart}
       onLibrary={toLibrary}
       onRetry={submitSession}

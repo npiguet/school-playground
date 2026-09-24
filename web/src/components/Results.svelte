@@ -5,7 +5,7 @@
   import { errorKey, gradeText, mapAnnotation } from '$lib/grading';
   import type { Annotation, SessionResult, StatKey, TokenError } from '$lib/grading/types';
   import { CATEGORY_LABELS, caughtText, erisLine, explain, statKeyOf } from '$lib/explain';
-  import type { TextFull } from '$lib/types';
+  import type { PlayMode, TextFull } from '$lib/types';
 
   let {
     reference,
@@ -15,6 +15,7 @@
     submitError,
     submitting,
     level,
+    mode = 'dictation',
     onReplay,
     onLibrary,
     onRetry,
@@ -27,6 +28,8 @@
     /** The player's HarmoS level (SP2 Task 7): threaded into `ExplainContext` so the
      *  participle_avoir chain explanation only shows from 9H (spec §3.4). */
     level: string;
+    /** SP2 Task 9: picks Éris's grimoire-flavoured line and the "Dés-accords retrouvés" wording. */
+    mode?: PlayMode;
     onReplay: () => void;
     onLibrary: () => void;
     /** Not in the task brief's prop list, but needed for the "Réessayer" retry button the brief
@@ -49,7 +52,7 @@
   const caughtCount = $derived(result.caught.length);
   const introducedCount = $derived(result.introduced.length);
   const pct = $derived(draftCount > 0 ? Math.round((100 * caughtCount) / draftCount) : null);
-  const erisText = $derived(erisLine(result.catchRate, draftCount, introducedCount));
+  const erisText = $derived(erisLine(result.catchRate, draftCount, introducedCount, mode));
 
   // Maps a reference token index to its aligned position in the FINAL text's tokens, so a caught
   // draft error (whose own typedIndex points into the draft, not the final) and a missing-word
@@ -170,6 +173,8 @@
     <p class="hero-line" data-testid="results-catch-rate">
       {#if draftCount === 0}
         Texte parfait dès la dictée !
+      {:else if mode === 'grimoire'}
+        Dés-accords retrouvés : {caughtCount} sur {draftCount} ({pct} %)
       {:else}
         Pièges déjoués : {caughtCount} sur {draftCount} ({pct} %)
       {/if}

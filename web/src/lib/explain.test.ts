@@ -483,6 +483,32 @@ describe('erisLine', () => {
     expect(erisLine(0.5, 4, 1)).toMatch(/Sournois/);
     expect(erisLine(0, 4, 0)).toMatch(/bien cachés/);
   });
+
+  it('leaves the dictation strings unchanged when mode is omitted or "dictation"', () => {
+    expect(erisLine(null, 0, 0, 'dictation')).toBe(erisLine(null, 0, 0));
+    expect(erisLine(1, 4, 0, 'dictation')).toBe(erisLine(1, 4, 0));
+  });
+
+  it('uses grimoire-flavoured wording, keyed on the catch rate, never mentioning a dictation', () => {
+    expect(erisLine(1, 5, 0, 'grimoire')).toBe(
+      'Quoi ?! Tu as trouvé tous mes dés-accords dans ce grimoire. Je le corromprai mieux la prochaine fois.',
+    );
+    expect(erisLine(0.5, 4, 0, 'grimoire')).toBe(
+      'Hmpf. La moitié de mes dés-accords retrouvés. Le grimoire garde encore quelques secrets…',
+    );
+    expect(erisLine(0, 4, 0, 'grimoire')).toBe(
+      'Mes dés-accords sont restés bien cachés dans ce grimoire. Cette fois.',
+    );
+    expect(erisLine(0.3, 4, 0, 'grimoire')).toBe(
+      'Ha ! Quelques dés-accords retrouvés. Le grimoire commence à se réparer.',
+    );
+  });
+
+  it('still mentions plants Éris slipped in during a grimoire proofreading', () => {
+    expect(erisLine(0.9, 10, 2, 'grimoire')).toMatch(
+      / \(Et j'en ai glissé 2 pendant ta relecture\. Sournois, je sais\.\)$/,
+    );
+  });
 });
 
 describe('caughtText', () => {

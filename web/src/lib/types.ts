@@ -78,6 +78,27 @@ export interface ScanResult {
   text: string;
 }
 
+/** A play session's mode (SP2 Task 4/9): `'dictation'` is the SP1 flow (listen, write, proofread);
+ *  `'grimoire'` skips straight to proofreading a text Éris has already corrupted. */
+export type PlayMode = 'dictation' | 'grimoire';
+
+/** One error Éris planted in a `corrupt` response (mirrors `server/app/schemas.py`'s plant dict). */
+export interface Plant {
+  token: number;
+  start: number;
+  end: number;
+  original: string;
+  mutated: string;
+  category: string;
+}
+
+export interface CorruptResult {
+  text_id: number;
+  corrupted: string;
+  count: number;
+  plants: Plant[];
+}
+
 export interface ProfileCreateBody {
   name: string;
   avatar: string;
@@ -98,6 +119,7 @@ export interface SessionCreate {
   text_id: number;
   pace_level: number;
   help_stage: number;
+  mode: PlayMode;
   started_at: string;
   draft: string;
   final: string;
@@ -131,6 +153,7 @@ export interface RecentSession {
   catch_rate: number | null;
   pace_level: number;
   help_stage: number;
+  mode: PlayMode;
 }
 
 export interface TrapWord {

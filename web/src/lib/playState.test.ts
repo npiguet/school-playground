@@ -25,6 +25,11 @@ describe('playKey', () => {
   it('builds a per-profile, per-text key', () => {
     expect(playKey(1, 2)).toBe('discorde.play.1.2');
   });
+
+  it('builds a distinct key for grimoire mode, so it never shadows a dictation key', () => {
+    expect(playKey(1, 2, 'grimoire')).toBe('discorde.play.1.2.grimoire');
+    expect(playKey(1, 2, 'dictation')).toBe('discorde.play.1.2');
+  });
 });
 
 describe('newPlayState', () => {
@@ -37,6 +42,12 @@ describe('newPlayState', () => {
     expect(s.profileId).toBe(1);
     expect(s.textId).toBe(2);
     expect(s.pace).toBe(2);
+    expect(s.mode).toBe('dictation');
+  });
+
+  it('supports a grimoire mode', () => {
+    const s = newPlayState(1, 2, 1, 'grimoire');
+    expect(s.mode).toBe('grimoire');
   });
 });
 
@@ -63,6 +74,19 @@ describe('savePlayState / loadPlayState', () => {
     localStorage.setItem(playKey(1, 2), JSON.stringify({ ...s, version: 2 }));
     expect(loadPlayState(1, 2)).toBeNull();
   });
+
+  it('saves a grimoire state under its own key, coexisting with a dictation state', () => {
+    const dictationState = newPlayState(1, 2, 2);
+    dictationState.draft = 'Bonjour le monde';
+    savePlayState(dictationState);
+
+    const grimoireState = newPlayState(1, 2, 1, 'grimoire');
+    grimoireState.draft = 'Bonjour le grimoire';
+    savePlayState(grimoireState);
+
+    expect(loadPlayState(1, 2)).toEqual(dictationState);
+    expect(loadPlayState(1, 2, 'grimoire')).toEqual(grimoireState);
+  });
 });
 
 describe('clearPlayState', () => {
@@ -71,5 +95,17 @@ describe('clearPlayState', () => {
     savePlayState(s);
     clearPlayState(1, 2);
     expect(loadPlayState(1, 2)).toBeNull();
+  });
+
+  it('only removes the state for the given mode, leaving the other mode intact', () => {
+    const dictationState = newPlayState(1, 2, 1);
+    savePlayState(dictationState);
+    const grimoireState = newPlayState(1, 2, 1, 'grimoire');
+    savePlayState(grimoireState);
+
+    clearPlayState(1, 2, 'grimoire');
+
+    expect(loadPlayState(1, 2)).toEqual(dictationState);
+    expect(loadPlayState(1, 2, 'grimoire')).toBeNull();
   });
 });

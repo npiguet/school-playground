@@ -10,6 +10,7 @@ import { homophoneHint } from './grading/homophones';
 import { reverseAnnotationMap } from './grading/annotationMap';
 import type { Annotation, AnnotToken, Chain, StatKey, Token, TokenError } from './grading/types';
 import { levelIndex } from './levels';
+import type { PlayMode } from './types';
 
 export type { StatKey } from './grading/types'; // single source of truth; do not redeclare here
 export { statKey as statKeyOf } from './grading/grade'; // re-export, one implementation
@@ -264,10 +265,27 @@ export function caughtText(caught: TokenError): string {
 
 /** Éris's line for the results screen (spec §1.6): always taunts about her own tricks, never
  *  about the player. `draftErrors` / `introduced` are counts (result.draftErrors.length /
- *  result.introduced.length). */
-export function erisLine(catchRate: number | null, draftErrors: number, introduced: number): string {
+ *  result.introduced.length). `mode` (SP2 Task 9) picks the grimoire-flavoured wording — a
+ *  grimoire session has no dictation step, so its lines never mention one, and there's no
+ *  "draftErrors === 0" case (Éris always plants at least 3 traps). */
+export function erisLine(
+  catchRate: number | null,
+  draftErrors: number,
+  introduced: number,
+  mode: PlayMode = 'dictation',
+): string {
   let line: string;
-  if (draftErrors === 0) {
+  if (mode === 'grimoire') {
+    if (catchRate !== null && catchRate >= 0.8) {
+      line = 'Quoi ?! Tu as trouvé tous mes dés-accords dans ce grimoire. Je le corromprai mieux la prochaine fois.';
+    } else if (catchRate !== null && catchRate >= 0.5) {
+      line = 'Hmpf. La moitié de mes dés-accords retrouvés. Le grimoire garde encore quelques secrets…';
+    } else if (catchRate !== null && catchRate > 0) {
+      line = 'Ha ! Quelques dés-accords retrouvés. Le grimoire commence à se réparer.';
+    } else {
+      line = 'Mes dés-accords sont restés bien cachés dans ce grimoire. Cette fois.';
+    }
+  } else if (draftErrors === 0) {
     line = "Pfff. Tu n'as rien laissé passer pendant la dictée. Je reviendrai.";
   } else if (catchRate !== null && catchRate >= 0.8) {
     line = 'Impossible ! Tu as déjoué presque tous mes pièges. Ça ne se reproduira pas.';
