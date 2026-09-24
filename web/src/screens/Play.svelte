@@ -3,10 +3,16 @@
   import PaceSelect from '../components/PaceSelect.svelte';
   import Dictation from '../components/Dictation.svelte';
   import Proofreading from '../components/Proofreading.svelte';
+  import Results from '../components/Results.svelte';
   import { api, ApiError } from '../lib/api';
   import { buildPlan, defaultPace, type DictationPlan } from '../lib/dictation/script';
   import { pickVoice, ttsAvailable, unlockSpeech, waitForVoices } from '../lib/dictation/tts';
+  import { gradeSession } from '../lib/grading/grade';
+  import type { Annotation, SessionResult } from '../lib/grading/types';
   import { clearPlayState, loadPlayState, newPlayState, savePlayState, type PlayState } from '../lib/playState';
+  import { loadProfile } from '../lib/profileStore.svelte';
+  import { navigate } from '../lib/router.svelte';
+  import { href } from '../lib/routes';
   import type { Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
 
   let { profile, textId }: { profile: Profile; textId: string } = $props();
@@ -23,6 +29,9 @@
   let showResumeBanner = $state(false);
   let loading = $state(true);
   let error = $state('');
+  let result = $state<SessionResult | null>(null);
+  let helpMessage = $state<string | null>(null);
+  let submitError = $state<string | null>(null);
 
   async function load() {
     loading = true;
@@ -45,6 +54,7 @@
       } else {
         playState = newPlayState(profile.id, id, defaultPace(profile.level));
       }
+      if (playState.phase === 'results') void ensureResults();
 
       const voices = await waitForVoices();
       voice = pickVoice(voices, profile.settings.voice ?? null) ?? null;
@@ -65,6 +75,14 @@
     clearPlayState(profile.id, id);
     playState = newPlayState(profile.id, id, defaultPace(profile.level));
     showResumeBanner = false;
+    result = null;
+    helpMessage = null;
+    submitError = null;
+  }
+
+  function toLibrary() {
+    clearPlayState(profile.id, id);
+    navigate(href('library', { profileId: String(profile.id) }));
   }
 
   // Tapped from the resume banner, which is itself a tap - a safe place to
@@ -97,6 +115,46 @@
     if (!playState) return;
     playState.phase = 'results';
     save();
+    void ensureResults();
+  }
+
+  function computeResult() {
+    if (!text || !playState) return;
+    result = gradeSession(text.body, playState.draft, playState.current, text.annotation as Annotation, {
+      paceLevel: playState.pace,
+    });
+  }
+
+  async function submitSession() {
+    if (!text || !playState || !result) return;
+    submitError = null;
+    try {
+      const created = await api.sessions.create({
+        profile_id: profile.id,
+        text_id: id,
+        pace_level: playState.pace,
+        help_stage: profile.help_stage,
+        started_at: playState.startedAt,
+        draft: playState.draft,
+        final: playState.current,
+        result,
+        score: result.score,
+        catch_rate: result.catchRate,
+      });
+      playState.submitted = true;
+      playState.sessionId = created.id;
+      helpMessage = created.help_stage_message;
+      save();
+      // Refreshes profileStore's help_stage so the next play session uses it.
+      await loadProfile(profile.id);
+    } catch (e) {
+      submitError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
+    }
+  }
+
+  async function ensureResults() {
+    computeResult();
+    if (playState && !playState.submitted) await submitSession();
   }
 
   function credits(t: TextFull): string {
@@ -161,8 +219,19 @@
       level={profile.level}
       onDone={onProofreadingDone}
     />
+  {:else if result}
+    <Results
+      reference={text}
+      {result}
+      finalText={playState.current}
+      {helpMessage}
+      {submitError}
+      onReplay={restart}
+      onLibrary={toLibrary}
+      onRetry={submitSession}
+    />
   {:else}
-    <div class="screen"><p>Résultats au prochain chapitre.</p></div>
+    <div class="screen"><p class="muted">Les Muses comptent les pièges déjoués…</p></div>
   {/if}
 {/if}
 
