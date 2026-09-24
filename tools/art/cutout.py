@@ -64,7 +64,7 @@ def main():
     ap.add_argument("paths", nargs="+", help="PNG files or folders")
     ap.add_argument("--model", default=MODEL, help=f"rembg model (default {MODEL})")
     ap.add_argument("--force", action="store_true", help="rewrite existing *_cut.png")
-    a = ap.parse_args()
+    a = ap.parse_intermixed_args()  # options and paths in any order (e.g. `--force file.png`)
 
     session = new_session(a.model)
     done = 0
