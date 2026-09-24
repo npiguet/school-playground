@@ -8,7 +8,7 @@
 
 <div class="pace-select" role="radiogroup" aria-label="Rythme de la dictée">
   {#each PACES as p (p)}
-    <label class="card pace-card" class:selected={pace === p}>
+    <label class="card pace-card" class:selected={pace === p} data-testid={`pace-option-${p}`}>
       <input
         type="radio"
         name="pace"

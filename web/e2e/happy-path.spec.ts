@@ -1,0 +1,64 @@
+import { test, expect } from '@playwright/test';
+import { stubSpeech } from './helpers';
+
+const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
+const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
+
+test('create profile → add text → dictation → proofreading → results → stats', async ({ page }) => {
+  await stubSpeech(page);
+  const name = 'Test' + Date.now().toString().slice(-6);
+
+  // Profile
+  await page.goto('/');
+  await page.getByRole('button', { name: /Nouveau héros/ }).click();
+  await page.getByLabel('Ton prénom').fill(name);
+  await page.getByLabel('Ton niveau').selectOption('10H');
+  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+
+  // Custom text
+  await page.getByRole('button', { name: /Ajouter un texte/ }).click();
+  await page.getByLabel('Titre').fill('Les fées ' + name);
+  await page.getByLabel('Texte').fill(REF);
+  await page.getByRole('button', { name: /Sauvegarder/ }).click();
+  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await page.locator('[data-testid="text-card"]', { hasText: 'Les fées ' + name }).click();
+
+  // Dictation, pace 1 (two sentences)
+  await page.getByTestId('pace-option-1').click();
+  await page.getByRole('button', { name: 'Commencer la dictée' }).click();
+  const ta = page.getByTestId('dictation-textarea');
+  await expect(page.locator('body')).not.toContainText('clairière'); // reference never shown
+  await expect(page.getByTestId('btn-next')).toBeEnabled();
+  await ta.fill('Les fées danse dans la clairière.');
+  await page.getByTestId('btn-next').click();
+  await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
+  await ta.fill(DRAFT);
+  expect(await page.evaluate(() => (window as any).__spoken.length)).toBeGreaterThanOrEqual(2);
+  await page.getByTestId('btn-finish-writing').click();
+
+  // Proofreading: stage 1 with Argus passes; fix one of the two errors
+  await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Verbes', exact: true })).toBeVisible();
+  const danse = page.locator('[data-testid^="tok-"]', { hasText: /^danse$/ });
+  await danse.click();
+  await page.getByTestId('word-editor').fill('dansent');
+  await page.getByTestId('word-editor').press('Enter');
+  await expect(page.locator('[data-testid^="tok-"]', { hasText: /^dansent$/ })).toBeVisible();
+  await page.getByTestId('btn-done-proofreading').click();
+  const confirm = page.getByRole('button', { name: 'Oui, valider' });
+  if (await confirm.isVisible()) await confirm.click();
+
+  // Results
+  await expect(page.getByRole('heading', { name: 'Relecture terminée' })).toBeVisible();
+  await expect(page.getByTestId('results-catch-rate')).toContainText('1 sur 2');
+  await expect(page.getByTestId('results-catch-rate')).toContainText('50 %');
+  await expect(page.getByTestId('results-score')).not.toContainText('NaN');
+  await expect(page.getByText(/chantent/).first()).toBeVisible();
+
+  // Stats reflect the session
+  await page.getByTestId('btn-back-library').click();
+  await page.getByRole('link', { name: 'Progrès' }).click();
+  await expect(page.getByText(/1 parties?/).first()).toBeVisible();
+  await expect(page.getByText("Accord du verbe avec son sujet (L'Hydre)").first()).toBeVisible();
+});

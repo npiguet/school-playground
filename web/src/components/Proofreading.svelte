@@ -242,7 +242,7 @@
           </button>
         {/each}
         {#if !isLastPass}
-          <button type="button" class="btn next-pass" onclick={() => goToPass(play.passIndex + 1)}>
+          <button type="button" class="btn next-pass" data-testid="btn-next-pass" onclick={() => goToPass(play.passIndex + 1)}>
             Passe suivante →
           </button>
         {/if}
@@ -337,7 +337,7 @@
         <button type="button" class="btn" onclick={() => (confirmDone = false)}>Continuer la relecture</button>
       </div>
     {:else}
-      <button type="button" class="btn btn-primary done" onclick={finish}>J'ai terminé ma relecture</button>
+      <button type="button" class="btn btn-primary done" data-testid="btn-done-proofreading" onclick={finish}>J'ai terminé ma relecture</button>
     {/if}
   </footer>
 </section>

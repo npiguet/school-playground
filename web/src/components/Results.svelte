@@ -159,14 +159,14 @@
   </div>
 
   <div class="hero">
-    <p class="hero-line">
+    <p class="hero-line" data-testid="results-catch-rate">
       {#if draftCount === 0}
         Texte parfait dès la dictée !
       {:else}
         Pièges déjoués : {caughtCount} sur {draftCount} ({pct} %)
       {/if}
     </p>
-    <p class="hero-line">Score : {result.score}</p>
+    <p class="hero-line" data-testid="results-score">Score : {result.score}</p>
     <p class="hero-line">Mots justes : {result.correctWords} / {result.totalWords}</p>
     {#if introducedCount > 0}
       <p class="hero-line muted">
@@ -245,7 +245,7 @@
 
   <div class="actions">
     <button type="button" class="btn btn-primary" onclick={onReplay}>Rejouer ce texte</button>
-    <button type="button" class="btn" onclick={onLibrary}>Retour aux Parchemins</button>
+    <button type="button" class="btn" data-testid="btn-back-library" onclick={onLibrary}>Retour aux Parchemins</button>
   </div>
 </div>
 

@@ -14,6 +14,21 @@ All toolchains run in Docker; nothing needs to be installed on the host. Wrapper
 - `scripts/check.sh` — the CI-like gate: pytest + svelte-check + vitest + docker build + e2e; must be green before every commit
 - `scripts/dev.sh` — starts the dev stack: Vite on `http://localhost:5173` (proxying `/api`) and `uvicorn --reload` on `8080`
 
+## Running the checks
+
+`scripts/check.sh` is the full gate and must be green before every commit: server pytest,
+`svelte-check`, `vitest`, a production Docker image build, then the Playwright e2e suite run
+against that built image (`scripts/playwright.sh`, which brings up the image with an empty
+`/tmp/data` so the seed import runs at startup, and tears the stack down afterwards). Run it
+from the repo root:
+
+```bash
+scripts/check.sh
+```
+
+To run only the e2e suite (e.g. while iterating on a spec): `scripts/playwright.sh`. Pass
+extra `npx playwright test` arguments through, e.g. `scripts/playwright.sh e2e/seed.spec.ts`.
+
 ## Deployment on TrueNAS SCALE 25.10
 
 Build the image on a machine with Docker:

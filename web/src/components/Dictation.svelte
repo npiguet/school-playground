@@ -136,6 +136,7 @@
       <button
         type="button"
         class="btn"
+        data-testid="btn-next"
         onclick={() => runner.next()}
         disabled={runnerState.status !== 'waiting'}
       >
@@ -149,13 +150,14 @@
       </button>
     {/if}
     {#if showFinishButton}
-      <button type="button" class="btn btn-primary" onclick={finish}>J’ai fini d’écrire</button>
+      <button type="button" class="btn btn-primary" data-testid="btn-finish-writing" onclick={finish}>J’ai fini d’écrire</button>
     {/if}
   </div>
 
   <textarea
     bind:this={textareaEl}
     class="draft"
+    data-testid="dictation-textarea"
     lang="fr"
     {...{ autocorrect: 'off' }}
     autocapitalize="off"

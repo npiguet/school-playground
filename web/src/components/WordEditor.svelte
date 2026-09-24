@@ -57,6 +57,7 @@
       spellcheck="false"
       enterkeyhint="done"
       {size}
+      data-testid="word-editor"
       aria-label="Nouveau mot"
       onkeydown={onKeydown}
       onblur={commit}

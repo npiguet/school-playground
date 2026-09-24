@@ -62,6 +62,7 @@
       class:lit={inActivePass(piece.index)}
       class:dim={dim && activePass !== null && !inActivePass(piece.index)}
       class:hint={hintedTokenIndexes.has(piece.index)}
+      data-testid={`tok-${piece.index}`}
       aria-label="Modifier « {tokens[piece.index].text} »"
       onclick={() => onEditToken(piece.index)}>{tokens[piece.index].text}</button>{/if}{/each}</p>
 
