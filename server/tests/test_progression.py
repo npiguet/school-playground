@@ -61,6 +61,25 @@ def test_test_header_ignored_without_hook(settings, tmp_path):
         assert conn.execute("SELECT day FROM profile_stat_day WHERE profile_id = ?", (pid,)).fetchone()[0] != "2001-01-01"
 
 
+def test_weekly_done_counts_by_swiss_week_not_utc_date(client, tmp_path):
+    # I4: weekly_done() must compare finished_at against the week's Swiss (Europe/Zurich) Monday
+    # 00:00 boundaries in UTC, not a UTC-date substr - a session finished 00:30 local Monday
+    # (22:30 UTC the previous Sunday, CEST is UTC+2 in September) belongs to the NEW week.
+    import sqlite3, json as _json
+    from app.world.progression import weekly_done
+    pid = make_profile(client, level="10H"); tid = make_text(client)
+    conn = sqlite3.connect(tmp_path / "data" / "discorde.sqlite3")
+    conn.execute(
+        "INSERT INTO session(profile_id, text_id, pace_level, help_stage, started_at, finished_at, draft, final, "
+        "result_json, score, catch_rate) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        (pid, tid, 1, 1, "2026-09-20T22:00:00+00:00", "2026-09-20T22:30:00+00:00", "x", "x",
+         _json.dumps(make_result()), 10, None))
+    conn.commit()
+    assert weekly_done(conn, pid, "2026-W39") == 1   # 2026-09-21 (Mon) .. 2026-09-27
+    assert weekly_done(conn, pid, "2026-W38") == 0
+    conn.close()
+
+
 def test_weekly_goal_bonus_once(client):
     pid = make_profile(client, level="10H"); tid = make_text(client)
     post(client, pid, tid, hydre_result(), day="2026-09-21"); post(client, pid, tid, hydre_result(), day="2026-09-22")
@@ -69,6 +88,16 @@ def test_weekly_goal_bonus_once(client):
     p = post(client, pid, tid, hydre_result(), day="2026-09-24")["progression"]
     assert p["weekly"]["reached_now"] is False and p["weekly"]["done"] == 4
     assert not any(b["reason"] == "weekly" for b in p["xp"]["bonuses"])
+
+
+def test_prophecy_bonus_applies_strictly_before_the_due_date(client):
+    # M9 / Decision 10: "before its date" - the ×1.5 must not apply on the due date itself.
+    pid = make_profile(client, level="10H")
+    tid = make_text(client, due_date="2026-09-24")
+    on_due_date = post(client, pid, tid, hydre_result(), day="2026-09-24")["progression"]
+    before_due_date = post(client, pid, tid, hydre_result(), day="2026-09-23")["progression"]
+    assert on_due_date["xp"]["session"] == 72        # 10 + 12 + 20 + 30, no bonus
+    assert before_due_date["xp"]["session"] == 108   # same base × 1.5
 
 
 def test_derived_categories_are_hidden_from_generic_stats(client):

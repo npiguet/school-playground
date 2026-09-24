@@ -66,7 +66,7 @@ def create_session(body: SessionCreate, request: Request, db: sqlite3.Connection
             db.execute("UPDATE profile SET help_stage = ? WHERE id = ?", (help_stage_after, body.profile_id))
             message = UP_MESSAGE if help_stage_after > help_stage_before else DOWN_MESSAGE
 
-    prophecy = bool(text["due_date"]) and text["due_date"] >= day
+    prophecy = bool(text["due_date"]) and text["due_date"] > day   # Decision 10: "before its date" (SP3 batch review M9)
     progression = apply_progression(db, profile, session_id, body, body.result, day, finished_at, prophecy)
 
     db.commit()

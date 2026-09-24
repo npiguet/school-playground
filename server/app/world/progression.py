@@ -2,7 +2,7 @@
 Runs after app.stats.apply_session_to_stats so profile_stat_day already includes the session. Never removes anything."""
 from __future__ import annotations
 import json, sqlite3
-from app.clock import iso_week, week_days
+from app.clock import iso_week, week_bounds_utc
 from app.world.catalog import BOSS_REWARDS, DECOR_ORDER, LIEUTENANTS, ORACLE_REWARDS, QUEST_BONUS, REWARDS
 from app.world.mastery import dragon_stage, is_neutralised, lieutenants_for_level, mastery_window, boss_tiers
 from app.world.quests import evaluate_boss, session_counts_for
@@ -42,12 +42,12 @@ def boss_tiers_won(conn, profile_id) -> set[int]:
 
 
 def weekly_done(conn, profile_id, week) -> int:
-    # Compares the UTC date prefix of finished_at against the ISO week's local days: at week
-    # edges this can be off by up to the UTC/Europe-Zurich offset (at most one hour), which is
-    # acceptable for a goal that never penalises (plan Decision 15).
-    days = week_days(week)
-    return conn.execute("SELECT COUNT(*) FROM session WHERE profile_id = ? AND substr(finished_at, 1, 10) BETWEEN ? AND ?",
-                        (profile_id, days[0], days[-1])).fetchone()[0]
+    # Compares finished_at (UTC) against the week's local Monday 00:00 / next Monday 00:00,
+    # converted to UTC (SP3 batch review I4): a substr-on-UTC-date comparison put sessions
+    # finished 00:00-02:00 local Monday in the wrong week, since Europe/Zurich is UTC+1/+2.
+    start, end = week_bounds_utc(week)
+    return conn.execute("SELECT COUNT(*) FROM session WHERE profile_id = ? AND finished_at >= ? AND finished_at < ?",
+                        (profile_id, start, end)).fetchone()[0]
 
 
 def ensure_dragon(conn, profile_id, now) -> sqlite3.Row:
