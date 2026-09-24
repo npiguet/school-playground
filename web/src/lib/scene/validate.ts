@@ -1,5 +1,6 @@
-// Scene data checks (scenes UI spec §4, plan Ruling 3). Used by the scene unit tests and live by
-// the ?edit hotspot editor. Returns human-readable problems; [] means valid.
+// Scene data checks (scenes UI spec §4, plan Ruling 3). Used by the scene unit tests to check the
+// hand-authored shapes (docs/art/scenes.md, checked visually with the `?debug` overlay). Returns
+// human-readable problems; [] means valid.
 import { DIALOGUE_DOCK, HUD_BAND, SAFE_ZONE, boxInside, boxesOverlap, shapeBox } from './geometry';
 import type { SceneDef, ShapeMap } from './types';
 

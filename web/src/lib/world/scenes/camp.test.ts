@@ -72,7 +72,7 @@ describe('camp hub scene', () => {
       { neutralised: false, available: true },
       { neutralised: false, available: false },
     ] as LieutenantState[];
-    expect(state('bestiary', camp({ lieutenants })).caption).toBe('1 / 2 ruses neutralisées');
+    expect(state('bestiary', camp({ lieutenants })).caption).toBe('1 / 2 ruses neutralisées · les vrais mythes');
     expect(state('cabin', camp({ rewards_count: 3 })).caption).toBe('3 trésor(s)');
   });
 
