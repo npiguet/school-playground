@@ -16,8 +16,9 @@ test('create profile → add text → dictation → proofreading → results →
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
 
-  // Custom text
+  // Custom text (the FAB opens the add menu, spec's "Decisions" #12; Task 8)
   await page.getByRole('button', { name: /Ajouter un texte/ }).click();
+  await page.getByTestId('menu-add-type').click();
   await page.getByLabel('Titre').fill('Les fées ' + name);
   await page.getByLabel('Texte').fill(REF);
   await page.getByRole('button', { name: /Sauvegarder/ }).click();
