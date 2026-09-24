@@ -13,6 +13,9 @@ import type {
   TrapWord,
   ScanResult,
   CorruptResult,
+  AlexandriaWork,
+  AlexandriaChunk,
+  RefreshResult,
 } from './types';
 
 export class ApiError extends Error {
@@ -84,5 +87,17 @@ export const api = {
       return handleResponse<ScanResult>(res);
     },
     pageUrl: (scanId: string, n: number) => `/api/scan/${scanId}/page/${n}`,
+  },
+  alexandria: {
+    works: () => request<AlexandriaWork[]>('GET', '/api/alexandria/works'),
+    refresh: (id: string) =>
+      request<RefreshResult>('POST', `/api/alexandria/works/${id}/refresh`),
+    chunks: (id: string, level?: string) =>
+      request<AlexandriaChunk[]>(
+        'GET',
+        `/api/alexandria/works/${id}/chunks${level ? `?level=${encodeURIComponent(level)}` : ''}`,
+      ),
+    adopt: (chunkId: number, body: { profile_id: number; title?: string }) =>
+      request<TextFull>('POST', `/api/alexandria/chunks/${chunkId}/adopt`, body),
   },
 };

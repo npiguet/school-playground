@@ -99,6 +99,41 @@ export interface CorruptResult {
   plants: Plant[];
 }
 
+/** One allowlisted work in the Bibliothèque d'Alexandrie (SP2 Task 5/10). */
+export interface AlexandriaWork {
+  id: string;
+  title: string;
+  author: string;
+  translator: string | null;
+  credits: string;
+  level_hint: string;
+  source: string;
+  status: 'never' | 'ok' | 'error';
+  fetched_at: string | null;
+  error: string | null;
+  chunk_count: number;
+}
+
+/** One scored, cached chunk ("rouleau") of a work, ready to browse or adopt. */
+export interface AlexandriaChunk {
+  id: number;
+  seq: number;
+  level: string;
+  word_count: number;
+  score: number;
+  preview: string;
+  text_id: number | null;
+}
+
+/** Result of refreshing a work's cache from the online source; never thrown as an
+ *  error by the API even when the network fails (`status: 'error'`). */
+export interface RefreshResult {
+  status: 'ok' | 'error';
+  error: string | null;
+  chunk_count: number;
+  rejected: Record<string, number>;
+}
+
 export interface ProfileCreateBody {
   name: string;
   avatar: string;

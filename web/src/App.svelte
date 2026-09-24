@@ -8,6 +8,8 @@
   import Library from './screens/Library.svelte';
   import TextCreate from './screens/TextCreate.svelte';
   import ScanText from './screens/ScanText.svelte';
+  import Alexandria from './screens/Alexandria.svelte';
+  import AlexandriaWork from './screens/AlexandriaWork.svelte';
   import Play from './screens/Play.svelte';
   import Stats from './screens/Stats.svelte';
   import Settings from './screens/Settings.svelte';
@@ -64,6 +66,10 @@
         <TextCreate profile={gateProfile} />
       {:else if route.name === 'text-scan'}
         <ScanText profile={gateProfile} />
+      {:else if route.name === 'alexandria'}
+        <Alexandria profile={gateProfile} />
+      {:else if route.name === 'alexandria-work'}
+        <AlexandriaWork profile={gateProfile} workId={route.params.workId} />
       {:else if route.name === 'play'}
         <Play profile={gateProfile} textId={route.params.textId} />
       {:else if route.name === 'grimoire'}
