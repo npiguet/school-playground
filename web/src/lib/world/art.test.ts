@@ -7,16 +7,16 @@ function flat(o: unknown): string[] {
 }
 
 describe('art map', () => {
-  it('every path exists under public/ and is under 150 KB', () => {
-    for (const p of flat(ART)) {
-      const file = 'public' + p;
-      expect(existsSync(file), file).toBe(true);
-      expect(statSync(file).size, file).toBeLessThan(150 * 1024);
-    }
+  // Scene backgrounds have their own 600 KB budget (scenes UI spec §4, scenes/budget.test.ts).
+  const nonScene = () => flat(ART).filter((p) => !p.startsWith('/art/scenes/'));
+
+  it('every path exists under public/, non-scene art is under 150 KB', () => {
+    for (const p of flat(ART)) expect(existsSync('public' + p), p).toBe(true);
+    for (const p of nonScene()) expect(statSync('public' + p).size, p).toBeLessThan(150 * 1024);
   });
 
-  it('total art payload stays under 2.5 MB', () => {
-    expect(flat(ART).reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThan(2.5 * 1024 * 1024);
+  it('total non-scene art payload stays under 2.5 MB', () => {
+    expect(nonScene().reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThan(2.5 * 1024 * 1024);
   });
 
   it('artFor resolves and throws on unknown keys', () => {
