@@ -32,6 +32,13 @@
   let result = $state<SessionResult | null>(null);
   let helpMessage = $state<string | null>(null);
   let submitError = $state<string | null>(null);
+  let submitting = $state(false);
+  // Set once the player has explicitly left this session (toLibrary/clearPlayState): guards a
+  // still-in-flight submitSession() from resurrecting the play state into localStorage after
+  // it was deliberately cleared. Unlike a replay (which swaps `playState` for a fresh object,
+  // already caught by the identity check below), toLibrary() clears storage but keeps the same
+  // `playState` reference, so it needs its own flag.
+  let left = false;
 
   async function load() {
     loading = true;
@@ -78,9 +85,11 @@
     result = null;
     helpMessage = null;
     submitError = null;
+    left = false;
   }
 
   function toLibrary() {
+    left = true;
     clearPlayState(profile.id, id);
     navigate(href('library', { profileId: String(profile.id) }));
   }
@@ -126,29 +135,39 @@
   }
 
   async function submitSession() {
-    if (!text || !playState || !result) return;
+    if (!text || !playState || !result || submitting) return;
+    // Snapshotted so that, after the await, we can tell whether the player replayed (a new
+    // PlayState object) or left (see `left` above) while this request was in flight - in either
+    // case the response below must not mutate/save a session that's no longer the current one.
+    const stateAtSubmit = playState;
+    const resultAtSubmit = result;
+    submitting = true;
     submitError = null;
     try {
       const created = await api.sessions.create({
         profile_id: profile.id,
         text_id: id,
-        pace_level: playState.pace,
+        pace_level: stateAtSubmit.pace,
         help_stage: profile.help_stage,
-        started_at: playState.startedAt,
-        draft: playState.draft,
-        final: playState.current,
-        result,
-        score: result.score,
-        catch_rate: result.catchRate,
+        started_at: stateAtSubmit.startedAt,
+        draft: stateAtSubmit.draft,
+        final: stateAtSubmit.current,
+        result: resultAtSubmit,
+        score: resultAtSubmit.score,
+        catch_rate: resultAtSubmit.catchRate,
       });
-      playState.submitted = true;
-      playState.sessionId = created.id;
+      if (left || playState !== stateAtSubmit) return;
+      stateAtSubmit.submitted = true;
+      stateAtSubmit.sessionId = created.id;
       helpMessage = created.help_stage_message;
       save();
       // Refreshes profileStore's help_stage so the next play session uses it.
       await loadProfile(profile.id);
     } catch (e) {
+      if (left || playState !== stateAtSubmit) return;
       submitError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
+    } finally {
+      submitting = false;
     }
   }
 
@@ -226,6 +245,7 @@
       finalText={playState.current}
       {helpMessage}
       {submitError}
+      {submitting}
       onReplay={restart}
       onLibrary={toLibrary}
       onRetry={submitSession}

@@ -4,7 +4,7 @@
   // words she caught and fixed herself - never red.
   import { errorKey, gradeText, mapAnnotation } from '$lib/grading';
   import type { Annotation, SessionResult, StatKey, TokenError } from '$lib/grading/types';
-  import { CATEGORY_LABELS, erisLine, explain, statKeyOf } from '$lib/explain';
+  import { CATEGORY_LABELS, caughtText, erisLine, explain, statKeyOf } from '$lib/explain';
   import type { TextFull } from '$lib/types';
 
   let {
@@ -13,6 +13,7 @@
     finalText,
     helpMessage,
     submitError,
+    submitting,
     onReplay,
     onLibrary,
     onRetry,
@@ -27,6 +28,9 @@
     /** Not in the task brief's prop list, but needed for the "Réessayer" retry button the brief
      *  describes (Play.svelte step 3): retries the session submission without leaving the screen. */
     onRetry?: () => void;
+    /** Not in the task brief's prop list either: disables "Réessayer" while a submission request
+     *  is outstanding, so a fast double-tap can't fire it twice. */
+    submitting?: boolean;
   } = $props();
 
   const annotation = $derived(reference.annotation as Annotation);
@@ -183,7 +187,9 @@
   {#if submitError}
     <div class="banner-error">
       <p>Les Muses n'ont pas pu noter cette partie ({submitError}).</p>
-      <button type="button" class="btn" onclick={onRetry}>Réessayer</button>
+      <button type="button" class="btn" disabled={submitting} onclick={onRetry}>
+        {submitting ? 'Envoi en cours…' : 'Réessayer'}
+      </button>
     </div>
   {/if}
 
@@ -213,13 +219,7 @@
         {/if}
         <p class="popover-text">{explain(activePanel.err, ctx).text}</p>
       {:else if activePanel.kind === 'caught'}
-        <p class="popover-text caught-text">
-          {#if activePanel.caught.typed !== null}
-            Tu avais écrit « {activePanel.caught.typed} », tu as corrigé en « {activePanel.caught.expected} ». Bravo !
-          {:else}
-            Tu avais oublié « {activePanel.caught.expected} », tu l'as ajouté en te relisant. Bravo !
-          {/if}
-        </p>
+        <p class="popover-text caught-text">{caughtText(activePanel.caught)}</p>
       {:else}
         <p class="popover-text">Mot oublié : « {activePanel.e.expected} »</p>
       {/if}
@@ -297,6 +297,10 @@
   }
   .banner-error p {
     margin: 0;
+  }
+  .banner-error .btn:disabled {
+    opacity: 0.6;
+    cursor: default;
   }
   .text {
     background: #fff;

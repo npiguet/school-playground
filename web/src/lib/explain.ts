@@ -136,6 +136,21 @@ export function explain(e: TokenError, ctx: ExplainContext): { title: string; te
   return { title, text };
 }
 
+/** The results screen's "you fixed this yourself" popover for a caught error (spec §1.4 "fixing
+ *  her own error is worth much more"). `caught.typed` is the word she originally wrote in the
+ *  draft - except for a word she'd *omitted* in the draft and only added while proofreading,
+ *  where it's `null`; that case needs its own sentence, not just a "null" fallback. Phrased so
+ *  no past participle ever needs to agree with a preceding direct-object pronoun of unknown
+ *  gender/number: "as corrigé" has no preceding clitic object, and "de l'ajouter" is an
+ *  infinitive (infinitives never agree, unlike a past participle after "l'as ajouté(e)(s)"). */
+export function caughtText(caught: TokenError): string {
+  const expected = caught.expected ?? '';
+  if (caught.typed !== null) {
+    return `Tu avais écrit « ${caught.typed} », tu as corrigé en « ${expected} ». Bravo !`;
+  }
+  return `Tu avais oublié « ${expected} » : tu as bien fait de l'ajouter en te relisant. Bravo !`;
+}
+
 /** Éris's line for the results screen (spec §1.6): always taunts about her own tricks, never
  *  about the player. `draftErrors` / `introduced` are counts (result.draftErrors.length /
  *  result.introduced.length). */

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { gradeText, tokenize, mapAnnotation } from '$lib/grading';
-import { explain, erisLine, statKeyOf } from './explain';
-import type { Annotation, AnnotToken } from '$lib/grading/types';
+import { caughtText, explain, erisLine, statKeyOf } from './explain';
+import type { Annotation, AnnotToken, TokenError } from '$lib/grading/types';
 
 const REF = 'Les fées dansent dans la clairière.';
 function ann(): Annotation {
@@ -47,5 +47,34 @@ describe('erisLine', () => {
     expect(erisLine(1, 4, 0)).toMatch(/Impossible/);
     expect(erisLine(0.5, 4, 1)).toMatch(/Sournois/);
     expect(erisLine(0, 4, 0)).toMatch(/bien cachés/);
+  });
+});
+
+describe('caughtText', () => {
+  it('quotes what she typed and what she corrected it to', () => {
+    const caught: TokenError = {
+      refIndex: 2,
+      typedIndex: 2,
+      expected: 'dansent',
+      typed: 'danse',
+      category: 'agreement',
+      sub: 'verb',
+      anchor: 1,
+    };
+    expect(caughtText(caught)).toBe('Tu avais écrit « danse », tu as corrigé en « dansent ». Bravo !');
+  });
+
+  it('never says "null" for a word she had omitted and then added back (no agreement risk)', () => {
+    const caught: TokenError = {
+      refIndex: 5,
+      typedIndex: null,
+      expected: 'chevaux',
+      typed: null,
+      category: 'lexical',
+      sub: 'missing',
+      anchor: 4,
+    };
+    // "de l'ajouter" is an infinitive: it never agrees, unlike "l'as ajouté(e)(s)" would.
+    expect(caughtText(caught)).toBe("Tu avais oublié « chevaux » : tu as bien fait de l'ajouter en te relisant. Bravo !");
   });
 });
