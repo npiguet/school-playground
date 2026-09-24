@@ -14,10 +14,9 @@
         "Contes_de_Perrault_(éd._1902)/Le_petit_Chaperon_rouge",
         "Contes_de_Perrault_(éd._1902)/Le_maître_Chat_ou_le_Chat_botté",
         "Contes_de_Perrault_(éd._1902)/Cendrillon_ou_la_petite_Pantoufle_de_verre",
-        "Contes_de_Perrault_(éd._1902)/La_Belle_au_bois_dormant",
         "Contes_de_Perrault_(éd._1902)/Le_Petit_Poucet"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (page manquante retiree : La_Belle_au_bois_dormant)"
     },
     {
       "id": "andersen-soldi",
@@ -31,11 +30,9 @@
       "pages": [
         "Contes_d’Andersen/Le_Vilain_Petit_Canard",
         "Contes_d’Andersen/La_Petite_Sirène",
-        "Contes_d’Andersen/La_Reine_des_neiges",
-        "Contes_d’Andersen/Les_Habits_neufs_du_grand-duc",
         "Contes_d’Andersen/La_Princesse_sur_un_pois"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (pages manquantes retirees : La_Reine_des_neiges, Les_Habits_neufs_du_grand-duc)"
     },
     {
       "id": "grimm-baudry",
@@ -47,11 +44,9 @@
       "source": "wikisource",
       "level_hint": "6H",
       "pages": [
-        "Contes_choisis_des_frères_Grimm/Les_Musiciens_de_Brême",
-        "Contes_choisis_des_frères_Grimm/Le_Vaillant_Petit_Tailleur",
-        "Contes_choisis_des_frères_Grimm/Les_Trois_Fileuses"
+        "Contes_choisis_des_frères_Grimm/Les_Musiciens_de_Brême"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (pages manquantes retirees : Le_Vaillant_Petit_Tailleur, Les_Trois_Fileuses ; il ne reste que Les_Musiciens_de_Brême)"
     },
     {
       "id": "carroll-bue",
@@ -76,7 +71,7 @@
         "Alice_au_pays_des_merveilles/11",
         "Alice_au_pays_des_merveilles/12"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py"
     },
     {
       "id": "daudet-moulin",
@@ -91,10 +86,10 @@
         "Lettres_de_mon_moulin/La_chèvre_de_monsieur_Seguin",
         "Lettres_de_mon_moulin/Les_étoiles",
         "Lettres_de_mon_moulin/Le_secret_de_maître_Cornille",
-        "Lettres_de_mon_moulin/La_mule_du_pape",
+        "Lettres_de_mon_moulin/La_mule_du_Pape",
         "Lettres_de_mon_moulin/Installation"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (titre corrige : La_mule_du_Pape, la redirection minuscule ne resolvait pas via l'API parse)"
     },
     {
       "id": "kipling-fabulet",
@@ -108,11 +103,10 @@
       "pages": [
         "Le_Livre_de_la_jungle_(trad._Fabulet_et_Humières)/Les_Frères_de_Mowgli",
         "Le_Livre_de_la_jungle_(trad._Fabulet_et_Humières)/«_Rikki-Tikki-Tavi_»",
-        "Le_Livre_de_la_jungle_(trad._Fabulet_et_Humières)/La_Chasse_de_Kaa",
         "Le_Livre_de_la_jungle_(trad._Fabulet_et_Humières)/Le_Phoque_blanc",
         "Le_Livre_de_la_jungle_(trad._Fabulet_et_Humières)/Toomai_des_Éléphants"
       ],
-      "note": "translator_death est le plus recent des deux traducteurs (Fabulet 1933, d'Humieres 1915) ; pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (page manquante retiree : La_Chasse_de_Kaa ; translator_death est le plus recent des deux traducteurs, Fabulet 1933 et d'Humieres 1915)"
     },
     {
       "id": "renard-poil-de-carotte",
@@ -135,7 +129,7 @@
         "Poil_de_Carotte/09",
         "Poil_de_Carotte/10"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py"
     },
     {
       "id": "verne-vingt-mille-lieues",
@@ -172,7 +166,7 @@
         "Vingt_mille_lieues_sous_les_mers/Partie_1/Chapitre_23",
         "Vingt_mille_lieues_sous_les_mers/Partie_1/Chapitre_24"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py"
     },
     {
       "id": "verne-tour-du-monde",
@@ -222,7 +216,7 @@
         "Le_Tour_du_monde_en_quatre-vingts_jours/Chapitre_36",
         "Le_Tour_du_monde_en_quatre-vingts_jours/Chapitre_37"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py"
     },
     {
       "id": "verne-centre-terre",
@@ -280,7 +274,7 @@
         "Voyage_au_centre_de_la_Terre/Chapitre_44",
         "Voyage_au_centre_de_la_Terre/Chapitre_45"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py"
     },
     {
       "id": "sand-fadette",
@@ -333,7 +327,7 @@
         "La_Petite_Fadette/39",
         "La_Petite_Fadette/40"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py"
     },
     {
       "id": "dumas-mousquetaires",
@@ -366,7 +360,7 @@
         "Les_Trois_Mousquetaires/Chapitre_19",
         "Les_Trois_Mousquetaires/Chapitre_20"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py"
     },
     {
       "id": "maupassant-contes",
@@ -379,10 +373,9 @@
       "level_hint": "11H",
       "pages": [
         "Contes_du_jour_et_de_la_nuit_(éd._Flammarion,_1885)/La_Parure",
-        "La_Maison_Tellier_(recueil,_Ollendorff_1891)/Le_Papa_de_Simon",
-        "Les_Contes_de_la_bécasse/La_Ficelle"
+        "La_Maison_Tellier_(recueil,_Ollendorff_1891)/Le_Papa_de_Simon"
       ],
-      "note": "Le Papa de Simon : la premiere phrase du recit est une remarque cruelle rejetee par le filtre dialogue, ou a exclure via un skip_prefix a l'usage futur ; pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (page manquante retiree : Les_Contes_de_la_bécasse/La_Ficelle ; Le Papa de Simon : la premiere phrase du recit est une remarque cruelle rejetee par le filtre dialogue, ou a exclure via un futur skip_prefix)"
     },
     {
       "id": "topffer-genevoises",
@@ -395,9 +388,9 @@
       "level_hint": "11H",
       "pages": [
         "Le_Col_d’Anterne",
-        "La_Bibliothèque_de_mon_oncle"
+        "La_Bibliothèque_de_mon_oncle_(Töpffer)"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (titre corrige : La_Bibliothèque_de_mon_oncle_(Töpffer), l'ancien titre etait une page d'homonymie)"
     },
     {
       "id": "ramuz-aline",
@@ -411,39 +404,9 @@
       "pages": [
         "Aline_(Ramuz)/I",
         "Aline_(Ramuz)/II",
-        "Aline_(Ramuz)/III",
-        "Aline_(Ramuz)/IV",
-        "Aline_(Ramuz)/V",
-        "Aline_(Ramuz)/VI",
-        "Aline_(Ramuz)/VII",
-        "Aline_(Ramuz)/VIII",
-        "Aline_(Ramuz)/IX",
-        "Aline_(Ramuz)/X"
+        "Aline_(Ramuz)/III"
       ],
-      "note": "pages marquees verifiees viennent de l'import SP1 ; les autres a confirmer avec alexandria_check.py"
-    },
-    {
-      "id": "twain-hughes",
-      "title": "Les Aventures de Tom Sawyer",
-      "author": "Mark Twain",
-      "author_death": 1910,
-      "translator": "William-Little Hughes",
-      "translator_death": 1887,
-      "source": "wikisource",
-      "level_hint": "9H",
-      "pages": [
-        "Les_Aventures_de_Tom_Sawyer/Chapitre_1",
-        "Les_Aventures_de_Tom_Sawyer/Chapitre_2",
-        "Les_Aventures_de_Tom_Sawyer/Chapitre_3",
-        "Les_Aventures_de_Tom_Sawyer/Chapitre_4",
-        "Les_Aventures_de_Tom_Sawyer/Chapitre_5",
-        "Les_Aventures_de_Tom_Sawyer/Chapitre_6",
-        "Les_Aventures_de_Tom_Sawyer/Chapitre_7",
-        "Les_Aventures_de_Tom_Sawyer/Chapitre_8",
-        "Les_Aventures_de_Tom_Sawyer/Chapitre_9",
-        "Les_Aventures_de_Tom_Sawyer/Chapitre_10"
-      ],
-      "note": "a verifier avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (pages IV a X absentes sur Wikisource FR sous ce schema de titres ; seuls I, II, III sont conserves)"
     },
     {
       "id": "stevenson-laurie",
@@ -462,7 +425,7 @@
         "L’Île_au_trésor_(trad._Laurie)/Chapitre_5",
         "L’Île_au_trésor_(trad._Laurie)/Chapitre_6"
       ],
-      "note": "si la transcription n'existe que dans l'espace de noms Page: (comme en SP1), retirer cette oeuvre"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (transcription complete disponible, pas seulement dans l'espace de noms Page:)"
     },
     {
       "id": "poe-baudelaire",
@@ -478,7 +441,7 @@
         "Histoires_extraordinaires/Aventure_sans_pareille_d’un_certain_Hans_Pfaall",
         "Histoires_extraordinaires/Manuscrit_trouvé_dans_une_bouteille"
       ],
-      "note": "contes choisis avec soin, aucun recit macabre/meurtrier ; a verifier avec alexandria_check.py"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py"
     },
     {
       "id": "gutenberg-verne-tour",
@@ -491,7 +454,7 @@
       "level_hint": "9H",
       "ebook_id": 800,
       "pages": [],
-      "note": "verifier que l'en-tete du fichier correspond bien au titre attendu"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (en-tete confirme : \"Le tour du monde en quatre-vingts jours\", Jules Verne)"
     },
     {
       "id": "gutenberg-dumas-mousquetaires",
@@ -504,13 +467,17 @@
       "level_hint": "10H",
       "ebook_id": 13951,
       "pages": [],
-      "note": "verifier que l'en-tete du fichier correspond bien au titre attendu"
+      "note": "vérifié 2026-09-24 avec alexandria_check.py (en-tete confirme : \"Les trois mousquetaires\", Alexandre Dumas)"
     }
   ],
   "excluded": [
     {
       "id": "homer-berard",
       "reason": "Aucune transcription propre de l'Iliade/Odyssee (trad. Bérard) n'existe sur Wikisource FR (constat SP1) ; la traduction Leconte de Lisle est rejetee par le spec (auteur/traducteur non retenu)."
+    },
+    {
+      "id": "twain-hughes",
+      "reason": "Toutes les pages « Les_Aventures_de_Tom_Sawyer/Chapitre_N » renvoient missingtitle sur fr.wikisource.org (verifie le 2026-09-24 avec alexandria_check.py) ; aucune transcription complete de la traduction Hughes ne semble disponible sous ce schema de titres. A reconsiderer si une transcription apparait sous un autre titre."
     }
   ]
 }

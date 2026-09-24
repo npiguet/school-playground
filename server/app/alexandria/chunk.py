@@ -11,7 +11,7 @@ from app.textutil import word_count
 ABBREVIATIONS = ("M.", "MM.", "Mme.", "Mlle.", "Mgr.", "Dr.", "St.", "Ste.", "etc.", "cf.", "p.", "chap.")
 
 _SPLIT_RE = re.compile(
-    r"(?<=[.!?…»])\s+(?=[«\"(—]?\s?[A-ZÀÂÄÉÈÊËÎÏÔÖÙÛÜÇŒÆ])"
+    r'(?<=[.!?…»])\s+(?=[«"(—]?\s?[A-ZÀÂÄÉÈÊËÎÏÔÖÙÛÜÇŒÆ])'
 )
 
 

@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from app.config import Settings
 from app.db import connect, migrate, DB_FILENAME
-from app.routers import profiles, texts, sessions, stats, scan
+from app.routers import profiles, texts, sessions, stats, scan, alexandria
 
 VERSION = "0.1.0"
 
@@ -43,6 +43,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(sessions.router)
     app.include_router(stats.router)
     app.include_router(scan.router)
+    app.include_router(alexandria.router)
 
     # Later tasks insert app.include_router(...) lines HERE, above the /api catch-all.
 

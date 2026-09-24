@@ -16,9 +16,12 @@ def settings(tmp_path):
     shutil.copy(REPO_CONTENT / "homophones.json", content / "homophones.json")
     (content / "lexique").mkdir()
     shutil.copy(REPO_CONTENT / "lexique" / "lexique383-trimmed.tsv.gz", content / "lexique" / "lexique383-trimmed.tsv.gz")
+    (content / "alexandria").mkdir()
+    shutil.copy(REPO_CONTENT / "alexandria" / "works.json", content / "alexandria" / "works.json")
     return Settings(data_dir=tmp_path / "data", content_dir=content,
                     static_dir=tmp_path / "static", spacy_model="fr_core_news_sm",
-                    seed_on_startup=False)
+                    seed_on_startup=False,
+                    alexandria_offline_dir=Path(__file__).parent / "fixtures" / "alexandria")
 
 
 @pytest.fixture
