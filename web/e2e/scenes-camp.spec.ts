@@ -44,14 +44,31 @@ test('every place routes to its screen and Back returns to the hub', async ({ pa
 test('places sit inside the visible safe zone and work from the keyboard', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCamp(page, id);
-  const vp = page.viewportSize()!;
+  // The real art safe zone (mirrors web/src/lib/scene/geometry.ts's SAFE_ZONE x 12.5-87.5% and
+  // HUD_BAND y >= 14%), not just "somewhere inside the viewport": the art box is cropped by the
+  // viewport on iPad (stageBox() can size it wider/taller than the screen), so a hotspot could
+  // pass a viewport-bounds check while still sitting outside the zone the spec actually guarantees
+  // is visible.
+  const art = await page.getByTestId('scene-camp').locator('.art').boundingBox();
+  if (!art) throw new Error('scene-camp .art box has no bounding box: the art box did not render');
+  const zone = {
+    left: art.x + art.width * 0.125,
+    right: art.x + art.width * 0.875,
+    top: art.y + art.height * 0.14,
+    bottom: art.y + art.height,
+  };
+  // Sub-pixel rendering slack: `cabin` (camp.shapes.ts) is authored flush against the safe
+  // zone's right edge (cx 81.5 + rx 6 = 87.5, exactly SAFE_ZONE's own edge), so its rendered box
+  // can legitimately land a fraction of a px past the zone through ordinary browser rounding.
+  const EPS = 0.5;
   for (const place of PLACES) {
-    const b = (await page.getByTestId(`camp-${place.id}`).boundingBox())!;
-    expect(b.x, place.id).toBeGreaterThanOrEqual(0);
-    expect(b.x + b.width, place.id).toBeLessThanOrEqual(vp.width);
-    expect(b.y, place.id).toBeGreaterThanOrEqual(0);
-    expect(b.y + b.height, place.id).toBeLessThanOrEqual(vp.height);
-    expect(Math.min(b.width, b.height), place.id).toBeGreaterThanOrEqual(48);
+    const b = await page.getByTestId(`camp-${place.id}`).boundingBox();
+    if (!b) throw new Error(`camp-${place.id} has no bounding box: the hotspot did not render`);
+    expect(b.x, `${place.id} left edge inside the safe zone`).toBeGreaterThanOrEqual(zone.left - EPS);
+    expect(b.x + b.width, `${place.id} right edge inside the safe zone`).toBeLessThanOrEqual(zone.right + EPS);
+    expect(b.y, `${place.id} top edge below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);
+    expect(b.y + b.height, `${place.id} bottom edge inside the art box`).toBeLessThanOrEqual(zone.bottom + EPS);
+    expect(Math.min(b.width, b.height), `${place.id} meets the 48px touch target`).toBeGreaterThanOrEqual(48);
   }
   await page.getByTestId('camp-parchemins').focus();
   await page.keyboard.press('Enter');
@@ -69,6 +86,14 @@ test('HUD: laurel, dragon, sound toggle, and the hero panel on its own route', a
   await expect(mute).toHaveAttribute('aria-pressed', before === 'true' ? 'false' : 'true');
   await mute.click();
   await expect(mute).toHaveAttribute('aria-pressed', before ?? 'false');
+
+  // Task 10b #11: the dragon's stage line (what it's up to) used to always show on the old camp
+  // card; the greeting dialogue now only shows it once, so it's restored as ambient info on the
+  // HUD dragon button (a fresh profile's dragon is still an egg).
+  await expect(page.getByTestId('hud-dragon')).toHaveAttribute(
+    'title',
+    "L'œuf frémit chaque fois qu'un piège d'Éris est déjoué.",
+  );
 
   await page.getByTestId('hud-dragon').click();
   await expect(page).toHaveURL(/\/dragon$/);
@@ -126,6 +151,14 @@ test('portrait shows the rotate screen instead of the scene', async ({ page, req
   await page.setViewportSize(landscape);
   await expect(page.getByTestId('rotate-screen')).toBeHidden();
   await expect(page.getByTestId('camp-parchemins')).toBeVisible();
+
+  // Task 10b #5: the spec's rule is "portrait AND aspect < 1" - `orientation: portrait` alone
+  // also matches an exactly square viewport (aspect ratio 1), which must NOT show the rotate
+  // screen (RotateScreen.svelte and SceneStage.svelte both add `max-aspect-ratio: 999/1000`).
+  await page.setViewportSize({ width: 900, height: 900 });
+  await expect(page.getByTestId('rotate-screen')).toBeHidden();
+  await expect(page.getByTestId('camp-parchemins')).toBeVisible();
+  await page.setViewportSize(landscape);
 });
 
 test('reduced motion: no parallax, no idle bob, no particles', async ({ page, request }, testInfo) => {
@@ -178,4 +211,43 @@ test('the path to battle appears once Éris can be fought', async ({ page, reque
   await expect(page.getByTestId('camp-dragon')).not.toContainText('Un œuf de dragon');
   await boss.click();
   await expect(page).toHaveURL(/\/eris$/);
+});
+
+function boxesIntersect(a: { x: number; y: number; width: number; height: number }, b: typeof a): boolean {
+  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
+test('the weekly goal / prophecy column never overlaps a hotspot or its label', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  // A prophecy makes .camp-column at its tallest (weekly banner + the prophecy parchment), the
+  // worst case for overlapping a hotspot below it.
+  await createText(request, {
+    title: `Prophétie ${testInfo.project.name} ${Date.now()}`,
+    body: 'Les héros reviennent au camp. Ils racontent leurs voyages et les Muses les écoutent.',
+    level: '10H',
+    due_date: '2099-01-01',
+  });
+  for (const size of [
+    { width: 1180, height: 820 }, // scenes spec §10: the ipad project's default iPad landscape
+    { width: 1366, height: 1024 }, // 13" iPad landscape
+  ]) {
+    await page.setViewportSize(size);
+    await page.goto(`/#/p/${id}/camp?debug`);
+    await expectCamp(page);
+    const column = page.getByTestId('camp-column');
+    await expect(page.getByTestId('camp-prophecy')).toBeVisible();
+    const columnBox = await column.boundingBox();
+    if (!columnBox) throw new Error('camp-column has no bounding box: it did not render');
+    const hotspots = page.locator('button.hotspot[data-testid^="camp-"]');
+    for (let i = 0; i < (await hotspots.count()); i++) {
+      const hotspot = hotspots.nth(i);
+      const testId = await hotspot.getAttribute('data-testid');
+      for (const el of [hotspot, hotspot.locator('.hotspot-label')]) {
+        const box = await el.boundingBox();
+        if (!box) throw new Error(`${testId} (or its label) has no bounding box: it did not render`);
+        expect(boxesIntersect(columnBox, box), `camp-column vs ${testId} at ${size.width}x${size.height}`).toBe(false);
+      }
+    }
+    await page.screenshot({ path: `test-results/scenes-camp-column-${size.width}x${size.height}.png` });
+  }
 });

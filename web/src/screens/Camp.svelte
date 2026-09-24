@@ -98,7 +98,7 @@
     <Hotspot {def} status={def.state(ctx)} sceneId="camp" onActivate={activate} />
   {/each}
 
-  <div class="camp-column">
+  <div class="camp-column" data-testid="camp-column">
     {#if camp}
       <p class="kit-banner weekly" data-testid="camp-weekly">
         <span class="leaves" aria-hidden="true">
@@ -152,11 +152,22 @@
 {/if}
 
 <style>
+  /* Positioned (and capped) in the zone free of every CAMP_HOTSPOTS shape box AND label (see
+     camp.shapes.ts): a hotspot's label pill is wider than its shape and was measured (?debug,
+     real boundingBox()es at both 1180x820 and 1366x1024) rather than assumed, since "below"/
+     "above" labels extend well past their shape's own box. x 27-52% clears oracle's label (right
+     edge measured up to ~25.1%) and quests' label (left edge measured down to ~55.8%); y 15-41%
+     clears the HUD band (< 14%) above and parchemins/bestiary (min y 44%) below.
+     `overflow: hidden auto` is a hard guarantee, not just a style choice: it caps both axes to
+     these exact box dimensions (a scrollbar for height, a clip for width) so a longer prophecy
+     title can never silently grow the column past the clearance above. */
   .camp-column {
     position: absolute;
-    left: 28%;
-    top: 16%;
-    width: 24%;
+    left: 27%;
+    top: 15%;
+    width: 25%;
+    max-height: 26%;
+    overflow: hidden auto;
     z-index: 3;
     display: flex;
     flex-direction: column;
