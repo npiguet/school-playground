@@ -1,6 +1,6 @@
 from pathlib import Path
 import pytest
-from app.nlp.annotate import annotate, derive
+from app.nlp.annotate import annotate, derive, derive_all
 from app.nlp.homophones import load_homophones
 
 CONTENT = Path(__file__).resolve().parents[2] / "content"
@@ -41,10 +41,55 @@ def test_derive_categories_and_subject():
     assert by["épuisées"]["subject"] is None
 
 
-def test_annotate_with_real_model(nlp):
+def test_derive_without_lexicon_keeps_sp1_shape():
     h = load_homophones(CONTENT)
-    a = annotate("Les fées dansent dans la clairière. Il a chanté.", nlp, h)
-    assert a["version"] == 1 and a["model"]
+    tokens = [
+        tok(0, "Les", "DET", {"Number": "Plur"}, head=1, dep="det"),
+        tok(1, "fées", "NOUN", {"Gender": "Fem", "Number": "Plur"}, head=2, dep="nsubj"),
+        tok(2, "dansent", "VERB", {"VerbForm": "Fin", "Number": "Plur", "Person": "3"}, head=2, dep="ROOT"),
+    ]
+    out = derive(tokens, h)
+    assert [t["text"] for t in out] == ["Les", "fées", "dansent"]
+    for t in out:
+        assert t["forms"] == {} and t["sound_alikes"] == [] and isinstance(t["chains"], list)
+    assert out[1]["chains"] and out[2]["chains"]  # noun and verb belong to a chain even without a lexicon
+
+
+def test_derive_all_with_lexicon(lexicon):
+    h = load_homophones(CONTENT)
+    tokens = [
+        tok(0, "Les", "DET", {"Number": "Plur"}, head=1, dep="det"),
+        tok(1, "fées", "NOUN", {"Gender": "Fem", "Number": "Plur"}, head=2, dep="nsubj"),
+        tok(2, "dansent", "VERB", {"VerbForm": "Fin", "Number": "Plur", "Person": "3"}, head=2, dep="ROOT"),
+        tok(3, ".", "PUNCT", {}, head=2, dep="punct"),
+    ]
+    tokens[1]["lemma"] = "fée"
+    tokens[2]["lemma"] = "danser"
+    out, chains = derive_all(tokens, h, lexicon)
+    fees, dansent, dot = out[1], out[2], out[3]
+    assert fees["forms"] == {"fée": {"g": "f", "n": "s"}}
+    assert "fées" not in fees["sound_alikes"] and "fée" not in fees["sound_alikes"]  # never the token or a form
+    assert len(fees["sound_alikes"]) <= 5
+    assert all(h.set_of(w) is None for w in fees["sound_alikes"])
+    assert "danse" in dansent["forms"]
+    assert dot["forms"] == {} and dot["sound_alikes"] == [] and dot["chains"] == []
+    sv = next(c for c in chains if c["kind"] == "subject_verb")
+    assert sv["id"] in fees["chains"] and sv["id"] in dansent["chains"] and sv["id"] in out[0]["chains"]
+    assert [c["id"] for c in chains] == list(range(len(chains)))
+
+
+def test_annotate_with_real_model(nlp, lexicon):
+    h = load_homophones(CONTENT)
+    a = annotate("Les fées dansent dans la clairière. Il a chanté.", nlp, h, lexicon)
+    assert a["version"] == 2 and a["model"]
+    assert isinstance(a["chains"], list)
+    fees = next(t for t in a["tokens"] if t["text"] == "fées")
+    assert "fée" in fees["forms"]
+    dansent = next(t for t in a["tokens"] if t["text"] == "dansent")
+    assert any(c["kind"] == "subject_verb" and c["controller"] == fees["i"] and dansent["i"] in c["targets"]
+               for c in a["chains"])
+    sv = next(c for c in a["chains"] if c["kind"] == "subject_verb" and dansent["i"] in c["targets"])
+    assert sv["id"] in dansent["chains"]
     texts = [t["text"] for t in a["tokens"]]
     assert "dansent" in texts and "." in texts and " " not in texts
     first = a["tokens"][0]

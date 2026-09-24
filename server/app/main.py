@@ -21,10 +21,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         migrate(conn)
         if settings.seed_on_startup:
             from app.deps import make_annotator
+            from app.reannotate import reannotate_outdated
             from app.seed import import_seed
             annotator = make_annotator(settings)
             app.state.annotator = annotator
             import_seed(conn, settings.content_dir, annotator)
+            reannotate_outdated(conn, annotator)
         conn.close()
         yield
 

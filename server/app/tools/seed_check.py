@@ -14,6 +14,7 @@ from collections import Counter
 from pathlib import Path
 
 from app.config import Settings
+from app.lexicon import load_lexicon
 from app.nlp.annotate import annotate
 from app.nlp.homophones import load_homophones
 from app.nlp.model import get_nlp
@@ -23,10 +24,10 @@ MIN_VERBS = 8
 MIN_NOMINAL = 15
 
 
-def check_file(path: Path, nlp, homophones) -> dict:
+def check_file(path: Path, nlp, homophones, lexicon) -> dict:
     data = json.loads(path.read_text(encoding="utf-8"))
     body = data["body"].strip()
-    annotation = annotate(body, nlp, homophones)
+    annotation = annotate(body, nlp, homophones, lexicon)
     counts = Counter(cat for token in annotation["tokens"] for cat in token["categories"])
     return {
         "key": path.stem,
@@ -50,6 +51,7 @@ def main() -> int:
 
     nlp = get_nlp(settings.spacy_model)
     homophones = load_homophones(settings.content_dir)
+    lexicon = load_lexicon(settings.content_dir)
 
     print(f"{'key':40s} | {'level':5s} | {'words':>5s} | {'verbs':>5s} | "
           f"{'participles':>11s} | {'nominal':>7s} | {'homophones':>10s} | {'sentences':>9s}")
@@ -57,7 +59,7 @@ def main() -> int:
     totals_by_level: dict[str, Counter] = {}
     low: list[str] = []
     for path in files:
-        row = check_file(path, nlp, homophones)
+        row = check_file(path, nlp, homophones, lexicon)
         flag = ""
         if row["verbs"] < MIN_VERBS or row["nominal"] < MIN_NOMINAL:
             flag = "  <-- LOW"

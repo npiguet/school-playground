@@ -21,10 +21,10 @@ class Homophones:
         return self._index.get(normalize_word(word))
 
     def words(self, set_id: str) -> list[str]:
-        return next(s["words"] for s in self.sets if s["id"] == set_id)
+        return next((s["words"] for s in self.sets if s["id"] == set_id), [])
 
     def hint(self, set_id: str) -> str:
-        return next(s["hint"] for s in self.sets if s["id"] == set_id)
+        return next((s["hint"] for s in self.sets if s["id"] == set_id), "")
 
 
 @lru_cache(maxsize=4)

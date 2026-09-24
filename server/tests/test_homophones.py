@@ -12,6 +12,7 @@ def test_loads_repo_table():
     assert h.set_of("maison") is None
     assert "sont" in h.words("son")
     assert "étaient" in h.hint("son")
+    assert h.words("no-such-set") == [] and h.hint("no-such-set") == ""
 
 
 def test_words_are_unique_across_sets():
