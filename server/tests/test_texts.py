@@ -62,3 +62,7 @@ def test_write_then_immediate_read_sees_the_write(client):
     r = client.get(f"/api/texts/{t['id']}")
     assert r.status_code == 200, r.text
     assert r.json()["body"] == FEES
+
+
+def test_body_over_4000_chars_rejected(client):
+    assert client.post("/api/texts", json={"title": "T", "body": "mot " * 1100, "level": "8H", "source": "custom"}).status_code == 422

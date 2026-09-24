@@ -13,6 +13,8 @@ ENV PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     DISCORDE_DATA_DIR=/data DISCORDE_STATIC_DIR=/app/static \
     DISCORDE_CONTENT_DIR=/app/content SPACY_MODEL=fr_core_news_lg
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-fra \
+ && rm -rf /var/lib/apt/lists/*
 COPY server/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt \
  && python -m spacy download fr_core_news_lg

@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from app.config import Settings
 from app.db import connect, migrate, DB_FILENAME
-from app.routers import profiles, texts, sessions, stats
+from app.routers import profiles, texts, sessions, stats, scan
 
 VERSION = "0.1.0"
 
@@ -19,6 +19,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.settings = settings
         conn = connect(settings.data_dir / DB_FILENAME)
         migrate(conn)
+        from app.routers.scan import sweep_orphan_scans
+        sweep_orphan_scans(settings.data_dir, conn)
         if settings.seed_on_startup:
             from app.deps import make_annotator
             from app.reannotate import reannotate_outdated
@@ -40,6 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(texts.router)
     app.include_router(sessions.router)
     app.include_router(stats.router)
+    app.include_router(scan.router)
 
     # Later tasks insert app.include_router(...) lines HERE, above the /api catch-all.
 
@@ -51,7 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def spa(path: str):
         static = settings.static_dir.resolve()
         candidate = (static / path).resolve() if path else None
-        if candidate and candidate.is_file() and str(candidate).startswith(str(static)):
+        if candidate and candidate.is_file() and candidate.is_relative_to(static):
             return FileResponse(candidate)
         index = static / "index.html"
         if index.is_file():

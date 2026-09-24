@@ -61,6 +61,7 @@ class TextCreate(BaseModel):
     credits: str | None = None
     added_by_profile_id: int | None = None
     due_date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    scan_id: str | None = None
 
 
 class TextHistory(BaseModel):
@@ -83,6 +84,8 @@ class TextSummary(BaseModel):
     added_by_name: str | None
     due_date: str | None
     created_at: str
+    scan_id: str | None = None
+    photo_count: int = 0
 
 
 class TextSummaryWithHistory(TextSummary):
