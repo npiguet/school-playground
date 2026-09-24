@@ -1,0 +1,34 @@
+{
+  "prompt": "a single object centred in the frame with plenty of empty white room on every side, seen from a slight three-quarter angle, soft even warm light from the upper left. subject: the thunderbolt of Zeus, one bold golden zigzag lightning bolt held vertically, ancient Greek style with a pointed spearhead at each end and a thick grip wrapped in Aegean blue cord in the middle, a few small solid pale blue spark shapes with inked edges, nothing glows. One bold simple silhouette made of a few large clear shapes with a clean dark ink outline all around and rich saturated colours, readable at a very small size, (scenery:-3) (text:-3) (letters:-3) (cast shadow on the ground:-3), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1024,
+  "height": 1024,
+  "seed": 1009,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-inked-clean"
+}

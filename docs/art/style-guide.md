@@ -139,6 +139,7 @@ All under `assets/art/`. `*_cut.png` = same image with the white background remo
 | Pythia, Athena's owl | `characters/{pythia,owl}.png` + `_cut` | 768×1344, 1024² |
 | Props: votive tablets, codex on a lectern, trophy shelf | `props/{votive_tablets,codex_lectern,trophy_shelf}.png` + `_cut` | 1024², 768×1344, 1344×768 |
 | Marble texture tile | `textures/marble.png` | 1024² |
+| Icons: rewards, avatars, lieutenant glyphs, add menu, seal, lock, app apple | `icons/<id>.png` + `_cut` (see Icons below) | 1024² |
 
 The older 1344×768 scenes keep the upper third calm for the HUD, and the old battle backdrop keeps
 its centre empty so the lieutenant card and the dragon can be composited over it. They stay in place
@@ -198,8 +199,72 @@ Prompt tips from this batch:
 - Textures: `discorde-texture` (in `styles/`) plus "uniform all over so it can repeat". Marble
   worked. Parchment got a vignette and bronze turned into honeycomb, so CSS does those better.
 
-Not yet made (candidates for a later batch): player avatar options, the Muses, per-stage
-dragon colour variants, a title/hero banner 1536×640, small item icons (scroll, quill, laurel).
+Not yet made (candidates for a later batch): the Muses, per-stage dragon colour variants, a
+title/hero banner 1536×640. Player avatars and small item icons are done (see Icons below).
+
+### Icons (2026-09-24)
+
+Small painted icons that replace the emoji the UI used as markers (see `docs/art/icon-inventory.md`
+for every site). Originals + sidecars + `_cut.png` in `assets/art/icons/`; the game loads
+`web/public/art/icons/<id>.webp` (256×256, alpha, trimmed to the object and centred with a 6 %
+margin, all under 20 KB). Contact sheet at 128 and 64 px on dark and parchment:
+`docs/art/icons-sheet.png`. Export with `tools/art/run_docker.sh icons` (`tools/art/icons.py`).
+
+**Ids and seeds** (style `discorde-inked-clean`, 1024², `--vscale 1.0`, 8 steps):
+
+| Group | Id → seed |
+|---|---|
+| Relics (`REWARDS` ids) | ecaille_hydre 1041, voix_echo 1002, criniere_chimere 1043, perle_protee 1004, plume_sirene 1005, pavot_lethe 1006 |
+| Gear | sandales_hermes 1007, egide 1008, foudre_zeus 1009 |
+| Decor (`decor:x` → `decor-x`, a colon can't be in a file name) | decor-lanterne 1010, decor-tapis 1011, decor-bibliotheque 1012, decor-trophee 1013, decor-fresque 1014 |
+| Avatars (`AVATARS` keys) | avatar-chouette 1031, avatar-dragon 1032, avatar-lyre 1044, avatar-trident 1022, avatar-laurier 1023, avatar-foudre 1030 |
+| Lieutenant glyphs | lt-hydre 1042, lt-echo 1016, lt-chimere 1045, lt-protee 1018, lt-sirenes 1019, lt-lethe 1046 |
+| Add menu | add-text 1025 (quill on parchment), add-scan 1033 (camera and sheet), add-alexandria 1047 (stacked scrolls) |
+| Misc | seal-oracle 1034, lock 1048 |
+| Home-screen icon | app-apple 1049 → `web/public/icons/{icon-192,icon-512,apple-touch-icon,icon-maskable-512}.png` |
+| Reused, no generation | tool-persee, tool-athena, tool-ariane, tool-argus = the existing `emblems/*_cut.png` medallions, which read fine at 64 px |
+
+`tint:*` rewards stay CSS swatches (the tinted egg). 42 generations in total (35 icons + 7 redos).
+The app icon is the painted apple on the terracotta ground (`#C0623B`, a soft lighter centre),
+at 74 % of the side and 56 % for the maskable one. It replaces the flat SVG apple, so **don't run
+`npm run icons` (`web/scripts/make-icons.mjs`)**, or it overwrites the painted PNGs.
+
+**Composition sentence** (every prompt; the sidecars hold the full text): *"a single object centred
+in the frame with plenty of empty white room on every side, seen from a slight three-quarter angle,
+soft even warm light from the upper left. subject: … One bold simple silhouette made of a few large
+clear shapes with a clean dark ink outline all around and rich saturated colours, readable at a very
+small size, (scenery:-3) (text:-3) (letters:-3) (cast shadow on the ground:-3), isolated on a flat
+plain white background."* Relics end their subject with "an ancient treasured relic". Avatars start
+with "a proud heraldic hero emblem, richly painted with burnished gold accents": that phrase gives
+the badge look the avatar set shares (the trident and the bolt gained small wings from it).
+
+Prompt tips from this batch:
+- Never write "icon", "cut-out" or "sticker" (die-cut white borders). "One bold simple silhouette
+  ... readable at a very small size" is enough to get a clean, readable object.
+- Without "a clean dark ink outline all around and rich saturated colours" the first objects came
+  out pale and outline-less (a flat gold bolt, an egg-like scale). Keep that clause.
+- A "scale" alone gives an egg or a seed. Say "shaped like a pointed shield or a kite ... a raised
+  ridge ... smaller overlapping scale shapes engraved along its edge" plus `(egg:-3)`.
+- "Locks of a lion's mane" gave the back of a lion's head with ears. Write "three long separate
+  locks ... fanned out upward like a small bouquet of flames, bound ... by a gold band" plus
+  `(ears:-3) (animal head:-3) (face:-3)`.
+- A single snake head reads as any snake. For the Hydra, three heads on one coiled body is the
+  readable minimum. A plain lion head reads as a lion, not the Chimera: add the goat horns and the
+  small snake. One lion try came back letterboxed with black bars; `(black border:-3) (frame:-3)`
+  fixed it.
+- Léthé in "carved marble relief" words got blank statue eyes. For a face, say "visible dark
+  eyelashes and soft grey-blue irises ... warm living skin" plus `(blank white eyes:-3)`.
+- Bronze objects pick up a blotchy multicolour patina. Say "smooth polished warm golden bronze,
+  clean even metal" plus `(patina:-3) (rust:-3)`.
+- The golden apple came out green-yellow with a worm-like violet wisp. "Made of polished burnished
+  gold metal like a divine treasure" plus `(green apple:-3)`, and a violet ribbon bow instead of
+  a wisp.
+- Small or pale objects (a few scrolls, a poppy) come out small in the frame. That doesn't matter
+  for the export, which trims to the object, but "large and filling most of the picture" gives a
+  bolder result.
+- Known weak spots, accepted: `egide` has a lump of gold scales on its right rim; `foudre_zeus`
+  is thin at 64 px (`avatar-foudre` is the bolder bolt); `add-text` is pale on parchment; the
+  lock's body has two "ears".
 
 ## 6. Tooling (no host installs)
 
@@ -214,6 +279,9 @@ repo mounted at `/work`:
   `docs/art/cutout-comparison/`. Skips existing outputs unless `--force`. About 20 s per
   image on CPU; the ~900 MB model and the pip wheels are cached in two named Docker
   volumes (`art-rembg-cache`, `art-pip-cache`), versions are pinned in `run_docker.sh`.
+- `tools/art/icons.py webp|sheet|app|all` (`run_docker.sh icons`): the 256 px icon WebPs in
+  `web/public/art/icons/`, the contact sheet `docs/art/icons-sheet.png`, and the home-screen PNGs in
+  `web/public/icons/`. `assets/art/icons` is among the default cut-out targets.
 - `tools/art/webify.py`: WebP export of every PNG into `assets/art/web/`, prints the total.
   Copy the `*_cut.webp` files (and scenes) to `web/public/art/` afterwards; the game only
   references those paths (`web/src/lib/world/art.ts`).
