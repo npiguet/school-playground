@@ -30,6 +30,45 @@ progression. Main features:
 - **Camp and progression** — XP, lieutenant quests (one per error family), permanent mastery
   tracking, a weekly goal, a break nudge, and a companion dragon that grows through stages.
 
+## Quick start on Windows (Docker Desktop)
+
+Run the game on your Windows PC, for trying it out or playing on the home network.
+
+1. Start **Docker Desktop** and wait until it reports "Engine running".
+2. Open **PowerShell** or **Git Bash** in the repository folder and build + start the server:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+   The first build takes several minutes (it downloads the French spaCy model, ~570 MB, and
+   Tesseract). Later builds reuse the cache. The image is tagged `discorde:local`.
+3. Open <http://localhost:8080> in Edge or Chrome. The 35 seed texts are loaded on first start.
+4. **Play from the iPad** on the same Wi-Fi: find the PC's IP address (`ipconfig`, "IPv4
+   Address", e.g. `192.168.1.20`) and open `http://192.168.1.20:8080` in Safari. If it doesn't
+   load, allow the port through the Windows firewall once (PowerShell **as administrator**):
+
+   ```powershell
+   New-NetFirewallRule -DisplayName "La Discorde 8080" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Private
+   ```
+
+   Your Wi-Fi network must be set to *Private* in Windows for this rule to apply.
+
+Everyday commands (from the repository folder):
+
+| What | Command |
+|---|---|
+| Stop the server | `docker compose stop` |
+| Start it again | `docker compose start` |
+| Update after pulling new code | `docker compose up -d --build` |
+| See the logs | `docker compose logs -f` |
+| Check it's healthy | open <http://localhost:8080/api/health> |
+
+Profiles, progress, custom texts and scans are stored in the Docker volume `discorde-data`,
+so they survive stops, rebuilds and restarts. `docker compose down` keeps the volume;
+**`docker compose down -v` deletes all saved data.** The server restarts automatically with
+Docker Desktop (`restart: unless-stopped`); the PC must be on for the iPad to play.
+
 ## 2. Deploy on TrueNAS SCALE 25.10
 
 ### Build the image
