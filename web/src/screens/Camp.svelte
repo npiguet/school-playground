@@ -84,31 +84,37 @@
   <div class="scene" style="background-image:url({ART.scenes.camp})">
     <h1>Bienvenue au camp, {profile.name}.</h1>
     {#if campStore.data}
-      <p class="xp-line" data-testid="camp-xp">{campStore.data.xp.title} · {campStore.data.xp.total} XP</p>
-      {#if campStore.data.xp.next_threshold !== null}
-        <Gauge
-          value={campStore.data.xp.total - campStore.data.xp.rank_floor}
-          max={campStore.data.xp.next_threshold - campStore.data.xp.rank_floor}
-          label={campStore.data.xp.title}
-        />
-      {:else}
-        <p class="muted">Rang maximal</p>
-      {/if}
-      <p class="weekly" data-testid="camp-weekly">
-        <span class="leaves" aria-hidden="true">
-          {#each Array.from({ length: campStore.data.weekly.target }) as _, i (i)}<span
-              class="leaf"
-              class:filled={i < campStore.data.weekly.done}>🌿</span
-            >{/each}
-        </span>
-        <span class="weekly-caption">
-          {#if campStore.data.weekly.reached}
-            Objectif atteint ! Les Muses sont fières.
-          {:else}
-            Objectif de la semaine : {campStore.data.weekly.done} / {campStore.data.weekly.target} textes
-          {/if}
-        </span>
-      </p>
+      <!-- P1-6: the scene's scrim (app.css `.scene::after`) fades to transparent well above this
+           block, so the rank line, the gauge and the weekly leaves sat directly on the busy
+           painting. A solid parchment panel behind them guarantees contrast regardless of what's
+           underneath (the palette's own marble tone, not a new colour). -->
+      <div class="hud-panel">
+        <p class="xp-line" data-testid="camp-xp">{campStore.data.xp.title} · {campStore.data.xp.total} XP</p>
+        {#if campStore.data.xp.next_threshold !== null}
+          <Gauge
+            value={campStore.data.xp.total - campStore.data.xp.rank_floor}
+            max={campStore.data.xp.next_threshold - campStore.data.xp.rank_floor}
+            label={campStore.data.xp.title}
+          />
+        {:else}
+          <p class="muted">Rang maximal</p>
+        {/if}
+        <p class="weekly" data-testid="camp-weekly">
+          <span class="leaves" aria-hidden="true">
+            {#each Array.from({ length: campStore.data.weekly.target }) as _, i (i)}<span
+                class="leaf"
+                class:filled={i < campStore.data.weekly.done}>🌿</span
+              >{/each}
+          </span>
+          <span class="weekly-caption">
+            {#if campStore.data.weekly.reached}
+              Objectif atteint ! Les Muses sont fières.
+            {:else}
+              Objectif de la semaine : {campStore.data.weekly.done} / {campStore.data.weekly.target} textes
+            {/if}
+          </span>
+        </p>
+      </div>
     {/if}
   </div>
 
@@ -242,6 +248,18 @@
   }
   .scene h1 {
     margin: 0;
+  }
+  /* P1-6: translucent parchment backing so the rank/XP/weekly-goal text stays >= 4.5:1 against
+     the camp painting no matter what's behind it - `--marble` at 0.85 opacity, same tone as the
+     rest of the UI's cards/parchments, not a new colour. */
+  .hud-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    background: rgba(244, 239, 230, 0.85);
   }
   .xp-line {
     margin: 0;
