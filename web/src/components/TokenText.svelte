@@ -86,7 +86,7 @@
     margin: 0;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    font-family: var(--font-body);
+    font-family: var(--font-reading);
     font-size: 22px;
     line-height: 1.9;
     color: var(--ink);

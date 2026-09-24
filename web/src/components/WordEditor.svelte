@@ -88,7 +88,7 @@
     min-height: 44px;
     padding: 6px 10px;
     font-size: 22px;
-    font-family: var(--font-body);
+    font-family: var(--font-reading);
     border-color: var(--aegean);
     width: auto;
   }

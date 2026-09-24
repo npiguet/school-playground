@@ -1,5 +1,6 @@
-/* Theme tokens (spec §5 SP1: marble white, terracotta, olive, Aegean blue;
-   serif display font; CSS only, no web fonts, no external requests). */
+/* Theme tokens (spec §5 SP1: marble white, terracotta, olive, Aegean blue). Fonts are
+   self-hosted woff2 (scenes UI spec §2.7, src/styles/fonts.css): Cinzel for titles and place
+   names (caps only), Alegreya for UI and story text, Literata for the dictation text. */
 :root {
   --marble: #f4efe6;
   --marble-dark: #e8e0d2;
@@ -14,8 +15,9 @@
   --orange: #e07b2a;
   --orange-light: #fbe5d2;
   --radius: 14px;
-  --font-display: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
-  --font-body: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Cinzel', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --font-body: 'Alegreya', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-reading: 'Literata', Georgia, 'Times New Roman', serif;
 }
 
 * {

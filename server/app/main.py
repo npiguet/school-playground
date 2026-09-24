@@ -15,6 +15,8 @@ VERSION = "0.1.0"
 # so it fell back to application/octet-stream. Registered explicitly so /art/**/*.webp serves as
 # image/webp regardless of the container's system mime database.
 mimetypes.add_type("image/webp", ".webp")
+# Same story for the self-hosted UI fonts (scenes UI spec §2.7, web/public/fonts/*.woff2).
+mimetypes.add_type("font/woff2", ".woff2")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

@@ -1,4 +1,5 @@
 import { mount } from 'svelte';
+import './styles/fonts.css';
 import './app.css';
 import { startRouter } from './lib/router.svelte';
 import App from './App.svelte';

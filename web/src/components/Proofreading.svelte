@@ -598,7 +598,7 @@
     resize: none;
     font-size: 22px;
     line-height: 1.6;
-    font-family: var(--font-body);
+    font-family: var(--font-reading);
     padding: 16px;
   }
   .foot {
