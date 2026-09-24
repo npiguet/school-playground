@@ -124,6 +124,14 @@
     save();
   }
 
+  // P1-4: "Quitter" on the dictation screen. The draft is already saved (debounced, P1-3);
+  // this just makes leaving explicit and re-shows the resume banner, exactly as a fresh page
+  // load with a saved 'dictation' state would.
+  function quitDictation() {
+    save();
+    showResumeBanner = true;
+  }
+
   function onDictationFinish() {
     if (!playState) return;
     playState.current = playState.draft;
@@ -243,7 +251,14 @@
       </button>
     </div>
   {:else if playState.phase === 'dictation'}
-    <Dictation {plan} pace={playState.pace} {voice} bind:text={playState.draft} onFinish={onDictationFinish} />
+    <Dictation
+      {plan}
+      pace={playState.pace}
+      {voice}
+      bind:text={playState.draft}
+      onFinish={onDictationFinish}
+      onQuit={quitDictation}
+    />
   {:else if playState.phase === 'proofreading'}
     <Proofreading
       reference={text}

@@ -10,12 +10,14 @@
     voice,
     text = $bindable(),
     onFinish,
+    onQuit,
   }: {
     plan: DictationPlan;
     pace: Pace;
     voice: SpeechSynthesisVoice | null;
     text: string;
     onFinish: () => void;
+    onQuit: () => void;
   } = $props();
 
   let runnerState = $state<RunnerState>({
@@ -84,6 +86,24 @@
     onFinish();
   }
 
+  // P1-4: the dictation screen has no top bar (deliberate minimalism) and was otherwise a dead
+  // end — the only way out was the browser's back gesture. The draft is saved as she types
+  // (P1-3), so leaving is safe; the confirm just makes that explicit rather than silent.
+  let confirmQuit = $state(false);
+
+  function requestQuit() {
+    confirmQuit = true;
+  }
+
+  function cancelQuit() {
+    confirmQuit = false;
+  }
+
+  function confirmedQuit() {
+    cancelSpeech();
+    onQuit();
+  }
+
   // Keeps the current line above the iPad on-screen keyboard: the keyboard
   // shrinks the visual viewport (not the layout viewport), so we size the
   // column from `--vvh` rather than 100dvh/100vh.
@@ -105,6 +125,9 @@
 
 <div class="dictation" style="height: var(--vvh)">
   <div class="header">
+    <button type="button" class="btn btn-ghost quit" data-testid="btn-quit-dictation" onclick={requestQuit}>
+      ← Quitter
+    </button>
     <h2>Dictée</h2>
     <span class="progress">
       {#if currentLabel === 'sentence'}
@@ -116,6 +139,18 @@
       {/if}
     </span>
   </div>
+
+  {#if confirmQuit}
+    <div class="confirm-quit" role="status">
+      <p>Ton brouillon est gardé. Veux-tu vraiment quitter la dictée ?</p>
+      <div class="confirm-actions">
+        <button type="button" class="btn btn-primary" data-testid="btn-quit-confirm" onclick={confirmedQuit}>
+          Oui, quitter
+        </button>
+        <button type="button" class="btn" onclick={cancelQuit}>Continuer la dictée</button>
+      </div>
+    </div>
+  {/if}
 
   <div class="status-line">
     <span class="dot" class:pulse={runnerState.status === 'playing'} data-status={runnerState.status} aria-hidden="true"></span>
@@ -181,7 +216,7 @@
   }
   .header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
   }
@@ -192,6 +227,31 @@
   .progress {
     color: var(--ink-soft);
     font-size: 14px;
+    text-align: right;
+  }
+  .quit {
+    min-height: 44px;
+    padding: 6px 10px;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  .confirm-quit {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--aegean-light);
+    border: 1px solid var(--aegean);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .confirm-quit p {
+    margin: 0;
+    font-weight: 600;
+  }
+  .confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .status-line {
     display: flex;
