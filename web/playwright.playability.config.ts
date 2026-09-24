@@ -1,11 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Playability walks (spec §6.2): one long test per iPad orientation, screenshots into
-// docs/reviews/sp1/ (playability.spec.ts) and docs/reviews/sp2/ (playability-sp2.spec.ts).
-// Run with scripts/playwright.sh --config playwright.playability.config.ts [playability-sp2]
+// Playability walks (spec §6.2, scenes spec §10): one long test per iPad orientation, screenshots
+// into docs/reviews/<milestone>/ (playability.spec.ts = sp1, -sp2, -sp3, -ui1).
+// Run with scripts/playwright.sh --config playwright.playability.config.ts [playability-ui1]
 export default defineConfig({
   testDir: './e2e',
-  testMatch: ['**/playability.spec.ts', '**/playability-sp2.spec.ts', '**/playability-sp3.spec.ts'],
+  testMatch: ['**/playability*.spec.ts'],
   timeout: 600_000,
   retries: 0,
   reporter: [['list']],
