@@ -452,9 +452,11 @@ Legend: **P0** blocks play · **P1** hurts the core loop / teaches something wro
 
 ## 7. Reproduction
 
-The Playwright spec and config that produced these screenshots are kept next to them in
-`docs/reviews/sp1/tooling/` (`playability.spec.ts`, `playwright.playability.config.ts`). To run
-them, copy them to `web/e2e/` and `web/` respectively and run
-`scripts/playwright.sh --config playwright.playability.config.ts` (the review was made in an
-isolated worktree; only `docs/reviews/sp1/` was committed to the main tree so as not to touch
-`web/` while SP2 work is in progress there).
+The Playwright spec and config that produced these screenshots now live at
+`web/e2e/playability.spec.ts` and `web/playwright.playability.config.ts` (moved there in the SP1
+fix wave; originally kept under `docs/reviews/sp1/tooling/` because the review was made in an
+isolated worktree and only `docs/reviews/sp1/` was committed to the main tree, so as not to touch
+`web/` while SP2 work was in progress there). Run them with
+`scripts/playwright.sh --config playwright.playability.config.ts`; the default
+`scripts/playwright.sh` (no `--config`) ignores `playability.spec.ts` (see `web/playwright.config.ts`'s
+`testIgnore`), so it never runs as part of `scripts/check.sh`.
