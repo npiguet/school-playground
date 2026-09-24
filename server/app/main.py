@@ -1,5 +1,6 @@
 """FastAPI application factory. Serves /api/* and falls back to the SPA's index.html."""
 from __future__ import annotations
+import mimetypes
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
@@ -8,6 +9,12 @@ from app.db import connect, migrate, DB_FILENAME
 from app.routers import profiles, texts, sessions, stats, scan, alexandria, world
 
 VERSION = "0.1.0"
+
+# The slim base image's system mime.types doesn't map .webp (SP3's dragon/lieutenant art, served
+# straight off disk by the SPA catch-all below via FileResponse's mimetypes-guessed content type),
+# so it fell back to application/octet-stream. Registered explicitly so /art/**/*.webp serves as
+# image/webp regardless of the container's system mime database.
+mimetypes.add_type("image/webp", ".webp")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
