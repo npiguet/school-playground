@@ -48,7 +48,9 @@
 
   let editing = $state<number | null>(null);
   let wholeText = $state(false);
-  let sentenceIndex = $state(0);
+  // Bouclier reads last to first, so a fresh mount (including a remount with `play.bouclier`
+  // already on after a reload / Safari backgrounding) starts at the last sentence.
+  let sentenceIndex = $state(untrack(() => spans.length - 1));
   let chouetteMessage = $state('');
   let confirmDone = $state(false);
 
