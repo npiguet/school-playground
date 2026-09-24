@@ -6,6 +6,7 @@
   import Results from '../components/Results.svelte';
   import { api, ApiError } from '../lib/api';
   import { debounce } from '../lib/debounce';
+  import { formatSwissDate, isProphecy } from '../lib/dates';
   import { buildPlan, defaultPace, type DictationPlan } from '../lib/dictation/script';
   import { pickVoice, ttsAvailable, unlockSpeech, waitForVoices } from '../lib/dictation/tts';
   import { gradeSession } from '../lib/grading/grade';
@@ -40,6 +41,9 @@
   // already caught by the identity check below), toLibrary() clears storage but keeps the same
   // `playState` reference, so it needs its own flag.
   let left = false;
+  // Intro-only: never toggled during dictation/proofreading (the photo is the reference,
+  // spec §3.2 - it must stay hidden while the child is writing).
+  let showPhotos = $state(false);
 
   async function load() {
     loading = true;
@@ -236,6 +240,29 @@
         <span class="chip">≈ {text.word_count} mots</span>
       </div>
 
+      {#if text.due_date && isProphecy(text.due_date)}
+        <p class="prophecy" data-testid="play-prophecy">
+          Dictée préparée pour le {formatSwissDate(text.due_date)} — la prophétie de l'Oracle.
+        </p>
+      {/if}
+
+      {#if text.photo_count > 0}
+        <button type="button" class="btn photos-toggle" onclick={() => (showPhotos = !showPhotos)}>
+          {showPhotos ? 'Cacher la feuille' : 'Voir la feuille'}
+        </button>
+        {#if showPhotos}
+          <div class="scan-photos">
+            {#each Array.from({ length: text.photo_count }, (_, i) => i + 1) as n (n)}
+              <img
+                src={api.scan.pageUrl(text.scan_id ?? '', n)}
+                alt={`Page ${n} de la feuille scannée`}
+                class="scan-photo"
+              />
+            {/each}
+          </div>
+        {/if}
+      {/if}
+
       {#if !ttsAvailable()}
         <p class="orange">
           Cet appareil ne sait pas lire à voix haute. La dictée avancera toute seule, sans son.
@@ -292,6 +319,28 @@
     display: flex;
     gap: 8px;
     margin: 12px 0 20px;
+  }
+  .prophecy {
+    color: var(--gold);
+    font-weight: 600;
+    margin: 0 0 16px;
+  }
+  .photos-toggle {
+    margin-bottom: 16px;
+  }
+  .scan-photos {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .scan-photo {
+    width: 100%;
+    object-fit: contain;
+    max-height: 70vh;
+    border-radius: var(--radius);
+    border: 1px solid var(--marble-dark);
+    background: #fff;
   }
   .banner {
     display: flex;

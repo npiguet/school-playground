@@ -11,6 +11,7 @@ import type {
   SessionCreated,
   StatsResponse,
   TrapWord,
+  ScanResult,
 } from './types';
 
 export class ApiError extends Error {
@@ -23,12 +24,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method,
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+async function handleResponse<T>(res: Response): Promise<T> {
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -42,6 +38,15 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     throw new ApiError(res.status, detail);
   }
   return data as T;
+}
+
+async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method,
+    headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  return handleResponse<T>(res);
 }
 
 export const api = {
@@ -67,5 +72,14 @@ export const api = {
   },
   sessions: {
     create: (body: SessionCreate) => request<SessionCreated>('POST', '/api/sessions', body),
+  },
+  scan: {
+    upload: async (files: File[]) => {
+      const fd = new FormData();
+      for (const f of files) fd.append('photos', f, f.name);
+      const res = await fetch('/api/scan', { method: 'POST', body: fd });
+      return handleResponse<ScanResult>(res);
+    },
+    pageUrl: (scanId: string, n: number) => `/api/scan/${scanId}/page/${n}`,
   },
 };

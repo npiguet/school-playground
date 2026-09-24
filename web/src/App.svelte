@@ -7,6 +7,7 @@
   import ProfileCreate from './screens/ProfileCreate.svelte';
   import Library from './screens/Library.svelte';
   import TextCreate from './screens/TextCreate.svelte';
+  import ScanText from './screens/ScanText.svelte';
   import Play from './screens/Play.svelte';
   import Stats from './screens/Stats.svelte';
   import Settings from './screens/Settings.svelte';
@@ -61,6 +62,8 @@
         <Library profile={gateProfile} />
       {:else if route.name === 'text-new'}
         <TextCreate profile={gateProfile} />
+      {:else if route.name === 'text-scan'}
+        <ScanText profile={gateProfile} />
       {:else if route.name === 'play'}
         <Play profile={gateProfile} textId={route.params.textId} />
       {:else if route.name === 'stats'}

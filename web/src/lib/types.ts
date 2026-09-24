@@ -41,6 +41,8 @@ export interface TextSummary {
   due_date: string | null;
   created_at: string;
   history: TextHistory | null;
+  scan_id: string | null;
+  photo_count: number;
 }
 
 export interface TextFull extends TextSummary {
@@ -59,6 +61,21 @@ export interface TextCreateBody {
   credits?: string | null;
   added_by_profile_id?: number | null;
   due_date?: string | null;
+  scan_id?: string | null;
+}
+
+export interface ScanPage {
+  index: number;
+  text: string;
+  low_confidence: string[];
+  width: number;
+  height: number;
+}
+
+export interface ScanResult {
+  scan_id: string;
+  pages: ScanPage[];
+  text: string;
 }
 
 export interface ProfileCreateBody {

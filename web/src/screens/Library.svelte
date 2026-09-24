@@ -1,6 +1,8 @@
 <script lang="ts">
   import TopBar from '../components/TopBar.svelte';
+  import AddMenu from '../components/AddMenu.svelte';
   import { api, ApiError } from '../lib/api';
+  import { formatSwissDate, isProphecy } from '../lib/dates';
   import { levelIndex, LEVELS } from '../lib/levels';
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
@@ -12,6 +14,7 @@
   let loading = $state(true);
   let error = $state('');
   let levelFilter = $state<string>('Tous');
+  let menuOpen = $state(false);
 
   async function load() {
     loading = true;
@@ -47,10 +50,6 @@
     navigate(href('play', { profileId: String(profile.id), textId: String(t.id) }));
   }
 
-  function addText() {
-    navigate(href('text-new', { profileId: String(profile.id) }));
-  }
-
   const filtered = $derived(
     levelFilter === 'Tous' ? texts : texts.filter((t) => t.level === levelFilter),
   );
@@ -58,9 +57,20 @@
   const sortByLevelThenTitle = (a: TextSummary, b: TextSummary) =>
     levelIndex(a.level) - levelIndex(b.level) || a.title.localeCompare(b.title, 'fr');
 
-  const ownLevel = $derived(texts.filter((t) => t.level === profile.level).sort(sortByLevelThenTitle));
+  // Prophecies (dictées préparées whose due date has not passed yet, spec's
+  // "Decisions" #14) get their own top section in the "Tous" view and are
+  // excluded from the two sections below so they aren't shown twice.
+  const prophecies = $derived(
+    texts
+      .filter((t) => isProphecy(t.due_date))
+      .sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? '')),
+  );
+  const prophecyIds = $derived(new Set(prophecies.map((t) => t.id)));
+  const ownLevel = $derived(
+    texts.filter((t) => t.level === profile.level && !prophecyIds.has(t.id)).sort(sortByLevelThenTitle),
+  );
   const otherLevels = $derived(
-    texts.filter((t) => t.level !== profile.level).sort(sortByLevelThenTitle),
+    texts.filter((t) => t.level !== profile.level && !prophecyIds.has(t.id)).sort(sortByLevelThenTitle),
   );
 </script>
 
@@ -97,6 +107,13 @@
       <span class="chips">
         <span class="chip">{t.level}</span>
         <span class="chip">≈ {t.word_count} mots</span>
+        {#if t.source === 'scan'}<span class="chip chip-scan">Scanné</span>{/if}
+        {#if t.source === 'online'}<span class="chip chip-online">Alexandrie</span>{/if}
+        {#if t.due_date && isProphecy(t.due_date)}
+          <span class="chip chip-prophecy" data-testid="chip-prophecy"
+            >Prophétie : {formatSwissDate(t.due_date)}</span
+          >
+        {/if}
       </span>
       <span class="history muted">{historyLine(t)}</span>
     </button>
@@ -108,6 +125,17 @@
     <p class="orange">Impossible de lire les parchemins : {error}</p>
   {:else if levelFilter === 'Tous'}
     <section>
+      {#if prophecies.length > 0}
+        <section class="prophecies">
+          <h2>Prophéties de l'Oracle</h2>
+          <p class="subtitle muted">Les dictées préparées pour l'école, à réviser avant le jour dit.</p>
+          <div class="grid">
+            {#each prophecies as t (t.id)}
+              {@render textCard(t)}
+            {/each}
+          </div>
+        </section>
+      {/if}
       <h2>À ton niveau ({profile.level})</h2>
       <div class="grid">
         {#each ownLevel as t (t.id)}
@@ -129,12 +157,26 @@
     </div>
   {/if}
 
-  <button type="button" class="btn btn-primary fab" onclick={addText}>+ Ajouter un texte</button>
+  <button
+    type="button"
+    class="btn btn-primary fab"
+    data-testid="btn-add-text"
+    onclick={() => (menuOpen = true)}
+  >
+    + Ajouter un texte
+  </button>
 </div>
 
+<AddMenu profileId={profile.id} bind:open={menuOpen} />
+
 <style>
-  .library-screen {
-    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  /* Two classes for higher specificity than the global .screen rule (P1-7: the FAB
+     was overlapping the last row of cards in both iPad orientations because the
+     global padding-bottom could win the cascade). The FAB itself is ~48px tall,
+     sitting 16px + safe-area above the edge with a drop shadow - 96px clears it
+     with margin to spare. */
+  .screen.library-screen {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
   }
   .subtitle {
     margin-top: 0;
@@ -171,6 +213,7 @@
   }
   .chips {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     margin: 4px 0;
   }
@@ -179,6 +222,22 @@
     min-height: unset;
     padding: 3px 10px;
     font-size: 13px;
+  }
+  .chip-scan {
+    border-color: var(--olive);
+    color: var(--olive);
+  }
+  .chip-online {
+    border-color: var(--aegean);
+    color: var(--aegean);
+  }
+  .chip-prophecy {
+    border-color: var(--gold);
+    color: var(--gold);
+    font-weight: 600;
+  }
+  .prophecies {
+    margin-bottom: 8px;
   }
   .history {
     font-size: 13px;

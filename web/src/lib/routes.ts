@@ -7,6 +7,10 @@ export type RouteName =
   | 'profile-new'
   | 'library'
   | 'text-new'
+  | 'text-scan'
+  | 'grimoire'
+  | 'alexandria'
+  | 'alexandria-work'
   | 'play'
   | 'stats'
   | 'settings';
@@ -28,6 +32,10 @@ const PATTERNS: Pattern[] = [
   { name: 'profile-new', segments: ['profiles', 'new'] },
   { name: 'library', segments: ['p', { param: 'profileId' }, 'camp'] },
   { name: 'text-new', segments: ['p', { param: 'profileId' }, 'texts', 'new'] },
+  { name: 'text-scan', segments: ['p', { param: 'profileId' }, 'texts', 'scan'] },
+  { name: 'grimoire', segments: ['p', { param: 'profileId' }, 'grimoire', { param: 'textId' }] },
+  { name: 'alexandria', segments: ['p', { param: 'profileId' }, 'alexandria'] },
+  { name: 'alexandria-work', segments: ['p', { param: 'profileId' }, 'alexandria', { param: 'workId' }] },
   { name: 'play', segments: ['p', { param: 'profileId' }, 'play', { param: 'textId' }] },
   { name: 'stats', segments: ['p', { param: 'profileId' }, 'stats'] },
   { name: 'settings', segments: ['p', { param: 'profileId' }, 'settings'] },
@@ -70,6 +78,14 @@ export function href(name: RouteName, params: Record<string, string> = {}): stri
       return `#/p/${params.profileId}/camp`;
     case 'text-new':
       return `#/p/${params.profileId}/texts/new`;
+    case 'text-scan':
+      return `#/p/${params.profileId}/texts/scan`;
+    case 'grimoire':
+      return `#/p/${params.profileId}/grimoire/${params.textId}`;
+    case 'alexandria':
+      return `#/p/${params.profileId}/alexandria`;
+    case 'alexandria-work':
+      return `#/p/${params.profileId}/alexandria/${params.workId}`;
     case 'play':
       return `#/p/${params.profileId}/play/${params.textId}`;
     case 'stats':
