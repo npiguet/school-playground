@@ -5,10 +5,13 @@
 // Run from web/ with `scripts/npm.sh run fonts`. The output is committed, so neither the Docker
 // build nor the running app ever downloads a font.
 //
-// Downloads land in a scratch dir next to public/fonts (same filesystem, so the final move is a
-// plain rename) and are only swapped into place once every file has downloaded successfully; a
-// failed download cleans up the scratch dir and leaves the committed public/fonts/ tree untouched
-// instead of a half-downloaded one.
+// Downloads land in a scratch dir under .cache/ (git-ignored, outside public/ so the Docker build
+// - which only ever copies public/ - can never ship a partial download if this script is
+// interrupted before it cleans up) and are only swapped into public/fonts once every file has
+// downloaded successfully. The swap itself never leaves public/fonts missing even if it fails
+// partway: the old tree is moved aside to a backup (still inside public/, same filesystem, so
+// both moves below are plain renames) before the new one is moved in, and is only discarded once
+// the new tree is safely in place; a failed move-in restores it.
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 
@@ -37,7 +40,9 @@ async function download(url) {
   return Buffer.from(await res.arrayBuffer());
 }
 
-const scratch = `public/.fonts-download-${randomBytes(4).toString('hex')}`;
+const rand = randomBytes(4).toString('hex');
+const scratch = `.cache/vendor-fonts-download-${rand}`;
+const backup = `public/.fonts-backup-${rand}`;
 
 try {
   for (const pkg of [...new Set(FACES.map((f) => f.pkg))]) {
@@ -67,9 +72,21 @@ try {
   }
 
   // Everything downloaded: swap the scratch dir in for public/fonts and write fonts.css. Only
-  // this last stretch touches the committed tree, and it never partially applies a failure.
-  await rm('public/fonts', { recursive: true, force: true });
-  await rename(scratch, 'public/fonts');
+  // this last stretch touches the committed tree.
+  let hadOldTree = true;
+  try {
+    await rename('public/fonts', backup);
+  } catch (err) {
+    if (err.code === 'ENOENT') hadOldTree = false; // nothing committed yet - nothing to back up
+    else throw err;
+  }
+  try {
+    await rename(scratch, 'public/fonts');
+  } catch (err) {
+    if (hadOldTree) await rename(backup, 'public/fonts'); // restore: never leave public/fonts missing
+    throw err;
+  }
+  if (hadOldTree) await rm(backup, { recursive: true, force: true });
 
   await mkdir('src/styles', { recursive: true });
   await writeFile(
