@@ -1449,7 +1449,9 @@ Spec §3.4: "Fil d'Ariane (from sub-project 2): tap a verb, then its subject; ch
 
 **Files:**
 - Create: `web/src/lib/chains.ts`, `web/src/lib/chains.test.ts`, `web/src/lib/fil.ts`, `web/src/lib/fil.test.ts`
-- Modify: `web/src/lib/explain.ts` (+ `explain.test.ts`), `web/src/lib/grading/types.ts` (`SessionResult.tools?`), `web/src/lib/playState.ts` (`fil?`), `web/src/components/TokenText.svelte` (fil classes), `web/src/components/Proofreading.svelte` (Fil mode), `web/src/components/Results.svelte` (threads line), `web/src/screens/Play.svelte` (`tools` in the submitted result; pass `level` and `body` to explanations)
+- Modify: `web/src/lib/explain.ts` (+ `explain.test.ts`), `web/src/lib/grading/types.ts` (`SessionResult.tools?`), `web/src/lib/playState.ts` (`fil?`), `web/src/components/TokenText.svelte` (fil classes; also add `data-testid="tok-{piece.index}"` to the token `<button>` — Task 11/12's e2e specs locate tokens by `[data-testid^="tok-"]`, and the current SP1 draft only sets `aria-label`), `web/src/components/WordEditor.svelte` (add `data-testid="word-editor"` on the `<input>` — needed by Task 11's `grimoire.spec.ts`, not present in the current SP1 draft), `web/src/components/Proofreading.svelte` (Fil mode; also add `data-testid="btn-done-proofreading"` on the "J'ai terminé ma relecture" button), `web/src/components/Results.svelte` (threads line; also add `data-testid="results-catch-rate"` on the hero-line catch-rate paragraph and `data-testid="btn-back-library"` on "Retour aux Parchemins" — all consumed by Tasks 9/11/12 but absent from the current SP1 draft), `web/src/screens/Play.svelte` (`tools` in the submitted result; pass `level` and `body` to explanations)
+
+*Pre-flight note:* as of this plan's writing, SP1 Tasks 11–12 are still in progress in the tree (`Results.svelte`/`explain.ts` uncommitted) and do **not** yet carry the `tok-<i>`, `word-editor`, `btn-done-proofreading`, `btn-back-library` or `results-catch-rate` test ids that Tasks 7, 9, 11 and 12 assume. Since this task already touches every file involved, add them here rather than assuming they pre-exist; if SP1 lands them first, these additions are a no-op.
 
 **Interfaces:**
 - Consumes: `Annotation`, `Chain`, `AnnotToken`, `mapAnnotation`, `GradeResult.pairs` (Task 6 / SP1); `levelIndex` (`$lib/levels`); SP1 `explain(e, ctx)`, `PlayState`, `TokenText` props.
@@ -1533,7 +1535,7 @@ Run: `scripts/npm.sh run test -- chains fil` → green.
 
 - [ ] **Step 3: Explanations v2 — failing `explain.test.ts` additions, then `explain.ts`**
 
-Extend `ExplainContext` with `level?: string` and `body?: string`. New behaviour in `explain(e, ctx)` for `e.category === 'agreement'` with `e.refIndex !== null`, `annot = ctx.annots[e.refIndex]`, `chain = explainChain(ctx.annotation, annot.i)` (medium+), `E = e.expected`, `T = e.typed`, `ending` = part of `E` after the longest common prefix with `T` (fallback: last two letters), `NP = groupText(ctx.annotation, chain, ctx.body ?? ctx.refTokens.map(t => t.text).join(' '))`:
+Extend `ExplainContext` with `level?: string` and `body?: string`. `explain.ts` already declares its own module-local `numberWord(n: string | undefined)` / `genderWord(g: string | undefined)` (single morph-value signature, used by the SP1 fallback templates) — importing `chains.ts`'s same-named `numberWord(features)` / `genderWord(features)` would be a duplicate-identifier error, so import them aliased: `import { numberWord as chainNumberWord, genderWord as chainGenderWord, featureWords, explainChain, groupText } from './chains'`, and use `chainNumberWord`/`chainGenderWord`/`featureWords` only in the new chain-based branches below (the existing local `numberWord`/`genderWord` keep serving the SP1 `e.sub === 'verb'`/`number`/`gender` fallback paths unchanged). New behaviour in `explain(e, ctx)` for `e.category === 'agreement'` with `e.refIndex !== null`, `annot = ctx.annots[e.refIndex]`, `chain = explainChain(ctx.annotation, annot.i)` (medium+), `E = e.expected`, `T = e.typed`, `ending` = part of `E` after the longest common prefix with `T` (fallback: last two letters), `NP = groupText(ctx.annotation, chain, ctx.body ?? ctx.refTokens.map(t => t.text).join(' '))`:
 - `subject_verb`: `via === 'qui'` → `« E » s'accorde avec « qui », qui reprend « NP » → {pluriel|singulier} → terminaison « ending »`; `via === 'conj'` → `« E » a plusieurs sujets : « NP » → pluriel → terminaison « ending »`; else `« E » s'accorde avec son sujet « NP » → {pluriel|singulier} → terminaison « ending »`.
 - `attribute` → `« E » est attribut du sujet « NP » → {featureWords}`.
 - `participle_etre` → `Avec « être », le participe « E » s'accorde avec le sujet « NP » → {featureWords}`.
@@ -1680,6 +1682,9 @@ Spec §5 SP2: "proofreading-only mode on a correct text with errors planted by �
   export interface CorruptResult { text_id: number; corrupted: string; count: number; plants: Plant[] }
   api.texts.corrupt = (id: number, body: { profile_id: number; seed?: number }) => Promise<CorruptResult>
   PlayState gains mode: PlayMode (default 'dictation') and plants?: Plant[];  playKey(profileId, textId, mode = 'dictation') → `discorde.play.${profileId}.${textId}` for dictation, `discorde.play.${profileId}.${textId}.grimoire` for grimoire
+  // loadPlayState, savePlayState and clearPlayState each gain a `mode: PlayMode = 'dictation'` parameter and forward it to playKey
+  // (savePlayState/clearPlayState read it off `state.mode`/the passed argument rather than a new param where the state is already in hand);
+  // newPlayState(profileId, textId, pace, mode: PlayMode = 'dictation') sets `mode` on the returned state.
   SessionCreate (types.ts) gains mode: PlayMode
   export function erisLine(catchRate: number | null, draftErrors: number, introduced: number, mode: PlayMode = 'dictation'): string
   ```
