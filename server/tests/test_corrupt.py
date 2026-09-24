@@ -130,7 +130,7 @@ def test_no_gender_flip_on_an_epicene_noun(lexicon):
                           (".", "PUNCT", {}, 2, "punct")])
     cands = candidates(enfant, lexicon, h)
     assert _mutations(cands, "agreement:gender") == set()
-    assert _mutations(cands, "agreement:number") == {"des", "enfants"}   # number is still dictated
+    assert _mutations(cands, "agreement:number") == {"des"}   # number is still dictated (on the receiver, P1-5)
     # Control — Un chat dort . : « une chat » is a real error
     chat = _annotation([("Un", "DET", {"Gender": "Masc", "Number": "Sing"}, 1, "det", "un"),
                         ("chat", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 2, "nsubj"),
@@ -163,8 +163,47 @@ def test_no_number_flip_around_an_invariable_noun(lexicon):
     assert _mutations(leurs, "agreement:number", "homophone") == set()
     # Control — Il croise les doigts . / leurs doigts : « le doigts », « leur doigts » are real errors
     doigts = candidates(sentence("les", "doigts", "le"), lexicon, h)
-    assert _mutations(doigts, "agreement:number") == {"le", "doigt"}
+    assert _mutations(doigts, "agreement:number") == {"le"}
     assert "leur" in _mutations(candidates(sentence("leurs", "doigts", "leur"), lexicon, h), "homophone")
+
+
+# --- SP2 playability P1-4 / P1-5: a plant is an agreement slip, never a tense change or a new noun ---
+
+def _codes(lexicon, word: str) -> set[str]:
+    return {c for e in lexicon.lookup(word) if e.cgram.split(":")[0] in ("VER", "AUX")
+            for c in e.infover.split(";") if c and c != "inf" and not c.startswith("par:")}
+
+
+def test_verb_plants_keep_tense_mood_and_person(lexicon):
+    h = load_homophones(CONTENT)
+    # Sur la plage, la princesse et ses servantes étalaient le linge . — with spaCy's wrong Past tag
+    wrong_tense = {"VerbForm": "Fin", "Number": "Plur", "Person": "3", "Mood": "Ind", "Tense": "Past"}
+    ann = _annotation([("La", "DET", {"Gender": "Fem", "Number": "Sing"}, 1, "det", "le"),
+                       ("princesse", "NOUN", {"Gender": "Fem", "Number": "Sing"}, 5, "nsubj"),
+                       ("et", "CCONJ", {}, 4, "cc"),
+                       ("ses", "DET", {"Number": "Plur"}, 4, "det", "son"),
+                       ("servantes", "NOUN", {"Gender": "Fem", "Number": "Plur"}, 1, "conj", "servante"),
+                       ("étalaient", "VERB", wrong_tense, 5, "ROOT", "étaler"),
+                       ("le", "DET", {"Gender": "Masc", "Number": "Sing"}, 7, "det", "le"),
+                       ("linge", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 5, "obj"),
+                       (".", "PUNCT", {}, 5, "punct")])
+    cands = candidates(ann, lexicon, h)
+    verbs = {(c["original"], c["mutated"]) for c in cands["agreement:verb"]}
+    assert verbs == {("étalaient", "étalait")}
+    for original, mutated in verbs:
+        # the two forms share a Lexique code up to the number letter: same mood, tense and person
+        assert {c[:-1] for c in _codes(lexicon, original)} & {c[:-1] for c in _codes(lexicon, mutated)}
+
+
+def test_head_noun_of_a_nominal_chain_is_never_planted(nlp, lexicon):
+    h = load_homophones(CONTENT)
+    annotation = annotate("Sur la plage chauffée par le soleil, les jeunes filles riaient.", nlp, h, lexicon)
+    nouns = {t["text"] for t in annotation["tokens"] if t["pos"] == "NOUN"}
+    assert "soleil" in nouns
+    cands = candidates(annotation, lexicon, h)
+    planted_on = {c["original"] for c in cands["agreement:number"]}
+    assert not planted_on & nouns, planted_on
+    assert {"le", "les"} & {c["original"].lower() for c in cands["agreement:number"]}   # receivers still are
 
 
 # --- Never plant a spelling the grader accepts (final review I-2, I-3, I-4) ---
@@ -181,6 +220,10 @@ def test_reform_canon_mirrors_the_grader():
     assert is_reform_equivalent("révolver", "revolver", reform) and is_reform_equivalent("chariot", "charriot", reform)
     assert not is_reform_equivalent("fût", "fut", reform) and not is_reform_equivalent("lis", "lys", reform)
     assert not is_reform_equivalent("clé", "clef", None)
+    # SP2 playability P1-1: an elided token is canonicalised behind its elision, like the grader does
+    assert reform_canon("l'évènement", reform) == "l'événement" and reform_canon("d'ognons", reform) == "d'oignons"
+    assert is_reform_equivalent("L'évènement", "l'événement", reform) and is_reform_equivalent("qu'il", "qu'il", reform)
+    assert not is_reform_equivalent("l'eût", "l'eut", reform)
 
 
 def test_accepted_spellings_are_never_planted(nlp, lexicon):

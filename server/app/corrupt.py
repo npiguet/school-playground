@@ -152,9 +152,17 @@ def load_reform(content_dir: Path) -> dict | None:
     }
 
 
+# Mirrors reform.ts ELISION_RE (SP2 playability P1-1): an elided token is canonicalised on the
+# part after the apostrophe, the elision itself is kept.
+_ELISION_RE = re.compile(r"^(l|d|qu|j|n|m|t|s|c|jusqu|lorsqu|puisqu|quoiqu)'(.+)$")
+
+
 def reform_canon(word: str, reform: dict) -> str:
     """Server-side mirror of reform.ts `reformCanon`: the spelling a word is graded under."""
     w = _lower(word)
+    elided = _ELISION_RE.match(w)
+    if elided:
+        return f"{elided.group(1)}'{reform_canon(elided.group(2), reform)}"
     explicit = reform["to_traditional"].get(w)
     if explicit is not None:
         return explicit
@@ -241,11 +249,14 @@ def candidates(annotation: dict, lexicon, homophones, trap_words: set[str] = fro
                     add("agreement:verb", t, lexicon.flip_number(t["text"], t["lemma"], t.get("morph", {})))
 
         # An invariable head noun (bras, souris, prix…) makes « le bras » / « les bras » both correct:
-        # no number flip anywhere in its group.
+        # no number flip anywhere in its group. The head noun itself is never planted either:
+        # « par le soleils » changes what the noun says, not an agreement — only the receivers
+        # (determiner, adjectives) are planted, so the explanation can name the noun they follow
+        # (SP2 playability P1-5).
         if c["kind"] == "nominal" and _flips_number(ctrl, lexicon):
-            for ti in [c["controller"], *c["targets"]]:
+            for ti in c["targets"]:
                 t = by_i[ti]
-                if _eligible(t) and t["pos"] in {"DET", "NOUN", "ADJ"}:
+                if _eligible(t) and t["pos"] in {"DET", "ADJ"}:
                     add("agreement:number", t, lexicon.flip_number(t["text"], t["lemma"], t.get("morph", {})))
 
         if c["kind"] in {"nominal", "attribute", "participle_etre"} and gender is not None:

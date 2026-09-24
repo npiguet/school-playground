@@ -244,6 +244,43 @@ class Lexicon:
         ordered = sorted(best.items(), key=lambda kv: -kv[1])
         return [ortho for ortho, _ in ordered[:limit]]
 
+    def _flip_verb_number(self, word: str, lemma: str, morph: dict) -> str | None:
+        """The same finite form in the other number, keeping mood, tense and person.
+
+        The codes to flip are the word's OWN Lexique codes, never one built from spaCy's morph
+        alone: the small model mis-tags tenses (« coupaient » as Pres, « étalaient » as Past), and
+        a code taken from morph then picked « coupe » / « étala » — a tense change planted as an
+        "agreement" error (SP2 playability P1-4). spaCy's morph only helps choose among the word's
+        own codes (an ambiguous « mange » is 1s/3s/imperative 2s). None when the lexicon does not
+        know the word as a finite verb or has no form differing only in number."""
+        lemmas = self._candidate_lemmas(word, lemma)
+        own_codes = sorted({c for e in self.lookup(word)
+                            if e.lemme in lemmas and e.cgram.split(":")[0] in ("VER", "AUX")
+                            for c in e.infover.split(";")
+                            if c and c != "inf" and not c.startswith("par:") and c[-1] in "sp"})
+        if not own_codes:
+            return None
+        number = {"Sing": "s", "Plur": "p"}.get(morph.get("Number"))
+        person = morph.get("Person")
+        spacy_code = verb_code(morph)
+        if spacy_code in own_codes:
+            codes = [spacy_code]
+        else:
+            codes = [c for c in own_codes if (number is None or c[-1] == number) and (person is None or c[-2] == person)]
+            if not codes:
+                codes = [c for c in own_codes if number is None or c[-1] == number]
+            if not codes:
+                codes = own_codes
+        targets = {c[:-1] + ("s" if c.endswith("p") else "p") for c in codes}
+        best: Entry | None = None
+        for l in lemmas:
+            for e in self.by_lemme.get(l, []):
+                if e.cgram.split(":")[0] not in ("VER", "AUX"):
+                    continue
+                if targets & set(e.infover.split(";")) and (best is None or e.freq > best.freq):
+                    best = e
+        return best.ortho if best is not None else None
+
     def flip_number(self, word: str, lemma: str, morph: dict) -> str | None:
         w = word.lower().replace("’", "'")
         result: str | None = None
@@ -255,20 +292,7 @@ class Lexicon:
             result = fem if morph.get("Gender") == "Fem" else masc
 
         if result is None:
-            code = verb_code(morph)
-            if code is not None:
-                target = code[:-1] + ("s" if code.endswith("p") else "p")
-                lemmas = self._candidate_lemmas(word, lemma)
-                best: Entry | None = None
-                for l in lemmas:
-                    for e in self.by_lemme.get(l, []):
-                        if e.cgram.split(":")[0] not in ("VER", "AUX"):
-                            continue
-                        if target in e.infover.split(";"):
-                            if best is None or e.freq > best.freq:
-                                best = e
-                if best is not None:
-                    result = best.ortho
+            result = self._flip_verb_number(word, lemma, morph)
 
         if result is None:
             genre, own_nombre = self._own_features(word, ("NOM", "ADJ"), morph)

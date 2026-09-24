@@ -37,6 +37,22 @@ def test_flip_number(lexicon):
     assert lexicon.flip_number("et", "et", {}) is None
 
 
+# SP2 playability P1-4: the Grimoire planted « étalaient → étala » (imparfait → passé simple) and
+# « coupaient → coupe » because spaCy's tense tag was wrong; the flipped form must keep the word's
+# own mood/tense/person and differ in number only.
+def test_flip_number_keeps_tense_mood_and_person(lexicon):
+    imp3p = {"Mood": "Ind", "Tense": "Imp", "Person": "3", "Number": "Plur", "VerbForm": "Fin"}
+    assert lexicon.flip_number("étalaient", "étaler", imp3p) == "étalait"
+    assert lexicon.flip_number("coupaient", "couper", {**imp3p, "Tense": "Pres"}) == "coupait"   # spaCy says Pres: wrong
+    assert lexicon.flip_number("étalaient", "étaler", {**imp3p, "Tense": "Past"}) == "étalait"   # spaCy says Past: wrong
+    assert lexicon.flip_number("roula", "rouler", {"Mood": "Ind", "Tense": "Pres", "Person": "3", "Number": "Sing"}) == "roulèrent"
+    assert lexicon.flip_number("chantaient", "chanter", {"Number": "Plur"}) == "chantait"          # no tense at all
+    assert lexicon.flip_number("mangez", "manger", {"Mood": "Imp", "Tense": "Pres", "Person": "2", "Number": "Plur"}) == "mange"
+    assert lexicon.flip_number("fussent", "être", {"Mood": "Sub", "Tense": "Imp", "Person": "3", "Number": "Plur"}) == "fût"
+    # a spelling the lexicon does not know as a verb is skipped, never guessed
+    assert lexicon.flip_number("xylotaient", "xyloter", imp3p) is None
+
+
 def test_flip_gender(lexicon):
     assert lexicon.flip_gender("belle", "beau", {"Gender": "Fem", "Number": "Sing"}) == "beau"
     assert lexicon.flip_gender("mangée", "manger", {"Gender": "Fem", "Number": "Sing"}) == "mangé"
