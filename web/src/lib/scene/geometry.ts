@@ -56,10 +56,14 @@ export function boxesOverlap(a: Box, b: Box): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 
-/** CSS clip-path for an element that covers exactly `shapeBox(s)`. */
+/** CSS clip-path for an element that covers exactly `shapeBox(s)`. A zero-width or zero-height
+ *  box (collinear points, e.g. mid-drag in the `?edit` editor) would divide by zero below; instead
+ *  of ever emitting `NaN%`, collapse to a single point so the clip is merely invisible. Scene data
+ *  itself is still rejected by `validateShapes`; this is the unconditional runtime backstop. */
 export function clipPath(s: HotspotShape): string {
   if (s.kind === 'ellipse') return 'ellipse(50% 50% at 50% 50%)';
   const b = shapeBox(s);
+  if (b.w <= 0 || b.h <= 0) return 'polygon(0% 0%, 0% 0%, 0% 0%)';
   const pts = s.points.map(([x, y]) => `${round2(((x - b.x) / b.w) * 100)}% ${round2(((y - b.y) / b.h) * 100)}%`);
   return `polygon(${pts.join(', ')})`;
 }

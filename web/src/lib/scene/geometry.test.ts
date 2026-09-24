@@ -60,6 +60,12 @@ describe('shapes', () => {
     expect(clipPath({ kind: 'ellipse', cx: 50, cy: 50, rx: 5, ry: 5 })).toBe('ellipse(50% 50% at 50% 50%)');
     expect(clipPath({ kind: 'polygon', points: [[10, 20], [30, 20], [20, 40]] })).toBe('polygon(0% 0%, 100% 0%, 50% 100%)');
   });
+  it('never emits NaN for a collinear polygon (zero-width or zero-height box)', () => {
+    const flat = clipPath({ kind: 'polygon', points: [[10, 20], [30, 20], [20, 20]] });
+    expect(flat).not.toContain('NaN');
+    const thin = clipPath({ kind: 'polygon', points: [[10, 20], [10, 40], [10, 30]] });
+    expect(thin).not.toContain('NaN');
+  });
   it('treats touching boxes as not overlapping', () => {
     expect(boxesOverlap({ x: 0, y: 0, w: 10, h: 10 }, { x: 10, y: 0, w: 10, h: 10 })).toBe(false);
     expect(boxesOverlap({ x: 0, y: 0, w: 10, h: 10 }, { x: 9, y: 9, w: 10, h: 10 })).toBe(true);
