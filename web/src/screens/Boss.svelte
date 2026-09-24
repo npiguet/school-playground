@@ -113,7 +113,7 @@
     max-height: 40vh;
   }
   .combatant.eris {
-    max-height: 60vh;
+    max-height: 100%;
   }
   .challenge {
     padding: 18px 20px;

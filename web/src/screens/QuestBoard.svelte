@@ -7,6 +7,7 @@
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../lib/world/types';
+  import { agree } from '../lib/world/eris';
   import { romanTier } from '../lib/world/quests';
   import { ApiError } from '../lib/api';
   import { href } from '../lib/routes';
@@ -140,7 +141,7 @@
           {#if !l || !l.available}
             <p class="muted">Dort encore à ce niveau.</p>
           {:else}
-            {#if l.neutralised}<span class="chip chip-gold">Neutralisé</span>{/if}
+            {#if l.neutralised}<span class="chip chip-gold">{agree('Neutralisé', key)}</span>{/if}
             {#if l.active_quest_id}<span class="chip chip-aegean">Quête en cours</span>{/if}
             <p class="reward-line">Récompense : {boardXp} XP · page du bestiaire</p>
             {#if decor}<p class="muted decor-line">Prochain trésor de cabane dans {decor.n} quête(s) : {decor.name}</p>{/if}
@@ -175,6 +176,8 @@
           >
             Se rendre au bord du camp
           </button>
+        {:else if campStore.data.boss.tiers_won.length >= 3}
+          <p>Éris est vaincue trois fois. Elle boude.</p>
         {:else}
           {@const available = campStore.data.dragon.available}
           {@const neutralised = campStore.data.dragon.neutralised}

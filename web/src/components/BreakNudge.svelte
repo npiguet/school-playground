@@ -9,11 +9,18 @@
     $props();
 
   const stage = $derived(campStore.data?.dragon.stage ?? 'egg');
+
+  // M6: the dragon can't yawn before it has hatched - the egg stirs instead (spec §3.6).
+  const message = $derived(
+    stage === 'egg'
+      ? "L'œuf frémit : ça fait vingt-cinq minutes qu'on chasse les pièges. On souffle un peu ?"
+      : `${dragonName} bâille : ça fait vingt-cinq minutes qu'on chasse les pièges. On souffle un peu ?`,
+  );
 </script>
 
 <div class="parchment break-nudge" data-testid="break-nudge">
   <img src={ART.dragon[stage]} alt="" class="break-dragon" loading="lazy" decoding="async" />
-  <p>{dragonName} bâille : ça fait vingt-cinq minutes qu'on chasse les pièges. On souffle un peu ?</p>
+  <p>{message}</p>
   <div class="break-actions">
     <button type="button" class="btn btn-primary" data-testid="break-pause" onclick={onPause}>Pause</button>
     <button type="button" class="btn" data-testid="break-continue" onclick={onContinue}>Encore un texte</button>

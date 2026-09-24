@@ -42,7 +42,7 @@ export const BESTIARY: BestiaryEntry[] = [
       "Écho était une nymphe des montagnes (une oréade). Héra la punit parce qu'elle la retenait par ses bavardages pendant que Zeus s'échappait : elle ne pourrait plus que répéter les derniers mots entendus.",
       'Elle tomba amoureuse de Narcisse, qui la repoussa. De chagrin, elle se cacha dans les grottes et se consuma jusqu\'à n\'être plus qu\'une voix.',
       "C'est d'elle que vient le mot « écho » : un son qui revient, répété par les rochers.",
-      "Ovide raconte son histoire dans les Métamorphoses, juste avant celle de Narcisse qui tombe amoureux de son reflet.",
+      "Ovide raconte son histoire dans les Métamorphoses, entremêlée à celle de Narcisse, qui tombe amoureux de son reflet.",
     ],
     sources: 'Ovide, Métamorphoses, livre III.',
     inGame: "Au camp, Écho répète un mot qui sonne juste mais s'écrit faux : a pour à, et pour est.",
@@ -89,7 +89,7 @@ export const BESTIARY: BestiaryEntry[] = [
       'Le musicien Orphée, à bord du navire Argo, couvrit leur chant avec sa lyre pour sauver les Argonautes.',
       'Les Sirènes sont associées aux Muses : dans certaines légendes, elles ont perdu un concours de chant contre elles.',
     ],
-    sources: 'Homère, Odyssée, chant XII ; Apollonios de Rhodes, Argonautiques, IV.',
+    sources: 'Homère, Odyssée, chant XII ; Apollonios de Rhodes, Argonautiques, IV ; Pausanias, Description de la Grèce, IX, 34.',
     inGame: 'Au camp, leur chant éloigne le sujet de son verbe, le cache derrière un pronom ou le met après.',
   },
   {
@@ -101,7 +101,7 @@ export const BESTIARY: BestiaryEntry[] = [
     facts: [
       'Léthé est un fleuve des Enfers : les âmes y boivent pour oublier leur vie passée avant de renaître.',
       'Chez Hésiode, Léthé (l\'Oubli) est une fille d\'Éris, la Discorde, avec la Peine, la Faim et les Querelles.',
-      'Platon raconte dans la République qu\'après avoir bu au fleuve, les âmes oublient tout ; Virgile place la scène dans l\'Énéide.',
+      'Platon raconte dans la République qu\'après avoir bu au fleuve Amélès, dans la plaine du Léthé, les âmes oublient tout ; Virgile place la scène dans l\'Énéide.',
       'Son contraire est Mnémosyne, la Mémoire, mère des Muses. À l\'oracle de Trophonios, on buvait aux deux sources : Léthé pour oublier, Mnémosyne pour se souvenir.',
     ],
     sources: 'Hésiode, Théogonie ; Platon, République, X ; Virgile, Énéide, VI ; Pausanias, IX, 39.',
@@ -130,7 +130,7 @@ export const BESTIARY: BestiaryEntry[] = [
     teaser: 'Le gardien qui ne dormait jamais tout entier.',
     facts: [
       'Argus Panoptès (« qui voit tout ») avait cent yeux ; quand certains dormaient, les autres veillaient.',
-      'Héra le chargea de garder Io, changée en génisse. Hermès l\'endormit en jouant de la flûte et lui coupa la tête.',
+      'Héra le chargea de garder Io, changée en génisse. Hermès l\'endormit en jouant de la syrinx (la flûte de Pan) et lui coupa la tête.',
       'Héra plaça ses yeux sur la queue du paon, son oiseau : c\'est pour cela que les plumes du paon ont des « yeux ».',
     ],
     sources: 'Ovide, Métamorphoses, I ; Apollodore, Bibliothèque, II, 1.',
