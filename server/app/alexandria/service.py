@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import time
 from collections import Counter
 from datetime import datetime, timezone
+from typing import Callable
 
 from app.alexandria.allowlist import Work, credits_of
 from app.alexandria.chunk import make_chunks
@@ -41,16 +43,31 @@ def _begin_write(conn: sqlite3.Connection) -> None:
 # spaCy work and the cache size whatever the length of the work (a Gutenberg novel is ~1,500 chunks).
 MAX_CHUNKS = 40
 
+# Total wall-clock budget for a work's page fetches (fix round 6). `HttpFetcher` already bounds a
+# single page to 20 s, but the Wikisource loop below can run 40+ pages: with no total deadline, a
+# source that answers slowly (never erroring, just slow) could hold a refresh up to ~800 s - well
+# past the client's 120 s REFRESH_TIMEOUT_MS. Ending noticeably below that leaves room for spaCy and
+# the response itself.
+FETCH_BUDGET_S = 90.0
+
 
 def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lexicon, max_pages: int = 40,
-                 max_chunks: int = MAX_CHUNKS) -> dict:
+                 max_chunks: int = MAX_CHUNKS, fetch_budget_s: float = FETCH_BUDGET_S,
+                 clock: Callable[[], float] = time.monotonic) -> dict:
     pages_ok = 0
     failed = 0
     last_error: str | None = None
+    stopped_early = False
     paragraphs = []
 
     if work.source == "wikisource":
+        deadline = clock() + fetch_budget_s
         for title in work.pages[:max_pages]:
+            if clock() >= deadline:
+                # The pages already read are kept; the rest are simply never attempted (not an
+                # error to report per page - one note for the whole refresh, below).
+                stopped_early = True
+                break
             try:
                 html = fetcher.wikisource_page(title)
                 paragraphs.extend(wikisource_html_to_paragraphs(html))
@@ -58,7 +75,7 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
             except FetchError as e:
                 failed += 1
                 last_error = str(e)
-    else:  # gutenberg
+    else:  # gutenberg: a single fetch, already bounded by the fetcher's own per-request timeout
         try:
             txt = fetcher.gutenberg_text(work.ebook_id)
             paragraphs.extend(gutenberg_text_to_paragraphs(txt))
@@ -68,7 +85,10 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
             last_error = str(e)
 
     if pages_ok == 0:
-        error = f"La Bibliothèque d'Alexandrie est inaccessible pour le moment ({last_error})"
+        if stopped_early:
+            error = "La Bibliothèque d'Alexandrie est inaccessible pour le moment (délai dépassé)"
+        else:
+            error = f"La Bibliothèque d'Alexandrie est inaccessible pour le moment ({last_error})"
         _upsert_online_work(conn, work.id, "error", error, {"pages_ok": 0, "failed": failed})
         conn.commit()
         return {"status": "error", "error": error, "chunk_count": 0, "rejected": {}}
@@ -94,10 +114,13 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
     notes = []
     if failed:
         notes.append(f"{failed} page(s) n'ont pas pu être lues.")
+    if stopped_early:
+        notes.append("Les scribes ont manqué de temps et se sont arrêtés en chemin : la suite de l'œuvre n'a pas été recopiée.")
     if truncated:
         notes.append(f"Les scribes se sont arrêtés après {max_chunks} rouleaux : la suite de l'œuvre n'a pas été recopiée.")
     note = " ".join(notes) or None
-    stats = {"pages_ok": pages_ok, "failed": failed, "rejected": dict(rejected), "truncated": truncated}
+    stats = {"pages_ok": pages_ok, "failed": failed, "rejected": dict(rejected), "truncated": truncated,
+             "stopped_early": stopped_early}
     # A scroll adopted into the library keeps its link across a refresh (matched by body), so
     # « Recopier à nouveau » never offers the same passage a second time. The links are read under
     # the write lock (fix round 4): read outside it, an adopt (or a text deletion) committed by

@@ -4,7 +4,7 @@ import mimetypes
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
-from app.alexandria.flights import RefreshFlights
+from app.alexandria.flights import AnnotationLimiter, RefreshFlights
 from app.config import Settings
 from app.db import connect, migrate, DB_FILENAME
 from app.routers import profiles, texts, sessions, stats, scan, alexandria, world
@@ -27,8 +27,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         settings.data_dir.mkdir(parents=True, exist_ok=True)
         app.state.settings = settings
-        # One in-flight refresh per Alexandria work, one refresh running at a time (flights.py).
-        app.state.alexandria_refreshes = RefreshFlights(max_concurrent=1)
+        # One in-flight refresh per Alexandria work (flights.py). The fetch/orchestration limiter is
+        # sized well past the fixed allowlist's work count (fix round 6) so different works' fetches
+        # never queue behind each other; only the CPU-bound spaCy step is tightly bounded, via its
+        # own small limiter, shared across every concurrently-fetching refresh.
+        app.state.alexandria_refreshes = RefreshFlights(max_concurrent=32)
+        app.state.alexandria_annotation_limiter = AnnotationLimiter(max_concurrent=2)
         conn = connect(settings.data_dir / DB_FILENAME)
         migrate(conn)
         from app.routers.scan import sweep_orphan_scans

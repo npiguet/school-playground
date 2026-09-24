@@ -1,5 +1,8 @@
 """Fix round 5: Alexandria refreshes are single-flight per work and bounded, so presses of
-« Recopier à nouveau » can neither redo the same work in parallel nor starve the rest of the API."""
+« Recopier à nouveau » can neither redo the same work in parallel nor starve the rest of the API.
+Fix round 6: the fetch/orchestration limiter is loosened (different works' fetches must not queue
+behind each other) and only the CPU-bound annotation step stays tightly bounded, via
+`AnnotationLimiter`."""
 import asyncio
 import threading
 import time
@@ -8,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from fastapi.testclient import TestClient
 
 from app.alexandria.allowlist import load_allowlist
-from app.alexandria.flights import RefreshFlights
+from app.alexandria.flights import AnnotationLimiter, RefreshFlights
 from app.main import create_app
 
 
@@ -98,6 +101,51 @@ def test_a_cancelled_waiter_does_not_cancel_the_shared_run():
         return await stayer
 
     assert asyncio.run(main()) == "done"
+
+
+def test_two_different_works_fetches_overlap_while_annotation_stays_bounded():
+    # Round 6: round 5's max_concurrent=1 queued every work's fetch behind any other work's, which
+    # could exceed the client's 120 s timeout just by waiting. Fetching now runs on a generous
+    # limiter (sized well past the fixed allowlist here, via max_concurrent=8) while only the
+    # actually CPU-bound annotation step is tightly bounded, shared across every concurrent fetch.
+    fetch_state = {"now": 0, "max": 0}
+    fetch_lock = threading.Lock()
+    annotate_state = {"now": 0, "max": 0}
+    annotate_lock = threading.Lock()
+
+    annotation_limiter = AnnotationLimiter(max_concurrent=2)
+
+    def annotate(_body):
+        with annotate_lock:
+            annotate_state["now"] += 1
+            annotate_state["max"] = max(annotate_state["max"], annotate_state["now"])
+        time.sleep(0.05)
+        with annotate_lock:
+            annotate_state["now"] -= 1
+        return "ok"
+
+    bounded_annotate = annotation_limiter.wrap(annotate)
+
+    def fetch_then_annotate():
+        with fetch_lock:
+            fetch_state["now"] += 1
+            fetch_state["max"] = max(fetch_state["max"], fetch_state["now"])
+        time.sleep(0.1)  # simulate a network fetch, long enough for the other works to overlap it
+        with fetch_lock:
+            fetch_state["now"] -= 1
+        for _ in range(3):
+            bounded_annotate("chunk")
+        return "done"
+
+    async def main():
+        flights = RefreshFlights(max_concurrent=8)
+        await asyncio.gather(*(
+            flights.run(f"work-{i}", fetch_then_annotate) for i in range(4)
+        ))
+
+    asyncio.run(main())
+    assert fetch_state["max"] >= 2   # different works' fetches ran at once, not queued
+    assert annotate_state["max"] == 2  # annotation itself stayed bounded to the small limiter
 
 
 class _GatedFetcher:

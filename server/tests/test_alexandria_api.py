@@ -114,6 +114,68 @@ def test_refresh_annotates_at_most_max_chunks(tmp_path, settings):
     assert json.loads(conn.execute("SELECT stats_json FROM online_work WHERE id = 'w'").fetchone()[0])["truncated"] >= 20
 
 
+# --- Fix round 6: a total fetch budget, so a slow (never erroring) source can't hold a refresh for
+# as long as it likes. A fake clock: no real sleeping, and deterministic regardless of host speed.
+
+class _FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+    def advance(self, seconds):
+        self.now += seconds
+
+
+class _SlowPages:
+    """Each fetch "takes" `seconds_per_page` (advances the fake clock) before returning a fixture."""
+
+    def __init__(self, clock, seconds_per_page):
+        self.clock = clock
+        self.seconds_per_page = seconds_per_page
+        self.calls = 0
+
+    def wikisource_page(self, title):
+        self.calls += 1
+        self.clock.advance(self.seconds_per_page)
+        return '<div class="mw-parser-output">' + f"<p>{PROSE}</p>" * 3 + "</div>"
+
+
+def test_refresh_stops_fetching_once_the_total_budget_is_spent(settings):
+    # 5 pages at 35 s each: after 3 (105 s elapsed), the budget (90 s) is spent before a 4th fetch is
+    # even attempted - the pages already read are kept, the rest simply never fetched.
+    clock = _FakeClock()
+    fetcher = _SlowPages(clock, seconds_per_page=35.0)
+    work = Work(id="w", title="T", author="A", author_death=1900, translator=None, translator_death=None,
+                source="wikisource", pages=("P1", "P2", "P3", "P4", "P5"), ebook_id=None, level_hint="8H", note="")
+    conn = connect(settings.data_dir / "budget.sqlite3")
+    migrate(conn)
+    result = refresh_work(conn, work, fetcher, _fake_annotate, load_lexicon(settings.content_dir),
+                           fetch_budget_s=90.0, clock=clock)
+    assert fetcher.calls == 3
+    assert result["status"] == "ok"
+    assert "manqué de temps" in result["error"]
+    stats = json.loads(conn.execute("SELECT stats_json FROM online_work WHERE id = 'w'").fetchone()[0])
+    assert stats["pages_ok"] == 3 and stats["stopped_early"] is True
+
+
+def test_refresh_reports_a_timeout_when_the_budget_is_spent_before_any_page(settings):
+    # The budget is exhausted before even the first page is attempted: no chunks, a clear (not
+    # "(None)") error, and the fetcher is never called.
+    clock = _FakeClock()
+    fetcher = _SlowPages(clock, seconds_per_page=1.0)
+    work = Work(id="w", title="T", author="A", author_death=1900, translator=None, translator_death=None,
+                source="wikisource", pages=("P1",), ebook_id=None, level_hint="8H", note="")
+    conn = connect(settings.data_dir / "budget2.sqlite3")
+    migrate(conn)
+    result = refresh_work(conn, work, fetcher, _fake_annotate, load_lexicon(settings.content_dir),
+                           fetch_budget_s=0.0, clock=clock)
+    assert fetcher.calls == 0
+    assert result["status"] == "error" and result["chunk_count"] == 0
+    assert "délai dépassé" in result["error"]
+
+
 # --- Fix round 4: adopt/refresh are atomic against each other (two players, or two e2e workers) ---
 
 class _ThreeChunks:

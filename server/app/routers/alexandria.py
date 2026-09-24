@@ -49,16 +49,18 @@ def get_works(request: Request, db: sqlite3.Connection = Depends(get_db)):
 
 @router.post("/works/{work_id}/refresh")
 async def refresh(work_id: str, request: Request):
-    # async + RefreshFlights (fix round 5): the refresh's seconds of fetching and spaCy run on a
-    # bounded limiter of their own, once per work however many presses arrive meanwhile (the others
-    # wait on the event loop for that same result), never in the shared request threadpool.
+    # async + RefreshFlights (fix round 5): the refresh's fetching and spaCy run off the request
+    # threadpool, once per work however many presses arrive meanwhile (the others wait on the event
+    # loop for that same result). Fetching runs on RefreshFlights' own generous limiter (fix round 6:
+    # different works' fetches no longer queue behind each other); only the spaCy annotation step is
+    # tightly bounded, via the shared AnnotationLimiter, since that's the actually CPU-bound part.
     work = _work_or_404(_works(request), work_id)
     settings = request.app.state.settings
 
     def run() -> dict:
         # Resolved inside the flight, so only the one refresh actually running loads them.
         fetcher = get_fetcher(request)
-        annotate_fn = get_annotator(request)
+        annotate_fn = request.app.state.alexandria_annotation_limiter.wrap(get_annotator(request))
         lexicon = load_lexicon(settings.content_dir)
         conn = connect(db_path(request))
         try:

@@ -23,9 +23,10 @@ import { createProfile, uniqueName } from './helpers';
 // Time budget (fix round 5): the waits below used to claim up to 120 s under a 60 s test timeout,
 // so they could never apply. Sized to the worst case instead, each inner wait under this total:
 // profile + navigation (~15 s under load) + the failing Daudet refresh (30 s) + the Verne refresh
-// and its list reload (45 s) + the claim loop (45 s) + adopt/play (~15 s) = 150 s. Refreshes run
-// one at a time server-side and merge per work (app/alexandria/flights.py), so a refresh waits at
-// most for the one already in flight.
+// and its list reload (45 s) + the claim loop (45 s) + adopt/play (~15 s) = 150 s. Refreshes merge
+// per work and fetch independently of other works (app/alexandria/flights.py, fix round 6): a
+// refresh of a given work waits at most for another refresh of that *same* work already in flight
+// - a different work's refresh runs concurrently instead of queueing behind it.
 const DAUDET_REFRESH_MS = 30_000;
 const VERNE_REFRESH_MS = 45_000;
 const CLAIM_MS = 45_000;
