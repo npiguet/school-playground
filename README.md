@@ -194,3 +194,29 @@ extra `npx playwright test` arguments through, e.g. `scripts/playwright.sh e2e/s
 - Text-to-speech voice quality depends entirely on the device/browser's installed voices —
   pick an "Enhanced"/"Natural" French voice where available (§3).
 - OCR (Tesseract, French) is for **printed** handouts only; it does not read handwriting.
+
+## 9. World and progression
+
+- **The camp is the home screen** once a profile is picked: XP/rank, the weekly goal, the
+  companion dragon, and links out to Delphes' Oracle, the quest board, the bestiary, Éris's
+  dossier and the cabin.
+- **Oracle week** — Delphes' three scrolls reset every ISO week (Monday–Sunday, local time in
+  `Europe/Zurich`, configurable via `DISCORDE_TZ`). The week's reward is shown before any
+  scroll is opened (no gamble), and a chosen quest stays open until the *next* consultation
+  actually replaces it, not merely when a new week begins.
+- **Mastery rule** — an error family ("lieutenant") is neutralised once the player's most
+  recent qualifying days reach at least 3 distinct days and 10 draft errors, with a catch rate
+  of at least 80% over that window. Neutralisation is permanent: nothing is ever taken away,
+  a later dip only surfaces as a suggested quest.
+- **Rewards are announced in advance** — every relic, dragon tint, divine gear and cabin decor
+  piece is listed in the cabin (`#/p/:id/cabane`), including how to unlock it, before it can be
+  earned; nothing is a gamble.
+- **`DISCORDE_TEST_HOOKS=1`** enables an `X-Discorde-Day` request header on `POST
+  /api/sessions`, letting the e2e suite fast-forward the multi-day mastery and weekly-goal
+  logic. It's set only in `compose.e2e.yaml` (and under pytest) — **never** set it in
+  production; without it the header is ignored.
+- **Art** for the camp/world screens is served from `web/public/art` (same origin, ≈1.9 MB
+  total). Dragon tints are a CSS `hue-rotate` filter on one cut-out, and relics/gear/decor are
+  CSS medallions — no extra art is generated for them.
+- **Sound** is synthesised locally with WebAudio, no audio files shipped; mute it from
+  **Réglages** or the speaker icon in the TopBar.

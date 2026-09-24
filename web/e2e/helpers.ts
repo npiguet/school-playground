@@ -114,3 +114,58 @@ export async function createText(request: APIRequestContext, body: TextCreateInp
   expect(res.ok()).toBeTruthy();
   return res.json();
 }
+
+// Builds a minimal, valid SessionResult (mirrors web/src/lib/grading/types.ts) with every draft
+// error attributed to a single category, so SP3 world.spec.ts can drive quest/mastery progression
+// from the API without replaying a full dictation. `category` is a StatKey (e.g. 'agreement:verb',
+// 'homophone') - the one lieutenant category the caller wants to move.
+export function makeResult(o: { words?: number; draft?: number; caught?: number; category?: string }): object {
+  const words = o.words ?? 120;
+  const draft = o.draft ?? 0;
+  const caught = o.caught ?? 0;
+  const category = o.category ?? 'agreement:verb';
+  const draftError = { refIndex: 0, typedIndex: 0, expected: 'x', typed: 'y', category: 'agreement', sub: 'verb', anchor: -1 };
+  return {
+    version: 1,
+    byCategory: { [category]: { opportunities: 10, draft, caught, missed: draft - caught, introduced: 0 } },
+    draftErrors: Array(draft).fill(draftError),
+    finalErrors: [],
+    caught: Array(caught).fill(draftError),
+    missed: [],
+    introduced: [],
+    correctWords: words - draft,
+    totalWords: words,
+    catchRate: draft ? caught / draft : null,
+    score: 10,
+  };
+}
+
+// Posts a session straight to the API (bypassing dictation/proofreading), for specs that need to
+// drive quest/mastery/boss progression across many sessions or specific days (SP3 Decision 5's
+// `X-Discorde-Day` test-clock header, enabled only via `DISCORDE_TEST_HOOKS=1` in
+// compose.e2e.yaml). Returns the parsed JSON response (with its `progression` block).
+export async function postSession(
+  request: APIRequestContext,
+  o: { profileId: number; textId: number; day: string; result: object; questId?: number; encounter?: string; helpStage?: number },
+): Promise<any> {
+  const result = o.result as { catchRate: number | null };
+  const res = await request.post('/api/sessions', {
+    headers: { 'X-Discorde-Day': o.day },
+    data: {
+      profile_id: o.profileId,
+      text_id: o.textId,
+      pace_level: 1,
+      help_stage: o.helpStage ?? 1,
+      started_at: o.day + 'T10:00:00+00:00',
+      draft: 'x',
+      final: 'x',
+      result: o.result,
+      score: 10,
+      catch_rate: result.catchRate,
+      quest_id: o.questId,
+      encounter: o.encounter,
+    },
+  });
+  expect(res.ok()).toBeTruthy();
+  return res.json();
+}

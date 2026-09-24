@@ -1,0 +1,346 @@
+import { test, expect, type Page } from '@playwright/test';
+import { stubSpeech, createText, makeResult, postSession } from './helpers';
+
+// SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
+// mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
+// via `DISCORDE_TEST_HOOKS=1` in compose.e2e.yaml), a lost then won boss fight, the weekly goal
+// and the break nudge, and a no-red/no-guilt scan. One profile, one describe.serial: each step
+// depends on state the previous one left on the server (quests, mastery, rewards, dragon stage).
+
+test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
+  let profileId: string;
+  let textId: number;
+  let oracleQuestId: number;
+
+  test('1. camp is home', async ({ page }) => {
+    await stubSpeech(page);
+    const name = `Ariane-${Date.now() % 1e6}`;
+
+    await page.goto('/');
+    await page.getByRole('button', { name: /Nouveau héros/ }).click();
+    await page.getByLabel('Ton prénom').fill(name);
+    await page.getByLabel('Ton niveau').selectOption('10H');
+    await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+    await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+
+    // First visit: walk the onboarding (spec decision 22) instead of skipping it, so this spec
+    // also exercises the full flow once. Two "Suivant" taps reach the last card, whose button
+    // then reads "Entrer au camp".
+    await page.getByTestId('onboarding-next').click();
+    await page.getByTestId('onboarding-next').click();
+    await page.getByRole('button', { name: 'Entrer au camp' }).click();
+
+    await expect(page.getByTestId('camp-xp')).toContainText('Recrue du camp');
+    await expect(page.getByTestId('camp-dragon')).toContainText('Un œuf de dragon');
+    await expect(page.getByTestId('camp-weekly')).toContainText('0 / 3');
+
+    const match = page.url().match(/\/p\/(\d+)\//);
+    expect(match).not.toBeNull();
+    profileId = match![1];
+  });
+
+  test('2. Oracle: sealed scrolls, reward known, choose the school scroll', async ({ page }) => {
+    await page.goto(`/#/p/${profileId}/camp`);
+    await page.getByTestId('camp-oracle').click();
+
+    // Three sealed scrolls, each with its own opener; the reward is shown before any is opened
+    // (ethics: no gamble - spec §1, plan decision 9).
+    await expect(page.getByTestId('scroll-open')).toHaveCount(3);
+    await expect(page.getByTestId('oracle-reward')).toContainText('Teinte Écume');
+
+    await page.getByTestId('scroll-ecole').getByTestId('scroll-open').click();
+    await page.getByTestId('oracle-monster-hydre').click();
+    await page.getByTestId('oracle-confirm').click();
+
+    const oracleQuestSection = page.getByTestId('oracle-quest');
+    await expect(oracleQuestSection).toContainText(/Oracle : l.Hydre/i);
+    await expect(oracleQuestSection).toContainText('0 / 3 textes');
+
+    const cardTestId = await oracleQuestSection.locator('[data-testid^="quest-card-"]').getAttribute('data-testid');
+    expect(cardTestId).not.toBeNull();
+    oracleQuestId = Number(cardTestId!.replace('quest-card-', ''));
+    expect(oracleQuestId).toBeGreaterThan(0);
+
+    // The choice is server state, not client state: it survives a reload, and no scroll can be
+    // opened a second time this week.
+    await page.reload();
+    await expect(page.getByTestId('scroll-open')).toHaveCount(0);
+    await expect(page.getByTestId('oracle-quest')).toContainText(/Oracle : l.Hydre/i);
+  });
+
+  test('3. quest board shows it, lieutenant page gauges', async ({ page }) => {
+    await page.goto(`/#/p/${profileId}/dossier`);
+    await page.getByTestId('topbar-camp').click();
+    await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+    await page.getByTestId('camp-quests').click();
+
+    await expect(page.getByTestId(`quest-card-${oracleQuestId}`)).toContainText('Récompense connue : 150 XP · Teinte Écume');
+
+    // Two board quests can run alongside the (non-board) Oracle quest; a third is refused.
+    await page.getByTestId('board-challenge-echo').getByRole('button', { name: 'Lancer une quête' }).click();
+    await expect(page.getByTestId('board-challenge-echo')).toContainText('Quête en cours');
+
+    await page.getByTestId('board-challenge-chimere').getByRole('button', { name: 'Lancer une quête' }).click();
+    await expect(page.getByTestId('board-challenge-chimere')).toContainText('Quête en cours');
+
+    await page.getByTestId('board-challenge-protee').getByRole('button', { name: 'Lancer une quête' }).click();
+    await expect(page.getByRole('alert')).toContainText('Deux quêtes à la fois');
+
+    await page.goto(`/#/p/${profileId}/monstres/hydre`);
+    await expect(page.getByTestId('lieutenant-gauge-days')).toContainText('0/3');
+    await expect(page.getByTestId('lieutenant-quest')).toBeDisabled();
+    await expect(page.getByTestId('lieutenant-quest')).toContainText('Quête en cours');
+  });
+
+  test('4. a real session counts for the quest and shows the reveal', async ({ page, request }) => {
+    await stubSpeech(page);
+    const text = await createText(request, {
+      title: 'Les fées ' + Date.now(),
+      body: 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.',
+      level: '10H',
+    });
+    textId = text.id;
+
+    await page.goto(`/#/p/${profileId}/play/${textId}?quest=${oracleQuestId}&encounter=hydre`);
+    await expect(page.getByTestId('play-quest-banner')).toBeVisible();
+
+    await page.getByTestId('pace-option-1').click();
+    await page.getByRole('button', { name: 'Commencer la dictée' }).click();
+    const ta = page.getByTestId('dictation-textarea');
+    await expect(page.getByTestId('btn-next')).toBeEnabled();
+    await ta.fill('Les fées danse dans la clairière.');
+    await page.getByTestId('btn-next').click();
+    await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
+    await ta.fill('Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.');
+    await page.getByTestId('btn-finish-writing').click();
+
+    await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
+    const danse = page.locator('[data-testid^="tok-"]', { hasText: /^danse$/ });
+    await danse.click();
+    await page.getByTestId('word-editor').fill('dansent');
+    await page.getByTestId('word-editor').press('Enter');
+    await page.getByTestId('btn-done-proofreading').click();
+    const confirm = page.getByRole('button', { name: 'Oui, valider' });
+    if (await confirm.isVisible()) await confirm.click();
+
+    await expect(page.getByTestId('reveal-xp')).toBeVisible();
+    await expect(page.getByTestId('reveal-xp')).toContainText(/\+\d+ XP/);
+    await expect(page.getByTestId(`reveal-quest-${oracleQuestId}`)).toContainText('Ce texte compte : 1 / 3');
+    await page.getByTestId('reveal-continue').click();
+    await expect(page.getByTestId('results-catch-rate')).toBeVisible();
+  });
+
+  test('5. complete the Oracle quest via API, see the tint unlocked', async ({ page, request }) => {
+    const today = new Date().toISOString().slice(0, 10);
+    // The Oracle quest counts sessions, not distinct days - two more today's-dated sessions on
+    // top of step 4's finish it (goal: 3).
+    await postSession(request, {
+      profileId: Number(profileId),
+      textId,
+      day: today,
+      result: makeResult({ draft: 4, caught: 4, category: 'agreement:verb' }),
+    });
+    const res2 = await postSession(request, {
+      profileId: Number(profileId),
+      textId,
+      day: today,
+      result: makeResult({ draft: 4, caught: 4, category: 'agreement:verb' }),
+    });
+    const oracleProgress = res2.progression.quests.find((q: { id: number }) => q.id === oracleQuestId);
+    expect(oracleProgress?.completed).toBe(true);
+    expect(res2.progression.rewards.some((r: { id: string }) => r.id === 'tint:ecume')).toBe(true);
+
+    await page.goto(`/#/p/${profileId}/dragon`);
+    await expect(page.getByTestId('dragon-tint-ecume')).toBeEnabled();
+    await page.getByTestId('dragon-tint-ecume').click();
+    await expect(page.locator('img.dragon')).toHaveAttribute('style', /hue-rotate\(190deg\)/);
+
+    await page.goto(`/#/p/${profileId}/cabane`);
+    await expect(page.getByTestId('cabin-reward-tint:ecume')).toHaveAttribute('data-owned', 'true');
+  });
+
+  test('6. mastery over three days hatches the dragon; the dossier changes voice', async ({ page, request }) => {
+    // Decision 3's minimal recent window is computed fresh from all-time stats, so - since this
+    // profile already has Hydre-category errors "today" (steps 4-5) - it can complete in fewer
+    // than three of these calls; find whichever response actually neutralises her rather than
+    // hard-coding which one.
+    let hatched: any = null;
+    for (const day of ['2026-09-21', '2026-09-22', '2026-09-23']) {
+      const res = await postSession(request, {
+        profileId: Number(profileId),
+        textId,
+        day,
+        result: makeResult({ draft: 4, caught: 4, category: 'agreement:verb' }),
+      });
+      if (res.progression.neutralised.includes('hydre')) {
+        hatched = res;
+        break;
+      }
+    }
+    expect(hatched).not.toBeNull();
+    expect(hatched.progression.dragon.stage_after).toBe('hatchling');
+    expect(hatched.progression.dragon.needs_name).toBe(true);
+
+    await page.goto(`/#/p/${profileId}/dragon`);
+    await expect(page.getByTestId('dragon-stage')).toContainText('Dragonnet');
+    await page.getByTestId('dragon-name-input').fill('Braise');
+    await page.getByTestId('dragon-name-save').click();
+    await page.reload();
+    await expect(page.getByTestId('dragon-name-input')).toHaveValue('Braise');
+
+    await page.goto(`/#/p/${profileId}/camp`);
+    await expect(page.getByTestId('camp-dragon')).toContainText('Braise');
+
+    await page.goto(`/#/p/${profileId}/dossier`);
+    await expect(page.getByTestId('dossier-line-hydre')).toContainText("L'Hydre est neutralisée");
+
+    await page.goto(`/#/p/${profileId}/bestiaire/hydre`);
+    await expect(page.getByText('Iolaos')).toBeVisible();
+  });
+
+  test('7. boss unlocks after two lieutenants; a lost fight loses nothing; a won fight grants the gear', async ({
+    page,
+    request,
+  }) => {
+    // A guaranteed >=150-word 10H text so the boss endpoint always has a candidate, regardless
+    // of what the seed happens to include.
+    await createText(request, {
+      title: 'Long ' + Date.now(),
+      body: Array(16).fill('Les fées dansent dans la clairière et les oiseaux les écoutent.').join(' '),
+      level: '10H',
+    });
+
+    for (const day of ['2026-09-01', '2026-09-02', '2026-09-03']) {
+      await postSession(request, {
+        profileId: Number(profileId),
+        textId,
+        day,
+        result: makeResult({ draft: 4, caught: 4, category: 'homophone' }),
+      });
+    }
+
+    await page.goto(`/#/p/${profileId}/camp`);
+    await expect(page.getByTestId('camp-boss')).toBeVisible();
+    await expect(page.getByTestId('camp-boss')).toContainText("Sandales d'Hermès");
+
+    await page.getByTestId('camp-boss').click();
+    await page.getByTestId('boss-start').click();
+    await expect(page).toHaveURL(/encounter=eris/);
+    await expect(page.getByTestId('play-boss-banner')).toBeVisible();
+
+    // Rather than play the long text in the UI, read the boss quest/text straight from the API.
+    const active = await (await request.get(`/api/profiles/${profileId}/quests?status=active`)).json();
+    const bossQuest = active.find((q: { kind: string }) => q.kind === 'boss');
+    expect(bossQuest).toBeTruthy();
+    const bossTextId = bossQuest.goal.text_id as number;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const lost = await postSession(request, {
+      profileId: Number(profileId),
+      textId: bossTextId,
+      day: today,
+      result: makeResult({ draft: 5, caught: 2, category: 'agreement:verb' }),
+      questId: bossQuest.id,
+      encounter: 'eris',
+      helpStage: 2,
+    });
+    expect(lost.progression.boss.won).toBe(false);
+    const stillActive = await (await request.get(`/api/profiles/${profileId}/quests?status=active`)).json();
+    expect(stillActive.some((q: { id: number }) => q.id === bossQuest.id)).toBe(true);
+
+    const won = await postSession(request, {
+      profileId: Number(profileId),
+      textId: bossTextId,
+      day: today,
+      result: makeResult({ draft: 5, caught: 4, category: 'agreement:verb' }),
+      questId: bossQuest.id,
+      encounter: 'eris',
+      helpStage: 2,
+    });
+    expect(won.progression.boss.won).toBe(true);
+    expect(won.progression.rewards.some((r: { id: string }) => r.id === 'sandales_hermes')).toBe(true);
+
+    await page.goto(`/#/p/${profileId}/cabane`);
+    await expect(page.getByTestId('cabin-reward-sandales_hermes')).toHaveAttribute('data-owned', 'true');
+    await page.getByTestId('cabin-equip-sandales_hermes').click();
+    await expect(page.getByTestId('cabin-equip-sandales_hermes')).toContainText('Ranger');
+  });
+
+  test('8. weekly goal and break nudge', async ({ page }) => {
+    await page.goto(`/#/p/${profileId}/camp`);
+    // Steps 4-5 already posted three of today's sessions (goal: 3).
+    await expect(page.getByTestId('camp-weekly')).toContainText('Objectif atteint');
+
+    await stubSpeech(page);
+    await page.goto(`/#/p/${profileId}/play/${textId}`);
+    // playClock reads sessionStorage once, at module init: setting it here (after this first,
+    // hash-only route change already ran Play.svelte's own clockStop()/persist() once) and
+    // reloading is what makes the fresh module actually pick up the 26-minute clock below -
+    // setting it before navigating here would just get overwritten by that same persist().
+    await page.evaluate(() =>
+      sessionStorage.setItem(
+        'discorde.playClock',
+        JSON.stringify({ activeMs: 26 * 60000, running: false, lastTick: null, lastStop: Date.now() }),
+      ),
+    );
+    await page.reload();
+
+    // This text was already fully played in step 4: the play screen resumes straight to its old
+    // results: "Rejouer ce texte" clears that saved state and starts a fresh session.
+    const replay = page.getByRole('button', { name: 'Rejouer ce texte' });
+    if (await replay.isVisible()) await replay.click();
+
+    await page.getByTestId('pace-option-1').click();
+    await page.getByRole('button', { name: 'Commencer la dictée' }).click();
+    const ta = page.getByTestId('dictation-textarea');
+    await expect(page.getByTestId('btn-next')).toBeEnabled();
+    await ta.fill('Les fées dansent dans la clairière.');
+    await page.getByTestId('btn-next').click();
+    await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
+    await ta.fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
+    await page.getByTestId('btn-finish-writing').click();
+    await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
+    await page.getByTestId('btn-done-proofreading').click();
+    const confirm = page.getByRole('button', { name: 'Oui, valider' });
+    if (await confirm.isVisible()) await confirm.click();
+
+    await expect(page.getByTestId('break-nudge')).toBeVisible();
+    await expect(page.getByTestId('break-nudge')).toContainText('Braise bâille');
+    await page.getByTestId('break-continue').click();
+    await expect(page.getByTestId('break-nudge')).toHaveCount(0);
+  });
+
+  test('9. no red, no guilt', async ({ page }) => {
+    await page.goto(`/#/p/${profileId}/camp`);
+    await expect(page.getByRole('heading', { name: /Bienvenue au camp/ })).toBeVisible();
+    expect(await redScan(page)).toEqual([]);
+    await expect(page.locator('body')).not.toContainText(/manqué|raté|perdu/i);
+
+    await page.goto(`/#/p/${profileId}/dossier`);
+    await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
+    expect(await redScan(page)).toEqual([]);
+  });
+});
+
+// Every element's text/background colour, scanned for a pure red (spec §1.6 "orange rather than
+// red, nothing is ever lost"): rgb(r,g,b) with r in [200,255] and g,b < 60 - orange (--orange:
+// #e07b2a) and terracotta (--terracotta: #c0623b) both have g > 60, so neither trips this.
+async function redScan(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const re = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/;
+    const out: string[] = [];
+    for (const el of Array.from(document.querySelectorAll('body *'))) {
+      const cs = getComputedStyle(el);
+      for (const prop of ['color', 'backgroundColor'] as const) {
+        const v = cs[prop];
+        const m = v.match(re);
+        if (!m) continue;
+        const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
+        if (r >= 200 && r <= 255 && g < 60 && b < 60) {
+          out.push(`${el.tagName.toLowerCase()}.${(el as HTMLElement).className}: ${prop}=${v}`);
+        }
+      }
+    }
+    return out;
+  });
+}

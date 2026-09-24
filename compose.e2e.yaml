@@ -2,7 +2,12 @@ services:
   app:
     build: .
     image: discorde:local
-    environment: { DISCORDE_DATA_DIR: /tmp/data, DISCORDE_ALEXANDRIA_OFFLINE_DIR: /fixtures/alexandria }
+    environment:
+      {
+        DISCORDE_DATA_DIR: /tmp/data,
+        DISCORDE_ALEXANDRIA_OFFLINE_DIR: /fixtures/alexandria,
+        DISCORDE_TEST_HOOKS: "1",
+      }
     volumes: ["./server/tests/fixtures:/fixtures:ro"]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/api/health').status==200 else 1)"]
