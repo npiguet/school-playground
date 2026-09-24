@@ -1,5 +1,5 @@
 // Per-stage reactive runtime shared with every scene component through Svelte context: the
-// pointer position for parallax, reduced motion, and the ?edit flag.
+// pointer position for parallax, reduced motion, and the ?debug flag.
 import { getContext, setContext } from 'svelte';
 
 export interface SceneRuntime {
@@ -7,14 +7,14 @@ export interface SceneRuntime {
   nx: number;
   ny: number;
   reduced: boolean;
-  editing: boolean;
+  debug: boolean;
 }
 
 const KEY = Symbol('scene-runtime');
-const STATIC: SceneRuntime = { nx: 0, ny: 0, reduced: true, editing: false };
+const STATIC: SceneRuntime = { nx: 0, ny: 0, reduced: true, debug: false };
 
 export function createSceneRuntime(init: Partial<SceneRuntime> = {}): SceneRuntime {
-  const rt = $state<SceneRuntime>({ nx: 0, ny: 0, reduced: false, editing: false, ...init });
+  const rt = $state<SceneRuntime>({ nx: 0, ny: 0, reduced: false, debug: false, ...init });
   return rt;
 }
 

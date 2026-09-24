@@ -16,7 +16,7 @@
   import { TINT_FILTERS } from '../lib/world/dragon';
   import { ART } from '../lib/world/art';
   import { markGreeted, shouldGreet } from '../lib/scene/greeting';
-  import { isEditMode } from '../lib/scene/editMode';
+  import { isDebugMode } from '../lib/scene/debugMode';
   import type { DialogueLine, HotspotDef, SceneContext, SceneLayerDef } from '../lib/scene/types';
   import { initSound } from '../lib/juice/soundStore.svelte';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
@@ -40,11 +40,11 @@
   const camp = $derived(campStore.data && campStore.data.profile.id === profile.id ? campStore.data : null);
   const ctx = $derived<SceneContext>({ camp, catalog: campStore.catalog });
   const panel = $derived(router.route.query.panel ?? null);
-  const editing = $derived(isEditMode(typeof location === 'undefined' ? '' : location.search, router.route.query));
+  const debug = $derived(isDebugMode(typeof location === 'undefined' ? '' : location.search, router.route.query));
 
   let greeting = $state<DialogueLine[] | null>(null);
   $effect(() => {
-    if (!camp || !profile.settings.onboarded || editing || !shouldGreet(profile.id)) return;
+    if (!camp || !profile.settings.onboarded || debug || !shouldGreet(profile.id)) return;
     markGreeted(profile.id);
     greeting = campGreeting(profile.name, camp);
   });
@@ -85,7 +85,7 @@
   <Onboarding {profile} />
 {/if}
 
-<SceneStage scene={CAMP_SCENE}>
+<SceneStage scene={CAMP_SCENE} {ctx}>
   {#snippet hud()}
     <Hud {profile} {camp} onHero={openHero} />
   {/snippet}

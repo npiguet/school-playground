@@ -18,7 +18,9 @@
   let flashing = $state(false);
 
   function onclick() {
-    if (rt.editing || status.locked || flashing) return;
+    // Task 9b: unlike the removed interactive `?edit` editor, the read-only `?debug` overlay
+    // must not block hotspot clicks (HotspotDebug.svelte is pointer-events: none over it anyway).
+    if (status.locked || flashing) return;
     flashing = true;
     setTimeout(
       () => {

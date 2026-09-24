@@ -9,17 +9,29 @@
   import SceneTransition from './SceneTransition.svelte';
   import FxCanvas from './FxCanvas.svelte';
   import RotateScreen from './RotateScreen.svelte';
+  import HotspotDebug from './HotspotDebug.svelte';
   import { pointerToNorm, stageBox } from '../../lib/scene/geometry';
   import { createSceneRuntime, provideSceneRuntime } from '../../lib/scene/runtime.svelte';
-  import { isEditMode } from '../../lib/scene/editMode';
+  import { isDebugMode } from '../../lib/scene/debugMode';
   import { reducedMotion, watchReducedMotion } from '../../lib/juice/motion';
   import { router } from '../../lib/router.svelte';
-  import type { SceneDef } from '../../lib/scene/types';
+  import type { SceneContext, SceneDef } from '../../lib/scene/types';
 
-  let { scene, children, hud }: { scene: SceneDef; children?: Snippet; hud?: Snippet } = $props();
+  let {
+    scene,
+    children,
+    hud,
+    ctx,
+  }: { scene: SceneDef; children?: Snippet; hud?: Snippet; ctx?: SceneContext } = $props();
 
   const runtime = createSceneRuntime({ reduced: reducedMotion() });
   provideSceneRuntime(runtime);
+
+  const EMPTY_CTX: SceneContext = { camp: null, catalog: null };
+  // The overlay must mirror exactly what's clickable, so it filters by the same per-hotspot
+  // state the real <Hotspot> buttons use (falling back to an empty context for scenes that don't
+  // pass one, e.g. before their data has loaded).
+  const debugHotspots = $derived(scene.hotspots.filter((h) => h.state(ctx ?? EMPTY_CTX).visible));
 
   let vw = $state(typeof innerWidth === 'number' ? innerWidth : 1280);
   let vh = $state(typeof innerHeight === 'number' ? innerHeight : 720);
@@ -36,7 +48,7 @@
   );
 
   $effect(() => {
-    runtime.editing = isEditMode(location.search, router.route.query);
+    runtime.debug = isDebugMode(location.search, router.route.query);
   });
 
   onMount(() => {
@@ -51,7 +63,7 @@
   });
 
   function onPointerMove(e: PointerEvent) {
-    if (runtime.reduced || runtime.editing) return;
+    if (runtime.reduced || runtime.debug) return;
     const n = pointerToNorm(e.clientX, e.clientY, vw, vh);
     runtime.nx = n.nx;
     runtime.ny = n.ny;
@@ -79,6 +91,9 @@
         {/if}
         <h1 class="kit-plaque stage-plaque">{scene.title}</h1>
         {@render children?.()}
+        {#if runtime.debug}
+          <HotspotDebug sceneId={scene.id} hotspots={debugHotspots} />
+        {/if}
       </div>
     </SceneTransition>
     {@render hud?.()}

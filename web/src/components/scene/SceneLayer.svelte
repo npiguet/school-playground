@@ -8,7 +8,7 @@
   let { layer, filter = 'none', testId }: { layer: SceneLayerDef; filter?: string; testId?: string } = $props();
 
   const rt = useSceneRuntime();
-  const off = $derived(rt.reduced || rt.editing ? { x: 0, y: 0 } : parallaxOffset(layer.depth, rt.nx, rt.ny));
+  const off = $derived(rt.reduced || rt.debug ? { x: 0, y: 0 } : parallaxOffset(layer.depth, rt.nx, rt.ny));
 </script>
 
 <img
