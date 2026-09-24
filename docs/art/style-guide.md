@@ -219,12 +219,12 @@ margin, all under 20 KB). Contact sheet at 128 and 64 px on dark and parchment:
 | Decor (`decor:x` → `decor-x`, a colon can't be in a file name) | decor-lanterne 1010, decor-tapis 1011, decor-bibliotheque 1012, decor-trophee 1013, decor-fresque 1014 |
 | Avatars (`AVATARS` keys) | avatar-chouette 1031, avatar-dragon 1032, avatar-lyre 1044, avatar-trident 1022, avatar-laurier 1023, avatar-foudre 1030 |
 | Lieutenant glyphs | lt-hydre 1042, lt-echo 1016, lt-chimere 1045, lt-protee 1018, lt-sirenes 1019, lt-lethe 1046 |
-| Add menu | add-text 1025 (quill on parchment), add-scan 1033 (camera and sheet), add-alexandria 1047 (stacked scrolls) |
+| Add menu | add-text 1025 (quill on parchment), add-scan 1050 (bronze lens on a stand; a first box-camera try, 1033, was anachronistic), add-alexandria 1047 (stacked scrolls) |
 | Misc | seal-oracle 1034, lock 1048 |
 | Home-screen icon | app-apple 1049 → `web/public/icons/{icon-192,icon-512,apple-touch-icon,icon-maskable-512}.png` |
 | Reused, no generation | tool-persee, tool-athena, tool-ariane, tool-argus = the existing `emblems/*_cut.png` medallions, which read fine at 64 px |
 
-`tint:*` rewards stay CSS swatches (the tinted egg). 42 generations in total (35 icons + 7 redos).
+`tint:*` rewards stay CSS swatches (the tinted egg). 43 generations in total (35 icons + 8 redos).
 The app icon is the painted apple on the terracotta ground (`#C0623B`, a soft lighter centre),
 at 74 % of the side and 56 % for the maskable one. It replaces the flat SVG apple, so **don't run
 `npm run icons` (`web/scripts/make-icons.mjs`)**, or it overwrites the painted PNGs.
