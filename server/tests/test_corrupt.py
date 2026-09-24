@@ -289,3 +289,30 @@ def test_api_corrupt_and_grimoire_session(client, settings):
     conn.close()
     r = client.post(f"/api/texts/{t['id']}/corrupt", json={"profile_id": p["id"], "seed": 7})
     assert r.status_code == 422 and "Muses" in r.text
+
+
+# --- Grimoire focus: a lieutenant weighs its categories 3x; Léthé instead biases plant position (Decision 21) ---
+
+def test_focus_triples_the_lieutenant_categories_weight():
+    rows = [{"category": "agreement:gender", "errors_in_draft": 10, "caught": 5}]
+    base = category_weights(rows, "10H")
+    focused = category_weights(rows, "10H", focus="chimere")
+    assert abs(focused["agreement:gender"] - 3 * base["agreement:gender"]) < 1e-9
+    # other categories are untouched by a chimere focus
+    assert abs(focused["homophone"] - base["homophone"]) < 1e-9
+    # a derived-category lieutenant (sirenes, lethe) boosts no corruption weight: no category of
+    # theirs is a corruption category
+    assert category_weights(rows, "10H", focus="lethe") == base
+
+
+def test_focus_lethe_biases_plants_to_the_last_third(nlp, lexicon):
+    h = load_homophones(CONTENT)
+    reform = load_reform(CONTENT)
+    text = " ".join(["Les fées dansent dans la clairière et les oiseaux les écoutent."] * 19)   # >= 200 words
+    annotation = annotate(text, nlp, h, lexicon)
+    weights = category_weights([], "10H")
+    plants = plan_corruptions(text, annotation, lexicon, h, weights, 10, random.Random(7), set(), reform, focus="lethe")
+    assert len(plants) >= 5
+    threshold = 2 * len(text) / 3
+    in_last_third = sum(1 for p in plants if p["start"] >= threshold)
+    assert in_last_third / len(plants) >= 0.7

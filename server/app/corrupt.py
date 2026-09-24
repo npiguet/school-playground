@@ -26,6 +26,7 @@ from pathlib import Path
 
 from app.levels import level_index
 from app.nlp.chains import INDEFINITE_SUBJECTS
+from app.world.catalog import LIEUTENANTS
 
 BASE_WEIGHTS = {
     "agreement:verb": 0.20, "agreement:number": 0.15, "agreement:gender": 0.10, "agreement:participle": 0.15,
@@ -59,7 +60,7 @@ def corruption_count(word_count: int) -> int:
     return max(4, min(12, round(word_count / 18)))
 
 
-def category_weights(stat_rows: list[dict], level: str) -> dict[str, float]:
+def category_weights(stat_rows: list[dict], level: str, focus: str | None = None) -> dict[str, float]:
     catch_rates: dict[str, float] = {}
     for r in stat_rows:
         errors = r.get("errors_in_draft", 0)
@@ -72,6 +73,13 @@ def category_weights(stat_rows: list[dict], level: str) -> dict[str, float]:
             continue
         catch_rate = catch_rates.get(cat, 0.5)
         weights[cat] = base * (1.25 - catch_rate)
+    # Grimoire focus (plan Decision 21): « le Grimoire de l'Hydre » leans hard on that lieutenant's
+    # categories. Derived categories (sirenes, lethe) are not corruption categories, so focusing them
+    # boosts no weight here — lethe instead biases *where* plants land, in plan_corruptions below.
+    if focus in LIEUTENANTS:
+        for c in LIEUTENANTS[focus]["categories"]:
+            if c in weights:
+                weights[c] *= 3
     return weights
 
 
@@ -319,17 +327,24 @@ def candidates(annotation: dict, lexicon, homophones, trap_words: set[str] = fro
 
 
 def plan_corruptions(body: str, annotation: dict, lexicon, homophones, weights: dict[str, float], count: int,
-                      rng, trap_words: set[str] = frozenset(), reform: dict | None = None) -> list[dict]:
+                      rng, trap_words: set[str] = frozenset(), reform: dict | None = None,
+                      focus: str | None = None) -> list[dict]:
     cands = candidates(annotation, lexicon, homophones, trap_words, reform)
     weights = {k: v for k, v in weights.items() if cands.get(k)}
     chosen: list[dict] = []
     used_tokens: set[int] = set()
+    # Léthé's technique is positional, not categorical (plan Decision 21): when focused, prefer
+    # plants in the last third of the text, falling back to the whole pool if none qualify there.
+    last_third = 2 * len(body) / 3
     while len(chosen) < count and weights:
         cat = rng.choices(list(weights), weights=list(weights.values()))[0]
         pool = [c for c in cands[cat] if all(abs(c["token"] - u) >= MIN_GAP for u in used_tokens)]
         if not pool:
             del weights[cat]
             continue
+        if focus == "lethe":
+            biased = [c for c in pool if c["start"] >= last_third]
+            pool = biased or pool
         c = rng.choice(pool)
         chosen.append(c)
         used_tokens.add(c["token"])

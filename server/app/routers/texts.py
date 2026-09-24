@@ -130,10 +130,10 @@ def corrupt_text(text_id: int, body: CorruptRequest, request: Request, db: sqlit
     trap = {r[0] for r in db.execute(
         "SELECT word FROM trap_word WHERE profile_id = ?", (body.profile_id,))}
 
-    weights = category_weights(stat_rows, profile["level"])
+    weights = category_weights(stat_rows, profile["level"], body.focus)
     count = corruption_count(word_count(text))
     rng = random.Random(body.seed if body.seed is not None else time.time_ns())
-    plants = plan_corruptions(text, annotation, lexicon, homophones, weights, count, rng, trap, reform)
+    plants = plan_corruptions(text, annotation, lexicon, homophones, weights, count, rng, trap, reform, body.focus)
 
     if len(plants) < 3:
         raise HTTPException(422, "Éris n'a pas trouvé assez de prises dans ce texte.")
