@@ -3,6 +3,7 @@
 // doesn't wait on a round-trip. Sound is a convenience, never blocking: API and
 // storage failures are swallowed.
 import { api } from '../api';
+import { profileStore } from '../profileStore.svelte';
 import type { Profile } from '../types';
 
 const MUTE_KEY = 'discorde.mute';
@@ -25,6 +26,10 @@ export function initSound(profile: Profile): void {
 
 export async function setMuted(profileId: number, muted: boolean): Promise<void> {
   soundStore.muted = muted;
+  // Final review I3: keep the in-session profile in step, so a screen that re-seeds from it
+  // (Camp calls initSound(profile) on every mount) never resurrects the pre-toggle value.
+  const current = profileStore.current;
+  if (current && current.id === profileId) current.settings = { ...current.settings, mute: muted };
   try {
     localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
   } catch {

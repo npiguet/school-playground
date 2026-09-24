@@ -1,28 +1,85 @@
 <script lang="ts">
   // In-world overlay (scenes UI spec §2.2, §4): an object sliding over the dimmed scene, variants
   // scroll / codex / table. The caller gives it a route (plan Ruling 6), so Back closes it too.
-  import type { Snippet } from 'svelte';
+  // Final review I5: while open, the scene stage behind is `inert` (overlayState), Tab stays inside
+  // the panel, and closing hands focus back to `returnFocus` (the control that opened it).
+  // Final review M7: backdrop and panel leave together, and neither catches a tap while leaving.
+  import { tick, type Snippet } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { reducedMotion } from '../../lib/juice/motion';
+  import { registerOverlay } from '../../lib/scene/overlayState.svelte';
 
   let {
     variant,
     title,
     testId,
     onClose,
+    returnFocus,
     children,
-  }: { variant: 'scroll' | 'codex' | 'table'; title: string; testId: string; onClose: () => void; children: Snippet } =
-    $props();
+  }: {
+    variant: 'scroll' | 'codex' | 'table';
+    title: string;
+    testId: string;
+    onClose: () => void;
+    /** CSS selector of the element that gets focus back on close (e.g. the HUD's hero chip). */
+    returnFocus?: string;
+    children: Snippet;
+  } = $props();
 
   const reduced = reducedMotion();
   let panel: HTMLElement | undefined = $state();
+  // Read before the panel takes focus below.
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
   $effect(() => {
     panel?.focus();
   });
 
+  $effect(() => {
+    const unregister = registerOverlay();
+    const selector = returnFocus;
+    return () => {
+      unregister();
+      // After the stage has dropped `inert` (next flush), or focus() on it would be ignored.
+      void tick().then(() => {
+        const target = (selector ? document.querySelector<HTMLElement>(selector) : null) ?? opener;
+        if (target && target.isConnected && target !== document.body) target.focus();
+      });
+    };
+  });
+
+  function focusables(): HTMLElement[] {
+    if (!panel) return [];
+    return Array.from(
+      panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+    );
+  }
+
   function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape') onClose();
+    if (e.key === 'Escape') {
+      onClose();
+      return;
+    }
+    if (e.key !== 'Tab' || !panel) return;
+    const items = focusables();
+    if (items.length === 0) {
+      e.preventDefault();
+      panel.focus();
+      return;
+    }
+    // Moved by hand on every Tab (not only at the ends): WebKit skips links on Tab by default, which
+    // would otherwise walk focus straight out of a panel made of links.
+    e.preventDefault();
+    const i = items.indexOf(document.activeElement as HTMLElement);
+    const n = items.length;
+    const next = i === -1 ? (e.shiftKey ? n - 1 : 0) : (i + (e.shiftKey ? n - 1 : 1)) % n;
+    items[next].focus();
+  }
+
+  // Leaving: stop catching taps at once, then fade.
+  function leave(node: Element, params: { duration: number }) {
+    (node as HTMLElement).style.pointerEvents = 'none';
+    return fade(node, params);
   }
 </script>
 
@@ -34,7 +91,8 @@
   aria-label="Fermer"
   tabindex="-1"
   onclick={onClose}
-  transition:fade|global={{ duration: 200 }}
+  in:fade|global={{ duration: 200 }}
+  out:leave|global={{ duration: 160 }}
 ></button>
 <div
   bind:this={panel}
@@ -47,10 +105,16 @@
   data-testid={testId}
   tabindex="-1"
   in:fly|global={{ y: reduced ? 0 : 40, duration: reduced ? 200 : 280, opacity: 0 }}
+  out:leave|global={{ duration: 160 }}
 >
   <header class="overlay-head">
     <h2 class="overlay-title">{title}</h2>
-    <button type="button" class="kit-bronze" data-testid="overlay-close" onclick={onClose}>Fermer</button>
+    <!-- Playability #4: a wax-seal ✕ rather than a « Fermer » button (a tap outside closes too). -->
+    <button type="button" class="overlay-seal" data-testid="overlay-close" aria-label="Fermer" onclick={onClose}>
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+      </svg>
+    </button>
   </header>
   <div class="overlay-body">{@render children()}</div>
 </div>
@@ -59,7 +123,7 @@
   .overlay-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 39;
+    z-index: var(--z-overlay-backdrop);
     border: 0;
     padding: 0;
     background: var(--scrim);
@@ -67,7 +131,7 @@
   }
   .overlay-panel {
     position: fixed;
-    z-index: 40;
+    z-index: var(--z-overlay);
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
@@ -98,6 +162,26 @@
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 16px;
+  }
+  .overlay-seal {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid var(--bronze-dark);
+    background: radial-gradient(circle at 35% 30%, var(--bronze-light), var(--bronze) 55%, var(--bronze-dark));
+    color: var(--bronze-ink);
+    box-shadow:
+      inset 0 0 0 3px rgba(255, 240, 200, 0.25),
+      0 3px 8px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+  }
+  .overlay-seal:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
   }
   .overlay-title {
     margin: 0;

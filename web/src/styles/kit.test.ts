@@ -30,6 +30,12 @@ describe('UI kit (scenes spec §6)', () => {
     }
   });
 
+  it('stacks overlays through tokens, all below the rotate screen (final review M7)', () => {
+    const z = (name: string) => Number(new RegExp(`--${name}:\\s*(\\d+)`).exec(css)?.[1]);
+    expect(z('z-overlay-backdrop')).toBeLessThan(z('z-overlay'));
+    expect(z('z-overlay')).toBeLessThan(z('z-rotate-screen'));
+  });
+
   it('declares the idle and tap keyframes the scene components use', () => {
     for (const k of ['kit-glow', 'kit-label-bob', 'kit-flash', 'kit-sway', 'kit-breathe']) {
       expect(css).toContain(`@keyframes ${k}`);

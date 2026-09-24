@@ -25,6 +25,10 @@
      since `position: fixed` always creates one) and uses this token; any future overlay/modal
      z-index must stay below it. */
   --z-rotate-screen: 1000;
+  /* In-world overlays (Overlay.svelte): the dimmed backdrop, then the panel above it. Below the
+     onboarding card (50) and far below the rotate screen. */
+  --z-overlay-backdrop: 39;
+  --z-overlay: 40;
 }
 
 .kit-parchment {

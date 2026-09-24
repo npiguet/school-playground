@@ -15,3 +15,10 @@ export function startRouter() {
 export function navigate(path: string) {
   location.hash = path.startsWith('#') ? path : '#' + path;
 }
+
+/** Replaces the current history entry instead of pushing one (a closed overlay must not leave a
+ *  "reopen me" entry behind for Back). Fires `hashchange` like `navigate`. */
+export function replaceRoute(path: string) {
+  const hash = path.startsWith('#') ? path : '#' + path;
+  location.replace(location.pathname + location.search + hash);
+}
