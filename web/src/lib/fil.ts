@@ -67,10 +67,12 @@ export function filExit(state: FilState): FilState {
 }
 
 /** The controller group's typed wording, in the group's given order, omitting any member with
- *  no typed counterpart — never the reference spelling (see module comment). */
+ *  no typed counterpart — never the reference spelling (see module comment). A coordinated
+ *  group is a contiguous span that already holds its own « et » (annotation v3), so members are
+ *  always joined with a plain space. */
 function typedGroupText(chain: Chain, typedTextOf: TypedTextLookup): string {
   const texts = chain.controller_group.map(typedTextOf).filter((t): t is string => t !== undefined);
-  return texts.join(chain.via === 'conj' ? ' et ' : ' ');
+  return texts.join(' ');
 }
 
 function pickVerb(
@@ -156,6 +158,19 @@ function pickSubject(
   };
 }
 
+/** What a tap means once a thread is drawn (`done`) — SP2 playability P1-7: the Fil stays armed
+ *  until the player turns it off, so a tap on another verb starts a new thread; a tap on the
+ *  threaded verb itself, or on any non-verb, hands the word to the editor (« Vérifie la
+ *  terminaison du verbe » invites exactly that) while the Fil goes back to picking. */
+export function filDoneAction(
+  state: FilState,
+  annotIndex: number | undefined,
+  annotation: Annotation,
+): 'thread' | 'edit' {
+  if (state.step !== 'done' || annotIndex === undefined || annotIndex === state.highlightVerb) return 'edit';
+  return annotation.tokens[annotIndex]?.categories.includes('verb') ? 'thread' : 'edit';
+}
+
 export function filTap(
   state: FilState,
   annotIndex: number | undefined,
@@ -167,8 +182,14 @@ export function filTap(
       return pickVerb(state, annotIndex, annotation, typedTextOf);
     case 'pick-subject':
       return pickSubject(state, annotIndex, annotation, typedTextOf);
-    case 'done':
-      return filTap(filStart({ drawn: state.drawn, correct: state.correct }), annotIndex, annotation, typedTextOf);
+    case 'done': {
+      // A new thread from a fresh pick; anything else re-arms the Fil without touching the tap
+      // (the caller opens the editor for it).
+      const rearmed = filStart({ drawn: state.drawn, correct: state.correct });
+      return filDoneAction(state, annotIndex, annotation) === 'thread'
+        ? pickVerb(rearmed, annotIndex, annotation, typedTextOf)
+        : rearmed;
+    }
     case 'idle':
     default:
       return state;

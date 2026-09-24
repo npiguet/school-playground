@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FIL_START, filExit, filStart, filTap, type TypedTextLookup } from './fil';
+import { FIL_START, filDoneAction, filExit, filStart, filTap, type TypedTextLookup } from './fil';
 import { gradeText } from './grading/grade';
 import { mapAnnotation, reverseAnnotationMap } from './grading/annotationMap';
 import { tokenize } from './grading/tokenize';
@@ -118,6 +118,31 @@ describe('filTap', () => {
     expect(s.drawn).toBe(1);
     expect(s.correct).toBe(0);
     expect(s.message).toBe('Le fil te guide : le sujet de « dansent », c\'est « Les fées » (pluriel).');
+  });
+
+  // SP2 playability P1-7: after a drawn thread the Fil stays armed — the next tap on another verb
+  // starts a new thread; the threaded verb itself or a non-verb goes to the editor (the caller
+  // reads `filDoneAction`) and the Fil is back to picking.
+  it('starts a new thread from another verb once a thread is drawn, and re-arms for anything else', () => {
+    let s = filTap(filStart(), 4, ANN, identityTypedTextOf);
+    s = filTap(s, 1, ANN, identityTypedTextOf); // "fées" → done
+    expect(s.step).toBe('done');
+    expect(filDoneAction(s, 3, ANN)).toBe('thread'); // another verb (even a medium one: the pick decides)
+    expect(filDoneAction(s, 4, ANN)).toBe('edit'); // the threaded verb: fix it
+    expect(filDoneAction(s, 0, ANN)).toBe('edit'); // a non-verb
+    expect(filDoneAction(s, undefined, ANN)).toBe('edit');
+    const next = filTap(s, 3, ANN, identityTypedTextOf); // "chantent": a new pick, refused as medium
+    expect(next.step).toBe('pick-verb');
+    expect(next.message).toMatch(/s'emmêle/);
+    expect(next.drawn).toBe(1);
+    expect(next.correct).toBe(1);
+    expect(next.highlightSubject).toEqual([]);
+    const again = filTap(s, 4, ANN, identityTypedTextOf); // the threaded verb: re-armed, untouched
+    expect(again.step).toBe('pick-verb');
+    expect(again.message).toBe(FIL_START);
+    expect(again.highlightVerb).toBeNull();
+    expect(filTap(s, 0, ANN, identityTypedTextOf).step).toBe('pick-verb');
+    expect(filDoneAction(filStart(), 3, ANN)).toBe('edit'); // only meaningful in the done state
   });
 
   it("tapping the verb again cancels; unaligned taps and exit", () => {

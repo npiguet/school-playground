@@ -9,7 +9,7 @@
   import { mapAnnotation, reverseAnnotationMap } from '$lib/grading/annotationMap';
   import { errorKey, gradeText } from '$lib/grading/grade';
   import type { Annotation, ArgusPass, GradeResult, TokenError } from '$lib/grading/types';
-  import { filExit, filStart, filTap, type FilState, type TypedTextLookup } from '$lib/fil';
+  import { filDoneAction, filExit, filStart, filTap, type FilState, type TypedTextLookup } from '$lib/fil';
   import { savePlayState, type PlayState } from '$lib/playState';
   import { replaceSpan, sentenceSpans } from '$lib/textEdit';
   import type { PlayMode, TextFull } from '$lib/types';
@@ -109,12 +109,18 @@
   /** A tap on typed token `typedIndex` while the Fil is active: mapped to the annotation token
    *  its aligned reference token carries (undefined for an unaligned/extra typed word), then
    *  handed to the state machine. Never edits `play.current`. */
-  function tapFil(typedIndex: number) {
+  function annotIndexOfTyped(typedIndex: number): number | undefined {
     const refIndex = refByTyped.get(typedIndex);
-    const annotIndex = refIndex !== undefined ? annots[refIndex]?.i : undefined;
-    fil = filTap(fil, annotIndex, annotation, typedTextOf);
+    return refIndex !== undefined ? annots[refIndex]?.i : undefined;
+  }
+
+  function tapFil(typedIndex: number) {
+    fil = filTap(fil, annotIndexOfTyped(typedIndex), annotation, typedTextOf);
     play.fil = { drawn: fil.drawn, correct: fil.correct };
   }
+
+  // The threaded verb's typed spelling, for the done-state hint (never the reference's).
+  const filVerbText = $derived(fil.highlightVerb === null ? '' : typedTextOf(fil.highlightVerb) ?? '');
 
   // The stage-3 count is frozen at the start of proofreading (plan decision #6): a live
   // count would grade every edit.
@@ -253,12 +259,17 @@
   // --- Editing ------------------------------------------------------------------------
 
   function editToken(index: number) {
-    // Fix round 1 item 4: once a thread is drawn (`done`), tapping any token — including the
-    // highlighted verb — exits the Fil and opens the normal word editor for that token, instead
-    // of silently starting a new thread from that tap. The Fil only ever drives the state
-    // machine while actively picking a verb/subject.
+    // SP2 playability P1-7: once a thread is drawn (`done`) the Fil stays armed until she taps
+    // « Quitter le fil ». A tap on another verb starts a new thread; the threaded verb itself or
+    // a non-verb opens the normal word editor for that token while the Fil goes back to picking
+    // — it is never silently switched off (the review saw the editor open where she expected a
+    // second thread).
     if (fil.step === 'done') {
-      fil = filExit(fil);
+      if (filDoneAction(fil, annotIndexOfTyped(index), annotation) === 'thread') {
+        tapFil(index);
+        return;
+      }
+      fil = filTap(fil, undefined, annotation, typedTextOf); // re-armed, back to pick-verb
       flushSync(() => {
         editing = index;
       });
@@ -383,7 +394,14 @@
 
   {#if fil.step !== 'idle'}
     <div class="fil-panel" role="status">
-      <p class="fil-message" data-testid="fil-message">{fil.message}</p>
+      <div class="fil-text">
+        <p class="fil-message" data-testid="fil-message">{fil.message}</p>
+        {#if fil.step === 'done'}
+          <p class="fil-next" data-testid="fil-next">
+            Touche un autre verbe pour tendre un nouveau fil{filVerbText ? `, ou touche « ${filVerbText} » pour le corriger` : ''}.
+          </p>
+        {/if}
+      </div>
       <button type="button" class="btn" data-testid="btn-fil-exit" onclick={exitFil}>Quitter le fil</button>
     </div>
   {/if}
@@ -546,10 +564,22 @@
     border-radius: var(--radius);
     padding: 10px 14px;
   }
+  .fil-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
   .fil-message {
     margin: 0;
     font-weight: 600;
     color: var(--aegean);
+  }
+  .fil-next {
+    margin: 0;
+    font-size: 16px;
+    color: var(--ink-soft);
   }
   .text {
     flex: 1;
