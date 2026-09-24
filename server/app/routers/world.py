@@ -276,8 +276,10 @@ def get_camp(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
     tier_avail = tier_available(len(neutralised), len(available), won)
     active_boss = db.execute("SELECT id FROM quest WHERE profile_id = ? AND kind = 'boss' AND status = 'active'", (pid,)).fetchone()
     rewards_count = db.execute("SELECT COUNT(*) FROM reward WHERE profile_id = ?", (pid,)).fetchone()[0]
+    dragon = dragon_out(db, profile, now)   # may persist a caught-up stage (see dragon_out's monotonic recompute)
+    db.commit()
     return {
-        "profile": to_out(profile), "xp": xp_block(db, pid), "dragon": dragon_out(db, profile, now),
+        "profile": to_out(profile), "xp": xp_block(db, pid), "dragon": dragon,
         "lieutenants": lieutenant_states(db, profile), "quests": quests,
         "oracle": {"week": full_oracle["week"], "status": full_oracle["status"], "reward_id": full_oracle["reward_id"]},
         "prophecies": full_oracle["prophecies"],
@@ -303,8 +305,9 @@ def patch_dragon(profile_id: int, body: DragonPatch, db: sqlite3.Connection = De
     if updates:
         sets = ", ".join(f"{k} = ?" for k in updates)
         db.execute(f"UPDATE dragon SET {sets}, updated_at = ? WHERE profile_id = ?", (*updates.values(), now, profile_id))
+    result = dragon_out(db, profile, now)
     db.commit()
-    return dragon_out(db, profile, now)
+    return result
 
 
 @router.get("/profiles/{profile_id}/quests")
