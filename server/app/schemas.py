@@ -109,6 +109,8 @@ class SessionCreate(BaseModel):
     result: dict[str, Any]
     score: int = Field(ge=0)
     catch_rate: float | None = Field(default=None, ge=0, le=1)
+    encounter: str | None = None
+    quest_id: int | None = None
 
 
 class CorruptRequest(BaseModel):

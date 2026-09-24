@@ -1,12 +1,14 @@
 """Sessions API: records a played dictation and updates stats, trap words and the adaptive help stage."""
 from __future__ import annotations
-import json, sqlite3
+import json, re, sqlite3
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from app.clock import local_day
 from app.db import get_db
 from app.routers.profiles import fetch_profile
 from app.schemas import SessionCreate
 from app.stats import apply_session_to_stats, next_help_stage, update_trap_words
+from app.world.progression import apply_progression
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
@@ -19,20 +21,25 @@ def now() -> str:
 
 
 @router.post("", status_code=201)
-def create_session(body: SessionCreate, db: sqlite3.Connection = Depends(get_db)):
+def create_session(body: SessionCreate, request: Request, db: sqlite3.Connection = Depends(get_db),
+                    x_discorde_day: str | None = Header(default=None)):
+    settings = request.app.state.settings
     profile = fetch_profile(db, body.profile_id)
-    text = db.execute("SELECT id, body FROM text WHERE id = ?", (body.text_id,)).fetchone()
+    text = db.execute("SELECT id, body, due_date FROM text WHERE id = ?", (body.text_id,)).fetchone()
     if text is None:
         raise HTTPException(404, "Text not found")
 
     finished_at = now()
-    day = finished_at[:10]
+    day = local_day(finished_at)
+    if settings.test_hooks and x_discorde_day and re.fullmatch(r"\d{4}-\d{2}-\d{2}", x_discorde_day):
+        day = x_discorde_day; finished_at = f"{day}T12:00:00+00:00"
     cur = db.execute(
         """INSERT INTO session(profile_id, text_id, pace_level, help_stage, mode, started_at, finished_at,
-                                draft, final, result_json, score, catch_rate)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                                draft, final, result_json, score, catch_rate, encounter, quest_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (body.profile_id, body.text_id, body.pace_level, body.help_stage, body.mode, body.started_at, finished_at,
-         body.draft, body.final, json.dumps(body.result, ensure_ascii=False), body.score, body.catch_rate))
+         body.draft, body.final, json.dumps(body.result, ensure_ascii=False), body.score, body.catch_rate,
+         body.encounter, body.quest_id))
     session_id = cur.lastrowid
 
     grimoire = body.mode == "grimoire"
@@ -52,13 +59,17 @@ def create_session(body: SessionCreate, db: sqlite3.Connection = Depends(get_db)
     if not grimoire:
         rates = [r["catch_rate"] for r in db.execute(
             "SELECT catch_rate FROM session WHERE profile_id = ? AND help_stage = ? AND mode = 'dictation' "
-            "AND catch_rate IS NOT NULL ORDER BY finished_at DESC, id DESC LIMIT 3",
+            "AND encounter IS NULL AND catch_rate IS NOT NULL ORDER BY finished_at DESC, id DESC LIMIT 3",
             (body.profile_id, help_stage_before))]
         help_stage_after = next_help_stage(help_stage_before, rates)
         if help_stage_after != help_stage_before:
             db.execute("UPDATE profile SET help_stage = ? WHERE id = ?", (help_stage_after, body.profile_id))
             message = UP_MESSAGE if help_stage_after > help_stage_before else DOWN_MESSAGE
 
+    prophecy = bool(text["due_date"]) and text["due_date"] >= day
+    progression = apply_progression(db, profile, session_id, body, body.result, day, finished_at, prophecy)
+
     db.commit()
     return {"id": session_id, "help_stage_before": help_stage_before,
-            "help_stage_after": help_stage_after, "help_stage_message": message}
+            "help_stage_after": help_stage_after, "help_stage_message": message,
+            "progression": progression}

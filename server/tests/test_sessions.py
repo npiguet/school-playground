@@ -9,6 +9,30 @@ def setup(client):
     return p, t
 
 
+_profile_seq = [0]
+
+
+def make_profile(client, level="10H", **kw):
+    """SP3 helper (test_progression.py): a fresh profile at the given level, returning its id."""
+    _profile_seq[0] += 1
+    body = {"name": f"Joueur{_profile_seq[0]}", "avatar": "chouette", "level": level}
+    body.update(kw)
+    return client.post("/api/profiles", json=body).json()["id"]
+
+
+def make_text(client, level="10H", **kw):
+    """SP3 helper (test_progression.py): a fresh text at the given level, returning its id."""
+    body = {"title": "Texte", "body": FEES, "level": level, "source": "custom"}
+    body.update(kw)
+    return client.post("/api/texts", json=body).json()["id"]
+
+
+def make_result():
+    """SP3 helper (test_progression.py): a minimal valid SessionResult with no errors."""
+    return {"version": 1, "byCategory": {}, "draftErrors": [], "finalErrors": [], "caught": [], "missed": [],
+            "introduced": [], "correctWords": 13, "totalWords": 13, "catchRate": None, "score": 100}
+
+
 def result(catch_rate, caught=1, missed=1, lexical_expected=None):
     errs = [{"refIndex": 2, "typedIndex": 2, "expected": "dansent", "typed": "danse", "category": "agreement", "sub": "verb"},
             {"refIndex": 7, "typedIndex": 7, "expected": "chantent", "typed": "chante", "category": "agreement", "sub": "verb"}]
@@ -33,7 +57,8 @@ def post_session(client, p, t, catch_rate, help_stage=None, **kw):
 
 def test_session_updates_stats_history_and_trap_words(client):
     p, t = setup(client)
-    post_session(client, p, t, 0.5, lexical_expected="clairière")
+    session = post_session(client, p, t, 0.5, lexical_expected="clairière")
+    assert "progression" in session
     stats = client.get(f"/api/profiles/{p['id']}/stats").json()
     verb = next(c for c in stats["categories"] if c["category"] == "agreement:verb")
     assert verb == {"category": "agreement:verb", "occurrences": 3, "errors_in_draft": 2, "caught": 1, "missed": 1, "catch_rate": 0.5}

@@ -23,7 +23,8 @@ def settings(tmp_path):
     return Settings(data_dir=tmp_path / "data", content_dir=content,
                     static_dir=tmp_path / "static", spacy_model="fr_core_news_sm",
                     seed_on_startup=False,
-                    alexandria_offline_dir=Path(__file__).parent / "fixtures" / "alexandria")
+                    alexandria_offline_dir=Path(__file__).parent / "fixtures" / "alexandria",
+                    test_hooks=True)
 
 
 @pytest.fixture

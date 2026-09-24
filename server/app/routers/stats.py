@@ -22,7 +22,7 @@ def get_stats(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
     categories = []
     for r in db.execute(
             "SELECT category, occurrences, errors_in_draft, caught, missed FROM profile_stat "
-            "WHERE profile_id = ? ORDER BY category", (profile_id,)):
+            "WHERE profile_id = ? AND category NOT LIKE 'derived:%' ORDER BY category", (profile_id,)):
         row = dict(r)
         row["catch_rate"] = row["caught"] / row["errors_in_draft"] if row["errors_in_draft"] > 0 else None
         categories.append(row)
@@ -38,7 +38,7 @@ def get_stats(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
         "SELECT COUNT(*) AS sessions, COALESCE(SUM(score), 0) AS score FROM session WHERE profile_id = ?",
         (profile_id,)).fetchone()
     caught_row = db.execute(
-        "SELECT COALESCE(SUM(caught), 0) AS caught FROM profile_stat WHERE profile_id = ?",
+        "SELECT COALESCE(SUM(caught), 0) AS caught FROM profile_stat WHERE profile_id = ? AND category NOT LIKE 'derived:%'",
         (profile_id,)).fetchone()
 
     return {
