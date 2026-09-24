@@ -144,6 +144,25 @@ const tk = (w: string) => tokenize(w)[0];
 function ann(pos: string, morph: Record<string, string>, extra: Partial<AnnotToken> = {}): AnnotToken {
   return { i: 0, text: '', start: 0, end: 0, lemma: '', pos, morph, head: 0, dep: 'dep', categories: [], homophone: null, subject: null, ...extra };
 }
+describe('P1-2: adjectival participle is graded as noun-group agreement, not Protée', () => {
+  it('classifies a participle with dep amod/acl/acl:relcl as number/gender agreement', () => {
+    const endormis = ann('VERB', { VerbForm: 'Part', Number: 'Plur' }, { dep: 'amod' });
+    expect(classifyPair(tk('endormis'), tk('endormi'), endormis, -1)).toMatchObject({ category: 'agreement', sub: 'number' });
+    const eclairees = ann('VERB', { VerbForm: 'Part', Gender: 'Fem' }, { dep: 'acl:relcl' });
+    expect(agreementSub('éclairées', 'éclairé', eclairees)).toBe('gender');
+    const endormisAcl = ann('VERB', { VerbForm: 'Part', Number: 'Plur' }, { dep: 'acl' });
+    expect(agreementSub('endormis', 'endormi', endormisAcl)).toBe('number');
+  });
+  it('keeps the participle (Protée) subcategory for a real avoir/être participle (not amod/acl)', () => {
+    const choisie = ann('VERB', { VerbForm: 'Part', Gender: 'Fem' }, { dep: 'root' });
+    expect(classifyPair(tk('choisie'), tk('choisi'), choisie, -1)).toMatchObject({ category: 'agreement', sub: 'participle' });
+  });
+  it('applies the same distinction to an irregular participle form found via the lexicon', () => {
+    const enduAdj = ann('VERB', { VerbForm: 'Part', Gender: 'Fem', Number: 'Sing' }, { dep: 'amod', forms: { endormi: { g: 'm', n: 's' } } });
+    expect(classifyPair(tk('endormie'), tk('endormi'), enduAdj, -1)).toMatchObject({ category: 'agreement', sub: 'gender' });
+  });
+});
+
 describe('classify v2', () => {
   it('accepts 1990 reform spellings as correct', () => {
     expect(classifyPair(tk('maître'), tk('maitre'), undefined, -1)).toBeNull();

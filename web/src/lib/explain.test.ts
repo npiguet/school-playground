@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gradeText, tokenize, mapAnnotation } from '$lib/grading';
-import { caughtText, explain, erisLine, statKeyOf } from './explain';
+import { caughtText, explain, erisLine, statKeyOf, CATEGORY_LABELS } from './explain';
 import type { Annotation, AnnotToken, Chain, TokenError } from '$lib/grading/types';
 
 const REF = 'Les fées dansent dans la clairière.';
@@ -311,6 +311,48 @@ describe('explain (P1-1 elided-text regression)', () => {
     const err = g.errors.find((e) => e.category === 'agreement' && e.sub === 'number');
     expect(err).toBeDefined();
     expect(explain(err!, ctx).text).toBe('« étroites » s\'accorde avec « ruelles » → pluriel');
+  });
+});
+
+// P1-2 regression: an adjectival participle ("les toits endormis", dep amod — no être/avoir
+// involved) must explain like a noun-group agreement, not the Protée être/avoir template.
+describe('explain (P1-2 adjectival participle)', () => {
+  const REF = 'Les toits endormis.';
+  function ann3(): Annotation {
+    const spec: [string, string, Record<string, string>?, Partial<AnnotToken>?][] = [
+      ['DET', 'les', {}, { head: 1 }],
+      ['NOUN', 'toit', { Number: 'Plur' }, { head: 1 }],
+      ['VERB', 'endormir', { VerbForm: 'Part', Number: 'Plur' }, { head: 1, dep: 'amod', categories: ['participle', 'nominal_group'] }],
+      ['PUNCT', '.', {}, {}],
+    ];
+    const tokens: AnnotToken[] = tokenize(REF).map((t, i) => ({
+      i,
+      text: t.text,
+      start: t.start,
+      end: t.end,
+      lemma: spec[i][1],
+      pos: spec[i][0],
+      morph: spec[i][2] ?? {},
+      head: i,
+      dep: 'dep',
+      categories: [],
+      homophone: null,
+      subject: null,
+      ...(spec[i][3] ?? {}),
+    }));
+    return { version: 2, model: 't', tokens, sentences: [] };
+  }
+  it('explains it as noun-group number agreement, naming the noun, not the être/avoir rule', () => {
+    const g = gradeText(REF, 'Les toits endormi.', ann3());
+    const ctx = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, ann3()), annotation: ann3() };
+    const err = g.errors.find((e) => e.category === 'agreement');
+    expect(err).toBeDefined();
+    expect(err!.sub).toBe('number');
+    expect(statKeyOf(err!)).toBe('agreement:number');
+    const { title, text } = explain(err!, ctx);
+    expect(title).toBe(CATEGORY_LABELS['agreement:number']);
+    expect(text).toBe('« endormis » s\'accorde avec « toits » → pluriel');
+    expect(text).not.toMatch(/avec être|avec avoir/);
   });
 });
 

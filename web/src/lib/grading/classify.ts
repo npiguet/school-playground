@@ -122,14 +122,28 @@ export function isVerbEndingHomophone(r: string, t: string): boolean {
   return false;
 }
 
+// P1-2: a past participle used adjectivally ("les toits endormis", "des ruelles éclairées") is
+// not the être/avoir agreement rule (Protée) — it agrees like any adjective, with the noun it
+// modifies. Mirrors the server's own ADJ_PARTICIPLE_DEPS (server/app/nlp/annotate.py), which
+// already tags this exact case with the `nominal_group` category alongside `participle`: a
+// participle whose dependency is `amod`/`acl`/`acl:relcl` (adnominal) rather than governed by an
+// auxiliary (dep `root`/`ccomp`/`xcomp`/... with an `aux`/`aux:pass`/`cop` child).
+const ADJ_PARTICIPLE_DEPS = new Set(['amod', 'acl', 'acl:relcl']);
+
+function numberOrGenderSub(r: string, t: string): ErrorSub {
+  const strip = (w: string) => (w.endsWith('s') || w.endsWith('x') ? w.slice(0, -1) : w);
+  return strip(r) === strip(t) ? 'number' : 'gender';
+}
+
 export function agreementSub(r: string, t: string, annot: AnnotToken | undefined): ErrorSub | undefined {
   if (!annot) return undefined;
   if (annot.pos === 'VERB' || annot.pos === 'AUX') {
-    return annot.morph.VerbForm === 'Part' ? 'participle' : 'verb';
+    const isParticiple = annot.morph.VerbForm === 'Part';
+    if (isParticiple && ADJ_PARTICIPLE_DEPS.has(annot.dep)) return numberOrGenderSub(r, t);
+    return isParticiple ? 'participle' : 'verb';
   }
   if (annot.pos === 'DET' || annot.pos === 'NOUN' || annot.pos === 'ADJ' || annot.pos === 'PRON') {
-    const strip = (w: string) => (w.endsWith('s') || w.endsWith('x') ? w.slice(0, -1) : w);
-    return strip(r) === strip(t) ? 'number' : 'gender';
+    return numberOrGenderSub(r, t);
   }
   return undefined;
 }
@@ -157,7 +171,10 @@ function findForm(forms: Record<string, FormFeatures> | undefined, t: string): F
  */
 function formsSub(r: string, t: string, annot: AnnotToken, tf: FormFeatures): ErrorSub | undefined {
   if (annot.pos === 'VERB' || annot.pos === 'AUX') {
-    return annot.morph.VerbForm === 'Part' ? 'participle' : 'verb';
+    const isParticiple = annot.morph.VerbForm === 'Part';
+    // P1-2: an adjectival participle falls through to the gender/number comparison below, same
+    // as agreementSub — it's not the être/avoir rule.
+    if (!(isParticiple && ADJ_PARTICIPLE_DEPS.has(annot.dep))) return isParticiple ? 'participle' : 'verb';
   }
   const rf: FormFeatures = {
     g: annot.morph.Gender === 'Fem' ? 'f' : annot.morph.Gender === 'Masc' ? 'm' : null,
