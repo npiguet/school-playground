@@ -10,6 +10,11 @@ export default defineConfig({
   testIgnore: ['**/playability*.spec.ts'],
   timeout: 60_000,
   retries: 0,
+  // Every worker drives the same single app container (compose.e2e.yaml), and Alexandria refreshes
+  // run spaCy on it: at 24 concurrent workers that container can no longer answer in time. Cap the
+  // worker count so the suite's load doesn't depend on the host's core count (Playwright's default
+  // is half the cores). The specs themselves stay correct at any count (proven at 12).
+  workers: 8,
   reporter: [['list']],
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:8080',
