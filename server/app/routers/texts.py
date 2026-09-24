@@ -1,14 +1,18 @@
 """Texts API: list/create/read/delete texts. Reference text is always the answer key (spec §1)."""
 from __future__ import annotations
-import json, sqlite3
+import json, random, sqlite3, time
 from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from app.corrupt import apply_plants, category_weights, corruption_count, load_reform, plan_corruptions
 from app.db import get_db
 from app.deps import get_annotator
+from app.lexicon import load_lexicon
 from app.levels import LEVELS, level_index
+from app.nlp.homophones import load_homophones
+from app.routers.profiles import fetch_profile
 from app.routers.scan import SCAN_ID_RE, scan_dir
-from app.schemas import TextCreate, TextFull, TextHistory, TextSummaryWithHistory
+from app.schemas import CorruptRequest, TextCreate, TextFull, TextHistory, TextSummaryWithHistory
 from app.textutil import build_credits, has_digits, word_count
 
 router = APIRouter(prefix="/api/texts", tags=["texts"])
@@ -104,6 +108,34 @@ def create_text(body: TextCreate, request: Request, db: sqlite3.Connection = Dep
 @router.get("/{text_id}", response_model=TextFull)
 def get_text(text_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)):
     return to_full(fetch_text(db, text_id), data_dir=request.app.state.settings.data_dir)
+
+
+@router.post("/{text_id}/corrupt")
+def corrupt_text(text_id: int, body: CorruptRequest, request: Request, db: sqlite3.Connection = Depends(get_db)):
+    row = fetch_text(db, text_id)
+    profile = fetch_profile(db, body.profile_id)
+    text = row["body"]
+    annotation = json.loads(row["annotation_json"])
+
+    settings = request.app.state.settings
+    lexicon = load_lexicon(settings.content_dir)
+    homophones = load_homophones(settings.content_dir)
+    reform = load_reform(settings.content_dir)
+
+    stat_rows = [dict(r) for r in db.execute(
+        "SELECT category, errors_in_draft, caught FROM profile_stat WHERE profile_id = ?", (body.profile_id,))]
+    trap = {r[0] for r in db.execute(
+        "SELECT word FROM trap_word WHERE profile_id = ?", (body.profile_id,))}
+
+    weights = category_weights(stat_rows, profile["level"])
+    count = corruption_count(word_count(text))
+    rng = random.Random(body.seed if body.seed is not None else time.time_ns())
+    plants = plan_corruptions(text, annotation, lexicon, homophones, weights, count, rng, trap, reform)
+
+    if len(plants) < 3:
+        raise HTTPException(422, "Éris n'a pas trouvé assez de prises dans ce texte.")
+
+    return {"text_id": text_id, "corrupted": apply_plants(text, plants), "count": len(plants), "plants": plants}
 
 
 @router.delete("/{text_id}", status_code=204)

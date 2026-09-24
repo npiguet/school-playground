@@ -28,27 +28,32 @@ def create_session(body: SessionCreate, db: sqlite3.Connection = Depends(get_db)
     finished_at = now()
     day = finished_at[:10]
     cur = db.execute(
-        """INSERT INTO session(profile_id, text_id, pace_level, help_stage, started_at, finished_at,
+        """INSERT INTO session(profile_id, text_id, pace_level, help_stage, mode, started_at, finished_at,
                                 draft, final, result_json, score, catch_rate)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-        (body.profile_id, body.text_id, body.pace_level, body.help_stage, body.started_at, finished_at,
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (body.profile_id, body.text_id, body.pace_level, body.help_stage, body.mode, body.started_at, finished_at,
          body.draft, body.final, json.dumps(body.result, ensure_ascii=False), body.score, body.catch_rate))
     session_id = cur.lastrowid
 
     apply_session_to_stats(db, body.profile_id, body.result, day, finished_at)
     update_trap_words(db, body.profile_id, body.result, text["body"], finished_at)
 
+    # Grimoire corrompu sessions are deliberately weighted toward the profile's weaknesses,
+    # so they never move the adaptive help stage (plan decision 8); they still feed stats and
+    # trap words above. Recent-rate history for the help stage only ever looks at dictation
+    # sessions, so a grimoire round never counts toward a dictation-mode change either.
     help_stage_before = profile["help_stage"]
-    rates = [r["catch_rate"] for r in db.execute(
-        "SELECT catch_rate FROM session WHERE profile_id = ? AND help_stage = ? AND catch_rate IS NOT NULL "
-        "ORDER BY finished_at DESC, id DESC LIMIT 3",
-        (body.profile_id, help_stage_before))]
-    help_stage_after = next_help_stage(help_stage_before, rates)
-
+    help_stage_after = help_stage_before
     message = None
-    if help_stage_after != help_stage_before:
-        db.execute("UPDATE profile SET help_stage = ? WHERE id = ?", (help_stage_after, body.profile_id))
-        message = UP_MESSAGE if help_stage_after > help_stage_before else DOWN_MESSAGE
+    if body.mode != "grimoire":
+        rates = [r["catch_rate"] for r in db.execute(
+            "SELECT catch_rate FROM session WHERE profile_id = ? AND help_stage = ? AND mode = 'dictation' "
+            "AND catch_rate IS NOT NULL ORDER BY finished_at DESC, id DESC LIMIT 3",
+            (body.profile_id, help_stage_before))]
+        help_stage_after = next_help_stage(help_stage_before, rates)
+        if help_stage_after != help_stage_before:
+            db.execute("UPDATE profile SET help_stage = ? WHERE id = ?", (help_stage_after, body.profile_id))
+            message = UP_MESSAGE if help_stage_after > help_stage_before else DOWN_MESSAGE
 
     db.commit()
     return {"id": session_id, "help_stage_before": help_stage_before,

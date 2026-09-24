@@ -28,7 +28,7 @@ def get_stats(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
         categories.append(row)
 
     recent_sessions = [dict(r) for r in db.execute(
-        "SELECT s.id, s.text_id, t.title, s.finished_at, s.score, s.catch_rate, s.pace_level, s.help_stage "
+        "SELECT s.id, s.text_id, t.title, s.finished_at, s.score, s.catch_rate, s.pace_level, s.help_stage, s.mode "
         "FROM session s JOIN text t ON t.id = s.text_id WHERE s.profile_id = ? "
         "ORDER BY s.finished_at DESC, s.id DESC LIMIT 20", (profile_id,))]
 

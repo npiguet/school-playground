@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 from app.levels import LEVELS, AVATARS
 
@@ -102,9 +102,15 @@ class SessionCreate(BaseModel):
     text_id: int
     pace_level: int = Field(ge=1, le=4)
     help_stage: int = Field(ge=1, le=4)
+    mode: Literal["dictation", "grimoire"] = "dictation"
     started_at: str
     draft: str
     final: str
     result: dict[str, Any]
     score: int = Field(ge=0)
     catch_rate: float | None = Field(default=None, ge=0, le=1)
+
+
+class CorruptRequest(BaseModel):
+    profile_id: int
+    seed: int | None = None

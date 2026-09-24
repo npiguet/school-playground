@@ -1,3 +1,5 @@
+from app.routers.sessions import DOWN_MESSAGE, UP_MESSAGE
+
 FEES = "Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent."
 
 
@@ -52,14 +54,14 @@ def test_help_stage_adapts(client):
     assert post_session(client, p, t, 0.9)["help_stage_after"] == 1
     r = post_session(client, p, t, 0.7)
     assert (r["help_stage_before"], r["help_stage_after"]) == (1, 2)
-    assert "Muses" in r["help_stage_message"]
+    assert r["help_stage_message"] == UP_MESSAGE
     assert client.get(f"/api/profiles/{p['id']}").json()["help_stage"] == 2
     # sessions at the previous stage do not count toward the next change
     r = post_session(client, p, t, 0.1)
     assert r["help_stage_after"] == 2
     r = post_session(client, p, t, 0.2)
     assert (r["help_stage_before"], r["help_stage_after"]) == (2, 1)
-    assert "Argus" in r["help_stage_message"]
+    assert r["help_stage_message"] == DOWN_MESSAGE
 
 
 def test_null_catch_rate_is_ignored_for_adaptation(client):
