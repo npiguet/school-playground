@@ -19,6 +19,12 @@ CLITIC_COD = {"le", "la", "les", "l'", "me", "te", "nous", "vous", "se", "m'", "
 
 NOMINAL_POS = {"NOUN", "PROPN"}
 SIMPLE_CONTROLLER_POS = {"NOUN", "PROPN", "PRON"}
+# Subjects whose form does not dictate agreement the usual way: never a high-confidence chain.
+# « on » may stand for « nous » (« on est partis »); with « ce » the verb agrees with the attribute
+# (« ce sont des fées »).
+INDEFINITE_SUBJECTS = {"on", "ce", "c'", "ç'"}
+# Verbs whose « il » is impersonal (no referent): « il pleut », « il faut ».
+IMPERSONAL_VERB_LEMMAS = {"falloir", "pleuvoir", "neiger", "grêler", "venter", "bruiner"}
 MAX_HIGH_DISTANCE = 8          # subject → verb distance beyond which a chain is at most medium
 MAX_HIGH_NOMINAL_DISTANCE = 4  # noun → dependent distance beyond which a nominal chain is at most medium
 
@@ -121,13 +127,15 @@ def _nominal_chains(tokens: list[dict]) -> list[dict]:
 class _Controller:
     """The subject side of a predicate: who dictates agreement and how it was reached."""
 
-    def __init__(self, tokens: list[dict], controller: int, via: str | None, via_token: int | None) -> None:
+    def __init__(self, tokens: list[dict], controller: int, via: str | None, via_token: int | None,
+                 impersonal: bool = False) -> None:
         by_i = {t["i"]: t for t in tokens}
         ctrl = by_i[controller]
         self.i = controller
         self.pos = ctrl["pos"]
         self.via = via
         self.via_token = via_token
+        self.impersonal = impersonal
         conj = sorted(c["i"] for c in _children(tokens, controller) if c["dep"] == "conj")
         if conj:
             self.via = via or "conj"
@@ -139,20 +147,40 @@ class _Controller:
         if ctrl["pos"] in NOMINAL_POS:
             self.features.setdefault("Person", "3")
 
+    def cap(self, confidence: str) -> str:
+        """An impersonal or indefinite subject is never a high-confidence controller."""
+        return "medium" if self.impersonal and confidence == "high" else confidence
+
     def confidence(self, consistent: bool, distance: int, via: str | None = None) -> str:
         via = via or self.via
         if (consistent and distance <= MAX_HIGH_DISTANCE and via in (None, "aux")
                 and self.pos in SIMPLE_CONTROLLER_POS and "Number" in self.features):
-            return "high"
+            return self.cap("high")
         if consistent and "Number" in self.features:
             return "medium"
         return "low"
 
 
+def _impersonal_subject(tokens: list[dict], h: dict, s: dict) -> bool:
+    if s["pos"] != "PRON":
+        return False
+    low = _lower(s["text"])
+    if low in INDEFINITE_SUBJECTS:
+        return True
+    if low != "il":
+        return False
+    kids = _children(tokens, h["i"])
+    if h["lemma"] in IMPERSONAL_VERB_LEMMAS:
+        return True
+    if h["lemma"] == "avoir" and any(_lower(c["text"]) == "y" for c in kids):
+        return True  # il y a
+    return h["lemma"] == "agir" and any(_lower(c["text"]) in {"s'", "se"} for c in kids)  # il s'agit
+
+
 def _subject_controller(tokens: list[dict], h: dict, s: dict) -> _Controller:
     if _lower(s["text"]) == "qui" and s["pos"] == "PRON" and h["dep"] == "acl:relcl":
         return _Controller(tokens, h["head"], "qui", s["i"])
-    return _Controller(tokens, s["i"], None, None)
+    return _Controller(tokens, s["i"], None, None, impersonal=_impersonal_subject(tokens, h, s))
 
 
 def _subject_verb_chain(tokens: list[dict], h: dict, ctrl: _Controller) -> dict | None:
@@ -169,10 +197,19 @@ def _subject_verb_chain(tokens: list[dict], h: dict, ctrl: _Controller) -> dict 
 
 
 def _agreeing_target_chain(kind: str, h: dict, ctrl: _Controller) -> dict:
-    """Chain whose single target `h` must carry the controller's Gender/Number (attribute, participle with être)."""
-    consistent = _agrees(h.get("morph", {}), ctrl.features, ("Gender", "Number"))
-    confidence = ctrl.confidence(consistent, abs(h["i"] - ctrl.i))
-    return _chain(kind, ctrl.i, ctrl.group, [h["i"]], ctrl.features, confidence, ctrl.via, ctrl.via_token)
+    """Chain whose single target `h` must carry the controller's Gender/Number (attribute, participle with être).
+
+    A predicate noun (« elle est médecin ») does not inflect for gender: only Number is checked and
+    recorded, so no explanation ever presents a gender rule for it."""
+    if h["pos"] == "NOUN":
+        keys = ("Number",)
+        features = {k: v for k, v in ctrl.features.items() if k in keys}
+    else:
+        keys = ("Gender", "Number")
+        features = ctrl.features
+    consistent = _agrees(h.get("morph", {}), features, keys)
+    confidence = ctrl.confidence(consistent, abs(h["i"] - ctrl.i)) if "Number" in features else "low"
+    return _chain(kind, ctrl.i, ctrl.group, [h["i"]], features, confidence, ctrl.via, ctrl.via_token)
 
 
 def _participle_avoir_chain(tokens: list[dict], h: dict, ctrl: _Controller) -> dict:
@@ -191,7 +228,7 @@ def _participle_avoir_chain(tokens: list[dict], h: dict, ctrl: _Controller) -> d
     morph = h.get("morph", {})
     unmarked = morph.get("Gender", "Masc") == "Masc" and morph.get("Number", "Sing") == "Sing"
     return _chain("participle_avoir", ctrl.i, ctrl.group, [h["i"]], ctrl.features,
-                  "high" if unmarked else "low", ctrl.via, ctrl.via_token, rule="no_agreement")
+                  ctrl.cap("high") if unmarked else "low", ctrl.via, ctrl.via_token, rule="no_agreement")
 
 
 def _predicate_chains(tokens: list[dict]) -> list[dict]:
@@ -212,7 +249,8 @@ def _predicate_chains(tokens: list[dict]) -> list[dict]:
                 chains.append(_agreeing_target_chain("participle_etre", h, ctrl))
             elif "avoir" in lemmas:
                 chains.append(_participle_avoir_chain(tokens, h, ctrl))
-        elif (h["pos"] in {"ADJ", "NOUN"} or _part(h)) and any(a["dep"] == "cop" for a in kids):
+        elif h["pos"] in {"ADJ", "NOUN"} and any(a["dep"] == "cop" for a in kids):
+            # A participle with a copula has an auxiliary child and was handled above as participle_etre.
             chains.append(_agreeing_target_chain("attribute", h, ctrl))
     return chains
 

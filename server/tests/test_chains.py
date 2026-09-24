@@ -186,3 +186,77 @@ def test_controller_without_number_is_low_and_no_subject_means_no_chain():
     assert by_kind(build_chains(t), "subject_verb")[0]["confidence"] == "low"
     t = [tok(0, "Dormir", "VERB", {"VerbForm": "Inf"}, 0, "ROOT"), tok(1, ".", "PUNCT", {}, 0, "punct")]
     assert build_chains(t) == []
+
+
+def test_noun_attribute_checks_number_only():
+    # Elle est médecin .  → predicate nouns do not inflect for gender: never present a gender rule
+    t = [tok(0, "Elle", "PRON", {"Gender": "Fem", "Number": "Sing", "Person": "3"}, 2, "nsubj"),
+         tok(1, "est", "AUX", {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}, 2, "cop", lemma="être"),
+         tok(2, "médecin", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 2, "ROOT"),
+         tok(3, ".", "PUNCT", {}, 2, "punct")]
+    attr = by_kind(build_chains(t), "attribute")[0]
+    assert attr["targets"] == [2] and attr["controller"] == 0 and attr["confidence"] == "high"
+    assert attr["features"] == {"Number": "Sing"}
+    # Elles sont médecin → Number mismatch is still caught
+    t[0]["morph"] = {"Gender": "Fem", "Number": "Plur", "Person": "3"}
+    assert by_kind(build_chains(t), "attribute")[0]["confidence"] == "low"
+    # an adjective attribute keeps the gender check: Elle est content → low
+    t[0]["morph"] = {"Gender": "Fem", "Number": "Sing", "Person": "3"}
+    t[2] = tok(2, "content", "ADJ", {"Gender": "Masc", "Number": "Sing"}, 2, "ROOT")
+    adj = by_kind(build_chains(t), "attribute")[0]
+    assert adj["confidence"] == "low" and adj["features"] == {"Gender": "Fem", "Number": "Sing", "Person": "3"}
+
+
+def _no_high(chains):
+    return all(c["confidence"] != "high" for c in chains)
+
+
+def test_impersonal_il_never_high():
+    # Il pleut .
+    t = [tok(0, "Il", "PRON", {"Gender": "Masc", "Number": "Sing", "Person": "3"}, 1, "nsubj"),
+         tok(1, "pleut", "VERB", {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}, 1, "ROOT", lemma="pleuvoir")]
+    chains = build_chains(t)
+    assert chains and _no_high(chains)
+    # Il y a des fées .
+    t = [tok(0, "Il", "PRON", {"Gender": "Masc", "Number": "Sing", "Person": "3"}, 2, "nsubj"),
+         tok(1, "y", "PRON", {}, 2, "expl:comp"),
+         tok(2, "a", "VERB", {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}, 2, "ROOT", lemma="avoir"),
+         tok(3, "des", "DET", {"Number": "Plur"}, 4, "det"),
+         tok(4, "fées", "NOUN", {"Gender": "Fem", "Number": "Plur"}, 2, "obj")]
+    assert _no_high(by_kind(build_chains(t), "subject_verb"))
+    # Il a fallu partir .  → participle_avoir must not be high either
+    t = [tok(0, "Il", "PRON", {"Gender": "Masc", "Number": "Sing", "Person": "3"}, 2, "nsubj"),
+         tok(1, "a", "AUX", {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}, 2, "aux:tense", lemma="avoir"),
+         tok(2, "fallu", "VERB", {"VerbForm": "Part", "Gender": "Masc", "Number": "Sing"}, 2, "ROOT", lemma="falloir"),
+         tok(3, "partir", "VERB", {"VerbForm": "Inf"}, 2, "xcomp")]
+    assert _no_high(build_chains(t))
+    # a personal « il » stays high
+    t = [tok(0, "Il", "PRON", {"Gender": "Masc", "Number": "Sing", "Person": "3"}, 1, "nsubj"),
+         tok(1, "dort", "VERB", {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}, 1, "ROOT", lemma="dormir")]
+    assert by_kind(build_chains(t), "subject_verb")[0]["confidence"] == "high"
+
+
+def test_on_and_ce_never_high():
+    # On dansait .  (« on » may stand for « nous »: participles and attributes can be plural)
+    t = [tok(0, "On", "PRON", {"Number": "Sing", "Person": "3"}, 1, "nsubj"),
+         tok(1, "dansait", "VERB", {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}, 1, "ROOT")]
+    sv = by_kind(build_chains(t), "subject_verb")[0]
+    assert sv["confidence"] == "medium"
+    # On est partis .
+    t = [tok(0, "On", "PRON", {"Number": "Sing", "Person": "3"}, 2, "nsubj"),
+         tok(1, "est", "AUX", {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}, 2, "aux:tense", lemma="être"),
+         tok(2, "partis", "VERB", {"VerbForm": "Part", "Gender": "Masc", "Number": "Plur"}, 2, "ROOT", lemma="partir")]
+    assert _no_high(build_chains(t))
+    # C' est une fée .  and  Ce sont des fées .  (the verb agrees with the attribute, not with « ce »)
+    t = [tok(0, "C'", "PRON", {"Number": "Sing", "Person": "3"}, 3, "nsubj"),
+         tok(1, "est", "AUX", {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}, 3, "cop", lemma="être"),
+         tok(2, "une", "DET", {"Gender": "Fem", "Number": "Sing"}, 3, "det"),
+         tok(3, "fée", "NOUN", {"Gender": "Fem", "Number": "Sing"}, 3, "ROOT")]
+    chains = build_chains(t)
+    assert by_kind(chains, "subject_verb") and by_kind(chains, "attribute")
+    assert _no_high(c for c in chains if c["kind"] != "nominal")
+    t = [tok(0, "Ce", "PRON", {"Number": "Sing", "Person": "3"}, 3, "nsubj"),
+         tok(1, "sont", "AUX", {"VerbForm": "Fin", "Number": "Plur", "Person": "3"}, 3, "cop", lemma="être"),
+         tok(2, "des", "DET", {"Number": "Plur"}, 3, "det"),
+         tok(3, "fées", "NOUN", {"Gender": "Fem", "Number": "Plur"}, 3, "ROOT")]
+    assert _no_high(c for c in build_chains(t) if c["kind"] != "nominal")
