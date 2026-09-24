@@ -9,9 +9,10 @@
 // - which only ever copies public/ - can never ship a partial download if this script is
 // interrupted before it cleans up) and are only swapped into public/fonts once every file has
 // downloaded successfully. The swap itself never leaves public/fonts missing even if it fails
-// partway: the old tree is moved aside to a backup (still inside public/, same filesystem, so
-// both moves below are plain renames) before the new one is moved in, and is only discarded once
-// the new tree is safely in place; a failed move-in restores it.
+// partway: the old tree is moved aside to a backup (under .cache/, next to the scratch dir, so
+// both moves below are plain renames and nothing stray is ever left in public/) before the new
+// one is moved in, and is only discarded once the new tree is safely in place; a failed move-in
+// restores it.
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 
@@ -42,7 +43,10 @@ async function download(url) {
 
 const rand = randomBytes(4).toString('hex');
 const scratch = `.cache/vendor-fonts-download-${rand}`;
-const backup = `public/.fonts-backup-${rand}`;
+// Final review M14: the backup of the old tree lives under .cache/ too (same filesystem as the
+// scratch dir, which is already renamed into public/ below), so a crash between the two renames
+// can never leave a stray backup inside public/ for the Docker build to ship.
+const backup = `.cache/fonts-backup-${rand}`;
 
 try {
   for (const pkg of [...new Set(FACES.map((f) => f.pkg))]) {

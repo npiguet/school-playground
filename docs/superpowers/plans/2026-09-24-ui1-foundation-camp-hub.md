@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Lay the scenes-UI foundation (self-hosted fonts, UI kit, typed scene data, the scene engine components, the 16:9 cover stage with its 4:3 safe zone, parallax, reduced motion, rotate screen, `?edit` hotspot editor, HUD, dialogue box) and turn the Camp into the first hub scene whose hotspots route to the existing, unchanged screens, tested in WebKit at iPad landscape 1180×820.
+**Goal:** Lay the scenes-UI foundation (self-hosted fonts, UI kit, typed scene data, the scene engine components, the 16:9 cover stage with its 4:3 safe zone, parallax, reduced motion, rotate screen, `?debug` hotspot overlay (amended 2026-09-24: replaces the dropped `?edit` editor, see Ruling 9), HUD, dialogue box) and turn the Camp into the first hub scene whose hotspots route to the existing, unchanged screens, tested in WebKit at iPad landscape 1180×820.
 
 **Architecture:** Pure logic lives in small TypeScript modules under `web/src/lib/scene/` (geometry, validation, particles, typewriter, editor serialisation) and is unit-tested with vitest (node environment, no DOM). Scene *data* lives in `web/src/lib/world/scenes/` (the camp definition + a separate, generated `camp.shapes.ts` holding only hotspot coordinates in art %). Svelte 5 components under `web/src/components/scene/` render a fixed full-screen stage: a 16:9 "art box" sized to the viewport height (sides cropped on iPad, bands on ultra-wide), everything interactive inside a centred 4:3 safe zone. The Camp screen becomes a `SceneStage` with `Hotspot` buttons, a `Hud`, a `DialogueBox` greeting and an `Overlay` hero panel on its own route (`#/p/:id/camp?panel=heros`). Components are verified by `svelte-check` and Playwright (a new `ipad` WebKit project next to the existing `desktop` one).
 
@@ -39,7 +39,7 @@
 6. **Hero panel = the UI1 overlay**, on route `#/p/:id/camp?panel=heros` (the router already parses hash queries). It carries the links the camp's TopBar used to offer: Réglages (settings), Progrès (stats), Changer de héros. Closing navigates to `#/p/:id/camp`; Back also closes it.
 7. **Parallax is pointer-only in UI1** (mouse move, touch drag) with `touch-action: none` on the stage. Device tilt needs `DeviceOrientationEvent.requestPermission()` from a user gesture on iPad; it is deferred to UI3's title scene « Entrer » tap. Depth 0 (the background and every hotspot) never moves, so hotspots stay exactly on their art.
 8. **Rotate screen only on scene screens in UI1.** `RotateScreen` lives inside `SceneStage`; the legacy screens stay usable in portrait until UI3/UI4 replace them (the old iPad-portrait playability walks keep working).
-9. **`?edit` flag:** the editor shows when `edit` is in `location.search` (`/?edit#/p/1/camp`) **or** in the hash query (`#/p/1/camp?edit`). It is compiled into the bundle but never rendered without the flag.
+9. **`?debug` flag (amended 2026-09-24, user decision; was `?edit`):** the read-only hotspot outline overlay (`HotspotDebug.svelte`) shows when `debug` is in `location.search` (`/?debug#/p/1/camp`) **or** in the hash query (`#/p/1/camp?debug`). The interactive `?edit` editor of Task 9 below was dropped (Task 9b); shapes are hand-authored data in `camp.shapes.ts`. It is compiled into the bundle but never rendered without the flag.
 10. **Greeting:** the dragon greets once per profile per page load (module-level set), only after onboarding is done, never in edit mode. Non-modal: it sits in the dialogue dock.
 11. **Global type swap.** `--font-display` becomes Cinzel and `--font-body` Alegreya app-wide (legacy screens get the new type for free; texts and selectors are unchanged); new token `--font-reading` (Literata) replaces `--font-body` on exactly four reading surfaces: `Dictation.svelte` `.draft`, `TokenText.svelte` `.tokens`, `Proofreading.svelte` `.text textarea`, `WordEditor.svelte` `input`.
 12. **Art budget tests split:** scene backgrounds (`web/public/art/scenes/*.webp`) are checked against the spec's 600 KB; the existing 150 KB/file and 2.5 MB total checks in `art.test.ts` now exclude scenes (UI2's 2048×1152 scenes would otherwise fail them).
@@ -75,7 +75,7 @@
 | `web/src/screens/Camp.svelte` | camp hub scene | 7 |
 | `web/e2e/helpers.ts` + existing specs | migration to the hub DOM | 7 |
 | `web/playwright.config.ts`, `web/playwright.playability.config.ts`, `web/e2e/scenes-camp.spec.ts` | iPad WebKit project + hub e2e | 8 |
-| `web/src/lib/scene/editor.ts` (+ test), `web/src/components/scene/SceneEditor.svelte`, `web/e2e/scenes-editor.spec.ts` | `?edit` hotspot editor | 9 |
+| `web/src/lib/scene/debugMode.ts` (+ test), `web/src/components/scene/HotspotDebug.svelte`, `web/e2e/scenes-debug.spec.ts` | `?debug` hotspot overlay (amended 2026-09-24: replaces the dropped `?edit` editor files) | 9b |
 | `web/e2e/playability-ui1.spec.ts`, `docs/reviews/ui1/*.png` | review screenshots | 10 |
 
 ---
@@ -3598,6 +3598,8 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- $P
 ---
 
 ### Task 9: The `?edit` hotspot editor
+
+> **Superseded (2026-09-24, user decision):** this editor was dropped and replaced by Task 9b's read-only `?debug` overlay (Ruling 9 as amended). The steps below are kept as the historical record only.
 
 **Files:**
 - Create: `web/src/lib/scene/editor.ts`, `web/src/lib/scene/editor.test.ts`

@@ -10,7 +10,7 @@ under the 600 KB budget).
 - `x, y, w, h` are **percent of the full 16:9 image**: `x`/`y` is the top-left corner, `w`/`h` the size.
   Scenes are rendered `object-fit: cover`, so these are "art %" in the spec's terms.
 - The boxes were measured by eye on a 5 % grid overlay, so treat them as ±2 %. Tighten the final
-  polygons with the `?edit` hotspot editor.
+  polygons by hand in `camp.shapes.ts` and check them with the read-only `?debug` hotspot overlay.
 - **Safe zone** (visible on a landscape iPad): x 12.5–87.5. The top ~8 % is kept for the HUD and the
   bottom ~22 % (y > 78) for the dialogue box.
 - ⚠ marks a landmark that sticks out of the safe zone. Clip its hotspot to the range given.

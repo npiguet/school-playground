@@ -77,8 +77,10 @@ logic and get restyled or re-staged.
   `Hud` (slim: hero, XP laurel, dragon mini-portrait, audio quick toggles), `FxCanvas`,
   `SceneTransition`, `RotateScreen`.
 - **Parallax**: gentle, on pointer drag / device tilt where permitted; ≤ 3 depth layers.
-- **Hotspot editor**: dev aid behind `?edit` — draw/drag hotspot shapes over a scene, copy the
-  data as TS/JSON. Not shipped visibly to players (hidden unless the query flag is present).
+- **Hotspot debug overlay**: dev aid behind `?debug` — a read-only outline of every visible hotspot
+  shape over the scene. Not shipped visibly to players (hidden unless the query flag is present).
+  (User decision, 2026-09-24: the interactive `?edit` hotspot editor was dropped; shapes are
+  authored by hand as data in `<scene>.shapes.ts` and checked with this overlay.)
 - **Motion**: honour `prefers-reduced-motion` (no parallax, no bob, fades only).
 - **Performance**: ≤ 600 KB WebP per scene background; preload likely next scenes; scene visible
   < 1 s on LAN. A test/script fails if a scene background exceeds the budget.
@@ -133,7 +135,7 @@ controls. Proofreading of long texts must stay comfortable: legibility beats dé
 ## 9. Milestones
 
 1. **UI1 Foundation + Camp hub**: fonts, UI kit, scene components, stage/safe-zone, rotate screen,
-   hotspot editor, HUD, dialogue box (static lines ok), Camp as hub scene on placeholder or existing
+   hotspot debug overlay (was: hotspot editor, see §4), HUD, dialogue box (static lines ok), Camp as hub scene on placeholder or existing
    art. Other screens untouched but reachable.
 2. **UI2 Art** (parallel with UI1, art files only): all scenes and cut-outs of §6, hotspot-friendly
    compositions, style-guide update.
