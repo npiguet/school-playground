@@ -40,10 +40,7 @@
   $effect(() =>
     watchReducedMotion((r) => {
       runtime.reduced = r;
-      if (r) {
-        runtime.nx = 0;
-        runtime.ny = 0;
-      }
+      if (r) resetPointer();
     }),
   );
 
@@ -81,6 +78,14 @@
     runtime.nx = 0;
     runtime.ny = 0;
   }
+
+  // pointerup fires on an ordinary desktop mouse click too, which would snap parallax back to
+  // centre while the mouse is still sitting right where it was (there's no "lift the pointer off"
+  // for a mouse the way there is for a touch drag); only reset it there for a non-mouse pointer
+  // (touch/pen). pointerleave and pointercancel always reset, mouse included.
+  function onPointerUp(e: PointerEvent) {
+    if (e.pointerType !== 'mouse') resetPointer();
+  }
 </script>
 
 <svelte:window bind:innerWidth={vw} bind:innerHeight={vh} />
@@ -91,7 +96,7 @@
   data-reduced-motion={runtime.reduced ? 'true' : 'false'}
   onpointermove={onPointerMove}
   onpointerleave={resetPointer}
-  onpointerup={resetPointer}
+  onpointerup={onPointerUp}
   onpointercancel={resetPointer}
 >
   <img class="stage-backdrop" src={scene.background} alt="" aria-hidden="true" />
@@ -167,7 +172,7 @@
   }
   /* Keep in sync with RotateScreen.svelte's media query: a square viewport must not hide the
      stage (spec §4: "portrait and aspect < 1"). */
-  @media (orientation: portrait) and (max-aspect-ratio: 999/1000) {
+  @media (orientation: portrait) and (aspect-ratio < 1) {
     .stage-content {
       display: none;
     }

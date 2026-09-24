@@ -11,11 +11,18 @@
 
   let index = $state(0);
   let shown = $state(0);
-  // `lines` may be empty (UI5 feeds this from dialogue content files; a missing/empty event key
-  // is valid data, not a bug) or `index` may point past its end once the last line finishes: in
-  // either case there is no current line, and nothing below should try to read `.text` off it.
+  // `lines` may be empty (UI5 feeds this from dialogue content files; a missing/empty event key is
+  // valid data, not a bug): `advance()` never walks `index` past the last real line (on the final
+  // line it returns `done: true` while leaving `index` right where it was), so once `lines` has at
+  // least one entry `line` stays defined for the component's whole lifetime. It's only ever
+  // `undefined` when `lines` was empty to begin with - handled below by closing immediately instead
+  // of ever trying to render or read `.text` off a line that doesn't exist.
   const line = $derived<DialogueLine | undefined>(lines[index]);
   const complete = $derived(line !== undefined && shown >= line.text.length);
+
+  $effect(() => {
+    if (lines.length === 0) onDone();
+  });
 
   $effect(() => {
     if (!line) return;
@@ -36,10 +43,8 @@
   });
 
   function next() {
-    if (!line) {
-      onDone();
-      return;
-    }
+    // Only reachable via the .advance button below, which only renders `{#if line}` - `line` is
+    // always defined here.
     const r = advance({ index, shown }, lines);
     if (r.done) {
       onDone();

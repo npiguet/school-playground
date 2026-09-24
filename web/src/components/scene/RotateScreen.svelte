@@ -35,9 +35,10 @@
     display: none;
   }
   /* Spec §4: "portrait and aspect < 1" - `orientation: portrait` alone also matches an exactly
-     square viewport (aspect ratio 1), which must NOT show the rotate screen. max-aspect-ratio
-     excludes it (999/1000 rather than 1/1 so it stays a strict "< 1", not "<= 1"). */
-  @media (orientation: portrait) and (max-aspect-ratio: 999/1000) {
+     square viewport (aspect ratio 1), which must NOT show the rotate screen. `aspect-ratio < 1`
+     (range syntax, Safari 16.4+) is the literal, exact spec condition - unlike a max-aspect-ratio
+     fraction, it needs no "close enough to 1 but technically under" approximation. */
+  @media (orientation: portrait) and (aspect-ratio < 1) {
     .rotate-screen {
       position: fixed;
       inset: 0;
