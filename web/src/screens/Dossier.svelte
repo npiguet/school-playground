@@ -198,7 +198,7 @@
   }
   .bubble {
     margin: 0;
-    font-family: var(--font-display);
+    font-family: var(--font-body);
     font-size: 17px;
   }
   .lieutenant-list {

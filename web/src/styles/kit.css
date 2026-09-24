@@ -1,0 +1,207 @@
+/* UI kit (scenes UI spec §6): semi-transparent parchment panels, bronze embossed buttons, marble
+   plaques for place names, the laurel XP bar tokens, and the idle / tap keyframes of the scene
+   engine. CSS only; Krea textures come later where CSS can't do it. No red anywhere. */
+:root {
+  --parchment: rgba(246, 236, 212, 0.88);
+  --parchment-solid: #f3e6c8;
+  --parchment-edge: #c9ab74;
+  --parchment-shadow: rgba(92, 64, 24, 0.3);
+  --bronze: #8a5a28;
+  --bronze-light: #c89450;
+  --bronze-dark: #5a3a18;
+  --bronze-ink: #fff7e6;
+  --marble-plaque: #efe9df;
+  --marble-vein: rgba(110, 100, 90, 0.16);
+  --laurel: #6b7a3a;
+  --laurel-light: #a4b36a;
+  --laurel-off: rgba(255, 247, 230, 0.28);
+  --night: #15121a;
+  --scrim: rgba(21, 18, 26, 0.55);
+  --kit-radius: 12px;
+}
+
+.kit-parchment {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(255, 255, 255, 0.35), transparent 60%),
+    linear-gradient(180deg, var(--parchment), rgba(236, 219, 184, 0.9));
+  color: var(--ink);
+  border: 1px solid var(--parchment-edge);
+  border-radius: var(--kit-radius);
+  box-shadow:
+    inset 0 0 28px rgba(140, 100, 40, 0.18),
+    0 6px 18px var(--parchment-shadow);
+  font-family: var(--font-body);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+/* Rolled scroll: two wooden rods above and below a parchment panel. */
+.kit-scroll {
+  position: relative;
+}
+.kit-scroll::before,
+.kit-scroll::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  right: -10px;
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(180deg, var(--bronze-light), var(--bronze-dark));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+.kit-scroll::before {
+  top: -7px;
+}
+.kit-scroll::after {
+  bottom: -7px;
+}
+
+.kit-bronze {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 10px 20px;
+  border: 1px solid var(--bronze-dark);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--bronze-light) 0%, var(--bronze) 45%, var(--bronze-dark) 100%);
+  color: var(--bronze-ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 200, 0.6),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.25),
+    0 3px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    filter 0.15s ease;
+}
+.kit-bronze:hover {
+  filter: brightness(1.08);
+}
+.kit-bronze:active {
+  transform: translateY(1px);
+}
+.kit-bronze:focus-visible {
+  outline: 3px solid var(--gold-light);
+  outline-offset: 2px;
+}
+
+/* Marble plaque for scene names (Cinzel, caps). */
+.kit-plaque {
+  display: inline-block;
+  padding: 6px 18px;
+  background:
+    repeating-linear-gradient(115deg, transparent 0 18px, var(--marble-vein) 18px 19px, transparent 19px 41px),
+    linear-gradient(180deg, #faf6ef, var(--marble-plaque));
+  color: var(--ink);
+  border: 1px solid #cfc5b4;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 255, 255, 0.6),
+    inset 0 0 0 4px #d8cdbb,
+    0 4px 10px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Dark ribbon banner over painted scenes (weekly goal, notices). */
+.kit-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--bronze-light);
+  background: linear-gradient(180deg, rgba(21, 18, 26, 0.74), rgba(21, 18, 26, 0.6));
+  color: var(--bronze-ink);
+  font-family: var(--font-body);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Idle presets of scene layers (SceneLayerDef.idle). SceneLayer switches to .idle-none under
+   reduced motion, so these never need their own media query. */
+.idle-none {
+  animation: none;
+}
+.idle-bob {
+  animation: float 4s ease-in-out infinite;
+}
+.idle-sway {
+  animation: kit-sway 5s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+.idle-breathe {
+  animation: kit-breathe 4.5s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes kit-glow {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+@keyframes kit-label-bob {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, -4px);
+  }
+}
+@keyframes kit-flash {
+  0% {
+    opacity: 1;
+    filter: brightness(1.6);
+  }
+  100% {
+    opacity: 0.4;
+    filter: none;
+  }
+}
+@keyframes kit-sway {
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+  50% {
+    transform: rotate(1deg);
+  }
+}
+@keyframes kit-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
