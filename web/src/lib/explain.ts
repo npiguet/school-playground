@@ -197,10 +197,10 @@ function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string):
   }
 
   if (e.sub === 'participle') {
-    return (
-      `Participe passé « ${expected} » : avec être, il s'accorde avec le sujet ; ` +
-      `avec avoir, seulement si le complément est placé avant.`
-    );
+    const withEtre = `Participe passé « ${expected} » : avec être, il s'accorde avec le sujet`;
+    // The avoir/COD rule isn't taught before 9H (spec §3.4): don't teach it early.
+    if (ctx.level !== undefined && levelIndex(ctx.level) < levelIndex('9H')) return `${withEtre}.`;
+    return `${withEtre} ; avec avoir, seulement si le complément est placé avant.`;
   }
 
   if (e.sub === 'number' || e.sub === 'gender') {

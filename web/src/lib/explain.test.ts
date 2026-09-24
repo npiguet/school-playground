@@ -236,7 +236,15 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     expect(explain(g.errors[0], { ...ctxMangees, level: '10H' }).text).toBe(
       'Avec « avoir », le participe « mangées » s\'accorde avec le complément « les » placé avant → pluriel',
     );
+    // Below 9H the fallback drops the avoir/COD clause too (final review ledger: the avoir rule
+    // isn't taught yet); without a level (SP1 callers) the full sentence stays.
     expect(explain(g.errors[0], { ...ctxMangees, level: '8H' }).text).toBe(
+      'Participe passé « mangées » : avec être, il s\'accorde avec le sujet.',
+    );
+    expect(explain(g.errors[0], { ...ctxMangees, level: '9H' }).text).toBe(
+      'Avec « avoir », le participe « mangées » s\'accorde avec le complément « les » placé avant → pluriel',
+    );
+    expect(explain(g.errors[0], ctxMangees).text).toBe(
       'Participe passé « mangées » : avec être, il s\'accorde avec le sujet ; ' +
         'avec avoir, seulement si le complément est placé avant.',
     );
