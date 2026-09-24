@@ -12,7 +12,9 @@
   // alone (see web/src/styles/kit.css).
   import { onMount } from 'svelte';
 
-  let root: HTMLDivElement | undefined = $state();
+  // A plain `let`, not `$state`: this is an imperative DOM ref (bind:this) used once in onMount
+  // to portal the node to <body>, never read reactively, so it needs no reactivity of its own.
+  let root: HTMLDivElement | undefined;
 
   onMount(() => {
     const node = root;
@@ -32,7 +34,10 @@
   .rotate-screen {
     display: none;
   }
-  @media (orientation: portrait) {
+  /* Spec §4: "portrait and aspect < 1" - `orientation: portrait` alone also matches an exactly
+     square viewport (aspect ratio 1), which must NOT show the rotate screen. max-aspect-ratio
+     excludes it (999/1000 rather than 1/1 so it stays a strict "< 1", not "<= 1"). */
+  @media (orientation: portrait) and (max-aspect-ratio: 999/1000) {
     .rotate-screen {
       position: fixed;
       inset: 0;

@@ -8,13 +8,17 @@ export interface SceneRuntime {
   ny: number;
   reduced: boolean;
   debug: boolean;
+  /** The art box's current size in viewport px (SceneStage's `stageBox`), so layers can convert
+   *  their art-% parallax offset into a `transform: translate(px, px)`. */
+  artW: number;
+  artH: number;
 }
 
 const KEY = Symbol('scene-runtime');
-const STATIC: SceneRuntime = { nx: 0, ny: 0, reduced: true, debug: false };
+const STATIC: SceneRuntime = { nx: 0, ny: 0, reduced: true, debug: false, artW: 0, artH: 0 };
 
 export function createSceneRuntime(init: Partial<SceneRuntime> = {}): SceneRuntime {
-  const rt = $state<SceneRuntime>({ nx: 0, ny: 0, reduced: false, debug: false, ...init });
+  const rt = $state<SceneRuntime>({ nx: 0, ny: 0, reduced: false, debug: false, artW: 0, artH: 0, ...init });
   return rt;
 }
 

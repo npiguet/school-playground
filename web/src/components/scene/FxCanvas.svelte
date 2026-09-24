@@ -16,16 +16,28 @@
 
     let w = 1;
     let h = 1;
+    let motes: Mote[] = [];
+
+    // Backing store scaled by devicePixelRatio (capped at 2) so particles stay crisp on Retina
+    // iPad; ctx.setTransform keeps every draw call in CSS-pixel (logical) coordinates.
     const resize = () => {
       const r = el.getBoundingClientRect();
-      w = el.width = Math.max(1, Math.round(r.width));
-      h = el.height = Math.max(1, Math.round(r.height));
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = Math.max(1, Math.round(r.width));
+      h = Math.max(1, Math.round(r.height));
+      el.width = Math.max(1, Math.round(w * dpr));
+      el.height = Math.max(1, Math.round(h * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
-    const ro = new ResizeObserver(resize);
+    motes = Array.from({ length: FX_COUNTS[kind] }, () => spawnMote(kind, w, h, Math.random, true));
+    const ro = new ResizeObserver(() => {
+      resize();
+      // After a resize (e.g. rotate, or the stage's art box changing size) any mote now outside
+      // the new bounds is respawned inside them instead of drifting off a canvas it can't re-enter.
+      motes = motes.map((m) => (m.x > w || m.y > h ? spawnMote(kind, w, h, Math.random, true) : m));
+    });
     ro.observe(el);
-
-    let motes: Mote[] = Array.from({ length: FX_COUNTS[kind] }, () => spawnMote(kind, w, h, Math.random, true));
     let last = performance.now();
     let raf = 0;
     const frame = (now: number) => {

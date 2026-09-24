@@ -51,6 +51,11 @@
     runtime.debug = isDebugMode(location.search, router.route.query);
   });
 
+  $effect(() => {
+    runtime.artW = box.width;
+    runtime.artH = box.height;
+  });
+
   onMount(() => {
     // Warm the cache for the scenes the player is likely to open next (spec §4 performance).
     const t = setTimeout(() => {
@@ -68,6 +73,14 @@
     runtime.nx = n.nx;
     runtime.ny = n.ny;
   }
+
+  // A touch drag (or the pointer leaving the stage) has no "resting position" to ease back to on
+  // its own, unlike a mouse that keeps hovering somewhere: recentre the parallax so layers ease
+  // back to their resting offset instead of staying stuck at the last drag position.
+  function resetPointer() {
+    runtime.nx = 0;
+    runtime.ny = 0;
+  }
 </script>
 
 <svelte:window bind:innerWidth={vw} bind:innerHeight={vh} />
@@ -77,6 +90,9 @@
   data-testid="scene-{scene.id}"
   data-reduced-motion={runtime.reduced ? 'true' : 'false'}
   onpointermove={onPointerMove}
+  onpointerleave={resetPointer}
+  onpointerup={resetPointer}
+  onpointercancel={resetPointer}
 >
   <img class="stage-backdrop" src={scene.background} alt="" aria-hidden="true" />
   <div class="stage-content">
@@ -149,7 +165,9 @@
     z-index: 3;
     white-space: nowrap;
   }
-  @media (orientation: portrait) {
+  /* Keep in sync with RotateScreen.svelte's media query: a square viewport must not hide the
+     stage (spec §4: "portrait and aspect < 1"). */
+  @media (orientation: portrait) and (max-aspect-ratio: 999/1000) {
     .stage-content {
       display: none;
     }

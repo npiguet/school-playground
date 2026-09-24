@@ -11,10 +11,14 @@
 
   let index = $state(0);
   let shown = $state(0);
-  const line = $derived(lines[index]);
-  const complete = $derived(shown >= line.text.length);
+  // `lines` may be empty (UI5 feeds this from dialogue content files; a missing/empty event key
+  // is valid data, not a bug) or `index` may point past its end once the last line finishes: in
+  // either case there is no current line, and nothing below should try to read `.text` off it.
+  const line = $derived<DialogueLine | undefined>(lines[index]);
+  const complete = $derived(line !== undefined && shown >= line.text.length);
 
   $effect(() => {
+    if (!line) return;
     const text = line.text;
     if (reducedMotion()) {
       shown = text.length;
@@ -32,6 +36,10 @@
   });
 
   function next() {
+    if (!line) {
+      onDone();
+      return;
+    }
     const r = advance({ index, shown }, lines);
     if (r.done) {
       onDone();
@@ -42,28 +50,30 @@
   }
 </script>
 
-<div
-  class="dialogue kit-parchment"
-  role="group"
-  aria-label="Dialogue"
-  data-testid="dialogue-box"
-  style="left:{DIALOGUE_DOCK.x}%;width:{DIALOGUE_DOCK.w}%;max-height:{DIALOGUE_DOCK.h - 2}%"
->
-  <img class="portrait" src={line.portrait} alt="" style="filter:{line.portraitFilter ?? 'none'}" />
-  <button
-    type="button"
-    class="advance"
-    data-testid="dialogue-advance"
-    aria-label={complete ? 'Suite' : 'Tout afficher'}
-    onclick={next}
+{#if line}
+  <div
+    class="dialogue kit-parchment"
+    role="group"
+    aria-label="Dialogue"
+    data-testid="dialogue-box"
+    style="left:{DIALOGUE_DOCK.x}%;width:{DIALOGUE_DOCK.w}%;max-height:{DIALOGUE_DOCK.h - 2}%"
   >
-    <span class="speaker">{line.name}</span>
-    <span class="text" data-testid="dialogue-text" aria-hidden="true">{line.text.slice(0, shown)}</span>
-    <span class="sr-only" aria-live="polite">{line.text}</span>
-    {#if complete}<span class="more" aria-hidden="true">▸</span>{/if}
-  </button>
-  <button type="button" class="kit-bronze skip" data-testid="dialogue-skip" onclick={onDone}>Passer</button>
-</div>
+    <img class="portrait" src={line.portrait} alt="" style="filter:{line.portraitFilter ?? 'none'}" />
+    <button
+      type="button"
+      class="advance"
+      data-testid="dialogue-advance"
+      aria-label={complete ? 'Suite' : 'Tout afficher'}
+      onclick={next}
+    >
+      <span class="speaker">{line.name}</span>
+      <span class="text" data-testid="dialogue-text" aria-hidden="true">{line.text.slice(0, shown)}</span>
+      <span class="sr-only" aria-live="polite">{line.text}</span>
+      {#if complete}<span class="more" aria-hidden="true">▸</span>{/if}
+    </button>
+    <button type="button" class="kit-bronze skip" data-testid="dialogue-skip" onclick={onDone}>Passer</button>
+  </div>
+{/if}
 
 <style>
   .dialogue {

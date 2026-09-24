@@ -42,7 +42,7 @@
     class:flash={flashing}
     data-testid="{sceneId}-{def.id}"
     aria-disabled={status.locked ? 'true' : undefined}
-    style="left:{box.x}%;top:{box.y}%;width:{box.w}%;height:{box.h}%"
+    style="left:{box.x + box.w / 2}%;top:{box.y + box.h / 2}%;width:{box.w}%;height:{box.h}%"
     {onclick}
   >
     <span class="hotspot-glow" style="clip-path:{clipPath(def.shape)}" aria-hidden="true"></span>
@@ -58,6 +58,14 @@
 <style>
   .hotspot {
     position: absolute;
+    /* left/top now target the shape box's centre (see the inline style); this centres the box on
+       that point regardless of its rendered size, so the 48px touch-target floor below grows the
+       button symmetrically around the shape instead of shifting it down-right. */
+    transform: translate(-50%, -50%);
+    /* Touch-target backstop (accessibility constraint: touch targets ≥ 48px): most shapes are
+       already bigger than this on iPad, but nothing should ever ship a real button smaller. */
+    min-width: 48px;
+    min-height: 48px;
     z-index: 3;
     margin: 0;
     padding: 0;
