@@ -26,6 +26,16 @@ export const ART = {
     athena: '/art/emblems/athena_cut.webp',
     apple: '/art/emblems/apple_cut.webp',
   },
+  // UI2 cut-outs (docs/art/scenes.md): the Pythia on her tripod, Athena's owl, three props.
+  characters: {
+    pythia: '/art/characters/pythia_cut.webp',
+    owl: '/art/characters/owl_cut.webp',
+  },
+  props: {
+    votiveTablets: '/art/props/votive_tablets_cut.webp',
+    codexLectern: '/art/props/codex_lectern_cut.webp',
+    trophyShelf: '/art/props/trophy_shelf_cut.webp',
+  },
   scenes: {
     camp: '/art/scenes/camp.webp',
     delphes: '/art/scenes/delphes.webp',
@@ -33,6 +43,14 @@ export const ART = {
     parchemins: '/art/scenes/parchemins.webp',
     argus: '/art/scenes/argus.webp',
     battle: '/art/scenes/battle.webp',
+    // UI2 scenes (2048×1152), one per place (docs/art/scenes.md).
+    titleGates: '/art/scenes/title_gates.webp',
+    hubCamp: '/art/scenes/hub_camp.webp',
+    nest: '/art/scenes/nest.webp',
+    delphi: '/art/scenes/delphi.webp',
+    libraryTent: '/art/scenes/library_tent.webp',
+    warTent: '/art/scenes/war_tent.webp',
+    cabin: '/art/scenes/cabin.webp',
   },
 } as const;
 

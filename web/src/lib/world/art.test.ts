@@ -23,4 +23,20 @@ describe('art map', () => {
     expect(artFor('lieutenant', 'hydre')).toBe('/art/lieutenants/hydre_cut.webp');
     expect(() => artFor('lieutenant', 'medusa')).toThrow();
   });
+
+  it('maps the UI2 scenes, characters and props (docs/art/scenes.md)', () => {
+    expect(ART.scenes.titleGates).toBe('/art/scenes/title_gates.webp');
+    expect(ART.scenes.hubCamp).toBe('/art/scenes/hub_camp.webp');
+    expect(ART.scenes.libraryTent).toBe('/art/scenes/library_tent.webp');
+    expect(ART.scenes.delphi).toBe('/art/scenes/delphi.webp');
+    expect(ART.scenes.warTent).toBe('/art/scenes/war_tent.webp');
+    expect(ART.scenes.nest).toBe('/art/scenes/nest.webp');
+    expect(ART.scenes.cabin).toBe('/art/scenes/cabin.webp');
+    expect(ART.characters).toEqual({ pythia: '/art/characters/pythia_cut.webp', owl: '/art/characters/owl_cut.webp' });
+    expect(ART.props).toEqual({
+      votiveTablets: '/art/props/votive_tablets_cut.webp',
+      codexLectern: '/art/props/codex_lectern_cut.webp',
+      trophyShelf: '/art/props/trophy_shelf_cut.webp',
+    });
+  });
 });

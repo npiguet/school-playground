@@ -1,0 +1,136 @@
+/* In-world forms (scenes UI spec §2.4, UI3 Ruling A8): real HTML inputs restyled as
+   semi-transparent parchment fields, bronze buttons and marble chips. Scoped to `.kit-form`,
+   which every Overlay body carries, so the legacy screens UI4 has not reached (Play, Boss) keep
+   their look. Loaded after app.css. No red anywhere. */
+:root {
+  --form-field: #fbf4e2;
+  --form-edge: #a8834f;
+  --form-ink-soft: #5c4a32;
+}
+
+.kit-form {
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+.kit-form h2,
+.kit-form h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bronze-dark);
+}
+.kit-form h2 {
+  font-size: 18px;
+  margin: 18px 0 8px;
+}
+.kit-form h3 {
+  font-size: 15px;
+}
+.kit-form .muted {
+  color: var(--form-ink-soft);
+}
+/* Alegreya small caps, not Cinzel: some labels are whole sentences (Cinzel is caps-only). */
+.kit-form label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+  color: var(--bronze-dark);
+}
+.kit-form input:not([type='radio']):not([type='checkbox']):not([type='file']),
+.kit-form select,
+.kit-form textarea {
+  background: rgba(251, 244, 226, 0.78);
+  border: 1px solid var(--form-edge);
+  border-radius: 8px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  box-shadow: inset 0 1px 3px rgba(92, 64, 24, 0.25);
+}
+/* A textarea holds a text to defend: Literata, the reading face (spec §2.7). */
+.kit-form textarea {
+  font-family: var(--font-reading);
+  line-height: 1.6;
+}
+.kit-form input:focus-visible,
+.kit-form select:focus-visible,
+.kit-form textarea:focus-visible {
+  outline: 3px solid var(--bronze-light);
+  outline-offset: 1px;
+}
+.kit-form input[type='radio'],
+.kit-form input[type='checkbox'] {
+  accent-color: var(--bronze);
+}
+.kit-form .btn {
+  border: 1px solid var(--bronze-dark);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 247, 230, 0.92), rgba(236, 219, 184, 0.92));
+  color: var(--bronze-dark);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 5px rgba(92, 64, 24, 0.25);
+}
+.kit-form .btn-primary {
+  background: linear-gradient(180deg, var(--bronze-light) 0%, var(--bronze) 45%, var(--bronze-dark) 100%);
+  color: var(--bronze-ink);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+}
+.kit-form .btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.kit-form .btn:disabled {
+  filter: grayscale(0.6);
+  opacity: 0.6;
+  cursor: default;
+}
+.kit-form .card {
+  background: rgba(255, 250, 238, 0.55);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 10px;
+  box-shadow: 0 2px 6px var(--parchment-shadow);
+  color: var(--ink);
+}
+.kit-form .card:hover {
+  box-shadow: 0 3px 10px var(--parchment-shadow);
+}
+.kit-form .chip {
+  background:
+    repeating-linear-gradient(115deg, transparent 0 14px, var(--marble-vein) 14px 15px, transparent 15px 31px),
+    linear-gradient(180deg, #faf6ef, var(--marble-plaque));
+  border: 1px solid #cfc5b4;
+  color: var(--ink);
+}
+.kit-form .chip-active {
+  background: linear-gradient(180deg, var(--bronze-light), var(--bronze));
+  border-color: var(--bronze-dark);
+  color: var(--bronze-ink);
+}
+.kit-form .parchment {
+  background: rgba(255, 250, 238, 0.5);
+  border-color: var(--parchment-edge);
+}
+.kit-form table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.kit-form th {
+  padding: 6px 8px;
+  border-bottom: 2px solid var(--form-edge);
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--bronze-dark);
+}
+.kit-form td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(168, 131, 79, 0.35);
+}
