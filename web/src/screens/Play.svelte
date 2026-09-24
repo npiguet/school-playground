@@ -5,6 +5,7 @@
   import Proofreading from '../components/Proofreading.svelte';
   import Results from '../components/Results.svelte';
   import { api, ApiError } from '../lib/api';
+  import { debounce } from '../lib/debounce';
   import { buildPlan, defaultPace, type DictationPlan } from '../lib/dictation/script';
   import { pickVoice, ttsAvailable, unlockSpeech, waitForVoices } from '../lib/dictation/tts';
   import { gradeSession } from '../lib/grading/grade';
@@ -77,6 +78,16 @@
   function save() {
     if (playState) savePlayState(playState);
   }
+
+  // P1-3: the draft used to be saved only on phase changes, so a reload/backgrounding while
+  // still typing lost it entirely and "Continuer" restored an empty textarea. Debounced (rather
+  // than saved on every keystroke) so a fast typist doesn't hit localStorage constantly.
+  const saveDraftDebounced = debounce(save, 800);
+  $effect(() => {
+    if (playState?.phase !== 'dictation') return;
+    void playState.draft; // tracked: reruns the debounce on every keystroke
+    saveDraftDebounced();
+  });
 
   function restart() {
     clearPlayState(profile.id, id);
