@@ -67,6 +67,29 @@ def test_chunks_and_adopt(settings):
         assert [ch["text_id"] for ch in relinked] == [t["id"]]
 
 
+def test_chunk_id_survives_a_refresh_so_a_concurrent_adopt_still_resolves(settings):
+    # Fix round 3 (UI3a Task 2 review): refresh_work used to DELETE every online_chunk row for a
+    # work and re-INSERT fresh ones, churning every chunk's autoincrement id on every refresh -
+    # harmless for one client alone, but two concurrent refreshes of the same work (two players,
+    # or two e2e workers, both hitting "Recopier" on "Vingt mille lieues" at once, a real scenario)
+    # could invalidate a chunk_id a third in-flight adopt() already held: /chunks/{id}/adopt then
+    # 404s ("Rouleau inconnu") even though nothing was wrong with the player's request. Refreshing
+    # now upserts by (work_id, seq) instead, so a chunk's id is stable across a refresh (re-fetching
+    # a static external source reproduces the same seq order) and a concurrent adopt still resolves.
+    with make_client(settings) as client:
+        client.post("/api/alexandria/works/verne/refresh")
+        before = client.get("/api/alexandria/works/verne/chunks").json()
+        chunk_id = before[0]["id"]
+        # Simulates a second client's concurrent refresh landing between this chunk_id being read
+        # by the first client and it being adopted.
+        assert client.post("/api/alexandria/works/verne/refresh").json()["status"] == "ok"
+        after = client.get("/api/alexandria/works/verne/chunks").json()
+        assert after[0]["id"] == chunk_id
+        p = client.post("/api/profiles", json={"name": "Concurrent", "avatar": "chouette", "level": "10H"}).json()
+        r = client.post(f"/api/alexandria/chunks/{chunk_id}/adopt", json={"profile_id": p["id"]})
+        assert r.status_code == 201, r.text
+
+
 def test_refresh_annotates_at_most_max_chunks(tmp_path, settings):
     # 60 clean paragraphs of ~100 words → dozens of candidate chunks; only the first `max_chunks` are annotated and cached
     class ManyPages:

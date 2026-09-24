@@ -96,11 +96,22 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
         "SELECT body, text_id FROM online_chunk WHERE work_id = ? AND text_id IS NOT NULL", (work.id,))}
     # online_chunk.work_id is a foreign key: the online_work row must exist first.
     _upsert_online_work(conn, work.id, "ok", note, stats)
-    conn.execute("DELETE FROM online_chunk WHERE work_id = ?", (work.id,))
+    # Upsert by (work_id, seq) rather than delete-then-insert (fix round 3): re-fetching a static
+    # external source reliably reproduces the same seq order, so a plain delete+insert only ever
+    # churned every chunk's autoincrement id for no reason - and under a concurrent refresh of the
+    # same work (two players, or two clients, refreshing "Vingt mille lieues" at once, a real
+    # scenario), it silently invalidated a chunk_id another in-flight request already had in hand:
+    # its adopt() would 404 ("Rouleau inconnu") a moment later. Upserting in place keeps a seq's id
+    # stable across a refresh, so a concurrent adopt() of that same chunk still resolves.
+    conn.execute("DELETE FROM online_chunk WHERE work_id = ? AND seq > ?", (work.id, len(kept)))
     for seq, (body, word_count, level, score, features, annotation) in enumerate(kept, start=1):
         conn.execute(
             """INSERT INTO online_chunk(work_id, seq, body, word_count, level, score, features_json, annotation_json, text_id)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(work_id, seq) DO UPDATE SET
+                 body = excluded.body, word_count = excluded.word_count, level = excluded.level,
+                 score = excluded.score, features_json = excluded.features_json,
+                 annotation_json = excluded.annotation_json, text_id = excluded.text_id""",
             (work.id, seq, body, word_count, level, score,
              json.dumps(features, ensure_ascii=False), json.dumps(annotation, ensure_ascii=False), linked.get(body)))
     conn.commit()
