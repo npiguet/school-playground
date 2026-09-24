@@ -1,12 +1,12 @@
 {
-  "prompt": "full-body portrait card, creature centered, dramatic warm rim light from the side, soft even lighting. subject: La Chimère, the chimera of Greek myth, a creature with the body and head of a lioness in warm terracotta-gold fur with a fiery mane, a second head of a goat with curled horns growing from the middle of its back looking the other way, and a tail that ends in a living olive-green snake head, standing on a chunk of broken marble, a small puff of flame from the lion mouth, the three heads arguing with each other with comical mismatched expressions, (blood gore:-3) (scenery:-3) (cast shadow:-2), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "prompt": "full-body portrait card, creature centered, dramatic warm rim light from the side, soft even lighting. subject: La Chimère, the chimera of Greek myth, a lioness with one single lion head in warm terracotta-gold fur with a fiery mane drawn as thick solid locks with inked edges, one goat head with curled horns growing out of the middle of its back and looking backwards, and a tail that ends in a living olive-green snake head, standing on a chunk of broken marble, a small solid tongue of flame from the lion mouth drawn as a closed inked shape, the lion head and the goat head glaring at each other while the snake tail hisses, comical mismatched expressions, (three heads side by side:-3) (scenery:-3) (cast shadow on the ground:-3), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with confident dark inked lines, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Inked look: a clean confident dark ink outline runs around the whole silhouette, every edge is crisp and well defined, hair is drawn as a few thick defined locks with inked edges, wing membranes are opaque with inked edges, all shapes are solid and closed with nothing glowing, misting or smoking into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (wispy hair:-2) (soft glow:-2) (mist:-2) (shadow:-2).",
   "steps": 8,
   "cfg_scale": 1.0,
   "sampler_name": "Euler",
   "scheduler": "simple",
   "width": 768,
   "height": 1344,
-  "seed": 303,
+  "seed": 333,
   "override_settings": {
     "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
   },
@@ -30,5 +30,5 @@
       ]
     }
   },
-  "style": "discorde-illustration"
+  "style": "discorde-inked"
 }

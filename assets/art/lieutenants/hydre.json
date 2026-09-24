@@ -1,12 +1,12 @@
 {
-  "prompt": "full-body portrait card, creature centered, dramatic warm rim light from the side, soft even lighting. subject: L'Hydre, the Lernaean hydra, a huge serpentine monster with five long necks and five snake heads rising in a fan, olive-green scales fading to deep Aegean blue on the back and a pale cream belly, each head with a different expressive attitude, one hissing, one grinning, one curious, one sleepy, one snapping, and on one side a cut neck stump from which two small new heads are sprouting, coiled thick body and tail, (blood gore:-3) (scenery:-3) (cast shadow:-2), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "prompt": "full-body portrait card, creature centered, dramatic warm rim light from the side, soft even lighting. subject: L'Hydre, the Lernaean hydra, a huge serpentine monster with five long scaly necks each ending in a snake head, all five heads are snake heads rising in a fan, olive-green scales fading to deep Aegean blue on the back and a pale cream belly, each head with a different expressive attitude, one hissing, one grinning, one curious, one sleepy, one snapping, and on one side a cut neck stump from which two small new heads are sprouting, coiled thick body and tail, (human face:-3) (pale outline:-3) (scenery:-3) (cast shadow on the ground:-3), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with confident dark inked lines, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Inked look: a clean confident dark ink outline runs around the whole silhouette, every edge is crisp and well defined, hair is drawn as a few thick defined locks with inked edges, wing membranes are opaque with inked edges, all shapes are solid and closed with nothing glowing, misting or smoking into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (wispy hair:-2) (soft glow:-2) (mist:-2) (shadow:-2).",
   "steps": 8,
   "cfg_scale": 1.0,
   "sampler_name": "Euler",
   "scheduler": "simple",
   "width": 768,
   "height": 1344,
-  "seed": 301,
+  "seed": 321,
   "override_settings": {
     "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
   },
@@ -30,5 +30,5 @@
       ]
     }
   },
-  "style": "discorde-illustration"
+  "style": "discorde-inked"
 }

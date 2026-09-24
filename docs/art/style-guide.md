@@ -30,8 +30,17 @@ reads instantly. Gold accents stay small except on the dragon and the emblems.
 
 ## 3. Style files (append with `--style <name>`)
 
-- `.claude/skills/krea2/styles/discorde-illustration.txt`: scenes, characters, creatures.
-- `.claude/skills/krea2/styles/discorde-emblem.txt`: round bronze/gold medallion UI emblems.
+- `.claude/skills/krea2/styles/discorde-illustration.txt`: scenes (full-bleed, never cut out).
+- `.claude/skills/krea2/styles/discorde-inked.txt`: characters, creatures and anything else
+  that gets cut out. Same painterly direction plus an "inked cut-out look": a dark ink
+  outline around the whole silhouette, crisp closed edges, hair as thick defined locks,
+  opaque wing membranes, nothing glowing / misting / smoking into the background, and the
+  negatives `(wispy hair:-2) (soft glow:-2) (mist:-2) (shadow:-2)`. Misty subjects (Léthé,
+  Écho's copies, Protée's water) keep their concept but as solid inked shapes, "like a
+  carved marble relief". This exists because soft strands and glow are what background
+  removal gets wrong.
+- `.claude/skills/krea2/styles/discorde-emblem.txt`: round bronze/gold medallion UI emblems
+  (add "a clean dark ink outline around the medallion's outer rim" to the prompt).
 
 Prompt recipe (see the sidecars): framing → lighting → `subject:` block (longest) →
 negatives as `(word:-2..-3)` → `isolated on a flat plain white background` for anything
@@ -43,7 +52,13 @@ upper third" for the UI.
 
 Reuse these sentences verbatim in any new prompt so recurring characters stay consistent.
 
-**Éris** (seed 101): *Éris, the Greek goddess of discord, a tall vain theatrical villainess
+All cut-out assets were regenerated on 2026-09-24 with `discorde-inked` (seeds below;
+the sidecars hold the exact prompts, which add a "hair as thick solid locks" / "opaque
+wing membranes" sentence and `(cast shadow on the ground:-3)` for the ground shadow that
+`(shadow:-2)` alone did not remove).
+
+**Éris** (seed 102; smug variant seed 111, whose far-left grey hair wisps are the one
+known weak spot, to be retouched by hand): *Éris, the Greek goddess of discord, a tall vain theatrical villainess
 with a haughty sly sideways smirk, chin tilted up, half-lidded scheming eyes with dark violet
 eye makeup and one sharply arched eyebrow, long wild black hair with violet streaks flowing
 as if in wind, a flowing dark purple and black chiton dress with gold embroidered trim, a
@@ -59,21 +74,28 @@ stubby wings, sitting in the shell) → young (large-dog size, half-spread wings
 → adult (long horns, huge wings spread, noble stance). The player recolours it later: keep
 the hue shift in CSS/canvas, not in new generations.
 
-**Lieutenants** (seeds 301–306):
+**Lieutenants** (seeds: Hydre 321, Écho 312, Chimère 333, Protée 304, Sirènes 305, Léthé 316):
 - L'Hydre: five-headed serpent, olive-green scales fading to Aegean blue, cream belly, one
-  cut stump sprouting two small heads. Each head has a different expression.
+  cut stump sprouting two small heads. Each head has a different expression. Say "all five
+  heads are snake heads" and add `(human face:-3)`, or one head turns human.
 - Écho: slender nymph, long wavy pale teal hair, pale blue-green chiton, bare feet, hands
-  cupped to call, translucent with two fainter copies of herself behind her.
+  cupped to call, two fainter copies of herself behind her painted as solid pale shapes
+  with their own outline. Never write "cut-out" in a prompt: it produces a white die-cut
+  sticker border.
 - La Chimère: lioness body in terracotta-gold with a fiery mane, a goat head with curled
-  horns growing from the back, a tail ending in an olive-green snake head; the heads argue.
+  horns growing from the back, a tail ending in an olive-green snake head. Do not write
+  "the three heads argue": the model then draws three heads side by side. Describe it as
+  the Homeric Chimera (lion in front, goat in the middle, serpent behind) with "one single
+  lion head" and `(three heads side by side:-3)`.
 - Protée: stocky old sea god, seaweed-and-foam beard, coral-and-shell crown, Aegean blue
   skin with sea-green scales, net-and-kelp chiton, one arm becoming an octopus tentacle,
   lower body dissolving into water, driftwood trident, sly wink.
 - Les Sirènes: three bird-women, women from the waist up, bird bodies with Aegean blue,
   olive and cream plumage below, perched on one white marble rock, lyre / double flute /
   singing.
-- Léthé: serene dreamy woman, hair and grey-blue robe dissolving into mist and slow water,
-  half-closed eyes, crown of red poppies, holding a silver bowl of still water.
+- Léthé: serene dreamy woman, hair and grey-blue robe flowing into stylised solid ribbons
+  of water "like a carved marble relief" (no mist), half-closed eyes, crown of red poppies,
+  holding a silver bowl of still water. Add `(wings:-3) (angel:-3)` or she gets wings.
 
 ## 5. Asset list
 
@@ -100,9 +122,17 @@ dragon colour variants, a title/hero banner 1536×640, small item icons (scroll,
 `tools/art/run_docker.sh all` runs, inside a throwaway `python:3.12-slim` container with the
 repo mounted at `/work`:
 
-- `tools/art/cutout.py <folders>`: rembg (`isnet-general-use`) background removal →
-  `*_cut.png`. Skips existing outputs unless `--force`.
+- `tools/art/cutout.py <folders>`: background removal → `*_cut.png` with rembg
+  `birefnet-general` + rembg alpha matting (erode 4, foreground 250, background 5), no
+  other post-processing. Chosen over `isnet-general-use` (hard staircase edge with a 1-px
+  white rim, holes in pale areas) and over wider matting bands / colour decontamination
+  after a side-by-side comparison; the before/after sheets are in
+  `docs/art/cutout-comparison/`. Skips existing outputs unless `--force`. About 20 s per
+  image on CPU; the ~900 MB model and the pip wheels are cached in two named Docker
+  volumes (`art-rembg-cache`, `art-pip-cache`), versions are pinned in `run_docker.sh`.
 - `tools/art/webify.py`: WebP export of every PNG into `assets/art/web/`, prints the total.
+  Copy the `*_cut.webp` files (and scenes) to `web/public/art/` afterwards; the game only
+  references those paths (`web/src/lib/world/art.ts`).
 
 Regenerate one asset: `python .claude/skills/krea2/generate.py --prompt "<prompt from the
 sidecar>" --style discorde-illustration --size 768x1344 --seed <seed> --vscale 1.0 --out

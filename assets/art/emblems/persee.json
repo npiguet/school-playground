@@ -1,5 +1,5 @@
 {
-  "prompt": "subject: an emblem of the Shield of Perseus, a round bronze shield seen from the front with a mirror-polished silver centre that reflects a soft Aegean-blue swirl of sky, a gold Greek key rim, two small winged sandal motifs at the sides, (text letters:-3) (scenery:-3) (cast shadow:-2).\n\nStyle: a single game UI emblem, a round bronze-and-gold medallion with bold simple shapes, thick clean outlines, flat cel shading with a soft metallic sheen, Greek key meander border, terracotta and Aegean blue enamel accents, readable at small icon size, centered, isolated on a flat plain white background.",
+  "prompt": "subject: an emblem of the Shield of Perseus, a round bronze shield seen from the front with a mirror-polished silver centre that reflects a soft Aegean-blue swirl of sky, a gold Greek key rim, two small winged sandal motifs at the sides, a clean dark ink outline around the medallion's outer rim with a crisp edge, (text letters:-3) (scenery:-3) (soft glow:-2) (shadow:-2).\n\nStyle: a single game UI emblem, a round bronze-and-gold medallion with bold simple shapes, thick clean outlines, flat cel shading with a soft metallic sheen, Greek key meander border, terracotta and Aegean blue enamel accents, readable at small icon size, centered, isolated on a flat plain white background.",
   "steps": 8,
   "cfg_scale": 1.0,
   "sampler_name": "Euler",
