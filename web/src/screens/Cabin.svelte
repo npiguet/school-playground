@@ -135,7 +135,12 @@
         {#each itemsFor(section.kind) as item (item.id)}
           {@const rewardRow = ownedById.get(item.id)}
           {@const isOwned = !!rewardRow}
-          <div class="card reward-card" class:locked={!isOwned} data-testid="cabin-reward-{item.id}">
+          <div
+            class="card reward-card"
+            class:locked={!isOwned}
+            data-testid="cabin-reward-{item.id}"
+            data-owned={isOwned ? 'true' : 'false'}
+          >
             {#if section.kind === 'tint'}
               <span class="tint-circle" style={`filter: ${isOwned ? TINT_FILTERS[tintKey(item.id)] : 'grayscale(1) opacity(.5)'}`}>
                 <img src={ART.dragon.egg} alt="" />
