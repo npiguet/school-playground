@@ -33,11 +33,3 @@ test('?debug shows one outline per visible camp hotspot and hotspots stay clicka
   await expect(page).toHaveURL(/\/parchemins$/);
 });
 
-test('screenshot hook: captures the camp with ?debug at iPad size', async ({ page, request }, testInfo) => {
-  const id = await createProfileApi(request, heroName(testInfo.project.name));
-  await page.setViewportSize({ width: 1180, height: 820 });
-  await page.goto(`/#/p/${id}/camp?debug`);
-  await expectCamp(page);
-  await expect(page.getByTestId('hotspot-debug')).toBeVisible();
-  await page.screenshot({ path: 'test-results/scenes-debug-camp.png' });
-});

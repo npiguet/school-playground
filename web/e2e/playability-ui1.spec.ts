@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createText, expectCamp, makeResult, postSession, skipOnboarding, stubSpeech, waitForSceneSettled } from './helpers';
+import { createText, expectCamp, makeResult, postSession, redScan, skipOnboarding, stubSpeech, waitForSceneSettled } from './helpers';
 
 // Playability walk for the UI1 review (scenes spec §10): iPad-size screenshots of the camp hub
 // into docs/reviews/ui1/<project>-NN-<name>.png for the Opus playability/immersion review ("does
@@ -30,11 +30,8 @@ test('UI1 playability walk', async ({ page, request }, testInfo) => {
   const notes: string[] = [];
   const origins = new Set<string>();
   page.on('request', (req) => {
-    try {
-      origins.add(new URL(req.url()).origin);
-    } catch {
-      // data: URLs etc.
-    }
+    const url = new URL(req.url());
+    if (url.protocol === 'http:' || url.protocol === 'https:') origins.add(url.origin);
   });
   await stubSpeech(page);
   try {
@@ -43,6 +40,8 @@ test('UI1 playability walk', async ({ page, request }, testInfo) => {
     notes.push(`request origins: ${JSON.stringify([...origins])}`);
     console.log(`\n===== NOTES ${project} =====\n${notes.join('\n')}\n`);
   }
+  // Final review I7 (spec §2.7, no runtime Google Fonts): every request went to the app itself.
+  expect([...origins]).toEqual([new URL(String(testInfo.project.use.baseURL)).origin]);
 
   async function walk() {
     // ---- 01 New hero lands on the hub, onboarding on top ------------------------------------
@@ -73,6 +72,10 @@ test('UI1 playability walk', async ({ page, request }, testInfo) => {
     await page.getByTestId('dialogue-advance').click();
     await expect(line).toHaveText(/L'œuf frémit/);
     await shot(page, project, '03-camp-greeting-2');
+    // Playability #2: the greeting ends by pointing at where the texts are defended.
+    await page.getByTestId('dialogue-advance').click();
+    await expect(line).toHaveText("Les parchemins t'attendent, sous la tente.");
+    await shot(page, project, '03b-camp-greeting-3');
     await page.getByTestId('dialogue-skip').click();
     await waitForSceneSettled(page);
     await shot(page, project, '04-camp-hub-egg');
@@ -83,19 +86,20 @@ test('UI1 playability walk', async ({ page, request }, testInfo) => {
     // Ruling P5: only Cinzel and Alegreya are painted on the camp itself. Literata (the dictation
     // reading font, --font-reading) isn't used on this screen, so it's loaded explicitly before
     // being checked rather than asserted as a side effect of camp rendering.
-    notes.push(
-      `fonts loaded: ${JSON.stringify(
-        await page.evaluate(async () => {
-          await document.fonts.ready;
-          await document.fonts.load('400 16px Literata');
-          return {
-            cinzel: document.fonts.check('700 16px Cinzel'),
-            alegreya: document.fonts.check('400 16px Alegreya'),
-            literata: document.fonts.check('400 16px Literata'),
-          };
-        }),
-      )}`,
-    );
+    const fonts = await page.evaluate(async () => {
+      await document.fonts.ready;
+      await document.fonts.load('400 16px Literata');
+      return {
+        cinzel: document.fonts.check('700 16px Cinzel'),
+        alegreya: document.fonts.check('400 16px Alegreya'),
+        literata: document.fonts.check('400 16px Literata'),
+      };
+    });
+    notes.push(`fonts loaded: ${JSON.stringify(fonts)}`);
+    // Final review I7: asserted, not just logged.
+    expect(fonts).toEqual({ cinzel: true, alegreya: true, literata: true });
+    // Final review I8: the ethics scan on the rendered hub.
+    expect(await redScan(page)).toEqual([]);
 
     // ---- 05 Keyboard focus on a place -------------------------------------------------------
     await page.getByTestId('camp-oracle').focus();
@@ -155,10 +159,27 @@ test('UI1 playability walk', async ({ page, request }, testInfo) => {
     await expect(page.getByTestId('hotspot-debug')).toBeVisible();
     await shot(page, project, '14-hotspot-debug');
 
-    // ---- 15-16 Laptop and ultra-wide framings ---------------------------------------------------
+    // ---- 14b A prophecy on the hub (final review M9, playability #16) ------------------------
+    const dueIn3 = new Date(Date.now() + 3 * 864e5).toLocaleDateString('sv-SE', { timeZone: 'Europe/Zurich' });
+    await createText(request, {
+      title: 'Les fées de la clairière',
+      body: 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.',
+      level: '10H',
+      due_date: dueIn3,
+    });
     await page.goto(`/#/p/${profileId}/camp`);
     await expectCamp(page);
     await dismissGreeting(page);
+    await waitForSceneSettled(page);
+    const prophecy = page.getByTestId('camp-prophecy');
+    await expect(prophecy).toContainText('La Pythie a vu ton épreuve');
+    await expect(prophecy).toContainText('Les fées de la clairière');
+    await expect(prophecy).not.toContainText(/dictée|jour\(s\)/);
+    await expect(prophecy.getByRole('button', { name: 'Réviser' })).toBeVisible();
+    await shot(page, project, '14b-camp-prophecy');
+
+    // ---- 15-16 Laptop and ultra-wide framings (last: the emulated iPad keeps a wide layout
+    // viewport after these resizes, so nothing is shot at 1180x820 after them) -----------------
     await page.setViewportSize({ width: 1440, height: 900 });
     await waitForSceneSettled(page);
     await shot(page, project, '15-laptop-1440x900');

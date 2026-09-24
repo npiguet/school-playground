@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createProfileApi, createText, expectCamp, makeResult, postSession, waitForSceneSettled } from './helpers';
+import { createProfileApi, createText, expectCamp, makeResult, postSession, redScan, waitForSceneSettled } from './helpers';
 
 // UI1 (scenes spec §9, §10): the camp as a hub scene, in both WebKit projects (desktop 1280x720
 // and iPad landscape 1180x820). Every place is a real button that routes to its (unchanged)
@@ -15,6 +15,8 @@ const PLACES: { id: string; path: RegExp; name: RegExp }[] = [
   { id: 'bestiary', path: /\/bestiaire$/, name: /Le bestiaire/ },
   { id: 'cabin', path: /\/cabane$/, name: /Ta cabane/ },
 ];
+
+const BODY = 'Les héros reviennent au camp. Ils racontent leurs voyages et les Muses les écoutent.';
 
 const heroName = (project: string) => `Hub-${project}-${Date.now() % 1e6}`;
 
@@ -50,6 +52,28 @@ async function measureBoxes(page: Page, selectors: Record<string, string>): Prom
   }, selectors);
 }
 
+// Final review I6: prophecies are global (every text with a due date, server/app/routers/world.py),
+// so texts other specs create in parallel could be the one the camp shows. The camp response is
+// filtered down to this test's own prophecy, so the assertions always exercise their own fixture.
+async function onlyOwnProphecy(page: Page, textId: number) {
+  await page.route('**/api/profiles/*/camp', async (route) => {
+    const res = await route.fetch();
+    const json = await res.json();
+    json.prophecies = json.prophecies.filter((p: { text_id: number }) => p.text_id === textId);
+    await route.fulfill({ response: res, json });
+  });
+}
+
+// Neutralise two lieutenants over three days (SP3 decision 3) -> boss tier 1 (decision 8).
+async function readyTheBattle(request: Parameters<typeof createText>[0], profileId: number, project: string) {
+  const text = await createText(request, { title: `Veillée ${project} ${Date.now()}`, body: BODY, level: '10H' });
+  for (const day of ['2026-08-03', '2026-08-04', '2026-08-05']) {
+    for (const category of ['agreement:verb', 'homophone']) {
+      await postSession(request, { profileId, textId: text.id, day, result: makeResult({ draft: 4, caught: 4, category }) });
+    }
+  }
+}
+
 test('every place routes to its screen and Back returns to the hub', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCamp(page, id);
@@ -57,17 +81,33 @@ test('every place routes to its screen and Back returns to the hub', async ({ pa
     const spot = page.getByTestId(`camp-${place.id}`);
     await expect(spot).toBeVisible();
     await expect(spot).toHaveAccessibleName(place.name);
-    await spot.click();
+    // Final review M9: a finger on the iPad, a mouse on the desktop.
+    if (testInfo.project.name === 'ipad') await spot.tap();
+    else await spot.click();
     await expect(page).toHaveURL(place.path);
     await page.goBack();
     await expectCamp(page);
+    await waitForSceneSettled(page);
   }
   // No boss quest has been unlocked for this fresh profile (no lieutenant neutralised yet): the
   // boss path stays absent from the hub rather than showing an empty/placeholder hotspot.
   await expect(page.getByTestId('camp-boss')).toHaveCount(0);
 });
 
-test('places sit inside the visible safe zone and work from the keyboard', async ({ page, request }, testInfo) => {
+test('two places tapped at once lead to the first one only', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await openCamp(page, id);
+  // Final review M3: both taps land inside the first one's 160 ms flash.
+  await page.evaluate(() => {
+    (document.querySelector('[data-testid="camp-parchemins"]') as HTMLElement).click();
+    (document.querySelector('[data-testid="camp-oracle"]') as HTMLElement).click();
+  });
+  await expect(page).toHaveURL(/\/parchemins$/);
+  await page.waitForTimeout(600);
+  await expect(page).toHaveURL(/\/parchemins$/);
+});
+
+test('places and their labels sit inside the visible safe zone and work from the keyboard', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCamp(page, id);
   // The real art safe zone (mirrors web/src/lib/scene/geometry.ts's SAFE_ZONE x 12.5-87.5% and
@@ -78,6 +118,7 @@ test('places sit inside the visible safe zone and work from the keyboard', async
   const boxes = await measureBoxes(page, {
     art: '[data-testid="scene-camp"] .art',
     ...Object.fromEntries(PLACES.map((p) => [p.id, `[data-testid="camp-${p.id}"]`])),
+    ...Object.fromEntries(PLACES.map((p) => [`${p.id}-label`, `[data-testid="camp-${p.id}"] .hotspot-label`])),
   });
   const art = boxes.art;
   if (!art) throw new Error('scene-camp .art box has no bounding box: the art box did not render');
@@ -99,49 +140,126 @@ test('places sit inside the visible safe zone and work from the keyboard', async
     expect(b.y, `${place.id} top edge below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);
     expect(b.y + b.height, `${place.id} bottom edge inside the art box`).toBeLessThanOrEqual(zone.bottom + EPS);
     expect(Math.min(b.width, b.height), `${place.id} meets the 48px touch target`).toBeGreaterThanOrEqual(48);
+    // Final review I4 / playability #1: the label plaque (« Le chemin de Delphes » used to start at
+    // x = 0 on the iPad) stays inside the safe zone too, and so inside the screen.
+    const l = boxes[`${place.id}-label`];
+    if (!l) throw new Error(`camp-${place.id}'s label has no bounding box`);
+    expect(l.x, `${place.id} label left edge inside the safe zone`).toBeGreaterThanOrEqual(zone.left - EPS);
+    expect(l.x + l.width, `${place.id} label right edge inside the safe zone`).toBeLessThanOrEqual(zone.right + EPS);
+    expect(l.x, `${place.id} label on screen`).toBeGreaterThanOrEqual(0);
+    expect(l.x + l.width, `${place.id} label on screen`).toBeLessThanOrEqual(page.viewportSize()!.width);
   }
+  // The stage and its art box clip rather than scroll: nothing (focus, a click scrolling a target
+  // into view, a script) can pan the cropped painting sideways under the HUD.
+  const scrolled = await page.evaluate(() =>
+    ['.scene-stage', '.scene-stage .art'].map((s) => {
+      const el = document.querySelector(s) as HTMLElement;
+      el.scrollLeft = 200;
+      return el.scrollLeft;
+    }),
+  );
+  expect(scrolled).toEqual([0, 0]);
   await page.getByTestId('camp-parchemins').focus();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/parchemins$/);
 });
 
-test('HUD: laurel, dragon, sound toggle, and the hero panel on its own route', async ({ page, request }, testInfo) => {
+test('HUD: laurel, dragon, sound toggle that survives leaving the camp', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCamp(page, id);
   await expect(page.getByTestId('hud-xp')).toContainText('Recrue du camp');
 
   const mute = page.getByTestId('hud-mute');
-  const before = await mute.getAttribute('aria-pressed');
+  await expect(mute).toHaveAttribute('aria-pressed', 'false');
   await mute.click();
-  await expect(mute).toHaveAttribute('aria-pressed', before === 'true' ? 'false' : 'true');
+  await expect(mute).toHaveAttribute('aria-pressed', 'true');
+  // Final review I3: leave the camp and come back - the camp remounts and re-seeds the sound
+  // store from the in-session profile, which must know about the toggle.
+  await page.getByTestId('camp-parchemins').click();
+  await expect(page).toHaveURL(/\/parchemins$/);
+  await page.goBack();
+  await expectCamp(page);
+  await expect(page.getByTestId('hud-xp')).toBeVisible();
+  await expect(mute).toHaveAttribute('aria-pressed', 'true');
   await mute.click();
-  await expect(mute).toHaveAttribute('aria-pressed', before ?? 'false');
+  await expect(mute).toHaveAttribute('aria-pressed', 'false');
 
   // Round 1 review #3: a `title` tooltip never shows on iPad (the target device has no mouse
-  // hover), so the dragon's ambient status (what it's up to, used to always show on the old camp
-  // card) is a short, visible addition to the camp-dragon hotspot's caption instead (a fresh
-  // profile's dragon is still an egg).
+  // hover), so the dragon's ambient status is a short, visible part of the camp-dragon caption.
   await expect(page.getByTestId('camp-dragon')).toContainText('Un œuf de dragon · Frémit');
 
   await page.getByTestId('hud-dragon').click();
   await expect(page).toHaveURL(/\/dragon$/);
   await page.goBack();
   await expectCamp(page);
+});
 
+test('the camp loads its data once per visit', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const campCalls: string[] = [];
+  page.on('request', (r) => {
+    if (/\/api\/profiles\/\d+\/camp$/.test(r.url())) campCalls.push(r.url());
+  });
+  const catalog = page.waitForResponse((r) => r.url().endsWith('/api/world'));
+  await openCamp(page, id);
+  await catalog;
+  await page.waitForTimeout(500);
+  // Final review I2: the catalog arriving must not re-run the camp's load effect.
+  expect(campCalls).toHaveLength(1);
+});
+
+test('the hero panel: its own route, medallions, focus kept inside, closing never leaves a Back trap', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/parchemins`);
+  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await openCamp(page, id);
+  const stage = page.getByTestId('scene-camp');
   const panel = page.getByTestId('overlay-heros');
+
   await page.getByTestId('hud-hero').click();
   await expect(page).toHaveURL(/\/camp\?panel=heros$/);
   await expect(panel).toBeVisible();
-  for (const name of ['Réglages', 'Progrès', 'Changer de héros']) {
+  for (const name of ['Réglages', 'Ton journal', 'Changer de héros']) {
     await expect(panel.getByRole('link', { name })).toBeVisible();
   }
+  // Final review I5: the scene behind is inert, Tab stays in the panel, particles pause (M4).
+  await expect(stage).toHaveAttribute('inert', '');
+  await expect(page.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'true');
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press('Tab');
+    expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="overlay-heros"]')), `Tab ${i + 1}`).toBe(true);
+  }
+  await page.keyboard.press('Escape');
+  await expect(panel).toHaveCount(0);
+  await expect(page).toHaveURL(/\/camp$/);
+  await expect(stage).not.toHaveAttribute('inert', '');
+  await expect(page.getByTestId('hud-hero')).toBeFocused();
+  await expect(page.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'false');
+
+  // Back from the panel closes it.
+  await page.getByTestId('hud-hero').click();
+  await expect(panel).toBeVisible();
   await page.goBack();
   await expect(panel).toHaveCount(0);
 
+  // Final review I1: closing steps back instead of pushing, so Back from the camp then leaves the
+  // camp (here: to the library we came from) rather than reopening the panel.
   await page.getByTestId('hud-hero').click();
+  await expect(panel).toBeVisible();
   await page.getByTestId('overlay-close').click();
   await expect(panel).toHaveCount(0);
   await expect(page).toHaveURL(/\/camp$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/parchemins$/);
+
+  // A deep link closes by replacing its own entry: Back never lands on ?panel=heros again.
+  await page.goto(`/#/p/${id}/camp?panel=heros`);
+  await expect(panel).toBeVisible();
+  await page.getByTestId('overlay-close').click();
+  await expect(panel).toHaveCount(0);
+  await expect(page).toHaveURL(/\/camp$/);
+  await page.goBack();
+  await expect(page).not.toHaveURL(/panel=heros/);
 
   await page.goto(`/#/p/${id}/camp?panel=heros`);
   await expect(panel).toBeVisible();
@@ -149,14 +267,22 @@ test('HUD: laurel, dragon, sound toggle, and the hero panel on its own route', a
   await expect(page).toHaveURL(/\/settings$/);
 });
 
-test('the dragon greets once per visit; a tap advances, « Passer » closes', async ({ page, request }, testInfo) => {
+test('the dragon greets once per visit; a tap advances, « Tout passer » closes', async ({ page, request }, testInfo) => {
   const name = heroName(testInfo.project.name);
   const id = await createProfileApi(request, name);
   await openCamp(page, id);
   const text = page.getByTestId('dialogue-text');
   await expect(text).toHaveText(`Bienvenue au camp, ${name}.`);
+  // Final review M6: the live region starts empty and is filled after insertion.
+  await expect(page.getByTestId('dialogue-live')).toHaveText(`Bienvenue au camp, ${name}.`);
   await page.getByTestId('dialogue-advance').click();
   await expect(text).toHaveText("L'œuf frémit chaque fois qu'un piège d'Éris est déjoué.");
+  // Playability #2: the last line points at where the texts are defended.
+  await page.getByTestId('dialogue-advance').click();
+  await expect(text).toHaveText("Les parchemins t'attendent, sous la tente.");
+  await expect(page.getByTestId('camp-parchemins')).toContainText('Choisis un texte à défendre');
+  await expect(page.getByTestId('camp-parchemins')).toHaveClass(/is-new/);
+  await expect(page.getByTestId('dialogue-skip')).toHaveText('Tout passer');
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
 
@@ -176,9 +302,12 @@ test('portrait shows the rotate screen instead of the scene', async ({ page, req
   await expect(page.getByTestId('rotate-screen')).toBeVisible();
   await expect(page.getByTestId('rotate-screen')).toContainText('Tourne ton iPad');
   await expect(page.getByTestId('camp-parchemins')).toBeHidden();
+  // Final review M4: nobody sees the particles behind the rotate screen - they stop.
+  await expect(page.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'true');
   await page.setViewportSize(landscape);
   await expect(page.getByTestId('rotate-screen')).toBeHidden();
   await expect(page.getByTestId('camp-parchemins')).toBeVisible();
+  await expect(page.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'false');
 
   // The spec's rule is "portrait AND aspect < 1" - `orientation: portrait` alone also matches an
   // exactly square viewport (aspect ratio 1), which must NOT show the rotate screen
@@ -198,6 +327,16 @@ test('portrait shows the rotate screen instead of the scene', async ({ page, req
     });
   }
   await page.setViewportSize(landscape);
+});
+
+test('legacy screens stay usable in portrait', async ({ page, request }, testInfo) => {
+  // Final review M12 / plan Ruling 8: only scene screens show the rotate screen in UI1.
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.setViewportSize({ width: 820, height: 1180 });
+  await page.goto(`/#/p/${id}/parchemins`);
+  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await expect(page.getByTestId('rotate-screen')).toHaveCount(0);
+  await expect(page.getByTestId('topbar-camp')).toBeVisible();
 });
 
 test('reduced motion: no parallax, no idle bob, no particles', async ({ page, request }, testInfo) => {
@@ -220,47 +359,55 @@ test('reduced motion: no parallax, no idle bob, no particles', async ({ page, re
   await expect(page.getByTestId('fx-canvas')).toHaveCount(1);
   expect(await label.evaluate((el) => getComputedStyle(el).animationName)).not.toBe('none');
   if (testInfo.project.name === 'desktop') {
-    // Hover parallax is a pointer-device behaviour; on the iPad it follows a touch drag.
+    // Hover parallax is a pointer-device behaviour.
     await page.mouse.move(10, 10);
-    await expect(dragon).not.toHaveAttribute('data-offset', '0,0');
-    // Round 1 review #8: data-offset alone only proves the art-% math (parallaxOffset()) ran; it
-    // says nothing about the art-% -> px conversion (off.x/100 * runtime.artW) that actually
-    // drives the visible transform. A regression that zeroed artW/artH (e.g. SceneStage's `box`
-    // never reaching SceneLayer) would still report a nonzero data-offset while the layer visually
-    // never moves - checked here directly. SceneLayer always sets an inline `transform:
-    // translate()`, even at a zero offset, so the computed value is never literally the string
-    // 'none' either way; compare against the identity matrix instead, which is what a zero offset
-    // (correctly computed or not) actually renders as. `.scene-layer`'s `transform` eases over
-    // 0.35s (item #3), so poll instead of reading it once immediately after the move - a bare read
-    // could land at t=0 of that transition, still showing the identity matrix it started from.
-    await expect
-      .poll(() => dragon.evaluate((el) => getComputedStyle(el).transform))
-      .not.toBe('matrix(1, 0, 0, 1, 0, 0)');
+  } else {
+    // Final review M9: on the iPad the parallax follows a touch drag. Playwright's WebKit has no
+    // touch-move API (only tap), so the drag is the touch pointer events the stage listens to.
+    await stage.dispatchEvent('pointerdown', { pointerType: 'touch', isPrimary: true, clientX: 600, clientY: 400, bubbles: true });
+    await stage.dispatchEvent('pointermove', { pointerType: 'touch', isPrimary: true, clientX: 60, clientY: 60, bubbles: true });
+  }
+  await expect(dragon).not.toHaveAttribute('data-offset', '0,0');
+  // Round 1 review #8: data-offset alone only proves the art-% math (parallaxOffset()) ran; the
+  // visible transform (off.x/100 * runtime.artW) is checked directly. `.scene-layer`'s transform
+  // eases over 0.35s, so poll rather than read it once.
+  await expect
+    .poll(() => dragon.evaluate((el) => getComputedStyle(el).transform))
+    .not.toBe('matrix(1, 0, 0, 1, 0, 0)');
+  if (testInfo.project.name === 'ipad') {
+    // Lifting the finger eases the layers back to rest.
+    await stage.dispatchEvent('pointerup', { pointerType: 'touch', isPrimary: true, clientX: 60, clientY: 60, bubbles: true });
+    await expect(dragon).toHaveAttribute('data-offset', '0,0');
   }
 });
 
-test('the path to battle appears once Éris can be fought', async ({ page, request }, testInfo) => {
+test('the path to battle appears once Éris can be fought; badges sit on their plaque', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  const text = await createText(request, {
-    title: `Veillée ${testInfo.project.name} ${Date.now()}`,
-    body: 'Les héros reviennent au camp. Ils racontent leurs voyages et les Muses les écoutent.',
-    level: '10H',
-  });
-  // Neutralise two lieutenants over three days (SP3 decision 3) -> boss tier 1 (decision 8).
-  for (const day of ['2026-08-03', '2026-08-04', '2026-08-05']) {
-    for (const category of ['agreement:verb', 'homophone']) {
-      await postSession(request, { profileId: id, textId: text.id, day, result: makeResult({ draft: 4, caught: 4, category }) });
-    }
-  }
+  await readyTheBattle(request, id, testInfo.project.name);
+  expect((await request.post(`/api/profiles/${id}/quests`, { data: { target: 'chimere' } })).ok()).toBeTruthy();
   await openCamp(page, id);
   const boss = page.getByTestId('camp-boss');
   await expect(boss).toBeVisible();
   // Controller ruling P8c: assert the actual reward name (tier 1 -> BOSS_REWARDS[1] ==
   // "sandales_hermes" -> "Sandales d'Hermès" per server/app/world/catalog.py), not just the
-  // tier number - a caption that only proved "Combat 1" appeared would pass even if the reward
-  // lookup were broken or empty.
+  // tier number.
   await expect(boss).toContainText("Combat 1 : Sandales d'Hermès");
   await expect(page.getByTestId('camp-dragon')).not.toContainText('Un œuf de dragon');
+
+  // Playability #5: the quest count is pinned to the top-right corner of « Le tableau des
+  // quêtes », not floating on the colonnade between two places.
+  const badge = page.getByTestId('camp-quests-badge');
+  await expect(badge).toHaveText('1');
+  const b = await measureBoxes(page, {
+    badge: '[data-testid="camp-quests-badge"]',
+    label: '[data-testid="camp-quests"] .hotspot-label',
+  });
+  if (!b.badge || !b.label) throw new Error('quests badge or label did not render');
+  const cx = b.badge.x + b.badge.width / 2;
+  const cy = b.badge.y + b.badge.height / 2;
+  expect(Math.abs(cx - (b.label.x + b.label.width)), 'badge centre on the plaque right edge').toBeLessThanOrEqual(16);
+  expect(Math.abs(cy - b.label.y), 'badge centre on the plaque top edge').toBeLessThanOrEqual(16);
+
   await boss.click();
   await expect(page).toHaveURL(/\/eris$/);
 });
@@ -269,17 +416,14 @@ function boxesIntersect(a: { x: number; y: number; width: number; height: number
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
-test('the weekly goal / prophecy column never overlaps a hotspot or its label', async ({ page, request }, testInfo) => {
+test('the weekly ribbon and the prophecy never overlap a hotspot or its label', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  // A prophecy makes .camp-column at its tallest (weekly banner + the prophecy parchment), the
-  // worst case for overlapping a hotspot below it.
-  await createText(request, {
-    title: `Prophétie ${testInfo.project.name} ${Date.now()}`,
-    body: 'Les héros reviennent au camp. Ils racontent leurs voyages et les Muses les écoutent.',
-    level: '10H',
-    due_date: '2099-01-01',
-  });
+  // A prophecy makes .camp-column at its tallest, the worst case for overlapping a place below it.
+  const title = `Prophétie ${testInfo.project.name} ${Date.now()}`;
+  const text = await createText(request, { title, body: BODY, level: '10H', due_date: '2099-01-01' });
+  await onlyOwnProphecy(page, text.id);
   for (const size of [
+    { width: 1280, height: 720 }, // the desktop project's default viewport
     { width: 1180, height: 820 }, // scenes spec §10: the ipad project's default iPad landscape
     { width: 1366, height: 1024 }, // 13" iPad landscape
   ]) {
@@ -287,32 +431,38 @@ test('the weekly goal / prophecy column never overlaps a hotspot or its label', 
     await page.goto(`/#/p/${id}/camp?debug`);
     await expectCamp(page);
     await waitForSceneSettled(page);
-    await expect(page.getByTestId('camp-prophecy')).toBeVisible();
-    // One evaluate() for the column and every hotspot + its label (round 1 review #2): each is a
-    // box measured at the exact same instant, rather than several separate CDP round trips that
-    // could each land on a different frame.
-    const { column, hotspots } = await page.evaluate(() => {
+    await expect(page.getByTestId('camp-prophecy')).toContainText(title);
+    await expect(page.getByTestId('camp-weekly')).toBeVisible();
+    // One evaluate() for the column, the ribbon and every hotspot + its label (round 1 review #2).
+    const { column, weekly, hotspots } = await page.evaluate(() => {
       const rect = (el: Element) => {
         const r = el.getBoundingClientRect();
         return { x: r.x, y: r.y, width: r.width, height: r.height };
       };
       const columnEl = document.querySelector('[data-testid="camp-column"]');
+      const weeklyEl = document.querySelector('[data-testid="camp-weekly"]');
       const hotspotEls = Array.from(document.querySelectorAll('button.hotspot[data-testid^="camp-"]'));
       return {
         column: columnEl ? rect(columnEl) : null,
+        weekly: weeklyEl ? rect(weeklyEl) : null,
         hotspots: hotspotEls.map((el) => {
           const label = el.querySelector('.hotspot-label');
           return { testId: el.getAttribute('data-testid'), box: rect(el), labelBox: label ? rect(label) : null };
         }),
       };
     });
-    if (!column) throw new Error('camp-column has no bounding box: it did not render');
+    if (!column || !weekly) throw new Error('camp-column or camp-weekly did not render');
+    const at = `${size.width}x${size.height}`;
+    expect(boxesIntersect(column, weekly), `camp-column vs camp-weekly at ${at}`).toBe(false);
     for (const h of hotspots) {
       if (!h.labelBox) throw new Error(`${h.testId}'s label has no bounding box: it did not render`);
-      expect(boxesIntersect(column, h.box), `camp-column vs ${h.testId} at ${size.width}x${size.height}`).toBe(false);
-      expect(boxesIntersect(column, h.labelBox), `camp-column vs ${h.testId}'s label at ${size.width}x${size.height}`).toBe(
-        false,
-      );
+      for (const [name, box] of [
+        ['camp-column', column],
+        ['camp-weekly', weekly],
+      ] as const) {
+        expect(boxesIntersect(box, h.box), `${name} vs ${h.testId} at ${at}`).toBe(false);
+        expect(boxesIntersect(box, h.labelBox), `${name} vs ${h.testId}'s label at ${at}`).toBe(false);
+      }
     }
   }
 });
@@ -321,14 +471,10 @@ test('a long prophecy title never pushes « Réviser » out of view', async ({ p
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   // Exactly the server's own max title length (server/app/schemas.py: max_length=120) - round 1
   // review #1 found an 80-char title already pushed the button 17px below a scrolling fold.
-  const longTitle = 'Prophétie ancienne des mers et des montagnes lointaines '.repeat(3).slice(0, 120);
+  const longTitle = `${testInfo.project.name} ${'Prophétie ancienne des mers et des montagnes lointaines '.repeat(3)}`.slice(0, 120);
   expect(longTitle).toHaveLength(120);
-  await createText(request, {
-    title: longTitle,
-    body: 'Les héros reviennent au camp. Ils racontent leurs voyages et les Muses les écoutent.',
-    level: '10H',
-    due_date: '2099-01-01',
-  });
+  const text = await createText(request, { title: longTitle, body: BODY, level: '10H', due_date: '2099-01-01' });
+  await onlyOwnProphecy(page, text.id);
   for (const size of [
     { width: 1280, height: 720 }, // the desktop project's own default viewport
     { width: 1180, height: 820 }, // the ipad project's default iPad landscape
@@ -337,7 +483,9 @@ test('a long prophecy title never pushes « Réviser » out of view', async ({ p
     await page.goto(`/#/p/${id}/camp`);
     await expectCamp(page);
     await waitForSceneSettled(page);
-    await expect(page.getByTestId('camp-prophecy')).toBeVisible();
+    // Final review I6: the card shows this test's own 120-character title (clamped visually,
+    // complete in the DOM), not another spec's prophecy.
+    await expect(page.getByTestId('camp-prophecy')).toContainText(longTitle);
     await expect(page.getByTestId('camp-prophecy').getByRole('button', { name: 'Réviser' })).toBeVisible();
     const { column, button } = await page.evaluate(() => {
       const rect = (el: Element) => {
@@ -358,4 +506,37 @@ test('a long prophecy title never pushes « Réviser » out of view', async ({ p
     expect(button.y, `Réviser top inside the viewport at ${label}`).toBeGreaterThanOrEqual(0);
     expect(button.y + button.height, `Réviser bottom inside the viewport at ${label}`).toBeLessThanOrEqual(size.height);
   }
+});
+
+test('ultra-wide: the HUD stays on the painting, the blurred bands only exist where needed', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await openCamp(page, id);
+  // Final review M4: the art covers the whole iPad screen - no hidden full-screen blur.
+  await expect(page.getByTestId('stage-backdrop')).toHaveCount(0);
+
+  await page.setViewportSize({ width: 2560, height: 1080 });
+  await expect(page.getByTestId('stage-backdrop')).toHaveCount(1);
+  // Final review M13 / playability #14: the art box is 1920 px wide, centred (x 320-2240); the
+  // HUD's hero chip and sound toggle sit inside it, not in the window corners over the bands.
+  const b = await measureBoxes(page, {
+    art: '[data-testid="scene-camp"] .art',
+    hero: '[data-testid="hud-hero"]',
+    mute: '[data-testid="hud-mute"]',
+  });
+  if (!b.art || !b.hero || !b.mute) throw new Error('art box or HUD did not render');
+  expect(b.hero.x).toBeGreaterThanOrEqual(b.art.x);
+  expect(b.mute.x + b.mute.width).toBeLessThanOrEqual(b.art.x + b.art.width);
+});
+
+test('no red on the hub, its greeting or the hero panel', async ({ page, request }, testInfo) => {
+  // Final review I8: the ethics scan on both projects, once the hub has really rendered.
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await openCamp(page, id);
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  expect(await redScan(page)).toEqual([]);
+  await page.getByTestId('hud-hero').click();
+  await expect(page.getByTestId('overlay-heros')).toBeVisible();
+  expect(await redScan(page)).toEqual([]);
+  await expect(page.locator('body')).not.toContainText(/manqué|raté|perdu/i);
 });

@@ -320,10 +320,10 @@ test('playability walk', async ({ page, request }, testInfo) => {
   await page.getByTestId('btn-back-camp').click();
   await expectCamp(page);
   await shot(page, project, '15b-camp-after-play');
-  // The hero panel's "Progrès" link now points at `dossier` (SP3 decision 14, wired in Task 6);
+  // The hero panel's « Ton journal » medallion points at `dossier` (SP3 decision 14, wired in Task 6);
   // its own "Voir les chiffres bruts" link goes on to the raw stats page.
   await page.getByTestId('hud-hero').click();
-  await page.getByRole('link', { name: 'Progrès' }).click();
+  await page.getByTestId('hero-journal').click();
   await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
   await page.getByRole('link', { name: 'Voir les chiffres bruts' }).click();
   await expect(page.getByRole('heading', { name: 'Progrès' })).toBeVisible();

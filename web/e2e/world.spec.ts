@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { expectCamp, stubSpeech, createText, makeResult, postSession } from './helpers';
+import { expectCamp, stubSpeech, createText, makeResult, postSession, redScan } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -381,6 +381,10 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
   test('9. no red, no guilt', async ({ page }) => {
     await page.goto(`/#/p/${profileId}/camp`);
     await expectCamp(page);
+    // Final review I8: scan the hub once /camp has rendered (HUD laurel, places, dragon greeting),
+    // not the empty stage that exists before the data arrives.
+    await expect(page.getByTestId('hud-xp')).toBeVisible();
+    await expect(page.getByTestId('dialogue-box')).toBeVisible();
     expect(await redScan(page)).toEqual([]);
     await expect(page.locator('body')).not.toContainText(/manqué|raté|perdu/i);
 
@@ -390,25 +394,3 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
   });
 });
 
-// Every element's text/background colour, scanned for a pure red (spec §1.6 "orange rather than
-// red, nothing is ever lost"): rgb(r,g,b) with r in [200,255] and g,b < 60 - orange (--orange:
-// #e07b2a) and terracotta (--terracotta: #c0623b) both have g > 60, so neither trips this.
-async function redScan(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
-    const re = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/;
-    const out: string[] = [];
-    for (const el of Array.from(document.querySelectorAll('body *'))) {
-      const cs = getComputedStyle(el);
-      for (const prop of ['color', 'backgroundColor'] as const) {
-        const v = cs[prop];
-        const m = v.match(re);
-        if (!m) continue;
-        const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
-        if (r >= 200 && r <= 255 && g < 60 && b < 60) {
-          out.push(`${el.tagName.toLowerCase()}.${(el as HTMLElement).className}: ${prop}=${v}`);
-        }
-      }
-    }
-    return out;
-  });
-}

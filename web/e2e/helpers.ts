@@ -68,8 +68,31 @@ export async function expectCamp(page: Page) {
 // read (or screenshot) taken mid-animation reads a box that's still shrinking (up to ~4%
 // oversized). Every spec that measures element geometry or takes a screenshot waits for this
 // first.
+// Final review M10: a bare `transform: none` check could pass *before* the zoom had even started.
+// SceneTransition now flags the real end of its entry (`data-settled`, set on introend), and on top
+// of that no Web Animation may still be running on it.
 export async function waitForSceneSettled(page: Page) {
-  await expect(page.locator('.scene-transition')).toHaveCSS('transform', 'none');
+  const t = page.locator('.scene-transition');
+  await expect(t).toHaveAttribute('data-settled', 'true');
+  await expect.poll(() => t.evaluate((el) => el.getAnimations().length)).toBe(0);
+}
+
+// Every element's text/background colour, scanned for a pure red (spec §1.6 "orange rather than
+// red, nothing is ever lost"): rgb(r,g,b) with r in [200,255] and g,b < 60 - orange (--orange:
+// #e07b2a) and terracotta (--terracotta: #c0623b) both have g > 60, so neither trips this.
+export async function redScan(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const re = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/;
+    const out: string[] = [];
+    for (const el of Array.from(document.querySelectorAll('body *'))) {
+      const cs = getComputedStyle(el);
+      for (const prop of ['color', 'backgroundColor', 'borderTopColor', 'fill', 'stroke'] as const) {
+        const m = re.exec(cs[prop] ?? '');
+        if (m && +m[1] >= 200 && +m[2] < 60 && +m[3] < 60) out.push(`${el.tagName.toLowerCase()} ${prop}=${cs[prop]}`);
+      }
+    }
+    return out;
+  });
 }
 
 // Creates an already-onboarded profile through the API (no first-visit modal), for specs that
