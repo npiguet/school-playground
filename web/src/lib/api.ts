@@ -44,11 +44,21 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return data as T;
 }
 
-export async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
+/** How long the client waits for an Alexandria refresh (the server fetches up to 40 pages and
+ *  annotates up to 40 chunks). On expiry `fetch` rejects with a `TimeoutError` DOMException,
+ *  which the screen turns into its graceful "hors d'atteinte" banner. */
+export const REFRESH_TIMEOUT_MS = 120_000;
+
+export function isTimeout(e: unknown): boolean {
+  return e instanceof DOMException && e.name === 'TimeoutError';
+}
+
+export async function request<T>(method: string, url: string, body?: unknown, timeoutMs?: number): Promise<T> {
   const res = await fetch(url, {
     method,
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal: timeoutMs !== undefined ? AbortSignal.timeout(timeoutMs) : undefined,
   });
   return handleResponse<T>(res);
 }
@@ -91,7 +101,7 @@ export const api = {
   alexandria: {
     works: () => request<AlexandriaWork[]>('GET', '/api/alexandria/works'),
     refresh: (id: string) =>
-      request<RefreshResult>('POST', `/api/alexandria/works/${id}/refresh`),
+      request<RefreshResult>('POST', `/api/alexandria/works/${id}/refresh`, undefined, REFRESH_TIMEOUT_MS),
     chunks: (id: string, level?: string) =>
       request<AlexandriaChunk[]>(
         'GET',

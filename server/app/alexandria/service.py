@@ -29,7 +29,13 @@ def _upsert_online_work(conn: sqlite3.Connection, work_id: str, status: str, err
         (work_id, status, error, now(), json.dumps(stats, ensure_ascii=False)))
 
 
-def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lexicon, max_pages: int = 40) -> dict:
+# Accepted chunks annotated and cached per refresh (final review I-6): bounds the synchronous
+# spaCy work and the cache size whatever the length of the work (a Gutenberg novel is ~1,500 chunks).
+MAX_CHUNKS = 40
+
+
+def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lexicon, max_pages: int = 40,
+                 max_chunks: int = MAX_CHUNKS) -> dict:
     pages_ok = 0
     failed = 0
     last_error: str | None = None
@@ -62,10 +68,14 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
     chunks = make_chunks(paragraphs)
     rejected: Counter[str] = Counter()
     kept: list[tuple[str, int, str, float, dict, dict]] = []
+    truncated = 0  # clean chunks beyond the cap: cheap to count, only the kept ones are annotated
     for chunk in chunks:
         reason = chunk_verdict(chunk, lexicon)
         if reason is not None:
             rejected[reason] += 1
+            continue
+        if len(kept) >= max_chunks:
+            truncated += 1
             continue
         annotation = annotate_fn(chunk["body"])
         features = chunk_features(chunk["body"], annotation, lexicon)
@@ -73,17 +83,26 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
         score = score_for(features)
         kept.append((chunk["body"], chunk["word_count"], level, score, features, annotation))
 
-    note = f"{failed} page(s) n'ont pas pu être lues." if failed else None
-    stats = {"pages_ok": pages_ok, "failed": failed, "rejected": dict(rejected)}
+    notes = []
+    if failed:
+        notes.append(f"{failed} page(s) n'ont pas pu être lues.")
+    if truncated:
+        notes.append(f"Les scribes se sont arrêtés après {max_chunks} rouleaux : la suite de l'œuvre n'a pas été recopiée.")
+    note = " ".join(notes) or None
+    stats = {"pages_ok": pages_ok, "failed": failed, "rejected": dict(rejected), "truncated": truncated}
+    # A scroll adopted into the library keeps its link across a refresh (matched by body), so
+    # « Recopier à nouveau » never offers the same passage a second time.
+    linked = {r["body"]: r["text_id"] for r in conn.execute(
+        "SELECT body, text_id FROM online_chunk WHERE work_id = ? AND text_id IS NOT NULL", (work.id,))}
     # online_chunk.work_id is a foreign key: the online_work row must exist first.
     _upsert_online_work(conn, work.id, "ok", note, stats)
     conn.execute("DELETE FROM online_chunk WHERE work_id = ?", (work.id,))
     for seq, (body, word_count, level, score, features, annotation) in enumerate(kept, start=1):
         conn.execute(
-            """INSERT INTO online_chunk(work_id, seq, body, word_count, level, score, features_json, annotation_json)
-               VALUES (?,?,?,?,?,?,?,?)""",
+            """INSERT INTO online_chunk(work_id, seq, body, word_count, level, score, features_json, annotation_json, text_id)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
             (work.id, seq, body, word_count, level, score,
-             json.dumps(features, ensure_ascii=False), json.dumps(annotation, ensure_ascii=False)))
+             json.dumps(features, ensure_ascii=False), json.dumps(annotation, ensure_ascii=False), linked.get(body)))
     conn.commit()
     return {"status": "ok", "error": note, "chunk_count": len(kept), "rejected": dict(rejected)}
 

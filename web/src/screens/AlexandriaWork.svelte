@@ -4,7 +4,7 @@
   // into Les Parchemins. Credits (author/translator/work) stay visible at all times —
   // the spec requires public-domain attribution wherever an adopted text is offered.
   import TopBar from '../components/TopBar.svelte';
-  import { api, ApiError } from '../lib/api';
+  import { api, ApiError, isTimeout } from '../lib/api';
   import { LEVELS } from '../lib/levels';
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
@@ -76,8 +76,13 @@
       }
     } catch (e) {
       // The endpoint contracts to never throw on a network failure, but we stay
-      // graceful regardless: no exception should ever surface to the player.
-      const detail = e instanceof ApiError ? e.detail : '';
+      // graceful regardless: no exception should ever surface to the player. The request
+      // itself is bounded (REFRESH_TIMEOUT_MS) so a stalled source can't spin forever.
+      const detail = e instanceof ApiError
+        ? e.detail
+        : isTimeout(e)
+          ? 'Les scribes mettent trop de temps à répondre.'
+          : '';
       refreshNote = {
         kind: 'error',
         message: `La Bibliothèque d'Alexandrie est hors d'atteinte pour le moment. ${detail} Les rouleaux déjà recopiés restent disponibles.`,

@@ -1,7 +1,14 @@
 import json
 from pathlib import Path
 from fastapi.testclient import TestClient
+from app.alexandria.allowlist import Work
+from app.alexandria.service import refresh_work
+from app.db import connect, migrate
+from app.lexicon import load_lexicon
 from app.main import create_app
+
+PROSE = ("Le vieux marin regardait la mer. Les vagues grises montaient lentement vers la plage, et les mouettes criaient au-dessus des rochers. "
+         "Il pensait aux voyages anciens, aux tempêtes et aux ports lointains où les hommes chantaient le soir. ")
 
 WORKS = {"version": 1, "works": [
     {"id": "verne", "title": "Vingt mille lieues sous les mers", "author": "Jules Verne", "author_death": 1905, "translator": None, "translator_death": None,
@@ -54,3 +61,30 @@ def test_chunks_and_adopt(settings):
         assert again.status_code == 200 and again.json()["id"] == t["id"]
         assert client.get("/api/alexandria/works/verne/chunks").json()[0]["text_id"] == t["id"]
         assert client.post("/api/alexandria/chunks/999999/adopt", json={"profile_id": p["id"]}).status_code == 404
+        # « Recopier à nouveau » keeps the adopted scroll linked to its library text (no duplicate adoption)
+        assert client.post("/api/alexandria/works/verne/refresh").json()["status"] == "ok"
+        relinked = [ch for ch in client.get("/api/alexandria/works/verne/chunks").json() if ch["text_id"] is not None]
+        assert [ch["text_id"] for ch in relinked] == [t["id"]]
+
+
+def test_refresh_annotates_at_most_max_chunks(tmp_path, settings):
+    # 60 clean paragraphs of ~100 words → dozens of candidate chunks; only the first `max_chunks` are annotated and cached
+    class ManyPages:
+        def wikisource_page(self, title):
+            return '<div class="mw-parser-output">' + f"<p>{PROSE * 2}</p>" * 60 + "</div>"
+
+    calls = []
+
+    def annotate_fn(body):
+        calls.append(body)
+        return {"version": 2, "tokens": [], "chains": [], "sentences": []}
+
+    conn = connect(tmp_path / "cap.sqlite3")
+    migrate(conn)
+    work = Work(id="w", title="T", author="A", author_death=1900, translator=None, translator_death=None,
+                source="wikisource", pages=("P",), ebook_id=None, level_hint="8H", note="")
+    result = refresh_work(conn, work, ManyPages(), annotate_fn, load_lexicon(settings.content_dir), max_chunks=7)
+    assert result["status"] == "ok" and result["chunk_count"] == 7 and len(calls) == 7
+    assert "7 rouleaux" in result["error"]
+    assert conn.execute("SELECT COUNT(*) FROM online_chunk WHERE work_id = 'w'").fetchone()[0] == 7
+    assert json.loads(conn.execute("SELECT stats_json FROM online_work WHERE id = 'w'").fetchone()[0])["truncated"] >= 20

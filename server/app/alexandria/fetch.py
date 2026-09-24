@@ -35,7 +35,9 @@ class Fetcher(Protocol):
 
 class HttpFetcher:
     def __init__(self, client: httpx.Client | None = None, timeout: float = 20.0) -> None:
-        self.client = client or httpx.Client()
+        # Every request carries `timeout` (connect + read) so a stalled source can never hang a
+        # refresh for longer than that per page; Gutenberg answers some ebook URLs with a 302.
+        self.client = client or httpx.Client(follow_redirects=True)
         self.timeout = timeout
 
     def wikisource_page(self, title: str) -> str:
