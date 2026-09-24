@@ -11,6 +11,7 @@
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type OracleOut, type ScrollKey } from '../lib/world/types';
   import { entry as bestiaryEntry } from '../lib/world/bestiary';
+  import { confirmChoiceLabel } from '../lib/world/eris';
   import { ApiError } from '../lib/api';
   import { formatSwissDate } from '../lib/dates';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
@@ -60,11 +61,6 @@
 
   const globallySealed = $derived(oracle?.status === 'sealed');
 
-  function sealedFor(key: ScrollKey): boolean {
-    if (key === 'ecole' && ecolePickerOpen) return false;
-    return globallySealed;
-  }
-
   function revealedFor(key: ScrollKey): { name: string; art: string } | null {
     if (!oracle || oracle.status !== 'chosen') return null;
     const s = oracle.scrolls.find((sc) => sc.key === key);
@@ -109,6 +105,13 @@
   function confirmEcole() {
     if (!selectedMonster) return;
     void consult('ecole', selectedMonster);
+  }
+
+  // M4: cancelling closes the picker without ever having touched `sealed` - no seal-break
+  // sound, no sparkles, nothing to undo.
+  function cancelEcole() {
+    ecolePickerOpen = false;
+    selectedMonster = null;
   }
 
   async function consult(scroll: ScrollKey, lieutenant?: string) {
@@ -181,47 +184,53 @@
         <p class="orange" role="alert">{consultError}</p>
       {/if}
 
+      {#snippet ecolePicker()}
+        <div class="picker">
+          <p>Choisis le monstre :</p>
+          <div class="picker-grid">
+            {#each LIEUTENANT_ORDER as key (key)}
+              <button
+                type="button"
+                class="chip"
+                class:chip-active={selectedMonster === key}
+                data-testid="oracle-monster-{key}"
+                disabled={!isAvailable(key)}
+                onclick={() => (selectedMonster = key)}
+              >
+                <span aria-hidden="true">{glyphFor(key)}</span>
+                {nameFor(key)}{!isAvailable(key) ? ' · dort encore' : ''}
+              </button>
+            {/each}
+          </div>
+          <div class="picker-actions">
+            <button type="button" class="btn" data-testid="oracle-cancel" onclick={cancelEcole}>Annuler</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-testid="oracle-confirm"
+              disabled={!selectedMonster || consultingScroll === 'ecole'}
+              onclick={confirmEcole}
+            >
+              {selectedMonster ? confirmChoiceLabel(selectedMonster as LieutenantKey) : "C'est celui-là"}
+            </button>
+          </div>
+        </div>
+      {/snippet}
+
       <div class="scrolls-wrap">
         {#each oracle.scrolls as s (s.key)}
           <Scroll
             testid="scroll-{s.key}"
             title={s.title}
             hint={s.hint}
-            sealed={sealedFor(s.key)}
+            sealed={globallySealed}
             revealed={revealedFor(s.key)}
             reward={oracleRewardLine()}
             busy={consultingScroll === s.key}
             onOpen={() => openScroll(s.key)}
+            sealedStep={s.key === 'ecole' && ecolePickerOpen ? ecolePicker : undefined}
           >
-            {#if s.key === 'ecole' && ecolePickerOpen && !revealedFor(s.key)}
-              <div class="picker">
-                <p>Choisis le monstre :</p>
-                <div class="picker-grid">
-                  {#each LIEUTENANT_ORDER as key (key)}
-                    <button
-                      type="button"
-                      class="chip"
-                      class:chip-active={selectedMonster === key}
-                      data-testid="oracle-monster-{key}"
-                      disabled={!isAvailable(key)}
-                      onclick={() => (selectedMonster = key)}
-                    >
-                      <span aria-hidden="true">{glyphFor(key)}</span>
-                      {nameFor(key)}{!isAvailable(key) ? ' · dort encore' : ''}
-                    </button>
-                  {/each}
-                </div>
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  data-testid="oracle-confirm"
-                  disabled={!selectedMonster || consultingScroll === 'ecole'}
-                  onclick={confirmEcole}
-                >
-                  C'est celui-là
-                </button>
-              </div>
-            {:else if oracle.status === 'chosen' && chosenKey !== s.key}
+            {#if oracle.status === 'chosen' && chosenKey !== s.key}
               <p class="muted closed-note">Refermé jusqu'à lundi.</p>
             {/if}
           </Scroll>
@@ -305,6 +314,17 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
+  }
+  /* M10: these chips are the primary tap targets for choosing a monster, not decorative
+     labels - bump them to the SP1 ≥44px convention (app.css's generic .chip is 40px). */
+  .picker-grid :global(.chip) {
+    min-height: 44px;
+  }
+  .picker-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
   .closed-note {
     margin: 0;
