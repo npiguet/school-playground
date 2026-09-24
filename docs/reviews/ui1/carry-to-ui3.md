@@ -42,5 +42,5 @@ later milestones. The UI3 plan must pick up each one. Everything else was fixed 
   All of these depend on the UI3 art and scenes.
 - **Re-review note: iPad Split View at ½ or ⅓ width shows « Tourne ton iPad ».** The narrow split
   pane is portrait-shaped (aspect < 1) even though the iPad itself is in landscape, so the spec's
-  rule shows the rotate screen there. Whether a split pane should get a compact layout instead is a
-  UX decision for the controller and UI3.
+  rule shows the rotate screen there. **Decided (user, 2026-09-24): accepted as is, no handling
+  needed.** Not a UI3 item.
