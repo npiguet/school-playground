@@ -6,6 +6,7 @@ import {
   boxInside,
   boxesOverlap,
   clipPath,
+  labelShift,
   parallaxOffset,
   pointerToNorm,
   shapeBox,
@@ -97,5 +98,33 @@ describe('parallax', () => {
     expect(pointerToNorm(500, 250, 1000, 500)).toEqual({ nx: 0, ny: 0 });
     expect(pointerToNorm(2000, -5, 1000, 500)).toEqual({ nx: 1, ny: -1 });
     expect(pointerToNorm(10, 10, 0, 0)).toEqual({ nx: 0, ny: 0 });
+  });
+});
+
+describe('labelShift (final review I4, playability #1)', () => {
+  // iPad 1180x820: the art box is 1457.8 px wide, safe zone = art px 182.2-1275.6.
+  const artW = (820 * 16) / 9;
+  it('leaves a label that already fits where it is', () => {
+    expect(labelShift(50, 200, artW)).toBe(0);
+  });
+  it('pushes a label at the left edge (« Le chemin de Delphes », x 17 %) inside the safe zone', () => {
+    const w = 230;
+    const shift = labelShift(17, w, artW);
+    const left = 0.17 * artW - w / 2 + shift;
+    expect(shift).toBeGreaterThan(0);
+    expect(left).toBeCloseTo(0.125 * artW + 8, 1);
+  });
+  it('pulls a label at the right edge back inside the safe zone', () => {
+    const w = 260;
+    const shift = labelShift(84, w, artW);
+    expect(shift).toBeLessThan(0);
+    expect(0.84 * artW + w / 2 + shift).toBeCloseTo(0.875 * artW - 8, 1);
+  });
+  it('centres a label wider than the zone and ignores unmeasured sizes', () => {
+    const w = 1200;
+    const shift = labelShift(20, w, artW);
+    expect(0.2 * artW - w / 2 + shift + w / 2).toBeCloseTo(0.5 * artW, 1);
+    expect(labelShift(17, 0, artW)).toBe(0);
+    expect(labelShift(17, 200, 0)).toBe(0);
   });
 });

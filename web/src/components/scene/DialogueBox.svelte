@@ -1,6 +1,6 @@
 <script lang="ts">
   // Narrator box (scenes UI spec §4, §2.5): portrait + typewriter, tap to finish / advance,
-  // « Passer » to close. UI1 takes static lines from props; UI5 feeds it dialogue content files.
+  // « Tout passer » to close. UI1 takes static lines from props; UI5 feeds it dialogue content files.
   // Sits in the art box's dialogue dock, which hotspots never overlap (plan Ruling 3).
   import { reducedMotion } from '../../lib/juice/motion';
   import { DIALOGUE_DOCK } from '../../lib/scene/geometry';
@@ -42,6 +42,15 @@
     return () => cancelAnimationFrame(raf);
   });
 
+  // Final review M6: the live region is inserted empty and only then filled, so VoiceOver announces
+  // the first line too (a region that arrives with its text already in it is not announced).
+  let announced = $state('');
+  $effect(() => {
+    const text = line?.text ?? '';
+    const t = setTimeout(() => (announced = text), 120);
+    return () => clearTimeout(t);
+  });
+
   function next() {
     // Only reachable via the .advance button below, which only renders `{#if line}` - `line` is
     // always defined here.
@@ -73,10 +82,10 @@
     >
       <span class="speaker">{line.name}</span>
       <span class="text" data-testid="dialogue-text" aria-hidden="true">{line.text.slice(0, shown)}</span>
-      <span class="sr-only" aria-live="polite">{line.text}</span>
-      {#if complete}<span class="more" aria-hidden="true">▸</span>{/if}
+      <span class="sr-only" aria-live="polite" data-testid="dialogue-live">{announced}</span>
+      {#if complete}<span class="more" class:still={reducedMotion()} aria-hidden="true">▸</span>{/if}
     </button>
-    <button type="button" class="kit-bronze skip" data-testid="dialogue-skip" onclick={onDone}>Passer</button>
+    <button type="button" class="kit-bronze skip" data-testid="dialogue-skip" onclick={onDone}>Tout passer</button>
   </div>
 {/if}
 
@@ -127,9 +136,35 @@
     line-height: 1.35;
     min-height: 1.35em;
   }
+  /* Playability #11: a big, gently bobbing « next » caret, clearly different from « Tout passer ». */
   .more {
     align-self: flex-end;
+    font-size: 30px;
+    line-height: 1;
     color: var(--bronze);
+    animation: dialogue-more 1.2s ease-in-out infinite;
+  }
+  /* Reduced motion: no movement, a slow fade (beats app.css's blanket reduced-motion rule). */
+  .more.still {
+    animation: dialogue-more-fade 1.6s ease-in-out infinite !important;
+  }
+  @keyframes dialogue-more {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(5px);
+    }
+  }
+  @keyframes dialogue-more-fade {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
   }
   .skip {
     flex-shrink: 0;

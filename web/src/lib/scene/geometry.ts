@@ -57,7 +57,7 @@ export function boxesOverlap(a: Box, b: Box): boolean {
 }
 
 /** CSS clip-path for an element that covers exactly `shapeBox(s)`. A zero-width or zero-height
- *  box (collinear points, e.g. mid-drag in the `?edit` editor) would divide by zero below; instead
+ *  box (collinear points, e.g. a hand-typed polygon whose points line up) would divide by zero below; instead
  *  of ever emitting `NaN%`, collapse to a single point so the clip is merely invisible. Scene data
  *  itself is still rejected by `validateShapes`; this is the unconditional runtime backstop. */
 export function clipPath(s: HotspotShape): string {
@@ -76,4 +76,24 @@ export function parallaxOffset(depth: Depth, nx: number, ny: number): { x: numbe
 export function pointerToNorm(clientX: number, clientY: number, vw: number, vh: number): { nx: number; ny: number } {
   const c = (v: number) => Math.max(-1, Math.min(1, v)) + 0;
   return { nx: vw > 0 ? c((clientX / vw) * 2 - 1) : 0, ny: vh > 0 ? c((clientY / vh) * 2 - 1) : 0 };
+}
+
+/** Gap in px kept between a hotspot label plaque and the safe-zone edge. */
+export const LABEL_MARGIN_PX = 8;
+
+/**
+ * Horizontal shift in px that keeps a label plaque inside the 4:3 safe zone (final review I4,
+ * playability #1): a label is centred on its hotspot, so one near the zone's edge (« Le chemin de
+ * Delphes » at x 17 %) would otherwise stick out into the part of the art an iPad crops away.
+ * `centreX` is the hotspot centre in art %, `width` the plaque width in px, `artW` the art box
+ * width in px. Returns 0 when the centred plaque already fits; a plaque wider than the zone is
+ * centred in it.
+ */
+export function labelShift(centreX: number, width: number, artW: number, margin = LABEL_MARGIN_PX): number {
+  if (artW <= 0 || width <= 0) return 0;
+  const min = (SAFE_ZONE.x / 100) * artW + margin;
+  const max = ((SAFE_ZONE.x + SAFE_ZONE.w) / 100) * artW - margin;
+  const left = (centreX / 100) * artW - width / 2;
+  if (width > max - min) return round2((min + max) / 2 - width / 2 - left);
+  return round2(Math.min(max - width, Math.max(min, left)) - left);
 }

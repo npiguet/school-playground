@@ -2,7 +2,7 @@
   // One clickable place of a scene (scenes UI spec §4): a real <button> covering the shape's box,
   // a glow clipped to the shape, a visible Cinzel label (+ caption, badge), idle glow + bob, a
   // flash on tap. Test id `<sceneId>-<hotspot id>` (plan Ruling 4), e.g. `camp-parchemins`.
-  import { clipPath, shapeBox } from '../../lib/scene/geometry';
+  import { clipPath, labelShift, shapeBox } from '../../lib/scene/geometry';
   import { useSceneRuntime } from '../../lib/scene/runtime.svelte';
   import type { HotspotDef, HotspotState } from '../../lib/scene/types';
 
@@ -16,16 +16,26 @@
   const rt = useSceneRuntime();
   const box = $derived(shapeBox(def.shape));
   let flashing = $state(false);
+  // Layout width of the plaque (offsetWidth ignores the scene's zoom-in transform), so the label
+  // can be clamped inside the safe zone (final review I4, playability #1).
+  let labelW = $state(0);
+  const shift = $derived(labelShift(box.x + box.w / 2, labelW, rt.artW));
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  $effect(() => () => clearTimeout(timer));
 
   function onclick() {
-    // Task 9b: unlike the removed interactive `?edit` editor, the read-only `?debug` overlay
-    // must not block hotspot clicks (HotspotDebug.svelte is pointer-events: none over it anyway).
-    if (status.locked || flashing) return;
+    // Task 9b: the read-only `?debug` overlay must not block hotspot clicks (HotspotDebug.svelte
+    // is pointer-events: none over it anyway). Final review M3: one tap at a time per stage - a
+    // second place tapped during the first one's flash is ignored, and the timer dies with us.
+    if (status.locked || rt.activating) return;
+    rt.activating = true;
     flashing = true;
-    setTimeout(
+    timer = setTimeout(
       () => {
         flashing = false;
         onActivate(def);
+        rt.activating = false;
       },
       rt.reduced ? 0 : 160,
     );
@@ -46,11 +56,13 @@
     {onclick}
   >
     <span class="hotspot-glow" style="clip-path:{clipPath(def.shape)}" aria-hidden="true"></span>
-    <span class="hotspot-label">
+    <span class="hotspot-label" style="left:calc(50% + {shift}px)" bind:offsetWidth={labelW}>
       <span class="hotspot-name">{def.label}</span>
       {#if status.caption}<span class="hotspot-caption">{status.caption}</span>{/if}
+      <!-- Playability #5: a badge lives on the plaque it counts for, never on the shape, so it
+           can't be read as belonging to a neighbouring place. -->
+      {#if status.badge !== null}<span class="hotspot-badge" data-testid="{sceneId}-{def.id}-badge">{status.badge}</span>{/if}
     </span>
-    {#if status.badge !== null}<span class="hotspot-badge">{status.badge}</span>{/if}
     {#if status.locked}<span class="sr-only">(fermé pour l'instant)</span>{/if}
   </button>
 {/if}
@@ -136,9 +148,14 @@
     font-size: 14px;
   }
   .hotspot-badge {
+    /* Pinned to the plaque's top-right corner (playability #5). */
     position: absolute;
-    top: 4px;
-    right: 4px;
+    top: -14px;
+    right: -14px;
+    border: 2px solid var(--bronze-dark);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-style: normal;
     min-width: 28px;
     height: 28px;
     padding: 0 8px;

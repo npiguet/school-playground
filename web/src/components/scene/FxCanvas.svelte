@@ -1,11 +1,25 @@
 <script lang="ts">
   // Ambient particle layer (scenes UI spec §2.1). SceneStage never mounts it under reduced motion.
+  // Final review M4: drawn at most 30 times a second, and not at all while nobody can see it (an
+  // overlay covers the scene, or the stage is hidden behind the portrait rotate screen).
   import { FX_COUNTS, moteAlpha, spawnMote, stepMotes, type Mote } from '../../lib/scene/fx';
+  import { overlayState } from '../../lib/scene/overlayState.svelte';
   import type { FxPreset } from '../../lib/scene/types';
 
   let { preset }: { preset: FxPreset } = $props();
 
+  const FRAME_MS = 1000 / 30;
+
   let canvas: HTMLCanvasElement | undefined = $state();
+  // The canvas has no size while the stage content is display:none (portrait).
+  let hidden = $state(false);
+  const paused = $derived(hidden || overlayState.open > 0);
+  // Set by the drawing effect below; restarts the loop when `paused` turns false.
+  let resume: (() => void) | null = null;
+
+  $effect(() => {
+    if (!paused) resume?.();
+  });
 
   $effect(() => {
     const el = canvas;
@@ -22,6 +36,8 @@
     // iPad; ctx.setTransform keeps every draw call in CSS-pixel (logical) coordinates.
     const resize = () => {
       const r = el.getBoundingClientRect();
+      hidden = r.width < 2 || r.height < 2;
+      if (hidden) return;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       w = Math.max(1, Math.round(r.width));
       h = Math.max(1, Math.round(r.height));
@@ -41,6 +57,10 @@
     let last = performance.now();
     let raf = 0;
     const frame = (now: number) => {
+      raf = 0;
+      if (paused) return; // resume() restarts the loop
+      raf = requestAnimationFrame(frame);
+      if (now - last < FRAME_MS - 1) return;
       const dt = Math.min(64, now - last);
       last = now;
       motes = stepMotes(motes, kind, w, h, dt, Math.random);
@@ -52,18 +72,29 @@
         ctx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
         ctx.fill();
       }
+    };
+    resume = () => {
+      if (raf) return;
+      last = performance.now();
       raf = requestAnimationFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
+    resume();
 
     return () => {
+      resume = null;
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
   });
 </script>
 
-<canvas bind:this={canvas} class="fx-canvas" data-testid="fx-canvas" aria-hidden="true"></canvas>
+<canvas
+  bind:this={canvas}
+  class="fx-canvas"
+  data-testid="fx-canvas"
+  data-paused={paused ? 'true' : 'false'}
+  aria-hidden="true"
+></canvas>
 
 <style>
   .fx-canvas {
