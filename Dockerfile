@@ -1,7 +1,7 @@
 # Stage 1: build the SPA
 FROM node:22 AS web
 WORKDIR /work
-COPY content/homophones.json content/homophones.json
+COPY content/*.json content/
 COPY web/package.json web/package-lock.json web/
 RUN cd web && npm ci --ignore-scripts
 COPY web web
