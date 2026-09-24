@@ -107,6 +107,24 @@ describe('groupText', () => {
   it('reads the controller group straight from the body', () => {
     expect(groupText(ann(), CHAINS[2], BODY)).toBe('Les fées');
   });
+
+  // SP2 playability P1-2: a coordinated subject is quoted as written (determiners, « et »)
+  // when the server gave the contiguous span; bare non-contiguous heads are never joined into a
+  // false subject list (« soir et cuisinier et fille »).
+  it('quotes a contiguous coordinated span as written and refuses non-contiguous heads', () => {
+    const body = "Le soir, le cuisinier et sa fille coupaient l'oignon.";
+    const tokens: AnnotToken[] = tokenize(body).map((t, i) => ({
+      i, text: t.text, start: t.start, end: t.end, lemma: t.norm, pos: 'X', morph: {}, head: 0, dep: 'dep',
+      categories: [], homophone: null, subject: null,
+    }));
+    const annotation: Annotation = { version: 3, model: 't', tokens, sentences: [], chains: [] };
+    const base = { id: 0, kind: 'subject_verb' as const, controller: 4, targets: [8], via: 'conj' as const, via_token: null,
+      features: { Number: 'Plur' }, confidence: 'medium' as const, distance: 4, rule: null };
+    // tokens: 0 Le, 1 soir, 2 ',', 3 le, 4 cuisinier, 5 et, 6 sa, 7 fille, 8 coupaient
+    expect(groupText(annotation, { ...base, controller_group: [3, 4, 5, 6, 7] }, body)).toBe('le cuisinier et sa fille');
+    expect(groupText(annotation, { ...base, controller: 1, controller_group: [1, 4, 7] }, body)).toBe('');
+    expect(groupText(annotation, { ...base, controller_group: [] }, body)).toBe('');
+  });
 });
 
 describe('featureWords / numberWord / genderWord', () => {

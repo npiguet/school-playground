@@ -484,6 +484,107 @@ describe('explain (P1-2 adjectival participle)', () => {
   });
 });
 
+// SP2 playability P1-2: « « coupaient » a plusieurs sujets : « soir et cuisinier et fille » » named
+// a time adverbial as a subject. A coordinated subject is quoted as written when the server gave
+// its contiguous span; otherwise the generic sentence — never the mis-parsed `annot.subject`.
+describe('explain (SP2 playability P1-2 coordinated subjects)', () => {
+  const REF = "Le soir, le cuisinier et sa fille coupaient l'oignon.";
+  // client/spaCy tokens agree here (no elision before the verb): 0 Le, 1 soir, 2 ',', 3 le,
+  // 4 cuisinier, 5 et, 6 sa, 7 fille, 8 coupaient, 9 l'oignon (client) / l' + oignon (spaCy), '.'
+  function annotation(group: number[], controller: number): Annotation {
+    const spec: [string, string, Record<string, string>?][] = [
+      ['DET', 'det'], ['NOUN', 'obl:mod', { Number: 'Sing' }], ['PUNCT', 'punct'], ['DET', 'det'],
+      ['NOUN', 'nsubj', { Gender: 'Masc', Number: 'Sing' }], ['CCONJ', 'cc'], ['DET', 'det'],
+      ['NOUN', 'conj', { Gender: 'Fem', Number: 'Sing' }], ['VERB', 'ROOT', { VerbForm: 'Fin', Number: 'Plur', Person: '3' }],
+    ];
+    const tokens: AnnotToken[] = tokenize(REF).slice(0, 9).map((t, i) => ({
+      i, text: t.text, start: t.start, end: t.end, lemma: t.norm, pos: spec[i][0], morph: spec[i][2] ?? {},
+      head: 8, dep: spec[i][1], categories: spec[i][0] === 'VERB' ? ['verb'] : [], homophone: null,
+      subject: i === 8 ? controller : null,
+    }));
+    const chain: Chain = { id: 0, kind: 'subject_verb', controller, controller_group: group, targets: [8], via: 'conj',
+      via_token: null, features: { Number: 'Plur', Person: '3' }, confidence: 'medium', distance: 1, rule: null };
+    return { version: 3, model: 't', tokens, sentences: [], chains: [chain] };
+  }
+  function ctxFor(a: Annotation) {
+    const g = gradeText(REF, "Le soir, le cuisinier et sa fille coupait l'oignon.", a);
+    const err = g.errors.find((e) => e.category === 'agreement');
+    expect(err).toBeDefined();
+    return { err: err!, ctx: { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, a), annotation: a, body: REF } };
+  }
+
+  it('quotes the coordinated subject as written, determiners included', () => {
+    const { err, ctx } = ctxFor(annotation([3, 4, 5, 6, 7], 4));
+    expect(explain(err, ctx).text).toBe(
+      '« coupaient » a plusieurs sujets : « le cuisinier et sa fille » → pluriel → terminaison « ent »',
+    );
+  });
+
+  it('falls back to the generic verb sentence when the group is not quotable, never naming the mis-parsed subject', () => {
+    const { err, ctx } = ctxFor(annotation([1, 4, 7], 1)); // « soir » attached as the subject
+    const text = explain(err, ctx).text;
+    expect(text).toBe('Le verbe « coupaient » s\'accorde avec son sujet. Cherche qui fait l\'action.');
+    expect(text).not.toMatch(/soir/);
+  });
+});
+
+// SP2 playability P1-3: « Athéna l'avait choisie » — the participle with avoir and a clitic COD
+// was explained as « s'accorde avec le nom qu'il accompagne » (the small model tags it ADJ).
+describe('explain (SP2 playability P1-3 participle with avoir and a clitic COD)', () => {
+  const REF = "Athéna l'avait choisie pour compagne.";
+  // client tokens: 0 Athéna, 1 l'avait, 2 choisie, 3 pour, 4 compagne, 5 '.'
+  // spaCy tokens: 0 Athéna, 1 l', 2 avait, 3 choisie, 4 pour, 5 compagne, 6 '.'
+  function annotation(withChain: boolean, categories: string[]): Annotation {
+    const tokens: AnnotToken[] = [
+      { i: 0, text: 'Athéna', start: 0, end: 6, lemma: 'Athéna', pos: 'PROPN', morph: {}, head: 3, dep: 'nsubj', categories: [], homophone: null, subject: null },
+      { i: 1, text: "l'", start: 7, end: 9, lemma: 'le', pos: 'PRON', morph: { Number: 'Sing', Person: '3' }, head: 3, dep: 'obj', categories: [], homophone: null, subject: null },
+      { i: 2, text: 'avait', start: 9, end: 14, lemma: 'avoir', pos: 'AUX', morph: { VerbForm: 'Fin', Number: 'Sing' }, head: 3, dep: 'aux:tense', categories: ['verb'], homophone: null, subject: 0 },
+      { i: 3, text: 'choisie', start: 15, end: 22, lemma: 'choisir', pos: 'ADJ', morph: { Gender: 'Masc', Number: 'Sing' }, head: 3, dep: 'ROOT', categories, homophone: null, subject: 0 },
+      { i: 4, text: 'pour', start: 23, end: 27, lemma: 'pour', pos: 'ADP', morph: {}, head: 5, dep: 'case', categories: [], homophone: null, subject: null },
+      { i: 5, text: 'compagne', start: 28, end: 36, lemma: 'compagne', pos: 'NOUN', morph: { Gender: 'Fem', Number: 'Sing' }, head: 3, dep: 'obl:mod', categories: ['nominal_group'], homophone: null, subject: null },
+      { i: 6, text: '.', start: 36, end: 37, lemma: '.', pos: 'PUNCT', morph: {}, head: 3, dep: 'punct', categories: [], homophone: null, subject: null },
+    ];
+    const chains: Chain[] = withChain
+      ? [{ id: 0, kind: 'participle_avoir', controller: 1, controller_group: [1], targets: [3], via: null, via_token: null,
+          features: { Number: 'Sing', Person: '3' }, confidence: 'medium', distance: 2, rule: 'cod_before' }]
+      : [];
+    return { version: 3, model: 't', tokens, sentences: [], chains };
+  }
+  function ctxFor(a: Annotation, level?: string) {
+    expect(REF.length).toBe(37);
+    const g = gradeText(REF, "Athéna l'avait choisi pour compagne.", a);
+    const err = g.errors.find((e) => e.category === 'agreement');
+    expect(err).toBeDefined();
+    return { err: err!, ctx: { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, a), annotation: a, body: REF, level } };
+  }
+
+  it('is graded as a participle (Protée) and explained with the avoir/COD chain from 9H', () => {
+    const { err, ctx } = ctxFor(annotation(true, ['participle']), '10H');
+    expect(err.sub).toBe('participle');
+    expect(explain(err, ctx).title).toBe(CATEGORY_LABELS['agreement:participle']);
+    // the clitic carries no gender in the parse and the slip is the gender: no false « → singulier »
+    expect(explain(err, ctx).text).toBe(
+      'Avec « avoir », le participe « choisie » s\'accorde avec le complément « l\' » placé avant. Regarde ce que « l\' » remplace.',
+    );
+  });
+
+  it('uses the generic participle sentence, level-gated, when there is no participle_avoir chain', () => {
+    const { err, ctx } = ctxFor(annotation(false, ['participle']), '10H');
+    expect(explain(err, ctx).text).toBe(
+      'Participe passé « choisie » : avec être, il s\'accorde avec le sujet ; avec avoir, seulement si le complément est placé avant.',
+    );
+    expect(explain(err, { ...ctx, level: '8H' }).text).toBe('Participe passé « choisie » : avec être, il s\'accorde avec le sujet.');
+  });
+
+  it('never uses the noun-group sentence even on an older annotation that filed it under gender', () => {
+    const { err, ctx } = ctxFor(annotation(false, ['nominal_group']), '10H'); // v2 categories: ADJ → nominal_group
+    expect(err.sub).toBe('gender');
+    const text = explain(err, ctx).text;
+    expect(text).not.toMatch(/accompagne/);
+    expect(text).toMatch(/^Participe passé « choisie »/);
+  });
+});
+
 describe('erisLine', () => {
   it('never blames the player', () => {
     expect(erisLine(null, 0, 0)).toMatch(/reviendrai/);

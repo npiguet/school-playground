@@ -100,6 +100,26 @@ function genericAgreement(expected: string): string {
   return `« ${expected} » doit s'accorder. Regarde le mot avec lequel il va.`;
 }
 
+function genericVerb(expected: string): string {
+  return `Le verbe « ${expected} » s'accorde avec son sujet. Cherche qui fait l'action.`;
+}
+
+/** The SP1 participle sentence: the avoir/COD clause isn't taught before 9H (spec §3.4). */
+function genericParticiple(expected: string, level: string | undefined): string {
+  const withEtre = `Participe passé « ${expected} » : avec être, il s'accorde avec le sujet`;
+  if (level !== undefined && levelIndex(level) < levelIndex('9H')) return `${withEtre}.`;
+  return `${withEtre} ; avec avoir, seulement si le complément est placé avant.`;
+}
+
+// P1-3: a word with its own auxiliary (aux / aux:tense / aux:pass child) is a compound-tense or
+// passive participle whatever the tagger called it — « Athéna l'avait choisie » is ADJ-tagged in
+// the small model, so the grader may have filed it under gender/number; it must still get the
+// participle explanation, never « s'accorde avec le nom qu'il accompagne ».
+const COMPOUND_AUX_DEPS = new Set(['aux', 'aux:tense', 'aux:pass']);
+function hasOwnAuxiliary(ctx: ExplainContext, annot: AnnotToken): boolean {
+  return ctx.annotation?.tokens.some((t) => t.head === annot.i && t.i !== annot.i && COMPOUND_AUX_DEPS.has(t.dep)) ?? false;
+}
+
 /** "« qui », qui reprend « NP »" when the chain runs through a relative pronoun, else plain
  *  "« NP »" — factors out the phrasing fix round 1 asked for on `attribute`/`participle_etre`
  *  (subject_verb already had its own distinct qui-phrasing and is left as-is). */
@@ -127,6 +147,11 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
   const NP = groupText(ctx.annotation, chain, ctx.body);
 
   if (chain.kind === 'subject_verb') {
+    // P1-2: a subject group that can't be quoted as written (see `groupText`) is never named.
+    // The generic sentence is returned here rather than `null` so the caller's SP1 fallback
+    // doesn't name `annot.subject` instead — for a mis-parsed coordination that is the very
+    // false subject (« soir ») the chain was refused for.
+    if (NP === '') return genericVerb(expected);
     const num = chainNumberWord(chain.features) ?? 'singulier';
     const ending = verbEnding(expected, e.typed ?? '');
     if (chain.via === 'qui') {
@@ -137,6 +162,8 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
     }
     return `« ${expected} » s'accorde avec son sujet « ${NP} » → ${num} → terminaison « ${ending} »`;
   }
+
+  if (NP === '') return null;
 
   if (chain.kind === 'attribute') {
     const fw = featureWords(chain.features);
@@ -158,8 +185,19 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
       return `Avec « avoir », le participe « ${expected} » ne s'accorde pas avec le sujet : aucun complément n'est placé avant → « ${expected} »`;
     }
     if (chain.rule === 'cod_before') {
+      // A clitic COD (« l' », « les ») carries no gender in the parse: when the chain knows none
+      // of the features she slipped on (« choisie » → « choisi » with only Number known), point
+      // at the pronoun's referent instead of asserting a number she didn't get wrong.
+      const typed = e.typed ?? '';
+      const strip = (w: string) => w.replace(/[sx]$/u, '');
+      const genderSlip = strip(expected) !== strip(typed);
+      const numberSlip = /[sx]$/u.test(expected) !== /[sx]$/u.test(typed);
       const fw = featureWords(chain.features);
-      if (fw === '') return null;
+      const covered =
+        (genderSlip && chain.features.Gender !== undefined) || (numberSlip && chain.features.Number !== undefined);
+      if (fw === '' || !covered) {
+        return `Avec « avoir », le participe « ${expected} » s'accorde avec le complément « ${NP} » placé avant. Regarde ce que « ${NP} » remplace.`;
+      }
       return `Avec « avoir », le participe « ${expected} » s'accorde avec le complément « ${NP} » placé avant → ${fw}`;
     }
     return null;
@@ -193,14 +231,13 @@ function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string):
         return `« ${expected} » s'accorde avec son sujet « ${subject} » → ${number} → terminaison « ${ending} »`;
       }
     }
-    return `Le verbe « ${expected} » s'accorde avec son sujet. Cherche qui fait l'action.`;
+    return genericVerb(expected);
   }
 
-  if (e.sub === 'participle') {
-    const withEtre = `Participe passé « ${expected} » : avec être, il s'accorde avec le sujet`;
-    // The avoir/COD rule isn't taught before 9H (spec §3.4): don't teach it early.
-    if (ctx.level !== undefined && levelIndex(ctx.level) < levelIndex('9H')) return `${withEtre}.`;
-    return `${withEtre} ; avec avoir, seulement si le complément est placé avant.`;
+  // P1-3: a compound-tense participle filed under gender/number (ADJ-tagged in an older
+  // annotation) still gets the participle rule, never the noun-group sentence.
+  if (e.sub === 'participle' || (annot !== undefined && hasOwnAuxiliary(ctx, annot))) {
+    return genericParticiple(expected, ctx.level);
   }
 
   if (e.sub === 'number' || e.sub === 'gender') {

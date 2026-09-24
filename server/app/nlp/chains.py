@@ -15,6 +15,12 @@ from __future__ import annotations
 SUBJECT_DEPS = {"nsubj", "nsubj:pass"}
 NOMINAL_DEPS = {"det", "amod", "nummod", "det:poss"}
 AUX_DEPS = {"aux", "aux:pass", "aux:tense", "cop"}
+# A word with one of these children is a compound-tense / passive participle whatever its POS tag:
+# the small model tags « Athéna l'avait choisie » as ADJ + aux:tense (SP2 playability P1-3).
+COMPOUND_AUX_DEPS = {"aux", "aux:pass", "aux:tense"}
+# Proper-name complements that may sit inside a coordinated subject and still leave it quotable
+# as written (« la princesse Nausicaa et ses servantes »).
+NAME_COMPLEMENT_DEPS = {"nmod", "appos", "flat:name", "flat"}
 CLITIC_COD = {"le", "la", "les", "l'", "me", "te", "nous", "vous", "se", "m'", "t'", "s'"}
 
 NOMINAL_POS = {"NOUN", "PROPN"}
@@ -55,6 +61,12 @@ def _adjectival_participle(tokens: list[dict], c: dict) -> bool:
     return c["dep"] == "acl" and _part(c) and not any(a["dep"] in AUX_DEPS for a in _children(tokens, c["i"]))
 
 
+def has_own_auxiliary(tokens: list[dict], t: dict) -> bool:
+    """True when `t` heads an aux / aux:tense / aux:pass child: a compound tense or a passive,
+    so `t` is a participle even when the tagger called it an adjective."""
+    return any(a["dep"] in COMPOUND_AUX_DEPS for a in _children(tokens, t["i"]))
+
+
 def _agrees(morph: dict, features: dict, keys: tuple[str, ...]) -> bool:
     """True when every key present on both sides has the same value."""
     return all(morph[k] == features[k] for k in keys if k in morph and k in features)
@@ -90,6 +102,37 @@ def nominal_group(tokens: list[dict], noun_i: int) -> list[int]:
         ids.append(j)
         j += 1
     return sorted(ids)
+
+
+def coordinated_group(tokens: list[dict], members: list[int]) -> list[int]:
+    """The ids of a coordinated subject (« le cuisinier et sa fille »).
+
+    When the span from the first member's group to the last member is made only of the members'
+    det/adj groups, their proper-name complements, the coordinating words and the commas between
+    members, the whole contiguous span is returned so an explanation can quote it exactly as
+    written, determiners included. Otherwise only the bare member heads are returned — a
+    non-contiguous group the client treats as not quotable: quoting the span would drag in words
+    that are not subjects, as in « Le soir de l'événement, le cuisinier et sa fille coupaient »
+    when the parser attached « soir » as the subject (SP2 playability P1-2)."""
+    by_i = {t["i"]: t for t in tokens}
+    covered: set[int] = set()
+    for m in members:
+        covered.update(nominal_group(tokens, m) if by_i[m]["pos"] in NOMINAL_POS else [m])
+    lo, hi = min(covered), max(covered)
+    for i in range(lo, hi + 1):
+        if i in covered:
+            continue
+        t = by_i.get(i)
+        if t is None:
+            return sorted(members)
+        if t["dep"] == "cc":
+            continue
+        if t["pos"] == "PROPN" and t["head"] in members and t["dep"] in NAME_COMPLEMENT_DEPS:
+            continue
+        if t["pos"] == "PUNCT" and t["text"] == "," and (i - 1) in covered and (i + 1) in covered:
+            continue
+        return sorted(members)
+    return list(range(lo, hi + 1))
 
 
 def _chain(kind: str, controller: int, controller_group: list[int], targets: list[int], features: dict,
@@ -139,7 +182,7 @@ class _Controller:
         conj = sorted(c["i"] for c in _children(tokens, controller) if c["dep"] == "conj")
         if conj:
             self.via = via or "conj"
-            self.group = [controller] + conj
+            self.group = coordinated_group(tokens, [controller] + conj)
             self.features = {**_feat(ctrl, ["Gender", "Person"]), "Number": "Plur"}
         else:
             self.group = nominal_group(tokens, controller) if ctrl["pos"] in NOMINAL_POS else [controller]
@@ -243,7 +286,9 @@ def _predicate_chains(tokens: list[dict]) -> list[dict]:
         if sv is not None:
             chains.append(sv)
         aux = [a for a in kids if a["dep"] in AUX_DEPS]
-        if _part(h) and aux:
+        # A participle with a bare copula, or an ADJ-tagged word with its own auxiliary (« l'avait
+        # choisie »): both are participles for the être/avoir rules, whatever the tagger said.
+        if aux and (_part(h) or has_own_auxiliary(tokens, h)):
             lemmas = {a["lemma"] for a in aux}
             if "être" in lemmas or any(a["dep"] == "aux:pass" for a in aux):
                 chains.append(_agreeing_target_chain("participle_etre", h, ctrl))

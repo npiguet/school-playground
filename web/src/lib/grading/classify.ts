@@ -135,13 +135,27 @@ function numberOrGenderSub(r: string, t: string): ErrorSub {
   return strip(r) === strip(t) ? 'number' : 'gender';
 }
 
+/** A past participle, whatever the tagger called it: a VERB/AUX with VerbForm=Part, or any word
+ *  the server categorised `participle` — annotation v3 does so for an ADJ-tagged word with its
+ *  own auxiliary (« Athéna l'avait choisie », SP2 playability P1-3). */
+function isParticiple(annot: AnnotToken): boolean {
+  if (annot.categories?.includes('participle')) return true;
+  return (annot.pos === 'VERB' || annot.pos === 'AUX') && annot.morph.VerbForm === 'Part';
+}
+
+/** A participle used adjectivally (« les toits endormis ») agrees like any adjective with its
+ *  noun — not the Protée être/avoir rule. The server's categories decide when present (v3:
+ *  `participle` + `nominal_group` ⇔ adnominal without its own auxiliary); on an annotation
+ *  without them, the dependency label alone. */
+function isAdjectivalParticiple(annot: AnnotToken): boolean {
+  if (annot.categories?.includes('participle')) return annot.categories.includes('nominal_group');
+  return ADJ_PARTICIPLE_DEPS.has(annot.dep);
+}
+
 export function agreementSub(r: string, t: string, annot: AnnotToken | undefined): ErrorSub | undefined {
   if (!annot) return undefined;
-  if (annot.pos === 'VERB' || annot.pos === 'AUX') {
-    const isParticiple = annot.morph.VerbForm === 'Part';
-    if (isParticiple && ADJ_PARTICIPLE_DEPS.has(annot.dep)) return numberOrGenderSub(r, t);
-    return isParticiple ? 'participle' : 'verb';
-  }
+  if (isParticiple(annot)) return isAdjectivalParticiple(annot) ? numberOrGenderSub(r, t) : 'participle';
+  if (annot.pos === 'VERB' || annot.pos === 'AUX') return 'verb';
   if (annot.pos === 'DET' || annot.pos === 'NOUN' || annot.pos === 'ADJ' || annot.pos === 'PRON') {
     return numberOrGenderSub(r, t);
   }
@@ -170,11 +184,12 @@ function findForm(forms: Record<string, FormFeatures> | undefined, t: string): F
  * neither the annotation's Gender nor Number distinguishes the two forms.
  */
 function formsSub(r: string, t: string, annot: AnnotToken, tf: FormFeatures): ErrorSub | undefined {
-  if (annot.pos === 'VERB' || annot.pos === 'AUX') {
-    const isParticiple = annot.morph.VerbForm === 'Part';
-    // P1-2: an adjectival participle falls through to the gender/number comparison below, same
-    // as agreementSub — it's not the être/avoir rule.
-    if (!(isParticiple && ADJ_PARTICIPLE_DEPS.has(annot.dep))) return isParticiple ? 'participle' : 'verb';
+  // P1-2: an adjectival participle falls through to the gender/number comparison below, same
+  // as agreementSub — it's not the être/avoir rule.
+  if (isParticiple(annot)) {
+    if (!isAdjectivalParticiple(annot)) return 'participle';
+  } else if (annot.pos === 'VERB' || annot.pos === 'AUX') {
+    return 'verb';
   }
   const rf: FormFeatures = {
     g: annot.morph.Gender === 'Fem' ? 'f' : annot.morph.Gender === 'Masc' ? 'm' : null,

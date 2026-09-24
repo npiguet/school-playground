@@ -12,7 +12,7 @@ def test_create_custom_text_is_annotated(client):
     assert r.status_code == 201, r.text
     t = r.json()
     assert t["word_count"] == 13 and t["added_by_name"] == "Léa" and t["source"] == "custom"
-    assert t["annotation"]["version"] == 2 and len(t["annotation"]["tokens"]) > 10
+    assert t["annotation"]["version"] == 3 and len(t["annotation"]["tokens"]) > 10
     assert isinstance(t["annotation"]["chains"], list) and "forms" in t["annotation"]["tokens"][0]
     assert t["history"] is None
     full = client.get(f"/api/texts/{t['id']}").json()

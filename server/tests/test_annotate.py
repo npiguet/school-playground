@@ -41,6 +41,30 @@ def test_derive_categories_and_subject():
     assert by["épuisées"]["subject"] is None
 
 
+# SP2 playability P1-3: a word with its own auxiliary is a participle (Protée), never a noun-group
+# member, even when the tagger called it ADJ; a participle with an auxiliary in a relative clause
+# (« la fée qui a chanté ») is not adjectival either.
+def test_derive_participle_with_own_auxiliary_even_when_tagged_adj():
+    h = load_homophones(CONTENT)
+    tokens = [
+        tok(0, "Athéna", "PROPN", {}, head=3, dep="nsubj"),
+        tok(1, "l'", "PRON", {"Number": "Sing"}, head=3, dep="obj"),
+        tok(2, "avait", "AUX", {"VerbForm": "Fin", "Number": "Sing"}, head=3, dep="aux:tense"),
+        tok(3, "choisie", "ADJ", {"Gender": "Masc", "Number": "Sing"}, head=3, dep="ROOT"),
+        tok(4, "la", "DET", {"Gender": "Fem"}, head=5, dep="det"),
+        tok(5, "fée", "NOUN", {"Gender": "Fem", "Number": "Sing"}, head=3, dep="obl"),
+        tok(6, "qui", "PRON", {}, head=8, dep="nsubj"),
+        tok(7, "a", "AUX", {"VerbForm": "Fin", "Number": "Sing"}, head=8, dep="aux:tense"),
+        tok(8, "chanté", "VERB", {"VerbForm": "Part"}, head=5, dep="acl:relcl"),
+        tok(9, "fatiguée", "ADJ", {"Gender": "Fem", "Number": "Sing"}, head=5, dep="amod"),
+    ]
+    cats = {t["text"]: set(t["categories"]) for t in derive(tokens, h)}
+    assert cats["choisie"] == {"participle"}
+    assert cats["chanté"] == {"participle"}
+    assert cats["fatiguée"] == {"nominal_group"}
+    assert cats["avait"] == {"verb"} and cats["a"] == {"verb", "homophone"}
+
+
 def test_derive_without_lexicon_keeps_sp1_shape():
     h = load_homophones(CONTENT)
     tokens = [
@@ -81,7 +105,7 @@ def test_derive_all_with_lexicon(lexicon):
 def test_annotate_with_real_model(nlp, lexicon):
     h = load_homophones(CONTENT)
     a = annotate("Les fées dansent dans la clairière. Il a chanté.", nlp, h, lexicon)
-    assert a["version"] == 2 and a["model"]
+    assert a["version"] == 3 and a["model"]
     assert isinstance(a["chains"], list)
     fees = next(t for t in a["tokens"] if t["text"] == "fées")
     assert "fée" in fees["forms"]

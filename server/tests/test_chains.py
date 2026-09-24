@@ -87,8 +87,79 @@ def test_attribute_relative_qui_and_conj():
          tok(2, "Marie", "PROPN", {"Number": "Sing"}, 0, "conj"),
          tok(3, "chantent", "VERB", {"VerbForm": "Fin", "Number": "Plur", "Person": "3"}, 3, "ROOT")]
     conj = by_kind(build_chains(t), "subject_verb")[0]
-    assert conj["via"] == "conj" and conj["controller_group"] == [0, 2]
+    assert conj["via"] == "conj" and conj["controller_group"] == [0, 1, 2]   # the quotable span « Pierre et Marie »
     assert conj["features"]["Number"] == "Plur" and conj["confidence"] == "medium"
+
+
+# --- SP2 playability P1-2: a coordinated subject is quotable as written, or not named at all ---
+
+def test_coordinated_subject_group_is_the_written_span_with_determiners():
+    # Le cuisinier et sa fille coupaient .
+    t = [tok(0, "Le", "DET", {"Number": "Sing"}, 1, "det"),
+         tok(1, "cuisinier", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 5, "nsubj"),
+         tok(2, "et", "CCONJ", {}, 4, "cc"),
+         tok(3, "sa", "DET", {"Number": "Sing"}, 4, "det"),
+         tok(4, "fille", "NOUN", {"Gender": "Fem", "Number": "Sing"}, 1, "conj"),
+         tok(5, "coupaient", "VERB", {"VerbForm": "Fin", "Number": "Plur", "Person": "3"}, 5, "ROOT"),
+         tok(6, ".", "PUNCT", {}, 5, "punct")]
+    sv = by_kind(build_chains(t), "subject_verb")[0]
+    assert sv["via"] == "conj" and sv["controller_group"] == [0, 1, 2, 3, 4] and sv["confidence"] == "medium"
+    # la princesse Nausicaa et ses servantes étalaient — a proper-name complement inside the span is fine
+    t = [tok(0, "la", "DET", {"Number": "Sing"}, 1, "det"),
+         tok(1, "princesse", "NOUN", {"Gender": "Fem", "Number": "Sing"}, 6, "nsubj"),
+         tok(2, "Nausicaa", "PROPN", {}, 1, "nmod"),
+         tok(3, "et", "CCONJ", {}, 5, "cc"),
+         tok(4, "ses", "DET", {"Number": "Plur"}, 5, "det"),
+         tok(5, "servantes", "NOUN", {"Gender": "Fem", "Number": "Plur"}, 1, "conj"),
+         tok(6, "étalaient", "VERB", {"VerbForm": "Fin", "Number": "Plur", "Person": "3"}, 6, "ROOT")]
+    assert by_kind(build_chains(t), "subject_verb")[0]["controller_group"] == [0, 1, 2, 3, 4, 5]
+    # Pierre , Paul et Marie chantent — commas between members are part of the list
+    t = [tok(0, "Pierre", "PROPN", {"Number": "Sing"}, 5, "nsubj"),
+         tok(1, ",", "PUNCT", {}, 2, "punct"),
+         tok(2, "Paul", "PROPN", {"Number": "Sing"}, 0, "conj"),
+         tok(3, "et", "CCONJ", {}, 4, "cc"),
+         tok(4, "Marie", "PROPN", {"Number": "Sing"}, 0, "conj"),
+         tok(5, "chantent", "VERB", {"VerbForm": "Fin", "Number": "Plur", "Person": "3"}, 5, "ROOT")]
+    assert by_kind(build_chains(t), "subject_verb")[0]["controller_group"] == [0, 1, 2, 3, 4]
+
+
+def test_mis_parsed_coordination_keeps_bare_heads_so_nothing_is_quoted():
+    # Le soir de l' événement , le cuisinier et sa fille coupaient . — the parser made « soir »
+    # the subject; the span would quote « Le soir de l'événement, le cuisinier et sa fille ».
+    t = [tok(0, "Le", "DET", {"Number": "Sing"}, 1, "det"),
+         tok(1, "soir", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 11, "nsubj"),
+         tok(2, "de", "ADP", {}, 4, "case"),
+         tok(3, "l'", "DET", {"Number": "Sing"}, 4, "det"),
+         tok(4, "événement", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 1, "nmod"),
+         tok(5, ",", "PUNCT", {}, 11, "punct"),
+         tok(6, "le", "DET", {"Number": "Sing"}, 7, "det"),
+         tok(7, "cuisinier", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 1, "conj"),
+         tok(8, "et", "CCONJ", {}, 10, "cc"),
+         tok(9, "sa", "DET", {"Number": "Sing"}, 10, "det"),
+         tok(10, "fille", "NOUN", {"Gender": "Fem", "Number": "Sing"}, 1, "conj"),
+         tok(11, "coupaient", "VERB", {"VerbForm": "Fin", "Number": "Plur", "Person": "3"}, 11, "ROOT")]
+    sv = by_kind(build_chains(t), "subject_verb")[0]
+    assert sv["via"] == "conj" and sv["controller_group"] == [1, 7, 10]   # non-contiguous: not quotable
+
+
+# --- SP2 playability P1-3: « Athéna l'avait choisie » is a participle with avoir, even ADJ-tagged ---
+
+def test_adj_tagged_word_with_its_own_auxiliary_is_a_participle_with_avoir():
+    # Athéna l' avait choisie . — fr_core_news_sm tags « choisie » ADJ with an aux:tense child
+    t = [tok(0, "Athéna", "PROPN", {}, 3, "nsubj"),
+         tok(1, "l'", "PRON", {"Number": "Sing", "Person": "3"}, 3, "obj"),
+         tok(2, "avait", "AUX", {"VerbForm": "Fin", "Number": "Sing", "Person": "3", "Mood": "Ind", "Tense": "Imp"}, 3, "aux:tense", lemma="avoir"),
+         tok(3, "choisie", "ADJ", {"Gender": "Masc", "Number": "Sing"}, 3, "ROOT", lemma="choisir"),
+         tok(4, ".", "PUNCT", {}, 3, "punct")]
+    pa = by_kind(build_chains(t), "participle_avoir")[0]
+    assert pa["rule"] == "cod_before" and pa["controller"] == 1 and pa["targets"] == [3] and pa["confidence"] == "medium"
+    # with être it is the être rule; a plain attribute (cop) is unchanged
+    t[2] = tok(2, "était", "AUX", {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}, 3, "aux:pass", lemma="être")
+    chains = build_chains(t)
+    assert by_kind(chains, "participle_etre") and not by_kind(chains, "attribute")
+    t[2] = tok(2, "était", "AUX", {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}, 3, "cop", lemma="être")
+    chains = build_chains(t)
+    assert by_kind(chains, "attribute") and not by_kind(chains, "participle_etre")
 
 
 def test_distance_and_ids():

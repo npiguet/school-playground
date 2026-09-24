@@ -56,7 +56,7 @@ def test_chunks_and_adopt(settings):
         assert r.status_code == 201, r.text
         t = r.json()
         assert t["source"] == "online" and t["author"] == "Jules Verne" and t["title"].startswith("Vingt mille lieues") and t["level"] == c["level"]
-        assert t["annotation"]["version"] == 2 and t["added_by_profile_id"] == p["id"]
+        assert t["annotation"]["version"] == 3 and t["added_by_profile_id"] == p["id"]
         again = client.post(f"/api/alexandria/chunks/{c['id']}/adopt", json={"profile_id": p["id"]})
         assert again.status_code == 200 and again.json()["id"] == t["id"]
         assert client.get("/api/alexandria/works/verne/chunks").json()[0]["text_id"] == t["id"]

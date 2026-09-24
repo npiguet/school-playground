@@ -58,21 +58,26 @@ export function explainChain(
   return candidates[0];
 }
 
-/** The reference text spanned by `chain`'s controller group, exactly as written — a coordinated
- *  group (`via: 'conj'`, non-contiguous member tokens) is rendered as each member's text joined
- *  with " et "; any other group is a single contiguous span, read straight from `body`. */
+/** True when the group is one unbroken run of token ids — the only case where the reference
+ *  span between its first and last token contains nothing but the group itself. */
+export function isContiguousGroup(ids: number[]): boolean {
+  const sorted = [...ids].sort((a, b) => a - b);
+  return sorted.every((id, k) => k === 0 || id === sorted[k - 1] + 1);
+}
+
+/** The reference text spanned by `chain`'s controller group, exactly as written (determiners
+ *  and all), read straight from `body`. `''` when the group is not quotable: empty, or
+ *  non-contiguous — the server leaves a coordinated subject as its bare member heads when the
+ *  span between them holds words that are not subjects (« Le soir de l'événement, le cuisinier et
+ *  sa fille » with « soir » mis-parsed as a subject), and rendering those heads joined with
+ *  " et " taught a false subject list (SP2 playability P1-2). Callers fall back to a generic
+ *  sentence rather than name anything. */
 export function groupText(annotation: Annotation, chain: Chain, body: string): string {
   const ids = chain.controller_group;
-  if (ids.length === 0) return '';
+  if (ids.length === 0 || !isContiguousGroup(ids)) return '';
   const byId = new Map(annotation.tokens.map((t) => [t.i, t]));
-  if (chain.via === 'conj') {
-    return ids
-      .map((id) => byId.get(id)?.text)
-      .filter((t): t is string => t !== undefined)
-      .join(' et ');
-  }
   const members = ids.map((id) => byId.get(id)).filter((t) => t !== undefined);
-  if (members.length === 0) return '';
+  if (members.length !== ids.length) return '';
   const start = Math.min(...members.map((t) => t.start));
   const end = Math.max(...members.map((t) => t.end));
   return body.slice(start, end);

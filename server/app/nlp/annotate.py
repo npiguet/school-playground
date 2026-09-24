@@ -7,10 +7,12 @@ startup by app.reannotate.
 """
 from __future__ import annotations
 from app.lexicon import Lexicon
-from app.nlp.chains import build_chains
+from app.nlp.chains import build_chains, has_own_auxiliary
 from app.nlp.homophones import Homophones
 
-ANNOTATION_VERSION = 2
+# 3 (SP2 playability P1-2/P1-3): a word with its own auxiliary is a `participle` (never a
+# `nominal_group` member) even when tagged ADJ; coordinated subject groups are quotable spans.
+ANNOTATION_VERSION = 3
 VERB_POS = {"VERB", "AUX"}
 SUBJECT_DEPS = {"nsubj", "nsubj:pass"}
 AUX_DEPS = {"aux", "aux:pass", "aux:tense", "cop"}
@@ -42,13 +44,17 @@ def derive_all(tokens: list[dict], homophones: Homophones,
         pos, morph, dep = t["pos"], t.get("morph", {}), t["dep"]
         cats: list[str] = []
         is_verb = pos in VERB_POS
+        # « Athéna l'avait choisie »: the small model tags the participle ADJ, but its aux:tense
+        # child makes it a compound-tense participle (Protée), not a noun-group word (P1-3). The
+        # same auxiliary check keeps « la fée qui a chanté » (acl:relcl + aux) out of the noun group.
+        compound = has_own_auxiliary(tokens, t)
         if is_verb and morph.get("VerbForm") == "Fin":
             cats.append("verb")
-        if is_verb and morph.get("VerbForm") == "Part":
+        if (is_verb and morph.get("VerbForm") == "Part") or (pos == "ADJ" and compound):
             cats.append("participle")
-            if dep in ADJ_PARTICIPLE_DEPS:
+            if dep in ADJ_PARTICIPLE_DEPS and not compound:
                 cats.append("nominal_group")
-        if pos in {"DET", "NOUN", "ADJ"} or (pos == "PRON" and dep == "det"):
+        if pos in {"DET", "NOUN"} or (pos == "ADJ" and not compound) or (pos == "PRON" and dep == "det"):
             cats.append("nominal_group")
         hom = homophones.set_of(t["text"]) if pos != "PUNCT" else None
         if hom:

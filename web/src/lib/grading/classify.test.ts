@@ -157,6 +157,20 @@ describe('P1-2: adjectival participle is graded as noun-group agreement, not Pro
     const choisie = ann('VERB', { VerbForm: 'Part', Gender: 'Fem' }, { dep: 'root' });
     expect(classifyPair(tk('choisie'), tk('choisi'), choisie, -1)).toMatchObject({ category: 'agreement', sub: 'participle' });
   });
+  // SP2 playability P1-3: the small model tags « Athéna l'avait choisie » ADJ; annotation v3
+  // categorises it `participle` (it has its own auxiliary) and that wins over the POS tag. A v3
+  // adnominal participle carries `participle` + `nominal_group` and stays an adjective-like
+  // agreement; `la fée qui a chanté` (acl:relcl + aux) is `participle` only.
+  it('trusts the server categories: an ADJ-tagged word with its own auxiliary is a participle', () => {
+    const choisieAdj = ann('ADJ', { Gender: 'Masc', Number: 'Sing' }, { dep: 'ROOT', categories: ['participle'] });
+    expect(classifyPair(tk('choisie'), tk('choisi'), choisieAdj, -1)).toMatchObject({ category: 'agreement', sub: 'participle' });
+    const endormis = ann('VERB', { VerbForm: 'Part', Number: 'Plur' }, { dep: 'amod', categories: ['participle', 'nominal_group'] });
+    expect(agreementSub('endormis', 'endormi', endormis)).toBe('number');
+    const chante = ann('VERB', { VerbForm: 'Part' }, { dep: 'acl:relcl', categories: ['participle'] });
+    expect(agreementSub('chantée', 'chanté', chante)).toBe('participle');
+    const choisieForms = ann('ADJ', { Gender: 'Masc', Number: 'Sing' }, { dep: 'ROOT', categories: ['participle'], forms: { choisi: { g: 'm', n: 's' } } });
+    expect(classifyPair(tk('choisie'), tk('choisi'), choisieForms, -1)).toMatchObject({ category: 'agreement', sub: 'participle' });
+  });
   it('applies the same distinction to an irregular participle form found via the lexicon', () => {
     const enduAdj = ann('VERB', { VerbForm: 'Part', Gender: 'Fem', Number: 'Sing' }, { dep: 'amod', forms: { endormi: { g: 'm', n: 's' } } });
     expect(classifyPair(tk('endormie'), tk('endormi'), enduAdj, -1)).toMatchObject({ category: 'agreement', sub: 'gender' });

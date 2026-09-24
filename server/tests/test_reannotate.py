@@ -52,4 +52,4 @@ def test_startup_reannotates_outdated_texts(settings):
         pass
     again = connect(settings.data_dir / DB_FILENAME)
     stored = json.loads(again.execute("SELECT annotation_json FROM text WHERE title = 'old'").fetchone()[0])
-    assert stored["version"] == 2 and stored["chains"] is not None and stored["tokens"][0]["text"] == "Il"
+    assert stored["version"] == 3 and stored["chains"] is not None and stored["tokens"][0]["text"] == "Il"
