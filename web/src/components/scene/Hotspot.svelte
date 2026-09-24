@@ -27,7 +27,9 @@
   function onclick() {
     // Task 9b: the read-only `?debug` overlay must not block hotspot clicks (HotspotDebug.svelte
     // is pointer-events: none over it anyway). Final review M3: one tap at a time per stage - a
-    // second place tapped during the first one's flash is ignored, and the timer dies with us.
+    // second place tapped (or Tab+Enter) is ignored until the navigation has happened; the
+    // guard is never released here, the stage (and its runtime) is torn down by the route
+    // change. The timer dies with us.
     if (status.locked || rt.activating) return;
     rt.activating = true;
     flashing = true;
@@ -35,7 +37,6 @@
       () => {
         flashing = false;
         onActivate(def);
-        rt.activating = false;
       },
       rt.reduced ? 0 : 160,
     );

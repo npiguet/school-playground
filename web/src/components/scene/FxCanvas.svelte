@@ -27,6 +27,8 @@
     if (!el || kind === 'none') return;
     const ctx = el.getContext('2d');
     if (!ctx) return;
+    // How many times the loop was (re)built - tests check a rotation doesn't rebuild it.
+    el.dataset.starts = String(Number(el.dataset.starts ?? 0) + 1);
 
     let w = 1;
     let h = 1;
@@ -34,10 +36,13 @@
 
     // Backing store scaled by devicePixelRatio (capped at 2) so particles stay crisp on Retina
     // iPad; ctx.setTransform keeps every draw call in CSS-pixel (logical) coordinates.
+    // `isHidden` is local and only mirrored into `hidden`: reading the $state inside this effect
+    // would make every portrait <-> landscape switch tear the particle loop down and rebuild it.
     const resize = () => {
       const r = el.getBoundingClientRect();
-      hidden = r.width < 2 || r.height < 2;
-      if (hidden) return;
+      const isHidden = r.width < 2 || r.height < 2;
+      hidden = isHidden;
+      if (isHidden) return;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       w = Math.max(1, Math.round(r.width));
       h = Math.max(1, Math.round(r.height));

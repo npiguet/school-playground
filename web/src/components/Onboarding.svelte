@@ -5,9 +5,12 @@
   // Playability #3: staged in the world rather than as a form - the Muses speak from a torn
   // parchment docked low over a barely dimmed camp, with the bronze kit buttons of the dialogue
   // box. Logic and test ids are unchanged.
+  // Fix wave 2: a real modal, through the same `modal` action as Overlay - the camp behind is
+  // inert, Tab stays on the card, and focus goes back where it was when the card closes.
   import Reveal from './juice/Reveal.svelte';
   import { api } from '../lib/api';
   import { profileStore } from '../lib/profileStore.svelte';
+  import { modal } from '../lib/scene/overlayState.svelte';
   import type { Profile } from '../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -56,7 +59,15 @@
 </script>
 
 {#if visible}
-  <div class="onboarding-overlay" role="dialog" aria-modal="true" aria-label="Bienvenue au camp">
+  <div
+    class="onboarding-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Bienvenue au camp"
+    tabindex="-1"
+    data-testid="onboarding"
+    use:modal
+  >
     <div class="onboarding-card" data-testid="onboarding-card">
       <p class="speaker">Les Muses</p>
       {#key step}
@@ -83,6 +94,7 @@
   .onboarding-overlay {
     position: fixed;
     inset: 0;
+    outline: none;
     background: rgba(21, 18, 26, 0.3);
     display: flex;
     align-items: flex-end;

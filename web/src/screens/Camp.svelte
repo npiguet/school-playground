@@ -74,10 +74,15 @@
 
   // Playability #12: leaving the hub fades through the night before the next screen appears
   // (App.svelte fades the dark back out on arrival).
+  // Idempotent, and the timer dies with the camp: a browser Back inside the fade must not be
+  // overridden by a navigation that was still pending (fix wave 2).
   let leaving = $state(false);
+  let leaveTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => () => clearTimeout(leaveTimer));
   function leaveTo(path: string) {
+    if (leaving) return;
     leaving = true;
-    setTimeout(() => navigate(path), reducedMotion() ? 60 : 180);
+    leaveTimer = setTimeout(() => navigate(path), reducedMotion() ? 60 : 180);
   }
 
   function activate(def: HotspotDef) {

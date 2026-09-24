@@ -4,10 +4,10 @@
   // Final review I5: while open, the scene stage behind is `inert` (overlayState), Tab stays inside
   // the panel, and closing hands focus back to `returnFocus` (the control that opened it).
   // Final review M7: backdrop and panel leave together, and neither catches a tap while leaving.
-  import { tick, type Snippet } from 'svelte';
+  import type { Snippet } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { reducedMotion } from '../../lib/juice/motion';
-  import { registerOverlay } from '../../lib/scene/overlayState.svelte';
+  import { modal } from '../../lib/scene/overlayState.svelte';
 
   let {
     variant,
@@ -27,53 +27,10 @@
   } = $props();
 
   const reduced = reducedMotion();
-  let panel: HTMLElement | undefined = $state();
-  // Read before the panel takes focus below.
-  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-  $effect(() => {
-    panel?.focus();
-  });
-
-  $effect(() => {
-    const unregister = registerOverlay();
-    const selector = returnFocus;
-    return () => {
-      unregister();
-      // After the stage has dropped `inert` (next flush), or focus() on it would be ignored.
-      void tick().then(() => {
-        const target = (selector ? document.querySelector<HTMLElement>(selector) : null) ?? opener;
-        if (target && target.isConnected && target !== document.body) target.focus();
-      });
-    };
-  });
-
-  function focusables(): HTMLElement[] {
-    if (!panel) return [];
-    return Array.from(
-      panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'),
-    );
-  }
-
+  // Focus, the Tab trap, the inert stage and focus return: the shared `modal` action
+  // (overlayState.svelte.ts), also used by Onboarding.
   function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-      onClose();
-      return;
-    }
-    if (e.key !== 'Tab' || !panel) return;
-    const items = focusables();
-    if (items.length === 0) {
-      e.preventDefault();
-      panel.focus();
-      return;
-    }
-    // Moved by hand on every Tab (not only at the ends): WebKit skips links on Tab by default, which
-    // would otherwise walk focus straight out of a panel made of links.
-    e.preventDefault();
-    const i = items.indexOf(document.activeElement as HTMLElement);
-    const n = items.length;
-    const next = i === -1 ? (e.shiftKey ? n - 1 : 0) : (i + (e.shiftKey ? n - 1 : 1)) % n;
-    items[next].focus();
+    if (e.key === 'Escape') onClose();
   }
 
   // Leaving: stop catching taps at once, then fade.
@@ -95,7 +52,7 @@
   out:leave|global={{ duration: 160 }}
 ></button>
 <div
-  bind:this={panel}
+  use:modal={{ returnFocus }}
   class="overlay-panel overlay-{variant}"
   class:kit-parchment={variant === 'scroll'}
   class:kit-scroll={variant === 'scroll'}

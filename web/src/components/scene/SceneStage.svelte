@@ -161,10 +161,13 @@
   .scene-stage {
     position: fixed;
     inset: 0;
-    /* `clip`, not `hidden`: a hidden overflow is still a scroll container, and WebKit scrolled it
-       sideways (scrollLeft 139 px on an iPad, seen in the UI1 fix-wave walk) to bring an
-       off-screen part of the cropped art box into view - shifting the whole stage and the HUD.
-       A clipped box can never be scrolled. */
+    /* `clip`, not `hidden`: a hidden overflow is still a scroll container. In the UI1 fix-wave
+       walk it was scrolled 139 px sideways (the whole stage and HUD shifted) by a click on
+       « Tout passer » during the 450 ms zoom-in: at scale 1.04 the button pokes past the
+       viewport's right edge, and scrolling it into view (Playwright's click does, and so do a
+       browser's focus/find/scrollIntoView) pans the stage into the cropped part of the art. A
+       clipped box can never be scrolled, whatever asks. */
+    overflow: hidden; /* fallback for engines without `clip` */
     overflow: clip;
     background: var(--night);
     touch-action: none;
@@ -191,6 +194,7 @@
   }
   .art {
     position: absolute;
+    overflow: hidden; /* fallback for engines without `clip` */
     overflow: clip;
   }
   .art-bg {
