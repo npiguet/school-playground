@@ -9,7 +9,7 @@
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../lib/world/types';
-  import { bandFor, dossierLine } from '../lib/world/eris';
+  import { agree, bandFor, dossierLine } from '../lib/world/eris';
   import { entry as bestiaryEntry } from '../lib/world/bestiary';
   import { ApiError } from '../lib/api';
   import type { Profile } from '../lib/types';
@@ -121,7 +121,7 @@
       {#if lieutenantState.neutralised}
         <div class="parchment neutralised-banner" data-testid="lieutenant-neutralised">
           <Medallion glyph={catalogEntry?.glyph ?? glyph} kind="relic" size={64} />
-          <p>Neutralisé le {neutralisedDate()}</p>
+          <p>{agree('Neutralisé', lieutenantKey as LieutenantKey)} le {neutralisedDate()}</p>
         </div>
       {/if}
 

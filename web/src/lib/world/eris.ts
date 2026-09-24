@@ -6,6 +6,47 @@ import type { LieutenantKey, LieutenantState } from './types';
 
 export type Band = 'none' | 'strong' | 'contested' | 'weak' | 'neutralised';
 
+// Narrative gender for French agreement (I7): l'Hydre, Écho, la Chimère, les Sirènes and Léthé
+// (a personification) are feminine; Protée alone is masculine. Mirrors the `gender` field on
+// `server/app/world/catalog.py`'s LIEUTENANTS. Kept as static data here (not read from the
+// world catalog fetched over the network) so this pure, store-free module can be used before
+// that catalog has loaded, and so every screen agrees on the same source of truth.
+export type Gender = 'f' | 'm' | 'fp';
+
+const GENDER: Record<LieutenantKey, Gender> = {
+  hydre: 'f',
+  echo: 'f',
+  chimere: 'f',
+  protee: 'm',
+  sirenes: 'fp',
+  lethe: 'f',
+};
+
+export function genderFor(key: LieutenantKey): Gender {
+  return GENDER[key];
+}
+
+/** Agrees a past-participle/adjective stem (e.g. "neutralisé") with a lieutenant's gender:
+ *  "-e" feminine, "-es" feminine plural, unchanged masculine. */
+export function agree(base: string, key: LieutenantKey): string {
+  const g = GENDER[key];
+  return g === 'fp' ? `${base}es` : g === 'f' ? `${base}e` : base;
+}
+
+/** The stressed/disjunctive pronoun ("contre lui/elle/elles") for a lieutenant. */
+export function pronounFor(key: LieutenantKey): string {
+  const g = GENDER[key];
+  return g === 'fp' ? 'elles' : g === 'f' ? 'elle' : 'lui';
+}
+
+/** The picker's "that one" confirm label ("C'est celui-là" / "C'est celle-là" / "Ce sont
+ *  celles-là"), agreeing both the demonstrative pronoun and the verb. */
+export function confirmChoiceLabel(key: LieutenantKey): string {
+  const g = GENDER[key];
+  if (g === 'fp') return 'Ce sont celles-là';
+  return g === 'f' ? "C'est celle-là" : "C'est celui-là";
+}
+
 // Words/phrases that would turn a taunt about Éris's own tricks into one about the player -
 // never allowed in a dossier line (Decision 19). Checked in lowercase.
 export const FORBIDDEN = [

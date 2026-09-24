@@ -6,6 +6,8 @@
   import TopBar from '../components/TopBar.svelte';
   import { entry } from '../lib/world/bestiary';
   import { campStore, refreshCamp } from '../lib/world/campStore.svelte';
+  import { pronounFor } from '../lib/world/eris';
+  import type { LieutenantKey } from '../lib/world/types';
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
   import type { Profile } from '../lib/types';
@@ -48,7 +50,7 @@
         </ul>
       {:else}
         <p>{item.teaser}</p>
-        <p class="orange">Mythe à débloquer : termine une quête contre lui.</p>
+        <p class="orange">Mythe à débloquer : termine une quête contre {pronounFor(item.key as LieutenantKey)}.</p>
       {/if}
     </section>
 

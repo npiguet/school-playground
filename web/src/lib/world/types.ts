@@ -18,6 +18,9 @@ export interface WorldCatalog {
   lieutenants: {
     key: string;
     name: string;
+    // Narrative gender for French agreement (l'Hydre/Écho/la Chimère/les Sirènes/Léthé are
+    // feminine, Protée is masculine) - see `agree()` in `../world/eris.ts` (SP3 batch review I7).
+    gender: 'f' | 'm' | 'fp';
     categories: string[];
     technique: string;
     min_level: string;

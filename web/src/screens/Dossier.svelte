@@ -10,7 +10,7 @@
   import { ART } from '../lib/world/art';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey } from '../lib/world/types';
-  import { bandFor, dossierLine, dossierIntro, smallTricksLine } from '../lib/world/eris';
+  import { agree, bandFor, dossierLine, dossierIntro, smallTricksLine } from '../lib/world/eris';
   import { entry as bestiaryEntry } from '../lib/world/bestiary';
   import { api, ApiError } from '../lib/api';
   import type { Profile, StatsResponse } from '../lib/types';
@@ -127,7 +127,7 @@
                   <span class="row-head">
                     <span class="glyph" aria-hidden="true">{glyphFor(key)}</span>
                     <span class="row-name">{nameFor(key)}</span>
-                    {#if l.neutralised}<span class="chip chip-gold">Neutralisé</span>{/if}
+                    {#if l.neutralised}<span class="chip chip-gold">{agree('Neutralisé', key)}</span>{/if}
                   </span>
                   <p class="eris-line" data-testid="dossier-line-{key}">{dossierLine(key, band)}</p>
                   <p class="numbers muted">

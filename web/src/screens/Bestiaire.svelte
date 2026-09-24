@@ -7,6 +7,8 @@
   import { ART } from '../lib/world/art';
   import { BESTIARY, type BestiaryEntry } from '../lib/world/bestiary';
   import { campStore, refreshCamp } from '../lib/world/campStore.svelte';
+  import { agree, pronounFor } from '../lib/world/eris';
+  import type { LieutenantKey } from '../lib/world/types';
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
   import type { Profile } from '../lib/types';
@@ -32,7 +34,7 @@
     if (e.kind !== 'monster') return null;
     const l = lieutenantState(e.key);
     if (!l) return { label: 'À découvrir', cls: 'muted-chip' };
-    if (l.neutralised) return { label: 'Neutralisé', cls: 'chip-gold' };
+    if (l.neutralised) return { label: agree('Neutralisé', e.key as LieutenantKey), cls: 'chip-gold' };
     if (l.all_time.traps > 0) return { label: 'En cours', cls: 'chip-aegean' };
     return { label: 'À découvrir', cls: 'muted-chip' };
   }
@@ -64,7 +66,9 @@
           <span class="chip {chip.cls}">{chip.label}</span>
         {/if}
         {#if e.kind === 'monster' && !unlocked}
-          <span class="chip muted-chip" data-testid="bestiary-locked">Mythe à débloquer : termine une quête contre lui</span>
+          <span class="chip muted-chip" data-testid="bestiary-locked"
+            >Mythe à débloquer : termine une quête contre {pronounFor(e.key as LieutenantKey)}</span
+          >
         {/if}
       </button>
     {/each}
