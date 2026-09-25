@@ -8,15 +8,6 @@ export type Level = (typeof LEVELS)[number];
 export const AVATARS = ['chouette', 'dragon', 'lyre', 'trident', 'laurier', 'foudre'] as const;
 export type Avatar = (typeof AVATARS)[number];
 
-export const AVATAR_GLYPHS: Record<Avatar, string> = {
-  chouette: '🦉',
-  dragon: '🐉',
-  lyre: '🎵',
-  trident: '🔱',
-  laurier: '🌿',
-  foudre: '⚡',
-};
-
 export function levelIndex(level: string): number {
   return LEVELS.indexOf(level as Level);
 }

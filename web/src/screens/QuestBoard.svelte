@@ -4,7 +4,8 @@
   import TopBar from '../components/TopBar.svelte';
   import QuestCard from '../components/QuestCard.svelte';
   import Medallion from '../components/juice/Medallion.svelte';
-  import { ART, lieutenantIcon } from '../lib/world/art';
+  import LieutenantBadge from '../components/LieutenantBadge.svelte';
+  import { ART } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../lib/world/types';
@@ -128,7 +129,7 @@
         {@const l = lieutenantState(key)}
         {@const decor = nextDecor()}
         <div class="card challenge-card" data-testid="board-challenge-{key}">
-          <img class="glyph" src={lieutenantIcon(key)} alt="" aria-hidden="true" />
+          <LieutenantBadge lieutenantKey={key} size={48} />
           <span class="name">{names[key] ?? key}</span>
           <p class="technique muted">{technique(key)}</p>
           {#if !l || !l.available}
@@ -240,11 +241,6 @@
     align-items: flex-start;
     gap: 6px;
     cursor: default;
-  }
-  .glyph {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
   }
   .name {
     font-family: var(--font-display);

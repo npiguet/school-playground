@@ -5,17 +5,17 @@ LIEUTENANT_ORDER = ["hydre", "echo", "chimere", "protee", "sirenes", "lethe"]
 # Sirènes/Léthé are feminine, Protée is masculine; SP3 batch review I7). The client's `agree()`
 # helper (web/src/lib/world/eris.ts) reads it via GET /api/world.
 LIEUTENANTS = {
-    "hydre":   {"name": "L'Hydre", "gender": "f", "categories": ["agreement:number", "agreement:verb"], "min_level": "5H", "relic": "ecaille_hydre", "glyph": "🐍",
+    "hydre":   {"name": "L'Hydre", "gender": "f", "categories": ["agreement:number", "agreement:verb"], "min_level": "5H", "relic": "ecaille_hydre",
                 "technique": "Elle sème des dés-accords de nombre : un -s ou un -nt qui manque, et deux têtes repoussent."},
-    "echo":    {"name": "Écho", "gender": "f", "categories": ["homophone"], "min_level": "5H", "relic": "voix_echo", "glyph": "🔊",
+    "echo":    {"name": "Écho", "gender": "f", "categories": ["homophone"], "min_level": "5H", "relic": "voix_echo",
                 "technique": "Elle répète un mot qui sonne juste mais s'écrit faux : a ou à, et ou est, son ou sont."},
-    "chimere": {"name": "La Chimère", "gender": "f", "categories": ["agreement:gender"], "min_level": "5H", "relic": "criniere_chimere", "glyph": "🦁",
+    "chimere": {"name": "La Chimère", "gender": "f", "categories": ["agreement:gender"], "min_level": "5H", "relic": "criniere_chimere",
                 "technique": "Ses têtes se disputent le genre : un masculin ici, un féminin là."},
-    "protee":  {"name": "Protée", "gender": "m", "categories": ["agreement:participle"], "min_level": "8H", "relic": "perle_protee", "glyph": "🌊",
+    "protee":  {"name": "Protée", "gender": "m", "categories": ["agreement:participle"], "min_level": "8H", "relic": "perle_protee",
                 "technique": "Il change la forme des participes passés : -é, -ée, -és, -ées, selon être ou avoir."},
-    "sirenes": {"name": "Les Sirènes", "gender": "fp", "categories": ["derived:sirenes"], "min_level": "5H", "relic": "plume_sirene", "glyph": "🎶",
+    "sirenes": {"name": "Les Sirènes", "gender": "fp", "categories": ["derived:sirenes"], "min_level": "5H", "relic": "plume_sirene",
                 "technique": "Leur chant éloigne le sujet de son verbe, le cache derrière un pronom ou le met après."},
-    "lethe":   {"name": "Léthé", "gender": "f", "categories": ["derived:lethe"], "min_level": "5H", "relic": "pavot_lethe", "glyph": "🌫️",
+    "lethe":   {"name": "Léthé", "gender": "f", "categories": ["derived:lethe"], "min_level": "5H", "relic": "pavot_lethe",
                 "technique": "Elle endort l'attention dans le dernier tiers du texte, là où l'on ne relit plus."},
 }
 TINTS = ["bronze", "ecume", "olivier", "braise", "jade", "argent"]

@@ -25,7 +25,6 @@ export interface WorldCatalog {
     technique: string;
     min_level: string;
     relic: string;
-    glyph: string;
   }[];
   rewards: Record<string, { id: string; kind: RewardKind; name: string; desc: string; source: string }>;
   ranks: { xp: number; title: string }[];

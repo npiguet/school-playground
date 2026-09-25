@@ -12,6 +12,8 @@ def test_world_catalog(client):
     # plural, Protée alone masculine.
     genders = {l["key"]: l["gender"] for l in w["lieutenants"]}
     assert genders == {"hydre": "f", "echo": "f", "chimere": "f", "protee": "m", "sirenes": "fp", "lethe": "f"}
+    # CLAUDE.md "No emoji" (UI3 Ruling A13): the lieutenants' icons are painted art on the client.
+    assert all("glyph" not in lt for lt in w["lieutenants"])
 
 
 def test_camp_for_new_profile(client):

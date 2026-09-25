@@ -25,7 +25,7 @@ export async function refreshCamp(profileId: number): Promise<void> {
   }
 }
 
-// Caches the (mostly static) world catalog - technique lines, glyphs, reward catalog - so screens
+// Caches the (mostly static) world catalog - technique lines, lieutenant names, reward catalog - so screens
 // that need it (Lieutenant, Dossier) don't each fetch it separately. Best-effort: the world API
 // may not exist yet (SP3 server Tasks 2-3), so a failure just leaves it `null` and callers fall
 // back to their own generic text.

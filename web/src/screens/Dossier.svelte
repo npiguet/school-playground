@@ -7,7 +7,8 @@
   import TopBar from '../components/TopBar.svelte';
   import Gauge from '../components/juice/Gauge.svelte';
   import Reveal from '../components/juice/Reveal.svelte';
-  import { ART, lieutenantIcon } from '../lib/world/art';
+  import LieutenantBadge from '../components/LieutenantBadge.svelte';
+  import { ART } from '../lib/world/art';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey } from '../lib/world/types';
   import { agree, bandFor, dossierLine, dossierIntro, lockedLine, smallTricksLine } from '../lib/world/eris';
@@ -103,7 +104,7 @@
             <li>
               {#if !l || !l.available}
                 <div class="parchment row row-locked">
-                  <img class="glyph" src={lieutenantIcon(key)} alt="" aria-hidden="true" />
+                  <LieutenantBadge lieutenantKey={key} size={40} dim />
                   <span class="row-name">{nameFor(key)}</span>
                   <span class="muted">{lockedLine(nameFor(key))}</span>
                 </div>
@@ -111,7 +112,7 @@
                 {@const band = bandFor(l)}
                 <button type="button" class="parchment row" onclick={() => goLieutenant(key)}>
                   <span class="row-head">
-                    <img class="glyph" src={lieutenantIcon(key)} alt="" aria-hidden="true" />
+                    <LieutenantBadge lieutenantKey={key} size={40} />
                     <span class="row-name">{nameFor(key)}</span>
                     {#if l.neutralised}<span class="chip chip-gold">{agree('Neutralisé', key)}</span>{/if}
                   </span>
@@ -218,11 +219,6 @@
     display: flex;
     align-items: center;
     gap: 10px;
-  }
-  .glyph {
-    width: 30px;
-    height: 30px;
-    object-fit: contain;
   }
   .row-name {
     font-family: var(--font-display);

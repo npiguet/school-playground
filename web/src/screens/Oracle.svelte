@@ -7,7 +7,8 @@
   import QuestCard from '../components/QuestCard.svelte';
   import Particles from '../components/juice/Particles.svelte';
   import Medallion from '../components/juice/Medallion.svelte';
-  import { ART, lieutenantIcon, rewardKindOf } from '../lib/world/art';
+  import LieutenantBadge from '../components/LieutenantBadge.svelte';
+  import { ART, rewardKindOf } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type OracleOut, type ScrollKey } from '../lib/world/types';
@@ -186,7 +187,7 @@
                 disabled={!isAvailable(key)}
                 onclick={() => (selectedMonster = key)}
               >
-                <img class="chip-icon" src={lieutenantIcon(key)} alt="" aria-hidden="true" />
+                <LieutenantBadge lieutenantKey={key} size={28} />
                 {nameFor(key)}{!isAvailable(key) ? ' · dort encore' : ''}
               </button>
             {/each}
@@ -314,11 +315,6 @@
      48px; the generic .chip is only 40px). */
   .picker-grid :global(.chip) {
     min-height: 48px;
-  }
-  .chip-icon {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
   }
   .picker-actions {
     display: flex;

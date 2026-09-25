@@ -1,18 +1,14 @@
 <script lang="ts">
-  import { AVATAR_GLYPHS, type Avatar } from '../lib/levels';
+  // A hero's emblem: the painted avatar medallion (UI3 Ruling A13, was an emoji). `ring`: the
+  // in-world look (playability #4) - the emblem sits in a bronze ring. Unknown keys show the owl.
+  import { avatarIcon } from '../lib/world/art';
+  import type { Avatar } from '../lib/levels';
 
-  // `ring`: the in-world look (playability #4) - the glyph sits in a bronze medallion instead of
-  // the legacy pale-blue disc. Scene UI (HUD, hero panel) uses it; legacy screens keep the disc.
   let { avatar, size = 48, ring = false }: { avatar: Avatar | string; size?: number; ring?: boolean } = $props();
 </script>
 
-<span
-  class="avatar"
-  class:ring
-  style="width: {size}px; height: {size}px; font-size: {size * 0.55}px;"
-  aria-hidden="true"
->
-  {AVATAR_GLYPHS[avatar as Avatar] ?? '🦉'}
+<span class="avatar" class:ring style="width: {size}px; height: {size}px;" aria-hidden="true">
+  <img src={avatarIcon(avatar)} alt="" draggable="false" />
 </span>
 
 <style>
@@ -22,8 +18,13 @@
     justify-content: center;
     border-radius: 50%;
     background: var(--aegean-light);
-    line-height: 1;
+    overflow: hidden;
     flex-shrink: 0;
+  }
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
   .avatar.ring {
     box-sizing: border-box;

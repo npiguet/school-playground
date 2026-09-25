@@ -218,6 +218,7 @@ test('HUD: laurel, dragon, sound toggle that survives leaving the camp', async (
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCamp(page, id);
   await expect(page.getByTestId('hud-xp')).toContainText('Recrue du camp');
+  await expect(page.getByTestId('hud-hero').locator('img[src="/art/icons/avatar-chouette.webp"]')).toBeVisible();
 
   const mute = page.getByTestId('hud-mute');
   await expect(mute).toHaveAttribute('aria-pressed', 'false');

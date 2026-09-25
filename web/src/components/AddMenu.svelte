@@ -4,6 +4,7 @@
   // handout, or adopt a chunk from the Bibliothèque d'Alexandrie.
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
+  import { ADD_ICONS } from '../lib/world/art';
 
   let { profileId, open = $bindable() }: { profileId: number; open: boolean } = $props();
 
@@ -23,7 +24,7 @@
     <h2>Ajouter un parchemin</h2>
 
     <button type="button" class="card menu-item" data-testid="menu-add-type" onclick={() => go('text-new')}>
-      <span class="icon" aria-hidden="true">📝</span>
+      <img class="icon" src={ADD_ICONS.text} alt="" />
       <span class="text">
         <span class="item-title">Taper ou coller un texte</span>
         <span class="item-subtitle muted">Un texte que tu as sous la main.</span>
@@ -31,7 +32,7 @@
     </button>
 
     <button type="button" class="card menu-item" data-testid="menu-add-scan" onclick={() => go('text-scan')}>
-      <span class="icon" aria-hidden="true">📷</span>
+      <img class="icon" src={ADD_ICONS.scan} alt="" />
       <span class="text">
         <span class="item-title">Scanner une feuille</span>
         <span class="item-subtitle muted">Prends en photo une feuille imprimée (pas de manuscrit).</span>
@@ -44,7 +45,7 @@
       data-testid="menu-add-alexandria"
       onclick={() => go('alexandria')}
     >
-      <span class="icon" aria-hidden="true">📜</span>
+      <img class="icon" src={ADD_ICONS.alexandria} alt="" />
       <span class="text">
         <span class="item-title">Bibliothèque d'Alexandrie</span>
         <span class="item-subtitle muted">Des textes classiques recopiés pour toi.</span>
@@ -89,8 +90,9 @@
     margin-bottom: 12px;
   }
   .icon {
-    font-size: 28px;
-    line-height: 1;
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
     flex-shrink: 0;
   }
   .text {

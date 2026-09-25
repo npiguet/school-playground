@@ -9,6 +9,7 @@
   import { api, ApiError } from '../lib/api';
   import { todayIso } from '../lib/dates';
   import { countWords } from '../lib/dictation/segment';
+  import { ADD_ICONS } from '../lib/world/art';
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
   import type { Profile, ScanResult } from '../lib/types';
@@ -161,6 +162,7 @@
 
     <div class="capture-buttons">
       <label class="btn btn-primary capture-label">
+        <img class="capture-icon" src={ADD_ICONS.scan} alt="" />
         Prendre une photo
         <input
           type="file"
@@ -361,6 +363,11 @@
   }
   .capture-label {
     position: relative;
+  }
+  .capture-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
   }
   .file-input {
     position: absolute;
