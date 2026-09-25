@@ -368,8 +368,10 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   }
   const back = work.getByTestId('portal-back');
   await expect(back).toContainText('Toutes les œuvres');
-  expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+  // Measured once the panel has settled (expectOverlayTapTargets waits out its fly-in): read
+  // during it, the 48 px control once came out at 47.99998 (Task S measurement runs).
   await expectOverlayTapTargets(page, 'overlay-portal-work');
+  expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(48);
   await back.click();
   await expect(page).toHaveURL(/\/alexandria$/);
   await expect(portal).toBeVisible();
