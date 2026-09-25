@@ -41,8 +41,17 @@
   // reactively at close time (same staleness risk `PortalWorkPanel` guards against for its own
   // `workId`, fix round 1 #2).
   let lastWorkId = $state('');
+  // Fix round 2 finding 4: PortalPanel needs to know it is specifically returning *from that work*
+  // (not just reopened fresh via the hotspot, which must not steal focus onto a card the player
+  // never asked for). Only the exact 'oeuvre' -> 'portail' transition sets it; any other way into
+  // 'portail' clears it.
+  let previousPanel: PanelId | null = null;
+  let returningFromWorkId = $state('');
   $effect(() => {
     if (params.workId) lastWorkId = params.workId;
+    const from = previousPanel;
+    previousPanel = panel;
+    if (panel === 'portail') returningFromWorkId = from === 'oeuvre' ? lastWorkId : '';
   });
 </script>
 
@@ -71,7 +80,7 @@
   </Overlay>
 {:else if panel === 'portail'}
   <Overlay variant="scroll" size="wide" title="Bibliothèque d'Alexandrie" testId="overlay-portal" onClose={close} returnFocus={'[data-testid="library-portal"]'}>
-    <PortalPanel {profile} />
+    <PortalPanel {profile} focusWorkId={returningFromWorkId} />
   </Overlay>
 {:else if panel === 'oeuvre'}
   <Overlay

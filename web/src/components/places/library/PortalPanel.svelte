@@ -3,12 +3,20 @@
   // public-domain works so a player can adopt a scored chunk ("rouleau") as a parchemin.
   // UI3a Task 11: opened as an overlay of the library tent (panel 'portail') rather than a full
   // screen - the painted hero banner below is the view through the portal itself.
+  import { tick } from 'svelte';
   import { api, ApiError } from '../../../lib/api';
   import { href } from '../../../lib/routes';
   import { openPanel } from '../../../lib/scene/panelNav';
   import type { AlexandriaWork, Profile } from '../../../lib/types';
 
-  let { profile }: { profile: Profile } = $props();
+  // `focusWorkId`: fix round 2 finding 4. Closing the work overlay remounts this panel fresh, and
+  // Overlay's own `modal.destroy()` return-focus fires ~160ms after that (its local `out:leave`) -
+  // a fixed delay that races this panel's own `works` fetch. Rather than guess a delay, LibraryTent
+  // passes the work id to return to (only when actually coming back from one) and this panel moves
+  // focus onto that card itself, once `works` has actually rendered - deterministic regardless of
+  // how long the fetch took. Overlay's own `returnFocus` (targeting the same card) stays as a
+  // harmless, purely opportunistic fallback for whichever case is faster.
+  let { profile, focusWorkId }: { profile: Profile; focusWorkId?: string } = $props();
 
   let works = $state<AlexandriaWork[]>([]);
   let loading = $state(true);
@@ -27,6 +35,16 @@
   }
 
   load();
+
+  let focused = false;
+  $effect(() => {
+    if (focused || !focusWorkId || loading || works.length === 0) return;
+    focused = true;
+    const id = focusWorkId;
+    tick().then(() => {
+      document.querySelector<HTMLElement>(`[data-testid="work-card"][data-work-id="${id}"]`)?.focus();
+    });
+  });
 
   function statusLabel(w: AlexandriaWork): string {
     if (w.status === 'never') return 'Pas encore recopié';

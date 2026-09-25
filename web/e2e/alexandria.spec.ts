@@ -1,5 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
-import { closeOverlay, createProfile, uniqueName } from './helpers';
+import { closeOverlay, createProfile, expectNoOverlap, uniqueName, watchOverlap } from './helpers';
 
 // "Vingt mille lieues" only has one offline fixture page, so its whole online library
 // (server/app/alexandria) is a finite, server-wide pool of 7 clean chunks - not per-profile, by
@@ -102,16 +102,23 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
     expect(unexpectedStatus).toBeNull();
     if (!target) throw new Error('no chunk claimed');
     await expect(target.getByText('Rouleau ajouté aux Parchemins.')).toBeVisible();
-    await target.getByTestId('btn-adopt-play').click();
-    // Fix round 1 #1 guard (Task 11 review): proves Overlay's OUT transition is local, not
-    // `|global` - leaving the work overlay for /play (an ancestor unmount: the whole library place,
-    // LibraryTent included, unmounts for the play place) must drop `scene-library` and
-    // `overlay-portal-work` at once rather than lingering for their 160ms fade. Before the fix, the
+    // Fix round 1 #1 guard (Task 11 review), tightened in fix round 2 finding 2: proves Overlay's
+    // OUT transition is local, not `|global` - leaving the work overlay for /play (an ancestor
+    // unmount: the whole library place, LibraryTent included, unmounts for the play place) must
+    // drop `scene-library` at once rather than lingering for its 160ms fade. Before the fix, the
     // still-fading overlay's own credits line coexisted with Play's own, and a bare
     // `getByText(/Jules Verne/)` a few lines down hit Playwright's strict mode on two matches
-    // (found stress-testing this spec with --repeat-each=20 --workers=8, 20/20 failing).
-    await expect(page.getByTestId('scene-library')).toHaveCount(0, { timeout: 100 });
-    await expect(page.getByTestId('overlay-portal-work')).toHaveCount(0, { timeout: 100 });
+    // (found stress-testing this spec with --repeat-each=20 --workers=8, 20/20 failing). A fixed
+    // "count 0 within 100ms" window depends on load: `watchOverlap` instead watches every DOM
+    // mutation from before the click, so it catches the coexistence no matter how briefly it
+    // lasted, on any machine (`topbar-camp` is Play's own TopBar, rendered from its first paint,
+    // before its own text fetch resolves).
+    await watchOverlap(page, 'scene-library', 'topbar-camp');
+    await target.getByTestId('btn-adopt-play').click();
+    await expect(page.getByTestId('topbar-camp')).toBeVisible();
+    await expect(page.getByTestId('scene-library')).toHaveCount(0);
+    await expect(page.getByTestId('overlay-portal-work')).toHaveCount(0);
+    await expectNoOverlap(page);
     await expect(page.getByRole('button', { name: 'Commencer la dictée' })).toBeVisible();
     await expect(page.getByText(/Jules Verne/)).toBeVisible();
     bodyPassed = true;

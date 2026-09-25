@@ -1,5 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createProfileApi, enterTitle, expectCamp, expectInSafeZone, expectScene, measureBoxes, redScan, uniqueName } from './helpers';
+import {
+  createProfileApi,
+  enterTitle,
+  expectCamp,
+  expectInSafeZone,
+  expectNoOverlap,
+  expectScene,
+  measureBoxes,
+  redScan,
+  uniqueName,
+  watchOverlap,
+} from './helpers';
 
 // UI3a Task 8 (scenes spec §3 Title, §4 tilt, §10): the camp gates at dusk. « Entrer » unlocks
 // audio and tilt and shows the heroes' shields; a new hero is named in an overlay on
@@ -82,17 +93,20 @@ test('the naming ritual is an overlay with its own route; Back and the seal clos
   await page.getByLabel('Ton niveau').selectOption('9H');
   await expect(page.getByLabel(/Un code à quatre chiffres/)).toBeVisible();
   expect(await redScan(page)).toEqual([]);
+  // Fix round 1 #1 guard (Task 11 review), tightened in fix round 2 finding 2: proves Overlay's OUT
+  // transition is local, not `|global` - handing off from the title to the camp (an ancestor
+  // unmount) must drop `scene-title` and its ritual overlay at once rather than lingering for their
+  // 160ms fade (which used to leave the next scene `inert` and the ritual's `<svelte:window>`
+  // bound, see the Escape test below). `watchOverlap` watches every DOM mutation from before the
+  // click, so it catches the coexistence no matter how briefly it lasted or how loaded the machine
+  // running the test is - a fixed "count 0 within Nms" window was either too tight (flakes under
+  // load) or too loose (hides the regression on a fast one).
+  await watchOverlap(page, 'scene-title', 'scene-camp');
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-  // Fix round 1 #1 guard (Task 11 review): proves Overlay's OUT transition is local, not `|global`
-  // - handing off from the title to the camp (an ancestor unmount) must drop `scene-title` and its
-  // ritual overlay at once rather than lingering for their 160ms fade (which used to leave the next
-  // scene `inert` and the ritual's `<svelte:window>` bound, see the Escape test below). Waits for
-  // the actual hand-off (the URL change) first - the profile creation itself is a network round
-  // trip, unrelated to the 160ms this is timing.
-  await page.waitForURL(/\/camp$/);
-  await expect(page.getByTestId('scene-title')).toHaveCount(0, { timeout: 100 });
-  await expect(ritual).toHaveCount(0, { timeout: 100 });
   await expectCamp(page);
+  await expect(page.getByTestId('scene-title')).toHaveCount(0);
+  await expect(ritual).toHaveCount(0);
+  await expectNoOverlap(page);
   await expect(page.getByTestId('hud-hero').locator('img[src="/art/icons/avatar-trident.webp"]')).toBeVisible();
   // The form replaced its own entry: Back lands on the title, not on an empty ritual (fix round 1
   // #3: prove the actual scene and the overlay's absence, not only the URL).

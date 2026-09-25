@@ -204,6 +204,7 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   await expect(portal.getByRole('heading', { name: "Bibliothèque d'Alexandrie" })).toBeVisible();
   await expect(portal.getByTestId('work-card').first()).toBeVisible();
   expect(await portal.getByTestId('work-card').count()).toBeGreaterThanOrEqual(10);
+  const workId = await portal.getByTestId('work-card').first().getAttribute('data-work-id');
   await portal.getByTestId('work-card').first().click();
   await expect(page).toHaveURL(/\/alexandria\/[^/]+$/);
   const work = page.getByTestId('overlay-portal-work');
@@ -216,6 +217,11 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   await expect(work).toBeVisible();
   await work.getByTestId('overlay-close').click(); // steps back one overlay (Ruling A2)
   await expect(portal).toBeVisible();
+  // Fix round 2 finding 1: focus lands on the card the player opened, not the (inert)
+  // library-portal hotspot - deterministic even though the portal remounts fresh and re-fetches its
+  // works list (PortalPanel focuses it itself once `works` has actually rendered, not a fixed delay
+  // timed against the work overlay's own 160ms close).
+  await expect(portal.locator(`[data-work-id="${workId}"]`)).toBeFocused();
   await portal.getByTestId('overlay-close').click();
   await expect(page).toHaveURL(/\/tente-parchemins$/);
   expect(await redScan(page)).toEqual([]);
@@ -229,12 +235,15 @@ test('a deep link into a work: the seal and « Toutes les œuvres » replace, ne
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const work = page.getByTestId('overlay-portal-work');
 
-  // The seal replaces the deep-linked work entry with the bare scene.
+  // The seal replaces the deep-linked work entry with the bare scene - not just the URL right
+  // after closing (fix round 2 finding 3): Back must not resurrect the replaced entry either.
   await page.goto(`/#/p/${id}/alexandria/verne-vingt-mille-lieues`);
   await expect(work.getByTestId('btn-refresh-work')).toBeVisible();
   await work.getByTestId('overlay-close').click();
   await expect(page).toHaveURL(/\/tente-parchemins$/);
   await expectScene(page, 'library');
+  await page.goBack();
+  await expect(page).not.toHaveURL(/alexandria/);
 
   // « Toutes les œuvres » replaces it with the works list instead; Back from there leaves for
   // wherever came before the deep link (the tent, opened first here) rather than reopening the work.

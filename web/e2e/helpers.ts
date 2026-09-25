@@ -347,6 +347,39 @@ export async function closeOverlay(page: Page) {
   await expect(page.getByTestId(id!)).toHaveCount(0);
 }
 
+// UI3a Task 11 review, fix round 2 finding 2: proves an outgoing place never coexists with the one
+// replacing it (Overlay.svelte's OUT transitions must stay local, not `|global` - fix round 1 #1),
+// without depending on how fast the machine running the test is. A fixed "count is 0 within N ms"
+// window is either too tight (flakes under load) or too loose (hides a real 160ms lingering) -
+// this instead watches every DOM mutation from the moment it's installed (before the
+// transition-triggering action) and flags the flag if the two testids were EVER both present, no
+// matter how briefly. Call before the action; read the result after the new place has settled.
+export async function watchOverlap(page: Page, oldTestId: string, newTestId: string) {
+  await page.evaluate(
+    ([a, b]) => {
+      const w = window as unknown as { __overlap?: boolean; __overlapObserver?: MutationObserver };
+      w.__overlapObserver?.disconnect();
+      w.__overlap = false;
+      const check = () => {
+        if (document.querySelector(`[data-testid="${a}"]`) && document.querySelector(`[data-testid="${b}"]`)) {
+          w.__overlap = true;
+        }
+      };
+      check();
+      const obs = new MutationObserver(check);
+      obs.observe(document.body, { childList: true, subtree: true });
+      w.__overlapObserver = obs;
+    },
+    [oldTestId, newTestId],
+  );
+}
+
+// Reads the flag `watchOverlap` maintains: false means the two testids were never both in the DOM
+// at once since it was installed.
+export async function expectNoOverlap(page: Page) {
+  expect(await page.evaluate(() => (window as unknown as { __overlap?: boolean }).__overlap)).toBe(false);
+}
+
 // Every listed hotspot and its label plaque sit inside the art's 4:3 safe zone (x 12.5-87.5 %,
 // hotspots below the HUD band at y 14 %) and on screen; every hotspot is a 48 px touch target.
 // Review round 1 (Task 9): a label with a caption (a new hero, so the glow shows) is taller than a
