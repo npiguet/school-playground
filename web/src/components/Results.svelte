@@ -7,6 +7,7 @@
   import { CATEGORY_LABELS, caughtText, erisLine, explain, statKeyOf } from '$lib/explain';
   import type { PlayMode, TextFull } from '$lib/types';
   import Icon from './ui/Icon.svelte';
+  import { plural } from '$lib/text/french';
 
   let {
     reference,
@@ -193,7 +194,7 @@
     {/if}
     {#if introducedCount > 0}
       <p class="hero-line muted">
-        Éris a profité de la relecture pour glisser {introducedCount} nouveau(x) piège(s). Ça arrive
+        Éris a profité de la relecture pour glisser {plural(introducedCount, 'nouveau piège', 'nouveaux pièges')}. Ça arrive
         : regarde-les ci-dessous.
       </p>
     {/if}

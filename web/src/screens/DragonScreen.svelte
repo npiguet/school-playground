@@ -11,6 +11,7 @@
   import { stageLabel, TINT_FILTERS, TINT_NAMES, validName } from '../lib/world/dragon';
   import type { Tint } from '../lib/world/types';
   import { ApiError } from '../lib/api';
+  import { plural } from '../lib/text/french';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
   import type { Profile } from '../lib/types';
 
@@ -103,7 +104,7 @@
   const gaugeMax = $derived(dragon ? (dragon.next_stage_at ?? Math.max(1, dragon.available)) : 1);
   const gaugeLabel = $derived(
     dragon?.next_stage_at !== null && dragon?.next_stage_at !== undefined
-      ? `Prochaine étape : ${dragon.next_stage_at} technique(s) neutralisée(s)`
+      ? `Prochaine étape : ${plural(dragon.next_stage_at, 'technique neutralisée', 'techniques neutralisées')}`
       : 'Étape finale atteinte',
   );
 </script>

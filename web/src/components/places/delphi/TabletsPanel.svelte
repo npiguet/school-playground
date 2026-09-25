@@ -12,6 +12,7 @@
   import { romanTier } from '../../../lib/world/quests';
   import { ApiError } from '../../../lib/api';
   import { href } from '../../../lib/routes';
+  import { plural } from '../../../lib/text/french';
   import { go } from '../../../lib/scene/panelNav';
   import type { Profile } from '../../../lib/types';
 
@@ -131,7 +132,7 @@
             {#if l.neutralised}<span class="chip chip-gold">{agree('Neutralisé', key)}</span>{/if}
             {#if l.active_quest_id}<span class="chip chip-aegean">Quête en cours</span>{/if}
             <p class="reward-line">Récompense : {boardXp} XP · page du bestiaire</p>
-            {#if decor}<p class="muted decor-line">Prochain trésor de cabane dans {decor.n} quête(s) : {decor.name}</p>{/if}
+            {#if decor}<p class="muted decor-line">Encore {plural(decor.n, 'quête', 'quêtes')} avant le prochain trésor de ta cabane : {decor.name}.</p>{/if}
             <button
               type="button"
               class="btn btn-primary"
@@ -174,7 +175,7 @@
           {@const neutralised = campStore.data.dragon.neutralised}
           {@const won = campStore.data.boss.tiers_won.length}
           {@const need = Math.ceil((available * (won + 1)) / 3)}
-          <p>Éris se cache. Neutralise {Math.max(0, need - neutralised)} ruse(s) de plus pour la faire sortir.</p>
+          <p>Éris se cache. Neutralise encore {plural(Math.max(0, need - neutralised), 'ruse', 'ruses')} pour la faire sortir.</p>
         {/if}
       </div>
     </section>
