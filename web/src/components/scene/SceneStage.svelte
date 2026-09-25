@@ -140,7 +140,11 @@
       runtime.ny = n.ny;
     };
     const onTurn = () => {
+      // The next `deviceorientation` reading becomes the new resting pose (screen axes just
+      // changed), but that reading hasn't arrived yet: recentre now so the scene doesn't sit at
+      // the old orientation's offset in the meantime.
       base = null;
+      resetPointer();
     };
     window.addEventListener('deviceorientation', onTilt);
     screen.orientation?.addEventListener('change', onTurn);

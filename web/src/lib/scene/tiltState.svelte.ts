@@ -11,17 +11,27 @@ interface PermissionApi {
 }
 
 export function requestTilt(): Promise<TiltPermission> {
-  if (typeof window === 'undefined' || typeof window.DeviceOrientationEvent === 'undefined') {
+  // Bare reference (no `window.` prefix), like `matchMedia` in juice/motion.ts: undefined in
+  // SSR/node test environments rather than thrown, and stubbable on `globalThis` from tests.
+  if (typeof DeviceOrientationEvent === 'undefined') {
     tilt.permission = 'unavailable';
     return Promise.resolve(tilt.permission);
   }
-  const api = window.DeviceOrientationEvent as unknown as PermissionApi;
+  const api = DeviceOrientationEvent as unknown as PermissionApi;
   if (typeof api.requestPermission !== 'function') {
     tilt.permission = 'granted';
     return Promise.resolve(tilt.permission);
   }
-  return api
-    .requestPermission()
-    .then((answer) => (tilt.permission = answer === 'granted' ? 'granted' : 'denied'))
-    .catch(() => (tilt.permission = 'denied'));
+  try {
+    return api
+      .requestPermission()
+      .then((answer) => (tilt.permission = answer === 'granted' ? 'granted' : 'denied'))
+      .catch(() => (tilt.permission = 'denied'));
+  } catch {
+    // Some engines (Permissions-Policy-restricted iframes, vendor quirks) throw synchronously
+    // instead of rejecting; requestTilt() must never throw for its caller (the title's « Entrer »
+    // tap).
+    tilt.permission = 'denied';
+    return Promise.resolve(tilt.permission);
+  }
 }
