@@ -234,6 +234,47 @@ Prompt tips from this batch:
   baked in and broken by the cut-out); both gold-capped knobs and the wound cord came through
   clean on the first try, and the cut-out has no white rim on a dark background.
 
+### Parchment retry (2026-09-25): shipped, seed 903
+
+The three earlier tries (903-905 above) all asked for "soft blotchy tone variation" as a *positive*
+attribute, which is exactly the kind of slow, low-frequency shading `seamless()`'s quadrant-shift
+turns into a repeating blotch grid. The retry changed the approach on three fronts instead of
+trying more seeds with the same wording:
+
+- **Prompted as a low-contrast text background, not a scenic material.** No "tone variation"
+  anywhere in the prompt; instead "very low contrast, an almost perfectly uniform pale tone …
+  exactly the same brightness at the corners as at the centre" plus a longer negative list
+  (`vignette`, `dark edges`, `dark corners`, `corners`, `stains`, `blotches`, `spots`, `burnt
+  edges`, `torn edges`, `text`, `writing`, `border`, `objects`, `shadow`, all at `-2`/`-3`). No
+  style file: `discorde-texture`'s own paragraph asks for "soft gouache tone variation", which
+  fights this prompt directly, so it was dropped for this one asset.
+- **`generate.py --tiling`** (new flag, confirmed against `/openapi.json`:
+  `StableDiffusionProcessingTxt2Img.tiling` is a real, if undocumented, txt2img field) asks the
+  sampler itself for an edge-matching image, on top of the prompt wording.
+- **`tools/art/uiart.py` gained a `flatten()` step**, run before `seamless()` for any `TABLE` entry
+  with a target RGB: divide the image by a large Gaussian blur of itself (radius = long side / 6)
+  to cancel whatever low-frequency shading is still left, re-centre on the kit's parchment tone
+  (`--parchment-solid: #f3e6c8` in `web/src/styles/kit.css`), then compress the remaining grain so
+  luminance std stays ≤ 3 (0-255 scale).
+
+Seed 903 (1024², `--vscale 1.0 --tiling`, no style) passed on the **first try**, so seeds 904/905
+were not needed this time:
+
+```bash
+python .claude/skills/krea2/generate.py --size 1024x1024 --seed 903 --vscale 1.0 --tiling \
+  --prompt "a flat, top-down paper texture tile filling the entire frame edge to edge, meant to sit as a plain background behind small printed text: pale warm ivory parchment paper, very low contrast, an almost perfectly uniform pale tone across the whole image, only very fine faint paper fibres visible up close, flat even studio light with no shading anywhere, exactly the same brightness at the corners as at the centre, a seamless tileable pattern with no visible seam when repeated. (vignette:-3) (dark edges:-3) (dark corners:-3) (corners:-2) (stains:-3) (blotches:-3) (spots:-2) (burnt edges:-3) (torn edges:-3) (text:-3) (writing:-3) (border:-3) (objects:-3) (shadow:-3)" \
+  --out assets/art/textures/parchment.png
+```
+
+Measured with Pillow/NumPy: raw generation, corner-vs-centre luminance already close (corner mean
+228.1, centre mean 232.8, diff 4.7 out of 255 — down from ~26 on the rejected 904/905); after
+`flatten()` + `seamless()`, corner and centre means match to three decimal places (230.376 vs
+230.376) and the overall luminance std is 2.06 (≤ 3 target). A 3×3 tile with a line of dark ink
+text over it (`docs/art/parchment-tiled-check.png`, not committed) shows no seam, no grid and no
+darker corner at full resolution, and the text stays perfectly legible. Exported at 512×512, WebP
+quality 82, **3 KiB** (well inside the 150 KB texture budget). `ART.textures.parchment` is back in
+`web/src/lib/world/art.ts`.
+
 ### Icons (2026-09-24)
 
 Small painted icons that replace the emoji the UI used as markers (see `docs/art/icon-inventory.md`

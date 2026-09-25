@@ -58,11 +58,12 @@ describe('art map', () => {
   });
 
   it('ships the overlay textures and objects within their budgets (immersion wave W3)', () => {
-    // Parchment vignetted on all three tried seeds (903-905): the seamless-tile pass turned the
-    // corner darkening into a visible repeating blotch grid, so it stays a CSS/SVG fallback
-    // (Ruling W3) and has no `ART.textures.parchment` key.
+    // Parchment retry (2026-09-25): prompted explicitly as a low-contrast text background (no
+    // "tone variation") plus `--tiling` and uiart.py's new `flatten()` pass, seed 903 passed first
+    // try — no vignette, no seam, no blotch grid (docs/art/style-guide.md §5).
     expect(ART.textures).toEqual({
       marble: '/art/textures/marble.webp',
+      parchment: '/art/textures/parchment.webp',
       woodBoard: '/art/textures/wood_board.webp',
     });
     expect(ART.ui).toEqual({ scrollRolled: '/art/ui/scroll_rolled.webp' });

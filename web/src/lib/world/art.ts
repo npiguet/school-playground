@@ -128,10 +128,12 @@ export const ART = {
     places: PLACE_ICONS,
   },
   // Immersion wave (Ruling W3): overlay surfaces and objects; CSS reads the textures as tokens (kit.css).
-  // No `parchment` key: all three tried seeds (903-905) vignetted (docs/art/style-guide.md §5), so the
-  // parchment stays a CSS gradient plus inline SVG grain (Task 2).
+  // Parchment retry (2026-09-25): prompted explicitly as a low-contrast text background, generated
+  // with `--tiling` and flattened with uiart.py's `flatten()` pass before `seamless()` — see
+  // docs/art/style-guide.md §5.
   textures: {
     marble: '/art/textures/marble.webp',
+    parchment: '/art/textures/parchment.webp',
     woodBoard: '/art/textures/wood_board.webp',
   },
   ui: {

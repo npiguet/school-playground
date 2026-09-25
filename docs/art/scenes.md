@@ -140,6 +140,7 @@ No interactive landmarks. They all share the same layout for the battle stage:
 | Codex on a lectern | `assets/art/props/codex_lectern.png` | `web/public/art/props/codex_lectern_cut.webp` | 768×1344 |
 | Trophy shelf | `assets/art/props/trophy_shelf.png` | `web/public/art/props/trophy_shelf_cut.webp` | 1344×768 |
 | Marble texture (tile) | `assets/art/textures/marble.png` | `web/public/art/textures/marble.webp` (28 KB) | 1024² |
+| Parchment texture (tile) | `assets/art/textures/parchment.png` | `web/public/art/textures/parchment.webp` (3 KB) | 1024² → 512² |
 | Wood board (table overlay) | `assets/art/textures/wood_board.png` | `web/public/art/textures/wood_board.webp` (50 KB) | 1344×768 → 1280×731 |
 | Rolled scroll (cut-out) | `assets/art/ui/scroll_rolled.png` + `_cut.png` | `web/public/art/ui/scroll_rolled.webp` (20 KB) | 1344×768 → 640×366 |
 | Portal-arch icon (cut-out) | `assets/art/icons/portal-arch.png` + `_cut.png` | `web/public/art/icons/portal-arch.webp` (10 KB) | 1024² → 256² |
@@ -153,10 +154,14 @@ and Pythia panels. Export with `tools/art/run_docker.sh uiart webp` then `uiart 
 (`tools/art/uiart.py`); the `tile` entries go through a `seamless()` pass first (quadrant-shift plus a
 feathered cross blend) so a repeat shows no seam — see `docs/art/ui-art-sheet.png`.
 
-Parchment is **not** shipped as an image: three seeds (903, 904, 905) were tried and all three
-vignetted (the corners read up to ~10% darker than the centre). Raw 2×2 tiling showed the usual
-corner-meets-corner seam, and running the *same* seeds through the `seamless()` pass (meant to fix
-exactly that) only relocated the dark corners to the tile's centre and to the four-corner junctions,
-producing a clearly visible repeating diamond of dark blotches — worse than the flat seam it was
-built to hide. Per Ruling W3, the parchment overlay stays a CSS gradient plus an inline SVG grain
-(Task 2) instead.
+**Parchment retry (2026-09-25):** the first three seeds (903, 904, 905, tried before this retry) all
+vignetted for the reason above (a repeating blotch grid once `seamless()`'s quadrant-shift relocated
+each dark corner to the tile's centre and to the four-corner junctions). The retry prompted the tile
+explicitly as a low-contrast text background — no "tone variation", strong negatives against
+vignette/blotches/stains/corners — with `generate.py --tiling` (a real `tiling` field on the Forge
+txt2img API, confirmed via `/openapi.json`), and added a `flatten()` pass to `uiart.py` that divides
+the image by a large blur of itself, re-centres it on the kit's `--parchment-solid` tone, and
+compresses the remaining grain to a luminance std ≤ 3, run before `seamless()`. Seed 903 passed on
+the first try this time (corner-vs-centre luminance within 0.001 of each other after `flatten()` +
+`seamless()`); see `docs/art/style-guide.md` §5 for the prompt, the measurements and the 3×3
+tiled-with-text check. `ART.textures.parchment` is shipped.

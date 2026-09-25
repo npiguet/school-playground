@@ -39,6 +39,8 @@ def main():
                    help="NegPiP V-Scaling strength (0 = off, 1 = raw weights, up to 2); strengthens (word:weight)")
     p.add_argument("--variance", type=float, default=0.0,
                    help="Krea2 Variance cond-noise strength (0 = off, 1.2 typical) for more variety between seeds")
+    p.add_argument("--tiling", action="store_true",
+                   help="ask the sampler itself to make the image seamlessly tileable (txt2img 'tiling' field)")
     p.add_argument("--model", default=DEFAULT_MODEL)
     p.add_argument("--url", default=DEFAULT_URL)
     p.add_argument("--out", type=Path, required=True, help="output .png path")
@@ -61,6 +63,7 @@ def main():
             "width": width,
             "height": height,
             "seed": a.seed + i if a.seed >= 0 else -1,
+            "tiling": a.tiling,
             "override_settings": {"sd_model_checkpoint": a.model},
             "alwayson_scripts": {
                 "negpip": {"args": [a.vscale > 0, a.vscale or 1.0]},

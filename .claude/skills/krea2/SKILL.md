@@ -26,8 +26,14 @@ python .claude/skills/krea2/generate.py \
   --count 1 \
   --vscale 1.0 \                    # optional: NegPiP V-Scaling, stronger (word:weight) effect
   --variance 1.2 \                  # optional: more variety between seeds (Krea2 Variance)
+  --tiling \                        # optional: ask the sampler for a seamlessly tileable image
   --out assets/art/dragon_baby.png
 ```
+
+`--tiling` sets the raw txt2img `"tiling": true` field (confirmed present in `/openapi.json`'s
+`StableDiffusionProcessingTxt2Img` schema, default null/off). It nudges the sampler toward an
+edge-matching image but is not a substitute for the low-contrast/no-vignette prompting rules below
+or for `tools/art/uiart.py`'s own `seamless()` post-process — use both together for tile textures.
 
 It writes the PNG plus a sidecar `*.json` (prompt, seed, settings) next to it, so any asset can be reproduced or tweaked later. Always view the result with the Read tool before using it.
 

@@ -1,0 +1,35 @@
+{
+  "prompt": "a flat, top-down paper texture tile filling the entire frame edge to edge, meant to sit as a plain background behind small printed text: pale warm ivory parchment paper, very low contrast, an almost perfectly uniform pale tone across the whole image, only very fine faint paper fibres visible up close, flat even studio light with no shading anywhere, exactly the same brightness at the corners as at the centre, a seamless tileable pattern with no visible seam when repeated. (vignette:-3) (dark edges:-3) (dark corners:-3) (corners:-2) (stains:-3) (blotches:-3) (spots:-2) (burnt edges:-3) (torn edges:-3) (text:-3) (writing:-3) (border:-3) (objects:-3) (shadow:-3)",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1024,
+  "height": 1024,
+  "seed": 903,
+  "tiling": true,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": null
+}
