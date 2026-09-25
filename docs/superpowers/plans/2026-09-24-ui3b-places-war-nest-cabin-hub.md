@@ -6,7 +6,7 @@
 
 **Architecture:** Same engine and conventions as UI3a (`2026-09-24-ui3a-places-title-library-delphi.md`, which must be complete first): `placeFor(route)` maps each legacy route to "its place + its overlay", legacy screens move with `git mv` into `web/src/components/places/<place>/*Panel.svelte`, each place is a `PlaceScene` with hand-authored `*.shapes.ts` checked by `?debug`. This plan adds the `war-tent` route, three scene screens (`WarTent`, `Nest`, `CabinRoom`), rewrites the camp's scene data for the new art, and finishes the UI3 walk begun in UI3a.
 
-**Tech Stack:** Svelte 5 (runes) + TypeScript + Vite 7, vitest 3 (node env), Playwright 1.55.0 (WebKit `desktop` 1280×720, `ipad` 1180×820 touch), Docker Desktop + Git Bash wrapper scripts. No new npm dependency, no server change.
+**Tech Stack:** Svelte 5 (runes) + TypeScript + Vite 7, vitest 3 (node env), Playwright 1.63.0 (WebKit `desktop` 1280×720, `ipad` 1180×820 touch), Docker Desktop + Git Bash wrapper scripts. No new npm dependency, no server change.
 
 **Spec:** `docs/superpowers/specs/2026-09-24-scenes-ui-design.md` — binding (§2, §3, §4, §6, §9 UI3, §10). The UI3a plan's Global Constraints and Rulings A1–A18 hold here unchanged and are not repeated in full; the Rulings below (B-series) extend them. Repo-root `CLAUDE.md` is binding (no "pre-existing" problems, zero svelte-check warnings, no emoji — `web/src/noEmoji.test.ts` enforces it).
 

@@ -18,7 +18,7 @@ TTY_FLAGS=""
 # mintty (Git Bash's default terminal) with "the input device is not a TTY".
 
 NODE_IMAGE="node:22"
-PLAYWRIGHT_VERSION="1.55.0"
+PLAYWRIGHT_VERSION="1.63.0"
 PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
 SERVER_DEV_IMAGE="discorde-server-dev"
 APP_IMAGE="discorde:local"

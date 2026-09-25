@@ -13,7 +13,7 @@
     "fonts": "node scripts/vendor-fonts.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "1.55.0",
+    "@playwright/test": "1.63.0",
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
     "@tsconfig/svelte": "^5.0.4",
     "@types/node": "^22.0.0",
