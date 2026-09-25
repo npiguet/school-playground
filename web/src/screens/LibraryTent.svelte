@@ -7,6 +7,8 @@
   import DialogueBox from '../components/scene/DialogueBox.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
   import ShelvesPanel from '../components/places/library/ShelvesPanel.svelte';
+  import DeskPanel from '../components/places/library/DeskPanel.svelte';
+  import LensPanel from '../components/places/library/LensPanel.svelte';
   import { LIBRARY_SCENE, owlGreeting } from '../lib/world/scenes/library';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { markGreetedKey, shouldGreetKey } from '../lib/scene/greeting';
@@ -45,5 +47,13 @@
 {#if panel === 'etageres'}
   <Overlay variant="scroll" size="wide" title="Les Parchemins" testId="overlay-shelves" onClose={close} returnFocus={'[data-testid="library-shelves"]'}>
     <ShelvesPanel {profile} />
+  </Overlay>
+{:else if panel === 'pupitre'}
+  <Overlay variant="scroll" title="Nouveau parchemin" testId="overlay-desk" onClose={close} returnFocus={'[data-testid="library-desk"]'}>
+    <DeskPanel {profile} />
+  </Overlay>
+{:else if panel === 'loupe'}
+  <Overlay variant="scroll" size="wide" title="Scanner une feuille" testId="overlay-lens" onClose={close} returnFocus={'[data-testid="library-lens"]'}>
+    <LensPanel {profile} />
   </Overlay>
 {/if}

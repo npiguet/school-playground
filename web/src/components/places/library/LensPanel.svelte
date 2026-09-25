@@ -4,16 +4,15 @@
   // spec's "Decisions" #14). The reference text is always the answer key, so the verify step
   // is not a formality: an uncorrected OCR mistake would silently become "correct" forever.
   import { onDestroy, untrack } from 'svelte';
-  import TopBar from '../components/TopBar.svelte';
-  import LevelSelect from '../components/LevelSelect.svelte';
-  import { api, ApiError } from '../lib/api';
-  import { todayIso } from '../lib/dates';
-  import { countWords } from '../lib/dictation/segment';
-  import { ADD_ICONS } from '../lib/world/art';
-  import Icon from '../components/ui/Icon.svelte';
-  import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
-  import type { Profile, ScanResult } from '../lib/types';
+  import LevelSelect from '../../LevelSelect.svelte';
+  import { api, ApiError } from '../../../lib/api';
+  import { todayIso } from '../../../lib/dates';
+  import { countWords } from '../../../lib/dictation/segment';
+  import { ADD_ICONS } from '../../../lib/world/art';
+  import Icon from '../../ui/Icon.svelte';
+  import { href } from '../../../lib/routes';
+  import { replaceRoute } from '../../../lib/router.svelte';
+  import type { Profile, ScanResult } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
 
@@ -116,7 +115,7 @@
 
   // --- Step 3: details ---------------------------------------------------------------------
   let title = $state('');
-  // Local, editable copy seeded once from `profile` (see TextCreate.svelte for the same pattern).
+  // Local, editable copy seeded once from `profile` (see DeskPanel.svelte for the same pattern).
   let level = $state(untrack(() => profile.level));
   let dueDate = $state('');
   let author = $state('');
@@ -141,7 +140,7 @@
         work: work.trim() || null,
         added_by_profile_id: profile.id,
       });
-      navigate(href('library', { profileId: String(profile.id) }));
+      replaceRoute(href('library', { profileId: String(profile.id) }));
     } catch (e) {
       saveError = e instanceof ApiError ? e.detail : "Les Muses n'ont pas pu sauvegarder ce parchemin.";
     } finally {
@@ -150,9 +149,7 @@
   }
 </script>
 
-<TopBar {profile} title="Scanner une feuille" />
-
-<div class="screen">
+<div class="panel-lens">
   {#if step === 'capture'}
     <div class="card explain">
       <p>
@@ -455,7 +452,6 @@
     width: 100%;
     font-size: 18px;
     line-height: 1.5;
-    font-family: var(--font-body);
     resize: vertical;
   }
   .wordcount {

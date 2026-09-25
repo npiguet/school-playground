@@ -147,3 +147,45 @@ test('library: ?debug outlines the four objects; no red; rotate screen', async (
   await page.setViewportSize({ width: 820, height: 1180 });
   await expect(page.getByTestId('rotate-screen')).toBeVisible();
 });
+
+// UI3a Task 10: the desk and the lens open the write/paste and scan forms as in-world overlays
+// (Ruling A3), instead of the legacy full screens. Ruling A2: saving replaces the tagged
+// text-new/text-scan history entry rather than pushing a new one, so Back never reopens the form.
+test('the desk writes a new parchment; saving lands on the shelves and Back never reopens the form', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await openTent(page, id);
+  await tap(page.getByTestId('library-desk'), testInfo);
+  await expect(page).toHaveURL(/\/texts\/new$/);
+  const desk = page.getByTestId('overlay-desk');
+  await expect(desk.getByRole('heading', { name: 'Nouveau parchemin' })).toBeVisible();
+  const title = uniqueName(`Pupitre ${testInfo.project.name}`);
+  await page.getByLabel('Titre').fill(title);
+  await page.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
+  await expect(desk).toContainText('13 mots');
+  // A text to defend is set in Literata (Ruling A8); every legacy field is there.
+  expect(await page.getByLabel('Texte').evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Literata');
+  for (const label of ['Niveau', 'Auteur', 'Œuvre', 'Traducteur']) await expect(desk.getByLabel(label)).toBeVisible();
+  expect(await redScan(page)).toEqual([]);
+  await page.getByRole('button', { name: 'Sauvegarder dans les Parchemins' }).click();
+  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(page.getByTestId('overlay-shelves').locator('[data-testid="text-card"]', { hasText: title })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
+});
+
+test('the lens opens the three-step scan as a wide overlay', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await openTent(page, id);
+  await tap(page.getByTestId('library-lens'), testInfo);
+  await expect(page).toHaveURL(/\/texts\/scan$/);
+  const lens = page.getByTestId('overlay-lens');
+  await expect(lens.getByRole('heading', { name: 'Scanner une feuille' })).toBeVisible();
+  await expect(page.getByTestId('scan-input')).toBeAttached();
+  await expect(page.getByTestId('btn-scan-read')).toBeDisabled();
+  await expect(lens.locator('img.capture-icon')).toHaveAttribute('src', '/art/icons/add-scan.webp');
+  const box = await lens.boundingBox();
+  expect(box!.width, 'wide overlay').toBeGreaterThan(700);
+  expect(await redScan(page)).toEqual([]);
+  await closeOverlay(page);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
+});

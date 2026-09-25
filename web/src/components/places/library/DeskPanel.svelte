@@ -1,12 +1,11 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import TopBar from '../components/TopBar.svelte';
-  import LevelSelect from '../components/LevelSelect.svelte';
-  import { api, ApiError } from '../lib/api';
-  import { countWords } from '../lib/dictation/segment';
-  import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
-  import type { Profile } from '../lib/types';
+  import LevelSelect from '../../LevelSelect.svelte';
+  import { api, ApiError } from '../../../lib/api';
+  import { countWords } from '../../../lib/dictation/segment';
+  import { href } from '../../../lib/routes';
+  import { replaceRoute } from '../../../lib/router.svelte';
+  import type { Profile } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
 
@@ -40,7 +39,7 @@
         translator: translator.trim() || null,
         added_by_profile_id: profile.id,
       });
-      navigate(href('library', { profileId: String(profile.id) }));
+      replaceRoute(href('library', { profileId: String(profile.id) }));
     } catch (e) {
       error = e instanceof ApiError ? e.detail : "Les Muses n'ont pas pu sauvegarder ce parchemin.";
     } finally {
@@ -49,9 +48,7 @@
   }
 </script>
 
-<TopBar {profile} title="Nouveau parchemin" />
-
-<div class="screen">
+<div class="panel-desk">
   <form onsubmit={submit}>
     <div class="field">
       <label for="title">Titre</label>
@@ -107,7 +104,6 @@
   textarea {
     width: 100%;
     font-size: 18px;
-    font-family: var(--font-body);
     resize: vertical;
   }
   .wordcount {
