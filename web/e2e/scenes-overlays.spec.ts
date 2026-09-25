@@ -93,6 +93,40 @@ for (const size of [
   });
 }
 
+// Found by the batch B3 full run (flaky « the portal opens the works… »): an overlay that comes back
+// while it is still fading out (its route left and returned within the 160 ms fade - Back then a
+// quick tap on the same work) is the same {#if} branch resumed by Svelte, not a new one. Its leave
+// had already stopped it catching taps and Escape; the resumed intro must hand both back.
+test('an overlay brought back during its fade-out still takes taps and Escape', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, hero(testInfo.project.name));
+  await page.goto(`/#/p/${id}/parchemins`);
+  const shelves = page.getByTestId('overlay-shelves');
+  await expect(shelves).toBeVisible();
+  // Leave and come back two frames later, well inside the 160 ms fade.
+  await page.evaluate(async (pid) => {
+    location.hash = `#/p/${pid}/tente-parchemins`;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    location.hash = `#/p/${pid}/parchemins`;
+  }, id);
+  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(shelves).toHaveCount(1);
+  await expect.poll(() => shelves.evaluate((e) => getComputedStyle(e).pointerEvents)).not.toBe('none');
+  await page.keyboard.press('Escape');
+  await expect(shelves).toHaveCount(0);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
+  await page.evaluate(async (pid) => {
+    location.hash = `#/p/${pid}/parchemins`;
+  }, id);
+  await expect(shelves).toBeVisible();
+  await page.evaluate(async (pid) => {
+    location.hash = `#/p/${pid}/tente-parchemins`;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    location.hash = `#/p/${pid}/parchemins`;
+  }, id);
+  await shelves.getByTestId('overlay-close').click({ timeout: 5_000 });
+  await expect(shelves).toHaveCount(0);
+});
+
 // Task 10: Alexandria is an open book - two pages either side of the gutter, and nothing crosses it.
 test('the portal is a codex: two pages, and nothing crosses the gutter', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, hero(testInfo.project.name));

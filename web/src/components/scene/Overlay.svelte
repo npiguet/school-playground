@@ -68,6 +68,14 @@
     (node as HTMLElement).style.pointerEvents = 'none';
     return fade(node, params);
   }
+
+  // Batch B3 fix: a route that leaves and comes back within the fade (Back, then a quick tap on the
+  // same work) resumes this very branch - Svelte replays the intro on the same nodes instead of
+  // mounting new ones - so the intro hands back what `leave` took: taps, and Escape.
+  function back(e: Event) {
+    closing = false;
+    (e.currentTarget as HTMLElement).style.pointerEvents = '';
+  }
 </script>
 
 <svelte:window onkeydown={onKey} />
@@ -79,6 +87,7 @@
   tabindex="-1"
   onclick={onClose}
   in:fade|global={{ duration: 200 }}
+  onintrostart={back}
   out:leave={{ duration: 160 }}
 ></button>
 <div
@@ -92,6 +101,7 @@
   data-variant={variant}
   tabindex="-1"
   in:fly|global={{ y: reduced ? 0 : 40, duration: reduced ? 200 : 280, opacity: 0 }}
+  onintrostart={back}
   out:leave={{ duration: 160 }}
 >
   <!-- The object itself (Ruling W1): a parchment sheet with torn sides, a dark wood board, or an
