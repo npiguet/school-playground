@@ -70,7 +70,7 @@
   }
 
   function pct(rate: number | null): string {
-    return rate === null ? '—' : `${Math.round(rate * 100)} %`;
+    return rate === null ? '—' : `${Math.round(rate * 100)} %`;
   }
 
   function neutralisedDate(): string {
@@ -132,7 +132,7 @@
           <p class="gauge-label">Taux dans la fenêtre : {pct(lieutenantState.window.rate)}</p>
           <div class="bar rate-bar">
             <div class="bar-fill" style="width:{Math.min(100, Math.round((lieutenantState.window.rate ?? 0) * 100))}%"></div>
-            <div class="target-marker" style="left:80%" title="Objectif : 80 %"></div>
+            <div class="target-marker" style="left:80%" title="Objectif : 80 %"></div>
           </div>
         </div>
       </div>

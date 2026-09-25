@@ -50,7 +50,7 @@
   }
 
   function pct(rate: number | null): string {
-    return rate === null ? '—' : `${Math.round(rate * 100)} %`;
+    return rate === null ? '—' : `${Math.round(rate * 100)} %`;
   }
 
   const smallTricks = $derived.by(() => {

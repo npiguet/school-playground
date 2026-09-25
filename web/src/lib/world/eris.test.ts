@@ -37,8 +37,8 @@ describe("Éris's dossier lines", () => {
   // (Ruling: level 5H, the lowest playable level, already unlocks all but Protée), so this is
   // covered at the unit level instead of e2e.
   it('names whichever lieutenant is actually locked, not a fixed one', () => {
-    expect(lockedLine('Protée')).toBe('Protée dort encore à ce niveau.');
-    expect(lockedLine("L'Hydre")).toBe("L'Hydre dort encore à ce niveau.");
+    expect(lockedLine('Protée')).toBe('Protée dort encore. Son heure viendra.');
+    expect(lockedLine("L'Hydre")).toBe("L'Hydre dort encore. Son heure viendra.");
   });
 });
 

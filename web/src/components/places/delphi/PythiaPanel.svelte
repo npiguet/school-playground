@@ -166,7 +166,7 @@
   {#if prophecies.length > 0}
     <section data-testid="oracle-prophecies">
       <h3 class="kit-section">Prophéties</h3>
-      <p class="muted">Défends chaque prophétie avant son jour : la Pythie te promet une fois et demie plus de gloire (+50 % XP).</p>
+      <p class="muted">Défends chaque prophétie avant son jour : la Pythie te promet une fois et demie plus de gloire (+50 % XP).</p>
       <ul class="prophecy-list">
         {#each prophecies as p (p.text_id)}
           <li class="kit-sheet prophecy-row" data-testid="oracle-prophecy-{p.text_id}">

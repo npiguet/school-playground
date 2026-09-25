@@ -190,7 +190,7 @@ export const BESTIARY: BestiaryEntry[] = [
       'Les poètes grecs commencent leurs chants en invoquant les Muses : « Chante, déesse… » ouvre l\'Iliade.',
     ],
     sources: 'Hésiode, Théogonie ; Homère, Iliade, I.',
-    inGame: "Au camp, les Muses t'ont choisi pour protéger les textes ; elles allument et éteignent les aides à la relecture.",
+    inGame: "Au camp, les Muses te confient la garde des textes ; elles allument et éteignent les aides à la relecture.",
   },
   {
     key: 'delphes',

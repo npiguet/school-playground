@@ -286,7 +286,7 @@
         />
         <div class="neutralised-body">
           <p class="title">{names[key] ?? key} — {agree('neutralisé', key as LieutenantKey)} !</p>
-          <p>Sa ruse ne te piège plus : taux ≥ 80 % sur trois jours.</p>
+          <p>Sa ruse ne te piège plus : taux ≥ 80 % sur trois jours.</p>
           <Medallion rewardId={RELIC_OF[key as LieutenantKey] ?? ''} size={56} label={relicName(key)} />
         </div>
         <Particles trigger={neutralisedTriggers[i]} kind="burst" />

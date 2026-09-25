@@ -57,6 +57,8 @@ describe('places use the kit, never the legacy UI classes (Ruling W4)', () => {
     expect(report).toEqual([]);
   });
 
+  it('has no file left pending (Task 13)', () => expect([...PENDING]).toEqual([]));
+
   it('keeps the pending list honest: every pending file still has a legacy class', () => {
     for (const f of PENDING) {
       expect(existsSync(f), `${f} no longer exists: remove it from PENDING`).toBe(true);

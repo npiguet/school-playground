@@ -141,7 +141,7 @@
           <h4 class="tablet-name">{names[key] ?? key}</h4>
           <p class="tablet-technique">{technique(key)}</p>
           {#if asleep}
-            <p class="tablet-note">Dort encore à ce niveau.</p>
+            <p class="tablet-note">Dort encore. Son heure viendra.</p>
           {:else}
             {#if l.neutralised}<span class="kit-tablet-stamp">{agree('Neutralisé', key)}</span>{/if}
             {#if l.active_quest_id}

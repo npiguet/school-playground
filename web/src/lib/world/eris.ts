@@ -138,7 +138,7 @@ export function smallTricksLine(traps: number, caught: number): string {
  *  happens to need the highest level today (review round 1 #1: the row used to say "Protée"
  *  whichever lieutenant it was). */
 export function lockedLine(name: string): string {
-  return `${name} dort encore à ce niveau.`;
+  return `${name} dort encore. Son heure viendra.`;
 }
 
 export function campGreeting(hour: number): string {

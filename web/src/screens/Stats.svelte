@@ -39,7 +39,7 @@
   }
 
   function pct(rate: number | null): string {
-    return rate === null ? '—' : `${Math.round(100 * rate)} %`;
+    return rate === null ? '—' : `${Math.round(100 * rate)} %`;
   }
 
   function formatDate(iso: string): string {

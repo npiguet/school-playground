@@ -1,6 +1,15 @@
 import { test, expect } from './crashGuard';
 import type { Page } from '@playwright/test';
-import { createProfileApi, expectFocusRingInsideBody, expectOverlayClearsScene, expectScene, tap, uniqueName } from './helpers';
+import {
+  createProfileApi,
+  expectFocusRingInsideBody,
+  expectOverlayClearsScene,
+  expectOverlayTapTargets,
+  expectScene,
+  redScan,
+  tap,
+  uniqueName,
+} from './helpers';
 
 // Immersion wave Task 2 (scenes spec §2.2, §4; playability #1, #12, #21): the overlays are objects
 // (scroll, table, codex), they sit below the HUD, and the scene's words fade out behind them.
@@ -168,4 +177,50 @@ test('the quest tablets hang on a wood table; the temple plaque and labels fade'
   await expect(board.locator('.kit-tablet')).toHaveCount(6);
   await expect(board.locator('.card, .btn, .chip, .parchment')).toHaveCount(0);
   await expectOverlayClearsScene(page, 'overlay-tablets', 'delphi', true);
+});
+
+// Task 13 (playability #1, #12, #21, #25; Rulings W1, W2, W4): the sweep of every overlay, each
+// opened by its deep link on a fresh hero - its variant, clear of the HUD with the scene's words
+// faded, 48 px targets, kit classes only, and the character who speaks in it. The work overlay needs
+// a real work id (its own test below); « Tous les héros » needs more than five heroes to matter and
+// stays with scenes-title.spec.ts; the camp's hero panel is a legacy screen until UI3b.
+const OVERLAYS = [
+  { hash: () => '/profiles/new', testId: 'overlay-hero-new', scene: 'title', hud: false, variant: 'scroll', voice: 'owl' },
+  { hash: (id: number) => `/p/${id}/parchemins`, testId: 'overlay-shelves', scene: 'library', hud: true, variant: 'table', voice: 'owl' },
+  { hash: (id: number) => `/p/${id}/texts/new`, testId: 'overlay-desk', scene: 'library', hud: true, variant: 'scroll', voice: 'owl' },
+  { hash: (id: number) => `/p/${id}/texts/scan`, testId: 'overlay-lens', scene: 'library', hud: true, variant: 'scroll', voice: 'owl' },
+  { hash: (id: number) => `/p/${id}/alexandria`, testId: 'overlay-portal', scene: 'library', hud: true, variant: 'codex', voice: 'owl' },
+  { hash: (id: number) => `/p/${id}/delphes`, testId: 'overlay-pythia', scene: 'delphi', hud: true, variant: 'scroll', voice: 'pythia' },
+  { hash: (id: number) => `/p/${id}/quetes`, testId: 'overlay-tablets', scene: 'delphi', hud: true, variant: 'table', voice: null },
+] as const;
+
+const LEGACY = '.btn, .btn-primary, .btn-ghost, .card, .chip, .chip-active, .parchment';
+
+async function expectInWorldOverlay(page: Page, testId: string, scene: string, hud: boolean, variant: string, voice: string | null) {
+  const panel = page.getByTestId(testId);
+  await expect(panel).toHaveAttribute('data-variant', variant);
+  await expectOverlayClearsScene(page, testId, scene, hud);
+  await expectOverlayTapTargets(page, testId);
+  await expect(panel.locator(LEGACY)).toHaveCount(0);
+  if (voice) await expect(panel.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', voice);
+  else await expect(panel.getByTestId('overlay-voice')).toHaveCount(0);
+  expect(await redScan(page)).toEqual([]);
+}
+
+for (const o of OVERLAYS) {
+  test(`${o.testId}: an in-world ${o.variant}, clear of the HUD, 48 px targets, kit classes only`, async ({ page, request }, testInfo) => {
+    const id = await createProfileApi(request, hero(testInfo.project.name));
+    await page.goto(`/#${o.hash(id)}`);
+    await expectInWorldOverlay(page, o.testId, o.scene, o.hud, o.variant, o.voice);
+  });
+}
+
+test('overlay-portal-work: an in-world codex, clear of the HUD, 48 px targets, kit classes only', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, hero(testInfo.project.name));
+  await page.goto(`/#/p/${id}/alexandria`);
+  const portal = page.getByTestId('overlay-portal');
+  await expect(portal.getByTestId('work-card').first()).toBeVisible();
+  await portal.getByTestId('work-card').first().click();
+  await expect(page.getByTestId('overlay-portal-work').getByTestId('btn-refresh-work')).toBeVisible();
+  await expectInWorldOverlay(page, 'overlay-portal-work', 'library', true, 'codex', null);
 });

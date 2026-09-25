@@ -2,7 +2,7 @@
   // Portrait → "tourne ton iPad" (scenes UI spec §1, §4). Pure CSS: hidden unless the viewport
   // is in portrait orientation; SceneStage hides its content at the same breakpoint.
   // Playability #15: the scene's own art stays behind it, blurred and darkened, so the player
-  // never leaves the world; the phone outline turns a quarter turn (a gentle pulse under reduced
+  // never leaves the world; the tablet (camera dot, home button) turns a quarter turn (a gentle pulse under reduced
   // motion, since reduced motion means "fades only").
   //
   // Plan Ruling P6: this must paint above EVERYTHING in portrait - the onboarding modal, any
@@ -79,8 +79,32 @@
     height: 96px;
     border: 4px solid var(--bronze-light);
     border-radius: 12px;
+    background: rgba(21, 18, 26, 0.35);
     box-shadow: 0 0 18px rgba(200, 148, 80, 0.45);
     animation: rotate-hint 2.4s ease-in-out infinite;
+  }
+  /* A camera dot at the top, a home button at the bottom: a tablet, not an empty frame
+     (playability #27). */
+  .rotate-icon::before,
+  .rotate-icon::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    border-radius: 50%;
+    background: var(--bronze-light);
+    transform: translateX(-50%);
+  }
+  .rotate-icon::before {
+    top: 5px;
+    width: 5px;
+    height: 5px;
+  }
+  .rotate-icon::after {
+    bottom: 5px;
+    width: 10px;
+    height: 10px;
+    background: none;
+    border: 2px solid var(--bronze-light);
   }
   .rotate-hint {
     margin: 0;

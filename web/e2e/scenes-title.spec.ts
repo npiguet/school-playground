@@ -419,6 +419,15 @@ test('title: no red, rotate screen in portrait, ?debug outlines the gate', async
   expect(await redScan(page)).toEqual([]);
   await page.setViewportSize({ width: 820, height: 1180 });
   await expect(page.getByTestId('rotate-screen')).toBeVisible();
+  // Playability #27: the tablet turns a quarter turn; under reduced motion it only fades.
+  const icon = page.getByTestId('rotate-screen').locator('.rotate-icon');
+  // Svelte scopes a component's keyframes (`svelte-<hash>-rotate-hint`): compare the bare name.
+  const animations = () =>
+    icon.evaluate((e) => e.getAnimations().map((a) => [(a as CSSAnimation).animationName.replace(/^svelte-[\w]+-/, ''), a.playState]));
+  await expect.poll(animations).toContainEqual(['rotate-hint', 'running']);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(animations).toContainEqual(['rotate-pulse', 'running']);
+  expect(await animations()).not.toContainEqual(['rotate-hint', 'running']);
 });
 
 // Final review M16: a failed hero list says so inside the art box (a long server message wraps

@@ -51,7 +51,10 @@ test('create profile → add text → dictation → proofreading → results →
   // Results
   await expect(page.getByRole('heading', { name: 'Relecture terminée' })).toBeVisible();
   await expect(page.getByTestId('results-catch-rate')).toContainText('1 sur 2');
-  await expect(page.getByTestId('results-catch-rate')).toContainText('50 %');
+  // A narrow no-break space before « % » (French typography: the sign never wraps alone).
+  // toContainText folds every space into ' ', so the character itself is read from the DOM.
+  await expect(page.getByTestId('results-catch-rate')).toContainText('50 %');
+  expect(await page.getByTestId('results-catch-rate').textContent()).toContain('50 %');
   await expect(page.getByTestId('results-score')).not.toContainText('NaN');
   await expect(page.getByText(/chantent/).first()).toBeVisible();
 

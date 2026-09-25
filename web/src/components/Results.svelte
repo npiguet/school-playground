@@ -180,9 +180,9 @@
       {#if draftCount === 0}
         Texte parfait dès la dictée !
       {:else if mode === 'grimoire'}
-        Dés-accords retrouvés : {caughtCount} sur {draftCount} ({pct} %)
+        Dés-accords retrouvés : {caughtCount} sur {draftCount} ({pct} %)
       {:else}
-        Pièges déjoués : {caughtCount} sur {draftCount} ({pct} %)
+        Pièges déjoués : {caughtCount} sur {draftCount} ({pct} %)
       {/if}
     </p>
     <p class="hero-line" data-testid="results-score">Score : {result.score}</p>
