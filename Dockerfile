@@ -25,4 +25,15 @@ VOLUME ["/data"]
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --start-period=90s --retries=5 \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/api/health').status==200 else 1)"
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# uvicorn's default --timeout-keep-alive is 5s. There is no reverse proxy in front of this
+# process (compose.yaml exposes it to browsers directly), and any HTTP/1.1 client that pools
+# keep-alive sockets (browsers, and Node's http.Agent that Playwright's `request` fixture reuses
+# across tests) can race a request against the server closing an idle socket right at that
+# boundary: the client picks the pooled socket to send on at (or a few ms after) the same instant
+# the server's timer fires transport.close(), and the write lands on a socket that is already
+# closing -> "socket hang up" / ECONNRESET on an otherwise healthy server (root-caused in
+# .superpowers/sdd/2026-09-24-ui3a-places-title-library-delphi/socket-hangup-report.md). Raising
+# the timeout well past any realistic idle gap between two requests from the same client (75s,
+# nginx's own long-standing default) doesn't remove the race in principle, but moves the boundary
+# far outside the range either real players or the e2e suite ever idle for, so it's never reached.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--timeout-keep-alive", "75"]

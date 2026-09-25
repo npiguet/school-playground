@@ -2,7 +2,9 @@ services:
   server:
     image: discorde-server-dev
     working_dir: /work/server
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+    # --timeout-keep-alive matches the Dockerfile CMD (see its comment): keeps the dev server's
+    # keep-alive boundary as far from a browser's idle gaps as the production image's.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload --timeout-keep-alive 75
     environment:
       DISCORDE_DATA_DIR: /data
       DISCORDE_CONTENT_DIR: /work/content
