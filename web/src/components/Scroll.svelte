@@ -1,10 +1,10 @@
 <script lang="ts">
   // One of Delphes's three sealed scrolls (SP3 Task 7, spec §3.6 decision 9). Purely presentational:
-  // Oracle.svelte owns when a scroll unseals and what it reveals - this component only plays the
-  // wax-seal-break animation, exactly once, the moment `sealed` actually flips to false. A step
-  // taken *while still sealed* (the 'ecole' monster picker) uses `sealedStep` instead of `sealed`,
-  // so choosing/cancelling never triggers that animation or sound (M4). Once open, `children`
-  // holds a "closed until Monday" note for the two scrolls not chosen.
+  // components/places/delphi/PythiaPanel.svelte owns when a scroll unseals and what it reveals -
+  // this component only plays the wax-seal-break animation, exactly once, the moment `sealed`
+  // actually flips to false. A step taken *while still sealed* (the 'ecole' monster picker) uses
+  // `sealedStep` instead of `sealed`, so choosing/cancelling never triggers that animation or sound
+  // (M4). Once open, `children` holds a "closed until Monday" note for the two scrolls not chosen.
   import type { Snippet } from 'svelte';
   import { untrack } from 'svelte';
   import Particles from './juice/Particles.svelte';

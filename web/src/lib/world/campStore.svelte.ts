@@ -21,6 +21,15 @@ export const campStore = $state<{ data: CampResponse | null; loading: boolean; e
 // most recently *started* refresh may ever update the store.
 let refreshToken = 0;
 
+// campStore is shared across every profile in the session: a quick hero switch (or a PlaceScene
+// mount racing a stale fetch) can leave a snapshot that belongs to a *different* profile sitting
+// in `campStore.data`. Every reader (Camp.svelte, PlaceScene, Delphi's greeting effect) needs the
+// same "is this snapshot actually this profile's?" guard before trusting it - kept here once
+// rather than re-derived at each call site (Task 12 review fix round 1).
+export function campFor(profileId: number): CampResponse | null {
+  return campStore.data && campStore.data.profile.id === profileId ? campStore.data : null;
+}
+
 export async function refreshCamp(profileId: number): Promise<void> {
   const token = ++refreshToken;
   campStore.loading = true;

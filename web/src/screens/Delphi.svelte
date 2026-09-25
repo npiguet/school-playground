@@ -7,12 +7,12 @@
   import Hotspot from '../components/scene/Hotspot.svelte';
   import DialogueBox from '../components/scene/DialogueBox.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
-  import ProphecyCard from '../components/scene/ProphecyCard.svelte';
+  import ProphecyCard from '../components/places/ProphecyCard.svelte';
   import PythiaPanel from '../components/places/delphi/PythiaPanel.svelte';
   import TabletsPanel from '../components/places/delphi/TabletsPanel.svelte';
   import { DELPHI_SCENE, pythiaGreeting } from '../lib/world/scenes/delphi';
   import { nearestProphecy } from '../lib/world/scenes/camp';
-  import { campStore } from '../lib/world/campStore.svelte';
+  import { campFor } from '../lib/world/campStore.svelte';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { markGreetedKey, shouldGreetKey } from '../lib/scene/greeting';
   import { sceneHref, type PanelId } from '../lib/world/places';
@@ -30,7 +30,7 @@
   // The Pythia's line depends on this week's scrolls: wait for /camp (PlaceScene loads it). Only
   // used by the greeting effect below - the snippet's own `ctx.camp` covers everything else
   // (the hotspot states, the altar prophecy).
-  const camp = $derived(campStore.data && campStore.data.profile.id === profile.id ? campStore.data : null);
+  const camp = $derived(campFor(profile.id));
   $effect(() => {
     const key = `delphi:${profile.id}`;
     if (!camp || debug || !shouldGreetKey(key)) return;

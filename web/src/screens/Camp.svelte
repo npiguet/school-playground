@@ -11,7 +11,7 @@
   import Hud from '../components/scene/Hud.svelte';
   import DialogueBox from '../components/scene/DialogueBox.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
-  import ProphecyCard from '../components/scene/ProphecyCard.svelte';
+  import ProphecyCard from '../components/places/ProphecyCard.svelte';
   import Onboarding from '../components/Onboarding.svelte';
   import Avatar from '../components/Avatar.svelte';
   import Icon from '../components/ui/Icon.svelte';
@@ -22,7 +22,7 @@
     nearestProphecy as pickProphecy,
     weeklyCaption,
   } from '../lib/world/scenes/camp';
-  import { campStore, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
+  import { campFor, campStore, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
   import { TINT_FILTERS } from '../lib/world/dragon';
   import { ART } from '../lib/world/art';
   import { markGreeted, shouldGreet } from '../lib/scene/greeting';
@@ -53,7 +53,7 @@
   });
 
   // campStore is shared across profiles: ignore a snapshot that belongs to the previous hero.
-  const camp = $derived(campStore.data && campStore.data.profile.id === profile.id ? campStore.data : null);
+  const camp = $derived(campFor(profile.id));
   const ctx = $derived<SceneContext>({ camp, catalog: campStore.catalog });
   const panel = $derived(router.route.query.panel ?? null);
   // Final review M11: SceneStage owns the ?debug flag and hands it back here.

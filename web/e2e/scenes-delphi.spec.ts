@@ -90,28 +90,45 @@ test('the tablets open the quest board; a launched quest shows on the tablets ba
   await expect(page.getByTestId('delphi-tablets-badge')).toHaveText('1');
 });
 
-test('the nearest prophecy sits on the altar, clear of the places; « Réviser » opens the dictation', async ({ page, request }, testInfo) => {
+test('the nearest prophecy sits on the altar, clear of the places, the dialogue dock and the safe zone; « Réviser » opens the dictation', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  const title = uniqueName(`Prophétie Delphes ${testInfo.project.name}`);
+  // A long title - clamped to 2 lines by ProphecyCard's own `-webkit-line-clamp: 2` - is the card's
+  // tallest shape: the worst case for the dock/safe-zone checks below (Task 12 review fix round 1).
+  const title = uniqueName('Une prophétie si longue qu elle doit remplir deux lignes entières sur la carte');
   const text = await createText(request, { title, body: BODY, level: '10H', due_date: '2099-01-01' });
   await onlyOwnProphecy(page, text.id);
-  for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }]) {
+  // The short viewport (900x900): stageBox() becomes width-constrained there (art height =
+  // vw * 0.75 = 675px), the shortest art box this suite exercises - the worst case for a card
+  // pinned at a fixed `top: 66%` whose own height depends on its (clamped) content.
+  for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 900, height: 900 }]) {
     await page.setViewportSize(size);
     await page.goto(`/#/p/${id}/temple?debug`); // ?debug: no greeting in the way
     await expectScene(page, 'delphi');
     const card = page.getByTestId('delphi-prophecy');
     await expect(card).toContainText(title);
     const b = await measureBoxes(page, {
+      art: '[data-testid="scene-delphi"] .art',
       card: '[data-testid="delphi-prophecy"]',
       pythia: '[data-testid="delphi-pythia"]',
       pythiaLabel: '[data-testid="delphi-pythia"] .hotspot-label',
       tablets: '[data-testid="delphi-tablets"]',
       tabletsLabel: '[data-testid="delphi-tablets"] .hotspot-label',
     });
+    if (!b.art || !b.card) throw new Error('scene-delphi .art or delphi-prophecy did not render');
+    const at = `${size.width}x${size.height}`;
     const hit = (a: typeof b.card, c: typeof b.card) => !!a && !!c && a.x < c.x + c.width && c.x < a.x + a.width && a.y < c.y + c.height && c.y < a.y + a.height;
     for (const k of ['pythia', 'pythiaLabel', 'tablets', 'tabletsLabel'] as const) {
-      expect(hit(b.card, b[k]), `prophecy vs ${k} at ${size.width}x${size.height}`).toBe(false);
+      expect(hit(b.card, b[k]), `prophecy vs ${k} at ${at}`).toBe(false);
     }
+    // The card's height depends on its content, not just its authored `top: 66%` - prove it clears
+    // the dialogue dock (bottom at or above 80% of the art box) rather than assume there is room.
+    expect(b.card.y + b.card.height, `altar card bottom clear of the dialogue dock at ${at}`).toBeLessThanOrEqual(
+      b.art.y + b.art.height * 0.8 + 0.5,
+    );
+    const zoneLeft = b.art.x + b.art.width * 0.125;
+    const zoneRight = b.art.x + b.art.width * 0.875;
+    expect(b.card.x, `altar card left inside the safe zone at ${at}`).toBeGreaterThanOrEqual(zoneLeft - 0.5);
+    expect(b.card.x + b.card.width, `altar card right inside the safe zone at ${at}`).toBeLessThanOrEqual(zoneRight + 0.5);
   }
   await page.getByTestId('delphi-prophecy').getByRole('button', { name: 'Réviser' }).click();
   await expect(page).toHaveURL(new RegExp(`/play/${text.id}$`));

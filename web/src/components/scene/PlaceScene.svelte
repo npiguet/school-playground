@@ -7,7 +7,7 @@
   import SceneStage from './SceneStage.svelte';
   import Hud from './Hud.svelte';
   import SceneExit from './SceneExit.svelte';
-  import { campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
+  import { campFor, campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
   import { initSound } from '../../lib/juice/soundStore.svelte';
   import { playSfx, unlockAudio } from '../../lib/juice/sfx';
   import { heroPanelHref, openPanel } from '../../lib/scene/panelNav';
@@ -32,7 +32,7 @@
   });
 
   // campStore is shared across profiles: ignore a snapshot that belongs to the previous hero.
-  const camp = $derived(campStore.data && campStore.data.profile.id === profile.id ? campStore.data : null);
+  const camp = $derived(campFor(profile.id));
   const ctx = $derived<SceneContext>({ camp, catalog: campStore.catalog });
 
   function openHero() {
