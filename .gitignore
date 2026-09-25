@@ -11,3 +11,6 @@ playwright-report/
 web/node_modules/
 web/.cache/
 server/.pytest_cache/
+# Core dumps (a crashed browser in the Playwright container writes core.<pid> into its working
+# directory, web/, several GB each): never committed.
+core.[0-9]*

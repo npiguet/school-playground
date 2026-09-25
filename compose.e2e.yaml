@@ -38,6 +38,11 @@ services:
     depends_on:
       app: { condition: service_healthy }
     ipc: host
+    # No core dumps: a crashing browser process would write a multi-GB core.<pid> into web/ (the
+    # bind-mounted working directory). Crash counting uses its own override, see
+    # .superpowers/sdd/2026-09-24-ui3a-places-title-library-delphi/fix-wave-a-report.md.
+    ulimits:
+      core: 0
 volumes:
   discorde-web-node_modules:
     external: true
