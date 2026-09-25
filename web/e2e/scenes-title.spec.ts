@@ -27,7 +27,7 @@ async function tiltBy(page: Page, beta: number, gamma: number) {
   }, [beta, gamma]);
 }
 
-test('« Entrer » opens the gate onto the shields, once per page load', async ({ page }, testInfo) => {
+test('« Entrer » opens the gate onto the shields, once per page load', async ({ page, request }, testInfo) => {
   await page.goto('/');
   await expectScene(page, 'title');
   await expect(page.locator('h1')).toContainText('La Discorde');
@@ -40,10 +40,21 @@ test('« Entrer » opens the gate onto the shields, once per page load', async (
   await expect(page.getByTestId('title-shields')).toBeVisible();
   await expect(gate).toHaveCount(0);
   await expect(page.getByTestId('title-new')).toHaveAccessibleName('Nouveau héros');
-  // Same document, same page load: the gate stays open.
+  // Same document, same page load: the gate stays open (title never unmounts, only its panel
+  // changes here - not yet proof of module-level persistence).
   await page.goto('/#/profiles/new');
   await page.goto('/#/');
   await expect(page.getByTestId('title-shields')).toBeVisible();
+
+  // Fix round 1 #2: a real round trip through a *different* place. `view?.place` flips away from
+  // 'title' to 'camp' and back, so Title actually unmounts and remounts - proving `titleGate` is
+  // module state (survives the remount), not component state (which would reset to closed).
+  const id = await createProfileApi(request, hero(testInfo.project.name));
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  await page.goto('/#/');
+  await expect(page.getByTestId('title-shields')).toBeVisible();
+  await expect(page.getByTestId('title-gate')).toHaveCount(0);
 });
 
 test('the naming ritual is an overlay with its own route; Back and the seal close it', async ({ page }, testInfo) => {
@@ -74,9 +85,30 @@ test('the naming ritual is an overlay with its own route; Back and the seal clos
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
   await expectCamp(page);
   await expect(page.getByTestId('hud-hero').locator('img[src="/art/icons/avatar-trident.webp"]')).toBeVisible();
-  // The form replaced its own entry: Back lands on the title, not on an empty ritual.
+  // The form replaced its own entry: Back lands on the title, not on an empty ritual (fix round 1
+  // #3: prove the actual scene and the overlay's absence, not only the URL).
   await page.goBack();
-  await expect(page).not.toHaveURL(/profiles\/new/);
+  await expectScene(page, 'title');
+  await expect(page.getByTestId('overlay-hero-new')).toHaveCount(0);
+});
+
+test('Escape while the ritual overlay is closing does not undo the hand-off to camp', async ({ page }, testInfo) => {
+  // Fix round 1 #1: Overlay.svelte's `out:leave|global` keeps the ritual (and the title behind it)
+  // mounted for its 160ms close animation while the camp has already loaded; its
+  // `<svelte:window onkeydown>` stays bound for that whole window. Before the fix, an Escape
+  // landing there re-ran `onClose` (`closeToTitle`), which replaced the just-loaded camp with the
+  // title.
+  const name = hero(testInfo.project.name);
+  await page.goto('/');
+  await enterTitle(page);
+  await page.getByTestId('title-new').click();
+  await page.getByLabel('Ton prénom').fill(name);
+  await page.getByLabel('Ton niveau').selectOption('10H');
+  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await page.waitForURL(/\/camp$/);
+  await page.keyboard.press('Escape');
+  await expectCamp(page);
+  await expect(page).toHaveURL(/\/camp$/);
 });
 
 test('six slots: newest heroes, « Tous les héros » when there are more, « Nouveau héros » last', async ({ page, request }, testInfo) => {
@@ -106,6 +138,35 @@ test('six slots: newest heroes, « Tous les héros » when there are more, « No
   await expect(page).toHaveURL(/#\/\?panel=tous$/);
   await page.getByTestId('overlay-heroes').getByRole('button', { name: new RegExp(names[0]) }).click();
   await expectCamp(page);
+});
+
+test('naming a hero with a name already taken shows the parchment error, not a bounce to camp', async ({ page, request }, testInfo) => {
+  const name = hero(testInfo.project.name);
+  await createProfileApi(request, name);
+  await page.goto('/');
+  await enterTitle(page);
+  await page.getByTestId('title-new').click();
+  await page.getByLabel('Ton prénom').fill(name);
+  await page.getByLabel('Ton niveau').selectOption('10H');
+  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await expect(page.getByText('Ce nom est déjà pris.')).toBeVisible();
+  await expect(page.getByTestId('overlay-hero-new')).toBeVisible();
+  await expect(page).toHaveURL(/#\/profiles\/new$/);
+});
+
+test('#/?panel=tous deep-links straight to every hero; the gate stays closed underneath', async ({ page, request }, testInfo) => {
+  const name = hero(testInfo.project.name);
+  await createProfileApi(request, name);
+  await page.goto('/#/?panel=tous');
+  await expectScene(page, 'title');
+  const heroes = page.getByTestId('overlay-heroes');
+  await expect(heroes).toBeVisible();
+  await expect(heroes.getByRole('button', { name: new RegExp(name) })).toBeVisible();
+  await expect(page.getByTestId('title-gate')).toHaveCount(1); // « Entrer » was never tapped
+  await page.getByTestId('overlay-close').click();
+  await expect(heroes).toHaveCount(0);
+  await expect(page.getByTestId('title-gate')).toBeVisible();
+  await expect(page.getByTestId('title-shields')).toHaveCount(0);
 });
 
 test('a protected hero asks for the code on a sealed parchment', async ({ page, request }, testInfo) => {

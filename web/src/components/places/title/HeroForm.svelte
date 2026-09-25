@@ -89,6 +89,7 @@
         inputmode="numeric"
         pattern="[0-9]*"
         maxlength="4"
+        autocomplete="new-password"
         value={pin}
         oninput={onPinInput}
       />
@@ -139,6 +140,12 @@
     border-color: var(--bronze);
     background: rgba(200, 148, 80, 0.2);
   }
+  /* Fix round 1 #8: the radio itself is visually hidden (below), so its own focus ring never
+     shows - move it onto the label via :focus-within. */
+  .avatar-choice:focus-within {
+    outline: 3px solid var(--bronze-light);
+    outline-offset: 2px;
+  }
   .avatar-choice input {
     position: absolute;
     opacity: 0;
@@ -147,5 +154,11 @@
   .hint {
     font-size: 14px;
     margin: 4px 0 0;
+  }
+  /* Fix round 1 #6: mask the code like a real PIN entry (WebKit-only app: Desktop Safari + iPad
+     projects). `inputmode="numeric"` still drives the on-screen numeric keypad with `type` left as
+     `text`, so no script logic has to change. */
+  #pin {
+    -webkit-text-security: disc;
   }
 </style>

@@ -45,7 +45,7 @@
   <div class="pin-seal kit-parchment kit-form">
     <img class="pin-lock" src={MARK_ICONS.lock} alt="" />
     <h1 class="kit-plaque pin-title">Code de {profile.name}</h1>
-    <label class="visually-hidden" for="pin-input">Code de {profile.name}</label>
+    <label class="sr-only" for="pin-input">Code de {profile.name}</label>
     <input
       id="pin-input"
       class="pin-input"
@@ -109,16 +109,9 @@
     font-size: 32px;
     letter-spacing: 0.4em;
     font-family: var(--font-display);
-  }
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    /* Fix round 1 #6: mask the code like a real PIN entry. WebKit-only app (Desktop Safari + iPad
+       projects), and `inputmode="numeric"` still drives the on-screen numeric keypad with `type`
+       left as `text`, so no logic below has to change. */
+    -webkit-text-security: disc;
   }
 </style>

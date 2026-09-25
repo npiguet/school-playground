@@ -30,14 +30,24 @@
   } = $props();
 
   const reduced = reducedMotion();
+  // Fix round 1 #1: once the overlay starts leaving (its own close, or an ancestor unmounting it -
+  // e.g. the title handing off to the camp while this overlay's `out:leave|global` is still
+  // playing), `<svelte:window onkeydown>` stays bound to the DOM for the whole transition. An
+  // Escape landing in that window must not fire `onClose` again: by the time it does, the caller's
+  // `onClose` may `replaceRoute` back over a place that has already moved on (preflight.md-style
+  // race, found in Task 8 review).
+  let closing = $state(false);
+
   // Focus, the Tab trap, the inert stage and focus return: the shared `modal` action
   // (overlayState.svelte.ts), also used by Onboarding.
   function onKey(e: KeyboardEvent) {
+    if (closing) return;
     if (e.key === 'Escape') onClose();
   }
 
   // Leaving: stop catching taps at once, then fade.
   function leave(node: Element, params: { duration: number }) {
+    closing = true;
     (node as HTMLElement).style.pointerEvents = 'none';
     return fade(node, params);
   }

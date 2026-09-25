@@ -150,12 +150,6 @@ export async function createProfileApi(request: APIRequestContext, name: string,
   return profile.id as number;
 }
 
-// Navigates straight to a profile's library (SP3: the camp is the new home, the library moved to
-// `/parchemins` - route name `library` unchanged).
-export async function goToLibrary(page: Page, profileId: number | string) {
-  await page.goto('/#/p/' + profileId + '/parchemins');
-}
-
 // UI profile creation (mirrors profiles.spec.ts): starts from the title's naming ritual, lands on
 // the camp (SP3: the new home), skips onboarding and heads straight into the library so callers
 // can chain straight into it.

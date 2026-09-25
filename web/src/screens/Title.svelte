@@ -101,12 +101,12 @@
         {:else if s.kind === 'all'}
           <button type="button" class="shield" data-testid="title-all" style="left:{slot.x}%;top:{slot.y}%" aria-label="Tous les héros ({s.count})" onclick={openAll}>
             <span class="shield-face"><span class="shield-count">{s.count}</span></span>
-            <span class="shield-plaque"><span class="shield-name wrap">Tous les héros</span></span>
+            <span class="shield-plaque"><span class="shield-name">Tous les héros</span></span>
           </button>
         {:else}
           <button type="button" class="shield" data-testid="title-new" style="left:{slot.x}%;top:{slot.y}%" aria-label="Nouveau héros" onclick={openNew}>
             <span class="shield-face"><Icon name="plus" size={30} /></span>
-            <span class="shield-plaque"><span class="shield-name wrap">Nouveau héros</span></span>
+            <span class="shield-plaque"><span class="shield-name">Nouveau héros</span></span>
           </button>
         {/if}
       {/each}
@@ -199,18 +199,21 @@
     border: 1px solid var(--bronze-light);
     background: rgba(21, 18, 26, 0.72);
   }
+  /* Fix round 1 #5: two lines (line-clamp), not a one-line ellipsis - similar first names (e.g.
+     two "Alexandre"s with different avatars) stayed indistinguishable at ~8-9 visible characters. */
   .shield-name {
     max-width: 100%;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    text-align: center;
     font-family: var(--font-body);
     font-weight: 700;
     font-size: 14px;
-  }
-  .shield-name.wrap {
-    white-space: normal;
-    text-align: center;
     line-height: 1.15;
   }
   .shield-level {
