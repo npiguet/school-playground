@@ -20,7 +20,7 @@
     <path
       d={p.d}
       fill={p.fill ? 'currentColor' : 'none'}
-      stroke={p.fill ? 'none' : p.halo ? 'var(--night)' : 'currentColor'}
+      stroke={p.fill ? 'none' : p.halo ? 'var(--icon-halo)' : 'currentColor'}
       stroke-width={p.width ?? 2.4}
       stroke-linecap="round"
       stroke-linejoin="round"

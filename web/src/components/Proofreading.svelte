@@ -337,25 +337,27 @@
 
   {#if helpStage <= 2 && activePass}
     <div class="passes" role="group" aria-label="Passes d'Argus">
-      <img class="tool-icon argus-mark" src={TOOL_ICONS.argus} alt="" />
-      <div class="chips">
-        {#each passes as pass, i (pass)}
-          <button
-            type="button"
-            class="chip"
-            class:chip-active={i === play.passIndex}
-            class:chip-done={i < play.passIndex}
-            aria-pressed={i === play.passIndex}
-            onclick={() => goToPass(i)}
-          >
-            {#if i < play.passIndex}<Icon name="check" size={16} />{/if}{ARGUS_LABELS[pass].title}
-          </button>
-        {/each}
-        {#if !isLastPass}
-          <button type="button" class="btn next-pass" data-testid="btn-next-pass" onclick={() => goToPass(play.passIndex + 1)}>
-            Passe suivante <Icon name="arrow-right" size={18} />
-          </button>
-        {/if}
+      <div class="passes-row">
+        <img class="tool-icon argus-mark" src={TOOL_ICONS.argus} alt="" />
+        <div class="chips">
+          {#each passes as pass, i (pass)}
+            <button
+              type="button"
+              class="chip"
+              class:chip-active={i === play.passIndex}
+              class:chip-done={i < play.passIndex}
+              aria-pressed={i === play.passIndex}
+              onclick={() => goToPass(i)}
+            >
+              {#if i < play.passIndex}<Icon name="check" size={16} />{/if}{ARGUS_LABELS[pass].title}
+            </button>
+          {/each}
+          {#if !isLastPass}
+            <button type="button" class="btn next-pass" data-testid="btn-next-pass" onclick={() => goToPass(play.passIndex + 1)}>
+              Passe suivante <Icon name="arrow-right" size={18} />
+            </button>
+          {/if}
+        </div>
       </div>
       <p class="pass-hint">{ARGUS_LABELS[activePass].hint}</p>
     </div>
@@ -501,6 +503,12 @@
     margin: 0;
     font-size: 16px;
   }
+  .passes-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
   .chips {
     display: flex;
     flex-wrap: wrap;
@@ -536,7 +544,8 @@
     width: 26px;
     height: 26px;
     object-fit: contain;
-    margin-right: 6px;
+    /* Spacing from the text/next icon comes from the flex `gap` on `.chip` (or `.passes-row` for
+       the Argus mark) since fix round 1 #4 - no own margin, or the two would add up. */
   }
   .argus-mark {
     width: 34px;

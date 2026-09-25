@@ -18,6 +18,10 @@
   --night: #15121a;
   --scrim: rgba(21, 18, 26, 0.55);
   --kit-radius: 12px;
+  /* The muted-lyre icon's mute-slash halo (Icon.svelte, UI3 Ruling A13): drawn in the surface it
+     sits on so the slash reads as a gap, not a stripe. Defaults to the night backdrop scenes sit
+     on; a lighter surface (e.g. TopBar's marble) overrides it locally. */
+  --icon-halo: var(--night);
 
   /* Stacking (plan Ruling P6): RotateScreen must paint above every overlay and modal, including
      Onboarding (z-index: 50, see Onboarding.svelte) and Task 6's Overlay component. RotateScreen

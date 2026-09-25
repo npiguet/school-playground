@@ -215,7 +215,11 @@
               <span class="seq">Rouleau {chunk.seq}</span>
               <span class="chip">{chunk.level}</span>
               <span class="muted">≈ {chunk.word_count} mots</span>
-              <span class="stars" role="img" aria-label="Richesse en accords : {starsFor(chunk.score)} sur 5"
+              <span
+                class="stars"
+                role="img"
+                aria-label="Richesse en accords : {starsFor(chunk.score)} sur 5"
+                title="Richesse en accords : {starsFor(chunk.score)} sur 5"
                 >{#each Array.from({ length: starsFor(chunk.score) }, (_, i) => i) as i (i)}<Icon name="star" size={16} />{/each}</span
               >
             </div>

@@ -115,6 +115,9 @@
   .icon {
     display: inline-flex;
     color: var(--bronze);
+    /* The muted lyre's mute-slash halo (Icon.svelte) is drawn in this surface, not the scene's
+       night backdrop, or it reads as a near-black stripe on the marble bar (fix round 1 #5). */
+    --icon-halo: var(--marble-dark);
   }
   @media (max-width: 900px) {
     .label {

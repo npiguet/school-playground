@@ -23,7 +23,8 @@ export interface IconPath {
   width?: number;
   /** Filled with currentColor instead of stroked. */
   fill?: boolean;
-  /** Stroked in the night colour, under the next path, for contrast (the mute slash). */
+  /** Stroked in `--icon-halo` (the surface behind the icon), under the next path, for contrast
+   *  (the mute slash). */
   halo?: boolean;
   dash?: string;
 }

@@ -114,7 +114,8 @@ def sheet():
 
 
 def app_icon():
-    """The PWA / home-screen icon set, same names and sizes as web/scripts/make-icons.mjs wrote."""
+    """The PWA / home-screen icon set: same names and sizes as the old web/scripts/make-icons.mjs
+    (removed, UI3a Task 6) used to write."""
     apple = Image.open(SRC / f"{APP_ID}_cut.png").convert("RGBA")
     apple = apple.crop(apple.getchannel("A").getbbox())
 
