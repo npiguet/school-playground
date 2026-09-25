@@ -68,6 +68,9 @@ label.kit-bronze.is-quiet {
   height: 78%;
   object-fit: contain;
   mix-blend-mode: multiply;
+  /* B3 fix round 1: the painted seal is crimson wax; only its pressed relief is kept (grey, then
+     multiplied), so the colour is the kit's brown-orange --wax, never red. */
+  filter: grayscale(1) contrast(1.1) brightness(1.15);
 }
 .kit-seal.is-broken {
   background: none;

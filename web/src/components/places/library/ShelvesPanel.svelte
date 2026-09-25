@@ -10,8 +10,8 @@
   import Icon from '../../ui/Icon.svelte';
   import { api, ApiError } from '../../../lib/api';
   import { isProphecy } from '../../../lib/dates';
-  import { levelIndex, LEVELS } from '../../../lib/levels';
-  import { historyLine, lengthOf, textByline } from '../../../lib/library/shelf';
+  import { LEVELS } from '../../../lib/levels';
+  import { historyLine, lengthOf, shelfSections, textByline } from '../../../lib/library/shelf';
   import { href } from '../../../lib/routes';
   import { go } from '../../../lib/scene/panelNav';
   import { longDate } from '../../../lib/text/french';
@@ -44,28 +44,12 @@
     go(href('play', { profileId: String(profile.id), textId: String(t.id) }));
   }
 
-  const sortByLevelThenTitle = (a: TextSummary, b: TextSummary) =>
-    levelIndex(a.level) - levelIndex(b.level) || a.title.localeCompare(b.title, 'fr');
-
   // Prophecies (dictées préparées whose due date has not passed yet, spec's "Decisions" #14) get
-  // their own top section and are left out of « Pour toi » and « Autres parchemins » so they aren't
-  // shown twice.
-  const prophecies = $derived(
-    texts
-      .filter((t) => isProphecy(t.due_date))
-      .sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? '')),
-  );
-  const prophecyIds = $derived(new Set(prophecies.map((t) => t.id)));
-  const ownLevel = $derived(
-    texts.filter((t) => t.level === profile.level && !prophecyIds.has(t.id)).sort(sortByLevelThenTitle),
-  );
-  // Behind « Autres niveaux »: every other level (« Tous »), or one level.
-  const others = $derived(
-    (levelFilter === 'Tous'
-      ? texts.filter((t) => t.level !== profile.level && !prophecyIds.has(t.id))
-      : texts.filter((t) => t.level === levelFilter)
-    ).sort(sortByLevelThenTitle),
-  );
+  // their own top section; each scroll lies on one shelf only (shelfSections).
+  const sections = $derived(shelfSections(texts, profile.level, levelFilter));
+  const prophecies = $derived(sections.prophecies);
+  const ownLevel = $derived(sections.own);
+  const others = $derived(sections.others);
 </script>
 
 <div class="panel-shelves">
@@ -147,8 +131,10 @@
             <div class="cubbies">
               {#each others as t (t.id)}{@render cubby(t)}{/each}
             </div>
+          {:else if levelFilter === profile.level}
+            <p class="muted">Les parchemins de ta classe t'attendent plus haut, sous « Pour toi ».</p>
           {:else}
-            <p class="muted">Aucun parchemin sur cette étagère.</p>
+            <p class="muted">Aucun autre parchemin sur cette étagère.</p>
           {/if}
         </div>
       {/if}

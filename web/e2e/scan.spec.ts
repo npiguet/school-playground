@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { closeOverlay, confirmScanVerified, createProfile, uniqueName } from './helpers';
+import { closeOverlay, confirmScanVerified, createProfile, expectOverlayTapTargets, uniqueName } from './helpers';
 
 test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
   await createProfile(page, uniqueName('Scan'), '9H');
@@ -52,6 +52,8 @@ test('a phone photo shows « À vérifier » chips that must each be looked at',
   expect(await chips.count()).toBeGreaterThan(0);
   await expect(page.getByTestId('scan-verify-hint')).toContainText('Touche chaque mot à vérifier');
   await expect(page.getByTestId('btn-scan-verified')).toBeDisabled();
+  // Playability #25: a one-letter word to check (« a », « à ») is still a 48 px target.
+  await expectOverlayTapTargets(page, 'overlay-lens');
   const first = (await chips.first().textContent())!.trim();
   await chips.first().click();
   await expect(chips.first()).toHaveAttribute('aria-pressed', 'true');

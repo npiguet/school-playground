@@ -63,7 +63,7 @@ def test_chunks_and_adopt(settings):
         assert again.status_code == 200 and again.json()["id"] == t["id"]
         assert client.get("/api/alexandria/works/verne/chunks").json()[0]["text_id"] == t["id"]
         assert client.post("/api/alexandria/chunks/999999/adopt", json={"profile_id": p["id"]}).status_code == 404
-        # « Recopier à nouveau » keeps the adopted scroll linked to its library text (no duplicate adoption)
+        # « Demander une nouvelle copie » keeps the adopted scroll linked to its library text (no duplicate adoption)
         assert client.post("/api/alexandria/works/verne/refresh").json()["status"] == "ok"
         relinked = [ch for ch in client.get("/api/alexandria/works/verne/chunks").json() if ch["text_id"] is not None]
         assert [ch["text_id"] for ch in relinked] == [t["id"]]
@@ -73,7 +73,7 @@ def test_chunk_id_survives_a_refresh_so_a_concurrent_adopt_still_resolves(settin
     # Fix round 3 (UI3a Task 2 review): refresh_work used to DELETE every online_chunk row for a
     # work and re-INSERT fresh ones, churning every chunk's autoincrement id on every refresh -
     # harmless for one client alone, but two concurrent refreshes of the same work (two players,
-    # or two e2e workers, both hitting "Recopier" on "Vingt mille lieues" at once, a real scenario)
+    # or two e2e workers, both hitting « Demander une nouvelle copie » on "Vingt mille lieues" at once, a real scenario)
     # could invalidate a chunk_id a third in-flight adopt() already held: /chunks/{id}/adopt then
     # 404s ("Rouleau inconnu") even though nothing was wrong with the player's request. Refreshing
     # now upserts by (work_id, seq) instead, so a chunk's id is stable across a refresh (re-fetching

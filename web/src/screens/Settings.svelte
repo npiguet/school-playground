@@ -116,8 +116,7 @@
       {/if}
     </section>
 
-    <section>
-      <h2>Niveau</h2>
+    <section class="class-section">
       <LevelMedallions legend="Ta classe" name="settings-level" bind:value={level} />
     </section>
 
@@ -176,6 +175,13 @@
 <style>
   section {
     margin-bottom: 28px;
+  }
+  /* « Ta classe » is this section's heading: its medallions' legend reads as the other sections' h2. */
+  .class-section :global(legend) {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.5em;
+    margin-bottom: 0.4em;
   }
   .field {
     margin-bottom: 12px;

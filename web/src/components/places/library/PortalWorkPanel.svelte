@@ -153,6 +153,11 @@
     go(href('play', { profileId: String(profile.id), textId: String(textId) }));
   }
 
+  // « Toutes les œuvres »: steps back one overlay, onto the works (final review M9).
+  function toWorks() {
+    closePanel(href('alexandria', { profileId: String(profile.id) }));
+  }
+
   function dismissConfirmation() {
     confirmation = null;
   }
@@ -168,7 +173,7 @@
       type="button"
       class="kit-bronze is-quiet portal-back"
       data-testid="portal-back"
-      onclick={() => closePanel(href('alexandria', { profileId: String(profile.id) }))}
+      onclick={toWorks}
     >
       <Icon name="arrow-left" size={18} /> Toutes les œuvres
     </button>
@@ -264,6 +269,14 @@
           {/each}
         </ol>
       {/if}
+    {:else if !workLoading}
+      <!-- B3 fix round 1: an unknown work (or one the scribes can't reach) still gets a next step. -->
+      <p class="scribes-empty" data-testid="work-missing">
+        Les scribes ne trouvent pas ce livre sur les rayons d'Alexandrie.
+      </p>
+      <button type="button" class="kit-link" onclick={toWorks}>
+        <Icon name="arrow-left" size={18} /> Toutes les œuvres
+      </button>
     {/if}
   </section>
 </div>

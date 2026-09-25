@@ -68,6 +68,10 @@ test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back
   await expect(shelves.getByRole('heading', { name: 'Classe 9H' })).toBeVisible();
   await chooseLevel(shelves.getByTestId('shelf-levels'), 'Tous');
   await expect(shelves.getByRole('heading', { name: 'Autres parchemins' })).toBeVisible();
+  // Each scroll on one shelf only: her own class behind the toggle repeats nothing of « Pour toi ».
+  await chooseLevel(shelves.getByTestId('shelf-levels'), '10H');
+  await expect(shelves.locator('#other-levels [data-testid="text-card"]')).toHaveCount(0);
+  await expect(shelves.locator('#other-levels')).toContainText('sous « Pour toi »');
   await expectOverlayTapTargets(page, 'overlay-shelves');
   await shelves.getByTestId('overlay-close').click();
   await expect(shelves).toHaveCount(0);
@@ -101,6 +105,10 @@ test('a text card on the shelves starts the dictation; a prophecy wears its ribb
   await expect(card.getByTestId('chip-prophecy')).toContainText('jeudi 1er janvier 2099');
   await expect(card).toHaveAttribute('data-length', 'court');
   await expect(card).toContainText('Jamais défendu');
+  // A prophecy is not repeated under its class behind « Autres niveaux ».
+  await page.getByTestId('overlay-shelves').getByRole('button', { name: 'Autres niveaux' }).click();
+  await chooseLevel(page.getByTestId('overlay-shelves').getByTestId('shelf-levels'), '10H');
+  await expect(card).toHaveCount(1);
   await card.click();
   await expect(page).toHaveURL(/\/play\/\d+$/);
 });
@@ -375,6 +383,18 @@ test('a deep link into a work: the seal and « Toutes les œuvres » replace, ne
   await page.goBack();
   await expect(page).toHaveURL(/\/tente-parchemins$/);
   await expect(work).toHaveCount(0);
+});
+
+// B3 fix round 1: an unknown work still offers a way on from its right page.
+test('an unknown work says so on its right page and leads back to the works', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/alexandria/pas-une-oeuvre`);
+  const work = page.getByTestId('overlay-portal-work');
+  await expect(work.getByTestId('work-missing')).toContainText("Les scribes ne trouvent pas ce livre sur les rayons d'Alexandrie.");
+  await expectOverlayTapTargets(page, 'overlay-portal-work');
+  await work.locator('.page-right').getByRole('button', { name: 'Toutes les œuvres' }).click();
+  await expect(page).toHaveURL(/\/alexandria$/);
+  await expect(page.getByTestId('overlay-portal')).toBeVisible();
 });
 
 // Final review M17: two quick level taps start two chunk requests; the one answered last must not

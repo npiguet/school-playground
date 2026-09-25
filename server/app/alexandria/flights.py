@@ -2,7 +2,7 @@
 
 A refresh fetches a work (up to 45 Wikisource pages, one by one, 20 s timeout each) then runs spaCy
 on the accepted passages: seconds of CPU per call. Run as a plain sync endpoint, each press of
-« Recopier à nouveau » held one of the shared request threadpool's threads for that whole time, and
+« Demander une nouvelle copie » held one of the shared request threadpool's threads for that whole time, and
 nothing merged presses on the same work: a couple of dozen concurrent refreshes (several players, or
 e2e workers) took every thread, so unrelated endpoints (creating a profile, listing works) timed out
 behind them.

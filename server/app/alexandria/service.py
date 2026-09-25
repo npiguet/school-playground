@@ -124,7 +124,7 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
     stats = {"pages_ok": pages_ok, "failed": failed, "rejected": dict(rejected), "truncated": truncated,
              "stopped_early": stopped_early}
     # A scroll adopted into the library keeps its link across a refresh (matched by body), so
-    # « Recopier à nouveau » never offers the same passage a second time. The links are read under
+    # « Demander une nouvelle copie » never offers the same passage a second time. The links are read under
     # the write lock (fix round 4): read outside it, an adopt (or a text deletion) committed by
     # another request between this snapshot and the rewrite below was silently undone (the link
     # reset to NULL, the passage offered again) or wrote back a deleted text's id (foreign key

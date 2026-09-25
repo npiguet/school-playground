@@ -553,7 +553,10 @@ export async function expectFocusRingInsideBody(page: Page, overlayTestId: strin
 // is measured through its label (the input itself is hidden or stretched over it); content inside
 // a closed <details> has no box and is skipped.
 export async function expectOverlayTapTargets(page: Page, overlayTestId: string) {
-  const small = await page.getByTestId(overlayTestId).evaluate((root) => {
+  // Measure the settled panel: during its fly-in a 48 px control can read 47.x (B3 fix round 1).
+  const panel = page.getByTestId(overlayTestId);
+  await expect.poll(() => panel.evaluate((e) => e.getAnimations().length)).toBe(0);
+  const small = await panel.evaluate((root) => {
     const sel = [
       'button',
       'a[href]',

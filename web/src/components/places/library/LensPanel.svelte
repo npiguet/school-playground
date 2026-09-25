@@ -451,7 +451,9 @@
   .check-word {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
+    min-width: 48px;
     min-height: 48px;
     padding: 0 14px;
     border: 2px solid var(--orange);
