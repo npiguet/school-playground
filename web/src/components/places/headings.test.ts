@@ -25,7 +25,8 @@ describe('headings inside overlays', () => {
   });
 
   it('the cards shown inside an overlay section are h4', () => {
-    expect(levels('src/components/Scroll.svelte')).toEqual([4]);
+    // One h4 per mode (the rolled scroll's, the unrolled sheet's).
+    expect(levels('src/components/places/delphi/OracleScroll.svelte')).toEqual([4, 4]);
     expect(levels('src/components/QuestCard.svelte')).toEqual([4]);
   });
 

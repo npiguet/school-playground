@@ -1,5 +1,5 @@
 // I6: under `prefers-reduced-motion: reduce`, staggered reveals (Reveal.svelte's
-// `animation-delay: {delay}ms`, Scroll.svelte's transitions, ...) must show everything
+// `animation-delay: {delay}ms`, the Pythia's monster reveal, ...) must show everything
 // instantly, not just skip the animation *duration* while staying invisible for the whole
 // `animation-delay` (Decision 18). Guards the global CSS rule directly since jsdom does not
 // evaluate `@media (prefers-reduced-motion)` blocks, so this can't be asserted via computed
