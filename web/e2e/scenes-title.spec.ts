@@ -136,6 +136,37 @@ test('Escape while the ritual overlay is closing does not undo the hand-off to c
   await expect(page).toHaveURL(/\/camp$/);
 });
 
+// Fix wave A (seen once in a full run, then made deterministic here): between HeroForm replacing the
+// route with the camp and the app handling that hashchange, the ritual overlay is still on screen,
+// and an Escape there used to close it - stepping back from the camp to the title. The app's
+// hashchange handling is held back 400 ms by an init script, so the Escape always lands inside that
+// window; closePanel now drops a close while a navigation is pending.
+test('an Escape before the hand-off to camp has been handled does not undo it', async ({ page }, testInfo) => {
+  await page.addInitScript(() => {
+    const add = window.addEventListener.bind(window);
+    window.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+      if (type !== 'hashchange') return add(type, listener, options);
+      const late = (e: Event) =>
+        setTimeout(() => (typeof listener === 'function' ? listener(e) : listener.handleEvent(e)), 400);
+      return add(type, late, options);
+    }) as typeof window.addEventListener;
+  });
+  const name = hero(testInfo.project.name);
+  await page.goto('/');
+  await enterTitle(page);
+  await page.getByTestId('title-new').click();
+  const ritual = page.getByTestId('overlay-hero-new');
+  await expect(ritual).toBeVisible();
+  await page.getByLabel('Ton prénom').fill(name);
+  await page.getByLabel('Ton niveau').selectOption('10H');
+  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await page.waitForURL(/\/camp$/);
+  await expect(ritual).toBeVisible(); // the hashchange is still held back: the ritual is on screen
+  await page.keyboard.press('Escape');
+  await expectCamp(page);
+  await expect(page).toHaveURL(/\/camp$/);
+});
+
 test('six slots: newest heroes, « Tous les héros » when there are more, « Nouveau héros » last', async ({ page, request }, testInfo) => {
   const names: string[] = [];
   for (let i = 0; i < 6; i++) {

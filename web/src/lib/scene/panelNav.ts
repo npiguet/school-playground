@@ -4,7 +4,7 @@
 // reopening the overlay). A deep link or a reload has no entry behind it: closing replaces the
 // overlay's own entry with the bare scene.
 import { href } from '../routes';
-import { navigate, replaceRoute } from '../router.svelte';
+import { navigate, navigationPending, replaceRoute } from '../router.svelte';
 import { playSfx, unlockAudio } from '../juice/sfx';
 import type { HotspotDef } from './types';
 
@@ -32,6 +32,11 @@ export function openPanel(path: string, h: HistoryLike = history): void {
 }
 
 export function closePanel(scenePath: string, h: HistoryLike = history): void {
+  // A close (seal, Escape, Back button) pressed while a navigation is already under way belongs to
+  // a screen that is leaving: acting on it would undo that navigation - e.g. an Escape right after
+  // « Rejoindre le camp » stepped back from the camp to the title (fix wave A, found by the crash
+  // count runs: HeroForm had already replaced the route, its hashchange not yet handled).
+  if (navigationPending()) return;
   if (isTagged(h.state)) h.back();
   else replaceRoute(scenePath);
 }

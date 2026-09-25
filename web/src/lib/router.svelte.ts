@@ -2,14 +2,26 @@
 // navigation helper. No third-party router dependency.
 import { matchRoute, type Route } from './routes';
 
-export const router = $state<{ route: Route }>({
-  route: matchRoute(typeof location === 'undefined' ? '' : location.hash),
+const initialHash = typeof location === 'undefined' ? '' : location.hash;
+
+// `hash` is the location hash `route` was matched from: until the `hashchange` of a navigation
+// has been handled, `location.hash` is already the new one while the screen still shows the old.
+export const router = $state<{ route: Route; hash: string }>({
+  route: matchRoute(initialHash),
+  hash: initialHash,
 });
 
 export function startRouter() {
   window.addEventListener('hashchange', () => {
+    router.hash = location.hash;
     router.route = matchRoute(location.hash);
   });
+}
+
+/** True between a navigation changing the URL and the app handling its `hashchange`: the screen
+ *  on show is already on its way out. */
+export function navigationPending(): boolean {
+  return typeof location !== 'undefined' && location.hash !== router.hash;
 }
 
 export function navigate(path: string) {

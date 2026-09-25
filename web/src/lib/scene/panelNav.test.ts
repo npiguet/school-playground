@@ -5,9 +5,9 @@ import { IDLE_HOTSPOT } from './types';
 // closePanel's untagged branch calls the real router's replaceRoute(), which touches `location`
 // (unavailable in vitest's node environment, see plan Global Constraints). Mocked so that branch
 // is testable without a DOM.
-vi.mock('../router.svelte', () => ({ navigate: vi.fn(), replaceRoute: vi.fn() }));
+vi.mock('../router.svelte', () => ({ navigate: vi.fn(), replaceRoute: vi.fn(), navigationPending: vi.fn(() => false) }));
 
-import { navigate, replaceRoute } from '../router.svelte';
+import { navigate, navigationPending, replaceRoute } from '../router.svelte';
 import { PANEL_TAG, closePanel, go, heroPanelHref, hotspotHref, isTagged, openHotspot, replacePanel, tagged } from './panelNav';
 
 describe('overlay navigation (UI3 Ruling A2)', () => {
@@ -78,6 +78,16 @@ describe('overlay navigation (UI3 Ruling A2)', () => {
     go('#/p/3/alexandrie', 'replace', h);
     expect(replaceRoute).toHaveBeenCalledWith('#/p/3/alexandrie');
     expect(navigate).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores a close while a navigation is already under way (the screen is leaving)', () => {
+    vi.mocked(navigationPending).mockReturnValueOnce(true).mockReturnValueOnce(true);
+    const tag = { state: tagged(null), back: vi.fn(), replaceState: vi.fn() };
+    closePanel('#/', tag);
+    const deep = { state: null, back: vi.fn(), replaceState: vi.fn() };
+    closePanel('#/', deep);
+    expect(tag.back).not.toHaveBeenCalled();
+    expect(replaceRoute).not.toHaveBeenCalled();
   });
 
   it('points the HUD hero chip at the hero panel', () => {
