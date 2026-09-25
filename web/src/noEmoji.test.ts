@@ -94,6 +94,46 @@ function encodedHits(file: string, text: string): string[] {
   return out;
 }
 
+// Final review M14: a CSS escape (`content: '\2713'`) is the stylesheet's way to hide a code point.
+// Only CSS text is decoded this way (a `.css` file or a Svelte `<style>` block): elsewhere a
+// backslash + hex digits means something else (a regex, a Windows path, a TeX-ish hint).
+const CSS_ESCAPE = /\\([0-9a-fA-F]{1,6})\s?/g;
+
+/** Keeps only the `<style>` blocks of a Svelte file (everything else blanked, line breaks kept). */
+function styleOnly(svelte: string): string {
+  const blank = (s: string) => s.replace(/[^\n]/g, ' ');
+  let out = '';
+  let last = 0;
+  for (const m of svelte.matchAll(/<style[\s\S]*?<\/style>/g)) {
+    out += blank(svelte.slice(last, m.index)) + m[0];
+    last = m.index! + m[0].length;
+  }
+  return out + blank(svelte.slice(last));
+}
+
+/** Finds a CSS escape whose decoded code point is a banned emoji or icon glyph. */
+function cssEscapeHits(file: string, css: string): string[] {
+  const out: string[] = [];
+  css.split('\n').forEach((line, i) => {
+    const at = `${file}:${i + 1}`;
+    if (ALLOW.has(at)) return;
+    for (const m of line.matchAll(CSS_ESCAPE)) {
+      const cp = parseInt(m[1], 16);
+      if (cp > 0x10ffff) continue;
+      const kind = bannedKind(cp);
+      if (kind) out.push(`${at}: ${m[0].trim()} decodes to U+${hex(cp)} (${kind})`);
+    }
+  });
+  return out;
+}
+
+/** The CSS text of a file: the whole of a `.css` file, the `<style>` blocks of a `.svelte` one. */
+function cssOf(file: string, text: string): string | null {
+  if (file.endsWith('.css')) return text;
+  if (file.endsWith('.svelte')) return styleOnly(text);
+  return null;
+}
+
 const PLAYER_VISIBLE = [
   ...walk('src', ['.ts', '.svelte', '.css']),
   'index.html',
@@ -130,6 +170,14 @@ describe('no emoji anywhere the player can see (CLAUDE.md)', () => {
 
   it('finds no encoded emoji or icon glyph (Unicode escape or HTML character reference)', () => {
     const found = PLAYER_VISIBLE.flatMap((f) => encodedHits(f, readFileSync(f, 'utf-8')));
+    expect(found).toEqual([]);
+  });
+
+  it('finds no CSS escape of an emoji or icon glyph in a stylesheet or a <style> block', () => {
+    const found = PLAYER_VISIBLE.flatMap((f) => {
+      const css = cssOf(f, readFileSync(f, 'utf-8'));
+      return css === null ? [] : cssEscapeHits(f, css);
+    });
     expect(found).toEqual([]);
   });
 });
@@ -173,5 +221,31 @@ describe('the encoded-glyph matcher', () => {
   it('lets an ordinary escape or entity through', () => {
     expect(encodedHits('fixture.ts', "const s = 'caf\\u00e9';\n")).toEqual([]);
     expect(encodedHits('fixture.svelte', '<span>&amp; &nbsp;</span>\n')).toEqual([]);
+  });
+});
+
+// Final review M14: proves the CSS-escape matcher decodes a disguised code point in both places CSS
+// lives, and leaves ordinary escapes and non-CSS text alone.
+describe('the CSS-escape matcher', () => {
+  it('flags a banned code point behind a CSS escape in a .css file', () => {
+    expect(cssEscapeHits('fixture.css', ".done::before { content: '\\2713'; }\n")).toEqual([
+      'fixture.css:1: \\2713 decodes to U+2713 (icon glyph)',
+    ]);
+    expect(cssEscapeHits('fixture.css', "a::after { content: '\\1F4CA '; }\n")).toEqual([
+      'fixture.css:1: \\1F4CA decodes to U+1F4CA (emoji)',
+    ]);
+  });
+
+  it('flags one inside a Svelte <style> block, on its real line', () => {
+    const svelte = "<script>\n  const a = 1;\n</script>\n<p>hi</p>\n<style>\n  p::before { content: '\\2605'; }\n</style>\n";
+    expect(cssEscapeHits('fixture.svelte', cssOf('fixture.svelte', svelte)!)).toEqual([
+      'fixture.svelte:6: \\2605 decodes to U+2605 (icon glyph)',
+    ]);
+  });
+
+  it('ignores the markup and script of a Svelte file, and an ordinary CSS escape', () => {
+    expect(cssOf('fixture.svelte', "<script>\n  const re = /\\2713/;\n</script>\n")!.trim()).toBe('');
+    expect(cssOf('fixture.ts', 'const re = /\\2713/;\n')).toBeNull();
+    expect(cssEscapeHits('fixture.css', "q::before { content: '\\AB'; }\n")).toEqual([]);
   });
 });
