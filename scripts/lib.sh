@@ -14,8 +14,9 @@ export MSYS_NO_PATHCONV=1
 
 # One id per checkout, so two checkouts (e.g. two git worktrees) can run their e2e stacks side by
 # side. Unset (the main checkout) keeps the historical names; STACK=b gives discorde-b everywhere:
-# the compose project (its own network, where the app keeps the `discorde` alias), the app image
-# tag and the node_modules volume. The npm cache volume stays shared (npm's cache is safe to share).
+# the compose project (its own network, where the app keeps the `discorde` alias), the app and
+# server dev image tags and the node_modules volume. The npm cache volume stays shared (npm's cache
+# is safe to share).
 STACK="${STACK:-}"
 if [ -n "$STACK" ]; then
   case "$STACK" in
