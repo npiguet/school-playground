@@ -22,6 +22,8 @@ async function installFastTimers(page: Page) {
   });
 }
 
+const spokenCount = (page: Page) => page.evaluate(() => ((window as any).__spoken as string[]).length);
+
 async function dictate(page: Page, draft: string, maxSteps = 120) {
   const ta = page.getByTestId('dictation-textarea');
   const next = page.getByTestId('btn-next');
@@ -32,8 +34,11 @@ async function dictate(page: Page, draft: string, maxSteps = 120) {
     if (await finish.isVisible()) break;
     if ((await next.count()) === 0) break;
     await expect(next).toBeEnabled({ timeout: 10_000 });
+    const before = await spokenCount(page);
     await next.click();
-    await page.waitForTimeout(60);
+    // Final review M11 (same class as the camp spec's sleeps): wait until the tap has taken effect
+    // - the next segment spoken (stubSpeech records it), or the dictation over - not a fixed 60 ms.
+    await expect.poll(async () => (await spokenCount(page)) > before || (await finish.isVisible())).toBe(true);
   }
   await expect(finish).toBeVisible({ timeout: 120_000 });
   await page.evaluate(() => ((window as any).__fastTimers = false));
@@ -138,7 +143,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
   test('4. a real session counts for the quest and shows the reveal', async ({ page, request }) => {
     await stubSpeech(page);
     const text = await createText(request, {
-      title: 'Les fées ' + Date.now(),
+      title: uniqueName('Les fées'),
       body: 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.',
       level: '10H',
     });
@@ -255,7 +260,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     // A guaranteed >=150-word 10H text so the boss endpoint always has a candidate, regardless
     // of what the seed happens to include.
     await createText(request, {
-      title: 'Long ' + Date.now(),
+      title: uniqueName('Long'),
       body: Array(16).fill('Les fées dansent dans la clairière et les oiseaux les écoutent.').join(' '),
       level: '10H',
     });

@@ -58,7 +58,7 @@ test('the shelves open « Les Parchemins » as an overlay; seal, Escape and Back
   await shelves.getByRole('button', { name: '9H', exact: true }).click();
   await shelves.getByRole('button', { name: 'Tous', exact: true }).click();
   await expect(shelves.getByRole('heading', { name: /À ton niveau/ })).toBeVisible();
-  await page.getByTestId('overlay-close').click();
+  await shelves.getByTestId('overlay-close').click();
   await expect(shelves).toHaveCount(0);
   await expect(page).toHaveURL(/\/tente-parchemins$/);
   await expect(page.getByTestId('library-shelves')).toBeFocused();
@@ -83,7 +83,7 @@ test('the shelves open « Les Parchemins » as an overlay; seal, Escape and Back
 
 test('a text card on the shelves starts the dictation; a prophecy wears its chip', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  const title = `Prophétie tente ${testInfo.project.name} ${Date.now()}`;
+  const title = uniqueName(`Prophétie tente ${testInfo.project.name}`);
   await createText(request, { title, body: 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.', level: '10H', due_date: '2099-01-01' });
   await page.goto(`/#/p/${id}/parchemins`);
   const card = page.getByTestId('overlay-shelves').locator('[data-testid="text-card"]', { hasText: title });
@@ -173,6 +173,36 @@ test('the desk writes a new parchment; saving lands on the shelves and Back neve
   await expect(page).toHaveURL(/\/tente-parchemins$/);
 });
 
+// Final review I1: the shelves that replace the saved form keep its history tag (replacePanel), so
+// closing them with the seal steps back onto the tent's own entry. Before the fix the seal took the
+// untagged branch and replaced instead, leaving [camp, tent, tent]: the next Back stayed on the tent
+// (a dead press) and only a second one reached the camp. WebKit happens to keep the tag across a
+// fragment `location.replace()`; Chromium drops it, as the spec says, so this test also runs in the
+// `chromium` project (playwright.config.ts), where it fails without the re-tag.
+test('after saving from the desk, closing the shelves then Back leaves the tent in one press', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  await tap(page.getByTestId('camp-parchemins'), testInfo);
+  await expectScene(page, 'library');
+  await page.getByTestId('dialogue-skip').click();
+  await tap(page.getByTestId('library-desk'), testInfo);
+  const desk = page.getByTestId('overlay-desk');
+  await expect(desk).toBeVisible();
+  const title = uniqueName(`Retour ${testInfo.project.name}`);
+  await desk.getByLabel('Titre').fill(title);
+  await desk.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
+  await desk.getByRole('button', { name: 'Sauvegarder dans les Parchemins' }).click();
+  const shelves = page.getByTestId('overlay-shelves');
+  await expect(shelves.locator('[data-testid="text-card"]', { hasText: title })).toBeVisible();
+  await closeOverlay(page);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
+  await expectScene(page, 'library');
+  await page.goBack();
+  await expect(page).toHaveURL(/\/camp$/);
+  await expectCamp(page);
+});
+
 test('the lens opens the three-step scan as a wide overlay', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openTent(page, id);
@@ -235,15 +265,17 @@ test('a deep link into a work: the seal and « Toutes les œuvres » replace, ne
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const work = page.getByTestId('overlay-portal-work');
 
-  // The seal replaces the deep-linked work entry with the bare scene - not just the URL right
-  // after closing (fix round 2 finding 3): Back must not resurrect the replaced entry either.
+  // Final review M9: the seal steps back one overlay, onto the works, exactly like « Toutes les
+  // œuvres »: on a deep link it replaces the work entry with the works list. Not just the URL right
+  // after closing (fix round 2 finding 3): Back must not resurrect the replaced work either.
   await page.goto(`/#/p/${id}/alexandria/verne-vingt-mille-lieues`);
   await expect(work.getByTestId('btn-refresh-work')).toBeVisible();
   await work.getByTestId('overlay-close').click();
-  await expect(page).toHaveURL(/\/tente-parchemins$/);
-  await expectScene(page, 'library');
+  await expect(page).toHaveURL(/\/alexandria$/);
+  await expect(page.getByTestId('overlay-portal')).toBeVisible();
+  await expect(work).toHaveCount(0);
   await page.goBack();
-  await expect(page).not.toHaveURL(/alexandria/);
+  await expect(page).not.toHaveURL(/alexandria\/verne/);
 
   // « Toutes les œuvres » replaces it with the works list instead; Back from there leaves for
   // wherever came before the deep link (the tent, opened first here) rather than reopening the work.
@@ -256,4 +288,43 @@ test('a deep link into a work: the seal and « Toutes les œuvres » replace, ne
   await page.goBack();
   await expect(page).toHaveURL(/\/tente-parchemins$/);
   await expect(work).toHaveCount(0);
+});
+
+// Final review M17: two quick chip taps start two chunk requests; the one answered last must not
+// win if it was asked first. The first level's answer is held until the second one has rendered
+// (no timing window), then released: the list must still show the second level's scrolls.
+test("a slow answer for an earlier level chip never replaces the later chip's scrolls", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const chunk = (seq: number, level: string, preview: string) => ({ id: 900000 + seq, seq, level, word_count: 120, score: 20, preview, text_id: null });
+  let release!: () => void;
+  const held = new Promise<void>((r) => (release = r));
+  await page.route('**/api/alexandria/works/*/chunks*', async (route) => {
+    const level = new URL(route.request().url()).searchParams.get('level');
+    if (level === '9H') {
+      await held;
+      await route.fulfill({ json: [chunk(1, '9H', 'Rouleau du neuvième degré')] });
+    } else if (level === '10H') {
+      await route.fulfill({ json: [chunk(2, '10H', 'Rouleau du dixième degré')] });
+    } else {
+      await route.fulfill({ json: [] });
+    }
+  });
+  await page.goto(`/#/p/${id}/alexandria/verne-vingt-mille-lieues`);
+  const work = page.getByTestId('overlay-portal-work');
+  await expect(work.getByTestId('btn-refresh-work')).toBeVisible();
+  const slow = page.waitForRequest((r) => r.url().includes('/chunks?level=9H'));
+  await work.getByRole('button', { name: '9H', exact: true }).click();
+  await slow;
+  await work.getByRole('button', { name: '10H', exact: true }).click();
+  const cards = work.getByTestId('chunk-card');
+  await expect(cards).toHaveCount(1);
+  await expect(cards).toContainText('Rouleau du dixième degré');
+  const late = page.waitForResponse((r) => r.url().includes('/chunks?level=9H'));
+  release();
+  await late;
+  // One frame for Svelte to apply whatever the late answer would change.
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await expect(cards).toHaveCount(1);
+  await expect(cards).toContainText('Rouleau du dixième degré');
+  await expect(work.getByRole('button', { name: '10H', exact: true })).toHaveClass(/chip-active/);
 });

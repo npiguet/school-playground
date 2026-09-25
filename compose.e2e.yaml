@@ -9,6 +9,9 @@ services:
         DISCORDE_TEST_HOOKS: "1",
       }
     volumes: ["./server/tests/fixtures:/fixtures:ro"]
+    # Reached as http://discorde:8080, not http://app:8080: `app` is a gTLD on Chromium's HSTS
+    # preload list, so Chromium (the `chromium` project, playwright.config.ts) forces HTTPS on it.
+    networks: { default: { aliases: [discorde] } }
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/api/health').status==200 else 1)"]
       interval: 5s
@@ -27,7 +30,7 @@ services:
     # peak (numbers: .superpowers/sdd/2026-09-24-ui3a-places-title-library-delphi/
     # e2e-stability-report.md).
     environment:
-      BASE_URL: "http://app:8080"
+      BASE_URL: "http://discorde:8080"
       CI: "true"
       LP_NUM_THREADS: "2"
       WEBKIT_SKIA_ENABLE_CPU_RENDERING: "1"

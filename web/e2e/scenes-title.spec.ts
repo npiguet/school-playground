@@ -83,7 +83,7 @@ test('the naming ritual is an overlay with its own route; Back and the seal clos
 
   await page.goto('/#/profiles/new');
   await expect(ritual).toBeVisible();
-  await page.getByTestId('overlay-close').click();
+  await ritual.getByTestId('overlay-close').click();
   await expect(ritual).toHaveCount(0);
   await expect(page).toHaveURL(/#\/$/);
 
@@ -188,7 +188,7 @@ test('#/?panel=tous deep-links straight to every hero; the gate stays closed und
   await expect(heroes).toBeVisible();
   await expect(heroes.getByRole('button', { name: new RegExp(name) })).toBeVisible();
   await expect(page.getByTestId('title-gate')).toHaveCount(1); // « Entrer » was never tapped
-  await page.getByTestId('overlay-close').click();
+  await heroes.getByTestId('overlay-close').click();
   await expect(heroes).toHaveCount(0);
   await expect(page.getByTestId('title-gate')).toBeVisible();
   await expect(page.getByTestId('title-shields')).toHaveCount(0);
@@ -244,4 +244,34 @@ test('title: no red, rotate screen in portrait, ?debug outlines the gate', async
   expect(await redScan(page)).toEqual([]);
   await page.setViewportSize({ width: 820, height: 1180 });
   await expect(page.getByTestId('rotate-screen')).toBeVisible();
+});
+
+// Final review M16: a failed hero list says so inside the art box (a long server message wraps
+// rather than running off it) and « Réessayer » fetches the heroes again without a reload.
+test('a failed hero list wraps its message inside the art and « Réessayer » loads the heroes', async ({ page, request }, testInfo) => {
+  const name = hero(testInfo.project.name);
+  await createProfileApi(request, name);
+  let fail = true;
+  await page.route('**/api/profiles', async (route) => {
+    if (fail && route.request().method() === 'GET') {
+      await route.fulfill({ status: 503, json: { detail: 'Les Muses sont parties chercher de l’eau à la source Castalie, au pied du Parnasse, et reviennent bientôt.' } });
+    } else {
+      await route.fallback();
+    }
+  });
+  await page.goto('/');
+  await enterTitle(page);
+  const note = page.getByTestId('title-error');
+  await expect(note).toContainText('Impossible de charger les héros');
+  const b = await measureBoxes(page, { art: '[data-testid="scene-title"] .art', note: '[data-testid="title-error"]' });
+  const vw = page.viewportSize()!.width;
+  expect(b.note!.x, 'the note starts inside the art on screen').toBeGreaterThanOrEqual(Math.max(0, b.art!.x));
+  expect(b.note!.x + b.note!.width, 'the note ends inside the art on screen').toBeLessThanOrEqual(Math.min(vw, b.art!.x + b.art!.width));
+  expect(b.note!.width, 'at most 70 % of the art').toBeLessThanOrEqual(b.art!.width * 0.7 + 1);
+  fail = false;
+  await page.getByTestId('title-retry').click();
+  await expect(note).toHaveCount(0);
+  // The heroes are back: at least this one exists, so a hero shield hangs on the rail.
+  await expect(page.locator('[data-testid^="title-hero-"]').first()).toBeVisible();
+  expect(await redScan(page)).toEqual([]);
 });

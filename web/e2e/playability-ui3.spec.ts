@@ -33,18 +33,18 @@ interface Walk {
 // Every scene entry is already settled by expectScene/waitForSceneSettled before its section calls
 // shot(); every overlay's fly-in is settled by waitForOverlaySettled below; every dialogue line is
 // settled by settleDialogue below. What's left here is fonts and images actually finishing to
-// paint, plus a short fixed pad: expect.poll below resolves the instant document.fonts.ready and
-// every <img>.complete become true, one JS tick before the browser necessarily *paints* that state
-// - page.screenshot() doesn't itself wait for a paint boundary, so a small fixed pad (not tied to
-// any specific animation) covers that one frame with margin.
+// paint: expect.poll below resolves the instant document.fonts.ready and every <img>.complete
+// become true, one JS tick before the browser necessarily *paints* that state. page.screenshot()
+// doesn't itself wait for a paint boundary, so the shot waits for two animation frames instead of
+// a fixed pad (final review M11): the second frame only starts once the first one has painted.
 async function waitForImagesAndFonts(page: Page) {
   await page.evaluate(() => document.fonts.ready);
   await expect.poll(() => page.evaluate(() => Array.from(document.images).every((img) => img.complete))).toBe(true);
 }
 
-async function shot(w: Walk, name: string, pad = 120) {
+async function shot(w: Walk, name: string) {
   await waitForImagesAndFonts(w.page);
-  await w.page.waitForTimeout(pad);
+  await w.page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await w.page.screenshot({ path: `${OUT}/${w.project}-${name}.png` });
 }
 

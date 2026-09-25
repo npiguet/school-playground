@@ -35,6 +35,11 @@ const BODY = 'Les héros reviennent au camp. Ils racontent leurs voyages et les 
 // uniqueName's own comment in helpers.ts).
 const heroName = (project: string) => uniqueName(`Hub-${project}`);
 
+// Two animation frames in the page: every effect and DOM update queued before now has run.
+async function afterTwoFrames(page: Page) {
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+}
+
 async function openCamp(page: Page, profileId: number) {
   await page.goto(`/#/p/${profileId}/camp`);
   await expectCamp(page);
@@ -44,7 +49,7 @@ async function openCamp(page: Page, profileId: number) {
 
 // Neutralise two lieutenants over three days (SP3 decision 3) -> boss tier 1 (decision 8).
 async function readyTheBattle(request: Parameters<typeof createText>[0], profileId: number, project: string) {
-  const text = await createText(request, { title: `Veillée ${project} ${Date.now()}`, body: BODY, level: '10H' });
+  const text = await createText(request, { title: uniqueName(`Veillée ${project}`), body: BODY, level: '10H' });
   for (const day of ['2026-08-03', '2026-08-04', '2026-08-05']) {
     for (const category of ['agreement:verb', 'homophone']) {
       await postSession(request, { profileId, textId: text.id, day, result: makeResult({ draft: 4, caught: 4, category }) });
@@ -71,28 +76,61 @@ test('every place routes to its screen and Back returns to the hub', async ({ pa
   await expect(page.getByTestId('camp-boss')).toHaveCount(0);
 });
 
+// Final review M11: "only one navigation" is proved by counting every hash change from before the
+// action until the destination has settled - by then the camp (and any navigation it still had
+// pending, whose timer dies with it) is gone - instead of waiting a fixed time for a second one.
+async function countHashChanges(page: Page) {
+  await page.evaluate(() => {
+    const w = window as unknown as { __hashes: string[]; __hashWatch?: () => void };
+    if (w.__hashWatch) removeEventListener('hashchange', w.__hashWatch);
+    w.__hashes = [];
+    w.__hashWatch = () => w.__hashes.push(location.hash);
+    addEventListener('hashchange', w.__hashWatch);
+  });
+}
+const hashChanges = (page: Page) => page.evaluate(() => (window as unknown as { __hashes: string[] }).__hashes);
+
+// Runs `act` inside the page once the camp's exit veil has appeared: the fade to night has begun
+// and its navigation is still pending (~180 ms away). No timing window: a MutationObserver sees the
+// veil inserted, and a zero-delay task queued from there runs after Hotspot's own zero-delay
+// release of the one-tap guard (queued earlier, in the task that activated the place) - so a tap
+// here meets the fade's own guard (`leaving`), not the flash's.
+async function onceTheVeilFalls(page: Page, act: 'tap-oracle' | 'back') {
+  await page.evaluate((what) => {
+    const obs = new MutationObserver(() => {
+      if (!document.querySelector('[data-testid="exit-veil"]')) return;
+      obs.disconnect();
+      setTimeout(() => {
+        if (what === 'back') history.back();
+        else (document.querySelector('[data-testid="camp-oracle"]') as HTMLElement | null)?.click();
+      }, 0);
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  }, act);
+}
+
 test('two places tapped at once lead to the first one only', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCamp(page, id);
   // Final review M3: both taps land inside the first one's 160 ms flash.
+  await countHashChanges(page);
   await page.evaluate(() => {
     (document.querySelector('[data-testid="camp-parchemins"]') as HTMLElement).click();
     (document.querySelector('[data-testid="camp-oracle"]') as HTMLElement).click();
   });
   await expect(page).toHaveURL(/\/tente-parchemins$/);
-  await page.waitForTimeout(600);
-  await expect(page).toHaveURL(/\/tente-parchemins$/);
+  await waitForSceneSettled(page, 'library');
+  expect(await hashChanges(page)).toEqual([`#/p/${id}/tente-parchemins`]);
 
   // Fix wave 2: the guard holds after the flash too, through the fade to night (the navigation
   // itself only happens ~180 ms later) - e.g. a Tab+Enter on another place in that window.
   await openCamp(page, id);
-  await page.evaluate(() => {
-    (document.querySelector('[data-testid="camp-parchemins"]') as HTMLElement).click();
-    setTimeout(() => (document.querySelector('[data-testid="camp-oracle"]') as HTMLElement | null)?.click(), 250);
-  });
+  await countHashChanges(page);
+  await onceTheVeilFalls(page, 'tap-oracle');
+  await page.getByTestId('camp-parchemins').click();
   await expect(page).toHaveURL(/\/tente-parchemins$/);
-  await page.waitForTimeout(600);
-  await expect(page).toHaveURL(/\/tente-parchemins$/);
+  await waitForSceneSettled(page, 'library');
+  expect(await hashChanges(page)).toEqual([`#/p/${id}/tente-parchemins`]);
 });
 
 test('a deep link to the hero panel waits for the onboarding card: one modal at a time', async ({ page, request }, testInfo) => {
@@ -119,7 +157,7 @@ test('a deep link to the hero panel waits for the onboarding card: one modal at 
     await page.keyboard.press('Tab');
     expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="overlay-heros"]')), `panel Tab ${i + 1}`).toBe(true);
   }
-  await page.getByTestId('overlay-close').click();
+  await panel.getByTestId('overlay-close').click();
   await expect(panel).toHaveCount(0);
   await expect(page.getByTestId('scene-camp')).not.toHaveAttribute('inert', '');
 });
@@ -129,14 +167,15 @@ test('Back during the fade out of the camp is not overridden by the pending navi
   await page.goto(`/#/p/${id}/parchemins`);
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
   await openCamp(page, id);
-  // Tap the war tent, then Back after its flash (160 ms) but before the fade hands over (~340 ms).
-  await page.evaluate(() => {
-    (document.querySelector('[data-testid="camp-dossier"]') as HTMLElement).click();
-    setTimeout(() => history.back(), 250);
-  });
+  // Tap the war tent, then Back once its fade to night has begun, before it hands over.
+  await countHashChanges(page);
+  await onceTheVeilFalls(page, 'back');
+  await page.getByTestId('camp-dossier').click();
   await expect(page).toHaveURL(/\/parchemins$/);
-  await page.waitForTimeout(800);
-  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(page.getByTestId('overlay-shelves')).toBeVisible();
+  await waitForSceneSettled(page, 'library');
+  // Only the Back: the war tent's pending navigation died with the camp.
+  expect(await hashChanges(page)).toEqual([`#/p/${id}/parchemins`]);
 });
 
 test('the onboarding card is a real modal: the camp is inert, Tab stays on the card', async ({ page, request }, testInfo) => {
@@ -224,9 +263,12 @@ test('the camp loads its data once per visit', async ({ page, request }, testInf
   });
   const catalog = page.waitForResponse((r) => r.url().endsWith('/api/world'));
   await openCamp(page, id);
-  await catalog;
-  await page.waitForTimeout(500);
-  // Final review I2: the catalog arriving must not re-run the camp's load effect.
+  await (await catalog).finished();
+  // Final review I2: the catalog arriving must not re-run the camp's load effect. Svelte applies
+  // the catalog and re-runs whatever depends on it in the tasks right after the response body is
+  // read; two animation frames later (final review M11: not a fixed sleep) any such re-run has
+  // already sent its request.
+  await afterTwoFrames(page);
   expect(campCalls).toHaveLength(1);
 });
 
@@ -275,7 +317,9 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   await expect(stage).not.toHaveAttribute('inert', '');
   await expect(page.getByTestId('hud-hero')).toBeFocused();
   await expect(page.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'false');
-  await page.waitForTimeout(300);
+  // Final review M11: the overlay's outro has ended (the panel is gone, its modal destroyed and
+  // focus handed back), so two more frames are enough for a stray second hand-back to show.
+  await afterTwoFrames(page);
   expect(focusCalls, 'focus handed back to the hero chip once').toBe(1);
   expect(errors).toEqual([]);
 
@@ -299,15 +343,11 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   await expect(page).toHaveURL(/\/parchemins$/);
 
   // A deep link closes by replacing its own entry: Back never lands on ?panel=heros again.
-  // UI3a Task 9 fix / Task 11 review fix round 1 #1: straight from `/parchemins` (the line above),
-  // this hash change to `camp?panel=heros` used to land while the shelves overlay was still mid its
-  // 160ms `out:leave|global` (preflight.md D3) - a page-wide `overlay-close` would then match two
-  // wax seals, the one still leaving and this panel's own. Overlay's OUT transition is now local:
-  // leaving the library place for the camp (an ancestor unmount) drops the shelves overlay at once,
-  // so the plain page-wide selector is unambiguous again.
+  // Scoped to the panel (final review M12), like every seal in these specs: an overlay swap can
+  // have two seals in the DOM for a moment, whatever the reason.
   await page.goto(`/#/p/${id}/camp?panel=heros`);
   await expect(panel).toBeVisible();
-  await page.getByTestId('overlay-close').click();
+  await panel.getByTestId('overlay-close').click();
   await expect(panel).toHaveCount(0);
   await expect(page).toHaveURL(/\/camp$/);
   await page.goBack();
@@ -475,7 +515,7 @@ function boxesIntersect(a: { x: number; y: number; width: number; height: number
 test('the weekly ribbon and the prophecy never overlap a hotspot or its label', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   // A prophecy makes .camp-column at its tallest, the worst case for overlapping a place below it.
-  const title = `Prophétie ${testInfo.project.name} ${Date.now()}`;
+  const title = uniqueName(`Prophétie ${testInfo.project.name}`);
   const text = await createText(request, { title, body: BODY, level: '10H', due_date: '2099-01-01' });
   await onlyOwnProphecy(page, text.id);
   for (const size of [

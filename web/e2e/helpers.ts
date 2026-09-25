@@ -100,11 +100,12 @@ export async function expectCamp(page: Page) {
 // Fix round 1 minor #1: an explicit 15s timeout (cold load + a shared 4-worker container can starve
 // WebKit past the default 5s), and diagnostics attached to the failure message rather than a bare
 // timeout, since "which animation, still running or never started" is what actually explains it.
-// UI3a Task 8: scoped to `sceneId`, not a bare `.scene-transition` - Overlay's `out:leave|global`
-// (preflight.md D3) keeps an outgoing place mounted for its 160ms close animation, so a title →
-// camp hand-off (naming a hero, picking one from « Tous les héros ») briefly has two scenes in the
-// DOM at once (the leaving title behind its closing overlay, the entering camp). An unscoped
-// locator hits that window as a strict-mode violation instead of just waiting it out.
+// UI3a Task 8: scoped to `sceneId`, not a bare `.scene-transition`. When this was written, Overlay's
+// `out:leave|global` kept an outgoing place mounted for its 160ms close animation; since Task 11
+// fix round 1 the overlay's outro is local and the old place leaves at once (watchOverlap proves
+// it). The scoping stays as a defensive measure (final review M13): any in-place swap that ever
+// lets two scenes coexist for a frame would otherwise turn into a strict-mode violation here
+// instead of just being waited out.
 export async function waitForSceneSettled(page: Page, sceneId: string) {
   const t = page.locator(`[data-testid="scene-${sceneId}"] .scene-transition`);
   try {

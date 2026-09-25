@@ -3,6 +3,7 @@ import {
   closeOverlay,
   createProfileApi,
   createText,
+  expectCamp,
   expectExitClearOfDialogueDock,
   expectInSafeZone,
   expectScene,
@@ -29,7 +30,7 @@ async function openTemple(page: Page, id: number) {
 test('the hub path leads to the temple; the Pythia greets; the exit sign leads back', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.goto(`/#/p/${id}/camp`);
-  await expect(page.getByTestId('scene-camp')).toBeVisible();
+  await expectCamp(page);
   await tap(page.getByTestId('camp-oracle'), testInfo);
   await expect(page).toHaveURL(/\/temple$/);
   await expectScene(page, 'delphi');
@@ -39,7 +40,7 @@ test('the hub path leads to the temple; the Pythia greets; the exit sign leads b
   await expect(page.getByTestId('delphi-pythia')).toHaveClass(/is-new/);
   await expect(page.getByTestId('delphi-pythia')).toContainText('Trois rouleaux scellés');
   await tap(page.getByTestId('scene-exit'), testInfo);
-  await expect(page.getByTestId('scene-camp')).toBeVisible();
+  await expectCamp(page);
 });
 
 test('the Pythia opens the three scrolls; « Ce que prépare ta classe »; seal, Escape and Back close', async ({ page, request }, testInfo) => {
@@ -187,3 +188,29 @@ test('Delphi: ?debug outlines both places; no red; rotate screen', async ({ page
   await page.setViewportSize({ width: 820, height: 1180 });
   await expect(page.getByTestId('rotate-screen')).toBeVisible();
 });
+
+// Final review M4: a place whose /camp cannot be reached says so and offers « Réessayer » (it used
+// to be the camp alone; the temple silently lost its greeting, its altar prophecy and its badges).
+// The camp is built on the same PlaceScene now, so both are checked.
+for (const place of [
+  { path: 'temple', scene: 'delphi' },
+  { path: 'camp', scene: 'camp' },
+]) {
+  test(`${place.scene}: an unreachable camp shows « Réessayer », which brings the place back`, async ({ page, request }, testInfo) => {
+    const id = await createProfileApi(request, heroName(testInfo.project.name));
+    let fail = true;
+    await page.route('**/api/profiles/*/camp', async (route) => {
+      if (fail) await route.fulfill({ status: 503, json: { detail: 'Les Muses se reposent.' } });
+      else await route.fallback();
+    });
+    await page.goto(`/#/p/${id}/${place.path}`);
+    await expectScene(page, place.scene);
+    const status = page.getByTestId('place-status');
+    await expect(status).toContainText('Impossible de rejoindre le camp : Les Muses se reposent.');
+    expect(await redScan(page)).toEqual([]);
+    fail = false;
+    await page.getByTestId('place-retry').click();
+    await expect(status).toHaveCount(0);
+    await expect(page.getByTestId('hud-xp')).toBeVisible();
+  });
+}

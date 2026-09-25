@@ -33,5 +33,16 @@ export default defineConfig({
         hasTouch: true,
       },
     },
+    // Final review I1: WebKit keeps `history.state` across a fragment `location.replace()`, while
+    // Chromium (the laptops' Chrome and Edge) resets it to null as the HTML spec says - the case
+    // panelNav's `replacePanel` re-tags the entry for. On WebKit alone the "save, close, Back" test
+    // passes with or without the re-tag, so that one history test also runs on Chromium, where it
+    // fails without it.
+    {
+      name: 'chromium',
+      testMatch: ['**/scenes-library.spec.ts'],
+      grep: /Back leaves the tent in one press/,
+      use: { ...devices['Desktop Chrome'] },
+    },
   ],
 });
