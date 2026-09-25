@@ -132,8 +132,11 @@
       {#each LIEUTENANT_ORDER as key (key)}
         {@const l = lieutenantState(key)}
         {@const asleep = !l || !l.available}
-        <li class="kit-tablet" class:is-asleep={asleep} data-testid="board-challenge-{key}">
+        <!-- The peg carries its stretch of rail outside the clay, so a sleeping tablet's grey
+             filter never dims the rail (review fix round 1). -->
+        <li class="peg" data-testid="board-challenge-{key}">
           <span class="rail" aria-hidden="true"></span>
+          <div class="kit-tablet" class:is-asleep={asleep}>
           <span class="pressed"><LieutenantBadge lieutenantKey={key} size={64} /></span>
           <h4 class="tablet-name">{names[key] ?? key}</h4>
           <p class="tablet-technique">{technique(key)}</p>
@@ -147,6 +150,7 @@
               <button type="button" class="kit-bronze" disabled={creating === key} onclick={() => challenge(key)}>Lancer une quête</button>
             {/if}
           {/if}
+          </div>
         </li>
       {/each}
     </ul>
@@ -158,14 +162,14 @@
       <div class="kit-sheet eris-panel" data-testid="board-boss">
         {#if campStore.data.boss.tier_available !== null || campStore.data.boss.active_quest_id !== null}
           {@const rewardId = bossRewardId(campStore.data.boss.tier_available)}
-          <p class="boss-reward-line">
+          <div class="boss-reward-line">
             {#if rewardId}<Medallion {rewardId} size={40} />{/if}
             <span>
               Combat {romanTier(campStore.data.boss.tier_available ?? 1)} — récompense : {bossRewardName(
                 campStore.data.boss.tier_available,
               )}
             </span>
-          </p>
+          </div>
           <button type="button" class="kit-bronze" onclick={() => go(href('boss', { profileId: String(profile.id) }))}>
             Se rendre au bord du camp
           </button>
@@ -235,11 +239,21 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 10px 22px;
   }
-  /* Each tablet carries its stretch of the rail, half the gap wide on either side, so a row's
-     stretches meet into one rail whatever the number of rows; its cord (::after) ties over it. */
+  /* Each peg carries its stretch of the rail, half the gap wide on either side, so a row's
+     stretches meet into one rail whatever the number of rows; the tablet's cord (::after, 34 px
+     above the clay) ties over it. */
+  .peg {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .peg > .kit-tablet {
+    flex: 1;
+  }
   .rail {
     position: absolute;
-    top: -37px;
+    z-index: 0;
+    top: -3px;
     left: -11px;
     right: -11px;
     height: 6px;

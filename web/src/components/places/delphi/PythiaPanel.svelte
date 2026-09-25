@@ -89,6 +89,10 @@
     return out;
   });
 
+  // The prophecies lead once the scrolls are done for the week, or when one is due within 7 days
+  // (the horizon of the camp's next-step line, nextStepLine in scenes/camp.ts).
+  const prophecyFirst = $derived(!!oracle && (oracle.status === 'chosen' || oracle.prophecies.some((p) => p.days_left <= 7)));
+
   const reduced = reducedMotion();
   let pickerEl = $state<HTMLElement | null>(null);
   let scrollsEl = $state<HTMLElement | null>(null);
@@ -158,19 +162,42 @@
   }
 </script>
 
+{#snippet propheciesSection(prophecies: OracleOut['prophecies'])}
+  {#if prophecies.length > 0}
+    <section data-testid="oracle-prophecies">
+      <h3 class="kit-section">Prophéties</h3>
+      <p class="muted">Défends chaque prophétie avant son jour : la Pythie te promet une fois et demie plus de gloire (+50 % XP).</p>
+      <ul class="prophecy-list">
+        {#each prophecies as p (p.text_id)}
+          <li class="kit-sheet prophecy-row" data-testid="oracle-prophecy-{p.text_id}">
+            <p>
+              <span class="prophecy-title">« {p.title} »</span>
+              <span class="prophecy-when">{longDate(p.due_date)} · {prophecyWhen(p.days_left)}</span>
+            </p>
+            <button type="button" class="kit-bronze" onclick={() => review(p.text_id)}>Te préparer</button>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
+{/snippet}
+
 <div class="panel-pythia oracle">
   {#if loading}
     <p class="muted">Les Muses consultent la Pythie…</p>
   {:else if loadError}
     <p class="kit-note" data-tone="eris">Impossible de rejoindre l'Oracle : {loadError}</p>
   {:else if oracle}
+    <!-- Review fix round 1: once the week is chosen, or when a prophecy is due within a week (what
+         the camp's next-step line calls THE next step), the prophecies come first. -->
+    {#if prophecyFirst}{@render propheciesSection(oracle.prophecies)}{/if}
     <section>
       <h3 class="kit-section">Les trois rouleaux</h3>
       <!-- Playability #8: the reward once, with its medallion, in dark bronze. -->
-      <p class="reward-line" data-testid="oracle-reward">
+      <div class="reward-line" data-testid="oracle-reward">
         {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} size={36} />{/if}
         <span>Cette semaine, le rouleau que tu ouvres rapporte : {oracleRewardLine()}</span>
-      </p>
+      </div>
       {#if consultError}<p class="kit-note" data-tone="eris" role="alert">{consultError}</p>{/if}
 
       <div class="scrolls-wrap" bind:this={scrollsEl}>
@@ -257,31 +284,17 @@
       </section>
     {/if}
 
-    {#if oracle.prophecies.length > 0}
-      <section>
-        <h3 class="kit-section">Prophéties</h3>
-        <p class="muted">Défends chaque prophétie avant son jour : la Pythie te promet une fois et demie plus de gloire (+50 % XP).</p>
-        <ul class="prophecy-list">
-          {#each oracle.prophecies as p (p.text_id)}
-            <li class="kit-sheet prophecy-row" data-testid="oracle-prophecy-{p.text_id}">
-              <p>
-                <span class="prophecy-title">« {p.title} »</span>
-                <span class="prophecy-when">{longDate(p.due_date)} · {prophecyWhen(p.days_left)}</span>
-              </p>
-              <button type="button" class="kit-bronze" onclick={() => review(p.text_id)}>Te préparer</button>
-            </li>
-          {/each}
-        </ul>
-      </section>
-    {/if}
+    {#if !prophecyFirst}{@render propheciesSection(oracle.prophecies)}{/if}
   {/if}
 </div>
 
 <style>
+  /* The bottom room lets the last line scroll fully clear of the body's faded edge and the rod. */
   .oracle {
     display: flex;
     flex-direction: column;
     gap: 22px;
+    padding-bottom: 16px;
   }
   .reward-line {
     display: flex;
@@ -292,8 +305,11 @@
     font-size: 17px;
     color: var(--reward-ink);
   }
+  /* Review fix round 1: a scrollIntoView (the picker; the scroll just consulted) stops short of
+     the body's faded top edge under the voice plate, with room for the sheet's top rod and title. */
   .scrolls-wrap {
     position: relative;
+    scroll-margin-top: 24px;
   }
   .rolls {
     display: grid;
@@ -301,6 +317,7 @@
     gap: 18px;
   }
   .picker {
+    scroll-margin-top: 72px;
     display: flex;
     flex-direction: column;
     align-items: center;

@@ -81,7 +81,7 @@
   {#if loading}
     <p class="muted">Les Muses déroulent les parchemins…</p>
   {:else if error}
-    <p class="orange">Impossible de lire les parchemins : {error}</p>
+    <p class="kit-note" data-tone="eris">Impossible de lire les parchemins : {error}</p>
   {:else}
     {#if prophecies.length > 0}
       <section>

@@ -100,11 +100,39 @@ test('the Pythia speaks of a prophecy by its day, not its date; « Te préparer 
   const row = page.getByTestId(`oracle-prophecy-${text.id}`);
   await expect(row).toContainText('jeudi 1er janvier 2099');
   await expect(row).not.toContainText('01.01.2099');
-  await expect(page.getByTestId('overlay-pythia')).not.toContainText('multipliée');
+  const oracle = page.getByTestId('overlay-pythia');
+  await expect(oracle).not.toContainText('multipliée');
+  // Review fix round 1: a sealed week with a far prophecy leads with the scrolls; once the week is
+  // chosen, the prophecies lead (the scrolls are done until Monday).
+  const sections = oracle.locator('h3.kit-section');
+  await expect(sections).toHaveText(['Les trois rouleaux', 'Prophéties']);
+  await oracle.getByTestId('scroll-faible').getByTestId('scroll-open').click();
+  await expect(oracle.getByTestId('oracle-quest')).toBeVisible();
+  await expect(sections).toHaveText(['Prophéties', 'Les trois rouleaux', 'La quête de la semaine']);
   const btn = row.getByRole('button', { name: 'Te préparer' });
   await expect(btn).toHaveCSS('text-decoration-line', 'none');
   await btn.click();
   await expect(page).toHaveURL(new RegExp(`/play/${text.id}$`));
+});
+
+test('a prophecy due within a week leads the Pythia panel, even while the scrolls are sealed', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  // A real text due in 3 days would be every parallel hero's next step (the camp's greeting reads
+  // all prophecies): keep the text far off and bring it near in this page's /oracle answer only.
+  const text = await createText(request, { title: uniqueName('Une prophétie proche'), body: BODY, level: '10H', due_date: '2099-01-01' });
+  await page.route('**/api/profiles/*/oracle', async (route) => {
+    const res = await route.fetch();
+    const json = await res.json();
+    json.prophecies = json.prophecies
+      .filter((p: { text_id: number }) => p.text_id === text.id)
+      .map((p: { days_left: number }) => ({ ...p, days_left: 3 }));
+    await route.fulfill({ response: res, json });
+  });
+  await page.goto(`/#/p/${id}/delphes`);
+  const oracle = page.getByTestId('overlay-pythia');
+  await expect(oracle.getByTestId('scroll-open')).toHaveCount(3);
+  await expect(oracle.locator('h3.kit-section')).toHaveText(['Prophéties', 'Les trois rouleaux']);
+  await expect(oracle.getByTestId(`oracle-prophecy-${text.id}`)).toBeInViewport();
 });
 
 test('the tablets open the quest board; a launched quest shows on the tablets badge', async ({ page, request }, testInfo) => {

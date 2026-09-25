@@ -310,21 +310,15 @@
   .overlay-table .overlay-body :global(.muted) {
     color: rgba(255, 247, 230, 0.86);
   }
-  .overlay-table .overlay-body :global(.orange) {
-    color: #f2a15e;
-  }
-  /* A sheet lying on the wood carries its own dark ink (kit-objects.css): inside one, headings,
-     muted lines and Éris's orange go back to the parchment's inks (these outrank the light rules
-     above). A terracotta tablet inks its own name (TabletsPanel). */
+  /* A sheet lying on the wood carries its own dark ink (kit-objects.css): inside one, headings and
+     muted lines go back to the parchment's inks (these outrank the light rules above). A terracotta
+     tablet inks its own name (TabletsPanel). Éris's hand on a table is a kit-note, never .orange. */
   .overlay-table .overlay-body :global(.kit-sheet :is(h3, h4)) {
     color: var(--bronze-dark);
     text-shadow: none;
   }
   .overlay-table .overlay-body :global(.kit-sheet .muted) {
     color: var(--form-ink-soft);
-  }
-  .overlay-table .overlay-body :global(.kit-sheet .orange) {
-    color: var(--orange-ink);
   }
 
   /* --- codex: an open book, two pages and a gutter; always wide, fixed height ---------------- */

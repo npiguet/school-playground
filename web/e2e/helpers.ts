@@ -313,10 +313,11 @@ export async function onlyOwnProphecy(page: Page, textId: number) {
 export async function onlyOwnOracleProphecy(page: Page, textId: number) {
   await onlyOwnProphecy(page, textId);
   await page.route('**/api/profiles/*/oracle', async (route) => {
-    if (route.request().method() !== 'GET') return route.fallback(); // a consult answers { oracle, quest }
     const res = await route.fetch();
     const json = await res.json();
-    json.prophecies = json.prophecies.filter((p: { text_id: number }) => p.text_id === textId);
+    // GET answers the oracle itself; a consult (POST) answers { oracle, quest }; an error has neither.
+    const oracle = route.request().method() === 'GET' ? json : json.oracle;
+    if (oracle?.prophecies) oracle.prophecies = oracle.prophecies.filter((p: { text_id: number }) => p.text_id === textId);
     await route.fulfill({ response: res, json });
   });
 }
