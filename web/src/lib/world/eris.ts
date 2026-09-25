@@ -108,7 +108,7 @@ const LINES: Record<LieutenantKey, Record<Band, string>> = {
     strong: 'Le chant des Sirènes fait oublier le sujet à tout le monde. Mon plus beau tour.',
     contested: 'Une phrase sur deux résiste au chant des Sirènes. Elles chantent plus fort.',
     weak: "Les Sirènes chantent dans le vide. Quelqu'un s'attache au mât, c'est agaçant.",
-    neutralised: 'Les Sirènes sont neutralisées. Elles n'ont plus de voix, et moi plus de calme.',
+    neutralised: "Les Sirènes sont neutralisées. Elles n'ont plus de voix, et moi plus de calme.",
   },
   lethe: {
     none: "Léthé attend la fin des textes. C'est là que la vigilance s'endort.",
