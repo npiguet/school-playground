@@ -206,6 +206,11 @@ scripts/check.sh
 To run only the e2e suite (e.g. while iterating on a spec): `scripts/playwright.sh`. Pass
 extra `npx playwright test` arguments through, e.g. `scripts/playwright.sh e2e/seed.spec.ts`.
 
+**Two checkouts side by side** (e.g. two git worktrees): prefix any script with `STACK=<id>`, e.g.
+`STACK=b scripts/check.sh`. It gets its own compose project, app image and node_modules volume
+(`discorde-b…`, `npm ci` on first use); unset, the names stay `discorde`. A second dev stack also
+needs `DEV_API_PORT`/`DEV_WEB_PORT`. `PLAYWRIGHT_VERSION` in `scripts/lib.sh` pins the e2e image.
+
 **On Windows / Git Bash:** the scripts set `MSYS_NO_PATHCONV=1` themselves before calling
 `docker`/`docker compose`, to stop MSYS from rewriting container paths like `/work/web` into
 `C:\...\work\web`. If you invoke `docker` directly outside the scripts, set

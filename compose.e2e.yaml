@@ -1,7 +1,9 @@
 services:
   app:
     build: .
-    image: discorde:local
+    # scripts/lib.sh sets APP_IMAGE, NODE_MODULES_VOLUME and PLAYWRIGHT_VERSION per STACK (README
+    # §6); the defaults are the main checkout's names.
+    image: ${APP_IMAGE:-discorde:local}
     environment:
       {
         DISCORDE_DATA_DIR: /tmp/data,
@@ -11,6 +13,8 @@ services:
     volumes: ["./server/tests/fixtures:/fixtures:ro"]
     # Reached as http://discorde:8080, not http://app:8080: `app` is a gTLD on Chromium's HSTS
     # preload list, so Chromium (the `chromium` project, playwright.config.ts) forces HTTPS on it.
+    # The alias lives in this compose project's own network, so every STACK keeps the same BASE_URL.
+    # No published port: only the playwright container talks to the app.
     networks: { default: { aliases: [discorde] } }
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/api/health').status==200 else 1)"]
@@ -19,7 +23,7 @@ services:
       retries: 30
       start_period: 20s
   playwright:
-    image: mcr.microsoft.com/playwright:v1.63.0-noble
+    image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION:?run through scripts/playwright.sh}-noble
     working_dir: /work/web
     # WebKit renders on the CPU in this container (Mesa llvmpipe, no GPU), and by default llvmpipe
     # starts one raster thread per core in every page: an idle camp scene alone burned ~4.5 cores,
@@ -34,7 +38,7 @@ services:
       CI: "true"
       LP_NUM_THREADS: "2"
       WEBKIT_SKIA_ENABLE_CPU_RENDERING: "1"
-    volumes: [".:/work", "discorde-web-node_modules:/work/web/node_modules"]
+    volumes: [".:/work", "node_modules:/work/web/node_modules"]
     depends_on:
       app: { condition: service_healthy }
     ipc: host
@@ -44,5 +48,6 @@ services:
     ulimits:
       core: 0
 volumes:
-  discorde-web-node_modules:
+  node_modules:
+    name: ${NODE_MODULES_VOLUME:-discorde-web-node_modules}
     external: true

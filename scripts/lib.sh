@@ -11,24 +11,44 @@ else
 fi
 # Stop MSYS from rewriting container paths like /work/web into C:\...\work\web.
 export MSYS_NO_PATHCONV=1
-export COMPOSE_PROJECT_NAME=discorde
+
+# One id per checkout, so two checkouts (e.g. two git worktrees) can run their e2e stacks side by
+# side. Unset (the main checkout) keeps the historical names; STACK=b gives discorde-b everywhere:
+# the compose project (its own network, where the app keeps the `discorde` alias), the app image
+# tag and the node_modules volume. The npm cache volume stays shared (npm's cache is safe to share).
+STACK="${STACK:-}"
+if [ -n "$STACK" ]; then
+  case "$STACK" in
+    *[!a-z0-9_-]*) echo "STACK must use lowercase letters, digits, - or _ (got '$STACK')" >&2; exit 2 ;;
+  esac
+  STACK_NAME="discorde-$STACK"
+else
+  STACK_NAME="discorde"
+fi
+export COMPOSE_PROJECT_NAME="$STACK_NAME"
 
 TTY_FLAGS=""
 # No -it: nothing in this toolchain is interactive, and docker run -it fails under
 # mintty (Git Bash's default terminal) with "the input device is not a TTY".
 
 NODE_IMAGE="node:22"
-PLAYWRIGHT_VERSION="1.63.0"
-PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
+# The single source of the Playwright image version (compose.e2e.yaml reads it from the
+# environment). Keep it equal to @playwright/test in web/package.json.
+export PLAYWRIGHT_VERSION="1.63.0"
 SERVER_DEV_IMAGE="discorde-server-dev"
-APP_IMAGE="discorde:local"
-NODE_MODULES_VOLUME="discorde-web-node_modules"
+# Exported: compose.e2e.yaml and compose.dev.yaml substitute them.
+export APP_IMAGE="$STACK_NAME:local"
+export NODE_MODULES_VOLUME="$STACK_NAME-web-node_modules"
 NPM_CACHE_VOLUME="discorde-npm-cache"
 
 ensure_volumes() {
-  for v in "$NODE_MODULES_VOLUME" "$NPM_CACHE_VOLUME"; do
-    docker volume inspect "$v" >/dev/null 2>&1 || docker volume create "$v" >/dev/null
-  done
+  docker volume inspect "$NPM_CACHE_VOLUME" >/dev/null 2>&1 || docker volume create "$NPM_CACHE_VOLUME" >/dev/null
+  if ! docker volume inspect "$NODE_MODULES_VOLUME" >/dev/null 2>&1; then
+    docker volume create "$NODE_MODULES_VOLUME" >/dev/null
+    # A new stack's node_modules starts empty: install from the lockfile once.
+    echo "== $NODE_MODULES_VOLUME is new: npm ci"
+    docker run --rm       -v "$HOST_ROOT:/work"       -v "$NODE_MODULES_VOLUME:/work/web/node_modules"       -v "$NPM_CACHE_VOLUME:/root/.npm"       -w /work/web -e CI=true       "$NODE_IMAGE" npm ci >/dev/null
+  fi
 }
 
 build_server_dev_image() {
