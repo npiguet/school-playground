@@ -374,16 +374,27 @@ label.kit-bronze.is-quiet {
 }
 
 /* --- A bronze medallion: a level to choose (real radio inside), or a small level mark ------- */
+/* Fix round 2: the label is 16px (13px on .is-small) at font-weight 700 - below the WCAG large-text
+   bold floor of 18.66px (14pt), so the normal-text 4.5:1 threshold applies, not large text's 3:1.
+   The old fill ran --bronze-light straight through the centre where every digit sits: bronze-ink
+   text cleared 4.5:1 against --bronze-dark (~9.6:1) but not against --bronze-light (~2.5:1) - no
+   single ink can pass both ends of that range (a light ink needs a dark-enough bg, a dark ink needs
+   a light-enough one; --bronze-light and --bronze-dark are each other's opposite requirement). So
+   the coin's own fill now stays within --bronze/--bronze-dark (bronze-ink clears 4.5:1 against
+   both, see kit-objects.test.ts), and --bronze-light's shine moves to ::before below: a small,
+   off-centre highlight measured to stay clear of the centred label (place-items: center), never
+   doubling as its background. Not relying on the text-shadow for the measured contrast. */
 label.kit-medallion,
 .kit-medallion {
   position: relative;
+  isolation: isolate;
   display: inline-grid;
   place-items: center;
   width: 56px;
   height: 56px;
   border-radius: 50%;
   border: 2px solid var(--bronze-dark);
-  background: radial-gradient(circle at 38% 32%, var(--bronze-light), var(--bronze) 58%, var(--bronze-dark));
+  background: radial-gradient(circle at 38% 30%, var(--bronze), var(--bronze-dark) 82%);
   color: var(--bronze-ink);
   font-family: var(--font-display);
   font-variant: normal;
@@ -396,6 +407,23 @@ label.kit-medallion,
     0 3px 6px rgba(0, 0, 0, 0.35);
   cursor: pointer;
   transition: transform 0.12s ease;
+}
+/* The coin's shine: --bronze-light confined to a small corner glow, its radius measured (against
+   this box's own size) to fade out before it reaches the centre, where the label always sits
+   (place-items: center) - it never has to double as the label's background. `isolation: isolate`
+   above plus this negative z-index keep it painted under the label's text, never over it, without
+   the negative z-index escaping to affect anything outside the medallion. */
+label.kit-medallion::before,
+.kit-medallion::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(circle 14px at 30% 24%, var(--bronze-light), transparent 100%);
+}
+.kit-medallion.is-small::before {
+  background: radial-gradient(circle 9px at 30% 24%, var(--bronze-light), transparent 100%);
 }
 /* The real radio covers the medallion (opacity 0): taps, keyboard and VoiceOver hit the input. */
 .kit-medallion > input {

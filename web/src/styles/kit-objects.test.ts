@@ -1,7 +1,7 @@
 // Immersion wave Task 3 (playability #1): the object kit the overlays are built from.
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { contrastRatio, luminance } from '../lib/ui/contrast';
+import { contrastRatio } from '../lib/ui/contrast';
 
 const css = readFileSync('src/styles/kit-objects.css', 'utf-8');
 
@@ -68,10 +68,12 @@ function ruleBodyOf(sheet: string, selector: string): string {
   return m[1];
 }
 
-/** The darkest colour a background paints (a gradient's darkest stop, or its one colour). Fix
- *  round 1's review standard: check the text against the darkest surface it can land on. */
-function darkestOf(colours: string[]): string {
-  return colours.reduce((a, b) => (luminance(a) <= luminance(b) ? a : b));
+/** The worst (lowest) contrast between `fg` and any colour `bg` paints. Fix round 2: checking only
+ *  the darkest stop (round 1) missed that a *light* text colour is worst off against a gradient's
+ *  *lightest* stop, not its darkest (`.kit-medallion`'s bronze-ink was ~9.6:1 on --bronze-dark but
+ *  only ~2.5:1 on --bronze-light). Every stop is measured, so both directions are covered. */
+function worstOf(fg: string, bg: string[]): number {
+  return Math.min(...bg.map((b) => contrastRatio(fg, b)));
 }
 
 describe('object kit', () => {
@@ -106,11 +108,13 @@ describe('object kit', () => {
   });
 
   // Fix round 1: .kit-stamp (aegean on the tag's darker stop, ~4.15:1) and .kit-tablet-stamp
-  // (#3d4a1a straight on --clay-dark, ~1.8:1) were both below 4.5:1. Every text-bearing object
-  // below is checked against the darkest colour of the surface it actually sits on, read out of
-  // the CSS itself (tokens resolved, not retyped), so a future colour edit that regresses this
-  // fails here instead of in a screenshot review.
-  it('keeps every stamp, tag and note at least 4.5:1 on the darkest surface it sits on', () => {
+  // (#3d4a1a straight on --clay-dark, ~1.8:1) were both below 4.5:1. Fix round 2: checking only the
+  // darkest stop missed .kit-medallion's bronze-ink text failing against --bronze-light (~2.5:1,
+  // the *lightest* stop) - every text-bearing object below is now checked against every colour the
+  // surface it sits on paints (both directions), read out of the CSS itself (tokens resolved, not
+  // retyped), so a future colour edit that regresses this fails here instead of in a screenshot
+  // review.
+  it('keeps every stamp, tag and note at least 4.5:1 on every colour the surface it sits on paints', () => {
     const tagBg = backgroundColoursOf(ruleBodyOf(css, '.kit-tag'));
     const goldBg = backgroundColoursOf(ruleBodyOf(css, '.kit-prophecy'));
     const cases: Array<[string, string, string[]]> = [
@@ -142,7 +146,7 @@ describe('object kit', () => {
       ],
     ];
     for (const [name, fg, bg] of cases) {
-      expect(contrastRatio(fg, darkestOf(bg)), `${name}: ${fg} on ${darkestOf(bg)}`).toBeGreaterThanOrEqual(4.5);
+      expect(worstOf(fg, bg), `${name}: ${fg} on ${bg.join(', ')}`).toBeGreaterThanOrEqual(4.5);
     }
   });
 });
