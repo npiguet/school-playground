@@ -118,7 +118,7 @@
 
     <section>
       <h2>Niveau</h2>
-      <LevelMedallions legend="Ton niveau" name="settings-level" bind:value={level} />
+      <LevelMedallions legend="Ta classe" name="settings-level" bind:value={level} />
     </section>
 
     <section>
