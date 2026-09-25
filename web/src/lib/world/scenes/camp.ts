@@ -103,7 +103,8 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
   {
     id: 'parchemins',
     label: 'La tente des parchemins',
-    target: 'library',
+    // UI3a Task 9: the library tent is now its own place scene, not the legacy screen directly.
+    target: 'library-tent',
     shape: CAMP_SHAPES.parchemins,
     labelPos: 'above',
     // Playability #2: the tent where the dictations are fought says so, and glows until the first

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { newHero, stubSpeech, skipOnboarding, uniqueName } from './helpers';
+import { closeOverlay, newHero, openShelves, stubSpeech, skipOnboarding, uniqueName } from './helpers';
 
 const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
@@ -12,11 +12,11 @@ test('create profile → add text → dictation → proofreading → results →
   await newHero(page, name, '10H');
   await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await openShelves(page);
 
-  // Custom text (the FAB opens the add menu, spec's "Decisions" #12; Task 8)
-  await page.getByRole('button', { name: /Ajouter un texte/ }).click();
-  await page.getByTestId('menu-add-type').click();
+  // Custom text (the tent's scribe desk, UI3a Task 9 - replaces the old add menu)
+  await closeOverlay(page);
+  await page.getByTestId('library-desk').click();
   await page.getByLabel('Titre').fill('Les fées ' + name);
   await page.getByLabel('Texte').fill(REF);
   await page.getByRole('button', { name: /Sauvegarder/ }).click();

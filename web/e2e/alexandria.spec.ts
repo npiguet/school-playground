@@ -1,5 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
-import { createProfile, uniqueName } from './helpers';
+import { closeOverlay, createProfile, uniqueName } from './helpers';
 
 // "Vingt mille lieues" only has one offline fixture page, so its whole online library
 // (server/app/alexandria) is a finite, server-wide pool of 7 clean chunks - not per-profile, by
@@ -37,8 +37,8 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
   let bodyPassed = false;
   try {
     await createProfile(page, uniqueName('Alex'), '9H');
-    await page.getByTestId('btn-add-text').click();
-    await page.getByTestId('menu-add-alexandria').click();
+    await closeOverlay(page);
+    await page.getByTestId('library-portal').click();
     await expect(page.getByRole('heading', { name: "Bibliothèque d'Alexandrie" })).toBeVisible();
     // Pre-existing flake, found while stress-testing this spec (fix round 3): a bare `.count()` is
     // a one-shot DOM read, not an auto-retrying assertion - under a loaded shared server, the

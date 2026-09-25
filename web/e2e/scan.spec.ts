@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { confirmScanVerified, createProfile, uniqueName } from './helpers';
+import { closeOverlay, confirmScanVerified, createProfile, uniqueName } from './helpers';
 
 test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
   await createProfile(page, uniqueName('Scan'), '9H');
-  await page.getByTestId('btn-add-text').click();
-  await page.getByTestId('menu-add-scan').click();
+  await closeOverlay(page);
+  await page.getByTestId('library-lens').click();
   await page.getByTestId('scan-input').first().setInputFiles('/work/server/tests/fixtures/scan/handout.png');
   await page.getByTestId('btn-scan-read').click();
   const ta = page.getByTestId('scan-textarea');
@@ -39,8 +39,8 @@ test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
 // is even enabled.
 test('a phone photo shows « À vérifier » chips that must each be looked at', async ({ page }) => {
   await createProfile(page, uniqueName('Chip'), '9H');
-  await page.getByTestId('btn-add-text').click();
-  await page.getByTestId('menu-add-scan').click();
+  await closeOverlay(page);
+  await page.getByTestId('library-lens').click();
   await page.getByTestId('scan-input').first().setInputFiles('/work/server/tests/fixtures/scan/handout-phone.jpg');
   await page.getByTestId('btn-scan-read').click();
   const ta = page.getByTestId('scan-textarea');

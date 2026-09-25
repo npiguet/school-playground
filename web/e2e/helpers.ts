@@ -157,7 +157,7 @@ export async function createProfile(page: Page, name: string, level: string) {
   await newHero(page, name, level);
   await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await openShelves(page);
 }
 
 // UI3 title (Ruling A4): taps « Entrer » if the gate is still closed, then waits for the shields.
@@ -329,6 +329,13 @@ export async function expectScene(page: Page, sceneId: string) {
   await waitForSceneSettled(page, sceneId);
 }
 
+// UI3a Task 9: from the library tent scene, open the shelves overlay (the old Library screen).
+export async function openShelves(page: Page) {
+  await expectScene(page, 'library');
+  await page.getByTestId('library-shelves').click();
+  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+}
+
 // Closes the topmost overlay (wax seal) and waits until only it has left: closing a work overlay
 // steps back to the portal overlay underneath it rather than waiting for every overlay to close
 // (controller ruling U2 - a deep overlay stack must be closed one level at a time).
@@ -392,4 +399,24 @@ export async function labelOverlaps(page: Page, sceneId: string): Promise<string
     }
     return out;
   }, sceneId);
+}
+
+// UI3a Task 9 (controller ruling 6): the first place e2e that has both a SceneExit sign and the
+// DialogueBox's dock must prove they never overlap - a bronze sign under a narrator card would be
+// unreachable. `DIALOGUE_DOCK` itself lives in web/src/lib/scene/geometry.ts, kept as literal
+// percentages here (mirrors TextCreateInput's own comment above): the e2e project is excluded from
+// web/tsconfig.json, so it stays free of a cross-project source import. Every future place scene
+// (Delphi, the war tent...) reuses this same check.
+export async function expectExitClearOfDialogueDock(page: Page, sceneId: string) {
+  const b = await measureBoxes(page, { art: `[data-testid="scene-${sceneId}"] .art`, exit: '[data-testid="scene-exit"]' });
+  if (!b.art || !b.exit) throw new Error(`scene-${sceneId} .art or scene-exit did not render`);
+  const dock = {
+    x: b.art.x + b.art.width * 0.27,
+    y: b.art.y + b.art.height * 0.8,
+    width: b.art.width * (0.875 - 0.27),
+    height: b.art.height * 0.2,
+  };
+  const overlaps =
+    b.exit.x < dock.x + dock.width && dock.x < b.exit.x + b.exit.width && b.exit.y < dock.y + dock.height && dock.y < b.exit.y + b.exit.height;
+  expect(overlaps, 'scene-exit overlaps the dialogue dock (x 27-87.5%, y 80-100% of the art box)').toBe(false);
 }

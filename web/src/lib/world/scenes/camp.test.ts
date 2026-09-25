@@ -48,7 +48,7 @@ describe('camp hub scene', () => {
       dragon: 'dragon',
       oracle: 'oracle',
       quests: 'quests',
-      parchemins: 'library',
+      parchemins: 'library-tent',
       dossier: 'dossier',
       bestiary: 'bestiaire',
       cabin: 'cabin',

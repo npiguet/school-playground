@@ -1,0 +1,49 @@
+<script lang="ts">
+  // The library tent (scenes UI spec §3): the shelves hold her texts, the desk, the lens and the
+  // portal bring new ones in. Every object opens its legacy route as an overlay on this scene (UI3
+  // Ruling A1): #/p/:id/parchemins = the shelves. Athena's owl greets once per page load (A9).
+  import PlaceScene from '../components/scene/PlaceScene.svelte';
+  import Hotspot from '../components/scene/Hotspot.svelte';
+  import DialogueBox from '../components/scene/DialogueBox.svelte';
+  import Overlay from '../components/scene/Overlay.svelte';
+  import ShelvesPanel from '../components/places/library/ShelvesPanel.svelte';
+  import { LIBRARY_SCENE, owlGreeting } from '../lib/world/scenes/library';
+  import { closePanel, openHotspot } from '../lib/scene/panelNav';
+  import { markGreetedKey, shouldGreetKey } from '../lib/scene/greeting';
+  import { sceneHref, type PanelId } from '../lib/world/places';
+  import type { DialogueLine, HotspotDef } from '../lib/scene/types';
+  import type { Profile } from '../lib/types';
+
+  // `params` isn't read yet: Task 11's portal overlays (#/p/:id/alexandria/:workId) will.
+  let { profile, panel, params }: { profile: Profile; panel: PanelId | null; params: Record<string, string> } = $props();
+
+  // Final review M11: the stage owns ?debug; no greeting while it is on.
+  let debug = $state(false);
+  let greeting = $state<DialogueLine[] | null>(null);
+  $effect(() => {
+    const key = `library:${profile.id}`;
+    if (debug || !shouldGreetKey(key)) return;
+    markGreetedKey(key);
+    greeting = owlGreeting();
+  });
+
+  const activate = (def: HotspotDef) => openHotspot(def, profile.id);
+  const close = () => closePanel(sceneHref('library', profile.id));
+</script>
+
+<PlaceScene {profile} scene={LIBRARY_SCENE} bind:debug>
+  {#snippet children(ctx)}
+    {#each LIBRARY_SCENE.hotspots as def (def.id)}
+      <Hotspot {def} status={def.state(ctx)} sceneId="library" onActivate={activate} />
+    {/each}
+    {#if greeting}
+      <DialogueBox lines={greeting} onDone={() => (greeting = null)} />
+    {/if}
+  {/snippet}
+</PlaceScene>
+
+{#if panel === 'etageres'}
+  <Overlay variant="scroll" size="wide" title="Les Parchemins" testId="overlay-shelves" onClose={close} returnFocus={'[data-testid="library-shelves"]'}>
+    <ShelvesPanel {profile} />
+  </Overlay>
+{/if}

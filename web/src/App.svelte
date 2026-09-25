@@ -8,7 +8,7 @@
   import PinGate from './components/PinGate.svelte';
   import Title from './screens/Title.svelte';
   import Camp from './screens/Camp.svelte';
-  import Library from './screens/Library.svelte';
+  import LibraryTent from './screens/LibraryTent.svelte';
   import TextCreate from './screens/TextCreate.svelte';
   import ScanText from './screens/ScanText.svelte';
   import Alexandria from './screens/Alexandria.svelte';
@@ -89,8 +89,6 @@
         <PinGate profile={gateProfile} {onUnlocked} />
       {:else if route.name === 'camp'}
         <Camp profile={gateProfile} />
-      {:else if route.name === 'library'}
-        <Library profile={gateProfile} />
       {:else if route.name === 'text-new'}
         <TextCreate profile={gateProfile} />
       {:else if route.name === 'text-scan'}
@@ -99,6 +97,14 @@
         <Alexandria profile={gateProfile} />
       {:else if route.name === 'alexandria-work'}
         <AlexandriaWork profile={gateProfile} workId={route.params.workId} />
+      {:else if view?.place === 'library'}
+        <!-- UI3a Task 9, Ruling A1: the tent scene and its shelves overlay (`library-tent` and
+             `library`) share one place branch (not one per route.name, as above), so opening or
+             closing that overlay never remounts LibraryTent and replays its entry zoom (Ruling 5:
+             see scenes-library.spec.ts "the place stays mounted..."). text-new/text-scan/
+             alexandria/alexandria-work stay full legacy screens above until Tasks 10-11 turn them
+             into overlays on this same scene. -->
+        <LibraryTent profile={gateProfile} panel={view.panel} params={route.params} />
       {:else if route.name === 'play'}
         <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
       {:else if route.name === 'grimoire'}

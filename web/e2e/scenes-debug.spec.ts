@@ -32,6 +32,6 @@ test('?debug shows one outline per visible camp hotspot and hotspots stay clicka
   const parchemins = page.getByTestId('camp-parchemins');
   await expect(parchemins).toBeVisible();
   await parchemins.click();
-  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
 });
 

@@ -22,7 +22,7 @@ const PLACES: { id: string; path: RegExp; name: RegExp }[] = [
   { id: 'dragon', path: /\/dragon$/, name: /Le nid du dragon/ },
   { id: 'oracle', path: /\/delphes$/, name: /Le chemin de Delphes/ },
   { id: 'quests', path: /\/quetes$/, name: /Le tableau des quêtes/ },
-  { id: 'parchemins', path: /\/parchemins$/, name: /La tente des parchemins/ },
+  { id: 'parchemins', path: /\/tente-parchemins$/, name: /La tente des parchemins/ },
   { id: 'dossier', path: /\/dossier$/, name: /La tente de guerre/ },
   { id: 'bestiary', path: /\/bestiaire$/, name: /Le bestiaire/ },
   { id: 'cabin', path: /\/cabane$/, name: /Ta cabane/ },
@@ -78,9 +78,9 @@ test('two places tapped at once lead to the first one only', async ({ page, requ
     (document.querySelector('[data-testid="camp-parchemins"]') as HTMLElement).click();
     (document.querySelector('[data-testid="camp-oracle"]') as HTMLElement).click();
   });
-  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
   await page.waitForTimeout(600);
-  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
 
   // Fix wave 2: the guard holds after the flash too, through the fade to night (the navigation
   // itself only happens ~180 ms later) - e.g. a Tab+Enter on another place in that window.
@@ -89,9 +89,9 @@ test('two places tapped at once lead to the first one only', async ({ page, requ
     (document.querySelector('[data-testid="camp-parchemins"]') as HTMLElement).click();
     setTimeout(() => (document.querySelector('[data-testid="camp-oracle"]') as HTMLElement | null)?.click(), 250);
   });
-  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
   await page.waitForTimeout(600);
-  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
 });
 
 test('a deep link to the hero panel waits for the onboarding card: one modal at a time', async ({ page, request }, testInfo) => {
@@ -211,7 +211,7 @@ test('places and their labels sit inside the visible safe zone and work from the
   expect(scrolled).toEqual([0, 0]);
   await page.getByTestId('camp-parchemins').focus();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
 });
 
 test('HUD: laurel, dragon, sound toggle that survives leaving the camp', async ({ page, request }, testInfo) => {
@@ -227,7 +227,7 @@ test('HUD: laurel, dragon, sound toggle that survives leaving the camp', async (
   // Final review I3: leave the camp and come back - the camp remounts and re-seeds the sound
   // store from the in-session profile, which must know about the toggle.
   await page.getByTestId('camp-parchemins').click();
-  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
   await page.goBack();
   await expectCamp(page);
   await expect(page.getByTestId('hud-xp')).toBeVisible();
@@ -318,7 +318,11 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   // camp (here: to the library we came from) rather than reopening the panel.
   await page.getByTestId('hud-hero').click();
   await expect(panel).toBeVisible();
-  await page.getByTestId('overlay-close').click();
+  // Scoped to `panel` (not a page-wide `overlay-close`, UI3a Task 9 fix): the library's own shelves
+  // overlay this test passed through (`/parchemins`) can still be mid-`out:leave|global` (preflight.md
+  // D3, 160ms) right after a hash change lands here, and a bare page-wide selector then matches two
+  // wax seals - the one still leaving and this panel's own.
+  await panel.getByTestId('overlay-close').click();
   await expect(panel).toHaveCount(0);
   await expect(page).toHaveURL(/\/camp$/);
   await page.goBack();
@@ -327,7 +331,7 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   // A deep link closes by replacing its own entry: Back never lands on ?panel=heros again.
   await page.goto(`/#/p/${id}/camp?panel=heros`);
   await expect(panel).toBeVisible();
-  await page.getByTestId('overlay-close').click();
+  await panel.getByTestId('overlay-close').click();
   await expect(panel).toHaveCount(0);
   await expect(page).toHaveURL(/\/camp$/);
   await page.goBack();
@@ -359,7 +363,7 @@ test('the dragon greets once per visit; a tap advances, « Tout passer » closes
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
 
   await page.getByTestId('camp-parchemins').click();
-  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
   await page.goBack();
   await expectCamp(page);
   await expect(page.getByTestId('hud-xp')).toBeVisible();
@@ -404,11 +408,13 @@ test('portrait shows the rotate screen instead of the scene', async ({ page, req
 });
 
 test('legacy screens stay usable in portrait', async ({ page, request }, testInfo) => {
-  // Final review M12 / plan Ruling 8: only scene screens show the rotate screen in UI1.
+  // Final review M12 / plan Ruling 8: only scene screens show the rotate screen in UI1. UI3a
+  // Task 9: /parchemins is now the library scene's shelves overlay, so this proves the point on
+  // the dossier instead - still a legacy screen in UI3a (UI3b Task 6 turns it into a place).
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.setViewportSize({ width: 820, height: 1180 });
-  await page.goto(`/#/p/${id}/parchemins`);
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await page.goto(`/#/p/${id}/dossier`);
+  await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
   await expect(page.getByTestId('rotate-screen')).toHaveCount(0);
   await expect(page.getByTestId('topbar-camp')).toBeVisible();
 });

@@ -7,8 +7,8 @@ import { IDLE_HOTSPOT } from './types';
 // is testable without a DOM.
 vi.mock('../router.svelte', () => ({ navigate: vi.fn(), replaceRoute: vi.fn() }));
 
-import { replaceRoute } from '../router.svelte';
-import { PANEL_TAG, closePanel, heroPanelHref, hotspotHref, isTagged, tagged } from './panelNav';
+import { navigate, replaceRoute } from '../router.svelte';
+import { PANEL_TAG, closePanel, heroPanelHref, hotspotHref, isTagged, openHotspot, tagged } from './panelNav';
 
 describe('overlay navigation (UI3 Ruling A2)', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -61,5 +61,43 @@ describe('hotspot targets', () => {
 
   it('returns null when the scene handles the tap itself', () => {
     expect(hotspotHref(def({ target: null }), 3)).toBeNull();
+  });
+});
+
+describe('openHotspot (UI3a Task 9, controller ruling 4: the same activation as every place)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const def = (over: Partial<HotspotDef>): HotspotDef => ({
+    id: 'x',
+    label: 'X',
+    target: 'text-new',
+    shape: { kind: 'ellipse', cx: 50, cy: 50, rx: 5, ry: 5 },
+    labelPos: 'below',
+    state: () => IDLE_HOTSPOT,
+    ...over,
+  });
+
+  it('pushes the hotspot route and tags it, like a panel opened by hand', () => {
+    const h = { state: null, back: vi.fn(), replaceState: vi.fn() };
+    vi.stubGlobal('history', h);
+    try {
+      openHotspot(def({}), 3);
+      expect(navigate).toHaveBeenCalledWith('#/p/3/texts/new');
+      expect(h.replaceState).toHaveBeenCalledWith({ [PANEL_TAG]: true }, '');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('does nothing for a hotspot the scene handles itself', () => {
+    const h = { state: null, back: vi.fn(), replaceState: vi.fn() };
+    vi.stubGlobal('history', h);
+    try {
+      openHotspot(def({ target: null }), 3);
+      expect(navigate).not.toHaveBeenCalled();
+      expect(h.replaceState).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

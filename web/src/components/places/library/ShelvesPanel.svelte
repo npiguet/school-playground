@@ -1,12 +1,13 @@
 <script lang="ts">
-  import TopBar from '../components/TopBar.svelte';
-  import AddMenu from '../components/AddMenu.svelte';
-  import { api, ApiError } from '../lib/api';
-  import { formatSwissDate, isProphecy } from '../lib/dates';
-  import { levelIndex, LEVELS } from '../lib/levels';
-  import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
-  import type { Profile, TextSummary } from '../lib/types';
+  // The shelves overlay of the library tent (UI3a Task 9, Ruling A3, A16): what was the whole
+  // Library screen, minus its own TopBar/FAB (the tent's desk, lens and portal replace the old
+  // add menu now - LibraryTent.svelte opens this as `overlay-shelves`).
+  import { api, ApiError } from '../../../lib/api';
+  import { formatSwissDate, isProphecy } from '../../../lib/dates';
+  import { levelIndex, LEVELS } from '../../../lib/levels';
+  import { href } from '../../../lib/routes';
+  import { navigate } from '../../../lib/router.svelte';
+  import type { Profile, TextSummary } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
 
@@ -14,7 +15,6 @@
   let loading = $state(true);
   let error = $state('');
   let levelFilter = $state<string>('Tous');
-  let menuOpen = $state(false);
 
   async function load() {
     loading = true;
@@ -74,9 +74,7 @@
   );
 </script>
 
-<TopBar {profile} title="Les Parchemins" />
-
-<div class="screen library-screen">
+<div class="panel-shelves">
   <p class="subtitle muted">Choisis un texte à protéger des dés-accords d'Éris.</p>
 
   <div class="filters">
@@ -156,28 +154,9 @@
       {/each}
     </div>
   {/if}
-
-  <button
-    type="button"
-    class="btn btn-primary fab"
-    data-testid="btn-add-text"
-    onclick={() => (menuOpen = true)}
-  >
-    + Ajouter un texte
-  </button>
 </div>
 
-<AddMenu profileId={profile.id} bind:open={menuOpen} />
-
 <style>
-  /* Two classes for higher specificity than the global .screen rule (P1-7: the FAB
-     was overlapping the last row of cards in both iPad orientations because the
-     global padding-bottom could win the cascade). The FAB itself is ~48px tall,
-     sitting 16px + safe-area above the edge with a drop shadow - 96px clears it
-     with margin to spare. */
-  .screen.library-screen {
-    padding-bottom: calc(96px + env(safe-area-inset-bottom));
-  }
   .subtitle {
     margin-top: 0;
   }
@@ -241,12 +220,5 @@
   }
   .history {
     font-size: 13px;
-  }
-  .fab {
-    position: fixed;
-    right: calc(16px + env(safe-area-inset-right));
-    bottom: calc(16px + env(safe-area-inset-bottom));
-    box-shadow: 0 2px 10px rgba(43, 42, 40, 0.25);
-    z-index: 10;
   }
 </style>

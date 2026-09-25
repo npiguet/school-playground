@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { expectCamp, newHero, pickHero, skipOnboarding, uniqueName } from './helpers';
+import { expectCamp, newHero, openShelves, pickHero, skipOnboarding, uniqueName } from './helpers';
 
 const unique = () => uniqueName('Héros');
 
@@ -7,7 +7,7 @@ test('create a profile and reach the library with seed texts', async ({ page }) 
   await newHero(page, unique(), '10H');
   await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await openShelves(page);
   // The list loads asynchronously (a plain .count() can race the fetch, especially with the
   // extra camp round-trip now in front of it) - wait for at least one card before counting.
   await expect(page.locator('[data-testid="text-card"]').first()).toBeVisible();

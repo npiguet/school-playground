@@ -5,6 +5,7 @@
 // overlay's own entry with the bare scene.
 import { href } from '../routes';
 import { navigate, replaceRoute } from '../router.svelte';
+import { playSfx, unlockAudio } from '../juice/sfx';
 import type { HotspotDef } from './types';
 
 export const PANEL_TAG = 'discordePanel';
@@ -45,4 +46,17 @@ export function hotspotHref(def: HotspotDef, profileId: number): string | null {
   if (!def.target) return null;
   // profileId is spread last so it always wins over a stray same-named key in def.params.
   return href(def.target, { ...(def.params ?? {}), profileId: String(profileId) }, def.query);
+}
+
+/** Opens a hotspot's target as this place's next panel (UI3a Task 9, carried into every place
+ *  screen but the camp): `placeFor` keeps the same `place` for these targets, only the `panel`
+ *  changes, so there is no scene to leave and no fade to play - just the tap's sound and the
+ *  tagged push (Ruling A2), same as Camp.svelte's own `openHero`. Does nothing for a hotspot the
+ *  scene screen handles itself (`target: null`). */
+export function openHotspot(def: HotspotDef, profileId: number): void {
+  const to = hotspotHref(def, profileId);
+  if (!to) return;
+  unlockAudio();
+  playSfx('tap');
+  openPanel(to);
 }
