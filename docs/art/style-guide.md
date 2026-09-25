@@ -202,6 +202,38 @@ Prompt tips from this batch:
 Not yet made (candidates for a later batch): the Muses, per-stage dragon colour variants, a
 title/hero banner 1536×640. Player avatars and small item icons are done (see Icons below).
 
+### Immersion wave overlay art (UI3a Task 1, 2026-09-25)
+
+New surfaces and objects for the overlay panels (playability findings #1 scroll/table overlay
+variants, #20 portal icon): a wood board (table overlay), a rolled scroll (shelves, Pythia panels),
+and the portal-arch icon (Alexandria portal plaque). Style `discorde-texture` for the wood,
+`discorde-inked-clean` for the scroll and the icon, `--vscale 1.0`, 8 steps.
+
+**Seeds**: wood_board 911, scroll_rolled 921 (cut out), portal-arch 1060 (cut out, seeds table
+below). Parchment was tried at seeds 903, 904 and 905 and rejected all three times (see below). 6
+generations in total for this task (3 kept, 3 rejected parchment tries).
+
+Prompt tips from this batch:
+- **The parchment vignette from UI2 was not fixed by "the four edges exactly as light as the
+  centre" plus `(vignette:-3) (dark edges:-3) (burnt edges:-3)`.** All three seeds (903, 904, 905)
+  still measured 8-11 % darker at the corners than at the centre (checked with Pillow, not just by
+  eye — seed 903 was clearly the worst and was rejected outright; 904 and 905 were closer calls).
+  The real test isn't the single tile: run it through the `seamless()` quadrant-shift
+  `tools/art/uiart.py` uses and tile the *result* 2×2. Because the shift relocates each corner to
+  the new tile's centre, a vignetted source turns into a **repeating grid of dark blotches** at
+  the tile centres and corner-junctions — worse than the flat seam the pass exists to hide. Both
+  904 and 905 failed that check, so parchment stays a CSS gradient plus inline SVG grain (Task 2's
+  `kit.css`), not a generated image (Ruling W3).
+- The wood board (four wide planks, `(vignette:-3) (honeycomb:-3) (nails:-2)`) worked on the first
+  try and needed no regeneration: it reads clearly as planks with knots and dark plank seams. Its
+  average colour (`#5c3d2f`) is lighter than the `#3b2715` target, but the contrast ratio against
+  the `--bronze-ink` text colour (`#fff7e6`) is already ≈9:1 (WCAG AAA), so a CSS `--wood-dark`
+  overlay is a polish option here, not a requirement.
+- The rolled-scroll prompt needed "blank" plus `(writing:-3) (seal:-3)` to keep the parchment
+  surface empty (the wax seal and any title text are drawn in CSS/HTML on top, so they can't be
+  baked in and broken by the cut-out); both gold-capped knobs and the wound cord came through
+  clean on the first try, and the cut-out has no white rim on a dark background.
+
 ### Icons (2026-09-24)
 
 Small painted icons that replace the emoji the UI used as markers (see `docs/art/icon-inventory.md`
@@ -221,10 +253,11 @@ margin, all under 20 KB). Contact sheet at 128 and 64 px on dark and parchment:
 | Lieutenant glyphs | lt-hydre 1042, lt-echo 1016, lt-chimere 1045, lt-protee 1018, lt-sirenes 1019, lt-lethe 1046 |
 | Add menu | add-text 1025 (quill on parchment), add-scan 1050 (bronze lens on a stand; a first box-camera try, 1033, was anachronistic), add-alexandria 1047 (stacked scrolls) |
 | Misc | seal-oracle 1034, lock 1048 |
+| Place icon (UI3a Task 1, playability #20) | portal-arch 1060 (a stone archway with a golden portal swirl, for the Alexandria portal plaque) |
 | Home-screen icon | app-apple 1049 → `web/public/icons/{icon-192,icon-512,apple-touch-icon,icon-maskable-512}.png` |
 | Reused, no generation | tool-persee, tool-athena, tool-ariane, tool-argus = the existing `emblems/*_cut.png` medallions, which read fine at 64 px |
 
-`tint:*` rewards stay CSS swatches (the tinted egg). 43 generations in total (35 icons + 8 redos).
+`tint:*` rewards stay CSS swatches (the tinted egg). 44 generations in total (36 icons + 8 redos).
 The app icon is the painted apple on the terracotta ground (`#C0623B`, a soft lighter centre),
 at 74 % of the side and 56 % for the maskable one. It replaces the flat SVG apple; the old
 `npm run icons` script (`web/scripts/make-icons.mjs`) has been removed (UI3a Task 6) so it can no

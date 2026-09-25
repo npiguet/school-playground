@@ -67,6 +67,11 @@ export const MARK_ICONS = {
   lock: icon('lock'),
 } as const;
 
+/** Place plaques that carry a painted icon but are not one of the three ways in (UI3a playability #20). */
+export const PLACE_ICONS = {
+  portal: icon('portal-arch'),
+} as const;
+
 /** The relic each lieutenant leaves when neutralised (catalog.py LIEUTENANTS[*].relic). */
 export const RELIC_OF: Record<LieutenantKey, string> = {
   hydre: 'ecaille_hydre',
@@ -120,6 +125,17 @@ export const ART = {
     tools: TOOL_ICONS,
     add: ADD_ICONS,
     marks: MARK_ICONS,
+    places: PLACE_ICONS,
+  },
+  // Immersion wave (Ruling W3): overlay surfaces and objects; CSS reads the textures as tokens (kit.css).
+  // No `parchment` key: all three tried seeds (903-905) vignetted (docs/art/style-guide.md §5), so the
+  // parchment stays a CSS gradient plus inline SVG grain (Task 2).
+  textures: {
+    marble: '/art/textures/marble.webp',
+    woodBoard: '/art/textures/wood_board.webp',
+  },
+  ui: {
+    scrollRolled: '/art/ui/scroll_rolled.webp',
   },
   scenes: {
     camp: '/art/scenes/camp.webp',

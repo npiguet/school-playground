@@ -1,0 +1,34 @@
+{
+  "prompt": "a flat top-down texture filling the whole frame edge to edge, soft even warm light: a dark walnut wooden board made of four wide planks running horizontally, fine long grain, two or three small knots, thin dark seams between the planks, gently worn and oiled, uniform all over. (vignette:-3) (nails:-2) (objects:-3) (text:-3) (border:-3) (honeycomb:-3) (tiles:-2)\n\nStyle: a subtle painterly game UI surface texture in a sun-bleached Mediterranean palette, soft gouache tone variation, no linework, no outlines, no drawn objects, low contrast so text stays readable on top of it.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1344,
+  "height": 768,
+  "seed": 911,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-texture"
+}

@@ -7,6 +7,7 @@ import {
   AVATAR_ICONS,
   LIEUTENANT_ICONS,
   MARK_ICONS,
+  PLACE_ICONS,
   RELIC_OF,
   REWARD_ICONS,
   TOOL_ICONS,
@@ -56,9 +57,23 @@ describe('art map', () => {
     });
   });
 
-  it('maps the 35 painted icons, each within its own budget (UI3 Ruling A12)', () => {
+  it('ships the overlay textures and objects within their budgets (immersion wave W3)', () => {
+    // Parchment vignetted on all three tried seeds (903-905): the seamless-tile pass turned the
+    // corner darkening into a visible repeating blotch grid, so it stays a CSS/SVG fallback
+    // (Ruling W3) and has no `ART.textures.parchment` key.
+    expect(ART.textures).toEqual({
+      marble: '/art/textures/marble.webp',
+      woodBoard: '/art/textures/wood_board.webp',
+    });
+    expect(ART.ui).toEqual({ scrollRolled: '/art/ui/scroll_rolled.webp' });
+    for (const p of flat(ART.textures)) expect(statSync('public' + p).size, p).toBeLessThanOrEqual(150 * 1024);
+    for (const p of flat(ART.ui)) expect(statSync('public' + p).size, p).toBeLessThanOrEqual(60 * 1024);
+    expect(PLACE_ICONS).toEqual({ portal: '/art/icons/portal-arch.webp' });
+  });
+
+  it('maps the 36 painted icons, each within its own budget (UI3 Ruling A12)', () => {
     const icons = flat(ART.icons);
-    expect(icons).toHaveLength(35);
+    expect(icons).toHaveLength(36);
     for (const p of icons) expect(statSync('public' + p).size, p).toBeLessThanOrEqual(60 * 1024);
     expect(icons.reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThanOrEqual(1.5 * 1024 * 1024);
     const onDisk = readdirSync('public/art/icons').filter((f) => f.endsWith('.webp')).map((f) => `/art/icons/${f}`);

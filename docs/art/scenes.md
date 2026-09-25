@@ -140,8 +140,23 @@ No interactive landmarks. They all share the same layout for the battle stage:
 | Codex on a lectern | `assets/art/props/codex_lectern.png` | `web/public/art/props/codex_lectern_cut.webp` | 768×1344 |
 | Trophy shelf | `assets/art/props/trophy_shelf.png` | `web/public/art/props/trophy_shelf_cut.webp` | 1344×768 |
 | Marble texture (tile) | `assets/art/textures/marble.png` | `web/public/art/textures/marble.webp` (28 KB) | 1024² |
+| Wood board (table overlay) | `assets/art/textures/wood_board.png` | `web/public/art/textures/wood_board.webp` (50 KB) | 1344×768 → 1280×731 |
+| Rolled scroll (cut-out) | `assets/art/ui/scroll_rolled.png` + `_cut.png` | `web/public/art/ui/scroll_rolled.webp` (20 KB) | 1344×768 → 640×366 |
+| Portal-arch icon (cut-out) | `assets/art/icons/portal-arch.png` + `_cut.png` | `web/public/art/icons/portal-arch.webp` (10 KB) | 1024² → 256² |
 
 The marble tile is "seamless-ish": soft veins with no hard border, which is fine behind a plaque. No
-parchment or bronze texture is shipped. The generated parchment had a darker vignette edge, so it
-wouldn't tile, and the bronze came out as a honeycomb pattern. CSS gradients or noise do better for
-both.
+bronze texture is shipped: it came out as a honeycomb pattern, so CSS gradients or noise do better.
+The wood board and the scroll cut-out shipped from the immersion wave (UI3a Task 1, playability
+findings #1 and #20): the wood board is used as-is behind table-style overlay panels (a `--wood-dark`
+CSS overlay darkens it further if needed), and the scroll is the rolled-scroll cut-out for the shelves
+and Pythia panels. Export with `tools/art/run_docker.sh uiart webp` then `uiart sheet`
+(`tools/art/uiart.py`); the `tile` entries go through a `seamless()` pass first (quadrant-shift plus a
+feathered cross blend) so a repeat shows no seam — see `docs/art/ui-art-sheet.png`.
+
+Parchment is **not** shipped as an image: three seeds (903, 904, 905) were tried and all three
+vignetted (the corners read up to ~10% darker than the centre). Raw 2×2 tiling showed the usual
+corner-meets-corner seam, and running the *same* seeds through the `seamless()` pass (meant to fix
+exactly that) only relocated the dark corners to the tile's centre and to the four-corner junctions,
+producing a clearly visible repeating diamond of dark blotches — worse than the flat seam it was
+built to hide. Per Ruling W3, the parchment overlay stays a CSS gradient plus an inline SVG grain
+(Task 2) instead.
