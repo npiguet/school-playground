@@ -20,8 +20,24 @@ describe('in-world form kit', () => {
       .split('}')
       .map((rule) => rule.split('{')[0].trim())
       .filter((sel) => sel && !sel.startsWith(':root'));
+    // Split on top-level commas only: a `:is(a, b)` argument list is one selector, not several.
+    const splitTopLevel = (sel: string) => {
+      const parts: string[] = [];
+      let depth = 0;
+      let start = 0;
+      for (let i = 0; i < sel.length; i++) {
+        if (sel[i] === '(') depth++;
+        else if (sel[i] === ')') depth--;
+        else if (sel[i] === ',' && depth === 0) {
+          parts.push(sel.slice(start, i));
+          start = i + 1;
+        }
+      }
+      parts.push(sel.slice(start));
+      return parts;
+    };
     for (const sel of bare) {
-      for (const part of sel.split(',')) expect(part.trim().startsWith('.kit-form'), part).toBe(true);
+      for (const part of splitTopLevel(sel)) expect(part.trim().startsWith('.kit-form'), part).toBe(true);
     }
   });
 
@@ -42,5 +58,23 @@ describe('in-world form kit', () => {
   it('is loaded after the legacy app.css so it wins the cascade', () => {
     const main = readFileSync('src/main.ts', 'utf-8');
     expect(main.indexOf("'./styles/kit-form.css'")).toBeGreaterThan(main.indexOf("'./app.css'"));
+  });
+
+  it('restyles a native select as a parchment field with a bronze chevron (playability #4)', () => {
+    const rule = /\.kit-form select\s*\{[^}]*\}/g;
+    const all = [...css.matchAll(rule)].map((m) => m[0]).join('\n');
+    expect(all).toMatch(/appearance:\s*none/);
+    expect(all).toMatch(/-webkit-appearance:\s*none/);
+    expect(all).toMatch(/var\(--chevron\)/);
+  });
+
+  it('drops the hatch from chips (playability #9) and gives legends the label face (playability #3)', () => {
+    const chip = /\.kit-form \.chip\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(chip).not.toMatch(/repeating-linear-gradient/);
+    expect(css).toMatch(/\.kit-form label,\s*\n?\s*\.kit-form legend/);
+  });
+
+  it('keeps every control in an overlay a 48 px touch target (playability #25)', () => {
+    expect(css).toMatch(/\.kit-form :is\(button, summary, a\.kit-bronze, a\.kit-link\)\s*\{[^}]*min-height:\s*48px/);
   });
 });

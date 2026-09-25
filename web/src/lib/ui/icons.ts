@@ -15,7 +15,8 @@ export type IconName =
   | 'star'
   | 'pencil'
   | 'gap'
-  | 'plus';
+  | 'plus'
+  | 'laurel';
 
 export interface IconPath {
   d: string;
@@ -56,4 +57,12 @@ export const ICONS: Record<IconName, IconPath[]> = {
   pencil: [{ d: 'M7 25l2-6L21 7l4 4-12 12z', width: 2.2 }, { d: 'M18 10l4 4', width: 2 }],
   gap: [{ d: 'M7 9h18v14H7z', width: 2, dash: '3 3' }],
   plus: [{ d: 'M16 7v18M7 16h18', width: 3.2 }],
+  // A laurel sprig laid on a broken seal (a defended text, immersion wave Task 8).
+  laurel: [
+    { d: 'M7 27C12 22 18 15 25 5', width: 2 },
+    {
+      d: 'M11 22c-3 0-5-2-5-4 3 0 5 2 5 4zM14 18c-3-1-4-3-4-5 3 1 4 3 4 5zM17 14c-2-1-3-3-3-5 2 1 3 3 3 5zM15 23c1-3 3-4 5-4-1 3-3 4-5 4zM18 19c1-3 3-4 5-4-1 3-3 4-5 4zM21 15c1-2 3-3 5-3-1 2-3 3-5 3z',
+      fill: true,
+    },
+  ],
 };

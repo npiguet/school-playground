@@ -6,6 +6,8 @@
   --form-field: #fbf4e2;
   --form-edge: #a8834f;
   --form-ink-soft: #5c4a32;
+  /* Playability #4: the chevron drawn on a restyled native select. */
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%235a3a18' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 .kit-form {
@@ -35,8 +37,10 @@
 .kit-form .muted {
   color: var(--form-ink-soft);
 }
-/* Alegreya small caps, not Cinzel: some labels are whole sentences (Cinzel is caps-only). */
-.kit-form label {
+/* Alegreya small caps, not Cinzel: some labels are whole sentences (Cinzel is caps-only), and a
+   legend (e.g. « Ton avatar », playability #3) gets the same face as its labels. */
+.kit-form label,
+.kit-form legend {
   font-family: var(--font-body);
   font-weight: 700;
   font-variant: small-caps;
@@ -106,9 +110,8 @@
   box-shadow: 0 3px 10px var(--parchment-shadow);
 }
 .kit-form .chip {
-  background:
-    repeating-linear-gradient(115deg, transparent 0 14px, var(--marble-vein) 14px 15px, transparent 15px 31px),
-    linear-gradient(180deg, #faf6ef, var(--marble-plaque));
+  /* No veins (playability #9): they read as a "disabled" hatch. */
+  background: linear-gradient(180deg, #faf6ef, var(--marble-plaque));
   border: 1px solid #cfc5b4;
   color: var(--ink);
 }
@@ -138,4 +141,19 @@
 .kit-form td {
   padding: 6px 8px;
   border-bottom: 1px solid rgba(168, 131, 79, 0.35);
+}
+
+/* Playability #4: a native select is the clearest "web form" tell - parchment field, bronze chevron.
+   (UI3a's own selects become medallions, Ruling W5; this covers any that remain.) */
+.kit-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 48px;
+  padding: 0 40px 0 14px;
+  background: rgba(251, 244, 226, 0.78) var(--chevron) no-repeat right 14px center / 14px 9px;
+  font-size: 17px;
+}
+/* Playability #25: every control inside an overlay is a 48 px touch target. */
+.kit-form :is(button, summary, a.kit-bronze, a.kit-link) {
+  min-height: 48px;
 }

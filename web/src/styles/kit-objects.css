@@ -1,0 +1,499 @@
+/* The object kit (immersion wave, playability #1): what the overlays are made of instead of cards,
+   pills and form buttons. Loaded after kit-form.css: a class used on a <label> is written
+   `label.kit-x` so it beats `.kit-form label` (same specificity, later file). No red anywhere. */
+
+/* --- Bronze buttons: a quiet variant and a disabled state (kit.css holds the base) ----------- */
+.kit-bronze.is-quiet {
+  background: linear-gradient(180deg, rgba(255, 247, 230, 0.95), rgba(236, 219, 184, 0.95));
+  color: var(--bronze-dark);
+  text-shadow: none;
+}
+.kit-bronze:disabled {
+  filter: saturate(0.35) brightness(0.92);
+  cursor: default;
+  transform: none;
+}
+label.kit-bronze {
+  color: var(--bronze-ink);
+  font-family: var(--font-display);
+  font-variant: normal;
+  letter-spacing: 0.04em;
+}
+label.kit-bronze.is-quiet {
+  color: var(--bronze-dark);
+}
+
+/* --- A small text link: « Changer de héros », « Retirer », « Qui l'a écrit ? » -------------- */
+.kit-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--bronze-dark);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.kit-link:focus-visible {
+  outline: 3px solid var(--gold-light);
+  outline-offset: 2px;
+}
+
+/* --- Wax seal: an irregular terracotta disc with a pressed emblem. `.is-broken`: split in two,
+       the halves pushed apart (a defended text, an opened scroll). --------------------------- */
+.kit-seal {
+  --seal-size: 44px;
+  --seal-shape: 47% 53% 50% 50% / 53% 47% 53% 47%;
+  position: relative;
+  isolation: isolate;
+  display: inline-grid;
+  place-items: center;
+  width: var(--seal-size);
+  height: var(--seal-size);
+  border-radius: var(--seal-shape);
+  background: radial-gradient(circle at 38% 32%, #c86a4e, var(--wax) 55%, var(--wax-dark));
+  box-shadow:
+    inset 0 0 0 3px rgba(0, 0, 0, 0.18),
+    inset 0 2px 3px rgba(255, 210, 180, 0.35),
+    0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.kit-seal > img {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+.kit-seal.is-broken {
+  background: none;
+  box-shadow: none;
+}
+.kit-seal.is-broken > img {
+  opacity: 0.3;
+}
+.kit-seal.is-broken::before,
+.kit-seal.is-broken::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--seal-shape);
+  background: radial-gradient(circle at 38% 32%, #c86a4e, var(--wax) 55%, var(--wax-dark));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.kit-seal.is-broken::before {
+  clip-path: polygon(0 0, 55% 0, 42% 40%, 58% 62%, 45% 100%, 0 100%);
+  transform: translateX(-3px) rotate(-8deg);
+}
+.kit-seal.is-broken::after {
+  clip-path: polygon(55% 0, 100% 0, 100% 100%, 45% 100%, 58% 62%, 42% 40%);
+  transform: translateX(3px) rotate(6deg);
+}
+/* A laurel sprig laid over a broken seal: this text was defended. */
+.kit-seal .seal-laurel {
+  position: absolute;
+  inset: auto -10px -8px auto;
+  color: var(--gold-light);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+}
+
+/* --- Paper tag tied to an object: a text's title, a work's name ------------------------------ */
+.kit-tag {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px 9px 26px;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px 6px 6px 3px;
+  background: var(--grain), linear-gradient(180deg, #fbf3df, #ecdcb8);
+  color: var(--ink);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+  transform: rotate(var(--tag-tilt, -1.2deg));
+  text-align: left;
+}
+/* the punched hole and the cord up to the object */
+.kit-tag::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wood-dark);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.kit-tag::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  bottom: calc(100% - 18px);
+  width: 2px;
+  height: 30px;
+  background: linear-gradient(#c9a26b, #8a6a3e);
+  transform: rotate(14deg);
+  transform-origin: bottom;
+}
+.kit-tag-title {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 19px;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.kit-tag-meta {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--form-ink-soft);
+}
+/* An ink stamp in the tag's corner: « Déchiffré », « Alexandrie ». */
+.kit-stamp {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  color: var(--aegean);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+/* A gold ribbon across the tag: a prophecy and its day. */
+.kit-prophecy {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 2px 10px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--gold-light), #e2c46e);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* --- A cubby of the shelves: a recessed box in the dark wood --------------------------------- */
+.kit-cubby {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  min-height: 190px;
+  padding: 14px 12px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.35) 30%, rgba(0, 0, 0, 0.25));
+  box-shadow:
+    inset 0 6px 12px rgba(0, 0, 0, 0.65),
+    inset 0 -2px 0 rgba(255, 236, 200, 0.12),
+    0 1px 0 rgba(255, 236, 200, 0.15);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.kit-cubby:focus-visible {
+  outline: 3px solid var(--gold-light);
+  outline-offset: 2px;
+}
+
+/* --- A rolled scroll object: the painted cut-out (or a CSS roll), a wax seal on it ------------ */
+.kit-roll {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 64px;
+  transition: transform 0.15s ease;
+}
+.kit-cubby:hover .kit-roll,
+.kit-cubby:focus-visible .kit-roll {
+  transform: translateY(-3px);
+}
+.kit-roll > .roll-art {
+  width: var(--roll-w, 82%);
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5));
+}
+/* Ruling W3 fallback: a CSS roll when the painted one was not delivered. */
+.kit-roll > .roll-css {
+  width: var(--roll-w, 82%);
+  height: 34px;
+  border-radius: 17px;
+  background: var(--grain), linear-gradient(180deg, #fbf1d8 0%, #e9d3a6 45%, #b9955f 100%);
+  box-shadow:
+    inset -10px 0 0 -4px #7a5230,
+    inset 10px 0 0 -4px #7a5230,
+    0 3px 4px rgba(0, 0, 0, 0.45);
+}
+.kit-roll > .kit-seal {
+  position: absolute;
+  --seal-size: 34px;
+}
+/* The scroll's thickness says its length (playability #2): court, moyen, long. */
+.kit-roll[data-length='court'] {
+  --roll-w: 64%;
+}
+.kit-roll[data-length='moyen'] {
+  --roll-w: 80%;
+}
+.kit-roll[data-length='long'] {
+  --roll-w: 96%;
+  height: 72px;
+}
+/* Standing up (the Pythia's three scrolls). */
+.kit-roll.is-upright {
+  width: 96px;
+  height: 200px;
+}
+.kit-roll.is-upright > .roll-art,
+.kit-roll.is-upright > .roll-css {
+  width: 200px;
+  max-height: none;
+  transform: rotate(90deg);
+}
+
+/* --- An unrolled sheet between two rods (the Pythia's opened scroll, pinned notes) ----------- */
+.kit-sheet {
+  position: relative;
+  margin: 14px 10px;
+  padding: 22px 22px 18px;
+  border-radius: 4px;
+  background: var(--grain), linear-gradient(180deg, #f8eed8, #ecdbb8);
+  color: var(--ink);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.kit-sheet::before,
+.kit-sheet::after {
+  content: '';
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #b98a57 0%, #7a5230 45%, #4e321b 100%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.kit-sheet::before {
+  top: -8px;
+}
+.kit-sheet::after {
+  bottom: -8px;
+}
+
+/* --- A terracotta votive tablet hung on a cord from a peg ------------------------------------ */
+.kit-tablet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 34px;
+  padding: 34px 14px 16px;
+  border-radius: 46% 46% 10px 10px / 18% 18% 10px 10px;
+  background: var(--grain), radial-gradient(ellipse at 35% 25%, #e7b892, var(--clay) 50%, var(--clay-dark));
+  color: var(--ink);
+  box-shadow:
+    inset 0 0 0 2px rgba(92, 40, 20, 0.35),
+    inset 0 -6px 12px rgba(92, 40, 20, 0.35),
+    0 6px 10px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+.kit-tablet::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: var(--wood-dark);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.kit-tablet::after {
+  content: '';
+  position: absolute;
+  top: -34px;
+  left: 50%;
+  width: 2px;
+  height: 48px;
+  margin-left: -1px;
+  background: linear-gradient(#c9a26b, #8a6a3e);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.6);
+}
+/* A medallion pressed into the clay. */
+.kit-tablet .pressed {
+  display: inline-grid;
+  border-radius: 50%;
+  filter: sepia(0.55) saturate(0.8) contrast(1.05);
+  box-shadow:
+    inset 0 3px 6px rgba(92, 40, 20, 0.6),
+    0 1px 0 rgba(255, 230, 200, 0.5);
+}
+.kit-tablet.is-asleep {
+  filter: saturate(0.45) brightness(0.88);
+}
+.kit-tablet-stamp {
+  padding: 1px 10px;
+  border: 2px solid var(--laurel);
+  border-radius: 999px;
+  color: #3d4a1a;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.kit-tablet-ribbon {
+  padding: 3px 12px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--gold-light), #e2c46e);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* --- A bronze medallion: a level to choose (real radio inside), or a small level mark ------- */
+label.kit-medallion,
+.kit-medallion {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--bronze-dark);
+  background: radial-gradient(circle at 38% 32%, var(--bronze-light), var(--bronze) 58%, var(--bronze-dark));
+  color: var(--bronze-ink);
+  font-family: var(--font-display);
+  font-variant: normal;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 240, 200, 0.22),
+    0 3px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+/* The real radio covers the medallion (opacity 0): taps, keyboard and VoiceOver hit the input. */
+.kit-medallion > input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.kit-medallion:has(input:checked) {
+  border-color: var(--gold-light);
+  box-shadow:
+    0 0 0 3px var(--gold-light),
+    0 0 14px rgba(255, 220, 140, 0.8),
+    inset 0 0 0 3px rgba(255, 240, 200, 0.35);
+  transform: translateY(-2px);
+}
+.kit-medallion:has(input:focus-visible) {
+  outline: 3px solid var(--gold-light);
+  outline-offset: 4px;
+}
+.kit-medallion:has(input:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+.kit-medallion.is-small {
+  width: 40px;
+  height: 40px;
+  font-size: 13px;
+  cursor: default;
+}
+
+/* --- A cloth ribbon over a painted scene (the title's one line) ------------------------------ */
+.kit-ribbon {
+  display: inline-block;
+  padding: 8px 36px;
+  background: linear-gradient(180deg, #a5532f, #7e3b20);
+  color: var(--bronze-ink);
+  font-family: var(--font-body);
+  font-size: 19px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 190, 0.25),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 50%, 100% 100%, 0 100%, 16px 50%);
+}
+
+/* --- A note pinned in a panel: the scribes' news (olive) or Éris's hand (orange, never red) -- */
+.kit-note {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border-left: 4px solid var(--olive);
+  background: rgba(234, 238, 220, 0.9);
+  color: var(--ink);
+}
+.kit-note[data-tone='eris'] {
+  border-left-color: var(--orange);
+  background: rgba(252, 232, 214, 0.92);
+}
+
+/* --- The quill gauge: how long a text is, against the 80-200 words it needs ---------------- */
+.kit-gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kit-gauge-track {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(92, 64, 24, 0.18);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+/* The 80-200 band, drawn on the track (80/200 = 40 % of a track that ends at 200). */
+.kit-gauge-band {
+  position: absolute;
+  inset: 0 0 0 40%;
+  background: rgba(107, 122, 58, 0.22);
+}
+.kit-gauge-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fill, 0%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--bronze-light), var(--bronze));
+  transition: width 0.2s ease;
+}
+.kit-gauge[data-state='ok'] .kit-gauge-fill {
+  background: linear-gradient(90deg, var(--laurel-light), var(--laurel));
+}
+.kit-gauge-label {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-roll,
+  .kit-gauge-fill,
+  .kit-medallion {
+    transition: none;
+  }
+}
