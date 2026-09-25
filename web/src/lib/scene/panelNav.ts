@@ -36,6 +36,32 @@ export function closePanel(scenePath: string, h: HistoryLike = history): void {
   else replaceRoute(scenePath);
 }
 
+/** Swaps the current overlay for another one in place (a saved form lands on the shelves: Back
+ *  must not reopen the empty form, Ruling A2). `location.replace` writes a fresh entry whose state
+ *  is null, so an entry that was tagged (opened in the app) is tagged again - otherwise closing
+ *  the new overlay would replace instead of stepping back and leave a duplicate scene entry, a
+ *  dead Back press (final review I1). A fragment-only `location.replace` updates the entry
+ *  synchronously, which is what `openPanel` already relies on for `navigate`. */
+export function replacePanel(path: string, h: HistoryLike = history): void {
+  const wasTagged = isTagged(h.state);
+  replaceRoute(path);
+  if (wasTagged) h.replaceState(tagged(h.state), '');
+}
+
+export type GoMode = 'push' | 'panel' | 'replace';
+
+/** Every control that navigates goes through here (final review M5): the same tap feedback
+ *  (unlocks the audio on the first gesture, plays `tap`) whatever it leads to. `push` leaves the
+ *  place (a new screen), `panel` opens an overlay of this place (`openPanel`), `replace` swaps
+ *  the current overlay for another (`replacePanel`). */
+export function go(path: string, mode: GoMode = 'push', h: HistoryLike = history): void {
+  unlockAudio();
+  playSfx('tap');
+  if (mode === 'panel') openPanel(path, h);
+  else if (mode === 'replace') replacePanel(path, h);
+  else navigate(path);
+}
+
 /** Where the HUD's hero chip leads (UI3b Task 6 moves the hero panel into the cabin). */
 export function heroPanelHref(profileId: number): string {
   return href('camp', { profileId: String(profileId) }, { panel: 'heros' });
@@ -51,12 +77,10 @@ export function hotspotHref(def: HotspotDef, profileId: number): string | null {
 /** Opens a hotspot's target as this place's next panel (UI3a Task 9, carried into every place
  *  screen but the camp): `placeFor` keeps the same `place` for these targets, only the `panel`
  *  changes, so there is no scene to leave and no fade to play - just the tap's sound and the
- *  tagged push (Ruling A2), same as Camp.svelte's own `openHero`. Does nothing for a hotspot the
+ *  tagged push (Ruling A2), same as PlaceScene's `openHero`. Does nothing for a hotspot the
  *  scene screen handles itself (`target: null`). */
-export function openHotspot(def: HotspotDef, profileId: number): void {
+export function openHotspot(def: HotspotDef, profileId: number, h: HistoryLike = history): void {
   const to = hotspotHref(def, profileId);
   if (!to) return;
-  unlockAudio();
-  playSfx('tap');
-  openPanel(to);
+  go(to, 'panel', h);
 }

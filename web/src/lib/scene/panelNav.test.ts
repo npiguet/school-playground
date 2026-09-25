@@ -8,7 +8,7 @@ import { IDLE_HOTSPOT } from './types';
 vi.mock('../router.svelte', () => ({ navigate: vi.fn(), replaceRoute: vi.fn() }));
 
 import { navigate, replaceRoute } from '../router.svelte';
-import { PANEL_TAG, closePanel, heroPanelHref, hotspotHref, isTagged, openHotspot, tagged } from './panelNav';
+import { PANEL_TAG, closePanel, go, heroPanelHref, hotspotHref, isTagged, openHotspot, replacePanel, tagged } from './panelNav';
 
 describe('overlay navigation (UI3 Ruling A2)', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -35,6 +35,49 @@ describe('overlay navigation (UI3 Ruling A2)', () => {
     expect(h.back).not.toHaveBeenCalled();
     expect(replaceRoute).toHaveBeenCalledOnce();
     expect(replaceRoute).toHaveBeenCalledWith('#/p/3/temple');
+  });
+
+  // Final review I1: `location.replace` leaves a fresh, untagged entry. The history stub mimics
+  // that (replaceRoute resets `state` to null) so the test sees what the browser does.
+  function replacingHistory(state: unknown) {
+    const h = { state, back: vi.fn(), replaceState: vi.fn((s: unknown) => (h.state = s)) };
+    vi.mocked(replaceRoute).mockImplementation(() => {
+      h.state = null;
+    });
+    return h;
+  }
+
+  it('re-tags a tagged overlay entry it replaces, so closing the new overlay still steps back', () => {
+    const h = replacingHistory(tagged({ keep: 1 }));
+    replacePanel('#/p/3/parchemins', h);
+    expect(replaceRoute).toHaveBeenCalledWith('#/p/3/parchemins');
+    expect(h.replaceState).toHaveBeenCalledWith({ [PANEL_TAG]: true }, '');
+    expect(isTagged(h.state)).toBe(true);
+    closePanel('#/p/3/bibliotheque', h);
+    expect(h.back).toHaveBeenCalledOnce();
+  });
+
+  it('leaves a deep-linked (untagged) entry untagged, so closing still replaces', () => {
+    const h = replacingHistory(null);
+    replacePanel('#/p/3/parchemins', h);
+    expect(replaceRoute).toHaveBeenCalledWith('#/p/3/parchemins');
+    expect(h.replaceState).not.toHaveBeenCalled();
+    expect(isTagged(h.state)).toBe(false);
+  });
+
+  it('go() pushes, opens a panel or replaces one, as asked', () => {
+    const h = replacingHistory(tagged(null));
+    go('#/p/3/jouer/9', 'push', h);
+    expect(navigate).toHaveBeenCalledWith('#/p/3/jouer/9');
+    expect(h.replaceState).not.toHaveBeenCalled();
+
+    go('#/p/3/parchemins', 'panel', h);
+    expect(navigate).toHaveBeenLastCalledWith('#/p/3/parchemins');
+    expect(h.replaceState).toHaveBeenCalledOnce();
+
+    go('#/p/3/alexandrie', 'replace', h);
+    expect(replaceRoute).toHaveBeenCalledWith('#/p/3/alexandrie');
+    expect(navigate).toHaveBeenCalledTimes(2);
   });
 
   it('points the HUD hero chip at the hero panel', () => {
