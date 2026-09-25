@@ -243,6 +243,15 @@ test('six slots: newest heroes, « Tous les héros » when there are more, « No
     names.push(n);
     await createProfileApi(request, n);
   }
+  // The shields show the newest heroes of the whole database, and the other workers create heroes
+  // all the time: one created after `longName` pushed it off its shield (Task S, 1 in 170 at
+  // --repeat-each=5). The list the title reads is the real one, cut down to this test's heroes.
+  await page.route('**/api/profiles', async (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    const res = await route.fetch();
+    const all = (await res.json()) as { name: string }[];
+    await route.fulfill({ response: res, json: all.filter((p) => names.includes(p.name)) });
+  });
   await page.goto('/');
   await enterTitle(page);
   const shields = page.getByTestId('title-shields').locator('button.shield');
