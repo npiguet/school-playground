@@ -1,10 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
 import {
+  chooseLevel,
   createProfileApi,
   enterTitle,
   expectCamp,
   expectInSafeZone,
   expectNoOverlap,
+  expectOverlayTapTargets,
   expectScene,
   measureBoxes,
   redScan,
@@ -55,6 +57,10 @@ test('« Entrer » opens the gate onto the shields, once per page load', async (
   await expect(page.getByTestId('title-shields')).toBeVisible();
   await expect(gate).toHaveCount(0);
   await expect(page.getByTestId('title-new')).toHaveAccessibleName('Nouveau héros');
+  // One ribbon line (playability #13), not two.
+  const hint = page.getByTestId('title-hint');
+  await expect(hint).toHaveCount(1);
+  await expect(hint).toHaveText(/Accroche ton bouclier à la porte du camp\.|Choisis ton bouclier/);
   // Same document, same page load: the gate stays open (title never unmounts, only its panel
   // changes here - not yet proof of module-level persistence).
   await page.goto('/#/profiles/new');
@@ -92,10 +98,24 @@ test('the naming ritual is an overlay with its own route; Back and the seal clos
   await expect(page).toHaveURL(/#\/$/);
 
   await page.goto('/#/profiles/new');
-  await page.getByLabel('Ton prénom').fill(name);
+  await expect(ritual.getByRole('heading', { name: 'Forge ton bouclier' })).toBeVisible();
+  await expect(ritual.getByTestId('overlay-voice')).toContainText('bannière');
+  await ritual.getByLabel('Ton prénom').fill(name);
+  await expect(ritual.getByTestId('forge-banner')).toHaveText(name);
   await ritual.locator('label.avatar-choice', { hasText: 'Trident' }).click();
-  await page.getByLabel('Ton niveau').selectOption('9H');
-  await expect(page.getByLabel(/Un code à quatre chiffres/)).toBeVisible();
+  await expect(ritual.getByTestId('forge-emblem')).toHaveAttribute('src', '/art/icons/avatar-trident.webp');
+  await expect(ritual.getByRole('group', { name: 'Ta classe' })).toBeVisible();
+  await chooseLevel(ritual, '9H');
+  await expect(ritual.locator('select')).toHaveCount(0);
+  await expect(ritual.getByText(/HarmoS|facultatif|profil/)).toHaveCount(0);
+  // Playability #3, #4: the seal field is hidden until the toggle is pressed, then visible, and
+  // pressing again hides it and clears it.
+  await expect(ritual.getByLabel('Ton sceau à quatre chiffres')).toHaveCount(0);
+  await ritual.getByRole('button', { name: "Protéger ton bouclier d'un sceau" }).click();
+  await expect(ritual.getByLabel('Ton sceau à quatre chiffres')).toBeVisible();
+  await ritual.getByRole('button', { name: "Protéger ton bouclier d'un sceau" }).click();
+  await expect(ritual.getByLabel('Ton sceau à quatre chiffres')).toHaveCount(0);
+  await expectOverlayTapTargets(page, 'overlay-hero-new');
   expect(await redScan(page)).toEqual([]);
   // Fix round 1 #1 guard (Task 11 review), tightened in fix round 2 finding 2: proves Overlay's OUT
   // transition is local, not `|global` - handing off from the title to the camp (an ancestor
@@ -106,7 +126,7 @@ test('the naming ritual is an overlay with its own route; Back and the seal clos
   // running the test is - a fixed "count 0 within Nms" window was either too tight (flakes under
   // load) or too loose (hides the regression on a fast one).
   await watchOverlap(page, 'scene-title', 'scene-camp');
-  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
   await expectCamp(page);
   await expect(page.getByTestId('scene-title')).toHaveCount(0);
   await expect(ritual).toHaveCount(0);
@@ -131,9 +151,10 @@ test('Escape while the ritual overlay is closing does not undo the hand-off to c
   await page.goto('/');
   await enterTitle(page);
   await page.getByTestId('title-new').click();
-  await page.getByLabel('Ton prénom').fill(name);
-  await page.getByLabel('Ton niveau').selectOption('10H');
-  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  const ritual = page.getByTestId('overlay-hero-new');
+  await ritual.getByLabel('Ton prénom').fill(name);
+  await chooseLevel(ritual, '10H');
+  await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
   await page.waitForURL(/\/camp$/);
   await page.keyboard.press('Escape');
   await expectCamp(page);
@@ -161,9 +182,9 @@ test('an Escape before the hand-off to camp has been handled does not undo it', 
   await page.getByTestId('title-new').click();
   const ritual = page.getByTestId('overlay-hero-new');
   await expect(ritual).toBeVisible();
-  await page.getByLabel('Ton prénom').fill(name);
-  await page.getByLabel('Ton niveau').selectOption('10H');
-  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await ritual.getByLabel('Ton prénom').fill(name);
+  await chooseLevel(ritual, '10H');
+  await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
   await page.waitForURL(/\/camp$/);
   await expect(ritual).toBeVisible(); // the hashchange is still held back: the ritual is on screen
   await page.keyboard.press('Escape');
@@ -194,6 +215,17 @@ test('six slots: newest heroes, « Tous les héros » when there are more, « No
     expect(s.x + s.width, `shield ${i} right`).toBeLessThanOrEqual(art.x + art.width * 0.875 + 0.5);
     expect(Math.min(s.width, s.height), `shield ${i} touch target`).toBeGreaterThanOrEqual(48);
   }
+  // Playability #13: each ring sits on its painted hook. Mirrors SHIELD_SLOTS' y (every hook tip is
+  // at the same y on the painted rails, web/src/lib/world/scenes/title.ts).
+  const HOOK_Y = 55.5;
+  const ringSel: Record<string, string> = {};
+  for (let i = 0; i < 6; i++) ringSel[`r${i}`] = `[data-testid="title-shields"] button.shield:nth-child(${i + 1}) .shield-ring`;
+  const rings = await measureBoxes(page, ringSel);
+  for (let i = 0; i < 6; i++) {
+    const r = rings[`r${i}`]!;
+    const expectedY = art.y + (art.height * HOOK_Y) / 100;
+    expect(Math.abs(r.y - expectedY), `shield ${i} ring at the hook`).toBeLessThanOrEqual(art.height * 0.015);
+  }
   await page.getByTestId('title-all').click();
   await expect(page).toHaveURL(/#\/\?panel=tous$/);
   await page.getByTestId('overlay-heroes').getByRole('button', { name: new RegExp(names[0]) }).click();
@@ -206,9 +238,10 @@ test('naming a hero with a name already taken shows the parchment error, not a b
   await page.goto('/');
   await enterTitle(page);
   await page.getByTestId('title-new').click();
-  await page.getByLabel('Ton prénom').fill(name);
-  await page.getByLabel('Ton niveau').selectOption('10H');
-  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  const ritual = page.getByTestId('overlay-hero-new');
+  await ritual.getByLabel('Ton prénom').fill(name);
+  await chooseLevel(ritual, '10H');
+  await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
   await expect(page.getByText('Ce nom est déjà pris.')).toBeVisible();
   await expect(page.getByTestId('overlay-hero-new')).toBeVisible();
   await expect(page).toHaveURL(/#\/profiles\/new$/);
@@ -235,11 +268,29 @@ test('a protected hero asks for the code on a sealed parchment', async ({ page, 
   const id = (await res.json()).id as number;
   await page.goto(`/#/p/${id}/camp`);
   await expect(page.getByTestId('pin-gate')).toBeVisible();
+  await expect(page.locator('.pin-title')).toHaveText(/^Le sceau d(e |')/);
   expect(await redScan(page)).toEqual([]);
-  await page.getByLabel(/Code de/).fill('0000');
+  await page.getByLabel('Tes quatre chiffres').fill('0000');
   await expect(page.getByText("Ce n'est pas le bon code")).toBeVisible();
-  await page.getByLabel(/Code de/).fill('1234');
+  await page.getByLabel('Tes quatre chiffres').fill('12');
+  await expect(page.getByTestId('pin-slots').locator('.pin-slot:not(.is-empty)')).toHaveCount(2);
+  await page.getByLabel('Tes quatre chiffres').fill('1234');
   await expectCamp(page);
+});
+
+// Task 6 (findings #14, #26): the seal's title elides correctly for a real long accented name and
+// the wax-parchment title still fits inside the seal.
+test("the seal speaks French with a long accented name: « Le sceau d'Élise-Marguerite »", async ({ page, request }, testInfo) => {
+  // A unique but realistic name (starts with a vowel, has an accent and a hyphen, ~20 chars).
+  const name = `Élise-Marguerite-${testInfo.project.name.slice(0, 1)}${uniqueName('').slice(-4)}`;
+  const res = await request.post('/api/profiles', { data: { name, avatar: 'lyre', level: '10H', pin: '1234' } });
+  expect(res.ok(), await res.text()).toBeTruthy();
+  await page.goto(`/#/p/${(await res.json()).id}/camp`);
+  const title = page.locator('.pin-title');
+  await expect(title).toContainText("Le sceau d'Élise-Marguerite");
+  const [t, seal] = await Promise.all([title.boundingBox(), page.locator('.pin-seal').boundingBox()]);
+  expect(t!.x).toBeGreaterThanOrEqual(seal!.x);
+  expect(t!.x + t!.width).toBeLessThanOrEqual(seal!.x + seal!.width);
 });
 
 test('« Entrer » turns on tilt parallax when the device allows it', async ({ page, request }, testInfo) => {

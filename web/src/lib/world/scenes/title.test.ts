@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateScene } from '../../scene/validate';
 import type { Profile } from '../../types';
-import { SHIELD_SLOTS, TITLE_HOTSPOTS, TITLE_SCENE, titleShields, type ShieldItem } from './title';
+import { SHIELD_SLOTS, SHIELD_W, TITLE_HOTSPOTS, TITLE_SCENE, titleShields, type ShieldItem } from './title';
 
 const hero = (id: number) => ({ id, name: `H${id}`, avatar: 'chouette', level: '10H' }) as Profile;
 const ids = (list: ShieldItem[]) => list.map((s) => (s.kind === 'hero' ? s.profile.id : s.kind));
@@ -15,13 +15,19 @@ describe('title scene (UI3 Ruling A4)', () => {
     expect(TITLE_SCENE).toMatchObject({ id: 'title', title: 'La Discorde', background: '/art/scenes/title_gates.webp' });
   });
 
-  it('hangs six shields on the rails, inside the safe zone and clear of the gate and torches', () => {
+  it('hangs each shield on a painted hook: spaced, inside the safe zone, clear of the gate (playability #13)', () => {
     expect(SHIELD_SLOTS).toHaveLength(6);
+    const xs = SHIELD_SLOTS.map((s) => s.x);
+    for (let i = 1; i < xs.length; i++) {
+      if (i === 3) continue; // left rail -> right rail
+      expect(xs[i] - xs[i - 1], `slots ${i - 1}-${i}`).toBeGreaterThanOrEqual(SHIELD_W + 0.3);
+    }
     for (const s of SHIELD_SLOTS) {
-      expect(s.x - 3.25, `${s.x}`).toBeGreaterThanOrEqual(12.5);
-      expect(s.x + 3.25, `${s.x}`).toBeLessThanOrEqual(87.5);
-      expect(s.x < 36 || s.x > 63, `${s.x} clear of the pillars and torches`).toBe(true);
-      expect(s.y).toBeGreaterThanOrEqual(52);
+      expect(s.x - SHIELD_W / 2).toBeGreaterThanOrEqual(12.5);
+      expect(s.x + SHIELD_W / 2).toBeLessThanOrEqual(87.5);
+      expect(s.x < 36 || s.x > 63, `x ${s.x} clear of the gate`).toBe(true);
+      expect(s.y).toBeGreaterThanOrEqual(53);
+      expect(s.y).toBeLessThanOrEqual(58);
     }
   });
 

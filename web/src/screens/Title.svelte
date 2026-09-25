@@ -18,6 +18,7 @@
   import { api, ApiError } from '../lib/api';
   import { href } from '../lib/routes';
   import { OVERLAY_TITLES, type PanelId } from '../lib/world/places';
+  import { VOICES } from '../lib/world/voices';
   import type { Profile } from '../lib/types';
 
   let { panel }: { panel: PanelId | null } = $props();
@@ -65,7 +66,7 @@
   {#if !titleGate.entered}
     <Hotspot def={gate} status={gate.state({ camp: null, catalog: null })} sceneId="title" onPress={gesture} onActivate={enter} />
   {:else}
-    <div class="shields" role="group" aria-label="Choisis ton héros" data-testid="title-shields" in:fade={{ duration: 300 }}>
+    <div class="shields" role="group" aria-label="Choisis ton bouclier" data-testid="title-shields" in:fade={{ duration: 300 }}>
       {#each shields as s, i (s.kind === 'hero' ? s.profile.id : s.kind)}
         {@const slot = SHIELD_SLOTS[i]}
         {#if s.kind === 'hero'}
@@ -77,6 +78,7 @@
             aria-label="{s.profile.name}, {s.profile.level}"
             onclick={() => pick(s.profile)}
           >
+            <span class="shield-ring" aria-hidden="true"></span>
             <span class="shield-face"><Avatar avatar={s.profile.avatar} size={44} ring /></span>
             <span class="shield-plaque stage-text">
               <span class="shield-name">{s.profile.name}</span>
@@ -85,35 +87,46 @@
           </button>
         {:else if s.kind === 'all'}
           <button type="button" class="shield" data-testid="title-all" style="left:{slot.x}%;top:{slot.y}%" aria-label="Tous les héros ({s.count})" onclick={openAll}>
+            <span class="shield-ring" aria-hidden="true"></span>
             <span class="shield-face"><span class="shield-count">{s.count}</span></span>
             <span class="shield-plaque stage-text"><span class="shield-name">Tous les héros</span></span>
           </button>
         {:else}
           <button type="button" class="shield" data-testid="title-new" style="left:{slot.x}%;top:{slot.y}%" aria-label="Nouveau héros" onclick={openNew}>
-            <span class="shield-face"><Icon name="plus" size={30} /></span>
+            <span class="shield-ring" aria-hidden="true"></span>
+            <span class="shield-face is-blank"><Icon name="plus" size={30} /></span>
             <span class="shield-plaque stage-text"><span class="shield-name">Nouveau héros</span></span>
           </button>
         {/if}
       {/each}
     </div>
-    <p class="kit-banner title-hint stage-text">Choisis ton héros</p>
     {#if loading}
-      <p class="kit-banner stage-text title-note">Les Muses cherchent les héros…</p>
+      <p class="kit-ribbon title-note stage-text">Les Muses cherchent les héros…</p>
     {:else if error}
       <!-- Final review M16: the server's message wraps inside the art box, and the heroes can be
            fetched again without a reload (the camp's own « Réessayer »). -->
-      <div class="kit-banner stage-text title-note title-error" role="alert" data-testid="title-error">
+      <div class="kit-ribbon title-note title-error stage-text" role="alert" data-testid="title-error">
         <span>Impossible de charger les héros : {error}</span>
         <button type="button" class="kit-bronze" data-testid="title-retry" onclick={load}>Réessayer</button>
       </div>
-    {:else if profiles.length === 0}
-      <p class="kit-banner stage-text title-note">Aucun héros pour l'instant. Crée le tien !</p>
+    {:else}
+      <p class="kit-ribbon title-note stage-text" data-testid="title-hint">
+        {profiles.length === 0 ? 'Accroche ton bouclier à la porte du camp.' : 'Choisis ton bouclier'}
+      </p>
     {/if}
   {/if}
 </SceneStage>
 
 {#if panel === 'nouveau'}
-  <Overlay variant="scroll" title={OVERLAY_TITLES.nouveau} testId="overlay-hero-new" onClose={closeToTitle} returnFocus={'[data-testid="title-new"]'}>
+  <Overlay
+    variant="scroll"
+    size="wide"
+    title={OVERLAY_TITLES.nouveau}
+    testId="overlay-hero-new"
+    voice={VOICES.ritual}
+    onClose={closeToTitle}
+    returnFocus={'[data-testid="title-new"]'}
+  >
     <HeroForm />
   </Overlay>
 {:else if panel === 'tous'}
@@ -142,7 +155,7 @@
   .shield {
     position: absolute;
     transform: translateX(-50%);
-    width: 6.5%;
+    width: 5.5%;
     min-width: 64px;
     display: flex;
     flex-direction: column;
@@ -154,6 +167,15 @@
     color: var(--bronze-ink);
     cursor: pointer;
     pointer-events: auto;
+  }
+  /* Playability #13: the ring sits on the painted hook (the slot's y is the hook's tip). */
+  .shield-ring {
+    width: 14px;
+    height: 14px;
+    margin-bottom: -4px;
+    border-radius: 50%;
+    border: 3px solid var(--bronze-light);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   }
   /* A painted bronze shield hanging from its hook, the hero's emblem at its boss. */
   .shield-face {
@@ -168,6 +190,13 @@
     box-shadow:
       inset 0 0 0 4px rgba(255, 240, 200, 0.25),
       0 4px 10px rgba(0, 0, 0, 0.45);
+  }
+  /* The new-hero shield is a blank shield to forge, not a coin (playability #13). */
+  .shield-face.is-blank {
+    background: radial-gradient(circle, rgba(243, 230, 200, 0.28), rgba(243, 230, 200, 0.12) 70%);
+    border: 3px dashed var(--bronze-light);
+    color: var(--gold-light);
+    box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.35);
   }
   .shield:hover .shield-face {
     filter: brightness(1.1);
@@ -214,20 +243,13 @@
     font-weight: 700;
     font-size: 22px;
   }
-  .title-hint,
   .title-note {
     position: absolute;
     left: 50%;
+    bottom: 8%;
     transform: translateX(-50%);
     z-index: 3;
     margin: 0;
-  }
-  .title-hint {
-    bottom: 12%;
-    white-space: nowrap;
-  }
-  .title-note {
-    bottom: 5%;
     /* max-content up to 70 % of the art box: `left: 50%` alone would cap the shrink-to-fit width
        at the remaining half. */
     width: max-content;
