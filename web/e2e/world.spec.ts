@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { expectCamp, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
+import { enterTitle, expectCamp, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -52,6 +52,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     const name = uniqueName('Ariane');
 
     await page.goto('/');
+    await enterTitle(page);
     await page.getByRole('button', { name: /Nouveau héros/ }).click();
     await page.getByLabel('Ton prénom').fill(name);
     await page.getByLabel('Ton niveau').selectOption('10H');

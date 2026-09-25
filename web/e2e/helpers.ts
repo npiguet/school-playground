@@ -86,7 +86,7 @@ export async function expectCamp(page: Page) {
   // UI1 fix wave 3: never act on a camp that is still zooming in. At scale 1.04 the places and the
   // dialogue box poke past the viewport, and a click scrolls its target into view - that once
   // panned the whole stage 139 px sideways. Every spec that arrives on the camp waits here.
-  await waitForSceneSettled(page);
+  await waitForSceneSettled(page, 'camp');
 }
 
 // Round 1 review #2: SceneTransition (kind="zoom") scales the whole art box in from 1.04 to 1
@@ -100,8 +100,13 @@ export async function expectCamp(page: Page) {
 // Fix round 1 minor #1: an explicit 15s timeout (cold load + a shared 4-worker container can starve
 // WebKit past the default 5s), and diagnostics attached to the failure message rather than a bare
 // timeout, since "which animation, still running or never started" is what actually explains it.
-export async function waitForSceneSettled(page: Page) {
-  const t = page.locator('.scene-transition');
+// UI3a Task 8: scoped to `sceneId`, not a bare `.scene-transition` - Overlay's `out:leave|global`
+// (preflight.md D3) keeps an outgoing place mounted for its 160ms close animation, so a title →
+// camp hand-off (naming a hero, picking one from « Tous les héros ») briefly has two scenes in the
+// DOM at once (the leaving title behind its closing overlay, the entering camp). An unscoped
+// locator hits that window as a strict-mode violation instead of just waiting it out.
+export async function waitForSceneSettled(page: Page, sceneId: string) {
+  const t = page.locator(`[data-testid="scene-${sceneId}"] .scene-transition`);
   try {
     await expect(t).toHaveAttribute('data-settled', 'true', { timeout: 15_000 });
   } catch (e) {
@@ -151,19 +156,48 @@ export async function goToLibrary(page: Page, profileId: number | string) {
   await page.goto('/#/p/' + profileId + '/parchemins');
 }
 
-// UI profile creation (mirrors profiles.spec.ts): starts from the profile picker, fills the
-// "Nouveau héros" form, lands on the camp (SP3: the new home), skips onboarding and heads
-// straight into the library so callers can chain straight into it.
+// UI profile creation (mirrors profiles.spec.ts): starts from the title's naming ritual, lands on
+// the camp (SP3: the new home), skips onboarding and heads straight into the library so callers
+// can chain straight into it.
 export async function createProfile(page: Page, name: string, level: string) {
-  await page.goto('/');
-  await page.getByRole('button', { name: /Nouveau héros/ }).click();
-  await page.getByLabel('Ton prénom').fill(name);
-  await page.getByLabel('Ton niveau').selectOption(level);
-  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-  await expectCamp(page);
+  await newHero(page, name, level);
   await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+}
+
+// UI3 title (Ruling A4): taps « Entrer » if the gate is still closed, then waits for the shields.
+export async function enterTitle(page: Page) {
+  await expectScene(page, 'title');
+  const gate = page.getByTestId('title-gate');
+  if (await gate.count()) await gate.click();
+  await expect(page.getByTestId('title-shields')).toBeVisible();
+}
+
+// Names a new hero through the ritual overlay and lands on the camp.
+export async function newHero(page: Page, name: string, level = '10H', pin?: string) {
+  await page.goto('/');
+  await enterTitle(page);
+  await page.getByTestId('title-new').click();
+  await expect(page.getByTestId('overlay-hero-new')).toBeVisible();
+  await page.getByLabel('Ton prénom').fill(name);
+  await page.getByLabel('Ton niveau').selectOption(level);
+  if (pin) await page.getByLabel(/Un code à quatre chiffres/).fill(pin);
+  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await expectCamp(page);
+}
+
+// Picks a hero on the title: its shield when it hangs on a rail, else through « Tous les héros »
+// (the shared e2e database holds far more heroes than the six slots).
+export async function pickHero(page: Page, name: string) {
+  await enterTitle(page);
+  const shield = page.getByTestId('title-shields').getByRole('button', { name: new RegExp(name) });
+  if (await shield.count()) {
+    await shield.first().click();
+    return;
+  }
+  await page.getByTestId('title-all').click();
+  await page.getByTestId('overlay-heroes').getByRole('button', { name: new RegExp(name) }).click();
 }
 
 // Passes the scan verify step the way the child has to (SP2 playability P1-8): every
@@ -298,7 +332,7 @@ export async function measureBoxes(page: Page, selectors: Record<string, string>
 // UI3: a place scene is on screen and has finished its entry (never click into the zoom-in).
 export async function expectScene(page: Page, sceneId: string) {
   await expect(page.getByTestId(`scene-${sceneId}`)).toBeVisible();
-  await waitForSceneSettled(page);
+  await waitForSceneSettled(page, sceneId);
 }
 
 // Closes the topmost overlay (wax seal) and waits until only it has left: closing a work overlay

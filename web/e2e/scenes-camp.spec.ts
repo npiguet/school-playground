@@ -38,7 +38,7 @@ async function openCamp(page: Page, profileId: number) {
   await page.goto(`/#/p/${profileId}/camp`);
   await expectCamp(page);
   await expect(page.getByTestId('hud-xp')).toBeVisible(); // /camp has loaded
-  await waitForSceneSettled(page);
+  await waitForSceneSettled(page, 'camp');
 }
 
 // Neutralise two lieutenants over three days (SP3 decision 3) -> boss tier 1 (decision 8).
@@ -63,7 +63,7 @@ test('every place routes to its screen and Back returns to the hub', async ({ pa
     await expect(page).toHaveURL(place.path);
     await page.goBack();
     await expectCamp(page);
-    await waitForSceneSettled(page);
+    await waitForSceneSettled(page, 'camp');
   }
   // No boss quest has been unlocked for this fresh profile (no lieutenant neutralised yet): the
   // boss path stays absent from the hub rather than showing an empty/placeholder hotspot.
@@ -504,7 +504,7 @@ test('the weekly ribbon and the prophecy never overlap a hotspot or its label', 
     await page.setViewportSize(size);
     await page.goto(`/#/p/${id}/camp?debug`);
     await expectCamp(page);
-    await waitForSceneSettled(page);
+    await waitForSceneSettled(page, 'camp');
     await expect(page.getByTestId('camp-prophecy')).toContainText(title);
     await expect(page.getByTestId('camp-weekly')).toBeVisible();
     // One evaluate() for the column, the ribbon and every hotspot + its label (round 1 review #2).
@@ -556,7 +556,7 @@ test('a long prophecy title never pushes « Réviser » out of view', async ({ p
     await page.setViewportSize(size);
     await page.goto(`/#/p/${id}/camp`);
     await expectCamp(page);
-    await waitForSceneSettled(page);
+    await waitForSceneSettled(page, 'camp');
     // Final review I6: the card shows this test's own 120-character title (clamped visually,
     // complete in the DOM), not another spec's prophecy.
     await expect(page.getByTestId('camp-prophecy')).toContainText(longTitle);

@@ -3,10 +3,10 @@
   import { fade } from 'svelte/transition';
   import { router } from './lib/router.svelte';
   import { loadProfile, isUnlocked, profileStore } from './lib/profileStore.svelte';
+  import { placeFor } from './lib/world/places';
   import { ApiError } from './lib/api';
   import PinGate from './components/PinGate.svelte';
-  import ProfilePicker from './screens/ProfilePicker.svelte';
-  import ProfileCreate from './screens/ProfileCreate.svelte';
+  import Title from './screens/Title.svelte';
   import Camp from './screens/Camp.svelte';
   import Library from './screens/Library.svelte';
   import TextCreate from './screens/TextCreate.svelte';
@@ -27,6 +27,7 @@
   import Cabin from './screens/Cabin.svelte';
 
   const route = $derived(router.route);
+  const view = $derived(placeFor(route));
   const profileId = $derived(route.params.profileId ? Number(route.params.profileId) : null);
 
   let gateLoading = $state(false);
@@ -73,10 +74,10 @@
   });
 </script>
 
-{#if route.name === 'profiles'}
-  <ProfilePicker />
-{:else if route.name === 'profile-new'}
-  <ProfileCreate />
+{#if view?.place === 'title'}
+  <!-- UI3 Ruling A1: one Title instance for #/, #/?panel=tous and #/profiles/new, so opening an
+       overlay never replays the scene's entry. -->
+  <Title panel={view.panel} />
 {:else if profileId !== null}
   {#key profileId}
     {#if gateLoading && !gateProfile}

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { expectCamp, stubSpeech, skipOnboarding, uniqueName } from './helpers';
+import { newHero, stubSpeech, skipOnboarding, uniqueName } from './helpers';
 
 const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
@@ -9,12 +9,7 @@ test('create profile → add text → dictation → proofreading → results →
   const name = uniqueName('Test');
 
   // Profile
-  await page.goto('/');
-  await page.getByRole('button', { name: /Nouveau héros/ }).click();
-  await page.getByLabel('Ton prénom').fill(name);
-  await page.getByLabel('Ton niveau').selectOption('10H');
-  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
-  await expectCamp(page);
+  await newHero(page, name, '10H');
   await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();

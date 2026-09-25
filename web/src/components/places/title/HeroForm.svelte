@@ -1,11 +1,11 @@
 <script lang="ts">
-  import LevelSelect from '../components/LevelSelect.svelte';
-  import Avatar from '../components/Avatar.svelte';
-  import { api, ApiError } from '../lib/api';
-  import { AVATARS, LEVELS } from '../lib/levels';
-  import { markUnlocked } from '../lib/profileStore.svelte';
-  import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
+  import LevelSelect from '../../LevelSelect.svelte';
+  import Avatar from '../../Avatar.svelte';
+  import { api, ApiError } from '../../../lib/api';
+  import { AVATARS, LEVELS } from '../../../lib/levels';
+  import { markUnlocked } from '../../../lib/profileStore.svelte';
+  import { href } from '../../../lib/routes';
+  import { replaceRoute } from '../../../lib/router.svelte';
 
   let name = $state('');
   let avatar = $state(AVATARS[0]);
@@ -31,7 +31,9 @@
         pin: pin ? pin : null,
       });
       markUnlocked(profile.id);
-      navigate(href('camp', { profileId: String(profile.id) }));
+      // Ruling A2: Back from the camp never reopens an emptied form - the ritual overlay's own
+      // history entry is replaced by the camp instead of pushing a new one.
+      replaceRoute(href('camp', { profileId: String(profile.id) }));
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
         error = 'Ce nom est déjà pris.';
@@ -50,9 +52,7 @@
   }
 </script>
 
-<div class="screen">
-  <h1>Nouveau héros</h1>
-
+<div class="hero-form">
   <form onsubmit={submit}>
     <div class="field">
       <label for="name">Ton prénom</label>
@@ -72,7 +72,7 @@
         {#each AVATARS as a (a)}
           <label class="avatar-choice" class:selected={avatar === a}>
             <input type="radio" name="avatar" value={a} bind:group={avatar} />
-            <Avatar avatar={a} size={48} />
+            <Avatar avatar={a} size={56} ring />
             <span>{avatarLabel(a)}</span>
           </label>
         {/each}
@@ -130,14 +130,14 @@
     gap: 4px;
     padding: 10px;
     border-radius: var(--radius);
-    border: 2px solid var(--marble-dark);
+    border: 2px solid var(--parchment-edge);
     cursor: pointer;
     font-weight: normal;
     min-width: 72px;
   }
   .avatar-choice.selected {
-    border-color: var(--aegean);
-    background: var(--aegean-light);
+    border-color: var(--bronze);
+    background: rgba(200, 148, 80, 0.2);
   }
   .avatar-choice input {
     position: absolute;
