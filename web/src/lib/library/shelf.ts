@@ -16,7 +16,8 @@ export function historyLine(h: TextSummary['history']): string {
   if (!h || h.times_played === 0) return 'Jamais défendu';
   const times = `Défendu ${h.times_played} fois`;
   if (h.best_catch_rate === null || h.best_catch_rate === undefined) return times;
-  return `${times} · ${Math.round(h.best_catch_rate * 100)} % des pièges déjoués`;
+  // A narrow no-break space before « % » (French typography): the sign never wraps alone.
+  return `${times} · ${Math.round(h.best_catch_rate * 100)} % des pièges déjoués`;
 }
 
 /** Author (and translator); « Ajouté par X » for her own texts; the seed credits as a last resort. */

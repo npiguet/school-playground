@@ -11,4 +11,15 @@ describe('screenText', () => {
     expect(text).not.toMatch(/hidden|gone|handle|onKey|color/);
     expect(screenText("const a = 'quête'; // mot\nfoo(e);", 'ts')).toBe("'quête'");
   });
+
+  it('reads a template literal without the code of its ${…} parts (B1 fix round 1)', () => {
+    expect(screenText('const a = `${list.join(s)} · ${n}`;', 'ts')).toBe('`   ·   `');
+    expect(screenText("const a = `${n} ${n > 1 ? 'quêtes' : 'quête(s)'}`;", 'ts')).toBe("`    'quêtes' 'quête(s)' `");
+    expect(screenText('const a = `${f({ a: `x${y}z` })}`;', 'ts')).toBe('` `x  z` `');
+  });
+
+  it('keeps a // inside a string: it is not a comment (B1 fix round 1)', () => {
+    expect(screenText("const u = 'http://a.b/quête(s)'; // mot(s)", 'ts')).toBe("'http://a.b/quête(s)'");
+    expect(screenText('const u = "a // b"; /* c(s) */ const v = \'d\';', 'ts')).toBe('"a // b"\n\'d\'');
+  });
 });

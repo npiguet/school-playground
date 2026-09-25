@@ -18,6 +18,18 @@ describe('French wording helpers', () => {
     expect(de('Yann')).toBe('de Yann');
     expect(de('Jules')).toBe('de Jules');
     expect(de('  Zoé ')).toBe('de Zoé');
+    // B1 fix round 1: capital accents and ligatures, lowercase initials, a sounded h, no name.
+    expect(de('Îlona')).toBe("d'Îlona");
+    expect(de('Œdipe')).toBe("d'Œdipe");
+    expect(de('Ôrélie')).toBe("d'Ôrélie");
+    expect(de('ariane')).toBe("d'ariane");
+    expect(de('hugo')).toBe("d'hugo");
+    expect(de('jules')).toBe('de jules');
+    expect(de('Harry')).toBe('de Harry');
+    expect(de('Hannah-Rose')).toBe('de Hannah-Rose');
+    expect(de('Hélène')).toBe("d'Hélène");
+    expect(de('')).toBe('de');
+    expect(de('   ')).toBe('de');
   });
 
   it('says a date as a person does, the year only when it is not this one (playability #19)', () => {
@@ -26,5 +38,7 @@ describe('French wording helpers', () => {
     expect(longDate('2099-01-01', today)).toBe('jeudi 1er janvier 2099');
     expect(longDate('2035-06-30', today)).toBe('samedi 30 juin 2035');
     expect(longDate('2026-10-01T00:00:00', today)).toBe('jeudi 1er octobre');
+    // B1 fix round 1: malformed input comes back unchanged.
+    for (const bad of ['', 'demain', '2026-9-28', '2026-13-01', '2026-02-30', '2026-00-10']) expect(longDate(bad, today)).toBe(bad);
   });
 });
