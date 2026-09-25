@@ -22,16 +22,26 @@ export const TITLE_SCENE: SceneDef = {
   preload: [ART.scenes.camp],
 };
 
-/** Where the painted shields hang (art %): x = centre, y = top edge. Three per bronze rail
- *  (docs/art/scenes.md: rails x 16-36 and 63-85, hooks at y 53-56), clear of the pillars and the
- *  torches (x 36-63) and inside the 4:3 safe zone. */
+/** A shield's width, art % (80 px wide at 1180x820, 70 px at 1280x720 - both >= the 64 px touch
+ *  floor). */
+export const SHIELD_W = 5.5;
+
+/** Where the painted shields hang (art %): x = hook centre, y = hook tip (playability #13).
+ *  Measured from `web/public/art/scenes/title_gates.webp` (2048x1152) and confirmed against the
+ *  `?debug` shot of `/?debug#/` at 1180x820 (docs/reviews/ui3/ipad-landscape-d01-debug-title.png,
+ *  docs/reviews/ui3/ipad-landscape-a02-title-shields.png): each rail carries five painted hooks;
+ *  x = px / 2048, y = px / 1152. Left rail hooks read at x ~= 17.4, 20.4, 23.3, 30.8, 33.9; right
+ *  rail at x ~= 65.4, 75.4, 78.3, 81.2, 84.3; every hook tip at y ~= 55.5. Three hooks per rail are
+ *  picked so every pair of neighbours is at least SHIELD_W + 0.3 apart, every centre stays inside
+ *  the safe zone (12.5 + SHIELD_W/2 .. 87.5 - SHIELD_W/2) and clear of the pillars and torches
+ *  (x 36-63). */
 export const SHIELD_SLOTS: { x: number; y: number }[] = [
-  { x: 19.5, y: 55 },
-  { x: 26.5, y: 55 },
-  { x: 33, y: 55 },
-  { x: 69.5, y: 55 },
-  { x: 76.5, y: 55 },
-  { x: 83.5, y: 55 },
+  { x: 17.4, y: 55.5 },
+  { x: 23.3, y: 55.5 },
+  { x: 33.9, y: 55.5 },
+  { x: 65.4, y: 55.5 },
+  { x: 75.4, y: 55.5 },
+  { x: 84.3, y: 55.5 },
 ];
 
 export type ShieldItem = { kind: 'hero'; profile: Profile } | { kind: 'all'; count: number } | { kind: 'new' };

@@ -18,7 +18,6 @@ const PENDING = new Set<string>([
   'src/components/places/library/PortalWorkPanel.svelte',
   'src/components/places/delphi/PythiaPanel.svelte',
   'src/components/places/delphi/TabletsPanel.svelte',
-  'src/components/places/title/HeroForm.svelte',
   'src/components/QuestCard.svelte',
   'src/components/Scroll.svelte',
 ]);

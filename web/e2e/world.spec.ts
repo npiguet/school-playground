@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { enterTitle, expectCamp, expectScene, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
+import { chooseLevel, enterTitle, expectCamp, expectScene, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -59,9 +59,10 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.goto('/');
     await enterTitle(page);
     await page.getByRole('button', { name: /Nouveau héros/ }).click();
-    await page.getByLabel('Ton prénom').fill(name);
-    await page.getByLabel('Ton niveau').selectOption('10H');
-    await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+    const ritual = page.getByTestId('overlay-hero-new');
+    await ritual.getByLabel('Ton prénom').fill(name);
+    await chooseLevel(ritual, '10H');
+    await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
     await expectCamp(page);
 
     // First visit: walk the onboarding (spec decision 22) instead of skipping it, so this spec

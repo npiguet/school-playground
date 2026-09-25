@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import {
+  chooseLevel,
   closeOverlay,
   createText,
   enterTitle,
@@ -104,13 +105,14 @@ async function titleSection(w: Walk) {
   await shot(w, 'a02-title-shields');
   await page.getByTestId('title-new').click();
   await waitForOverlaySettled(page, 'overlay-hero-new');
-  await page.getByLabel('Ton prénom').fill(w.heroName);
+  const ritual = page.getByTestId('overlay-hero-new');
+  await ritual.getByLabel('Ton prénom').fill(w.heroName);
   // The avatar label text is `avatarLabel('lyre')` = « Lyre » (HeroForm.svelte: capitalised key).
-  await page.getByTestId('overlay-hero-new').locator('label.avatar-choice', { hasText: 'Lyre' }).click();
-  await page.getByLabel('Ton niveau').selectOption('10H');
+  await ritual.locator('label.avatar-choice', { hasText: 'Lyre' }).click();
+  await chooseLevel(ritual, '10H');
   await shot(w, 'a03-title-naming-ritual');
   await noRed(w, 'naming ritual');
-  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
   await expectCamp(page);
   w.profileId = Number(page.url().match(/#\/p\/(\d+)\//)?.[1]);
   expect(w.profileId).toBeGreaterThan(0);

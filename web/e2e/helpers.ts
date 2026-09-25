@@ -169,16 +169,25 @@ export async function enterTitle(page: Page) {
   await expect(page.getByTestId('title-shields')).toBeVisible();
 }
 
+// Immersion wave Ruling W5: levels are medallion radios named by their level.
+export async function chooseLevel(scope: Locator, level: string) {
+  await scope.getByRole('radio', { name: level, exact: true }).check();
+}
+
 // Names a new hero through the ritual overlay and lands on the camp.
 export async function newHero(page: Page, name: string, level = '10H', pin?: string) {
   await page.goto('/');
   await enterTitle(page);
   await page.getByTestId('title-new').click();
-  await expect(page.getByTestId('overlay-hero-new')).toBeVisible();
-  await page.getByLabel('Ton prénom').fill(name);
-  await page.getByLabel('Ton niveau').selectOption(level);
-  if (pin) await page.getByLabel(/Un code à quatre chiffres/).fill(pin);
-  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  const ritual = page.getByTestId('overlay-hero-new');
+  await expect(ritual).toBeVisible();
+  await ritual.getByLabel('Ton prénom').fill(name);
+  await chooseLevel(ritual, level);
+  if (pin) {
+    await ritual.getByRole('button', { name: "Protéger ton bouclier d'un sceau" }).click();
+    await ritual.getByLabel('Ton sceau à quatre chiffres').fill(pin);
+  }
+  await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
   await expectCamp(page);
 }
 

@@ -16,7 +16,8 @@ export type IconName =
   | 'pencil'
   | 'gap'
   | 'plus'
-  | 'laurel';
+  | 'laurel'
+  | 'chevron';
 
 export interface IconPath {
   d: string;
@@ -65,4 +66,6 @@ export const ICONS: Record<IconName, IconPath[]> = {
       fill: true,
     },
   ],
+  // A small open/closed cue on a toggle (B2 fix round 1 #4): points down, rotated 180° when open.
+  chevron: [{ d: 'M8 12l8 8 8-8', width: 3 }],
 };

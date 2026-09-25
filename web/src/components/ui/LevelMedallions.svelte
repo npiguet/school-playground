@@ -35,17 +35,17 @@
 
 <style>
   .level-medallions {
-    margin: 0 0 16px;
+    margin: 0 0 1px;
     padding: 0;
     border: 0;
   }
   .level-medallions legend {
-    margin-bottom: 8px;
+    margin-bottom: 1px;
     padding: 0;
   }
   .row {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
   }
 </style>

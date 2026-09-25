@@ -17,16 +17,18 @@ test('create a profile and reach the library with seed texts', async ({ page }) 
 test('a profile with a code asks for it', async ({ page }) => {
   const name = unique();
   await page.goto('/#/profiles/new');
-  await page.getByLabel('Ton prénom').fill(name);
-  await page.getByLabel(/Un code à quatre chiffres/).fill('1234');
-  await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  const ritual = page.getByTestId('overlay-hero-new');
+  await ritual.getByLabel('Ton prénom').fill(name);
+  await ritual.getByRole('button', { name: "Protéger ton bouclier d'un sceau" }).click();
+  await ritual.getByLabel('Ton sceau à quatre chiffres').fill('1234');
+  await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
   await expectCamp(page);
   await skipOnboarding(page);
   await page.getByTestId('hud-hero').click();
   await page.getByRole('link', { name: 'Changer de héros' }).click();
   await pickHero(page, name);
-  await page.getByLabel(/Code de/).fill('0000');
+  await page.getByLabel('Tes quatre chiffres').fill('0000');
   await expect(page.getByText("Ce n'est pas le bon code")).toBeVisible();
-  await page.getByLabel(/Code de/).fill('1234');
+  await page.getByLabel('Tes quatre chiffres').fill('1234');
   await expectCamp(page);
 });
