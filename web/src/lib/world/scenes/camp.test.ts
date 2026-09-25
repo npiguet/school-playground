@@ -7,6 +7,7 @@ import {
   CAMP_SCENE,
   bestiaryCaption,
   campGreeting,
+  campNextStep,
   dragonCaption,
   nextStepLine,
   treasureCaption,
@@ -69,7 +70,10 @@ describe('camp hub scene', () => {
   });
 
   it('marks the sealed Oracle as new, counts active quests, counts neutralised tricks', () => {
-    expect(state('oracle', camp())).toMatchObject({ isNew: true, caption: 'Trois rouleaux à ouvrir' });
+    expect(state('oracle', camp({ xp: { total: 90, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 } }))).toMatchObject({
+      isNew: true,
+      caption: 'Trois rouleaux à ouvrir',
+    });
     expect(CAMP_HOTSPOTS.find((h) => h.id === 'quests')!.label).toBe('Le mur des quêtes');
     expect(state('oracle', camp({ oracle: { week: 'w', status: 'chosen', reward_id: null } }))).toMatchObject({
       isNew: false,
@@ -127,6 +131,21 @@ describe('camp hub wording (playability #2, #6, #16)', () => {
   it('shows the weekly goal as parchments defended', () => {
     expect(weeklyCaption({ week: 'w', target: 3, done: 1, reached: false })).toBe('Cette semaine : 1 / 3 parchemins défendus');
     expect(weeklyCaption({ week: 'w', target: 3, done: 3, reached: true })).toBe('Objectif atteint ! Les Muses sont fières.');
+  });
+
+  it('lights one next step: the open battle, else the tent for a new hero, else the sealed Oracle (Ruling W14)', () => {
+    const mid = { total: 90, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 };
+    const open = { tier_available: 1, tiers_won: [], active_quest_id: null };
+    expect(campNextStep(null)).toBeNull();
+    expect(campNextStep(camp())).toBe('parchemins');
+    expect(campNextStep(camp({ boss: open }))).toBe('boss');
+    expect(campNextStep(camp({ xp: mid }))).toBe('oracle');
+    expect(campNextStep(camp({ xp: mid, oracle: { week: 'w', status: 'chosen', reward_id: null } }))).toBeNull();
+    const engaged = camp({ xp: mid, boss: { ...open, active_quest_id: 9 }, quests: [{ id: 9, kind: 'boss', status: 'active' }] as QuestOut[] });
+    expect(campNextStep(engaged)).toBe('oracle');
+    // The captions stay whichever place glows.
+    expect(state('oracle', camp())).toMatchObject({ isNew: false, caption: 'Trois rouleaux à ouvrir' });
+    expect(state('parchemins', camp({ boss: open }))).toMatchObject({ isNew: false, caption: 'Choisis un texte à défendre' });
   });
 
   it('points the new hero at the parchments tent, with a caption and the new glow', () => {

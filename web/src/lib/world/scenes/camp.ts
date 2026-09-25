@@ -52,6 +52,22 @@ export function weeklyCaption(w: CampResponse['weekly']): string {
   return `Cette semaine : ${w.done} / ${w.target} parchemins défendus`;
 }
 
+const bossEngaged = (camp: CampResponse) => camp.quests.some((q) => q.kind === 'boss' && q.status === 'active');
+
+/** The one camp place that wears the next-step glow (Ruling W14: at most one per scene), or null.
+ *  1. The battle path while a tier is open and no fight is engaged: rare, earned, and it waits for
+ *     nothing else (it is also the greeting's next step before the tent, see nextStepLine).
+ *  2. The parchemins tent while no text has been defended (xp 0): a new hero's first step - the
+ *     Oracle's scrolls only mean something once she has played.
+ *  3. The road to Delphi while the week's scrolls are sealed. */
+export function campNextStep(camp: CampResponse | null): 'boss' | 'parchemins' | 'oracle' | null {
+  if (!camp) return null;
+  if (camp.boss.tier_available !== null && !bossEngaged(camp)) return 'boss';
+  if (camp.xp.total === 0) return 'parchemins';
+  if (camp.oracle.status === 'sealed') return 'oracle';
+  return null;
+}
+
 export const CAMP_HOTSPOTS: HotspotDef[] = [
   {
     id: 'dragon',
@@ -79,7 +95,7 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     state: ({ camp }) => {
       if (!camp) return st();
       const sealed = camp.oracle.status === 'sealed';
-      return st({ isNew: sealed, caption: sealed ? 'Trois rouleaux à ouvrir' : 'Quête en cours' });
+      return st({ isNew: campNextStep(camp) === 'oracle', caption: sealed ? 'Trois rouleaux à ouvrir' : 'Quête en cours' });
     },
   },
   {
@@ -101,8 +117,8 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     shape: CAMP_SHAPES.parchemins,
     labelPos: 'above',
     // Playability #2: the tent where the dictations are fought says so, and glows until the first
-    // text has been defended (no XP yet = no session played).
-    state: ({ camp }) => st({ caption: 'Choisis un texte à défendre', isNew: camp !== null && camp.xp.total === 0 }),
+    // text has been defended (no XP yet = no session played), unless a battle outranks it.
+    state: ({ camp }) => st({ caption: 'Choisis un texte à défendre', isNew: campNextStep(camp) === 'parchemins' }),
   },
   {
     id: 'dossier',
@@ -141,9 +157,9 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     labelPos: 'below',
     state: ({ camp, catalog }) => {
       if (!camp || (camp.boss.tier_available === null && camp.boss.active_quest_id === null)) return st({ visible: false });
-      const engaged = camp.quests.some((q) => q.kind === 'boss' && q.status === 'active');
+      const engaged = bossEngaged(camp);
       return st({
-        isNew: !engaged,
+        isNew: campNextStep(camp) === 'boss',
         caption: engaged
           ? 'Un combat est déjà engagé contre Éris.'
           : `Combat ${camp.boss.tier_available} : ${bossRewardName(camp, catalog)}`,
@@ -182,8 +198,7 @@ export const CAMP_DRAGON_LAYER: Omit<SceneLayerDef, 'id' | 'src' | 'alt'> = {
 export function nextStepLine(camp: CampResponse): string {
   const p = nearestProphecy(camp);
   if (p && p.days_left <= 7) return `La Pythie a vu ta prochaine épreuve, ${prophecyWhen(p.days_left)}. Viens la réviser !`;
-  const engaged = camp.quests.some((q) => q.kind === 'boss' && q.status === 'active');
-  if (camp.boss.tier_available !== null && !engaged) return "Le sentier de la bataille est ouvert : Éris t'attend.";
+  if (camp.boss.tier_available !== null && !bossEngaged(camp)) return "Le sentier de la bataille est ouvert : Éris t'attend.";
   return "Les parchemins t'attendent, sous la tente.";
 }
 
