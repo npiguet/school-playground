@@ -1,3 +1,9 @@
+import json
+import sqlite3
+
+from app.clock import iso_week, local_day, now_utc
+from app.db import DB_FILENAME
+from app.world import oracle as oracle_mod
 from tests.test_sessions import FEES, make_profile, make_text
 from tests.test_progression import hydre_result, post
 
@@ -160,3 +166,26 @@ def test_boss_flow(client):
     assert client.post(f"/api/profiles/{pid}/quests/{b['quest']['id']}/shelve").status_code == 409
     rid = client.patch(f"/api/profiles/{pid}/rewards/sandales_hermes", json={"equipped": True}).json()
     assert rid["equipped"] is True
+
+
+def test_camp_survives_a_concurrent_first_visit_sealing_the_oracle(client, settings, monkeypatch):
+    # e2e stability (UI3a): the library tent and the camp both fetch /camp on mount, so a quick
+    # tent -> camp hop sends two concurrent first-of-the-week requests. Both saw no oracle row and
+    # both INSERTed: the loser hit the (profile_id, week) primary key and the camp showed
+    # « Impossible de rejoindre le camp : Internal Server Error ». Replays that interleaving: the
+    # other request seals the week between this one's SELECT and its INSERT.
+    pid = make_profile(client)
+    real = oracle_mod.compute_scrolls
+
+    def sealed_meanwhile(conn, profile, available, neutralised):
+        scrolls = real(conn, profile, available, neutralised)
+        other = sqlite3.connect(settings.data_dir / DB_FILENAME)
+        other.execute("INSERT INTO oracle(profile_id, week, scrolls_json) VALUES (?,?,?)",
+                      (profile["id"], iso_week(local_day(now_utc())), json.dumps(scrolls)))
+        other.commit(); other.close()
+        return scrolls
+
+    monkeypatch.setattr(oracle_mod, "compute_scrolls", sealed_meanwhile)
+    r = client.get(f"/api/profiles/{pid}/camp")
+    assert r.status_code == 200
+    assert r.json()["oracle"]["status"] == "sealed"
