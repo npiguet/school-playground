@@ -1,8 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Main e2e run (scripts/playwright.sh, part of scripts/check.sh), two WebKit projects (scenes
-// spec §10): `desktop` runs every functional spec (Desktop Safari 1280x720, the pre-UI1 setup);
-// `ipad` runs the scene specs (scenes-*.spec.ts) at iPad landscape 1180x820 with touch.
+// Main e2e run (scripts/playwright.sh, part of scripts/check.sh), three projects: two WebKit ones
+// (scenes spec §10) and one Chromium. `desktop` runs every functional spec (Desktop Safari
+// 1280x720, the pre-UI1 setup); `ipad` runs the scene specs (scenes-*.spec.ts) at iPad landscape
+// 1180x820 with touch; `chromium` runs the one history test whose bug only Chromium shows (below).
 // Playability walks (playability*.spec.ts) write review screenshots and only run through
 // playwright.playability.config.ts.
 export default defineConfig({
@@ -14,7 +15,9 @@ export default defineConfig({
   // run spaCy on it: at 24 concurrent workers that container can no longer answer in time. Cap the
   // worker count so the suite's load doesn't depend on the host's core count (Playwright's default
   // is half the cores). The specs themselves stay correct at any count (proven at 12).
-  workers: 8,
+  // PW_WORKERS (passed through by compose.e2e.yaml) lowers it for a second stack running side by
+  // side, e.g. `STACK=b PW_WORKERS=4 scripts/check.sh` (README §6).
+  workers: Number(process.env.PW_WORKERS) || 8,
   reporter: [['list']],
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:8080',

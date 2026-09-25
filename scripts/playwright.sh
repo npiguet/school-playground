@@ -3,6 +3,7 @@
 # Example: scripts/playwright.sh                                     (all e2e specs)
 #          scripts/playwright.sh --config playwright.playability.config.ts
 #          STACK=b scripts/playwright.sh                             (a second stack, side by side)
+#          PW_WORKERS=4 scripts/playwright.sh                        (fewer workers; 8 when unset)
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # The browsers in the image must match the @playwright/test the specs run with.
 if ! grep -q "\"@playwright/test\": \"$PLAYWRIGHT_VERSION\"" "$ROOT/web/package.json"; then

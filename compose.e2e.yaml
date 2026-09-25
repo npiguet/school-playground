@@ -36,6 +36,8 @@ services:
     environment:
       BASE_URL: "http://discorde:8080"
       CI: "true"
+      # The worker count (playwright.config.ts: 8 when unset or empty).
+      PW_WORKERS: ${PW_WORKERS:-}
       LP_NUM_THREADS: "2"
       WEBKIT_SKIA_ENABLE_CPU_RENDERING: "1"
     volumes: [".:/work", "node_modules:/work/web/node_modules"]
