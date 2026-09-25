@@ -1,7 +1,8 @@
 // The library tent (scenes UI spec §3 "Library scene"): shelves = her texts, the scribe's desk =
 // write or paste a text, the bronze lens = scan a sheet, the portal = Alexandria. Each object opens
 // its legacy route as an overlay (UI3 Ruling A1); the three ways in replace the old add menu (A16).
-import { ADD_ICONS, ART } from '../art';
+// Athena's owl is a fifth, plaque-less hotspot: a tap makes her speak (immersion wave, #23).
+import { ADD_ICONS, ART, PLACE_ICONS } from '../art';
 import { IDLE_HOTSPOT, type DialogueLine, type HotspotDef, type HotspotState, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { LIBRARY_SHAPES } from './library.shapes';
 
@@ -12,6 +13,8 @@ export const LIBRARY_HOTSPOTS: HotspotDef[] = [
     id: 'shelves',
     label: 'Tes parchemins',
     target: 'library',
+    // Playability #20: every plaque has its icon; the stacked scrolls are the shelves' own.
+    icon: ADD_ICONS.alexandria,
     shape: LIBRARY_SHAPES.shelves,
     labelPos: 'above',
     leader: true,
@@ -25,7 +28,7 @@ export const LIBRARY_HOTSPOTS: HotspotDef[] = [
     shape: LIBRARY_SHAPES.desk,
     labelPos: 'above',
     leader: true,
-    state: () => st({ caption: 'Taper ou coller un texte' }),
+    state: () => st({ caption: 'Écrire un nouveau parchemin' }),
   },
   {
     id: 'lens',
@@ -35,22 +38,34 @@ export const LIBRARY_HOTSPOTS: HotspotDef[] = [
     shape: LIBRARY_SHAPES.lens,
     labelPos: 'below',
     leader: true,
-    state: () => st({ caption: 'Scanner une feuille' }),
+    state: () => st({ caption: 'Déchiffrer une feuille' }),
   },
   {
     id: 'portal',
     label: 'Le portail',
     target: 'alexandria',
-    icon: ADD_ICONS.alexandria,
+    icon: PLACE_ICONS.portal,
     shape: LIBRARY_SHAPES.portal,
     labelPos: 'below',
     leader: true,
-    state: () => st({ caption: 'Des textes classiques' }),
+    state: () => st({ caption: "Les livres d'Alexandrie" }),
+  },
+  // Playability #23: Athena's owl is a speaker you can tap, not scenery. No plaque (she is the
+  // plaque-less character on her side table); a tap replays one of her hints in the dialogue box.
+  {
+    id: 'owl',
+    label: '',
+    ariaLabel: "La chouette d'Athéna",
+    target: null,
+    shape: LIBRARY_SHAPES.owl,
+    labelPos: 'above',
+    state: () => st(),
   },
 ];
 
 /** Athena's owl perched on the right-hand side table (docs/art/scenes.md: ≈ (80, 45), 14 % of the
- *  height; feet on the table top at y 58). Decorative: it speaks through the DialogueBox. */
+ *  height; feet on the table top at y 58). The `owl` hotspot above makes her tappable; she speaks
+ *  through the DialogueBox. */
 export const OWL_LAYER: SceneLayerDef = {
   id: 'owl',
   src: ART.characters.owl,
@@ -73,6 +88,20 @@ export const LIBRARY_SCENE: SceneDef = {
   // The only way out is the camp: warm it for a deep link or a reload into the tent (final review M8).
   preload: [ART.scenes.camp],
 };
+
+const OWL_HINTS = [
+  'Hou ! Tes parchemins dorment sur les étagères. Choisis-en un et défends-le contre Éris.',
+  'Hou ! Au pupitre, tu peux écrire ou coller un texte à toi.',
+  'Hou ! La lentille de bronze déchiffre les feuilles imprimées de ta classe.',
+  "Hou ! Derrière le portail, les scribes d'Alexandrie recopient de vieux livres pour toi.",
+];
+
+/** A random owl hint, never the one she just said (spec §8: no immediate repeat). */
+export function owlHint(previous: number, rnd: () => number = Math.random): { line: DialogueLine; index: number } {
+  let index = Math.floor(rnd() * OWL_HINTS.length);
+  if (index === previous) index = (index + 1) % OWL_HINTS.length;
+  return { index, line: { speaker: 'owl', name: "La chouette d'Athéna", portrait: ART.characters.owl, text: OWL_HINTS[index] } };
+}
 
 /** UI3 Ruling A9: the owl's static line (dialogue content files are UI5). */
 export function owlGreeting(): DialogueLine[] {

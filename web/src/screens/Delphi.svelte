@@ -13,7 +13,7 @@
   import { nearestProphecy } from '../lib/world/prophecy';
   import { closePanel, go, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
-  import { sceneHref, type PanelId } from '../lib/world/places';
+  import { OVERLAY_TITLES, sceneHref, type PanelId } from '../lib/world/places';
   import { href } from '../lib/routes';
   import type { CampResponse } from '../lib/world/types';
   import type { HotspotDef } from '../lib/scene/types';
@@ -47,11 +47,11 @@
 </PlaceScene>
 
 {#if panel === 'pythie'}
-  <Overlay variant="scroll" size="wide" title="L'Oracle de Delphes" testId="overlay-pythia" onClose={close} returnFocus={hotspotSelector('delphi', 'pythia')}>
+  <Overlay variant="scroll" size="wide" title={OVERLAY_TITLES.pythie} testId="overlay-pythia" onClose={close} returnFocus={hotspotSelector('delphi', 'pythia')}>
     <PythiaPanel {profile} />
   </Overlay>
 {:else if panel === 'tablettes'}
-  <Overlay variant="table" size="wide" title="Le tableau des quêtes" testId="overlay-tablets" onClose={close} returnFocus={hotspotSelector('delphi', 'tablets')}>
+  <Overlay variant="table" size="wide" title={OVERLAY_TITLES.tablettes} testId="overlay-tablets" onClose={close} returnFocus={hotspotSelector('delphi', 'tablets')}>
     <TabletsPanel {profile} />
   </Overlay>
 {/if}

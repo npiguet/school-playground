@@ -22,7 +22,7 @@ import {
 const PLACES: { id: string; path: RegExp; name: RegExp }[] = [
   { id: 'dragon', path: /\/dragon$/, name: /Le nid du dragon/ },
   { id: 'oracle', path: /\/temple$/, name: /Le chemin de Delphes/ },
-  { id: 'quests', path: /\/quetes$/, name: /Le tableau des quêtes/ },
+  { id: 'quests', path: /\/quetes$/, name: /Le mur des quêtes/ },
   { id: 'parchemins', path: /\/tente-parchemins$/, name: /La tente des parchemins/ },
   { id: 'dossier', path: /\/dossier$/, name: /La tente de guerre/ },
   { id: 'bestiary', path: /\/bestiaire$/, name: /Le bestiaire/ },
@@ -165,7 +165,7 @@ test('a deep link to the hero panel waits for the onboarding card: one modal at 
 test('Back during the fade out of the camp is not overridden by the pending navigation', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.goto(`/#/p/${id}/parchemins`);
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await openCamp(page, id);
   // Tap the war tent, then Back once its fade to night has begun, before it hands over.
   await countHashChanges(page);
@@ -298,7 +298,7 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
     };
   });
   await page.goto(`/#/p/${id}/parchemins`);
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await openCamp(page, id);
   const stage = page.getByTestId('scene-camp');
   const panel = page.getByTestId('overlay-heros');
@@ -495,7 +495,7 @@ test('the path to battle appears once Éris can be fought; badges sit on their p
   await expect(boss).toContainText("Combat 1 : Sandales d'Hermès");
   await expect(page.getByTestId('camp-dragon')).not.toContainText('Un œuf de dragon');
 
-  // Playability #5: the quest count is pinned to the top-right corner of « Le tableau des
+  // Playability #5: the quest count is pinned to the top-right corner of « Le mur des
   // quêtes », not floating on the colonnade between two places.
   const badge = page.getByTestId('camp-quests-badge');
   await expect(badge).toHaveText('1');

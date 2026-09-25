@@ -35,10 +35,10 @@ test('the hub path leads to the temple; the Pythia greets; the exit sign leads b
   await expect(page).toHaveURL(/\/temple$/);
   await expectScene(page, 'delphi');
   await expect(page.locator('.stage-plaque')).toHaveText('Le temple de Delphes');
-  await expect(page.getByTestId('dialogue-text')).toHaveText("Approche, héros. Trois rouleaux scellés t'attendent cette semaine.");
+  await expect(page.getByTestId('dialogue-text')).toHaveText("Approche. Trois rouleaux scellés t'attendent cette semaine.");
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('delphi-pythia')).toHaveClass(/is-new/);
-  await expect(page.getByTestId('delphi-pythia')).toContainText('Trois rouleaux scellés');
+  await expect(page.getByTestId('delphi-pythia')).toContainText('Trois rouleaux à ouvrir');
   await tap(page.getByTestId('scene-exit'), testInfo);
   await expectCamp(page);
 });
@@ -50,7 +50,7 @@ test('the Pythia opens the three scrolls; « Ce que prépare ta classe »; seal,
   await tap(page.getByTestId('delphi-pythia'), testInfo);
   await expect(page).toHaveURL(/\/delphes$/);
   const oracle = page.getByTestId('overlay-pythia');
-  await expect(oracle.getByRole('heading', { name: "L'Oracle de Delphes" })).toBeVisible();
+  await expect(oracle.getByRole('heading', { name: 'La Pythie' })).toBeVisible();
   await expect(oracle.getByTestId('scroll-open')).toHaveCount(3);
   await expect(oracle.getByTestId('scroll-ecole')).toContainText('Ce que prépare ta classe');
   await expect(oracle.getByTestId('scroll-ecole')).not.toContainText("Ce qui arrive à l'école");
@@ -83,7 +83,7 @@ test('the tablets open the quest board; a launched quest shows on the tablets ba
   await tap(page.getByTestId('delphi-tablets'), testInfo);
   await expect(page).toHaveURL(/\/quetes$/);
   const board = page.getByTestId('overlay-tablets');
-  await expect(board.getByRole('heading', { name: 'Le tableau des quêtes' })).toBeVisible();
+  await expect(board.getByRole('heading', { name: 'Le mur des quêtes' })).toBeVisible();
   await expect(board.getByTestId('board-boss')).toBeVisible();
   await board.getByTestId('board-challenge-echo').getByRole('button', { name: 'Lancer une quête' }).click();
   await expect(board.getByTestId('board-challenge-echo')).toContainText('Quête en cours');
@@ -142,6 +142,10 @@ test('places and labels sit in the safe zone, labels never cover another place',
     await openTemple(page, id);
     await expectInSafeZone(page, 'delphi', PLACES);
     expect(await labelOverlaps(page, 'delphi'), `${size.width}x${size.height}`).toEqual([]);
+    // Playability #16: the tablets' plaque hangs on the wall above them, never on the altar below
+    // (expectInSafeZone keeps it below the HUD band).
+    const t = await measureBoxes(page, { wall: '[data-testid="delphi-tablets"]', label: '[data-testid="delphi-tablets"] .hotspot-label' });
+    expect(t.label!.y + t.label!.height, `tablets plaque above the wall at ${size.width}x${size.height}`).toBeLessThanOrEqual(t.wall!.y + 0.5);
   }
 });
 

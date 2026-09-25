@@ -35,7 +35,7 @@ test('the hub leads into the tent; its plaque echoes the hub label; the exit sig
   await expect(page.getByTestId('dialogue-text')).toContainText('Hou !');
   await page.getByTestId('dialogue-skip').click();
   for (const p of PLACES) await expect(page.getByTestId(p)).toBeVisible();
-  await expect(page.getByTestId('library-desk')).toContainText('Taper ou coller un texte');
+  await expect(page.getByTestId('library-desk')).toContainText('Écrire un nouveau parchemin');
   await expect(page.getByTestId('library-desk').locator('img.hotspot-icon')).toHaveAttribute('src', '/art/icons/add-text.webp');
   await tap(page.getByTestId('scene-exit'), testInfo);
   await expectCamp(page);
@@ -45,13 +45,13 @@ test('the hub leads into the tent; its plaque echoes the hub label; the exit sig
   await expectCamp(page);
 });
 
-test('the shelves open « Les Parchemins » as an overlay; seal, Escape and Back close it', async ({ page, request }, testInfo) => {
+test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back close it', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openTent(page, id);
   await tap(page.getByTestId('library-shelves'), testInfo);
   await expect(page).toHaveURL(/\/parchemins$/);
   const shelves = page.getByTestId('overlay-shelves');
-  await expect(shelves.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await expect(shelves.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await expect(page.getByTestId('scene-library')).toHaveAttribute('inert', '');
   await expect(shelves.locator('[data-testid="text-card"]').first()).toBeVisible();
   // Parity: the level filter and the « Tous » sections.
@@ -97,9 +97,25 @@ test('places and labels sit in the safe zone, labels never cover another place',
   for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }]) {
     await page.setViewportSize(size);
     await openTent(page, id);
-    await expectInSafeZone(page, 'library', PLACES);
+    await expectInSafeZone(page, 'library', [...PLACES, 'library-owl'], ['library-owl']);
     expect(await labelOverlaps(page, 'library'), `${size.width}x${size.height}`).toEqual([]);
   }
+});
+
+test('the owl is a speaker you can tap: she replays one of her hints', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await openTent(page, id);
+  await page.getByTestId('dialogue-skip').click();
+  await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
+  const owl = page.getByTestId('library-owl');
+  await expect(owl).toHaveAccessibleName("La chouette d'Athéna");
+  await expect(owl.locator('.hotspot-label')).toHaveCount(0);
+  await tap(owl, testInfo);
+  await expect(page.getByTestId('dialogue-text')).toContainText('Hou !');
+  // The other places still open (one-tap guard released for a null target).
+  await page.getByTestId('dialogue-skip').click();
+  await tap(page.getByTestId('library-shelves'), testInfo);
+  await expect(page.getByTestId('overlay-shelves')).toBeVisible();
 });
 
 test('the exit sign never overlaps the dialogue dock', async ({ page, request }, testInfo) => {
@@ -135,11 +151,11 @@ test('opening and closing a panel never remounts the tent: no replayed entry zoo
   expect(await page.evaluate(([a, b]) => a === b, [before, afterClose])).toBe(true);
 });
 
-test('library: ?debug outlines the four objects; no red; rotate screen', async ({ page, request }, testInfo) => {
+test('library: ?debug outlines the four objects and the owl; no red; rotate screen', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.goto(`/#/p/${id}/tente-parchemins?debug`);
   await expectScene(page, 'library');
-  await expect(page.getByTestId('hotspot-debug').locator('svg.outline')).toHaveCount(4);
+  await expect(page.getByTestId('hotspot-debug').locator('svg.outline')).toHaveCount(5);
   expect(await redScan(page)).toEqual([]);
   await page.goto(`/#/p/${id}/parchemins`);
   await expect(page.getByTestId('overlay-shelves')).toBeVisible();
@@ -157,7 +173,7 @@ test('the desk writes a new parchment; saving lands on the shelves and Back neve
   await tap(page.getByTestId('library-desk'), testInfo);
   await expect(page).toHaveURL(/\/texts\/new$/);
   const desk = page.getByTestId('overlay-desk');
-  await expect(desk.getByRole('heading', { name: 'Nouveau parchemin' })).toBeVisible();
+  await expect(desk.getByRole('heading', { name: 'Le pupitre' })).toBeVisible();
   const title = uniqueName(`Pupitre ${testInfo.project.name}`);
   await page.getByLabel('Titre').fill(title);
   await page.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
@@ -209,7 +225,7 @@ test('the lens opens the three-step scan as a wide overlay', async ({ page, requ
   await tap(page.getByTestId('library-lens'), testInfo);
   await expect(page).toHaveURL(/\/texts\/scan$/);
   const lens = page.getByTestId('overlay-lens');
-  await expect(lens.getByRole('heading', { name: 'Scanner une feuille' })).toBeVisible();
+  await expect(lens.getByRole('heading', { name: 'La lentille de bronze' })).toBeVisible();
   await expect(page.getByTestId('scan-input')).toBeAttached();
   await expect(page.getByTestId('btn-scan-read')).toBeDisabled();
   await expect(lens.locator('img.capture-icon')).toHaveAttribute('src', '/art/icons/add-scan.webp');
@@ -231,7 +247,7 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   await tap(page.getByTestId('library-portal'), testInfo);
   await expect(page).toHaveURL(/\/alexandria$/);
   const portal = page.getByTestId('overlay-portal');
-  await expect(portal.getByRole('heading', { name: "Bibliothèque d'Alexandrie" })).toBeVisible();
+  await expect(portal.getByRole('heading', { name: "Le portail d'Alexandrie" })).toBeVisible();
   await expect(portal.getByTestId('work-card').first()).toBeVisible();
   expect(await portal.getByTestId('work-card').count()).toBeGreaterThanOrEqual(10);
   const workId = await portal.getByTestId('work-card').first().getAttribute('data-work-id');

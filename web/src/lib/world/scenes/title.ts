@@ -8,7 +8,7 @@ import { TITLE_SHAPES } from './title.shapes';
 const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
 
 export const TITLE_HOTSPOTS: HotspotDef[] = [
-  { id: 'gate', label: 'Entrer', target: null, shape: TITLE_SHAPES.gate, labelPos: 'above', leader: true, state: () => st({ isNew: true }) },
+  { id: 'gate', label: 'Entrer', target: null, shape: TITLE_SHAPES.gate, labelPos: 'above', leader: true, grand: true, state: () => st({ isNew: true }) },
 ];
 
 export const TITLE_SCENE: SceneDef = {

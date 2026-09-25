@@ -18,7 +18,7 @@ export const DELPHI_HOTSPOTS: HotspotDef[] = [
     leader: true,
     state: ({ camp }) => {
       if (!camp) return st();
-      return camp.oracle.status === 'sealed' ? st({ isNew: true, caption: 'Trois rouleaux scellés' }) : st({ caption: 'Quête en cours' });
+      return camp.oracle.status === 'sealed' ? st({ isNew: true, caption: 'Trois rouleaux à ouvrir' }) : st({ caption: 'Quête en cours' });
     },
   },
   {
@@ -26,7 +26,8 @@ export const DELPHI_HOTSPOTS: HotspotDef[] = [
     label: 'Le mur des quêtes',
     target: 'quests',
     shape: DELPHI_SHAPES.tablets,
-    labelPos: 'below',
+    // Playability #16: the plaque hangs on the wall above the tablets, never on the altar below.
+    labelPos: 'above',
     leader: true,
     state: ({ camp }) => {
       const n = camp?.quests.filter((q) => q.status === 'active').length ?? 0;
@@ -63,7 +64,7 @@ export const DELPHI_SCENE: SceneDef = {
 export function pythiaGreeting(camp: CampResponse): DialogueLine[] {
   const text =
     camp.oracle.status === 'sealed'
-      ? "Approche, héros. Trois rouleaux scellés t'attendent cette semaine."
+      ? "Approche. Trois rouleaux scellés t'attendent cette semaine."
       : "La quête de la semaine est choisie. L'Oracle parlera de nouveau lundi.";
   return [{ speaker: 'pythia', name: 'La Pythie', portrait: ART.characters.pythia, text }];
 }

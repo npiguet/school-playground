@@ -39,7 +39,7 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
     await createProfile(page, uniqueName('Alex'), '9H');
     await closeOverlay(page);
     await page.getByTestId('library-portal').click();
-    await expect(page.getByRole('heading', { name: "Bibliothèque d'Alexandrie" })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "Le portail d'Alexandrie" })).toBeVisible();
     // Pre-existing flake, found while stress-testing this spec (fix round 3): a bare `.count()` is
     // a one-shot DOM read, not an auto-retrying assertion - under a loaded shared server, the
     // works list's own fetch (a second, separate round trip from the one the heading above waits

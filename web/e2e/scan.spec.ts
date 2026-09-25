@@ -26,7 +26,7 @@ test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
   await page.getByTestId('scan-title').fill(title);
   await page.getByTestId('scan-due-date').fill('2035-06-30');
   await page.getByTestId('btn-scan-save').click();
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   const card = page.locator('[data-testid="text-card"]', { hasText: title });
   await expect(card).toContainText('Scanné');
   await expect(card.getByTestId('chip-prophecy')).toContainText('30.06.2035');

@@ -27,7 +27,7 @@
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
   import { closePanel, go, hotspotHref } from '../lib/scene/panelNav';
-  import { sceneHref, type PanelId } from '../lib/world/places';
+  import { OVERLAY_TITLES, sceneHref, type PanelId } from '../lib/world/places';
   import type { Profile } from '../lib/types';
 
   // `panel` comes from placeFor, like every other place (final review M2).
@@ -113,7 +113,7 @@
 <!-- Onboarding takes precedence (fix wave 3): a deep link to ?panel=heros for a hero who hasn't
      been welcomed yet opens the panel only once the Muses' card has closed. -->
 {#if panel === 'heros' && profile.settings.onboarded}
-  <Overlay variant="scroll" title="Ton héros" testId="overlay-heros" onClose={closeHeroPanel} returnFocus={'[data-testid="hud-hero"]'}>
+  <Overlay variant="scroll" title={OVERLAY_TITLES.heros} testId="overlay-heros" onClose={closeHeroPanel} returnFocus={'[data-testid="hud-hero"]'}>
     <div class="hero-panel">
       <Avatar avatar={profile.avatar} size={72} ring />
       <p class="hero-name">{profile.name}</p>

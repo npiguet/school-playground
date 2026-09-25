@@ -334,7 +334,7 @@ export async function expectScene(page: Page, sceneId: string) {
 export async function openShelves(page: Page) {
   await expectScene(page, 'library');
   await page.getByTestId('library-shelves').click();
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
 }
 
 // Closes the topmost overlay (wax seal) and waits until only it has left: closing a work overlay
@@ -386,11 +386,13 @@ export async function expectNoOverlap(page: Page) {
 // Review round 1 (Task 9): a label with a caption (a new hero, so the glow shows) is taller than a
 // bare one, so its own vertical position is checked too - below the HUD band, and clear of the
 // DialogueBox's dock (a plaque behind the narrator card would be unreadable while it's open).
-export async function expectInSafeZone(page: Page, sceneId: string, testIds: string[]) {
+// `labelless`: hotspots with no plaque (the library owl, playability #23), measured without their
+// label checks.
+export async function expectInSafeZone(page: Page, sceneId: string, testIds: string[], labelless: string[] = []) {
   const sel: Record<string, string> = { art: `[data-testid="scene-${sceneId}"] .art` };
   for (const id of testIds) {
     sel[id] = `[data-testid="${id}"]`;
-    sel[`${id}-label`] = `[data-testid="${id}"] .hotspot-label`;
+    if (!labelless.includes(id)) sel[`${id}-label`] = `[data-testid="${id}"] .hotspot-label`;
   }
   const b = await measureBoxes(page, sel);
   const art = b.art;
@@ -407,12 +409,14 @@ export async function expectInSafeZone(page: Page, sceneId: string, testIds: str
   for (const id of testIds) {
     const h = b[id];
     const l = b[`${id}-label`];
-    if (!h || !l) throw new Error(`${id} or its label did not render`);
+    const plaque = !labelless.includes(id);
+    if (!h || (plaque && !l)) throw new Error(`${id} or its label did not render`);
     expect(h.x, `${id} left edge in the safe zone`).toBeGreaterThanOrEqual(zone.left - EPS);
     expect(h.x + h.width, `${id} right edge in the safe zone`).toBeLessThanOrEqual(zone.right + EPS);
     expect(h.y, `${id} top edge below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);
     expect(h.y + h.height, `${id} bottom edge in the art`).toBeLessThanOrEqual(zone.bottom + EPS);
     expect(Math.min(h.width, h.height), `${id} is a 48 px touch target`).toBeGreaterThanOrEqual(48);
+    if (!plaque) continue;
     expect(l.x, `${id} label left edge in the safe zone`).toBeGreaterThanOrEqual(Math.max(0, zone.left - EPS));
     expect(l.x + l.width, `${id} label right edge in the safe zone`).toBeLessThanOrEqual(Math.min(vw, zone.right + EPS));
     expect(l.y, `${id} label below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);

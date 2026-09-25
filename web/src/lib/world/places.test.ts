@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { matchRoute } from '../routes';
-import { placeFor, sceneHref } from './places';
+import { OVERLAY_TITLES, placeFor, sceneHref } from './places';
+import { LIBRARY_SCENE } from './scenes/library';
+import { DELPHI_SCENE } from './scenes/delphi';
+import { CAMP_HOTSPOTS } from './scenes/camp';
 
 const at = (hash: string) => placeFor(matchRoute(hash));
 
@@ -43,5 +46,32 @@ describe('places (UI3 Ruling A1: every legacy route is its place plus an overlay
     expect(sceneHref('camp', 3)).toBe('#/p/3/camp');
     expect(sceneHref('library', 3)).toBe('#/p/3/tente-parchemins');
     expect(sceneHref('delphi', 3)).toBe('#/p/3/temple');
+  });
+
+  it('names every overlay once, echoing the plaque that opens it (carry #12, playability #15, Ruling W6)', () => {
+    expect(OVERLAY_TITLES).toEqual({
+      tous: 'Tous les héros',
+      nouveau: 'Forge ton bouclier',
+      heros: 'Ton héros',
+      etageres: 'Tes parchemins',
+      pupitre: 'Le pupitre',
+      loupe: 'La lentille de bronze',
+      portail: "Le portail d'Alexandrie",
+      oeuvre: "Le portail d'Alexandrie",
+      pythie: 'La Pythie',
+      tablettes: 'Le mur des quêtes',
+    });
+    for (const scene of [LIBRARY_SCENE, DELPHI_SCENE]) {
+      for (const h of scene.hotspots) {
+        if (!h.target || !h.label) continue;
+        const view = placeFor({ name: h.target, params: { profileId: '1', workId: 'w', ...h.params }, query: h.query ?? {} });
+        const title = OVERLAY_TITLES[view!.panel!];
+        expect(title.startsWith(h.label), `${scene.id}/${h.id}: « ${h.label} » opens « ${title} »`).toBe(true);
+      }
+    }
+  });
+
+  it('calls the quest wall the same on the hub (Ruling W13)', () => {
+    expect(CAMP_HOTSPOTS.find((h) => h.id === 'quests')!.label).toBe(OVERLAY_TITLES.tablettes);
   });
 });

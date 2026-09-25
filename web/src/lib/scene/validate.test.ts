@@ -50,4 +50,17 @@ describe('validateScene', () => {
     };
     expect(validateScene(scene)).toEqual(['duplicate hotspot id: a', 'layer l: position/scale out of range']);
   });
+  it('asks a hotspot without a plaque for an accessible name (playability #23)', () => {
+    const scene: SceneDef = {
+      id: 'library',
+      title: 'La tente',
+      background: '/x.webp',
+      layers: [],
+      hotspots: [{ ...def('owl', e(30, 50)), label: '' }, { ...def('cat', e(60, 50)), label: '', ariaLabel: 'Le chat' }],
+      ambience: { particles: 'none', music: null },
+      narrator: { enter: null, firstVisit: null },
+      preload: [],
+    };
+    expect(validateScene(scene)).toEqual(['owl: a hotspot without a label needs an ariaLabel']);
+  });
 });

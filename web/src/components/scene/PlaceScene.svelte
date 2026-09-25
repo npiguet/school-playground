@@ -66,6 +66,12 @@
     greeting = lines;
   });
 
+  /** A line the screen asks for on a tap (the library owl, playability #23): shown in the same box
+   *  as the greeting, replacing whatever it was saying. */
+  export function say(lines: DialogueLine[]) {
+    greeting = lines;
+  }
+
   const openHero = () => go(heroPanelHref(profile.id), 'panel');
 </script>
 
@@ -87,7 +93,10 @@
     {/if}
   {/if}
   {#if greeting}
-    <DialogueBox lines={greeting} onDone={() => (greeting = null)} />
+    <!-- Keyed: a new line (the owl tapped again) restarts the box from its first line. -->
+    {#key greeting}
+      <DialogueBox lines={greeting} onDone={() => (greeting = null)} />
+    {/key}
   {/if}
   {#if showExit}
     <SceneExit profileId={profile.id} />

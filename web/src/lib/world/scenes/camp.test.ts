@@ -69,7 +69,8 @@ describe('camp hub scene', () => {
   });
 
   it('marks the sealed Oracle as new, counts active quests, counts neutralised tricks', () => {
-    expect(state('oracle', camp())).toMatchObject({ isNew: true, caption: 'Trois rouleaux scellés' });
+    expect(state('oracle', camp())).toMatchObject({ isNew: true, caption: 'Trois rouleaux à ouvrir' });
+    expect(CAMP_HOTSPOTS.find((h) => h.id === 'quests')!.label).toBe('Le mur des quêtes');
     expect(state('oracle', camp({ oracle: { week: 'w', status: 'chosen', reward_id: null } }))).toMatchObject({
       isNew: false,
       caption: 'Quête en cours',

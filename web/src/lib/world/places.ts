@@ -18,6 +18,21 @@ export type PanelId =
   | 'pythie'
   | 'tablettes';
 
+/** Every overlay's title (Ruling W6): a place hotspot's plaque starts its overlay's title, so the
+ *  player opens what she tapped (carry #12, playability #15). One table, read by every place. */
+export const OVERLAY_TITLES: Record<PanelId, string> = {
+  tous: 'Tous les héros',
+  nouveau: 'Forge ton bouclier',
+  heros: 'Ton héros',
+  etageres: 'Tes parchemins',
+  pupitre: 'Le pupitre',
+  loupe: 'La lentille de bronze',
+  portail: "Le portail d'Alexandrie",
+  oeuvre: "Le portail d'Alexandrie",
+  pythie: 'La Pythie',
+  tablettes: 'Le mur des quêtes',
+};
+
 export interface PlaceView {
   place: PlaceId;
   panel: PanelId | null;

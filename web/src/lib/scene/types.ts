@@ -75,8 +75,13 @@ export const IDLE_HOTSPOT: HotspotState = { visible: true, locked: false, isNew:
 
 export interface HotspotDef {
   id: string;
-  /** Place name shown on the label (Cinzel caps). */
+  /** Place name shown on the plaque (Cinzel caps). '' for a hotspot with no plaque (a character you
+   *  can tap, e.g. the library owl): it then needs `ariaLabel`. */
   label: string;
+  /** The accessible name when `label` is '' (immersion wave, playability #23). */
+  ariaLabel?: string;
+  /** A bigger plaque for a scene's single call to action (the title's « Entrer », playability #11). */
+  grand?: boolean;
   /** Route opened on tap; null when the scene screen handles the tap itself (the title's gate).
    *  Contract: a null-target hotspot's own `onActivate` handler must not navigate away from the
    *  scene. `Hotspot.svelte` never gets a route-change effect to release its one-tap-at-a-time

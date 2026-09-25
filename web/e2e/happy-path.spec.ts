@@ -20,7 +20,7 @@ test('create profile → add text → dictation → proofreading → results →
   await page.getByLabel('Titre').fill('Les fées ' + name);
   await page.getByLabel('Texte').fill(REF);
   await page.getByRole('button', { name: /Sauvegarder/ }).click();
-  await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await page.locator('[data-testid="text-card"]', { hasText: 'Les fées ' + name }).click();
 
   // Dictation, pace 1 (two sentences)

@@ -45,6 +45,10 @@ test('« Entrer » opens the gate onto the shields, once per page load', async (
   const gate = page.getByTestId('title-gate');
   await expect(gate).toHaveAccessibleName(/Entrer/);
   await expectInSafeZone(page, 'title', ['title-gate']);
+  // Playability #11: the scene's one next step wears the gold rim and the grand plaque.
+  const label = page.getByTestId('title-gate').locator('.hotspot-label');
+  await expect(label).toHaveCSS('border-top-color', 'rgb(241, 220, 154)');
+  expect(await label.evaluate((e) => parseFloat(getComputedStyle(e.querySelector('.hotspot-name')!).fontSize))).toBe(20);
   await expect(page.getByTestId('title-shields')).toHaveCount(0);
   if (testInfo.project.name === 'ipad') await gate.tap();
   else await gate.click();

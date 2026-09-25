@@ -1,7 +1,8 @@
 <script lang="ts">
   // The library tent (scenes UI spec §3): the shelves hold her texts, the desk, the lens and the
   // portal bring new ones in. Every object opens its legacy route as an overlay on this scene (UI3
-  // Ruling A1): #/p/:id/parchemins = the shelves. Athena's owl greets once per page load (A9).
+  // Ruling A1): #/p/:id/parchemins = the shelves. Athena's owl greets once per page load (A9), and
+  // speaks one of her hints again whenever she is tapped (immersion wave, playability #23).
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
@@ -10,12 +11,12 @@
   import LensPanel from '../components/places/library/LensPanel.svelte';
   import PortalPanel from '../components/places/library/PortalPanel.svelte';
   import PortalWorkPanel from '../components/places/library/PortalWorkPanel.svelte';
-  import { LIBRARY_SCENE, owlGreeting } from '../lib/world/scenes/library';
+  import { LIBRARY_SCENE, owlGreeting, owlHint } from '../lib/world/scenes/library';
   import { VOICES } from '../lib/world/voices';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
   import { href } from '../lib/routes';
-  import { sceneHref, type PanelId } from '../lib/world/places';
+  import { OVERLAY_TITLES, sceneHref, type PanelId } from '../lib/world/places';
   import type { HotspotDef } from '../lib/scene/types';
   import type { Profile } from '../lib/types';
 
@@ -27,7 +28,15 @@
   // Athena's owl needs no camp data to speak.
   const greet = () => owlGreeting();
 
-  const activate = (def: HotspotDef) => openHotspot(def, profile.id);
+  let place: PlaceScene | undefined = $state();
+  // Never the same hint twice in a row (owlHint).
+  let lastHint = -1;
+  function speak() {
+    const { line, index } = owlHint(lastHint);
+    lastHint = index;
+    place?.say([line]);
+  }
+  const activate = (def: HotspotDef) => (def.id === 'owl' ? speak() : openHotspot(def, profile.id));
   const close = () => closePanel(sceneHref('library', profile.id));
   // Final review M9: the seal on a work steps back one overlay, onto the works, exactly like
   // « Toutes les œuvres » (a tagged entry goes back to the portal, a deep link is replaced by it).
@@ -55,7 +64,7 @@
   });
 </script>
 
-<PlaceScene {profile} scene={LIBRARY_SCENE} bind:debug {greet}>
+<PlaceScene bind:this={place} {profile} scene={LIBRARY_SCENE} bind:debug {greet}>
   {#snippet children(ctx)}
     {#each LIBRARY_SCENE.hotspots as def (def.id)}
       <Hotspot {def} status={def.state(ctx)} sceneId="library" onActivate={activate} />
@@ -67,7 +76,7 @@
   <Overlay
     variant="table"
     size="wide"
-    title="Les Parchemins"
+    title={OVERLAY_TITLES.etageres}
     testId="overlay-shelves"
     onClose={close}
     returnFocus={focusOn('shelves')}
@@ -76,22 +85,22 @@
     <ShelvesPanel {profile} />
   </Overlay>
 {:else if panel === 'pupitre'}
-  <Overlay variant="scroll" title="Nouveau parchemin" testId="overlay-desk" onClose={close} returnFocus={focusOn('desk')}>
+  <Overlay variant="scroll" title={OVERLAY_TITLES.pupitre} testId="overlay-desk" onClose={close} returnFocus={focusOn('desk')}>
     <DeskPanel {profile} />
   </Overlay>
 {:else if panel === 'loupe'}
-  <Overlay variant="scroll" size="wide" title="Scanner une feuille" testId="overlay-lens" onClose={close} returnFocus={focusOn('lens')}>
+  <Overlay variant="scroll" size="wide" title={OVERLAY_TITLES.loupe} testId="overlay-lens" onClose={close} returnFocus={focusOn('lens')}>
     <LensPanel {profile} />
   </Overlay>
 {:else if panel === 'portail'}
-  <Overlay variant="scroll" size="wide" title="Bibliothèque d'Alexandrie" testId="overlay-portal" onClose={close} returnFocus={focusOn('portal')}>
+  <Overlay variant="scroll" size="wide" title={OVERLAY_TITLES.portail} testId="overlay-portal" onClose={close} returnFocus={focusOn('portal')}>
     <PortalPanel {profile} focusWorkId={returningFromWorkId} />
   </Overlay>
 {:else if panel === 'oeuvre'}
   <Overlay
     variant="scroll"
     size="wide"
-    title="Bibliothèque d'Alexandrie"
+    title={OVERLAY_TITLES.oeuvre}
     testId="overlay-portal-work"
     onClose={closeWork}
     returnFocus={`[data-testid="work-card"][data-work-id="${lastWorkId}"]`}

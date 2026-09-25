@@ -35,6 +35,7 @@ export function validateScene(scene: SceneDef): string[] {
   const ids = scene.hotspots.map((h) => h.id);
   for (const d of new Set(ids.filter((id, i) => ids.indexOf(id) !== i))) problems.push(`duplicate hotspot id: ${d}`);
   problems.push(...validateShapes(Object.fromEntries(scene.hotspots.map((h) => [h.id, h.shape]))));
+  for (const h of scene.hotspots) if (!h.label && !h.ariaLabel) problems.push(`${h.id}: a hotspot without a label needs an ariaLabel`);
   for (const l of scene.layers) {
     if (l.scale <= 0 || l.x < 0 || l.x > 100 || l.y < 0 || l.y > 100) {
       problems.push(`layer ${l.id}: position/scale out of range`);

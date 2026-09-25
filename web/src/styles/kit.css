@@ -64,7 +64,8 @@
 }
 
 /* No HUD on the stage (the title gate): overlays centre in the whole screen, below the safe area
-   only (review fix round 1 #7). SceneStage marks a stage that renders a HUD with `has-hud`. */
+   only (review fix round 1 #7). SceneStage marks a stage that renders a HUD with `has-hud`.
+   Relies on two .scene-stage never coexisting (there is no scene-level crossfade). */
 :root:not(:has(.scene-stage.has-hud)) {
   --hud-band: env(safe-area-inset-top);
 }

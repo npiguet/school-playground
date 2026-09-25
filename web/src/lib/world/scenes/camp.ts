@@ -79,12 +79,12 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     state: ({ camp }) => {
       if (!camp) return st();
       const sealed = camp.oracle.status === 'sealed';
-      return st({ isNew: sealed, caption: sealed ? 'Trois rouleaux scellés' : 'Quête en cours' });
+      return st({ isNew: sealed, caption: sealed ? 'Trois rouleaux à ouvrir' : 'Quête en cours' });
     },
   },
   {
     id: 'quests',
-    label: 'Le tableau des quêtes',
+    label: 'Le mur des quêtes',
     target: 'quests',
     shape: CAMP_SHAPES.quests,
     labelPos: 'above',

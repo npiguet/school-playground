@@ -17,7 +17,7 @@
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
   import { api, ApiError } from '../lib/api';
   import { href } from '../lib/routes';
-  import type { PanelId } from '../lib/world/places';
+  import { OVERLAY_TITLES, type PanelId } from '../lib/world/places';
   import type { Profile } from '../lib/types';
 
   let { panel }: { panel: PanelId | null } = $props();
@@ -113,11 +113,11 @@
 </SceneStage>
 
 {#if panel === 'nouveau'}
-  <Overlay variant="scroll" title="Nouveau héros" testId="overlay-hero-new" onClose={closeToTitle} returnFocus={'[data-testid="title-new"]'}>
+  <Overlay variant="scroll" title={OVERLAY_TITLES.nouveau} testId="overlay-hero-new" onClose={closeToTitle} returnFocus={'[data-testid="title-new"]'}>
     <HeroForm />
   </Overlay>
 {:else if panel === 'tous'}
-  <Overlay variant="scroll" title="Tous les héros" testId="overlay-heroes" onClose={closeToTitle} returnFocus={'[data-testid="title-all"]'}>
+  <Overlay variant="scroll" title={OVERLAY_TITLES.tous} testId="overlay-heroes" onClose={closeToTitle} returnFocus={'[data-testid="title-all"]'}>
     <ul class="hero-list">
       {#each byName as p (p.id)}
         <li>

@@ -31,7 +31,8 @@
   const rt = useSceneRuntime();
   const box = $derived(shapeBox(def.shape));
   const inked = $derived(def.labelPos === 'on');
-  const pinned = $derived(def.leader === true && !inked);
+  // A label-less hotspot (the library owl) has no plaque, so nothing to pin.
+  const pinned = $derived(def.leader === true && !inked && def.label !== '');
   let flashing = $state(false);
   // Layout width of the plaque (offsetWidth ignores the scene's zoom-in transform), so the label
   // can be clamped inside the safe zone (final review I4, playability #1).
@@ -94,21 +95,25 @@
     class:locked={status.locked}
     class:flash={flashing}
     class:pinned
+    class:grand={def.grand === true}
     data-testid={hotspotTestId(sceneId, def.id)}
     aria-disabled={status.locked ? 'true' : undefined}
+    aria-label={def.ariaLabel}
     style="left:{box.x + box.w / 2}%;top:{box.y + box.h / 2}%;width:{box.w}%;height:{box.h}%"
     {onclick}
   >
     <span class="hotspot-glow" style="clip-path:{clipPath(def.shape)}" aria-hidden="true"></span>
     {#if pinned}<span class="hotspot-leader" aria-hidden="true"></span>{/if}
-    <span class="hotspot-label" style="left:calc(50% + {shift}px)" bind:offsetWidth={labelW}>
-      <span class="hotspot-name">
-        {#if def.icon}<img class="hotspot-icon" src={def.icon} alt="" draggable="false" />{/if}{def.label}
+    {#if def.label}
+      <span class="hotspot-label" style="left:calc(50% + {shift}px)" bind:offsetWidth={labelW}>
+        <span class="hotspot-name">
+          {#if def.icon}<img class="hotspot-icon" src={def.icon} alt="" draggable="false" />{/if}{def.label}
+        </span>
+        {#if status.caption}<span class="hotspot-caption">{status.caption}</span>{/if}
+        <!-- Playability #5: a badge lives on the plaque it counts for, never on the shape. -->
+        {#if status.badge !== null}<span class="hotspot-badge" data-testid="{hotspotTestId(sceneId, def.id)}-badge">{status.badge}</span>{/if}
       </span>
-      {#if status.caption}<span class="hotspot-caption">{status.caption}</span>{/if}
-      <!-- Playability #5: a badge lives on the plaque it counts for, never on the shape. -->
-      {#if status.badge !== null}<span class="hotspot-badge" data-testid="{hotspotTestId(sceneId, def.id)}-badge">{status.badge}</span>{/if}
-    </span>
+    {/if}
     {#if status.locked}<span class="sr-only">(fermé pour l'instant)</span>{/if}
   </button>
 {/if}
@@ -147,6 +152,33 @@
   }
   .hotspot.bob .hotspot-glow {
     animation: kit-glow 3.2s ease-in-out infinite;
+  }
+  /* Playability #11: the next step is visible on a bright painting - a gold-rimmed plaque with a
+     warm halo, and a stronger pulse on the shape. Under reduced motion (no .bob) the gold rim and
+     the brighter static glow stay. After `.hotspot.bob .hotspot-glow` (same specificity). */
+  .hotspot.is-new .hotspot-label {
+    border-color: var(--gold-light);
+    box-shadow:
+      0 0 0 2px rgba(241, 220, 154, 0.6),
+      0 0 18px rgba(255, 220, 140, 0.75),
+      0 3px 8px rgba(0, 0, 0, 0.35);
+  }
+  .hotspot.is-new .hotspot-glow {
+    opacity: 0.65;
+  }
+  .hotspot.bob.is-new .hotspot-glow {
+    animation: kit-glow-strong 2.4s ease-in-out infinite;
+  }
+  .hotspot.is-new:hover .hotspot-glow,
+  .hotspot.is-new:focus-visible .hotspot-glow {
+    opacity: 0.85;
+  }
+  /* The title's « Entrer »: the scene's one call to action. */
+  .hotspot.grand .hotspot-label {
+    padding: 8px 20px;
+  }
+  .hotspot.grand .hotspot-name {
+    font-size: 20px;
   }
   .hotspot.bob .hotspot-label {
     animation: kit-label-bob 3.2s ease-in-out infinite;

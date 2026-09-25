@@ -6,6 +6,9 @@
 // (docs/art/scenes.md: desk box x 33-49, y 36-71) - checked visually with `?debug` at both sizes.
 // Four objects share ~60 % of the width, so the plaques are short (« Le pupitre »...) and
 // staggered: shelves and desk above, lens and portal below.
+// Immersion wave (playability #23): the owl is a plaque-less hotspot over her cut-out (OWL_LAYER:
+// x 76-84, y 44-58). The ellipse (x 76.7-84.3, y 44-58) stays clear of the portal box (x <= 76)
+// and inside the safe zone (x <= 87.5).
 // Task 9 review round 1: shelves originally started at y 19 - only 5 points clear of the HUD band
 // (y 14). Its label is pinned (`leader: true`, all four are), which needs 16 px of gap plus its own
 // ~55 px (name + caption, a new hero always shows one): at 1280x720 that's ~10 % of the art height,
@@ -18,4 +21,5 @@ export const LIBRARY_SHAPES = {
   desk: { kind: 'polygon', points: [[33.5, 45], [40.5, 40], [46, 43], [46, 64], [33.5, 64]] },
   lens: { kind: 'ellipse', cx: 52.5, cy: 49.5, rx: 5.5, ry: 16.5 },
   portal: { kind: 'polygon', points: [[61, 64], [61, 31], [64, 25], [68.5, 22], [73, 25], [76, 31], [76, 64]] },
+  owl: { kind: 'ellipse', cx: 80.5, cy: 51, rx: 3.8, ry: 7 },
 } satisfies ShapeMap;

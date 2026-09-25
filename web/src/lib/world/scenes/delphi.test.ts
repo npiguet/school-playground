@@ -31,7 +31,7 @@ describe('Delphi (UI3 Ruling A1, A10)', () => {
   });
 
   it('glows on the Pythia while the week is sealed; counts active quests on the tablets', () => {
-    expect(state('pythia', camp())).toMatchObject({ isNew: true, caption: 'Trois rouleaux scellés' });
+    expect(state('pythia', camp())).toMatchObject({ isNew: true, caption: 'Trois rouleaux à ouvrir' });
     expect(state('pythia', camp({ oracle: { week: 'w', status: 'chosen', reward_id: null } }))).toMatchObject({ isNew: false, caption: 'Quête en cours' });
     const quests = [{ status: 'active' }, { status: 'active' }, { status: 'done' }] as QuestOut[];
     expect(state('tablets', camp({ quests })).badge).toBe(2);
@@ -39,11 +39,15 @@ describe('Delphi (UI3 Ruling A1, A10)', () => {
   });
 
   it('lets the Pythia greet with one static line', () => {
-    expect(pythiaGreeting(camp()).map((l) => l.text)).toEqual(["Approche, héros. Trois rouleaux scellés t'attendent cette semaine."]);
+    expect(pythiaGreeting(camp()).map((l) => l.text)).toEqual(["Approche. Trois rouleaux scellés t'attendent cette semaine."]);
     expect(pythiaGreeting(camp({ oracle: { week: 'w', status: 'chosen', reward_id: null } })).map((l) => l.text)).toEqual([
       "La quête de la semaine est choisie. L'Oracle parlera de nouveau lundi.",
     ]);
     expect(pythiaGreeting(camp())[0]).toMatchObject({ speaker: 'pythia', name: 'La Pythie', portrait: '/art/characters/pythia_cut.webp' });
+  });
+
+  it('hangs the tablets plaque on the wall, not on the altar (playability #16)', () => {
+    expect(DELPHI_HOTSPOTS.find((h) => h.id === 'tablets')!.labelPos).toBe('above');
   });
 
   it('relabels the « école » scroll client-side (carry #13)', () => {

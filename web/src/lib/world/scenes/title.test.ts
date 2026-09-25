@@ -10,6 +10,8 @@ describe('title scene (UI3 Ruling A4)', () => {
   it('is a valid scene whose only place is the gate, handled by the screen', () => {
     expect(validateScene(TITLE_SCENE)).toEqual([]);
     expect(TITLE_HOTSPOTS.map((h) => [h.id, h.label, h.target])).toEqual([['gate', 'Entrer', null]]);
+    // Playability #11: the scene's one call to action gets the grand plaque.
+    expect(TITLE_HOTSPOTS[0].grand).toBe(true);
     expect(TITLE_SCENE).toMatchObject({ id: 'title', title: 'La Discorde', background: '/art/scenes/title_gates.webp' });
   });
 

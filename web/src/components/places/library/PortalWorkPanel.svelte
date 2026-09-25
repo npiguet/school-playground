@@ -1,7 +1,7 @@
 <script lang="ts">
   // A single Alexandria work's scrolls ("rouleaux"): refresh the cache from the online
   // source (graceful on network failure, spec §5 SP2), filter by level, adopt a chunk
-  // into Les Parchemins. Credits (author/translator/work) stay visible at all times —
+  // into « Tes parchemins ». Credits (author/translator/work) stay visible at all times —
   // the spec requires public-domain attribution wherever an adopted text is offered.
   // UI3a Task 11: opened as an overlay of the library tent (panel 'oeuvre') rather than a full
   // screen; « Toutes les œuvres » steps back to the portal overlay.
@@ -119,7 +119,7 @@
     }
   }
 
-  // --- Adopt a chunk into Les Parchemins --------------------------------------------------
+  // --- Adopt a chunk into « Tes parchemins » --------------------------------------------
   let adoptingId = $state<number | null>(null);
   let adoptErrorChunkId = $state<number | null>(null);
   let adoptError = $state('');
