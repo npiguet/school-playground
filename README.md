@@ -211,6 +211,8 @@ extra `npx playwright test` arguments through, e.g. `scripts/playwright.sh e2e/s
 (`discorde-b…`, `npm ci` on first use); unset, the names stay `discorde`. A second dev stack also
 needs `DEV_API_PORT`/`DEV_WEB_PORT`. `PLAYWRIGHT_VERSION` in `scripts/lib.sh` pins the e2e image.
 A manual `docker compose -f compose.e2e.yaml …` needs it exported first (`source scripts/lib.sh`).
+Only one Playwright run executes at a time on the machine, whatever the stack: `scripts/playwright.sh` waits on a lock in the host
+temp dir (`discorde-e2e.lock`, a dead holder is taken over) for up to `E2E_LOCK_WAIT` seconds (default 7200); builds and unit tests stay parallel.
 
 **On Windows / Git Bash:** the scripts set `MSYS_NO_PATHCONV=1` themselves before calling
 `docker`/`docker compose`, to stop MSYS from rewriting container paths like `/work/web` into

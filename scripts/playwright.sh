@@ -12,6 +12,68 @@ fi
 ensure_volumes
 cd "$ROOT"
 docker compose -f compose.e2e.yaml build app
+
+# One Playwright run at a time on this machine, whatever the stack or worktree (fix round 2 of
+# batch B4: two stacks at once starved WebKit's rendering, overlays froze mid-transition and the
+# host crashed). A mkdir lock in the host temp dir, outside every checkout; the holder writes its
+# PID, stack and start time. A holder whose PID is gone (killed, crashed) is taken over. Only this
+# step waits: builds, vitest, svelte-check and pytest stay parallel. E2E_LOCK_WAIT (seconds,
+# default 7200) bounds the wait.
+E2E_LOCK="${TMPDIR:-${TMP:-/tmp}}/discorde-e2e.lock"
+E2E_LOCK_WAIT="${E2E_LOCK_WAIT:-7200}"
+e2e_lock_owned=0
+e2e_lock_release() {
+  if [ "$e2e_lock_owned" = 1 ] && [ "$(sed -n 1p "$E2E_LOCK/owner" 2>/dev/null)" = "$$" ]; then
+    rm -rf "$E2E_LOCK"
+  fi
+  e2e_lock_owned=0
+}
+e2e_lock_acquire() {
+  local waited=0 said=""
+  while :; do
+    if mkdir "$E2E_LOCK" 2>/dev/null; then
+      printf '%s\n%s\n%s\n' "$$" "$STACK_NAME" "$(date '+%Y-%m-%d %H:%M:%S')" > "$E2E_LOCK/owner"
+      e2e_lock_owned=1
+      trap e2e_lock_release EXIT
+      trap 'e2e_lock_release; exit 130' INT TERM
+      return 0
+    fi
+    local pid stack started
+    pid="$(sed -n 1p "$E2E_LOCK/owner" 2>/dev/null || true)"
+    stack="$(sed -n 2p "$E2E_LOCK/owner" 2>/dev/null || true)"
+    started="$(sed -n 3p "$E2E_LOCK/owner" 2>/dev/null || true)"
+    # No owner file a minute after its mkdir: the holder died before writing it.
+    if [ -z "$pid" ] && [ -n "$(find "$E2E_LOCK" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
+      rm -rf "$E2E_LOCK"
+      continue
+    fi
+    if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+      # Stale: move it aside atomically, and put it back if another taker got there first.
+      local aside="$E2E_LOCK.stale.$$"
+      if mv "$E2E_LOCK" "$aside" 2>/dev/null; then
+        if [ "$(sed -n 1p "$aside/owner" 2>/dev/null)" = "$pid" ]; then
+          echo "e2e lock: taking over from stack $stack (PID $pid, started $started), which is gone" >&2
+          rm -rf "$aside"
+        else
+          mv "$aside" "$E2E_LOCK" 2>/dev/null || rm -rf "$aside"
+        fi
+      fi
+      continue
+    fi
+    if [ "$waited" -ge "$E2E_LOCK_WAIT" ]; then
+      echo "e2e lock: gave up after ${E2E_LOCK_WAIT}s waiting for stack ${stack:-?} (PID ${pid:-?}, started ${started:-?}); lock: $E2E_LOCK" >&2
+      return 1
+    fi
+    if [ "$said" != "$pid" ]; then
+      echo "e2e lock: waiting for the e2e run of stack ${stack:-?} started at ${started:11:5} (PID ${pid:-?})" >&2
+      said="$pid"
+    fi
+    sleep 5
+    waited=$((waited + 5))
+  done
+}
+e2e_lock_acquire
+
 set +e
 docker compose -f compose.e2e.yaml run --rm -T playwright npx playwright test "$@"
 status=$?
