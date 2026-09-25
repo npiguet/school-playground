@@ -88,7 +88,7 @@
     {#if ctx.camp}
       <!-- Playability #6, #7: a cloth ribbon centred under the « Le camp » plaque, in-world words,
            and three leaves that fill in as the week's parchments are defended. -->
-      <p class="weekly" data-testid="camp-weekly">
+      <p class="weekly stage-text" data-testid="camp-weekly">
         <span class="leaves" aria-hidden="true">
           {#each Array.from({ length: ctx.camp.weekly.target }, (_, i) => i) as i (i)}<span
               class="leaf"
@@ -99,7 +99,7 @@
       </p>
     {/if}
 
-    <div class="camp-column" data-testid="camp-column">
+    <div class="camp-column stage-text" data-testid="camp-column">
       {#if ctx.camp}
         {@const prophecy = nearestProphecy(ctx.camp)}
         {#if prophecy}

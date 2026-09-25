@@ -38,7 +38,7 @@
     {#if ctx.camp}
       {@const prophecy = nearestProphecy(ctx.camp)}
       {#if prophecy}
-        <div class="altar-prophecy">
+        <div class="altar-prophecy stage-text">
           <ProphecyCard {prophecy} onReview={review} testId="delphi-prophecy" />
         </div>
       {/if}
@@ -51,7 +51,7 @@
     <PythiaPanel {profile} />
   </Overlay>
 {:else if panel === 'tablettes'}
-  <Overlay variant="scroll" size="wide" title="Le tableau des quêtes" testId="overlay-tablets" onClose={close} returnFocus={hotspotSelector('delphi', 'tablets')}>
+  <Overlay variant="table" size="wide" title="Le tableau des quêtes" testId="overlay-tablets" onClose={close} returnFocus={hotspotSelector('delphi', 'tablets')}>
     <TabletsPanel {profile} />
   </Overlay>
 {/if}

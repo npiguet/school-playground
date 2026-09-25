@@ -11,6 +11,7 @@
   import PortalPanel from '../components/places/library/PortalPanel.svelte';
   import PortalWorkPanel from '../components/places/library/PortalWorkPanel.svelte';
   import { LIBRARY_SCENE, owlGreeting } from '../lib/world/scenes/library';
+  import { VOICES } from '../lib/world/voices';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
   import { href } from '../lib/routes';
@@ -63,7 +64,15 @@
 </PlaceScene>
 
 {#if panel === 'etageres'}
-  <Overlay variant="scroll" size="wide" title="Les Parchemins" testId="overlay-shelves" onClose={close} returnFocus={focusOn('shelves')}>
+  <Overlay
+    variant="table"
+    size="wide"
+    title="Les Parchemins"
+    testId="overlay-shelves"
+    onClose={close}
+    returnFocus={focusOn('shelves')}
+    voice={VOICES.shelves}
+  >
     <ShelvesPanel {profile} />
   </Overlay>
 {:else if panel === 'pupitre'}

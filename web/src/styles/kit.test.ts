@@ -1,6 +1,6 @@
 // Scenes UI spec §6: parchment panels, bronze buttons, marble plaques, laurel bar - CSS first.
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { contrastRatio } from '../lib/ui/contrast';
 
 const css = readFileSync('src/styles/kit.css', 'utf-8');
@@ -36,8 +36,31 @@ describe('UI kit (scenes spec §6)', () => {
     expect(z('z-overlay')).toBeLessThan(z('z-rotate-screen'));
   });
 
+  it('names the immersion-wave surfaces and keeps text legible on them (Ruling W1, playability #8)', () => {
+    for (const t of ['wood', 'wood-dark', 'reward-ink', 'wax', 'wax-dark', 'clay', 'clay-dark']) expect(tokens[t], t).toBeDefined();
+    const GOLD_LIGHT = '#f1dc9a'; // app.css --gold-light
+    expect(contrastRatio(tokens['bronze-ink'], tokens['wood-dark'])).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio(GOLD_LIGHT, tokens['wood-dark'])).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio(tokens['reward-ink'], tokens['parchment-solid'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(INK, tokens['clay'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(tokens['bronze-ink'], tokens['wax-dark'])).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('reserves the HUD band for the HUD (Ruling W11)', () => {
+    expect(css).toMatch(/--hud-band:\s*calc\(64px \+ env\(safe-area-inset-top\)\)/);
+  });
+
+  it('points every art url of the kit stylesheets at a shipped file (Ruling W3)', () => {
+    for (const f of readdirSync('src/styles').filter((n) => n.endsWith('.css'))) {
+      const text = readFileSync(`src/styles/${f}`, 'utf-8');
+      for (const m of text.matchAll(/url\(\s*['"]?(\/art\/[^'")]+)['"]?\s*\)/g)) {
+        expect(existsSync('public' + m[1]), `${f}: ${m[1]}`).toBe(true);
+      }
+    }
+  });
+
   it('declares the idle and tap keyframes the scene components use', () => {
-    for (const k of ['kit-glow', 'kit-label-bob', 'kit-flash', 'kit-sway', 'kit-breathe']) {
+    for (const k of ['kit-glow', 'kit-glow-strong', 'kit-label-bob', 'kit-flash', 'kit-sway', 'kit-breathe']) {
       expect(css).toContain(`@keyframes ${k}`);
     }
   });

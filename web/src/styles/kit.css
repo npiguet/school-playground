@@ -17,6 +17,27 @@
   --laurel-off: rgba(255, 247, 230, 0.28);
   --night: #15121a;
   --scrim: rgba(21, 18, 26, 0.55);
+  /* Immersion wave (Ruling W1, W3, W11). The HUD band: 8 px padding + a 48 px chip + 8 px padding
+     (Hud.svelte); overlays centre below it so they never cut the hero chip (playability #21).
+     The HUD's real controls reach lower (52 px round buttons, the laurel bar under its caption:
+     ~72 px), so every overlay keeps a 26 px margin from the band (Overlay.svelte's max-height):
+     its top, and the scroll's rods 11 px above it, stay clear of all of them. */
+  --hud-band: calc(64px + env(safe-area-inset-top));
+  /* The table overlay's dark wood, the wax of seals, the clay of votive tablets. */
+  --wood: #5a3d24;
+  --wood-dark: #3b2715;
+  --wax: #a84a32;
+  --wax-dark: #6e2c1c;
+  --clay: #d8a47f;
+  --clay-dark: #9c5b38;
+  /* Reward text on parchment: a darker bronze, gold on cream was below 4.5:1 (UI1 #13). */
+  --reward-ink: #8a5a1c;
+  /* Painted surfaces (Task 1). A token whose file was not delivered is `none` (Ruling W3); the
+     gradients painted under every texture keep the page complete either way. */
+  --tex-parchment: url('/art/textures/parchment.webp');
+  --tex-wood: url('/art/textures/wood_board.webp');
+  /* Paper and clay grain: an inline SVG noise tile (no file, no request). */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .22 0 0 0 0 .1 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --kit-radius: 12px;
   /* The muted-lyre icon's mute-slash halo (Icon.svelte, UI3 Ruling A13): drawn in the surface it
      sits on so the slash reads as a gap, not a stripe. Defaults to the night backdrop scenes sit
@@ -181,6 +202,16 @@
   }
   50% {
     opacity: 0.6;
+  }
+}
+/* The next step's glow (playability #11): stronger and a little faster than the idle glow. */
+@keyframes kit-glow-strong {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
   }
 }
 @keyframes kit-label-bob {

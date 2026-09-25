@@ -75,8 +75,6 @@
 </script>
 
 <div class="panel-shelves">
-  <p class="subtitle muted">Choisis un texte à protéger des dés-accords d'Éris.</p>
-
   <div class="filters">
     <button
       type="button"

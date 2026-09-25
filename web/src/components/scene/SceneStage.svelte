@@ -160,6 +160,7 @@
 
 <main
   class="scene-stage"
+  class:has-overlay={covered}
   data-testid="scene-{scene.id}"
   data-reduced-motion={runtime.reduced ? 'true' : 'false'}
   data-tilt={tiltOn ? 'on' : 'off'}
@@ -221,6 +222,15 @@
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
+  }
+  /* Playability #12: while an overlay is open, the scene's own words (plaques, labels, banners,
+     the altar card...) fade out so they never ghost through the panel; the painting stays. A place
+     marks such an in-scene text object with `stage-text`. */
+  .scene-stage :global(:is(.hotspot-label, .hotspot-leader, .stage-plaque, .stage-text)) {
+    transition: opacity 0.2s ease;
+  }
+  .scene-stage.has-overlay :global(:is(.hotspot-label, .hotspot-leader, .stage-plaque, .stage-text)) {
+    opacity: 0;
   }
   .stage-backdrop {
     position: absolute;

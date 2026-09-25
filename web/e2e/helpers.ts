@@ -471,3 +471,59 @@ export async function expectExitClearOfDialogueDock(page: Page, sceneId: string)
     'scene-exit overlaps the dialogue dock (x 27-87.5%, y 80-100% of the art box)',
   ).toBe(false);
 }
+
+// Immersion wave (playability #12, #21): an open overlay - its rods included - starts below the
+// HUD, and the scene's text chrome behind it has faded out (SceneStage `has-overlay`).
+export async function expectOverlayClearsScene(page: Page, overlayTestId: string, sceneId: string) {
+  const panel = page.getByTestId(overlayTestId);
+  await expect(panel).toBeVisible();
+  await expect.poll(() => panel.evaluate((el) => el.getAnimations().length)).toBe(0);
+  const { top, hudBottom } = await page.evaluate(
+    ({ id, sid }) => {
+      const p = document.querySelector(`[data-testid="${id}"]`)!;
+      const parts = [p, ...Array.from(p.querySelectorAll('.scroll-rod'))];
+      const hud = document.querySelector(`[data-testid="scene-${sid}"] [data-testid="stage-hud"]`);
+      const hudItems = hud ? Array.from(hud.querySelectorAll('*')) : [];
+      return {
+        top: Math.min(...parts.map((e) => e.getBoundingClientRect().top)),
+        hudBottom: Math.max(0, ...hudItems.map((e) => e.getBoundingClientRect().bottom)),
+      };
+    },
+    { id: overlayTestId, sid: sceneId },
+  );
+  expect(top, `${overlayTestId} starts below the HUD`).toBeGreaterThanOrEqual(hudBottom);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (sid) =>
+          Array.from(document.querySelectorAll(`[data-testid="scene-${sid}"] :is(.hotspot-label, .stage-plaque, .stage-text)`)).filter(
+            (e) => getComputedStyle(e).opacity !== '0',
+          ).length,
+        sceneId,
+      ),
+    )
+    .toBe(0);
+}
+
+// Playability #25: every control inside an overlay is a 48 px touch target. A radio or file input
+// is measured through its label (the input itself is hidden or stretched over it); content inside
+// a closed <details> has no box and is skipped.
+export async function expectOverlayTapTargets(page: Page, overlayTestId: string) {
+  const small = await page.getByTestId(overlayTestId).evaluate((root) => {
+    const sel = [
+      'button',
+      'a[href]',
+      'summary',
+      'select',
+      'input:not([type=radio]):not([type=checkbox]):not([type=file]):not([type=hidden])',
+      'label:has(> input[type=radio])',
+      'label:has(> input[type=file])',
+    ].join(', ');
+    return Array.from(root.querySelectorAll<HTMLElement>(sel))
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ el, r }) => r.width > 2 && r.height > 2 && getComputedStyle(el).visibility !== 'hidden')
+      .filter(({ r }) => Math.min(r.width, r.height) < 48)
+      .map(({ el, r }) => `${el.tagName.toLowerCase()} « ${(el.textContent ?? '').trim().slice(0, 30)} » ${Math.round(r.width)}×${Math.round(r.height)}`);
+  });
+  expect(small, `${overlayTestId}: controls under 48 px`).toEqual([]);
+}

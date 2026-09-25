@@ -78,7 +78,7 @@
             onclick={() => pick(s.profile)}
           >
             <span class="shield-face"><Avatar avatar={s.profile.avatar} size={44} ring /></span>
-            <span class="shield-plaque">
+            <span class="shield-plaque stage-text">
               <span class="shield-name">{s.profile.name}</span>
               <span class="shield-level">{s.profile.level}</span>
             </span>
@@ -86,28 +86,28 @@
         {:else if s.kind === 'all'}
           <button type="button" class="shield" data-testid="title-all" style="left:{slot.x}%;top:{slot.y}%" aria-label="Tous les héros ({s.count})" onclick={openAll}>
             <span class="shield-face"><span class="shield-count">{s.count}</span></span>
-            <span class="shield-plaque"><span class="shield-name">Tous les héros</span></span>
+            <span class="shield-plaque stage-text"><span class="shield-name">Tous les héros</span></span>
           </button>
         {:else}
           <button type="button" class="shield" data-testid="title-new" style="left:{slot.x}%;top:{slot.y}%" aria-label="Nouveau héros" onclick={openNew}>
             <span class="shield-face"><Icon name="plus" size={30} /></span>
-            <span class="shield-plaque"><span class="shield-name">Nouveau héros</span></span>
+            <span class="shield-plaque stage-text"><span class="shield-name">Nouveau héros</span></span>
           </button>
         {/if}
       {/each}
     </div>
-    <p class="kit-banner title-hint">Choisis ton héros</p>
+    <p class="kit-banner title-hint stage-text">Choisis ton héros</p>
     {#if loading}
-      <p class="kit-banner title-note">Les Muses cherchent les héros…</p>
+      <p class="kit-banner stage-text title-note">Les Muses cherchent les héros…</p>
     {:else if error}
       <!-- Final review M16: the server's message wraps inside the art box, and the heroes can be
            fetched again without a reload (the camp's own « Réessayer »). -->
-      <div class="kit-banner title-note title-error" role="alert" data-testid="title-error">
+      <div class="kit-banner stage-text title-note title-error" role="alert" data-testid="title-error">
         <span>Impossible de charger les héros : {error}</span>
         <button type="button" class="kit-bronze" data-testid="title-retry" onclick={load}>Réessayer</button>
       </div>
     {:else if profiles.length === 0}
-      <p class="kit-banner title-note">Aucun héros pour l'instant. Crée le tien !</p>
+      <p class="kit-banner stage-text title-note">Aucun héros pour l'instant. Crée le tien !</p>
     {/if}
   {/if}
 </SceneStage>
