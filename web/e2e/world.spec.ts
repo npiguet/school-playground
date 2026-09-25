@@ -94,7 +94,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     // (ethics: no gamble - spec §1, plan decision 9).
     await expect(page.getByTestId('scroll-open')).toHaveCount(3);
     await expect(page.getByTestId('oracle-reward')).toContainText('Teinte Écume');
-    await expect(page.getByTestId('scroll-faible').locator('[data-reward="tint:ecume"] .swatch')).toBeVisible();
+    await expect(page.getByTestId('oracle-reward').locator('[data-reward="tint:ecume"] .swatch')).toBeVisible();
 
     await page.getByTestId('scroll-ecole').getByTestId('scroll-open').click();
     await page.getByTestId('oracle-monster-hydre').click();

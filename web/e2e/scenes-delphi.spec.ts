@@ -6,9 +6,11 @@ import {
   expectCamp,
   expectExitClearOfDialogueDock,
   expectInSafeZone,
+  expectOverlayTapTargets,
   expectScene,
   labelOverlaps,
   measureBoxes,
+  onlyOwnOracleProphecy,
   onlyOwnProphecy,
   redScan,
   tap,
@@ -51,13 +53,28 @@ test('the Pythia opens the three scrolls; « Ce que prépare ta classe »; seal,
   await expect(page).toHaveURL(/\/delphes$/);
   const oracle = page.getByTestId('overlay-pythia');
   await expect(oracle.getByRole('heading', { name: 'La Pythie' })).toBeVisible();
+  await expect(oracle.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'pythia');
   await expect(oracle.getByTestId('scroll-open')).toHaveCount(3);
+  // Playability #8: the reward is said once, in the header, in dark bronze - not on each scroll.
+  await expect(oracle.getByText(/Récompense de la semaine/)).toHaveCount(0);
+  await expect(oracle.getByTestId('oracle-reward')).toContainText('150 XP');
+  await expect(oracle.getByTestId('oracle-reward')).toHaveCSS('color', 'rgb(138, 90, 28)');
   await expect(oracle.getByTestId('scroll-ecole')).toContainText('Ce que prépare ta classe');
   await expect(oracle.getByTestId('scroll-ecole')).not.toContainText("Ce qui arrive à l'école");
-  await expect(oracle.getByTestId('oracle-reward')).toContainText('150 XP');
-  // Parity: the school scroll's monster picker opens and cancels without consulting.
+  // Playability #9: the school scroll unrolls across the whole panel; every monster and « Annuler » in view.
   await oracle.getByTestId('scroll-ecole').getByTestId('scroll-open').click();
-  await expect(oracle.getByTestId('oracle-monster-hydre')).toBeVisible();
+  const sheet = oracle.getByTestId('scroll-ecole');
+  await expect(oracle.getByTestId('scroll-faible')).toHaveCount(0);
+  const [sheetBox, bodyBox] = await Promise.all([sheet.boundingBox(), oracle.locator('.overlay-body').boundingBox()]);
+  expect(sheetBox!.width, 'the unrolled scroll spans the panel').toBeGreaterThan(bodyBox!.width * 0.85);
+  for (const key of ['hydre', 'echo', 'chimere', 'protee', 'sirenes', 'lethe']) {
+    const m = oracle.getByTestId(`oracle-monster-${key}`);
+    await expect(m).toBeInViewport();
+    const box = (await m.boundingBox())!;
+    expect(Math.min(box.width, box.height), `${key} medallion button`).toBeGreaterThanOrEqual(56);
+  }
+  await expect(oracle.getByTestId('oracle-cancel')).toBeInViewport();
+  await expectOverlayTapTargets(page, 'overlay-pythia');
   await oracle.getByTestId('oracle-cancel').click();
   await expect(oracle.getByTestId('scroll-open')).toHaveCount(3);
   await page.keyboard.press('Escape');
@@ -73,6 +90,21 @@ test('the Pythia opens the three scrolls; « Ce que prépare ta classe »; seal,
   await expect(oracle).toBeVisible();
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/temple$/);
+});
+
+test('the Pythia speaks of a prophecy by its day, not its date; « Te préparer » opens the dictation', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const text = await createText(request, { title: uniqueName('La dictée du jeudi'), body: BODY, level: '10H', due_date: '2099-01-01' });
+  await onlyOwnOracleProphecy(page, text.id);
+  await page.goto(`/#/p/${id}/delphes`);
+  const row = page.getByTestId(`oracle-prophecy-${text.id}`);
+  await expect(row).toContainText('jeudi 1er janvier 2099');
+  await expect(row).not.toContainText('01.01.2099');
+  await expect(page.getByTestId('overlay-pythia')).not.toContainText('multipliée');
+  const btn = row.getByRole('button', { name: 'Te préparer' });
+  await expect(btn).toHaveCSS('text-decoration-line', 'none');
+  await btn.click();
+  await expect(page).toHaveURL(new RegExp(`/play/${text.id}$`));
 });
 
 test('the tablets open the quest board; a launched quest shows on the tablets badge', async ({ page, request }, testInfo) => {
@@ -91,7 +123,7 @@ test('the tablets open the quest board; a launched quest shows on the tablets ba
   await expect(page.getByTestId('delphi-tablets-badge')).toHaveText('1');
 });
 
-test('the nearest prophecy sits on the altar, clear of the places, the dialogue dock and the safe zone; « Réviser » opens the dictation', async ({ page, request }, testInfo) => {
+test('the nearest prophecy sits on the altar, clear of the places, the dialogue dock and the safe zone; « Te préparer » opens the dictation', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   // A long title - clamped to 2 lines by ProphecyCard's own `-webkit-line-clamp: 2` - is the card's
   // tallest shape: the worst case for the dock/safe-zone checks below (Task 12 review fix round 1).
@@ -130,8 +162,10 @@ test('the nearest prophecy sits on the altar, clear of the places, the dialogue 
     const zoneRight = b.art.x + b.art.width * 0.875;
     expect(b.card.x, `altar card left inside the safe zone at ${at}`).toBeGreaterThanOrEqual(zoneLeft - 0.5);
     expect(b.card.x + b.card.width, `altar card right inside the safe zone at ${at}`).toBeLessThanOrEqual(zoneRight + 0.5);
+    // Playability #17: a card that can be read from the sofa, not small print.
+    expect(b.card.width, `altar card width at ${at}`).toBeGreaterThanOrEqual(Math.min(380, b.art.width * 0.26) - 1);
   }
-  await page.getByTestId('delphi-prophecy').getByRole('button', { name: 'Réviser' }).click();
+  await page.getByTestId('delphi-prophecy').getByRole('button', { name: 'Te préparer' }).click();
   await expect(page).toHaveURL(new RegExp(`/play/${text.id}$`));
 });
 

@@ -197,7 +197,7 @@ export const CAMP_DRAGON_LAYER: Omit<SceneLayerDef, 'id' | 'src' | 'alt'> = {
  *  where the texts are defended. */
 export function nextStepLine(camp: CampResponse): string {
   const p = nearestProphecy(camp);
-  if (p && p.days_left <= 7) return `La Pythie a vu ta prochaine épreuve, ${prophecyWhen(p.days_left)}. Viens la réviser !`;
+  if (p && p.days_left <= 7) return `La Pythie a vu ta prochaine épreuve, ${prophecyWhen(p.days_left)}. Viens t'y préparer !`;
   if (camp.boss.tier_available !== null && !bossEngaged(camp)) return "Le sentier de la bataille est ouvert : Éris t'attend.";
   return "Les parchemins t'attendent, sous la tente.";
 }

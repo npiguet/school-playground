@@ -1,7 +1,7 @@
 <script lang="ts">
   // Delphi (scenes UI spec §3): the Pythia on her tripod opens the weekly scrolls and the
   // prophecies (#/p/:id/delphes), the votive-tablet wall opens the quest board (#/p/:id/quetes).
-  // The nearest prophecy also sits on the altar, with « Réviser ». The Pythia greets once per page
+  // The nearest prophecy also sits on the altar, with « Te préparer ». The Pythia greets once per page
   // load (UI3 Ruling A9).
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
@@ -10,6 +10,7 @@
   import PythiaPanel from '../components/places/delphi/PythiaPanel.svelte';
   import TabletsPanel from '../components/places/delphi/TabletsPanel.svelte';
   import { DELPHI_SCENE, pythiaGreeting } from '../lib/world/scenes/delphi';
+  import { VOICES } from '../lib/world/voices';
   import { nearestProphecy } from '../lib/world/prophecy';
   import { closePanel, go, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
@@ -47,7 +48,7 @@
 </PlaceScene>
 
 {#if panel === 'pythie'}
-  <Overlay variant="scroll" size="wide" title={OVERLAY_TITLES.pythie} testId="overlay-pythia" onClose={close} returnFocus={hotspotSelector('delphi', 'pythia')}>
+  <Overlay variant="scroll" size="wide" title={OVERLAY_TITLES.pythie} testId="overlay-pythia" voice={VOICES.pythia} onClose={close} returnFocus={hotspotSelector('delphi', 'pythia')}>
     <PythiaPanel {profile} />
   </Overlay>
 {:else if panel === 'tablettes'}
@@ -57,13 +58,14 @@
 {/if}
 
 <style>
-  /* The nearest prophecy, laid on the altar under the tablet wall (art x 54-78, y 66-78): clear of
-     both places and their labels, above the dialogue dock (y 80). */
+  /* The nearest prophecy, laid on the altar under the tablet wall (playability #17: large enough to
+     read from the sofa): clear of both places and their labels, above the dialogue dock (y 80). */
   .altar-prophecy {
     position: absolute;
-    left: 54%;
-    top: 66%;
-    width: 24%;
+    left: 53%;
+    top: 64%;
+    width: min(380px, 26%);
+    min-width: 260px;
     z-index: 3;
   }
 </style>

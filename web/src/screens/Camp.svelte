@@ -103,7 +103,7 @@
       {#if ctx.camp}
         {@const prophecy = nearestProphecy(ctx.camp)}
         {#if prophecy}
-          <ProphecyCard {prophecy} onReview={review} testId="camp-prophecy" />
+          <ProphecyCard {prophecy} onReview={review} testId="camp-prophecy" compact />
         {/if}
       {/if}
     </div>
@@ -197,7 +197,7 @@
      edge now reaches ~31.4% at 1280x720) and quests' label (left edge down to ~54.7% at 1280x720); y 23% starts under the weekly ribbon,
      and the prophecy card (text beside its button) ends well above the parchemins label.
      No `overflow`/`max-height` here on purpose (round 1 review): that combination scrolled
-     « Réviser » out of view for a long prophecy title (the server allows up to 120 characters,
+     « Te préparer » out of view for a long prophecy title (the server allows up to 120 characters,
      server/app/schemas.py). The title is `-webkit-line-clamp`-ed instead, which bounds its own
      height regardless of title length, so the button beside it is always laid out and visible. */
   .camp-column {

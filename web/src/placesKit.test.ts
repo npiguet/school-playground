@@ -7,14 +7,12 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const LEGACY = ['btn', 'btn-primary', 'btn-ghost', 'card', 'chip', 'chip-active', 'parchment'];
-const SHARED = ['src/components/QuestCard.svelte', 'src/components/Scroll.svelte'];
+const SHARED = ['src/components/QuestCard.svelte'];
 // Files still waiting for their task. Tasks 6-12 each remove theirs; it may only shrink (a clean
 // file left here fails below), and Task 13 asserts it is empty.
 const PENDING = new Set<string>([
-  'src/components/places/delphi/PythiaPanel.svelte',
   'src/components/places/delphi/TabletsPanel.svelte',
   'src/components/QuestCard.svelte',
-  'src/components/Scroll.svelte',
 ]);
 
 function walk(dir: string, out: string[] = []): string[] {

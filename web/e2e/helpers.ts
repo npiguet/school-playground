@@ -308,6 +308,19 @@ export async function onlyOwnProphecy(page: Page, textId: number) {
   });
 }
 
+// The Pythia's own list comes from /oracle (worldApi.oracle), not /camp: the same filter there, so
+// parallel workers' prophecies never crowd the panel. Also narrows /camp (the altar card).
+export async function onlyOwnOracleProphecy(page: Page, textId: number) {
+  await onlyOwnProphecy(page, textId);
+  await page.route('**/api/profiles/*/oracle', async (route) => {
+    if (route.request().method() !== 'GET') return route.fallback(); // a consult answers { oracle, quest }
+    const res = await route.fetch();
+    const json = await res.json();
+    json.prophecies = json.prophecies.filter((p: { text_id: number }) => p.text_id === textId);
+    await route.fulfill({ response: res, json });
+  });
+}
+
 export interface Rect {
   x: number;
   y: number;

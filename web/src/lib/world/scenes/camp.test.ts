@@ -159,7 +159,7 @@ describe('camp hub wording (playability #2, #6, #16)', () => {
       { text_id: 1, title: 'La mer', due_date: '2026-09-27', days_left: 3 },
     ];
     expect(nearestProphecy(camp({ prophecies }))?.title).toBe('La mer');
-    expect(nextStepLine(camp({ prophecies }))).toBe('La Pythie a vu ta prochaine épreuve, dans 3 jours. Viens la réviser !');
+    expect(nextStepLine(camp({ prophecies }))).toBe("La Pythie a vu ta prochaine épreuve, dans 3 jours. Viens t'y préparer !");
     const ready = camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null } });
     expect(nextStepLine(ready)).toBe("Le sentier de la bataille est ouvert : Éris t'attend.");
     expect(nextStepLine(camp())).toBe("Les parchemins t'attendent, sous la tente.");

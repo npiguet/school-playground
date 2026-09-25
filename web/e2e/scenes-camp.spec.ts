@@ -568,7 +568,7 @@ test('the weekly ribbon and the prophecy never overlap a hotspot or its label', 
   }
 });
 
-test('a long prophecy title never pushes « Réviser » out of view', async ({ page, request }, testInfo) => {
+test('a long prophecy title never pushes « Te préparer » out of view', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   // Exactly the server's own max title length (server/app/schemas.py: max_length=120) - round 1
   // review #1 found an 80-char title already pushed the button 17px below a scrolling fold.
@@ -587,7 +587,7 @@ test('a long prophecy title never pushes « Réviser » out of view', async ({ p
     // Final review I6: the card shows this test's own 120-character title (clamped visually,
     // complete in the DOM), not another spec's prophecy.
     await expect(page.getByTestId('camp-prophecy')).toContainText(longTitle);
-    await expect(page.getByTestId('camp-prophecy').getByRole('button', { name: 'Réviser' })).toBeVisible();
+    await expect(page.getByTestId('camp-prophecy').getByRole('button', { name: 'Te préparer' })).toBeVisible();
     const { column, button } = await page.evaluate(() => {
       const rect = (el: Element) => {
         const r = el.getBoundingClientRect();
@@ -598,14 +598,14 @@ test('a long prophecy title never pushes « Réviser » out of view', async ({ p
       return { column: columnEl ? rect(columnEl) : null, button: buttonEl ? rect(buttonEl) : null };
     });
     if (!column) throw new Error('camp-column has no bounding box: it did not render');
-    if (!button) throw new Error('the Réviser button has no bounding box: it did not render');
+    if (!button) throw new Error('the Te préparer button has no bounding box: it did not render');
     const label = `${size.width}x${size.height}`;
-    expect(button.y, `Réviser top inside camp-column at ${label}`).toBeGreaterThanOrEqual(column.y);
-    expect(button.y + button.height, `Réviser bottom inside camp-column at ${label}`).toBeLessThanOrEqual(
+    expect(button.y, `Te préparer top inside camp-column at ${label}`).toBeGreaterThanOrEqual(column.y);
+    expect(button.y + button.height, `Te préparer bottom inside camp-column at ${label}`).toBeLessThanOrEqual(
       column.y + column.height + 0.5,
     );
-    expect(button.y, `Réviser top inside the viewport at ${label}`).toBeGreaterThanOrEqual(0);
-    expect(button.y + button.height, `Réviser bottom inside the viewport at ${label}`).toBeLessThanOrEqual(size.height);
+    expect(button.y, `Te préparer top inside the viewport at ${label}`).toBeGreaterThanOrEqual(0);
+    expect(button.y + button.height, `Te préparer bottom inside the viewport at ${label}`).toBeLessThanOrEqual(size.height);
   }
 });
 

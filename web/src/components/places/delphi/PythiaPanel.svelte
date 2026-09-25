@@ -4,7 +4,11 @@
   // gamble - ethics). Also shows the Oracle's prophecies (dictées préparées, Decision 10).
   // UI3a Task 12: opened as the Pythia's overlay over the Delphi scene (Delphi.svelte); the scene
   // itself paints the temple, so this panel is just the scrolls and the quest they choose.
-  import Scroll from '../../Scroll.svelte';
+  // Immersion wave (playability #8, #9, #19): three rolled scrolls on their stands; the one opened
+  // (or the school scroll while its monster is chosen) unrolls across the whole panel; the reward
+  // is said once; prophecies are spoken by their day. The seal-break sounds and sparkles live here.
+  import { tick } from 'svelte';
+  import OracleScroll from './OracleScroll.svelte';
   import QuestCard from '../../QuestCard.svelte';
   import Particles from '../../juice/Particles.svelte';
   import Medallion from '../../juice/Medallion.svelte';
@@ -15,7 +19,9 @@
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
   import { confirmChoiceLabel } from '../../../lib/world/eris';
   import { ApiError } from '../../../lib/api';
-  import { formatSwissDate } from '../../../lib/dates';
+  import { longDate } from '../../../lib/text/french';
+  import { reducedMotion } from '../../../lib/juice/motion';
+  import { go } from '../../../lib/scene/panelNav';
   import { playSfx, unlockAudio } from '../../../lib/juice/sfx';
   import { href } from '../../../lib/routes';
   import { prophecyWhen } from '../../../lib/world/prophecy';
@@ -83,14 +89,28 @@
     return out;
   });
 
+  const reduced = reducedMotion();
+  let pickerEl = $state<HTMLElement | null>(null);
+  let scrollsEl = $state<HTMLElement | null>(null);
+
+  // The scroll that lies unrolled across the panel: the school scroll while its monster is being
+  // chosen, the chosen one once the week's choice is made. The row of three rolls is not drawn then.
+  const unrolled = $derived<ScrollKey | null>(ecolePickerOpen ? 'ecole' : oracle?.status === 'chosen' ? chosenKey : null);
+
   function openScroll(key: ScrollKey) {
     unlockAudio();
     playSfx('tap');
     if (key === 'ecole') {
       ecolePickerOpen = true;
+      // Playability #9: the choice she has to make is in view, whatever the panel's scroll.
+      void tick().then(() => pickerEl?.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' }));
       return;
     }
     void consult(key);
+  }
+
+  function review(textId: number) {
+    go(href('play', { profileId, textId: String(textId) }));
   }
 
   function confirmEcole() {
@@ -98,8 +118,8 @@
     void consult('ecole', selectedMonster);
   }
 
-  // M4: cancelling closes the picker without ever having touched `sealed` - no seal-break
-  // sound, no sparkles, nothing to undo.
+  // M4: cancelling closes the picker without consulting - no seal-break sound, no sparkles,
+  // nothing to undo; the three rolls come back.
   function cancelEcole() {
     ecolePickerOpen = false;
     selectedMonster = null;
@@ -112,8 +132,13 @@
       const { oracle: updated } = await worldApi.consult(profile.id, { scroll, lieutenant });
       oracle = updated;
       ecolePickerOpen = false;
+      // The wax breaks, then the scroll unrolls (what the old Scroll.svelte played on its own).
+      playSfx('seal');
+      setTimeout(() => playSfx('unroll'), 130);
       playSfx('chime');
       burstTrigger += 1;
+      // The opened scroll, its monster first: in view even if she scrolled down to its seal.
+      void tick().then(() => scrollsEl?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' }));
       await refreshCamp(profile.id);
     } catch (e) {
       consultError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
@@ -137,94 +162,90 @@
   {#if loading}
     <p class="muted">Les Muses consultent la Pythie…</p>
   {:else if loadError}
-    <p class="orange">Impossible de rejoindre l'Oracle : {loadError}</p>
+    <p class="kit-note" data-tone="eris">Impossible de rejoindre l'Oracle : {loadError}</p>
   {:else if oracle}
-    {#if oracle.prophecies.length > 0}
-      <section>
-        <h3 class="kit-section">Prophéties</h3>
-        <p class="muted">
-          La Pythie a vu une épreuve se préparer dans ta classe. Révise-la avant le jour dit : l'XP est multipliée par 1,5.
-        </p>
-        <ul class="prophecy-list">
-          {#each oracle.prophecies as p (p.text_id)}
-            <li class="parchment prophecy-row" data-testid="oracle-prophecy-{p.text_id}">
-              <p>
-                « {p.title} » — le {formatSwissDate(p.due_date)} · {prophecyWhen(p.days_left)}
-              </p>
-              <a class="btn btn-primary" href={href('play', { profileId, textId: String(p.text_id) })}>Réviser</a>
-            </li>
-          {/each}
-        </ul>
-      </section>
-    {/if}
-
     <section>
       <h3 class="kit-section">Les trois rouleaux</h3>
-      <div class="reward-line" data-testid="oracle-reward">
+      <!-- Playability #8: the reward once, with its medallion, in dark bronze. -->
+      <p class="reward-line" data-testid="oracle-reward">
         {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} size={36} />{/if}
-        <span>Cette semaine, ouvrir un rouleau rapporte : {oracleRewardLine()}</span>
-      </div>
+        <span>Cette semaine, le rouleau que tu ouvres rapporte : {oracleRewardLine()}</span>
+      </p>
+      {#if consultError}<p class="kit-note" data-tone="eris" role="alert">{consultError}</p>{/if}
 
-      {#if consultError}
-        <p class="orange" role="alert">{consultError}</p>
-      {/if}
-
-      {#snippet ecolePicker()}
-        <div class="picker">
-          <p>Choisis le monstre :</p>
-          <div class="picker-grid">
-            {#each LIEUTENANT_ORDER as key (key)}
-              <button
-                type="button"
-                class="chip"
-                class:chip-active={selectedMonster === key}
-                data-testid="oracle-monster-{key}"
-                disabled={!isAvailable(key)}
-                onclick={() => (selectedMonster = key)}
+      <div class="scrolls-wrap" bind:this={scrollsEl}>
+        {#if unrolled}
+          {@const s = oracle.scrolls.find((sc) => sc.key === unrolled)!}
+          <OracleScroll testid="scroll-{s.key}" title={scrollTitle(s.key, s.title)} hint={s.hint} mode="unrolled">
+            {#if ecolePickerOpen}
+              <div class="picker" bind:this={pickerEl}>
+                <p class="picker-ask">Quel monstre ta classe prépare-t-elle ?</p>
+                <div class="picker-grid">
+                  {#each LIEUTENANT_ORDER as key (key)}
+                    <button
+                      type="button"
+                      class="monster"
+                      class:is-picked={selectedMonster === key}
+                      aria-pressed={selectedMonster === key}
+                      data-testid="oracle-monster-{key}"
+                      disabled={!isAvailable(key)}
+                      onclick={() => (selectedMonster = key)}
+                    >
+                      <LieutenantBadge lieutenantKey={key} size={64} />
+                      <span class="monster-name">{nameFor(key)}</span>
+                      {#if !isAvailable(key)}<span class="monster-note">dort encore</span>{/if}
+                    </button>
+                  {/each}
+                </div>
+                <div class="picker-actions">
+                  <button type="button" class="kit-bronze is-quiet" data-testid="oracle-cancel" onclick={cancelEcole}>Annuler</button>
+                  <button
+                    type="button"
+                    class="kit-bronze"
+                    data-testid="oracle-confirm"
+                    disabled={!selectedMonster || consultingScroll === 'ecole'}
+                    onclick={confirmEcole}
+                  >
+                    {selectedMonster ? confirmChoiceLabel(selectedMonster as LieutenantKey) : "C'est celui-là"}
+                  </button>
+                </div>
+              </div>
+            {:else if revealedFor(s.key)}
+              {@const r = revealedFor(s.key)!}
+              <div class="revealed">
+                <img src={r.art} alt={r.name} class="revealed-art pop" />
+                <p class="revealed-name pop">{r.name}</p>
+              </div>
+            {/if}
+          </OracleScroll>
+          {#if oracle.status === 'chosen'}
+            <div class="closed-rolls">
+              {#each oracle.scrolls.filter((sc) => sc.key !== unrolled) as c (c.key)}
+                <OracleScroll testid="scroll-{c.key}" title={scrollTitle(c.key, c.title)} hint={c.hint} mode="closed">
+                  <p class="muted closed-note">Refermé jusqu'à lundi.</p>
+                </OracleScroll>
+              {/each}
+            </div>
+          {/if}
+        {:else}
+          <!-- A sealed week: three rolls to open. A chosen week with no revealed scroll (the only
+               other status): all three closed until Monday, as the old panel showed it. -->
+          <div class="rolls">
+            {#each oracle.scrolls as s (s.key)}
+              <OracleScroll
+                testid="scroll-{s.key}"
+                title={scrollTitle(s.key, s.title)}
+                hint={s.hint}
+                mode={globallySealed ? 'rolled' : 'closed'}
+                busy={consultingScroll === s.key}
+                onOpen={() => openScroll(s.key)}
               >
-                <LieutenantBadge lieutenantKey={key} size={28} />
-                {nameFor(key)}{!isAvailable(key) ? ' · dort encore' : ''}
-              </button>
+                <p class="muted closed-note">Refermé jusqu'à lundi.</p>
+              </OracleScroll>
             {/each}
           </div>
-          <div class="picker-actions">
-            <button type="button" class="btn" data-testid="oracle-cancel" onclick={cancelEcole}>Annuler</button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              data-testid="oracle-confirm"
-              disabled={!selectedMonster || consultingScroll === 'ecole'}
-              onclick={confirmEcole}
-            >
-              {selectedMonster ? confirmChoiceLabel(selectedMonster as LieutenantKey) : "C'est celui-là"}
-            </button>
-          </div>
-        </div>
-      {/snippet}
-
-      <div class="scrolls-wrap">
-        {#each oracle.scrolls as s (s.key)}
-          <Scroll
-            testid="scroll-{s.key}"
-            title={scrollTitle(s.key, s.title)}
-            hint={s.hint}
-            sealed={globallySealed}
-            revealed={revealedFor(s.key)}
-            reward={oracleRewardLine()}
-            rewardId={oracle.reward_id}
-            busy={consultingScroll === s.key}
-            onOpen={() => openScroll(s.key)}
-            sealedStep={s.key === 'ecole' && ecolePickerOpen ? ecolePicker : undefined}
-            quiet={oracle.status === 'chosen' && chosenKey !== s.key}
-          >
-            {#if oracle.status === 'chosen' && chosenKey !== s.key}
-              <p class="muted closed-note">Refermé jusqu'à lundi.</p>
-            {/if}
-          </Scroll>
-        {/each}
-        {#if burstTrigger > 0}
-          <Particles trigger={burstTrigger} kind="burst" />
         {/if}
+        {#if burstTrigger > 0}<Particles trigger={burstTrigger} kind="burst" />{/if}
       </div>
     </section>
 
@@ -235,6 +256,24 @@
         <p class="muted">L'Oracle parlera de nouveau lundi.</p>
       </section>
     {/if}
+
+    {#if oracle.prophecies.length > 0}
+      <section>
+        <h3 class="kit-section">Prophéties</h3>
+        <p class="muted">Défends chaque prophétie avant son jour : la Pythie te promet une fois et demie plus de gloire (+50 % XP).</p>
+        <ul class="prophecy-list">
+          {#each oracle.prophecies as p (p.text_id)}
+            <li class="kit-sheet prophecy-row" data-testid="oracle-prophecy-{p.text_id}">
+              <p>
+                <span class="prophecy-title">« {p.title} »</span>
+                <span class="prophecy-when">{longDate(p.due_date)} · {prophecyWhen(p.days_left)}</span>
+              </p>
+              <button type="button" class="kit-bronze" onclick={() => review(p.text_id)}>Te préparer</button>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
   {/if}
 </div>
 
@@ -242,7 +281,112 @@
   .oracle {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 22px;
+  }
+  .reward-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 12px;
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--reward-ink);
+  }
+  .scrolls-wrap {
+    position: relative;
+  }
+  .rolls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .picker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .picker-ask {
+    margin: 0;
+    font-size: 18px;
+    font-style: italic;
+  }
+  /* Playability #9: a 3x2 grid of monster medallions (>= 56 px), names under them. */
+  .picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    gap: 12px;
+    width: 100%;
+  }
+  .monster {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 120px;
+    padding: 10px 6px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: rgba(255, 250, 238, 0.55);
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+  }
+  .monster.is-picked {
+    border-color: var(--gold-light);
+    box-shadow:
+      0 0 0 2px var(--bronze),
+      0 0 14px rgba(255, 220, 140, 0.7);
+  }
+  .monster:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+  .monster:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
+  }
+  .monster-name {
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .monster-note {
+    font-size: 14px;
+    font-style: italic;
+  }
+  .picker-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+  .closed-rolls {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 10px;
+  }
+  .closed-note {
+    margin: 0;
+  }
+  .revealed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .revealed-art {
+    max-height: 200px;
+    object-fit: contain;
+  }
+  .revealed-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 20px;
+  }
+  .pop {
+    animation: pop 0.4s both;
   }
   .prophecy-list {
     list-style: none;
@@ -250,7 +394,7 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
   }
   .prophecy-row {
     display: flex;
@@ -258,54 +402,21 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 14px 16px;
   }
   .prophecy-row p {
     margin: 0;
   }
-  .reward-line {
-    font-weight: 600;
-    color: var(--gold);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .scrolls-wrap {
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+  .prophecy-title {
+    font-weight: 700;
   }
   @media (orientation: portrait) {
-    .scrolls-wrap {
+    .rolls {
       grid-template-columns: 1fr;
     }
   }
-  .picker {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
-  .picker-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-  }
-  /* M10: these chips are the primary tap targets for choosing a monster, not decorative
-     labels - bump them to the project's ≥48px convention (app.css's .btn/.card/inputs are all
-     48px; the generic .chip is only 40px). */
-  .picker-grid :global(.chip) {
-    min-height: 48px;
-  }
-  .picker-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .closed-note {
-    margin: 0;
+  @media (prefers-reduced-motion: reduce) {
+    .pop {
+      animation: none;
+    }
   }
 </style>

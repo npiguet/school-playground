@@ -270,6 +270,15 @@ label.kit-bronze.is-quiet {
   max-height: none;
   transform: rotate(90deg);
 }
+/* The 200 px art is wider than its 96 px stand: a grid item that overflows its track starts at the
+   track's left edge, so the turned roll drifted right of its seal and title. Centre it on the stand. */
+.kit-roll.is-upright > .roll-art,
+.kit-roll.is-upright > .roll-css {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
 
 /* --- An unrolled sheet between two rods (the Pythia's opened scroll, pinned notes) ----------- */
 .kit-sheet {
