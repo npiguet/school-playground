@@ -8,12 +8,11 @@ import {
   bestiaryCaption,
   campGreeting,
   dragonCaption,
-  nearestProphecy,
   nextStepLine,
-  prophecyWhen,
   treasureCaption,
   weeklyCaption,
 } from './camp';
+import { nearestProphecy, prophecyWhen } from '../prophecy';
 
 function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {

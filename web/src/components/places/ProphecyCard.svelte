@@ -2,7 +2,9 @@
   // The nearest prophecy card (playability #16: the Pythia's words, no « dictée », no « jour(s) »),
   // shared between Camp.svelte's hub column and Delphi's altar (UI3a Task 12): same parchment,
   // wording and « Réviser » button, each caller only positions it differently in its own scene.
-  import { prophecyWhen } from '../../lib/world/scenes/camp';
+  // It lives with the places on purpose (final review M3): the camp is a place too, built on
+  // PlaceScene like the others, and UI3b's hub keeps it on the same footing.
+  import { prophecyWhen } from '../../lib/world/prophecy';
   import type { CampResponse } from '../../lib/world/types';
 
   let {

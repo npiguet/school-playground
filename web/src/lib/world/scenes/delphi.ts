@@ -56,7 +56,8 @@ export const DELPHI_SCENE: SceneDef = {
   hotspots: DELPHI_HOTSPOTS,
   ambience: { particles: 'dust', music: null },
   narrator: { enter: 'delphi.enter', firstVisit: 'delphi.first' },
-  preload: [],
+  // The only way out is the camp: warm it for a deep link or a reload into the temple (final review M8).
+  preload: [ART.scenes.camp],
 };
 
 export function pythiaGreeting(camp: CampResponse): DialogueLine[] {

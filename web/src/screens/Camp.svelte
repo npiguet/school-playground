@@ -1,78 +1,49 @@
 <script lang="ts">
   // The camp as a hub scene (scenes UI spec §3 "Hub scene", §9 UI1): the painted camp with its
-  // places (CAMP_SCENE hotspots, each routing to its unchanged pre-UI1 screen), the slim HUD, the
-  // weekly goal banner, the Oracle's prophecy, the dragon's greeting and the hero panel overlay on
-  // its own route (`?panel=heros`, plan Ruling 6).
-  import { untrack } from 'svelte';
+  // places (CAMP_SCENE hotspots, each routing to its screen), the slim HUD, the weekly goal banner,
+  // the Oracle's prophecy, the dragon's greeting and the hero panel overlay on its own route
+  // (`?panel=heros`, plan Ruling 6). Built on PlaceScene like every other place (final review M2):
+  // the data load, the HUD, the greeting and the "camp unreachable" state are shared; what is the
+  // camp's own is the dragon, the ribbon, the prophecy column, the fade out to the next scene and
+  // having no exit sign (it is where the others lead).
   import { fade } from 'svelte/transition';
-  import SceneStage from '../components/scene/SceneStage.svelte';
+  import PlaceScene from '../components/scene/PlaceScene.svelte';
   import SceneLayer from '../components/scene/SceneLayer.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
-  import Hud from '../components/scene/Hud.svelte';
-  import DialogueBox from '../components/scene/DialogueBox.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
   import ProphecyCard from '../components/places/ProphecyCard.svelte';
   import Onboarding from '../components/Onboarding.svelte';
   import Avatar from '../components/Avatar.svelte';
   import Icon from '../components/ui/Icon.svelte';
-  import {
-    CAMP_DRAGON_LAYER,
-    CAMP_SCENE,
-    campGreeting,
-    nearestProphecy as pickProphecy,
-    weeklyCaption,
-  } from '../lib/world/scenes/camp';
-  import { campFor, campStore, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
+  import { CAMP_DRAGON_LAYER, CAMP_SCENE, campGreeting, weeklyCaption } from '../lib/world/scenes/camp';
+  import { nearestProphecy } from '../lib/world/prophecy';
   import { TINT_FILTERS } from '../lib/world/dragon';
   import { ART } from '../lib/world/art';
-  import { markGreeted, shouldGreet } from '../lib/scene/greeting';
-  import type { DialogueLine, HotspotDef, SceneContext, SceneLayerDef } from '../lib/scene/types';
-  import { initSound } from '../lib/juice/soundStore.svelte';
+  import type { CampResponse } from '../lib/world/types';
+  import type { HotspotDef, SceneLayerDef } from '../lib/scene/types';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
   import { reducedMotion } from '../lib/juice/motion';
   import { clearProfile } from '../lib/profileStore.svelte';
   import { href } from '../lib/routes';
-  import { navigate, router } from '../lib/router.svelte';
-  import { closePanel, heroPanelHref, hotspotHref, openPanel } from '../lib/scene/panelNav';
+  import { navigate } from '../lib/router.svelte';
+  import { closePanel, go, hotspotHref } from '../lib/scene/panelNav';
+  import { sceneHref, type PanelId } from '../lib/world/places';
   import type { Profile } from '../lib/types';
 
-  let { profile }: { profile: Profile } = $props();
+  // `panel` comes from placeFor, like every other place (final review M2).
+  let { profile, panel }: { profile: Profile; panel: PanelId | null } = $props();
 
   const profileId = $derived(String(profile.id));
-
-  // Final review I2: depends on the profile id only. loadCatalog() reads campStore.catalog and
-  // initSound() reads profile.settings; tracked, either would re-run this (a second /camp fetch,
-  // a second initSound) as soon as the catalog arrived or a setting changed.
-  $effect(() => {
-    const id = profile.id;
-    untrack(() => {
-      initSound(profile);
-      void refreshCamp(id);
-      void loadCatalog();
-    });
-  });
-
-  // campStore is shared across profiles: ignore a snapshot that belongs to the previous hero.
-  const camp = $derived(campFor(profile.id));
-  const ctx = $derived<SceneContext>({ camp, catalog: campStore.catalog });
-  const panel = $derived(router.route.query.panel ?? null);
-  // Final review M11: SceneStage owns the ?debug flag and hands it back here.
+  // SceneStage owns the ?debug flag and hands it back through PlaceScene.
   let debug = $state(false);
 
-  let greeting = $state<DialogueLine[] | null>(null);
-  $effect(() => {
-    if (!camp || !profile.settings.onboarded || debug || !shouldGreet(profile.id)) return;
-    markGreeted(profile.id);
-    greeting = campGreeting(profile.name, camp);
-  });
+  // The dragon waits for the Muses' welcome card (Onboarding) before it speaks.
+  const greet = (camp: CampResponse | null) =>
+    camp && profile.settings.onboarded ? campGreeting(profile.name, camp) : null;
 
-  const dragonLayer = $derived<SceneLayerDef | null>(
-    camp
-      ? { id: 'dragon', src: ART.dragon[camp.dragon.stage], alt: camp.dragon.name ?? 'Ton dragon', ...CAMP_DRAGON_LAYER }
-      : null,
-  );
-
-  const nearestProphecy = $derived(camp ? pickProphecy(camp) : null);
+  function dragonLayer(camp: CampResponse): SceneLayerDef {
+    return { id: 'dragon', src: ART.dragon[camp.dragon.stage], alt: camp.dragon.name ?? 'Ton dragon', ...CAMP_DRAGON_LAYER };
+  }
 
   // Playability #12: leaving the hub fades through the night before the next screen appears
   // (App.svelte fades the dark back out on arrival).
@@ -87,6 +58,7 @@
     leaveTimer = setTimeout(() => navigate(path), reducedMotion() ? 60 : 180);
   }
 
+  // The tap sounds at once; the navigation waits for the fade (so not `go()`, which navigates now).
   function activate(def: HotspotDef) {
     const to = hotspotHref(def, profile.id);
     if (!to) return;
@@ -95,72 +67,48 @@
     leaveTo(to);
   }
 
-  // UI3 Ruling A2: the shared overlay navigation (UI1's hero-panel tag, generalised).
-  function openHero() {
-    unlockAudio();
-    playSfx('tap');
-    openPanel(heroPanelHref(profile.id));
-  }
-
-  function closeHeroPanel() {
-    closePanel(href('camp', { profileId }));
-  }
-
-  function review(textId: number) {
-    navigate(href('play', { profileId, textId: String(textId) }));
-  }
+  const closeHeroPanel = () => closePanel(sceneHref('camp', profile.id));
+  const review = (textId: number) => go(href('play', { profileId, textId: String(textId) }));
 </script>
 
 {#if !profile.settings.onboarded}
   <Onboarding {profile} />
 {/if}
 
-<SceneStage scene={CAMP_SCENE} {ctx} bind:debug>
-  {#snippet hud()}
-    <Hud {profile} {camp} onHero={openHero} />
-  {/snippet}
-
-  {#if dragonLayer && camp}
-    <SceneLayer layer={dragonLayer} filter={TINT_FILTERS[camp.dragon.tint]} testId="camp-dragon-layer" />
-  {/if}
-
-  {#each CAMP_SCENE.hotspots as def (def.id)}
-    <Hotspot {def} status={def.state(ctx)} sceneId="camp" onActivate={activate} />
-  {/each}
-
-  {#if camp}
-    <!-- Playability #6, #7: a cloth ribbon centred under the « Le camp » plaque, in-world words,
-         and three leaves that fill in as the week's parchments are defended. -->
-    <p class="weekly" data-testid="camp-weekly">
-      <span class="leaves" aria-hidden="true">
-        {#each Array.from({ length: camp.weekly.target }, (_, i) => i) as i (i)}<span
-            class="leaf"
-            class:filled={i < camp.weekly.done}
-          ></span>{/each}
-      </span>
-      <span>{weeklyCaption(camp.weekly)}</span>
-    </p>
-  {/if}
-
-  <div class="camp-column" data-testid="camp-column">
-    {#if camp}
-      {#if nearestProphecy}
-        <ProphecyCard prophecy={nearestProphecy} onReview={review} testId="camp-prophecy" />
-      {/if}
-    {:else if campStore.loading}
-      <p class="kit-parchment status">Les Muses préparent le camp…</p>
-    {:else if campStore.error}
-      <div class="kit-parchment status">
-        <p>Impossible de rejoindre le camp : {campStore.error}</p>
-        <button type="button" class="kit-bronze" onclick={() => refreshCamp(profile.id)}>Réessayer</button>
-      </div>
+<PlaceScene {profile} scene={CAMP_SCENE} bind:debug showExit={false} {greet}>
+  {#snippet children(ctx)}
+    {#if ctx.camp}
+      <SceneLayer layer={dragonLayer(ctx.camp)} filter={TINT_FILTERS[ctx.camp.dragon.tint]} testId="camp-dragon-layer" />
     {/if}
-  </div>
 
-  {#if greeting}
-    <DialogueBox lines={greeting} onDone={() => (greeting = null)} />
-  {/if}
-</SceneStage>
+    {#each CAMP_SCENE.hotspots as def (def.id)}
+      <Hotspot {def} status={def.state(ctx)} sceneId="camp" onActivate={activate} />
+    {/each}
+
+    {#if ctx.camp}
+      <!-- Playability #6, #7: a cloth ribbon centred under the « Le camp » plaque, in-world words,
+           and three leaves that fill in as the week's parchments are defended. -->
+      <p class="weekly" data-testid="camp-weekly">
+        <span class="leaves" aria-hidden="true">
+          {#each Array.from({ length: ctx.camp.weekly.target }, (_, i) => i) as i (i)}<span
+              class="leaf"
+              class:filled={i < ctx.camp.weekly.done}
+            ></span>{/each}
+        </span>
+        <span>{weeklyCaption(ctx.camp.weekly)}</span>
+      </p>
+    {/if}
+
+    <div class="camp-column" data-testid="camp-column">
+      {#if ctx.camp}
+        {@const prophecy = nearestProphecy(ctx.camp)}
+        {#if prophecy}
+          <ProphecyCard {prophecy} onReview={review} testId="camp-prophecy" />
+        {/if}
+      {/if}
+    </div>
+  {/snippet}
+</PlaceScene>
 
 <!-- Onboarding takes precedence (fix wave 3): a deep link to ?panel=heros for a hero who hasn't
      been welcomed yet opens the panel only once the Muses' card has closed. -->
@@ -262,14 +210,6 @@
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
-  }
-  .status p {
-    margin: 0;
-  }
-  .status {
-    margin: 0;
-    padding: 8px 12px;
-    font-size: 15px;
   }
   .hero-panel {
     display: flex;

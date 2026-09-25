@@ -14,6 +14,7 @@ import {
   type SceneLayerDef,
 } from '../../scene/types';
 import { CAMP_SHAPES } from './camp.shapes';
+import { nearestProphecy, prophecyWhen } from '../prophecy';
 
 export type CampHotspotId = keyof typeof CAMP_SHAPES;
 
@@ -43,19 +44,6 @@ export function treasureCaption(n: number): string {
 export function bestiaryCaption(neutralised: number): string {
   if (neutralised <= 0) return "Les ruses d'Éris t'attendent";
   return neutralised === 1 ? "1 ruse d'Éris déjouée" : `${neutralised} ruses d'Éris déjouées`;
-}
-
-/** When a prophecy falls due, in words (playability #16: a real plural, no « jour(s) »). */
-export function prophecyWhen(daysLeft: number): string {
-  if (daysLeft <= 0) return "aujourd'hui";
-  if (daysLeft === 1) return 'demain';
-  return `dans ${daysLeft} jours`;
-}
-
-/** The prophecy the camp shows: the one falling due first. */
-export function nearestProphecy(camp: CampResponse): CampResponse['prophecies'][number] | null {
-  const list = camp.prophecies;
-  return list.length ? [...list].sort((a, b) => a.due_date.localeCompare(b.due_date))[0] : null;
 }
 
 /** The weekly goal banner (playability #6: in-world words, not a dashboard counter). */

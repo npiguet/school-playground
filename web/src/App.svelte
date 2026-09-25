@@ -82,8 +82,9 @@
     {:else if gateProfile}
       {#if gateProfile.has_pin && !unlocked}
         <PinGate profile={gateProfile} {onUnlocked} />
-      {:else if route.name === 'camp'}
-        <Camp profile={gateProfile} />
+      {:else if view?.place === 'camp'}
+        <!-- Final review M2: the camp gets its panel from placeFor, like every place below. -->
+        <Camp profile={gateProfile} panel={view.panel} />
       {:else if view?.place === 'library'}
         <!-- UI3a Task 9, Ruling A1: the tent scene and its overlays (`library-tent`, `library`,
              `text-new`, `text-scan`, `alexandria`, `alexandria-work`) share one place branch (not

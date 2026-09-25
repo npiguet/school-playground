@@ -1,27 +1,46 @@
 <script lang="ts">
-  // The shell of every place scene but the title (UI3 Ruling A7): the stage, the slim HUD, the
-  // exit sign, and the /camp data the HUD and the hotspot states read. The screen renders its
-  // hotspots, layers and in-scene objects through `children(ctx)`, inside the art box; its
-  // overlays are rendered next to this component (they are fixed-position, like the camp's).
+  // The shell of every place scene but the title (UI3 Ruling A7), the camp included (final review
+  // M2): the stage, the slim HUD and its hero chip, the exit sign (not at the camp, which is where
+  // it leads), the /camp data the HUD and the hotspot states read, what the scene shows while that
+  // data loads or cannot be reached (M4), and the place's greeting, once per hero per page load
+  // (A9). The screen renders its hotspots, layers and in-scene objects through `children(ctx)`,
+  // inside the art box; its overlays are rendered next to this component (they are
+  // fixed-position).
   import { untrack, type Snippet } from 'svelte';
   import SceneStage from './SceneStage.svelte';
   import Hud from './Hud.svelte';
   import SceneExit from './SceneExit.svelte';
+  import DialogueBox from './DialogueBox.svelte';
   import { campFor, campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
   import { initSound } from '../../lib/juice/soundStore.svelte';
-  import { playSfx, unlockAudio } from '../../lib/juice/sfx';
-  import { heroPanelHref, openPanel } from '../../lib/scene/panelNav';
-  import type { SceneContext, SceneDef } from '../../lib/scene/types';
+  import { go, heroPanelHref } from '../../lib/scene/panelNav';
+  import { greetKey, markGreeted, shouldGreet } from '../../lib/scene/greeting';
+  import type { DialogueLine, SceneContext, SceneDef } from '../../lib/scene/types';
+  import type { CampResponse } from '../../lib/world/types';
   import type { Profile } from '../../lib/types';
 
   let {
     profile,
     scene,
     debug = $bindable(false),
+    showExit = true,
+    greet,
     children,
-  }: { profile: Profile; scene: SceneDef; debug?: boolean; children: Snippet<[SceneContext]> } = $props();
+  }: {
+    profile: Profile;
+    scene: SceneDef;
+    debug?: boolean;
+    /** The « Le camp » sign; the camp itself has none. */
+    showExit?: boolean;
+    /** The place's greeting: its lines, or null while it is not ready to greet yet (e.g. the camp
+     *  data has not arrived). Called inside an effect, so what it reads is tracked. */
+    greet?: (camp: CampResponse | null) => DialogueLine[] | null;
+    children: Snippet<[SceneContext]>;
+  } = $props();
 
-  // Depends on the profile id only (same reasoning as Camp.svelte, final review I2).
+  // Final review I2: depends on the profile id only. loadCatalog() reads campStore.catalog and
+  // initSound() reads profile.settings; tracked, either would re-run this (a second /camp fetch,
+  // a second initSound) as soon as the catalog arrived or a setting changed.
   $effect(() => {
     const id = profile.id;
     untrack(() => {
@@ -35,11 +54,19 @@
   const camp = $derived(campFor(profile.id));
   const ctx = $derived<SceneContext>({ camp, catalog: campStore.catalog });
 
-  function openHero() {
-    unlockAudio();
-    playSfx('tap');
-    openPanel(heroPanelHref(profile.id));
-  }
+  // No greeting while ?debug is on (final review M11 of UI1: the stage owns the flag).
+  let greeting = $state<DialogueLine[] | null>(null);
+  $effect(() => {
+    if (!greet || debug) return;
+    const key = greetKey(scene.id, profile.id);
+    if (!shouldGreet(key)) return;
+    const lines = greet(camp);
+    if (!lines) return;
+    markGreeted(key);
+    greeting = lines;
+  });
+
+  const openHero = () => go(heroPanelHref(profile.id), 'panel');
 </script>
 
 <SceneStage {scene} {ctx} bind:debug>
@@ -47,5 +74,47 @@
     <Hud {profile} {camp} onHero={openHero} />
   {/snippet}
   {@render children(ctx)}
-  <SceneExit profileId={profile.id} />
+  {#if !camp}
+    <!-- Final review M4: every place, not only the camp, says when the camp data is on its way or
+         out of reach, and offers to try again. -->
+    {#if campStore.error && !campStore.loading}
+      <div class="kit-parchment place-status" role="alert" data-testid="place-status">
+        <p>Impossible de rejoindre le camp : {campStore.error}</p>
+        <button type="button" class="kit-bronze" data-testid="place-retry" onclick={() => refreshCamp(profile.id)}>Réessayer</button>
+      </div>
+    {:else if campStore.loading}
+      <p class="kit-parchment place-status" data-testid="place-status">Les Muses préparent le camp…</p>
+    {/if}
+  {/if}
+  {#if greeting}
+    <DialogueBox lines={greeting} onDone={() => (greeting = null)} />
+  {/if}
+  {#if showExit}
+    <SceneExit profileId={profile.id} />
+  {/if}
 </SceneStage>
+
+<style>
+  /* Under the place's plaque, in the sky band every scene keeps free of hotspots (the camp's
+     weekly ribbon sits there once the data has arrived; this only shows before). */
+  .place-status {
+    position: absolute;
+    left: 50%;
+    top: 23%;
+    transform: translateX(-50%);
+    z-index: 3;
+    width: max-content;
+    max-width: 40%;
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+  .place-status p {
+    margin: 0;
+  }
+</style>

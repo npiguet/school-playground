@@ -8,6 +8,7 @@
   // such as the audio unlock and the tilt permission, UI3 Ruling A5).
   import { clipPath, labelShift, shapeBox } from '../../lib/scene/geometry';
   import { useSceneRuntime } from '../../lib/scene/runtime.svelte';
+  import { hotspotTestId } from '../../lib/scene/hotspotId';
   import { router } from '../../lib/router.svelte';
   import type { HotspotDef, HotspotState } from '../../lib/scene/types';
 
@@ -93,7 +94,7 @@
     class:locked={status.locked}
     class:flash={flashing}
     class:pinned
-    data-testid="{sceneId}-{def.id}"
+    data-testid={hotspotTestId(sceneId, def.id)}
     aria-disabled={status.locked ? 'true' : undefined}
     style="left:{box.x + box.w / 2}%;top:{box.y + box.h / 2}%;width:{box.w}%;height:{box.h}%"
     {onclick}
@@ -106,7 +107,7 @@
       </span>
       {#if status.caption}<span class="hotspot-caption">{status.caption}</span>{/if}
       <!-- Playability #5: a badge lives on the plaque it counts for, never on the shape. -->
-      {#if status.badge !== null}<span class="hotspot-badge" data-testid="{sceneId}-{def.id}-badge">{status.badge}</span>{/if}
+      {#if status.badge !== null}<span class="hotspot-badge" data-testid="{hotspotTestId(sceneId, def.id)}-badge">{status.badge}</span>{/if}
     </span>
     {#if status.locked}<span class="sr-only">(fermé pour l'instant)</span>{/if}
   </button>
