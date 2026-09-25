@@ -20,11 +20,14 @@ test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
   await page.getByRole('button', { name: 'Pas encore' }).click();
   await expect(page.getByTestId('scan-title')).toHaveCount(0);
   await confirmScanVerified(page);
-  await page.getByTestId('scan-title').fill('Feuille des fées');
+  // A unique title: the library is shared by every profile, so a fixed one matches several cards
+  // under --repeat-each (strict mode violation).
+  const title = uniqueName('Feuille des fées');
+  await page.getByTestId('scan-title').fill(title);
   await page.getByTestId('scan-due-date').fill('2035-06-30');
   await page.getByTestId('btn-scan-save').click();
   await expect(page.getByRole('heading', { name: 'Les Parchemins' })).toBeVisible();
-  const card = page.locator('[data-testid="text-card"]', { hasText: 'Feuille des fées' });
+  const card = page.locator('[data-testid="text-card"]', { hasText: title });
   await expect(card).toContainText('Scanné');
   await expect(card.getByTestId('chip-prophecy')).toContainText('30.06.2035');
   await expect(page.getByRole('heading', { name: "Prophéties de l'Oracle" })).toBeVisible();
