@@ -46,7 +46,7 @@ describe('camp hub scene', () => {
   it('routes every place to its existing screen', () => {
     expect(Object.fromEntries(CAMP_HOTSPOTS.map((h) => [h.id, h.target]))).toEqual({
       dragon: 'dragon',
-      oracle: 'oracle',
+      oracle: 'delphi',
       quests: 'quests',
       parchemins: 'library-tent',
       dossier: 'dossier',
@@ -148,6 +148,6 @@ describe('camp hub wording (playability #2, #6, #16)', () => {
 
   it('keeps the dragon cut-out on a shallow parallax plane and preloads the likely next scenes', () => {
     expect(CAMP_DRAGON_LAYER.depth).toBeLessThanOrEqual(1);
-    expect(CAMP_SCENE.preload).toEqual(['/art/scenes/delphes.webp', '/art/scenes/battle.webp']);
+    expect(CAMP_SCENE.preload).toEqual(['/art/scenes/library_tent.webp', '/art/scenes/delphi.webp']);
   });
 });

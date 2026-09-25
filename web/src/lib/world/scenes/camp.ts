@@ -83,7 +83,9 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
   {
     id: 'oracle',
     label: 'Le chemin de Delphes',
-    target: 'oracle',
+    // UI3a Task 12: the temple is now its own place scene, not the legacy Oracle screen directly
+    // (same reasoning as the library tent, Task 9).
+    target: 'delphi',
     shape: CAMP_SHAPES.oracle,
     labelPos: 'below',
     state: ({ camp }) => {
@@ -170,8 +172,8 @@ export const CAMP_SCENE: SceneDef = {
   hotspots: CAMP_HOTSPOTS,
   ambience: { particles: 'embers', music: null },
   narrator: { enter: 'camp.enter', firstVisit: 'camp.first' },
-  // Final review M5: the scenes the hub leads to next (the Oracle's path, the battle).
-  preload: [ART.scenes.delphes, ART.scenes.battle],
+  // Carry rec. 9: the two places the hub leads to most (the tent, the temple).
+  preload: [ART.scenes.libraryTent, ART.scenes.delphi],
 };
 
 /** Where the player's dragon cut-out stands (its image depends on the stage, so Camp.svelte

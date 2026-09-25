@@ -11,6 +11,7 @@
   import Hud from '../components/scene/Hud.svelte';
   import DialogueBox from '../components/scene/DialogueBox.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
+  import ProphecyCard from '../components/scene/ProphecyCard.svelte';
   import Onboarding from '../components/Onboarding.svelte';
   import Avatar from '../components/Avatar.svelte';
   import Icon from '../components/ui/Icon.svelte';
@@ -19,7 +20,6 @@
     CAMP_SCENE,
     campGreeting,
     nearestProphecy as pickProphecy,
-    prophecyWhen,
     weeklyCaption,
   } from '../lib/world/scenes/camp';
   import { campStore, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
@@ -145,14 +145,7 @@
   <div class="camp-column" data-testid="camp-column">
     {#if camp}
       {#if nearestProphecy}
-        <div class="kit-parchment prophecy" data-testid="camp-prophecy">
-          <!-- Playability #16: the Pythia's words, no « dictée », no « jour(s) ». -->
-          <p class="prophecy-text">
-            <span class="prophecy-when">La Pythie a vu ton épreuve, {prophecyWhen(nearestProphecy.days_left)} :</span>
-            <span class="prophecy-title">{nearestProphecy.title}</span>
-          </p>
-          <button type="button" class="kit-bronze" onclick={() => review(nearestProphecy!.text_id)}>Réviser</button>
-        </div>
+        <ProphecyCard prophecy={nearestProphecy} onReview={review} testId="camp-prophecy" />
       {/if}
     {:else if campStore.loading}
       <p class="kit-parchment status">Les Muses préparent le camp…</p>
@@ -269,43 +262,6 @@
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
-  }
-  .prophecy {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 8px 8px 12px;
-  }
-  .prophecy-text {
-    flex: 1;
-    min-width: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .prophecy-when {
-    font-style: italic;
-    font-size: 13px;
-    line-height: 1.25;
-  }
-  .prophecy-title {
-    font-weight: 700;
-    font-size: 14px;
-    line-height: 1.25;
-    /* Clamp instead of scroll (round 1 review): a 120-char title (the server's own max, see
-       schemas.py) is still just 2 lines. -webkit-line-clamp only clips the box visually - the
-       full text stays in the DOM, so it's still exposed in full to assistive tech. */
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
-  }
-  .prophecy .kit-bronze {
-    flex-shrink: 0;
-    padding: 8px 12px;
-    font-size: 15px;
   }
   .status p {
     margin: 0;

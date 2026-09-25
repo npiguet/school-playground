@@ -21,7 +21,7 @@ import {
 
 const PLACES: { id: string; path: RegExp; name: RegExp }[] = [
   { id: 'dragon', path: /\/dragon$/, name: /Le nid du dragon/ },
-  { id: 'oracle', path: /\/delphes$/, name: /Le chemin de Delphes/ },
+  { id: 'oracle', path: /\/temple$/, name: /Le chemin de Delphes/ },
   { id: 'quests', path: /\/quetes$/, name: /Le tableau des quêtes/ },
   { id: 'parchemins', path: /\/tente-parchemins$/, name: /La tente des parchemins/ },
   { id: 'dossier', path: /\/dossier$/, name: /La tente de guerre/ },

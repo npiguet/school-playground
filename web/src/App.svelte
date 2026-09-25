@@ -9,6 +9,7 @@
   import Title from './screens/Title.svelte';
   import Camp from './screens/Camp.svelte';
   import LibraryTent from './screens/LibraryTent.svelte';
+  import Delphi from './screens/Delphi.svelte';
   import Play from './screens/Play.svelte';
   import Stats from './screens/Stats.svelte';
   import Settings from './screens/Settings.svelte';
@@ -16,8 +17,6 @@
   import Bestiaire from './screens/Bestiaire.svelte';
   import BestiaireEntry from './screens/BestiaireEntry.svelte';
   import Lieutenant from './screens/Lieutenant.svelte';
-  import Oracle from './screens/Oracle.svelte';
-  import QuestBoard from './screens/QuestBoard.svelte';
   import Boss from './screens/Boss.svelte';
   import DragonScreen from './screens/DragonScreen.svelte';
   import Cabin from './screens/Cabin.svelte';
@@ -94,6 +93,11 @@
              did the same for the portal and its works, so every library route now goes through
              this one instance. -->
         <LibraryTent profile={gateProfile} panel={view.panel} params={route.params} />
+      {:else if view?.place === 'delphi'}
+        <!-- UI3a Task 12, same reasoning as the library branch above: the temple scene and its
+             overlays (`delphi`, `oracle`, `quests`) share one place branch so opening or closing
+             the Pythia's or the tablets' overlay never remounts Delphi and replays its entry zoom. -->
+        <Delphi profile={gateProfile} panel={view.panel} />
       {:else if route.name === 'play'}
         <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
       {:else if route.name === 'grimoire'}
@@ -110,10 +114,6 @@
         <BestiaireEntry profile={gateProfile} entryKey={route.params.key} />
       {:else if route.name === 'lieutenant'}
         <Lieutenant profile={gateProfile} lieutenantKey={route.params.key} />
-      {:else if route.name === 'oracle'}
-        <Oracle profile={gateProfile} />
-      {:else if route.name === 'quests'}
-        <QuestBoard profile={gateProfile} />
       {:else if route.name === 'boss'}
         <Boss profile={gateProfile} />
       {:else if route.name === 'dragon'}

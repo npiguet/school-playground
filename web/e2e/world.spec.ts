@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { enterTitle, expectCamp, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
+import { enterTitle, expectCamp, expectScene, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -79,6 +79,10 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.goto(`/#/p/${profileId}/camp`);
     await expectCamp(page); // settled: never click into the zoom-in
     await page.getByTestId('camp-oracle').click();
+    // UI3a Task 12: the camp's oracle path now leads to the Delphi temple scene itself (like the
+    // library tent), not straight into the Oracle overlay - the Pythia opens that.
+    await expectScene(page, 'delphi');
+    await page.getByTestId('delphi-pythia').click();
 
     // Three sealed scrolls, each with its own opener; the reward is shown before any is opened
     // (ethics: no gamble - spec §1, plan decision 9).
