@@ -41,7 +41,7 @@
   const reduced = reducedMotion();
   // Task 11 review, fix round 1 #1: the OUT transitions below are local (no `|global`), unlike the
   // IN ones. An ancestor unmounting this overlay outright - leaving its place for a different one
-  // (the title handing off to the camp, a work's "Jouer maintenant" leaving for /play...) - now
+  // (the title handing off to the camp, a work's « Le défendre maintenant » leaving for /play...) - now
   // drops it at once instead of lingering for its 160ms close animation with a fixed full-screen
   // scene still covering the next one, `overlayState.open` still above 0 (the next scene stuck
   // `inert`), the modal stack still trapping Tab on the leaving panel, and `returnFocus` firing

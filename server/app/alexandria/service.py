@@ -113,7 +113,9 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
 
     notes = []
     if failed:
-        notes.append(f"{failed} page(s) n'ont pas pu être lues.")
+        # Player-visible (the work's note): a real plural, never « page(s) » (playability #10).
+        notes.append("Les scribes n'ont pas pu lire une page." if failed == 1
+                     else f"Les scribes n'ont pas pu lire {failed} pages.")
     if stopped_early:
         notes.append("Le jour a baissé et les scribes ont posé leurs calames : la suite de l'œuvre attend d'être recopiée.")
     if truncated:

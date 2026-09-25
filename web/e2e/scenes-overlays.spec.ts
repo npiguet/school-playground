@@ -93,6 +93,26 @@ for (const size of [
   });
 }
 
+// Task 10: Alexandria is an open book - two pages either side of the gutter, and nothing crosses it.
+test('the portal is a codex: two pages, and nothing crosses the gutter', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, hero(testInfo.project.name));
+  await page.goto(`/#/p/${id}/alexandria`);
+  const portal = page.getByTestId('overlay-portal');
+  await expect(portal).toHaveAttribute('data-variant', 'codex');
+  await expect(portal.getByTestId('work-card').first()).toBeVisible();
+  await expectOverlayClearsScene(page, 'overlay-portal', 'library', true);
+  await expect(portal.locator('.codex-spread')).toHaveCount(1);
+  const pages = portal.locator('.codex-page');
+  await expect(pages).toHaveCount(2);
+  if ((page.viewportSize()?.width ?? 0) > 900) {
+    const spread = (await portal.locator('.codex-spread').boundingBox())!;
+    const gutter = spread.x + spread.width / 2;
+    const [left, right] = [(await pages.nth(0).boundingBox())!, (await pages.nth(1).boundingBox())!];
+    expect(left.x + left.width, 'left page ends before the gutter').toBeLessThanOrEqual(gutter);
+    expect(right.x, 'right page starts after the gutter').toBeGreaterThanOrEqual(gutter);
+  }
+});
+
 // Review fix round 1 #7: the title has no HUD, so its overlays centre in the whole screen.
 test('the title has no HUD band: the naming ritual centres in the whole screen', async ({ page }) => {
   await page.goto('/#/profiles/new');

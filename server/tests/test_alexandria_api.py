@@ -33,7 +33,8 @@ def test_works_listing_and_refresh_partial_and_error(settings):
         assert r.status_code == 200, r.text
         d = r.json()
         assert d["status"] == "ok" and d["chunk_count"] >= 2 and d["rejected"].get("digits", 0) >= 1
-        assert "1 page" in d["error"]                           # partial: Chapitre_2 has no fixture → note, not failure
+        # partial: Chapitre_2 has no fixture → note, not failure; a real plural, never « page(s) »
+        assert "Les scribes n'ont pas pu lire une page." in d["error"] and "(s)" not in d["error"]
         r = client.post("/api/alexandria/works/missing/refresh")
         assert r.status_code == 200 and r.json()["status"] == "error" and r.json()["chunk_count"] == 0
         assert "inaccessible" in r.json()["error"]

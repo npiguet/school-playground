@@ -301,16 +301,33 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   await tap(page.getByTestId('library-portal'), testInfo);
   await expect(page).toHaveURL(/\/alexandria$/);
   const portal = page.getByTestId('overlay-portal');
+  await expect(portal).toHaveAttribute('data-variant', 'codex');
   await expect(portal.getByRole('heading', { name: "Le portail d'Alexandrie" })).toBeVisible();
+  await expect(portal.locator('.codex-page')).toHaveCount(2);
   await expect(portal.getByTestId('work-card').first()).toBeVisible();
+  // Playability #24: the byline never repeats the title; the level is a medallion.
+  const perrault = portal.locator('[data-testid="work-card"]', { hasText: 'Contes de Perrault' });
+  await expect(perrault.locator('.entry-by')).toHaveText('Charles Perrault');
+  await expect(portal.getByText(/niveau \d/)).toHaveCount(0);
   expect(await portal.getByTestId('work-card').count()).toBeGreaterThanOrEqual(10);
   const workId = await portal.getByTestId('work-card').first().getAttribute('data-work-id');
   await portal.getByTestId('work-card').first().click();
   await expect(page).toHaveURL(/\/alexandria\/[^/]+$/);
   const work = page.getByTestId('overlay-portal-work');
   await expect(work.getByTestId('btn-refresh-work')).toBeVisible();
-  await expect(work).toContainText('Les traducteurs et auteurs sont dans le domaine public.');
-  await work.getByTestId('portal-back').click();
+  await expect(work).not.toContainText('domaine public');
+  // Playability #7: a never-copied work points at the scribes, with no filter to filter nothing. The
+  // shared database may already hold copies of this work (alexandria.spec.ts covers that branch).
+  if ((await portal.getByTestId('work-card').first().getAttribute('data-status')) === 'never') {
+    await expect(work.getByTestId('scribes-empty')).toContainText("Les scribes n'ont encore rien recopié de ce livre. Demande-leur !");
+    await expect(work.getByTestId('work-levels')).toHaveCount(0);
+    await expect(work.getByTestId('btn-refresh-work')).toHaveText('Demander aux scribes');
+  }
+  const back = work.getByTestId('portal-back');
+  await expect(back).toContainText('Toutes les œuvres');
+  expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+  await expectOverlayTapTargets(page, 'overlay-portal-work');
+  await back.click();
   await expect(page).toHaveURL(/\/alexandria$/);
   await expect(portal).toBeVisible();
   await portal.getByTestId('work-card').first().click();
@@ -360,10 +377,10 @@ test('a deep link into a work: the seal and « Toutes les œuvres » replace, ne
   await expect(work).toHaveCount(0);
 });
 
-// Final review M17: two quick chip taps start two chunk requests; the one answered last must not
+// Final review M17: two quick level taps start two chunk requests; the one answered last must not
 // win if it was asked first. The first level's answer is held until the second one has rendered
 // (no timing window), then released: the list must still show the second level's scrolls.
-test("a slow answer for an earlier level chip never replaces the later chip's scrolls", async ({ page, request }, testInfo) => {
+test("a slow answer for an earlier level never replaces the later level's scrolls", async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const chunk = (seq: number, level: string, preview: string) => ({ id: 900000 + seq, seq, level, word_count: 120, score: 20, preview, text_id: null });
   let release!: () => void;
@@ -376,16 +393,19 @@ test("a slow answer for an earlier level chip never replaces the later chip's sc
     } else if (level === '10H') {
       await route.fulfill({ json: [chunk(2, '10H', 'Rouleau du dixième degré')] });
     } else {
-      await route.fulfill({ json: [] });
+      // « Tous »: one scroll, so the level medallions show (they hide while there is nothing to filter).
+      await route.fulfill({ json: [chunk(3, '8H', 'Rouleau de tous les degrés')] });
     }
   });
   await page.goto(`/#/p/${id}/alexandria/verne-vingt-mille-lieues`);
   const work = page.getByTestId('overlay-portal-work');
   await expect(work.getByTestId('btn-refresh-work')).toBeVisible();
+  const levels = work.getByTestId('work-levels');
+  await expect(work.getByTestId('chunk-card')).toContainText('Rouleau de tous les degrés');
   const slow = page.waitForRequest((r) => r.url().includes('/chunks?level=9H'));
-  await work.getByRole('button', { name: '9H', exact: true }).click();
+  await chooseLevel(levels, '9H');
   await slow;
-  await work.getByRole('button', { name: '10H', exact: true }).click();
+  await chooseLevel(levels, '10H');
   const cards = work.getByTestId('chunk-card');
   await expect(cards).toHaveCount(1);
   await expect(cards).toContainText('Rouleau du dixième degré');
@@ -396,5 +416,5 @@ test("a slow answer for an earlier level chip never replaces the later chip's sc
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await expect(cards).toHaveCount(1);
   await expect(cards).toContainText('Rouleau du dixième degré');
-  await expect(work.getByRole('button', { name: '10H', exact: true })).toHaveClass(/chip-active/);
+  await expect(levels.getByRole('radio', { name: '10H', exact: true })).toBeChecked();
 });

@@ -1,16 +1,21 @@
 <script lang="ts">
   // A single Alexandria work's scrolls ("rouleaux"): refresh the cache from the online
   // source (graceful on network failure, spec §5 SP2), filter by level, adopt a chunk
-  // into « Tes parchemins ». Credits (author/translator/work) stay visible at all times —
-  // the spec requires public-domain attribution wherever an adopted text is offered.
+  // into « Tes parchemins ». The author and translator stay visible at all times: that is the
+  // attribution wherever an adopted text is offered (the public-domain note itself lives in
+  // ASSETS-LICENSES.md, immersion wave Ruling W9).
   // UI3a Task 11: opened as an overlay of the library tent (panel 'oeuvre') rather than a full
   // screen; « Toutes les œuvres » steps back to the portal overlay.
+  // Immersion wave Task 10 (playability #7): an open codex - the work and its scribes on the left
+  // page, its scrolls on the right; a never-copied work points at the button that asks for a copy.
   import { onDestroy, untrack } from 'svelte';
   import { api, ApiError, isTimeout } from '../../../lib/api';
   import { LEVELS } from '../../../lib/levels';
   import { href } from '../../../lib/routes';
   import { closePanel, go } from '../../../lib/scene/panelNav';
   import Icon from '../../ui/Icon.svelte';
+  import LevelMedallions from '../../ui/LevelMedallions.svelte';
+  import { lengthOf, workByline } from '../../../lib/library/shelf';
   import type { AlexandriaChunk, AlexandriaWork, Profile } from '../../../lib/types';
 
   let { profile, workId }: { profile: Profile; workId: string } = $props();
@@ -46,8 +51,10 @@
   let chunksLoading = $state(true);
   let chunksError = $state('');
   let levelFilter = $state('Tous');
+  // Playability #7: the filter filters something - hidden while there is nothing to filter.
+  const showFilter = $derived(chunks.length > 0 || levelFilter !== 'Tous');
 
-  // Final review M17: two quick chip taps start two requests that can settle out of order; only
+  // Final review M17: two quick level taps start two requests that can settle out of order; only
   // the latest one may fill the list (same generation token as refreshCamp).
   let chunksRequest = 0;
 
@@ -155,248 +162,192 @@
   }
 </script>
 
-<div class="panel-portal-work">
-  <button
-    type="button"
-    class="btn btn-ghost portal-back"
-    data-testid="portal-back"
-    onclick={() => closePanel(href('alexandria', { profileId: String(profile.id) }))}
-  >
-    Toutes les œuvres
-  </button>
-
-  {#if workLoading}
-    <p class="muted">Les Muses cherchent les scribes…</p>
-  {:else if workError}
-    <p class="orange">{workError}</p>
-  {:else if work}
-    <div class="header">
-      <!-- Fix round 1 #5: an h3, not an h2 - this now sits under the Overlay's own h2 title. -->
-      <h3>{work.title}</h3>
-      <p class="credits">{work.credits}</p>
-      <p class="muted domain-note">Les traducteurs et auteurs sont dans le domaine public.</p>
-
-      <button
-        type="button"
-        class="btn btn-primary"
-        data-testid="btn-refresh-work"
-        disabled={refreshing}
-        onclick={refresh}
-      >
-        {work.status === 'ok' ? 'Recopier à nouveau' : 'Recopier depuis la Bibliothèque'}
+<div class="codex-spread panel-portal-work">
+  <section class="codex-page page-left">
+    <button
+      type="button"
+      class="kit-bronze is-quiet portal-back"
+      data-testid="portal-back"
+      onclick={() => closePanel(href('alexandria', { profileId: String(profile.id) }))}
+    >
+      <Icon name="arrow-left" size={18} /> Toutes les œuvres
+    </button>
+    {#if workLoading}
+      <p class="muted">Les Muses cherchent les scribes…</p>
+    {:else if workError}
+      <p class="kit-note" data-tone="eris">{workError}</p>
+    {:else if work}
+      <!-- Fix round 1 #5: an h3, not an h2 - this sits under the Overlay's own h2 title. -->
+      <h3 class="work-title">{work.title}</h3>
+      <p class="work-by">{workByline(work)}</p>
+      <button type="button" class="kit-bronze" data-testid="btn-refresh-work" disabled={refreshing} onclick={refresh}>
+        {work.status === 'ok' ? 'Demander une nouvelle copie' : 'Demander aux scribes'}
       </button>
       {#if refreshing}
         <p class="muted" aria-live="polite">Les scribes recopient… (cela peut prendre une minute)</p>
       {/if}
-
       {#if refreshNote?.kind === 'error'}
-        <div class="banner-error" data-testid="alexandria-error">{refreshNote.message}</div>
+        <p class="kit-note" data-tone="eris" data-testid="alexandria-error">{refreshNote.message}</p>
       {:else if refreshNote?.kind === 'olive'}
-        <div class="banner-olive">{refreshNote.message}</div>
+        <p class="kit-note">{refreshNote.message}</p>
       {/if}
-    </div>
-
-    <div class="filters">
-      <button
-        type="button"
-        class="chip"
-        class:chip-active={levelFilter === 'Tous'}
-        onclick={() => selectLevel('Tous')}
-      >
-        Tous
-      </button>
-      {#each LEVELS as l (l)}
-        <button
-          type="button"
-          class="chip"
-          class:chip-active={levelFilter === l}
-          onclick={() => selectLevel(l)}
-        >
-          {l}
-        </button>
-      {/each}
-    </div>
-
-    {#if chunksLoading}
-      <p class="muted">Les Muses déroulent les rouleaux…</p>
-    {:else if chunksError}
-      <p class="orange">Impossible de lire les rouleaux : {chunksError}</p>
-    {:else if chunks.length === 0}
-      {#if work.status === 'ok'}
-        <p class="muted">
-          Les scribes n'ont trouvé aucun passage assez propre dans cette œuvre (dialogues, vers,
-          vieux français…).
-        </p>
-      {:else}
-        <p class="muted">Aucun rouleau pour le moment.</p>
-      {/if}
-    {:else}
-      <div class="grid">
-        {#each chunks as chunk (chunk.id)}
-          <div class="card chunk-card" data-testid="chunk-card">
-            <div class="chunk-head">
-              <span class="seq">Rouleau {chunk.seq}</span>
-              <span class="chip">{chunk.level}</span>
-              <span class="muted">≈ {chunk.word_count} mots</span>
-              <span
-                class="stars"
-                role="img"
-                aria-label="Richesse en accords : {starsFor(chunk.score)} sur 5"
-                title="Richesse en accords : {starsFor(chunk.score)} sur 5"
-                >{#each Array.from({ length: starsFor(chunk.score) }, (_, i) => i) as i (i)}<Icon name="star" size={16} />{/each}</span
-              >
-            </div>
-            <p class="preview">{chunk.preview}</p>
-
-            {#if confirmation && confirmation.chunkId === chunk.id}
-              <div class="confirm">
-                <p>Rouleau ajouté aux Parchemins.</p>
-                <div class="confirm-actions">
-                  <button
-                    type="button"
-                    class="btn btn-primary"
-                    data-testid="btn-adopt-play"
-                    onclick={() => playNow(confirmation!.textId)}
-                  >
-                    Jouer maintenant
-                  </button>
-                  <button type="button" class="btn" onclick={dismissConfirmation}>
-                    Continuer à fouiller
-                  </button>
-                </div>
-              </div>
-            {:else if chunk.text_id !== null}
-              <div class="already">
-                <span class="muted">Déjà dans les Parchemins</span>
-                <a
-                  class="btn"
-                  href={href('play', { profileId: String(profile.id), textId: String(chunk.text_id) })}
-                  >Jouer</a
-                >
-              </div>
-            {:else}
-              <button
-                type="button"
-                class="btn btn-primary"
-                data-testid="btn-adopt"
-                disabled={adoptingId === chunk.id}
-                onclick={() => adopt(chunk)}
-              >
-                Ajouter aux Parchemins
-              </button>
-              {#if adoptErrorChunkId === chunk.id}
-                <p class="orange adopt-error">{adoptError}</p>
-              {/if}
-            {/if}
-          </div>
-        {/each}
-      </div>
     {/if}
-  {/if}
+  </section>
+
+  <section class="codex-page page-right">
+    {#if work}
+      {#if showFilter}
+        <LevelMedallions
+          legend="Quelle classe ?"
+          name="work-level"
+          options={['Tous', ...LEVELS]}
+          bind:value={levelFilter}
+          onchange={(l) => selectLevel(l)}
+          testId="work-levels"
+        />
+      {/if}
+      {#if chunksLoading}
+        <p class="muted">Les Muses déroulent les rouleaux…</p>
+      {:else if chunksError}
+        <p class="kit-note" data-tone="eris">Impossible de lire les rouleaux : {chunksError}</p>
+      {:else if chunks.length === 0}
+        {#if levelFilter !== 'Tous'}
+          <p class="muted">Aucun rouleau pour cette classe.</p>
+        {:else if work.status === 'ok'}
+          <p class="muted">
+            Les scribes n'ont trouvé aucun passage assez propre dans ce livre (dialogues, vers, vieux
+            français…).
+          </p>
+        {:else}
+          <!-- Playability #7: a next step, pointing at the button on the left page. -->
+          <p class="scribes-empty" data-testid="scribes-empty">
+            <Icon name="arrow-left" size={22} /> Les scribes n'ont encore rien recopié de ce livre. Demande-leur !
+          </p>
+        {/if}
+      {:else}
+        <ol class="rolls">
+          {#each chunks as chunk (chunk.id)}
+            <li class="roll-entry" data-testid="chunk-card">
+              <div class="roll-head">
+                <span class="seq">Rouleau {chunk.seq}</span>
+                <span class="kit-medallion is-small" role="img" aria-label="Classe {chunk.level}">{chunk.level}</span>
+                <span class="roll-length">{lengthOf(chunk.word_count)}</span>
+                <span class="stars" role="img" aria-label="Richesse en accords : {starsFor(chunk.score)} sur 5">
+                  {#each Array.from({ length: starsFor(chunk.score) }, (_, i) => i) as i (i)}<Icon name="star" size={16} />{/each}
+                </span>
+              </div>
+              <p class="preview">{chunk.preview}</p>
+              {#if confirmation && confirmation.chunkId === chunk.id}
+                <div class="kit-note confirm">
+                  <p>Le rouleau est sur tes étagères.</p>
+                  <div class="confirm-actions">
+                    <button type="button" class="kit-bronze" data-testid="btn-adopt-play" onclick={() => playNow(confirmation!.textId)}>
+                      Le défendre maintenant
+                    </button>
+                    <button type="button" class="kit-bronze is-quiet" onclick={dismissConfirmation}>Continuer à fouiller</button>
+                  </div>
+                </div>
+              {:else if chunk.text_id !== null}
+                <div class="already">
+                  <span class="muted">Déjà sur tes étagères</span>
+                  <a class="kit-bronze is-quiet" href={href('play', { profileId: String(profile.id), textId: String(chunk.text_id) })}>
+                    Le défendre
+                  </a>
+                </div>
+              {:else}
+                <button type="button" class="kit-bronze" data-testid="btn-adopt" disabled={adoptingId === chunk.id} onclick={() => adopt(chunk)}>
+                  Poser sur tes étagères
+                </button>
+                {#if adoptErrorChunkId === chunk.id}<p class="kit-note" data-tone="eris">{adoptError}</p>{/if}
+              {/if}
+            </li>
+          {/each}
+        </ol>
+      {/if}
+    {/if}
+  </section>
 </div>
 
 <style>
-  .portal-back {
-    margin-bottom: 8px;
-  }
-  .header {
-    margin-bottom: 16px;
-  }
-  /* Fix round 1 #5: an h3 (it now sits under the Overlay's own h2 title), sized and margined to
-     look exactly as the h2 it replaces did - `.kit-form h3` alone would shrink it to 15px. */
-  .header h3 {
-    margin: 18px 0 4px;
-    font-size: 18px;
-  }
-  .credits {
-    font-weight: 600;
-    margin: 0 0 2px;
-  }
-  .domain-note {
-    font-size: 14px;
-    margin: 0 0 14px;
-  }
-  .banner-olive {
-    background: #eaeedc;
-    border: 1px solid var(--olive);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    color: var(--ink);
-    margin-top: 12px;
-  }
-  .banner-error {
-    background: var(--orange-light);
-    border: 1px solid var(--orange);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    margin-top: 12px;
-  }
-  .filters {
+  .page-left {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
-  .filters .chip {
-    min-height: 48px;
+  .work-title {
+    margin: 6px 0 0;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 24px;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--ink);
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 16px;
+  .work-by {
+    margin: 0;
+    font-size: 16px;
+    color: var(--form-ink-soft);
   }
-  .chunk-card {
+  .scribes-empty {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-style: italic;
+  }
+  .rolls {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .roll-entry {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px dashed rgba(138, 90, 40, 0.4);
   }
-  .chunk-head {
+  .roll-head {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    font-weight: 600;
+    gap: 10px;
   }
   .seq {
     font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bronze-dark);
   }
-  .chunk-head .chip {
-    cursor: default;
-    min-height: unset;
-    padding: 3px 10px;
-    font-size: 13px;
+  .roll-length {
+    font-style: italic;
+    color: var(--form-ink-soft);
   }
   .stars {
-    color: var(--gold);
-    letter-spacing: 1px;
     margin-left: auto;
+    color: var(--reward-ink);
   }
   .preview {
-    font-style: italic;
-    color: var(--ink-soft);
     margin: 0;
+    font-family: var(--font-reading);
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.5;
   }
-  .already {
+  .already,
+  .confirm-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-  }
-  .confirm {
-    background: var(--aegean-light);
-    border: 1px solid var(--aegean);
-    border-radius: var(--radius);
-    padding: 10px 12px;
+    gap: 10px;
   }
   .confirm p {
     margin: 0 0 8px;
     font-weight: 600;
-  }
-  .confirm-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .adopt-error {
-    margin: 0;
   }
 </style>

@@ -3,10 +3,15 @@
   // public-domain works so a player can adopt a scored chunk ("rouleau") as a parchemin.
   // UI3a Task 11: opened as an overlay of the library tent (panel 'portail') rather than a full
   // screen - the painted hero banner below is the view through the portal itself.
+  // Immersion wave Task 10 (playability #1, #24): an open codex - the view through the portal as a
+  // plate on the left page, the works as a table of contents on the right; the owl says what to do
+  // (VOICES.portal).
   import { tick } from 'svelte';
   import { api, ApiError } from '../../../lib/api';
   import { href } from '../../../lib/routes';
   import { go } from '../../../lib/scene/panelNav';
+  import { workByline } from '../../../lib/library/shelf';
+  import { plural } from '../../../lib/text/french';
   import { ART } from '../../../lib/world/art';
   import type { AlexandriaWork, Profile } from '../../../lib/types';
 
@@ -50,7 +55,7 @@
   function statusLabel(w: AlexandriaWork): string {
     if (w.status === 'never') return 'Pas encore recopié';
     if (w.status === 'error') return "Hors d'atteinte";
-    return `${w.chunk_count} rouleaux`;
+    return plural(w.chunk_count, 'rouleau', 'rouleaux');
   }
 
   function openWork(w: AlexandriaWork) {
@@ -58,84 +63,123 @@
   }
 </script>
 
-<div class="panel-portal">
-  <!-- The art path comes from the ART table (final review M7), so budgets and renames stay there. -->
-  <div class="hero" role="presentation" style="background-image: url({ART.scenes.alexandrie})"></div>
-  <p class="subtitle muted">
-    Les scribes d'Alexandrie recopient des œuvres anciennes. Choisis une œuvre, puis un rouleau à
-    ajouter aux Parchemins.
-  </p>
-
-  {#if loading}
-    <p class="muted">Les Muses cherchent les scribes…</p>
-  {:else if error}
-    <p class="orange">Impossible de joindre la Bibliothèque : {error}</p>
-  {:else}
-    <div class="grid">
-      {#each works as w (w.id)}
-        <button
-          type="button"
-          class="card work-card"
-          data-testid="work-card"
-          data-work-id={w.id}
-          onclick={() => openWork(w)}
-        >
-          <span class="title">{w.title}</span>
-          <span class="credits muted">{w.credits}</span>
-          <span class="chips">
-            <span class="chip">niveau {w.level_hint}</span>
-            <span class="chip" class:chip-error={w.status === 'error'}>{statusLabel(w)}</span>
-          </span>
-        </button>
-      {/each}
-    </div>
-  {/if}
+<div class="codex-spread panel-portal">
+  <section class="codex-page page-left">
+    <!-- The view through the portal, as a plate in the book (the art path comes from the ART table,
+         final review M7, so budgets and renames stay there). -->
+    <figure class="plate"><img src={ART.scenes.alexandrie} alt="" /></figure>
+    <p class="page-note">Derrière le portail, les scribes d'Alexandrie recopient des livres anciens pour tes étagères.</p>
+  </section>
+  <section class="codex-page page-right">
+    <h3>Les œuvres</h3>
+    {#if loading}
+      <p class="muted">Les Muses cherchent les scribes…</p>
+    {:else if error}
+      <p class="kit-note" data-tone="eris">Impossible de joindre la Bibliothèque : {error}</p>
+    {:else}
+      <ol class="contents">
+        {#each works as w (w.id)}
+          <li>
+            <button
+              type="button"
+              class="entry"
+              data-testid="work-card"
+              data-work-id={w.id}
+              data-status={w.status}
+              onclick={() => openWork(w)}
+            >
+              <span class="entry-title">{w.title}</span>
+              <span class="entry-by">{workByline(w)}</span>
+              <span class="entry-meta">
+                <span class="kit-medallion is-small" role="img" aria-label="Classe {w.level_hint}">{w.level_hint}</span>
+                <span class="entry-status" class:is-away={w.status === 'error'}>{statusLabel(w)}</span>
+              </span>
+            </button>
+          </li>
+        {/each}
+      </ol>
+    {/if}
+  </section>
 </div>
 
 <style>
-  .hero {
-    height: 140px;
-    border-radius: var(--radius);
-    background-size: cover;
-    background-position: center;
-    margin-bottom: 16px;
+  .plate {
+    margin: 0 0 14px;
+    border: 6px solid #e2cfa4;
+    box-shadow:
+      0 0 0 1px var(--parchment-edge),
+      0 4px 10px rgba(92, 64, 24, 0.3);
   }
-  .subtitle {
-    margin-top: 0;
+  .plate img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
   }
-  .grid {
+  .page-note {
+    font-style: italic;
+    font-size: 17px;
+    margin: 0;
+  }
+  .page-right h3 {
+    margin: 0 0 8px;
+  }
+  .contents {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .contents li + li {
+    border-top: 1px dashed rgba(138, 90, 40, 0.4);
+  }
+  /* A table-of-contents entry: title, who wrote it, the class medallion and the scribes' status. */
+  .entry {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'title meta' 'by meta';
+    align-items: center;
+    gap: 2px 12px;
+    width: 100%;
+    min-height: 64px;
+    padding: 8px 6px;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
   }
-  .work-card {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  .entry:hover,
+  .entry:focus-visible {
+    background: rgba(200, 148, 80, 0.12);
   }
-  .title {
-    font-family: var(--font-display);
-    font-size: 19px;
+  .entry:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
+  }
+  .entry-title {
+    grid-area: title;
+    font-family: var(--font-body);
     font-weight: 600;
+    font-size: 19px;
   }
-  .credits {
+  .entry-by {
+    grid-area: by;
     font-size: 14px;
+    color: var(--form-ink-soft);
   }
-  .chips {
+  .entry-meta {
+    grid-area: meta;
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 4px;
+    align-items: center;
+    gap: 8px;
   }
-  .chips .chip {
-    cursor: default;
-    min-height: unset;
-    padding: 3px 10px;
-    font-size: 13px;
+  .entry-status {
+    font-size: 14px;
+    color: var(--form-ink-soft);
   }
-  .chip-error {
-    border-color: var(--orange);
-    color: var(--orange);
+  .entry-status.is-away {
+    color: #9a4d12;
     font-weight: 600;
   }
 </style>
