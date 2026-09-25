@@ -473,20 +473,24 @@ export async function expectExitClearOfDialogueDock(page: Page, sceneId: string)
 }
 
 // Immersion wave (playability #12, #21): an open overlay - its rods included - starts below the
-// HUD, and the scene's text chrome behind it has faded out (SceneStage `has-overlay`).
-export async function expectOverlayClearsScene(page: Page, overlayTestId: string, sceneId: string) {
+// HUD, and the scene's text chrome behind it has faded out (SceneStage `has-overlay`). `hud` says
+// whether the scene has a HUD (the title has none): when it should, it must be there, so a HUD
+// that failed to render can't pass as "cleared" (review fix round 1 #4).
+export async function expectOverlayClearsScene(page: Page, overlayTestId: string, sceneId: string, hud: boolean) {
   const panel = page.getByTestId(overlayTestId);
   await expect(panel).toBeVisible();
   await expect.poll(() => panel.evaluate((el) => el.getAnimations().length)).toBe(0);
+  const hudItems = page.locator(`[data-testid="scene-${sceneId}"] [data-testid="stage-hud"] *`);
+  if (hud) await expect(hudItems.first()).toBeVisible();
+  else await expect(hudItems).toHaveCount(0);
   const { top, hudBottom } = await page.evaluate(
     ({ id, sid }) => {
       const p = document.querySelector(`[data-testid="${id}"]`)!;
       const parts = [p, ...Array.from(p.querySelectorAll('.scroll-rod'))];
-      const hud = document.querySelector(`[data-testid="scene-${sid}"] [data-testid="stage-hud"]`);
-      const hudItems = hud ? Array.from(hud.querySelectorAll('*')) : [];
+      const items = Array.from(document.querySelectorAll(`[data-testid="scene-${sid}"] [data-testid="stage-hud"] *`));
       return {
         top: Math.min(...parts.map((e) => e.getBoundingClientRect().top)),
-        hudBottom: Math.max(0, ...hudItems.map((e) => e.getBoundingClientRect().bottom)),
+        hudBottom: Math.max(0, ...items.map((e) => e.getBoundingClientRect().bottom)),
       };
     },
     { id: overlayTestId, sid: sceneId },
@@ -496,13 +500,44 @@ export async function expectOverlayClearsScene(page: Page, overlayTestId: string
     .poll(() =>
       page.evaluate(
         (sid) =>
-          Array.from(document.querySelectorAll(`[data-testid="scene-${sid}"] :is(.hotspot-label, .stage-plaque, .stage-text)`)).filter(
-            (e) => getComputedStyle(e).opacity !== '0',
-          ).length,
+          Array.from(
+            document.querySelectorAll(
+              `[data-testid="scene-${sid}"] :is(.hotspot-label, .hotspot-leader, .stage-plaque, .stage-text, .scene-exit, .dialogue)`,
+            ),
+          ).filter((e) => getComputedStyle(e).opacity !== '0').length,
         sceneId,
       ),
     )
     .toBe(0);
+}
+
+// Review fix round 1 #1: a focused control's ring (outline + offset) lies inside the visible box
+// of the overlay's scrolling body - never clipped by it. Focuses through the keyboard modality
+// (a Tab first) so `:focus-visible` applies, as it does for a keyboard user.
+export async function expectFocusRingInsideBody(page: Page, overlayTestId: string, control: Locator) {
+  await page.keyboard.press('Tab');
+  await control.focus();
+  const r = await control.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    const ring = cs.outlineStyle === 'none' ? 0 : parseFloat(cs.outlineWidth) + parseFloat(cs.outlineOffset);
+    const box = el.getBoundingClientRect();
+    const body = el.closest('.overlay-body')!.getBoundingClientRect();
+    return {
+      focusVisible: el.matches(':focus-visible'),
+      ring,
+      left: box.left - ring,
+      right: box.right + ring,
+      top: box.top - ring,
+      bottom: box.bottom + ring,
+      body: { left: body.left, right: body.right, top: body.top, bottom: body.bottom },
+    };
+  });
+  expect(r.focusVisible, `${overlayTestId}: the control shows its focus ring`).toBe(true);
+  expect(r.ring, `${overlayTestId}: the control has a focus ring`).toBeGreaterThan(0);
+  expect(r.left, 'ring left edge inside the body').toBeGreaterThanOrEqual(r.body.left);
+  expect(r.right, 'ring right edge inside the body').toBeLessThanOrEqual(r.body.right);
+  expect(r.top, 'ring top edge inside the body').toBeGreaterThanOrEqual(r.body.top);
+  expect(r.bottom, 'ring bottom edge inside the body').toBeLessThanOrEqual(r.body.bottom);
 }
 
 // Playability #25: every control inside an overlay is a 48 px touch target. A radio or file input

@@ -161,6 +161,7 @@
 <main
   class="scene-stage"
   class:has-overlay={covered}
+  class:has-hud={!!hud}
   data-testid="scene-{scene.id}"
   data-reduced-motion={runtime.reduced ? 'true' : 'false'}
   data-tilt={tiltOn ? 'on' : 'off'}
@@ -224,12 +225,22 @@
     -webkit-user-select: none;
   }
   /* Playability #12: while an overlay is open, the scene's own words (plaques, labels, banners,
-     the altar card...) fade out so they never ghost through the panel; the painting stays. A place
-     marks such an in-scene text object with `stage-text`. */
-  .scene-stage :global(:is(.hotspot-label, .hotspot-leader, .stage-plaque, .stage-text)) {
+     the altar card, the exit sign...) fade out so they never ghost through the panel; the painting
+     stays. A place marks such an in-scene text object with `stage-text`. The narrator's box fades
+     too (fix round 1 ruling W-b): it is only hidden, not closed, so its line is still there when
+     the overlay closes; inside the overlay the character speaks from the voice plate instead.
+     `has-hud` (a stage that renders a HUD) keeps kit.css's HUD band; without it the band is 0. */
+  .scene-stage :global(:is(.hotspot-label, .hotspot-leader, .stage-plaque, .stage-text, .scene-exit, .dialogue)) {
     transition: opacity 0.2s ease;
   }
-  .scene-stage.has-overlay :global(:is(.hotspot-label, .hotspot-leader, .stage-plaque, .stage-text)) {
+  /* The exit sign is a `.kit-bronze`: keep its press and hover transitions next to the fade. */
+  .scene-stage :global(.scene-exit) {
+    transition:
+      opacity 0.2s ease,
+      transform 0.1s ease,
+      filter 0.15s ease;
+  }
+  .scene-stage.has-overlay :global(:is(.hotspot-label, .hotspot-leader, .stage-plaque, .stage-text, .scene-exit, .dialogue)) {
     opacity: 0;
   }
   .stage-backdrop {

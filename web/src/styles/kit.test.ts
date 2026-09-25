@@ -46,8 +46,17 @@ describe('UI kit (scenes spec §6)', () => {
     expect(contrastRatio(tokens['bronze-ink'], tokens['wax-dark'])).toBeGreaterThanOrEqual(4.5);
   });
 
+  it("gives Éris's orange a legible ink on parchment, used kit-wide (fix round 1 ruling W-c)", () => {
+    expect(contrastRatio(tokens['orange-ink'], tokens['parchment-solid'])).toBeGreaterThanOrEqual(4.5);
+    expect(css).toMatch(/\.kit-form \.orange,\s*\.kit-parchment \.orange\s*\{\s*color:\s*var\(--orange-ink\)/);
+  });
+
+  it('drops the HUD band on a stage without a HUD (fix round 1 #7)', () => {
+    expect(css).toMatch(/:root:not\(:has\(\.scene-stage\.has-hud\)\)\s*\{\s*--hud-band:/);
+  });
+
   it('reserves the HUD band for the HUD (Ruling W11)', () => {
-    expect(css).toMatch(/--hud-band:\s*calc\(64px \+ env\(safe-area-inset-top\)\)/);
+    expect(css).toMatch(/--hud-band:\s*calc\(72px \+ env\(safe-area-inset-top\)\)/);
   });
 
   it('points every art url of the kit stylesheets at a shipped file (Ruling W3)', () => {

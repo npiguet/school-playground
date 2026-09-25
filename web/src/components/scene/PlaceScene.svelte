@@ -78,12 +78,12 @@
     <!-- Final review M4: every place, not only the camp, says when the camp data is on its way or
          out of reach, and offers to try again. -->
     {#if campStore.error && !campStore.loading}
-      <div class="kit-parchment place-status" role="alert" data-testid="place-status">
+      <div class="kit-parchment place-status stage-text" role="alert" data-testid="place-status">
         <p>Impossible de rejoindre le camp : {campStore.error}</p>
         <button type="button" class="kit-bronze" data-testid="place-retry" onclick={() => refreshCamp(profile.id)}>Réessayer</button>
       </div>
     {:else if campStore.loading}
-      <p class="kit-parchment place-status" data-testid="place-status">Les Muses préparent le camp…</p>
+      <p class="kit-parchment place-status stage-text" data-testid="place-status">Les Muses préparent le camp…</p>
     {/if}
   {/if}
   {#if greeting}

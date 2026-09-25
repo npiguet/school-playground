@@ -17,12 +17,13 @@
   --laurel-off: rgba(255, 247, 230, 0.28);
   --night: #15121a;
   --scrim: rgba(21, 18, 26, 0.55);
-  /* Immersion wave (Ruling W1, W3, W11). The HUD band: 8 px padding + a 48 px chip + 8 px padding
-     (Hud.svelte); overlays centre below it so they never cut the hero chip (playability #21).
-     The HUD's real controls reach lower (52 px round buttons, the laurel bar under its caption:
-     ~72 px), so every overlay keeps a 26 px margin from the band (Overlay.svelte's max-height):
-     its top, and the scroll's rods 11 px above it, stay clear of all of them. */
-  --hud-band: calc(64px + env(safe-area-inset-top));
+  /* Immersion wave (Ruling W1, W3, W11; fix round 1 ruling W-a). The HUD band is the real HUD's
+     height: 8 px padding, the laurel bar under its caption (~56 px, taller than the 48 px chip
+     and the 52 px round buttons), 8 px padding (Hud.svelte). Overlays centre below it with an
+     18 px margin (Overlay.svelte), so they never cut the hero chip (playability #21) and the
+     scroll's rods (11 px above the panel) stay clear of it too. A scene without a HUD (the title)
+     resets the band below. */
+  --hud-band: calc(72px + env(safe-area-inset-top));
   /* The table overlay's dark wood, the wax of seals, the clay of votive tablets. */
   --wood: #5a3d24;
   --wood-dark: #3b2715;
@@ -32,6 +33,9 @@
   --clay-dark: #9c5b38;
   /* Reward text on parchment: a darker bronze, gold on cream was below 4.5:1 (UI1 #13). */
   --reward-ink: #8a5a1c;
+  /* Éris's orange as text on parchment (fix round 1 ruling W-c): --orange (#e07b2a) is ~2.6:1 on
+     cream; this burnt orange is above 4.5:1 and still orange-brown, never red. */
+  --orange-ink: #9a4a16;
   /* Painted surfaces (Task 1). A token whose file was not delivered is `none` (Ruling W3); the
      gradients painted under every texture keep the page complete either way. */
   --tex-parchment: url('/art/textures/parchment.webp');
@@ -54,6 +58,18 @@
      onboarding card (50) and far below the rotate screen. */
   --z-overlay-backdrop: 39;
   --z-overlay: 40;
+}
+
+/* No HUD on the stage (the title gate): overlays centre in the whole screen, below the safe area
+   only (review fix round 1 #7). SceneStage marks a stage that renders a HUD with `has-hud`. */
+:root:not(:has(.scene-stage.has-hud)) {
+  --hud-band: env(safe-area-inset-top);
+}
+
+/* Éris's orange on the kit's light surfaces (ruling W-c): the darker ink, kit-wide. */
+.kit-form .orange,
+.kit-parchment .orange {
+  color: var(--orange-ink);
 }
 
 .kit-parchment {

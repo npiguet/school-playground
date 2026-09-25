@@ -129,8 +129,10 @@
     /* Centred in the part of the screen below the HUD band (playability #21, Ruling W11). */
     top: calc(var(--hud-band) + (100dvh - var(--hud-band)) / 2);
     transform: translate(-50%, -50%);
-    width: min(640px, calc(100vw - 56px));
-    max-height: calc(100dvh - var(--hud-band) - 52px);
+    /* 40 px each side: the scroll's rods (18 px) and their knobs (14 px more) stay on screen
+       down to the narrowest landscape iPad (review fix round 1 #2). */
+    width: min(640px, calc(100vw - 80px));
+    max-height: calc(100dvh - var(--hud-band) - 36px);
     display: flex;
     flex-direction: column;
     padding: 26px 30px 22px;
@@ -140,15 +142,25 @@
   }
   /* UI3: the scan's verify step, the three Oracle scrolls and the dossier need room. */
   .overlay-wide {
-    width: min(1040px, calc(100vw - 56px));
+    width: min(1040px, calc(100vw - 80px));
   }
-  /* The body scrolls between the rods; the rods and the seal stay put. */
+  /* The body scrolls between the rods; the rods and the seal stay put.
+     Review fix round 1 #1: the scroll box clips, so it keeps 14 px of room on every side for focus
+     rings (3 px + a 2 px offset) and the table cards' shadows, taken back from the layout by the
+     negative margin (the right side keeps its 4 px gap before the scrollbar). `scroll-padding`
+     makes focusing a control scroll it that far inside the edge, ring included.
+     #5: the top and bottom 10 px fade out, so scrolled content slides softly under the voice plate
+     and the bottom rod instead of being cut hard (the fade stays inside that room at rest). */
   .overlay-body {
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
     overscroll-behavior: contain;
-    padding-right: 4px;
+    padding: 14px 18px 14px 14px;
+    margin: -14px;
+    scroll-padding: 14px;
+    -webkit-mask-image: linear-gradient(180deg, transparent, #000 10px, #000 calc(100% - 10px), transparent);
+    mask-image: linear-gradient(180deg, transparent, #000 10px, #000 calc(100% - 10px), transparent);
   }
   .overlay-surface {
     position: absolute;
@@ -308,12 +320,12 @@
     color: var(--form-ink-soft);
   }
   .overlay-table .overlay-body :global(:is(.card, .parchment) .orange) {
-    color: var(--orange);
+    color: var(--orange-ink);
   }
 
   /* --- codex: an open book, two pages and a gutter; always wide, fixed height ---------------- */
   .overlay-codex {
-    height: calc(100dvh - var(--hud-band) - 52px);
+    height: calc(100dvh - var(--hud-band) - 36px);
     padding: 30px 44px 26px;
   }
   .overlay-codex .surface-sheet {
@@ -340,9 +352,11 @@
       inset 0 0 40px rgba(92, 64, 24, 0.25),
       0 14px 36px rgba(0, 0, 0, 0.5);
   }
+  /* Review fix round 1 #6: the seal is absolute, so the centred title keeps clear of it. */
   .overlay-codex .overlay-head {
     position: relative;
     justify-content: center;
+    padding-inline: 56px;
   }
   .overlay-codex .overlay-title {
     text-align: center;
@@ -351,10 +365,11 @@
     position: absolute;
     right: 0;
   }
+  /* Symmetric room (#1), so the grid's centre stays the book's gutter. */
   .overlay-codex .overlay-body {
     overflow: hidden;
     display: flex;
-    padding-right: 0;
+    padding: 14px;
   }
   /* Ruling W1's contract: a codex panel renders one .codex-spread with two .codex-page sections;
      the grid's centre is the book's gutter (the panel padding is symmetric). */
@@ -365,10 +380,14 @@
     grid-template-columns: 1fr 1fr;
     column-gap: 72px;
   }
+  /* Each page scrolls on its own: the same room for focus rings as the body (#1). */
   .overlay-codex .overlay-body :global(.codex-page) {
     min-height: 0;
     overflow: auto;
     overscroll-behavior: contain;
+    padding: 8px;
+    margin: -8px;
+    scroll-padding: 8px;
   }
   @media (max-width: 900px) {
     .overlay-codex .overlay-body {
