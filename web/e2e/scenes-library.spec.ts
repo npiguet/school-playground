@@ -205,15 +205,28 @@ test('the desk writes a new parchment; saving lands on the shelves and Back neve
   await expect(page).toHaveURL(/\/texts\/new$/);
   const desk = page.getByTestId('overlay-desk');
   await expect(desk.getByRole('heading', { name: 'Le pupitre' })).toBeVisible();
+  await expect(desk.getByTestId('overlay-voice')).toContainText('Entre 80 et 200 mots');
+  await expect(desk.getByText('Entre quatre-vingts')).toHaveCount(0);
   const title = uniqueName(`Pupitre ${testInfo.project.name}`);
-  await page.getByLabel('Titre').fill(title);
-  await page.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
-  await expect(desk).toContainText('13 mots');
-  // A text to defend is set in Literata (Ruling A8); every legacy field is there.
-  expect(await page.getByLabel('Texte').evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Literata');
-  for (const label of ['Niveau', 'Auteur', 'Œuvre', 'Traducteur']) await expect(desk.getByLabel(label)).toBeVisible();
+  await desk.getByLabel('Titre').fill(title);
+  await desk.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
+  await expect(desk.getByTestId('desk-gauge')).toContainText('13 mots · il en faut au moins 80');
+  // A text to defend is set in Literata (Ruling A8).
+  expect(await desk.getByLabel('Texte').evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Literata');
+  await expect(desk.getByRole('group', { name: 'Classe' })).toBeVisible();
+  await expect(desk.locator('select')).toHaveCount(0);
+  // Parity: author, work and translator are one tap away.
+  await desk.getByText("Qui l'a écrit ?").click();
+  for (const label of ['Auteur', 'Œuvre', 'Traducteur']) await expect(desk.getByLabel(label)).toBeVisible();
+  // Playability #5: the way to finish is visible without scrolling on the iPad.
+  const submit = desk.getByRole('button', { name: "Poser sur l'étagère" });
+  if (testInfo.project.name === 'ipad') {
+    const [s, body] = await Promise.all([submit.boundingBox(), desk.locator('.overlay-body').boundingBox()]);
+    expect(s!.y + s!.height, 'submit visible without scrolling').toBeLessThanOrEqual(body!.y + body!.height);
+  }
+  await expectOverlayTapTargets(page, 'overlay-desk');
   expect(await redScan(page)).toEqual([]);
-  await page.getByRole('button', { name: 'Sauvegarder dans les Parchemins' }).click();
+  await submit.click();
   await expect(page).toHaveURL(/\/parchemins$/);
   await expect(page.getByTestId('overlay-shelves').locator('[data-testid="text-card"]', { hasText: title })).toBeVisible();
   await page.goBack();
@@ -239,7 +252,7 @@ test('after saving from the desk, closing the shelves then Back leaves the tent 
   const title = uniqueName(`Retour ${testInfo.project.name}`);
   await desk.getByLabel('Titre').fill(title);
   await desk.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
-  await desk.getByRole('button', { name: 'Sauvegarder dans les Parchemins' }).click();
+  await desk.getByRole('button', { name: "Poser sur l'étagère" }).click();
   const shelves = page.getByTestId('overlay-shelves');
   await expect(shelves.locator('[data-testid="text-card"]', { hasText: title })).toBeVisible();
   await closeOverlay(page);
@@ -257,9 +270,19 @@ test('the lens opens the three-step scan as a wide overlay', async ({ page, requ
   await expect(page).toHaveURL(/\/texts\/scan$/);
   const lens = page.getByTestId('overlay-lens');
   await expect(lens.getByRole('heading', { name: 'La lentille de bronze' })).toBeVisible();
+  await expect(lens.getByTestId('overlay-voice')).toContainText('une photo par page');
+  await expect(lens.getByText(/scanner/i)).toHaveCount(0);
   await expect(page.getByTestId('scan-input')).toBeAttached();
-  await expect(page.getByTestId('btn-scan-read')).toBeDisabled();
-  await expect(lens.locator('img.capture-icon')).toHaveAttribute('src', '/art/icons/add-scan.webp');
+  // Playability #6: no grey disabled button before a photo exists; the lens shows its glass.
+  await expect(page.getByTestId('btn-scan-read')).toHaveCount(0);
+  await expect(lens.locator('.lens-frame img.lens-glass')).toHaveAttribute('src', '/art/icons/add-scan.webp');
+  await expect(lens.getByText('Prendre une photo')).toBeVisible();
+  await expect(lens.getByText('Choisir une photo')).toBeVisible();
+  await page.getByTestId('scan-input').setInputFiles('/work/server/tests/fixtures/scan/handout.png');
+  await expect(page.getByTestId('btn-scan-read')).toHaveText('Déchiffrer');
+  await expect(lens.locator('.lens-frame img')).toBeVisible();
+  await expect(lens.locator('.lens-frame img.lens-glass')).toHaveCount(0);
+  await expectOverlayTapTargets(page, 'overlay-lens');
   const box = await lens.boundingBox();
   expect(box!.width, 'wide overlay').toBeGreaterThan(700);
   expect(await redScan(page)).toEqual([]);

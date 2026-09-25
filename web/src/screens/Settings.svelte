@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import TopBar from '../components/TopBar.svelte';
-  import LevelSelect from '../components/LevelSelect.svelte';
+  import LevelMedallions from '../components/ui/LevelMedallions.svelte';
   import { api, ApiError } from '../lib/api';
   import { listFrenchVoices, pickVoice, speak, waitForVoices } from '../lib/dictation/tts';
   import { profileStore } from '../lib/profileStore.svelte';
@@ -118,7 +118,7 @@
 
     <section>
       <h2>Niveau</h2>
-      <LevelSelect label="Ton niveau" bind:value={level} id="settings-level" />
+      <LevelMedallions legend="Ton niveau" name="settings-level" bind:value={level} />
     </section>
 
     <section>

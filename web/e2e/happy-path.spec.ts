@@ -19,7 +19,7 @@ test('create profile → add text → dictation → proofreading → results →
   await page.getByTestId('library-desk').click();
   await page.getByLabel('Titre').fill('Les fées ' + name);
   await page.getByLabel('Texte').fill(REF);
-  await page.getByRole('button', { name: /Sauvegarder/ }).click();
+  await page.getByRole('button', { name: "Poser sur l'étagère" }).click();
   await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await page.locator('[data-testid="text-card"]', { hasText: 'Les fées ' + name }).click();
 
