@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HotspotDef } from './types';
 import { IDLE_HOTSPOT } from './types';
 
@@ -8,10 +8,19 @@ import { IDLE_HOTSPOT } from './types';
 vi.mock('../router.svelte', () => ({ navigate: vi.fn(), replaceRoute: vi.fn(), navigationPending: vi.fn(() => false) }));
 
 import { navigate, navigationPending, replaceRoute } from '../router.svelte';
-import { PANEL_TAG, closePanel, go, heroPanelHref, hotspotHref, isTagged, openHotspot, replacePanel, tagged } from './panelNav';
+import { PANEL_TAG, closePanel, go, heroPanelHref, hotspotHref, isTagged, leavePanel, openHotspot, replacePanel, tagged } from './panelNav';
 
 describe('overlay navigation (UI3 Ruling A2)', () => {
-  beforeEach(() => vi.clearAllMocks());
+  // closePanel listens on `window` for the end of its own Back (node has none): a bare EventTarget
+  // stands in, and every test ends that traversal so no step-back is left pending for the next.
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal('window', new EventTarget());
+  });
+  afterEach(() => {
+    window.dispatchEvent(new Event('hashchange'));
+    vi.unstubAllGlobals();
+  });
 
   it('tags a history state without losing what was there', () => {
     expect(tagged({ keep: 1 })).toEqual({ keep: 1, [PANEL_TAG]: true });
@@ -65,6 +74,22 @@ describe('overlay navigation (UI3 Ruling A2)', () => {
     expect(isTagged(h.state)).toBe(false);
   });
 
+  // Task S: WebKit keeps `history.state` across a fragment `location.replace()` (Chromium resets
+  // it), so a screen that replaces a tagged overlay's entry kept the overlay's tag there - the hero
+  // form handing off to the camp. The stub mimics WebKit (replaceRoute keeps the state).
+  it('leaves an overlay for another screen on an untagged entry, whatever the engine keeps', () => {
+    const h = { state: tagged({ keep: 1 }) as unknown, back: vi.fn(), replaceState: vi.fn((s: unknown) => (h.state = s)) };
+    leavePanel('#/p/3/camp', h);
+    expect(replaceRoute).toHaveBeenCalledWith('#/p/3/camp');
+    expect(isTagged(h.state)).toBe(false);
+    expect(h.state).toEqual({ keep: 1 });
+    // Chromium: the state is already null after the replace, nothing to clear.
+    const chromium = replacingHistory(tagged(null));
+    leavePanel('#/p/3/camp', chromium);
+    expect(chromium.replaceState).not.toHaveBeenCalled();
+    expect(isTagged(chromium.state)).toBe(false);
+  });
+
   it('go() pushes, opens a panel or replaces one, as asked', () => {
     const h = replacingHistory(tagged(null));
     go('#/p/3/jouer/9', 'push', h);
@@ -88,6 +113,20 @@ describe('overlay navigation (UI3 Ruling A2)', () => {
     closePanel('#/', deep);
     expect(tag.back).not.toHaveBeenCalled();
     expect(replaceRoute).not.toHaveBeenCalled();
+  });
+
+  // Task S: `history.back()` is asynchronous, and until its traversal lands the entry (and its
+  // tag) is still the overlay's. A second close in that window (a held Escape, a seal then Escape)
+  // used to step back twice, out of the place.
+  it('steps back once for two quick closes, until its own Back has landed', () => {
+    const h = { state: tagged(null), back: vi.fn(), replaceState: vi.fn() };
+    closePanel('#/p/3/temple', h);
+    closePanel('#/p/3/temple', h);
+    expect(h.back).toHaveBeenCalledOnce();
+    expect(replaceRoute).not.toHaveBeenCalled();
+    window.dispatchEvent(new Event('hashchange')); // the Back has landed
+    closePanel('#/p/3/temple', h); // a later overlay, opened in the app, closes normally again
+    expect(h.back).toHaveBeenCalledTimes(2);
   });
 
   it('points the HUD hero chip at the hero panel', () => {

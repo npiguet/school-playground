@@ -175,17 +175,27 @@ test('Escape while the ritual overlay is closing does not undo the hand-off to c
 
 // Fix wave A (seen once in a full run, then made deterministic here): between HeroForm replacing the
 // route with the camp and the app handling that hashchange, the ritual overlay is still on screen,
-// and an Escape there used to close it - stepping back from the camp to the title. The app's
-// hashchange handling is held back 400 ms by an init script, so the Escape always lands inside that
-// window; closePanel now drops a close while a navigation is pending.
+// and an Escape there used to close it - stepping back from the camp to the title. An init script
+// lets the test queue the app's hashchange handling (`__holdHash()`, before the hand-off) until it
+// releases it (`__releaseHash()`, after the Escape), so the Escape always lands inside that window,
+// however slow the host;
+// closePanel now drops a close while a navigation is pending.
 test('an Escape before the hand-off to camp has been handled does not undo it', async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     const add = window.addEventListener.bind(window);
+    const held: (() => void)[] = [];
+    let holding = false;
+    const w = window as unknown as { __holdHash: () => void; __releaseHash: () => void };
+    w.__holdHash = () => (holding = true);
+    w.__releaseHash = () => {
+      holding = false;
+      for (const run of held.splice(0)) run();
+    };
     window.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
       if (type !== 'hashchange') return add(type, listener, options);
-      const late = (e: Event) =>
-        setTimeout(() => (typeof listener === 'function' ? listener(e) : listener.handleEvent(e)), 400);
-      return add(type, late, options);
+      const deliver = (e: Event) => (typeof listener === 'function' ? listener(e) : listener.handleEvent(e));
+      const queued = (e: Event) => (holding ? held.push(() => deliver(e)) : deliver(e));
+      return add(type, queued, options);
     }) as typeof window.addEventListener;
   });
   const name = hero(testInfo.project.name);
@@ -196,12 +206,30 @@ test('an Escape before the hand-off to camp has been handled does not undo it', 
   await expect(ritual).toBeVisible();
   await ritual.getByLabel('Ton prénom').fill(name);
   await chooseLevel(ritual, '10H');
+  await page.evaluate(() => (window as unknown as { __holdHash: () => void }).__holdHash());
   await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
   await page.waitForURL(/\/camp$/);
   await expect(ritual).toBeVisible(); // the hashchange is still held back: the ritual is on screen
   await page.keyboard.press('Escape');
+  await page.evaluate(() => (window as unknown as { __releaseHash: () => void }).__releaseHash());
   await expectCamp(page);
   await expect(page).toHaveURL(/\/camp$/);
+});
+
+// Task S: the camp replaces the ritual's tagged entry. WebKit keeps `history.state` across that
+// fragment `location.replace()`, so the camp's own entry used to keep the overlay's panel tag (a
+// close there would then step back instead of staying). It is untagged on every engine.
+test('the camp a new hero lands on is a screen of its own, not a tagged overlay entry', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await enterTitle(page);
+  await page.getByTestId('title-new').click();
+  const ritual = page.getByTestId('overlay-hero-new');
+  expect(await page.evaluate(() => (history.state as Record<string, unknown> | null)?.discordePanel)).toBe(true);
+  await ritual.getByLabel('Ton prénom').fill(hero(testInfo.project.name));
+  await chooseLevel(ritual, '10H');
+  await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
+  await expectCamp(page);
+  expect(await page.evaluate(() => (history.state as Record<string, unknown> | null)?.discordePanel)).toBeUndefined();
 });
 
 test('six slots: newest heroes, « Tous les héros » when there are more, « Nouveau héros » last', async ({ page, request }, testInfo) => {

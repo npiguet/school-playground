@@ -6,7 +6,7 @@
   import { AVATARS, LEVELS } from '../../../lib/levels';
   import { markUnlocked } from '../../../lib/profileStore.svelte';
   import { href } from '../../../lib/routes';
-  import { replaceRoute } from '../../../lib/router.svelte';
+  import { leavePanel } from '../../../lib/scene/panelNav';
   import { avatarIcon } from '../../../lib/world/art';
 
   let name = $state('');
@@ -40,8 +40,9 @@
       });
       markUnlocked(profile.id);
       // Ruling A2: Back from the camp never reopens an emptied form - the ritual overlay's own
-      // history entry is replaced by the camp instead of pushing a new one.
-      replaceRoute(href('camp', { profileId: String(profile.id) }));
+      // history entry is replaced by the camp instead of pushing a new one, and that entry drops the
+      // overlay's panel tag (WebKit would keep it).
+      leavePanel(href('camp', { profileId: String(profile.id) }));
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
         error = 'Ce nom est déjà pris.';

@@ -49,6 +49,40 @@ test('the hub leads into the tent; its plaque echoes the hub label; the exit sig
   await expectCamp(page);
 });
 
+// Task S: `history.back()` is asynchronous, so a second close before the first Back has landed
+// (a held Escape repeating, the seal then Escape) used to step back twice - out of the tent, to the
+// camp. The test holds every `history.back()` the page makes until both Escapes are in (two
+// separate tasks, like a key repeat), then lets them traverse one after the other: the window is
+// there however fast the host. (WebKit merges two `back()` calls made in the same task, which is
+// why the Escapes are not sent together.)
+test('two quick Escapes close the shelves once and stay in the tent', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  await tap(page.getByTestId('camp-parchemins'), testInfo);
+  await expectScene(page, 'library');
+  await tap(page.getByTestId('library-shelves'), testInfo);
+  const shelves = page.getByTestId('overlay-shelves');
+  await expect(shelves.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
+  const hashes = await page.evaluate(async () => {
+    const realBack = history.back.bind(history);
+    const held: (() => void)[] = [];
+    history.back = () => held.push(realBack);
+    const escape = () => dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    escape();
+    await new Promise((r) => setTimeout(r, 0));
+    escape();
+    const seen: string[] = [];
+    addEventListener('hashchange', () => seen.push(location.hash));
+    for (const back of held) await new Promise((r) => (addEventListener('hashchange', r, { once: true }), back()));
+    return seen;
+  });
+  expect(hashes).toEqual([`#/p/${id}/tente-parchemins`]);
+  await expect(shelves).toHaveCount(0);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
+  await expectScene(page, 'library');
+});
+
 test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back close it', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openTent(page, id);
