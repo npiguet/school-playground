@@ -14,5 +14,11 @@ export default defineConfig({
     fs: { allow: ['..'] },
     proxy: { '/api': process.env.API_PROXY ?? 'http://localhost:8080' },
   },
-  test: { include: ['src/**/*.test.ts'], environment: 'node' },
+  test: {
+    include: ['src/**/*.test.ts'],
+    environment: 'node',
+    // Set explicitly (vitest 5's default): each run transforms afresh, as with vitest 3, and the
+    // post-run "persist transforms with fsModuleCache" hint stays out of the gate's output.
+    fsModuleCache: false,
+  },
 });
