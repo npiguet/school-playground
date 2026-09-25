@@ -1,6 +1,6 @@
 services:
   server:
-    image: discorde-server-dev
+    image: ${SERVER_DEV_IMAGE:-discorde-server-dev}
     working_dir: /work/server
     # --timeout-keep-alive matches the Dockerfile CMD (see its comment): keeps the dev server's
     # keep-alive boundary as far from a browser's idle gaps as the production image's.
