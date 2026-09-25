@@ -36,6 +36,9 @@
   /* Éris's orange as text on parchment (fix round 1 ruling W-c): --orange (#e07b2a) is ~2.6:1 on
      cream; this burnt orange is above 4.5:1 and still orange-brown, never red. */
   --orange-ink: #9a4a16;
+  /* The tag stamp's aegean ink (Task 3 fix round 1): --aegean (#2c6e8f) is ~4.15:1 on the tag's
+     darker gradient stop (#ecdcb8); this darker teal clears 4.5:1 there, still read as aegean. */
+  --aegean-ink: #1f4d66;
   /* Painted surfaces (Task 1). A token whose file was not delivered is `none` (Ruling W3); the
      gradients painted under every texture keep the page complete either way. */
   --tex-parchment: url('/art/textures/parchment.webp');
