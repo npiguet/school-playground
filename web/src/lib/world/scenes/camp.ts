@@ -70,7 +70,10 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     label: 'Le nid du dragon',
     target: 'dragon',
     shape: CAMP_SHAPES.dragon,
-    labelPos: 'below',
+    // Task 9 review round 2: ink on the egg itself, not a plaque below it - the nest sits right
+    // against the dialogue dock (see CAMP_SHAPES's own comment), and `above` runs into the
+    // parchemins tent.
+    labelPos: 'on',
     // Task 10b round 1 #3: a `title` tooltip never shows on iPad (no mouse hover on the target
     // device), so what the dragon is up to (stageActivity, a short version of dragon.ts's
     // stageLine) rides along here instead, next to its identity (dragonCaption).
@@ -135,7 +138,9 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     label: 'Ta cabane',
     target: 'cabin',
     shape: CAMP_SHAPES.cabin,
-    labelPos: 'below',
+    // Task 9 review round 2: same reasoning as the dragon's - ink on the cabin door instead of a
+    // plaque below it, which reached a few px into the dialogue dock.
+    labelPos: 'on',
     state: ({ camp }) => st({ caption: camp ? treasureCaption(camp.rewards_count) : null }),
   },
   {

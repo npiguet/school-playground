@@ -35,7 +35,12 @@
   // Layout width of the plaque (offsetWidth ignores the scene's zoom-in transform), so the label
   // can be clamped inside the safe zone (final review I4, playability #1).
   let labelW = $state(0);
-  const shift = $derived(inked ? 0 : labelShift(box.x + box.w / 2, labelW, rt.artW));
+  // UI3a Task 9 review round 2: an inked ("on") label used to skip this clamp entirely, on the
+  // apparent assumption it always sits comfortably inside the safe zone - not true for a landmark
+  // near its edge (the camp's dragon nest, hard up against the safe zone's left edge). labelShift()
+  // is a pure horizontal clamp keyed off the label's own centre and width, same as above/below
+  // labels use; it already returns 0 (a no-op) for a label that fits without it.
+  const shift = $derived(labelShift(box.x + box.w / 2, labelW, rt.artW));
   let timer: ReturnType<typeof setTimeout> | undefined;
   let releaseTimer: ReturnType<typeof setTimeout> | undefined;
 
