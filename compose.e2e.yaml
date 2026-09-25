@@ -32,10 +32,14 @@ services:
     # rAF), and WebKit's Skia GPU worker segfaulted repeatedly. Two llvmpipe threads plus Skia's
     # CPU rasteriser: ~1.7 cores per idle scene, ~28 fps and no gap over 250 ms at 8 pages, 4.9 GiB
     # peak (numbers: .superpowers/sdd/2026-09-24-ui3a-places-title-library-delphi/
-    # e2e-stability-report.md).
+    # e2e-stability-report.md). Task S compared Skia's GPU path (through llvmpipe, still 2 threads)
+    # on Playwright 1.63: 0 crashes against 1 in 3 260 executions each (not significant), ~15 %
+    # slower suite runs and ~10 % fewer frames per camp page, so the CPU rasteriser stays.
     environment:
       BASE_URL: "http://discorde:8080"
       CI: "true"
+      # The worker count (playwright.config.ts: 8 when unset or empty).
+      PW_WORKERS: ${PW_WORKERS:-}
       LP_NUM_THREADS: "2"
       WEBKIT_SKIA_ENABLE_CPU_RENDERING: "1"
     volumes: [".:/work", "node_modules:/work/web/node_modules"]

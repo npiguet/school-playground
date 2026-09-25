@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './crashGuard';
 import { chooseLevel, expectCamp, newHero, openShelves, pickHero, skipOnboarding, uniqueName } from './helpers';
 
 const unique = () => uniqueName('Héros');

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './crashGuard';
 test('serves the SPA and the API', async ({ page, request }) => {
   const health = await request.get('/api/health');
   expect(health.ok()).toBeTruthy();

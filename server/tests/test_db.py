@@ -63,3 +63,29 @@ def test_connect_pins_legacy_transaction_control_so_begin_immediate_takes_the_wr
         other.close()
     conn.rollback()
     assert not conn.in_transaction
+
+
+def test_a_write_waits_out_a_lock_held_longer_than_sqlites_default(tmp_path):
+    # Task S (seen in an e2e run: PATCH /profiles and GET /camp both 500 "database is locked" at
+    # once, while the app was starved of CPU): Python's default 5 s busy timeout turned a slow
+    # writer into a player-visible error. A write now waits up to BUSY_TIMEOUT_S for the lock.
+    import threading, time
+    from app.db import BUSY_TIMEOUT_S
+    assert BUSY_TIMEOUT_S >= 30
+    path = tmp_path / "t.sqlite3"
+    first = connect(path)
+    migrate(first)
+    first.execute("INSERT INTO profile(id, name, avatar, level, created_at) VALUES (1, 'A', 'chouette', '8H', 'now')")
+    first.commit()
+    second = connect(path)
+    assert second.execute("PRAGMA busy_timeout").fetchone()[0] == BUSY_TIMEOUT_S * 1000
+    first.execute("BEGIN IMMEDIATE")
+    first.execute("UPDATE profile SET level = '9H' WHERE id = 1")
+    release = threading.Timer(5.5, first.commit)
+    release.start()
+    started = time.monotonic()
+    second.execute("UPDATE profile SET name = 'B' WHERE id = 1")
+    second.commit()
+    assert time.monotonic() - started >= 5.0
+    release.join()
+    assert tuple(second.execute("SELECT name, level FROM profile WHERE id = 1").fetchone()) == ("B", "9H")

@@ -206,10 +206,19 @@ scripts/check.sh
 To run only the e2e suite (e.g. while iterating on a spec): `scripts/playwright.sh`. Pass
 extra `npx playwright test` arguments through, e.g. `scripts/playwright.sh e2e/seed.spec.ts`.
 
+Playwright never retries a failed test. The one exception is a test whose browser crashed: WPE
+WebKit's web process crashes about once in 1 300 test executions, an upstream fault
+(`docs/reviews/ui3/webkit-crash-upstream.md`). Such a test fails with « browser crashed (upstream
+WebKit) » (`web/e2e/crashGuard.ts`, which every spec takes `test` from), and when that is the only
+kind of failure in the run, `web/scripts/playwright-crash-retry.mjs` runs those tests once more
+(with the rest of their serial group). Any other failure ends the run red, with no retry.
+
 **Two checkouts side by side** (e.g. two git worktrees): prefix any script with `STACK=<id>`, e.g.
 `STACK=b scripts/check.sh`. It gets its own compose project, app and server dev images and node_modules volume
 (`discorde-b…`, `npm ci` on first use); unset, the names stay `discorde`. A second dev stack also
-needs `DEV_API_PORT`/`DEV_WEB_PORT`. `PLAYWRIGHT_VERSION` in `scripts/lib.sh` pins the e2e image.
+needs `DEV_API_PORT`/`DEV_WEB_PORT`. Two e2e runs at once share the host, so give the second one
+fewer Playwright workers with `PW_WORKERS` (8 when unset), e.g. `STACK=b PW_WORKERS=4 scripts/check.sh`;
+`compose.e2e.yaml` passes it into the Playwright container. `PLAYWRIGHT_VERSION` in `scripts/lib.sh` pins the e2e image.
 A manual `docker compose -f compose.e2e.yaml …` needs it exported first (`source scripts/lib.sh`).
 Only one Playwright run executes at a time on the machine, whatever the stack: `scripts/playwright.sh` waits on a lock in the host
 temp dir (`discorde-e2e.lock`, a dead holder is taken over) for up to `E2E_LOCK_WAIT` seconds (default 7200); builds and unit tests stay parallel.

@@ -7,6 +7,11 @@ from fastapi import Request
 
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 DB_FILENAME = "discorde.sqlite3"
+# How long a statement waits for another connection's write lock before "database is locked"
+# (Task S). Python's default, 5 s, was reached in an e2e run while the app was starved of CPU: a
+# PATCH and a GET /camp failed together with a 500. Waiting is always better than failing here: the
+# writers are short, and the players are one family.
+BUSY_TIMEOUT_S = 30
 
 
 def connect(path: Path) -> sqlite3.Connection:
@@ -16,7 +21,7 @@ def connect(path: Path) -> sqlite3.Connection:
     # then takes the write lock early with its own BEGIN IMMEDIATE when `in_transaction` is False.
     # A different default (autocommit=False opens a transaction on connect and after every commit,
     # autocommit=True never does) would silently turn that BEGIN IMMEDIATE into a no-op.
-    conn = sqlite3.connect(path, check_same_thread=False, isolation_level="DEFERRED",
+    conn = sqlite3.connect(path, timeout=BUSY_TIMEOUT_S, check_same_thread=False, isolation_level="DEFERRED",
                            autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode = WAL")

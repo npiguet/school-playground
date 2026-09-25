@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './crashGuard';
+import type { Page } from '@playwright/test';
 import {
   chooseLevel,
   closeOverlay,
@@ -47,6 +48,40 @@ test('the hub leads into the tent; its plaque echoes the hub label; the exit sig
   await expectScene(page, 'library');
   await page.goBack();
   await expectCamp(page);
+});
+
+// Task S: `history.back()` is asynchronous, so a second close before the first Back has landed
+// (a held Escape repeating, the seal then Escape) used to step back twice - out of the tent, to the
+// camp. The test holds every `history.back()` the page makes until both Escapes are in (two
+// separate tasks, like a key repeat), then lets them traverse one after the other: the window is
+// there however fast the host. (WebKit merges two `back()` calls made in the same task, which is
+// why the Escapes are not sent together.)
+test('two quick Escapes close the shelves once and stay in the tent', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  await tap(page.getByTestId('camp-parchemins'), testInfo);
+  await expectScene(page, 'library');
+  await tap(page.getByTestId('library-shelves'), testInfo);
+  const shelves = page.getByTestId('overlay-shelves');
+  await expect(shelves.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
+  const hashes = await page.evaluate(async () => {
+    const realBack = history.back.bind(history);
+    const held: (() => void)[] = [];
+    history.back = () => held.push(realBack);
+    const escape = () => dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    escape();
+    await new Promise((r) => setTimeout(r, 0));
+    escape();
+    const seen: string[] = [];
+    addEventListener('hashchange', () => seen.push(location.hash));
+    for (const back of held) await new Promise((r) => (addEventListener('hashchange', r, { once: true }), back()));
+    return seen;
+  });
+  expect(hashes).toEqual([`#/p/${id}/tente-parchemins`]);
+  await expect(shelves).toHaveCount(0);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
+  await expectScene(page, 'library');
 });
 
 test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back close it', async ({ page, request }, testInfo) => {
@@ -333,8 +368,10 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   }
   const back = work.getByTestId('portal-back');
   await expect(back).toContainText('Toutes les œuvres');
-  expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+  // Measured once the panel has settled (expectOverlayTapTargets waits out its fly-in): read
+  // during it, the 48 px control once came out at 47.99998 (Task S measurement runs).
   await expectOverlayTapTargets(page, 'overlay-portal-work');
+  expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(48);
   await back.click();
   await expect(page).toHaveURL(/\/alexandria$/);
   await expect(portal).toBeVisible();

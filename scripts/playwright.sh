@@ -3,6 +3,7 @@
 # Example: scripts/playwright.sh                                     (all e2e specs)
 #          scripts/playwright.sh --config playwright.playability.config.ts
 #          STACK=b scripts/playwright.sh                             (a second stack, side by side)
+#          PW_WORKERS=4 scripts/playwright.sh                        (fewer workers; 8 when unset)
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # The browsers in the image must match the @playwright/test the specs run with.
 if ! grep -q "\"@playwright/test\": \"$PLAYWRIGHT_VERSION\"" "$ROOT/web/package.json"; then
@@ -75,7 +76,9 @@ e2e_lock_acquire() {
 e2e_lock_acquire
 
 set +e
-docker compose -f compose.e2e.yaml run --rm -T playwright npx playwright test "$@"
+# `npx playwright test "$@"`, plus the crash-only retry (Ruling F3): a test whose browser crashed
+# (upstream WebKit) runs once more; any other failure never does.
+docker compose -f compose.e2e.yaml run --rm -T playwright node scripts/playwright-crash-retry.mjs "$@"
 status=$?
 set -e
 # The app container (and its log) dies with `down` below: keep the server's side of a failure (a

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './crashGuard';
 import { closeOverlay, newHero, openShelves, stubSpeech, skipOnboarding, uniqueName } from './helpers';
 
 const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';

@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './crashGuard';
+import type { Page } from '@playwright/test';
 import { createProfileApi, expectFocusRingInsideBody, expectOverlayClearsScene, expectScene, tap, uniqueName } from './helpers';
 
 // Immersion wave Task 2 (scenes spec §2.2, §4; playability #1, #12, #21): the overlays are objects

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './crashGuard';
 import { closeOverlay, confirmScanVerified, createProfile, expectOverlayTapTargets, uniqueName } from './helpers';
 
 test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {

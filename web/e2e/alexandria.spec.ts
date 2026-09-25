@@ -1,4 +1,5 @@
-import { test, expect, type Locator } from '@playwright/test';
+import { test, expect } from './crashGuard';
+import type { Locator } from '@playwright/test';
 import { closeOverlay, createProfile, expectNoOverlap, uniqueName, watchOverlap } from './helpers';
 
 // "Vingt mille lieues" only has one offline fixture page, so its whole online library

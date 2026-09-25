@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './crashGuard';
+import type { Page } from '@playwright/test';
 import {
   chooseLevel,
   closeOverlay,

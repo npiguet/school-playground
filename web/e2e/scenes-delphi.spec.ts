@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './crashGuard';
+import type { Page } from '@playwright/test';
 import {
   closeOverlay,
   createProfileApi,
@@ -65,6 +66,9 @@ test('the Pythia opens the three scrolls; « Ce que prépare ta classe »; seal,
   await oracle.getByTestId('scroll-ecole').getByTestId('scroll-open').click();
   const sheet = oracle.getByTestId('scroll-ecole');
   await expect(oracle.getByTestId('scroll-faible')).toHaveCount(0);
+  // Measured once the scroll has finished unrolling (and the panel its fly-in): mid-animation a
+  // size check reads a fraction short (Task S, the same class as the portal's 47.99998 px).
+  await expect.poll(() => oracle.evaluate((e) => e.getAnimations({ subtree: true }).length)).toBe(0);
   const [sheetBox, bodyBox] = await Promise.all([sheet.boundingBox(), oracle.locator('.overlay-body').boundingBox()]);
   expect(sheetBox!.width, 'the unrolled scroll spans the panel').toBeGreaterThan(bodyBox!.width * 0.85);
   for (const key of ['hydre', 'echo', 'chimere', 'protee', 'sirenes', 'lethe']) {
