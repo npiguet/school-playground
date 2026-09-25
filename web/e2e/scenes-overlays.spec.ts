@@ -17,6 +17,9 @@ test('the shelves lie on a wood table below the HUD; the owl speaks; the tent la
   await expect(shelves).toHaveAttribute('data-variant', 'table');
   await expect(shelves.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'owl');
   await expect(shelves.getByTestId('overlay-voice')).toContainText("dés-accords d'Éris");
+  // Task 8: the texts are rolled scrolls in cubbies, not legacy cards, pills or buttons.
+  await expect(shelves.locator('.kit-cubby').first()).toBeVisible();
+  await expect(shelves.locator('.card, .btn, .chip')).toHaveCount(0);
   await expectOverlayClearsScene(page, 'overlay-shelves', 'library', true);
   // The labels come back once it closes.
   await shelves.getByTestId('overlay-close').click();
@@ -89,6 +92,60 @@ for (const size of [
     await expectFocusRingInsideBody(page, 'overlay-lens', read);
   });
 }
+
+// Found by the batch B3 full run (flaky « the portal opens the works… »): an overlay that comes back
+// while it is still fading out (its route left and returned within the 160 ms fade - Back then a
+// quick tap on the same work) is the same {#if} branch resumed by Svelte, not a new one. Its leave
+// had already stopped it catching taps and Escape; the resumed intro must hand both back.
+test('an overlay brought back during its fade-out still takes taps and Escape', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, hero(testInfo.project.name));
+  await page.goto(`/#/p/${id}/parchemins`);
+  const shelves = page.getByTestId('overlay-shelves');
+  await expect(shelves).toBeVisible();
+  // Leave and come back two frames later, well inside the 160 ms fade.
+  await page.evaluate(async (pid) => {
+    location.hash = `#/p/${pid}/tente-parchemins`;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    location.hash = `#/p/${pid}/parchemins`;
+  }, id);
+  await expect(page).toHaveURL(/\/parchemins$/);
+  await expect(shelves).toHaveCount(1);
+  await expect.poll(() => shelves.evaluate((e) => getComputedStyle(e).pointerEvents)).not.toBe('none');
+  await page.keyboard.press('Escape');
+  await expect(shelves).toHaveCount(0);
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
+  await page.evaluate(async (pid) => {
+    location.hash = `#/p/${pid}/parchemins`;
+  }, id);
+  await expect(shelves).toBeVisible();
+  await page.evaluate(async (pid) => {
+    location.hash = `#/p/${pid}/tente-parchemins`;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    location.hash = `#/p/${pid}/parchemins`;
+  }, id);
+  await shelves.getByTestId('overlay-close').click({ timeout: 5_000 });
+  await expect(shelves).toHaveCount(0);
+});
+
+// Task 10: Alexandria is an open book - two pages either side of the gutter, and nothing crosses it.
+test('the portal is a codex: two pages, and nothing crosses the gutter', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, hero(testInfo.project.name));
+  await page.goto(`/#/p/${id}/alexandria`);
+  const portal = page.getByTestId('overlay-portal');
+  await expect(portal).toHaveAttribute('data-variant', 'codex');
+  await expect(portal.getByTestId('work-card').first()).toBeVisible();
+  await expectOverlayClearsScene(page, 'overlay-portal', 'library', true);
+  await expect(portal.locator('.codex-spread')).toHaveCount(1);
+  const pages = portal.locator('.codex-page');
+  await expect(pages).toHaveCount(2);
+  if ((page.viewportSize()?.width ?? 0) > 900) {
+    const spread = (await portal.locator('.codex-spread').boundingBox())!;
+    const gutter = spread.x + spread.width / 2;
+    const [left, right] = [(await pages.nth(0).boundingBox())!, (await pages.nth(1).boundingBox())!];
+    expect(left.x + left.width, 'left page ends before the gutter').toBeLessThanOrEqual(gutter);
+    expect(right.x, 'right page starts after the gutter').toBeGreaterThanOrEqual(gutter);
+  }
+});
 
 // Review fix round 1 #7: the title has no HUD, so its overlays centre in the whole screen.
 test('the title has no HUD band: the naming ritual centres in the whole screen', async ({ page }) => {

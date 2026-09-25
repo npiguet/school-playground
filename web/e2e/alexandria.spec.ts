@@ -94,14 +94,14 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
         // before the app's adopt() has run its `finally` (adoptingId = null), and a click in
         // between is dropped by its one-at-a-time guard - no request, and the waitForResponse
         // above would then wait forever.
-        await expect(card.getByText('Rouleau ajouté aux Parchemins.')).toBeVisible();
+        await expect(card.getByText('Le rouleau est sur tes étagères.')).toBeVisible();
       }
       await page.reload();
       throw new Error('every chunk is held by another run: waiting for one to be released');
     }).toPass({ timeout: CLAIM_MS });
     expect(unexpectedStatus).toBeNull();
     if (!target) throw new Error('no chunk claimed');
-    await expect(target.getByText('Rouleau ajouté aux Parchemins.')).toBeVisible();
+    await expect(target.getByText('Le rouleau est sur tes étagères.')).toBeVisible();
     // Fix round 1 #1 guard (Task 11 review), tightened in fix round 2 finding 2: proves Overlay's
     // OUT transition is local, not `|global` - leaving the work overlay for /play (an ancestor
     // unmount: the whole library place, LibraryTent included, unmounts for the play place) must

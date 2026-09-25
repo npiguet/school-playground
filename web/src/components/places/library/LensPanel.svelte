@@ -3,11 +3,14 @@
   // against the paper -> save with optional due date (a *dictée préparée* becomes a prophecy,
   // spec's "Decisions" #14). The reference text is always the answer key, so the verify step
   // is not a formality: an uncorrected OCR mistake would silently become "correct" forever.
+  // Immersion wave Task 9 (playability #6): a round bronze lens rather than a camera dialog; the owl
+  // gives the photo advice (VOICES.lens), and « Déchiffrer » only appears once a photo exists.
   import { onDestroy, untrack } from 'svelte';
-  import LevelSelect from '../../LevelSelect.svelte';
+  import LevelMedallions from '../../ui/LevelMedallions.svelte';
   import { api, ApiError } from '../../../lib/api';
   import { todayIso } from '../../../lib/dates';
   import { countWords } from '../../../lib/dictation/segment';
+  import { plural } from '../../../lib/text/french';
   import { ADD_ICONS } from '../../../lib/world/art';
   import Icon from '../../ui/Icon.svelte';
   import { href } from '../../../lib/routes';
@@ -143,7 +146,7 @@
       // Same as the desk (final review I1): the shelves replace the lens and keep its history tag.
       go(href('library', { profileId: String(profile.id) }), 'replace');
     } catch (e) {
-      saveError = e instanceof ApiError ? e.detail : "Les Muses n'ont pas pu sauvegarder ce parchemin.";
+      saveError = e instanceof ApiError ? e.detail : "Les Muses n'ont pas pu poser ce parchemin sur l'étagère.";
     } finally {
       saving = false;
     }
@@ -152,63 +155,62 @@
 
 <div class="panel-lens">
   {#if step === 'capture'}
-    <div class="card explain">
-      <p>
-        Prends la feuille imprimée en photo, bien à plat et en pleine lumière. Une photo par
-        page. L'écriture à la main ne marche pas.
-      </p>
-    </div>
-
-    <div class="capture-buttons">
-      <label class="btn btn-primary capture-label">
-        <img class="capture-icon" src={ADD_ICONS.scan} alt="" />
-        Prendre une photo
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          multiple
-          data-testid="scan-input"
-          class="file-input"
-          onchange={onFilesChosen}
-        />
-      </label>
-      <label class="btn">
-        Choisir dans les photos
-        <input type="file" accept="image/*" multiple class="file-input" onchange={onFilesChosen} />
-      </label>
-    </div>
-
-    {#if photos.length > 0}
-      <div class="thumbs">
-        {#each photos as p, i (p.url)}
-          <div class="thumb">
-            <img src={p.url} alt={`Photo ${i + 1}`} />
-            <button type="button" class="btn btn-ghost" onclick={() => removePhoto(i)}>Retirer</button>
-          </div>
-        {/each}
+    <div class="lens-capture">
+      <!-- Playability #6: a round bronze lens frame; the owl gives the photo advice (VOICES.lens). -->
+      <div class="lens-frame" aria-hidden="true">
+        {#if photos.length > 0}
+          <img src={photos[photos.length - 1].url} alt="" />
+        {:else}
+          <img class="lens-glass" src={ADD_ICONS.scan} alt="" />
+        {/if}
       </div>
-    {/if}
+      <div class="capture-actions">
+        <label class="kit-bronze capture-label">
+          Prendre une photo
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            data-testid="scan-input"
+            class="file-input"
+            onchange={onFilesChosen}
+          />
+        </label>
+        <label class="kit-bronze is-quiet capture-label">
+          Choisir une photo
+          <input type="file" accept="image/*" multiple class="file-input" onchange={onFilesChosen} />
+        </label>
+      </div>
 
-    {#if uploadError}
-      <p class="orange" role="alert">{uploadError}</p>
-      <button type="button" class="btn" onclick={clearPhotos}>Reprendre les photos</button>
-    {/if}
+      <!-- Once a photo is in the lens, the next step comes right under it, before the thumbnails. -->
+      {#if photos.length > 0}
+        <button type="button" class="kit-bronze read-btn" data-testid="btn-scan-read" disabled={uploading} onclick={readText}>
+          Déchiffrer
+        </button>
+      {/if}
+      {#if uploading}
+        <p class="muted" aria-live="polite">Les scribes déchiffrent la feuille…</p>
+      {/if}
 
-    <button
-      type="button"
-      class="btn btn-primary read-btn"
-      data-testid="btn-scan-read"
-      disabled={photos.length === 0 || uploading}
-      onclick={readText}
-    >
-      Lire le texte
-    </button>
-    {#if uploading}
-      <p class="muted" aria-live="polite">Les scribes déchiffrent la feuille…</p>
-    {/if}
+      {#if uploadError}
+        <p class="kit-note" data-tone="eris" role="alert">{uploadError}</p>
+        <button type="button" class="kit-bronze is-quiet" onclick={clearPhotos}>Reprendre les photos</button>
+      {/if}
+
+      {#if photos.length > 0}
+        <div class="thumbs">
+          {#each photos as p, i (p.url)}
+            <div class="thumb">
+              <img src={p.url} alt={`Photo ${i + 1}`} />
+              <button type="button" class="kit-link" onclick={() => removePhoto(i)}>Retirer</button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
   {:else if step === 'verify' && scanResult}
-    <h3 class="kit-section">Vérifie le texte avec la feuille</h3>
+    <h3>Vérifie le texte avec la feuille</h3>
 
     <div class="verify-grid">
       <div class="photos">
@@ -225,15 +227,9 @@
         {#if lowConfidence.length > 0}
           <div class="verify-label">
             <span>À vérifier :</span>
-            <span class="chips" data-testid="scan-low-confidence">
+            <span class="check-words" data-testid="scan-low-confidence">
               {#each lowConfidence as w (w)}
-                <button
-                  type="button"
-                  class="chip chip-warn"
-                  class:chip-viewed={viewed.has(w)}
-                  aria-pressed={viewed.has(w)}
-                  onclick={() => showWord(w)}
-                >
+                <button type="button" class="check-word" aria-pressed={viewed.has(w)} onclick={() => showWord(w)}>
                   {#if viewed.has(w)}<Icon name="check" size={16} />{/if}{w}
                 </button>
               {/each}
@@ -257,34 +253,29 @@
           bind:this={textarea}
           {...{ autocorrect: 'off' }}
         ></textarea>
-        <p class="wordcount muted">{wordCount} mots</p>
+        <p class="wordcount muted">{plural(wordCount, 'mot', 'mots')}</p>
         <p class="hint key-hint">
-          Corrige chaque mot qui diffère de la feuille : ce texte devient la clé de correction.
+          Corrige chaque mot qui n'est pas comme sur la feuille : ce texte servira de modèle pendant la bataille.
         </p>
       </div>
     </div>
 
     {#if confirming}
-      <div class="confirm" data-testid="scan-confirm" role="group" aria-label="Confirmation">
+      <div class="kit-note confirm" data-testid="scan-confirm" role="group" aria-label="Confirmation">
         <p class="confirm-question">As-tu comparé chaque ligne avec la feuille ?</p>
         <div class="actions">
-          <button type="button" class="btn" onclick={() => (confirming = false)}>Pas encore</button>
-          <button
-            type="button"
-            class="btn btn-primary"
-            data-testid="btn-scan-confirm"
-            onclick={() => (step = 'details')}
-          >
+          <button type="button" class="kit-bronze is-quiet" onclick={() => (confirming = false)}>Pas encore</button>
+          <button type="button" class="kit-bronze" data-testid="btn-scan-confirm" onclick={() => (step = 'details')}>
             Oui, le texte est juste
           </button>
         </div>
       </div>
     {:else}
       <div class="actions">
-        <button type="button" class="btn" onclick={retakePhotos}>Reprendre une photo</button>
+        <button type="button" class="kit-bronze is-quiet" onclick={retakePhotos}>Reprendre une photo</button>
         <button
           type="button"
-          class="btn btn-primary"
+          class="kit-bronze"
           data-testid="btn-scan-verified"
           disabled={wordCount < 5 || unviewed.length > 0}
           onclick={askConfirmation}
@@ -294,7 +285,7 @@
       </div>
     {/if}
   {:else if step === 'details'}
-    <h3 class="kit-section">Détails du parchemin</h3>
+    <h3>Le parchemin</h3>
     <form onsubmit={saveScan}>
       <div class="field">
         <label for="scan-title-input">Titre</label>
@@ -308,10 +299,10 @@
         />
       </div>
 
-      <LevelSelect label="Niveau" bind:value={level} id="scan-level" />
+      <LevelMedallions legend="Classe" name="scan-level" bind:value={level} />
 
       <div class="field">
-        <label for="scan-due-date-input">Dictée pour le</label>
+        <label for="scan-due-date-input">Le jour de l'épreuve</label>
         <input
           id="scan-due-date-input"
           type="date"
@@ -319,54 +310,73 @@
           min={todayIso()}
           bind:value={dueDate}
         />
-        <p class="hint muted">
-          Si c'est une dictée préparée, indique la date du test : elle devient une prophétie de
-          l'Oracle.
-        </p>
+        <p class="hint muted">Si ta classe prépare cette dictée, la Pythie en fera une prophétie.</p>
       </div>
 
-      <div class="field">
-        <label for="scan-author">Auteur</label>
-        <input id="scan-author" type="text" maxlength="120" bind:value={author} />
-      </div>
-
-      <div class="field">
-        <label for="scan-work">Œuvre</label>
-        <input id="scan-work" type="text" maxlength="120" bind:value={work} />
-      </div>
+      <details class="who">
+        <summary class="kit-link">Qui l'a écrit ?</summary>
+        <div class="field">
+          <label for="scan-author">Auteur</label>
+          <input id="scan-author" type="text" maxlength="120" bind:value={author} />
+        </div>
+        <div class="field">
+          <label for="scan-work">Œuvre</label>
+          <input id="scan-work" type="text" maxlength="120" bind:value={work} />
+        </div>
+      </details>
 
       {#if saveError}
-        <p class="orange" role="alert">{saveError}</p>
+        <p class="kit-note" data-tone="eris" role="alert">{saveError}</p>
       {/if}
 
-      <button type="submit" class="btn btn-primary" data-testid="btn-scan-save" disabled={saving || !title.trim()}>
-        Sauvegarder dans les Parchemins
+      <button type="submit" class="kit-bronze" data-testid="btn-scan-save" disabled={saving || !title.trim()}>
+        Poser sur l'étagère
       </button>
     </form>
   {/if}
 </div>
 
 <style>
-  .explain {
-    margin-bottom: 20px;
-    cursor: default;
+  .lens-capture {
+    display: grid;
+    justify-items: center;
+    gap: 16px;
   }
-  .explain p {
-    margin: 0;
+  /* The bronze lens: a round frame, the glass (or the last photo) inside. */
+  .lens-frame {
+    display: grid;
+    place-items: center;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 10px solid var(--bronze);
+    background: radial-gradient(circle at 35% 30%, rgba(210, 236, 240, 0.9), rgba(110, 160, 170, 0.75) 60%, rgba(40, 70, 80, 0.85));
+    box-shadow:
+      inset 0 0 0 3px var(--bronze-dark),
+      inset 0 0 24px rgba(0, 0, 0, 0.35),
+      0 0 0 3px var(--bronze-light),
+      0 8px 16px rgba(0, 0, 0, 0.35);
   }
-  .capture-buttons {
+  .lens-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .lens-frame .lens-glass {
+    width: 55%;
+    height: 55%;
+    object-fit: contain;
+    opacity: 0.9;
+  }
+  .capture-actions {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 12px;
-    margin-bottom: 16px;
   }
   .capture-label {
     position: relative;
-  }
-  .capture-icon {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
   }
   .file-input {
     position: absolute;
@@ -382,8 +392,8 @@
   .thumbs {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 12px;
-    margin-bottom: 16px;
   }
   .thumb {
     display: flex;
@@ -399,7 +409,7 @@
     border: 1px solid var(--marble-dark);
   }
   .read-btn {
-    width: 100%;
+    min-width: 240px;
   }
   .verify-grid {
     display: grid;
@@ -433,21 +443,35 @@
     font-weight: 600;
     margin: 0 0 10px;
   }
-  .chips {
+  .check-words {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
   }
-  .chip-warn {
-    min-height: 44px;
-    border-color: var(--orange);
-    color: var(--orange);
-    font-weight: 600;
+  .check-word {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0 14px;
+    border: 2px solid var(--orange);
+    border-radius: 6px;
+    background: rgba(252, 232, 214, 0.9);
+    color: var(--ink);
+    font-family: var(--font-reading);
     font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
   }
-  .chip-viewed {
+  .check-word[aria-pressed='true'] {
     border-color: var(--olive);
-    color: var(--olive);
+    background: rgba(234, 238, 220, 0.95);
+  }
+  .check-word:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
   }
   textarea {
     width: 100%;
@@ -476,12 +500,6 @@
     flex-wrap: wrap;
     gap: 12px;
   }
-  .confirm {
-    background: var(--aegean-light);
-    border: 1px solid var(--aegean);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-  }
   .confirm-question {
     margin: 0 0 12px;
     font-size: 18px;
@@ -489,5 +507,14 @@
   }
   .field {
     margin-bottom: 20px;
+  }
+  .who {
+    margin-bottom: 16px;
+  }
+  .who summary {
+    list-style: none;
+  }
+  .who summary::-webkit-details-marker {
+    display: none;
   }
 </style>

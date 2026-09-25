@@ -23,6 +23,11 @@ from app.textutil import word_count
 
 CONTENT_DIR = Path(__file__).resolve().parents[3] / "content"
 
+
+def _count(n: int, noun: str) -> str:
+    """« 1 failed page », « 3 failed pages »: a real plural, never « page(s) »."""
+    return f"{n} {noun}{'' if n == 1 else 's'}"
+
 # Be a polite anonymous client: Wikisource/Gutenberg throttle bursty anonymous
 # traffic (observed HTTP 429 with no delay at all). A fixed pause between requests,
 # plus a backoff-and-retry on 429/503, keeps a ~250-page run well under the limit.
@@ -95,8 +100,8 @@ def main() -> None:
             pages_failed += 0 if ok else 1
             accepted_total += accepted
             time.sleep(REQUEST_DELAY_S)
-        line = (f"== {work.id}: {pages_ok} ok / {pages_failed} failed page(s), "
-                f"{accepted_total} accepted chunk(s) total ==")
+        line = (f"== {work.id}: {pages_ok} ok / {_count(pages_failed, 'failed page')}, "
+                f"{_count(accepted_total, 'accepted chunk')} total ==")
         print(line)
         summary.append(line)
 

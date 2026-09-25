@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { historyLine, lengthOf, textByline, wordGauge, workByline } from './shelf';
+import { historyLine, lengthOf, shelfSections, textByline, wordGauge, workByline } from './shelf';
 
 describe('the shelves speak the camp, not the catalogue (playability #2, #5, #24)', () => {
   it('turns a word count into a scroll length', () => {
@@ -31,5 +31,34 @@ describe('the shelves speak the camp, not the catalogue (playability #2, #5, #24
     expect(wordGauge(1).label).toBe('1 mot · il en faut au moins 80');
     expect(wordGauge(94)).toEqual({ label: '94 mots · parfait', state: 'ok', fill: 94 / 200 });
     expect(wordGauge(214)).toEqual({ label: '214 mots · au plus 200', state: 'long', fill: 1 });
+  });
+});
+
+describe('shelfSections: each scroll lies on one shelf only (Task 8 fix round 1)', () => {
+  const today = new Date(2026, 8, 25);
+  const t = (id: number, level: string, title: string, due_date: string | null = null) => ({ id, level, title, due_date });
+  const texts = [
+    t(1, '10H', 'Zéphyr'),
+    t(2, '10H', 'Aurore'),
+    t(3, '9H', 'Prophétie de neuvième', '2026-10-01'),
+    t(4, '9H', 'Neuvième'),
+    t(5, '8H', 'Huitième'),
+    t(6, '10H', 'Passée', '2026-09-01'),
+  ];
+  const ids = (xs: { id: number }[]) => xs.map((x) => x.id);
+
+  it('puts the prophecies first, then her class, then every other class (« Tous »)', () => {
+    const s = shelfSections(texts, '10H', 'Tous', today);
+    expect(ids(s.prophecies)).toEqual([3]);
+    expect(ids(s.own)).toEqual([2, 6, 1]);
+    expect(ids(s.others)).toEqual([5, 4]);
+  });
+
+  it('never repeats « Pour toi » when she chooses her own class', () => {
+    expect(ids(shelfSections(texts, '10H', '10H', today).others)).toEqual([]);
+  });
+
+  it('never repeats a prophecy under its class', () => {
+    expect(ids(shelfSections(texts, '10H', '9H', today).others)).toEqual([4]);
   });
 });

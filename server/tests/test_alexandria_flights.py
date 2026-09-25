@@ -1,5 +1,5 @@
 """Fix round 5: Alexandria refreshes are single-flight per work and bounded, so presses of
-« Recopier à nouveau » can neither redo the same work in parallel nor starve the rest of the API.
+« Demander une nouvelle copie » can neither redo the same work in parallel nor starve the rest of the API.
 Fix round 6: the fetch/orchestration limiter is loosened (different works' fetches must not queue
 behind each other) and only the CPU-bound annotation step stays tightly bounded, via
 `AnnotationLimiter`."""

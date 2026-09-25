@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { closeOverlay, confirmScanVerified, createProfile, uniqueName } from './helpers';
+import { closeOverlay, confirmScanVerified, createProfile, expectOverlayTapTargets, uniqueName } from './helpers';
 
 test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
   await createProfile(page, uniqueName('Scan'), '9H');
@@ -28,8 +28,8 @@ test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
   await page.getByTestId('btn-scan-save').click();
   await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   const card = page.locator('[data-testid="text-card"]', { hasText: title });
-  await expect(card).toContainText('Scanné');
-  await expect(card.getByTestId('chip-prophecy')).toContainText('30.06.2035');
+  await expect(card).toContainText('Déchiffré');
+  await expect(card.getByTestId('chip-prophecy')).toContainText('samedi 30 juin 2035');
   await expect(page.getByRole('heading', { name: "Prophéties de l'Oracle" })).toBeVisible();
   await card.click();
   await expect(page.getByTestId('play-prophecy')).toContainText('30.06.2035');
@@ -52,6 +52,8 @@ test('a phone photo shows « À vérifier » chips that must each be looked at',
   expect(await chips.count()).toBeGreaterThan(0);
   await expect(page.getByTestId('scan-verify-hint')).toContainText('Touche chaque mot à vérifier');
   await expect(page.getByTestId('btn-scan-verified')).toBeDisabled();
+  // Playability #25: a one-letter word to check (« a », « à ») is still a 48 px target.
+  await expectOverlayTapTargets(page, 'overlay-lens');
   const first = (await chips.first().textContent())!.trim();
   await chips.first().click();
   await expect(chips.first()).toHaveAttribute('aria-pressed', 'true');

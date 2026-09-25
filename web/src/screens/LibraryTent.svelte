@@ -85,21 +85,43 @@
     <ShelvesPanel {profile} />
   </Overlay>
 {:else if panel === 'pupitre'}
-  <Overlay variant="scroll" title={OVERLAY_TITLES.pupitre} testId="overlay-desk" onClose={close} returnFocus={focusOn('desk')}>
+  <Overlay
+    variant="scroll"
+    size="wide"
+    title={OVERLAY_TITLES.pupitre}
+    testId="overlay-desk"
+    onClose={close}
+    returnFocus={focusOn('desk')}
+    voice={VOICES.desk}
+  >
     <DeskPanel {profile} />
   </Overlay>
 {:else if panel === 'loupe'}
-  <Overlay variant="scroll" size="wide" title={OVERLAY_TITLES.loupe} testId="overlay-lens" onClose={close} returnFocus={focusOn('lens')}>
+  <Overlay
+    variant="scroll"
+    size="wide"
+    title={OVERLAY_TITLES.loupe}
+    testId="overlay-lens"
+    onClose={close}
+    returnFocus={focusOn('lens')}
+    voice={VOICES.lens}
+  >
     <LensPanel {profile} />
   </Overlay>
 {:else if panel === 'portail'}
-  <Overlay variant="scroll" size="wide" title={OVERLAY_TITLES.portail} testId="overlay-portal" onClose={close} returnFocus={focusOn('portal')}>
+  <Overlay
+    variant="codex"
+    title={OVERLAY_TITLES.portail}
+    testId="overlay-portal"
+    onClose={close}
+    returnFocus={focusOn('portal')}
+    voice={VOICES.portal}
+  >
     <PortalPanel {profile} focusWorkId={returningFromWorkId} />
   </Overlay>
 {:else if panel === 'oeuvre'}
   <Overlay
-    variant="scroll"
-    size="wide"
+    variant="codex"
     title={OVERLAY_TITLES.oeuvre}
     testId="overlay-portal-work"
     onClose={closeWork}

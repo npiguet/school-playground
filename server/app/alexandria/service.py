@@ -113,7 +113,9 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
 
     notes = []
     if failed:
-        notes.append(f"{failed} page(s) n'ont pas pu être lues.")
+        # Player-visible (the work's note): a real plural, never « page(s) » (playability #10).
+        notes.append("Les scribes n'ont pas pu lire une page." if failed == 1
+                     else f"Les scribes n'ont pas pu lire {failed} pages.")
     if stopped_early:
         notes.append("Le jour a baissé et les scribes ont posé leurs calames : la suite de l'œuvre attend d'être recopiée.")
     if truncated:
@@ -122,7 +124,7 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
     stats = {"pages_ok": pages_ok, "failed": failed, "rejected": dict(rejected), "truncated": truncated,
              "stopped_early": stopped_early}
     # A scroll adopted into the library keeps its link across a refresh (matched by body), so
-    # « Recopier à nouveau » never offers the same passage a second time. The links are read under
+    # « Demander une nouvelle copie » never offers the same passage a second time. The links are read under
     # the write lock (fix round 4): read outside it, an adopt (or a text deletion) committed by
     # another request between this snapshot and the rewrite below was silently undone (the link
     # reset to NULL, the passage offered again) or wrote back a deleted text's id (foreign key

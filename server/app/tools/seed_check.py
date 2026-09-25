@@ -86,7 +86,7 @@ def main() -> int:
 
     if low:
         print()
-        print(f"{len(low)} passage(s) below the minimum ({MIN_VERBS} verbs / {MIN_NOMINAL} nominal groups):")
+        print(f"{len(low)} {'passage' if len(low) == 1 else 'passages'} below the minimum ({MIN_VERBS} verbs / {MIN_NOMINAL} nominal groups):")
         for key in low:
             print(f"  - {key}")
         return 1

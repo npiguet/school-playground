@@ -41,7 +41,7 @@
   const reduced = reducedMotion();
   // Task 11 review, fix round 1 #1: the OUT transitions below are local (no `|global`), unlike the
   // IN ones. An ancestor unmounting this overlay outright - leaving its place for a different one
-  // (the title handing off to the camp, a work's "Jouer maintenant" leaving for /play...) - now
+  // (the title handing off to the camp, a work's « Le défendre maintenant » leaving for /play...) - now
   // drops it at once instead of lingering for its 160ms close animation with a fixed full-screen
   // scene still covering the next one, `overlayState.open` still above 0 (the next scene stuck
   // `inert`), the modal stack still trapping Tab on the leaving panel, and `returnFocus` firing
@@ -68,6 +68,14 @@
     (node as HTMLElement).style.pointerEvents = 'none';
     return fade(node, params);
   }
+
+  // Batch B3 fix: a route that leaves and comes back within the fade (Back, then a quick tap on the
+  // same work) resumes this very branch - Svelte replays the intro on the same nodes instead of
+  // mounting new ones - so the intro hands back what `leave` took: taps, and Escape.
+  function back(e: Event) {
+    closing = false;
+    (e.currentTarget as HTMLElement).style.pointerEvents = '';
+  }
 </script>
 
 <svelte:window onkeydown={onKey} />
@@ -79,6 +87,7 @@
   tabindex="-1"
   onclick={onClose}
   in:fade|global={{ duration: 200 }}
+  onintrostart={back}
   out:leave={{ duration: 160 }}
 ></button>
 <div
@@ -92,6 +101,7 @@
   data-variant={variant}
   tabindex="-1"
   in:fly|global={{ y: reduced ? 0 : 40, duration: reduced ? 200 : 280, opacity: 0 }}
+  onintrostart={back}
   out:leave={{ duration: 160 }}
 >
   <!-- The object itself (Ruling W1): a parchment sheet with torn sides, a dark wood board, or an
@@ -292,7 +302,8 @@
   .overlay-table .overlay-body {
     color: var(--bronze-ink);
   }
-  .overlay-table .overlay-body :global(:is(h3, h4)) {
+  /* Headings and a medallion row's legend (« Quelle classe ? » on the shelves) sit on the wood. */
+  .overlay-table .overlay-body :global(:is(h3, h4, legend)) {
     color: var(--gold-light);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   }
@@ -302,9 +313,10 @@
   .overlay-table .overlay-body :global(.orange) {
     color: #f2a15e;
   }
-  /* Until the shelves and the tablets get their own objects (Tasks 8, 12), their cards are sheets
-     of parchment laid on the wood: opaque, so the board's light ink never lands on cream. Inside
-     one, the text goes back to the parchment's own ink (these outrank the light rules above). */
+  /* Until the tablets get their own objects (Task 12; the shelves have had theirs since Task 8),
+     their cards are sheets of parchment laid on the wood: opaque, so the board's light ink never
+     lands on cream. Inside one, the text goes back to the parchment's own ink (these outrank the
+     light rules above). Task 12 deletes these four rules with the tablets' last legacy class. */
   .overlay-table .overlay-body :global(:is(.card, .parchment)) {
     background:
       var(--tex-parchment) 0 0 / 512px 512px repeat,

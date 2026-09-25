@@ -1,13 +1,17 @@
 import { test, expect, type Page } from '@playwright/test';
 import {
+  chooseLevel,
   closeOverlay,
   createProfileApi,
   createText,
   expectCamp,
   expectExitClearOfDialogueDock,
   expectInSafeZone,
+  expectOverlayTapTargets,
   expectScene,
   labelOverlaps,
+  makeResult,
+  postSession,
   redScan,
   tap,
   uniqueName,
@@ -53,11 +57,22 @@ test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back
   const shelves = page.getByTestId('overlay-shelves');
   await expect(shelves.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await expect(page.getByTestId('scene-library')).toHaveAttribute('inert', '');
+  await expect(shelves.getByRole('heading', { name: 'Pour toi' })).toBeVisible();
   await expect(shelves.locator('[data-testid="text-card"]').first()).toBeVisible();
-  // Parity: the level filter and the « Tous » sections.
-  await shelves.getByRole('button', { name: '9H', exact: true }).click();
-  await shelves.getByRole('button', { name: 'Tous', exact: true }).click();
-  await expect(shelves.getByRole('heading', { name: /À ton niveau/ })).toBeVisible();
+  // Playability #2: no school metadata on the shelves - no grade pills, no word counts.
+  await expect(shelves.getByText(/≈|\bmots\b|Jamais joué|\b10H\b/)).toHaveCount(0);
+  await expect(shelves.getByTestId('shelf-levels')).toHaveCount(0);
+  // Parity: every level is still one toggle away.
+  await shelves.getByRole('button', { name: 'Autres niveaux' }).click();
+  await chooseLevel(shelves.getByTestId('shelf-levels'), '9H');
+  await expect(shelves.getByRole('heading', { name: 'Classe 9H' })).toBeVisible();
+  await chooseLevel(shelves.getByTestId('shelf-levels'), 'Tous');
+  await expect(shelves.getByRole('heading', { name: 'Autres parchemins' })).toBeVisible();
+  // Each scroll on one shelf only: her own class behind the toggle repeats nothing of « Pour toi ».
+  await chooseLevel(shelves.getByTestId('shelf-levels'), '10H');
+  await expect(shelves.locator('#other-levels [data-testid="text-card"]')).toHaveCount(0);
+  await expect(shelves.locator('#other-levels')).toContainText('sous « Pour toi »');
+  await expectOverlayTapTargets(page, 'overlay-shelves');
   await shelves.getByTestId('overlay-close').click();
   await expect(shelves).toHaveCount(0);
   await expect(page).toHaveURL(/\/tente-parchemins$/);
@@ -81,15 +96,39 @@ test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back
   await expect(page).toHaveURL(/\/tente-parchemins$/);
 });
 
-test('a text card on the shelves starts the dictation; a prophecy wears its chip', async ({ page, request }, testInfo) => {
+test('a text card on the shelves starts the dictation; a prophecy wears its ribbon', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const title = uniqueName(`Prophétie tente ${testInfo.project.name}`);
   await createText(request, { title, body: 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.', level: '10H', due_date: '2099-01-01' });
   await page.goto(`/#/p/${id}/parchemins`);
   const card = page.getByTestId('overlay-shelves').locator('[data-testid="text-card"]', { hasText: title });
-  await expect(card.getByTestId('chip-prophecy')).toContainText('01.01.2099');
+  await expect(card.getByTestId('chip-prophecy')).toContainText('jeudi 1er janvier 2099');
+  await expect(card).toHaveAttribute('data-length', 'court');
+  await expect(card).toContainText('Jamais défendu');
+  // A prophecy is not repeated under its class behind « Autres niveaux ».
+  await page.getByTestId('overlay-shelves').getByRole('button', { name: 'Autres niveaux' }).click();
+  await chooseLevel(page.getByTestId('overlay-shelves').getByTestId('shelf-levels'), '10H');
+  await expect(card).toHaveCount(1);
   await card.click();
   await expect(page).toHaveURL(/\/play\/\d+$/);
+});
+
+test('a defended text wears a broken seal and a laurel; a new one keeps its seal whole', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const fresh = uniqueName('Sceau intact');
+  const defended = uniqueName('Sceau brisé');
+  const body = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
+  await createText(request, { title: fresh, body, level: '10H' });
+  const t = await createText(request, { title: defended, body, level: '10H' });
+  await postSession(request, { profileId: id, textId: t.id, day: new Date().toISOString().slice(0, 10), result: makeResult({ draft: 2, caught: 1 }) });
+  await page.goto(`/#/p/${id}/parchemins`);
+  const shelves = page.getByTestId('overlay-shelves');
+  const whole = shelves.locator('[data-testid="text-card"]', { hasText: fresh });
+  const broken = shelves.locator('[data-testid="text-card"]', { hasText: defended });
+  await expect(whole.locator('.kit-seal')).not.toHaveClass(/is-broken/);
+  await expect(broken.locator('.kit-seal')).toHaveClass(/is-broken/);
+  await expect(broken.locator('.seal-laurel')).toBeVisible();
+  await expect(broken).toContainText('Défendu 1 fois · 50 % des pièges déjoués');
 });
 
 test('places and labels sit in the safe zone, labels never cover another place', async ({ page, request }, testInfo) => {
@@ -174,15 +213,28 @@ test('the desk writes a new parchment; saving lands on the shelves and Back neve
   await expect(page).toHaveURL(/\/texts\/new$/);
   const desk = page.getByTestId('overlay-desk');
   await expect(desk.getByRole('heading', { name: 'Le pupitre' })).toBeVisible();
+  await expect(desk.getByTestId('overlay-voice')).toContainText('Entre 80 et 200 mots');
+  await expect(desk.getByText('Entre quatre-vingts')).toHaveCount(0);
   const title = uniqueName(`Pupitre ${testInfo.project.name}`);
-  await page.getByLabel('Titre').fill(title);
-  await page.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
-  await expect(desk).toContainText('13 mots');
-  // A text to defend is set in Literata (Ruling A8); every legacy field is there.
-  expect(await page.getByLabel('Texte').evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Literata');
-  for (const label of ['Niveau', 'Auteur', 'Œuvre', 'Traducteur']) await expect(desk.getByLabel(label)).toBeVisible();
+  await desk.getByLabel('Titre').fill(title);
+  await desk.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
+  await expect(desk.getByTestId('desk-gauge')).toContainText('13 mots · il en faut au moins 80');
+  // A text to defend is set in Literata (Ruling A8).
+  expect(await desk.getByLabel('Texte').evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Literata');
+  await expect(desk.getByRole('group', { name: 'Classe' })).toBeVisible();
+  await expect(desk.locator('select')).toHaveCount(0);
+  // Parity: author, work and translator are one tap away.
+  await desk.getByText("Qui l'a écrit ?").click();
+  for (const label of ['Auteur', 'Œuvre', 'Traducteur']) await expect(desk.getByLabel(label)).toBeVisible();
+  // Playability #5: the way to finish is visible without scrolling on the iPad.
+  const submit = desk.getByRole('button', { name: "Poser sur l'étagère" });
+  if (testInfo.project.name === 'ipad') {
+    const [s, body] = await Promise.all([submit.boundingBox(), desk.locator('.overlay-body').boundingBox()]);
+    expect(s!.y + s!.height, 'submit visible without scrolling').toBeLessThanOrEqual(body!.y + body!.height);
+  }
+  await expectOverlayTapTargets(page, 'overlay-desk');
   expect(await redScan(page)).toEqual([]);
-  await page.getByRole('button', { name: 'Sauvegarder dans les Parchemins' }).click();
+  await submit.click();
   await expect(page).toHaveURL(/\/parchemins$/);
   await expect(page.getByTestId('overlay-shelves').locator('[data-testid="text-card"]', { hasText: title })).toBeVisible();
   await page.goBack();
@@ -208,7 +260,7 @@ test('after saving from the desk, closing the shelves then Back leaves the tent 
   const title = uniqueName(`Retour ${testInfo.project.name}`);
   await desk.getByLabel('Titre').fill(title);
   await desk.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
-  await desk.getByRole('button', { name: 'Sauvegarder dans les Parchemins' }).click();
+  await desk.getByRole('button', { name: "Poser sur l'étagère" }).click();
   const shelves = page.getByTestId('overlay-shelves');
   await expect(shelves.locator('[data-testid="text-card"]', { hasText: title })).toBeVisible();
   await closeOverlay(page);
@@ -226,9 +278,19 @@ test('the lens opens the three-step scan as a wide overlay', async ({ page, requ
   await expect(page).toHaveURL(/\/texts\/scan$/);
   const lens = page.getByTestId('overlay-lens');
   await expect(lens.getByRole('heading', { name: 'La lentille de bronze' })).toBeVisible();
+  await expect(lens.getByTestId('overlay-voice')).toContainText('une photo par page');
+  await expect(lens.getByText(/scanner/i)).toHaveCount(0);
   await expect(page.getByTestId('scan-input')).toBeAttached();
-  await expect(page.getByTestId('btn-scan-read')).toBeDisabled();
-  await expect(lens.locator('img.capture-icon')).toHaveAttribute('src', '/art/icons/add-scan.webp');
+  // Playability #6: no grey disabled button before a photo exists; the lens shows its glass.
+  await expect(page.getByTestId('btn-scan-read')).toHaveCount(0);
+  await expect(lens.locator('.lens-frame img.lens-glass')).toHaveAttribute('src', '/art/icons/add-scan.webp');
+  await expect(lens.getByText('Prendre une photo')).toBeVisible();
+  await expect(lens.getByText('Choisir une photo')).toBeVisible();
+  await page.getByTestId('scan-input').setInputFiles('/work/server/tests/fixtures/scan/handout.png');
+  await expect(page.getByTestId('btn-scan-read')).toHaveText('Déchiffrer');
+  await expect(lens.locator('.lens-frame img')).toBeVisible();
+  await expect(lens.locator('.lens-frame img.lens-glass')).toHaveCount(0);
+  await expectOverlayTapTargets(page, 'overlay-lens');
   const box = await lens.boundingBox();
   expect(box!.width, 'wide overlay').toBeGreaterThan(700);
   expect(await redScan(page)).toEqual([]);
@@ -247,16 +309,33 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   await tap(page.getByTestId('library-portal'), testInfo);
   await expect(page).toHaveURL(/\/alexandria$/);
   const portal = page.getByTestId('overlay-portal');
+  await expect(portal).toHaveAttribute('data-variant', 'codex');
   await expect(portal.getByRole('heading', { name: "Le portail d'Alexandrie" })).toBeVisible();
+  await expect(portal.locator('.codex-page')).toHaveCount(2);
   await expect(portal.getByTestId('work-card').first()).toBeVisible();
+  // Playability #24: the byline never repeats the title; the level is a medallion.
+  const perrault = portal.locator('[data-testid="work-card"]', { hasText: 'Contes de Perrault' });
+  await expect(perrault.locator('.entry-by')).toHaveText('Charles Perrault');
+  await expect(portal.getByText(/niveau \d/)).toHaveCount(0);
   expect(await portal.getByTestId('work-card').count()).toBeGreaterThanOrEqual(10);
   const workId = await portal.getByTestId('work-card').first().getAttribute('data-work-id');
   await portal.getByTestId('work-card').first().click();
   await expect(page).toHaveURL(/\/alexandria\/[^/]+$/);
   const work = page.getByTestId('overlay-portal-work');
   await expect(work.getByTestId('btn-refresh-work')).toBeVisible();
-  await expect(work).toContainText('Les traducteurs et auteurs sont dans le domaine public.');
-  await work.getByTestId('portal-back').click();
+  await expect(work).not.toContainText('domaine public');
+  // Playability #7: a never-copied work points at the scribes, with no filter to filter nothing. The
+  // shared database may already hold copies of this work (alexandria.spec.ts covers that branch).
+  if ((await portal.getByTestId('work-card').first().getAttribute('data-status')) === 'never') {
+    await expect(work.getByTestId('scribes-empty')).toContainText("Les scribes n'ont encore rien recopié de ce livre. Demande-leur !");
+    await expect(work.getByTestId('work-levels')).toHaveCount(0);
+    await expect(work.getByTestId('btn-refresh-work')).toHaveText('Demander aux scribes');
+  }
+  const back = work.getByTestId('portal-back');
+  await expect(back).toContainText('Toutes les œuvres');
+  expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+  await expectOverlayTapTargets(page, 'overlay-portal-work');
+  await back.click();
   await expect(page).toHaveURL(/\/alexandria$/);
   await expect(portal).toBeVisible();
   await portal.getByTestId('work-card').first().click();
@@ -306,10 +385,22 @@ test('a deep link into a work: the seal and « Toutes les œuvres » replace, ne
   await expect(work).toHaveCount(0);
 });
 
-// Final review M17: two quick chip taps start two chunk requests; the one answered last must not
+// B3 fix round 1: an unknown work still offers a way on from its right page.
+test('an unknown work says so on its right page and leads back to the works', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/alexandria/pas-une-oeuvre`);
+  const work = page.getByTestId('overlay-portal-work');
+  await expect(work.getByTestId('work-missing')).toContainText("Les scribes ne trouvent pas ce livre sur les rayons d'Alexandrie.");
+  await expectOverlayTapTargets(page, 'overlay-portal-work');
+  await work.locator('.page-right').getByRole('button', { name: 'Toutes les œuvres' }).click();
+  await expect(page).toHaveURL(/\/alexandria$/);
+  await expect(page.getByTestId('overlay-portal')).toBeVisible();
+});
+
+// Final review M17: two quick level taps start two chunk requests; the one answered last must not
 // win if it was asked first. The first level's answer is held until the second one has rendered
 // (no timing window), then released: the list must still show the second level's scrolls.
-test("a slow answer for an earlier level chip never replaces the later chip's scrolls", async ({ page, request }, testInfo) => {
+test("a slow answer for an earlier level never replaces the later level's scrolls", async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const chunk = (seq: number, level: string, preview: string) => ({ id: 900000 + seq, seq, level, word_count: 120, score: 20, preview, text_id: null });
   let release!: () => void;
@@ -322,16 +413,19 @@ test("a slow answer for an earlier level chip never replaces the later chip's sc
     } else if (level === '10H') {
       await route.fulfill({ json: [chunk(2, '10H', 'Rouleau du dixième degré')] });
     } else {
-      await route.fulfill({ json: [] });
+      // « Tous »: one scroll, so the level medallions show (they hide while there is nothing to filter).
+      await route.fulfill({ json: [chunk(3, '8H', 'Rouleau de tous les degrés')] });
     }
   });
   await page.goto(`/#/p/${id}/alexandria/verne-vingt-mille-lieues`);
   const work = page.getByTestId('overlay-portal-work');
   await expect(work.getByTestId('btn-refresh-work')).toBeVisible();
+  const levels = work.getByTestId('work-levels');
+  await expect(work.getByTestId('chunk-card')).toContainText('Rouleau de tous les degrés');
   const slow = page.waitForRequest((r) => r.url().includes('/chunks?level=9H'));
-  await work.getByRole('button', { name: '9H', exact: true }).click();
+  await chooseLevel(levels, '9H');
   await slow;
-  await work.getByRole('button', { name: '10H', exact: true }).click();
+  await chooseLevel(levels, '10H');
   const cards = work.getByTestId('chunk-card');
   await expect(cards).toHaveCount(1);
   await expect(cards).toContainText('Rouleau du dixième degré');
@@ -342,5 +436,5 @@ test("a slow answer for an earlier level chip never replaces the later chip's sc
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await expect(cards).toHaveCount(1);
   await expect(cards).toContainText('Rouleau du dixième degré');
-  await expect(work.getByRole('button', { name: '10H', exact: true })).toHaveClass(/chip-active/);
+  await expect(levels.getByRole('radio', { name: '10H', exact: true })).toBeChecked();
 });

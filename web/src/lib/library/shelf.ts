@@ -1,5 +1,7 @@
 // How the shelves and the desk talk about a text (playability #2, #5, #24): lengths instead of word
 // counts, defences instead of « joué », who wrote it without repeating the title.
+import { isProphecy } from '../dates';
+import { levelIndex } from '../levels';
 import { plural } from '../text/french';
 import type { AlexandriaWork, TextSummary } from '../types';
 
@@ -38,4 +40,31 @@ export function wordGauge(n: number): { label: string; state: 'short' | 'ok' | '
   if (n < WORDS_MIN) return { label: `${words} · il en faut au moins ${WORDS_MIN}`, state: 'short', fill };
   if (n <= WORDS_MAX) return { label: `${words} · parfait`, state: 'ok', fill };
   return { label: `${words} · au plus ${WORDS_MAX}`, state: 'long', fill };
+}
+
+type ShelfText = Pick<TextSummary, 'id' | 'level' | 'title' | 'due_date'>;
+
+const byLevelThenTitle = (a: ShelfText, b: ShelfText) =>
+  levelIndex(a.level) - levelIndex(b.level) || a.title.localeCompare(b.title, 'fr');
+
+/** The shelves' three sections, each text on one shelf only (immersion wave Task 8, fix round 1):
+ *  the Oracle's prophecies (a due date not yet passed, soonest first), « Pour toi » (her class), and
+ *  behind « Autres niveaux » every other class (`filter` « Tous ») or one class - minus whatever
+ *  already lies on a shelf above, so choosing her own class or a prophecy's never repeats a scroll. */
+export function shelfSections<T extends ShelfText>(
+  texts: readonly T[],
+  ownLevel: string,
+  filter: string,
+  today: Date = new Date(),
+): { prophecies: T[]; own: T[]; others: T[] } {
+  const prophecies = texts
+    .filter((t) => isProphecy(t.due_date, today))
+    .sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''));
+  const shown = new Set(prophecies.map((t) => t.id));
+  const own = texts.filter((t) => t.level === ownLevel && !shown.has(t.id)).sort(byLevelThenTitle);
+  for (const t of own) shown.add(t.id);
+  const others = texts
+    .filter((t) => !shown.has(t.id) && (filter === 'Tous' ? t.level !== ownLevel : t.level === filter))
+    .sort(byLevelThenTitle);
+  return { prophecies, own, others };
 }

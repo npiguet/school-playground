@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import TopBar from '../components/TopBar.svelte';
-  import LevelSelect from '../components/LevelSelect.svelte';
+  import LevelMedallions from '../components/ui/LevelMedallions.svelte';
   import { api, ApiError } from '../lib/api';
   import { listFrenchVoices, pickVoice, speak, waitForVoices } from '../lib/dictation/tts';
   import { profileStore } from '../lib/profileStore.svelte';
@@ -116,9 +116,8 @@
       {/if}
     </section>
 
-    <section>
-      <h2>Niveau</h2>
-      <LevelSelect label="Ton niveau" bind:value={level} id="settings-level" />
+    <section class="class-section">
+      <LevelMedallions legend="Ta classe" name="settings-level" bind:value={level} />
     </section>
 
     <section>
@@ -176,6 +175,13 @@
 <style>
   section {
     margin-bottom: 28px;
+  }
+  /* « Ta classe » is this section's heading: its medallions' legend reads as the other sections' h2. */
+  .class-section :global(legend) {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.5em;
+    margin-bottom: 0.4em;
   }
   .field {
     margin-bottom: 12px;
