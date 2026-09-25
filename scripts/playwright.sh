@@ -10,5 +10,12 @@ set +e
 docker compose -f compose.e2e.yaml run --rm -T playwright npx playwright test "$@"
 status=$?
 set -e
+# The app container (and its log) dies with `down` below: keep the server's side of a failure (a
+# 500's traceback) next to Playwright's screenshots.
+if [ "$status" -ne 0 ]; then
+  mkdir -p web/test-results
+  docker compose -f compose.e2e.yaml logs --no-color app > web/test-results/app.log 2>&1 || true
+  echo "server log: web/test-results/app.log"
+fi
 docker compose -f compose.e2e.yaml down -v --remove-orphans
 exit $status

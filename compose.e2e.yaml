@@ -18,7 +18,19 @@ services:
   playwright:
     image: mcr.microsoft.com/playwright:v1.55.0-noble
     working_dir: /work/web
-    environment: { BASE_URL: "http://app:8080", CI: "true" }
+    # WebKit renders on the CPU in this container (Mesa llvmpipe, no GPU), and by default llvmpipe
+    # starts one raster thread per core in every page: an idle camp scene alone burned ~4.5 cores,
+    # 8 workers ~21 cores and 7.5 GiB, the host fell to ~0.6 GB free, 8 concurrent camp pages ran
+    # at ~14 fps with rAF gaps over 1 s (a typewriter line or a click's "stable" check waits on
+    # rAF), and WebKit's Skia GPU worker segfaulted repeatedly. Two llvmpipe threads plus Skia's
+    # CPU rasteriser: ~1.7 cores per idle scene, ~28 fps and no gap over 250 ms at 8 pages, 4.9 GiB
+    # peak (numbers: .superpowers/sdd/2026-09-24-ui3a-places-title-library-delphi/
+    # e2e-stability-report.md).
+    environment:
+      BASE_URL: "http://app:8080"
+      CI: "true"
+      LP_NUM_THREADS: "2"
+      WEBKIT_SKIA_ENABLE_CPU_RENDERING: "1"
     volumes: [".:/work", "discorde-web-node_modules:/work/web/node_modules"]
     depends_on:
       app: { condition: service_healthy }
