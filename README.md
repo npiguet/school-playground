@@ -215,7 +215,7 @@ kind of failure in the run, `web/scripts/playwright-crash-retry.mjs` runs those 
 
 **Two checkouts side by side** (e.g. two git worktrees): prefix any script with `STACK=<id>`, e.g.
 `STACK=b scripts/check.sh`. It gets its own compose project, app and server dev images and node_modules volume
-(`discorde-b…`, `npm ci` on first use); unset, the names stay `discorde`. A second dev stack also
+(`discorde-b…`; every stack runs `npm ci` on first use and again whenever `web/package-lock.json` changes); unset, the names stay `discorde`. A second dev stack also
 needs `DEV_API_PORT`/`DEV_WEB_PORT`. Two e2e runs at once share the host, so give the second one
 fewer Playwright workers with `PW_WORKERS` (8 when unset), e.g. `STACK=b PW_WORKERS=4 scripts/check.sh`;
 `compose.e2e.yaml` passes it into the Playwright container. `PLAYWRIGHT_VERSION` in `scripts/lib.sh` pins the e2e image.

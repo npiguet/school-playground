@@ -44,24 +44,36 @@ export NODE_MODULES_VOLUME="$STACK_NAME-web-node_modules"
 export SERVER_DEV_IMAGE="$STACK_NAME-server-dev"
 NPM_CACHE_VOLUME="discorde-npm-cache"
 
-# npm inside the node container, in web/, with this stack's node_modules and the shared cache.
+# The install records which package-lock.json it came from (its sha256, in the volume), so a lockfile
+# that changed since (a merged dependency bump) is reinstalled rather than run against stale
+# modules. A file at the root of the node_modules volume.
+LOCK_STAMP=".discorde-lock.sha256"
+
+# npm inside the node container, in web/, with this stack's node_modules and the shared cache. A
+# successful `ci` or `install` stamps the volume with the lockfile it installed (`npm ci` empties
+# node_modules first, stamp included), whoever ran it: ensure_volumes or `scripts/npm.sh ci`.
 run_npm() {
+  local stamp=""
+  case "${1:-}" in ci | install | i) stamp=1 ;; esac
   docker run --rm $TTY_FLAGS \
     -v "$HOST_ROOT:/work" \
     -v "$NODE_MODULES_VOLUME:/work/web/node_modules" \
     -v "$NPM_CACHE_VOLUME:/root/.npm" \
-    -w /work/web -e CI=true \
-    "$NODE_IMAGE" npm "$@"
+    -w /work/web -e CI=true -e STAMP="$stamp" -e LOCK_STAMP="node_modules/$LOCK_STAMP" \
+    "$NODE_IMAGE" sh -c 'npm "$@" && { [ -z "$STAMP" ] || sha256sum package-lock.json | cut -d" " -f1 >"$LOCK_STAMP"; }' npm "$@"
 }
 
 # An install is complete once npm has written its hidden lockfile, the last step of `npm ci`: a
-# volume that merely exists (an interrupted or failed install) does not count.
+# volume that merely exists (an interrupted or failed install) does not count. It is current when
+# its stamp matches today's package-lock.json.
 node_modules_ready() {
   docker volume inspect "$NODE_MODULES_VOLUME" >/dev/null 2>&1 &&
-    docker run --rm -v "$NODE_MODULES_VOLUME:/nm:ro" "$NODE_IMAGE" test -f /nm/.package-lock.json
+    docker run --rm -v "$HOST_ROOT/web/package-lock.json:/lock/package-lock.json:ro" -v "$NODE_MODULES_VOLUME:/nm:ro" \
+      -e LOCK_STAMP="/nm/$LOCK_STAMP" "$NODE_IMAGE" sh -c 'test -f /nm/.package-lock.json &&
+        [ "$(cat "$LOCK_STAMP" 2>/dev/null)" = "$(sha256sum /lock/package-lock.json | cut -d" " -f1)" ]'
 }
 
-# One first install per stack at a time (two scripts started together on a fresh stack): a
+# One install per stack at a time (two scripts started together on a fresh or stale stack): a
 # mkdir lock (atomic; Git Bash has no flock) holding the owner's pid, so a lock left behind by a
 # killed shell is taken over.
 _LOCK_DIR="${TMPDIR:-/tmp}/discorde-install-$STACK_NAME.lock"
@@ -101,7 +113,7 @@ ensure_volumes() {
     _unlock_install
     return 0
   fi
-  echo "== $NODE_MODULES_VOLUME has no complete install: npm ci"
+  echo "== $NODE_MODULES_VOLUME has no complete install, or one older than package-lock.json: npm ci"
   trap '_abort_install; exit 130' INT TERM
   trap '_abort_install' EXIT
   docker volume create "$NODE_MODULES_VOLUME" >/dev/null
