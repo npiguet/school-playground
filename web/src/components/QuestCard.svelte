@@ -9,7 +9,7 @@
   import { questProgressLabel, questTitle, rewardLabel } from '../lib/world/quests';
   import type { QuestOut, WorldCatalog } from '../lib/world/types';
   import { ApiError } from '../lib/api';
-  import { formatSwissDate } from '../lib/dates';
+  import { longDate } from '../lib/text/french';
   import { href } from '../lib/routes';
 
   let {
@@ -30,8 +30,8 @@
   const progressLabel = $derived(questProgressLabel(quest));
   const gaugeValue = $derived(quest.kind === 'boss' ? (quest.status === 'done' ? 1 : 0) : quest.progress.sessions);
   const gaugeMax = $derived(quest.kind === 'boss' ? 1 : (quest.goal.sessions ?? 3));
-  const kindLabel = $derived(quest.kind === 'board' ? 'Tableau' : quest.kind === 'oracle' ? 'Oracle' : 'Éris');
-  const kindClass = $derived(quest.kind === 'board' ? '' : quest.kind === 'oracle' ? 'chip-gold' : 'chip-violet');
+  // One name for the quest wall (Ruling W13): a board quest is a quest « du mur ».
+  const kindLabel = $derived(quest.kind === 'board' ? 'Mur' : quest.kind === 'oracle' ? 'Oracle' : 'Éris');
   const shelvable = $derived(quest.kind === 'board' && quest.status === 'active');
 
   let confirming = $state(false);
@@ -53,11 +53,12 @@
   }
 </script>
 
-<div class="parchment quest-card" data-testid="quest-card-{quest.id}">
+<!-- A sheet pinned to the wall (or unrolled by the Pythia): kit objects, no legacy card. -->
+<div class="kit-sheet quest-card" data-testid="quest-card-{quest.id}">
   <div class="head">
     <!-- An h4: a quest card sits in a section (h3) of the Pythia or tablets overlay. -->
     <h4 class="title">{title}</h4>
-    <span class="chip {kindClass}">{kindLabel}</span>
+    <span class="quest-kind">{kindLabel}</span>
   </div>
 
   <Gauge value={gaugeValue} max={gaugeMax} label={progressLabel} />
@@ -70,14 +71,14 @@
   </div>
 
   {#if quest.status === 'done' && quest.completed_at}
-    <span class="chip chip-gold">Terminée le {formatSwissDate(quest.completed_at.slice(0, 10))}</span>
+    <p class="quest-done">Terminée le {longDate(quest.completed_at.slice(0, 10))}</p>
   {/if}
 
   {#if quest.texts.length > 0}
     <div class="texts">
       {#each quest.texts as t (t.id)}
         <a
-          class="btn text-btn"
+          class="kit-bronze is-quiet text-btn"
           data-testid="quest-play-{quest.id}-{t.id}"
           href={href('play', { profileId: String(profileId), textId: String(t.id) }, { quest: String(quest.id), encounter: quest.target })}
         >
@@ -91,14 +92,14 @@
     {#if confirming}
       <div class="confirm">
         <p>Ranger cette quête ? Elle ne compte plus, sans rien perdre.</p>
-        {#if shelveError}<p class="orange" role="alert">{shelveError}</p>{/if}
+        {#if shelveError}<p class="kit-note" data-tone="eris" role="alert">{shelveError}</p>{/if}
         <div class="confirm-actions">
-          <button type="button" class="btn btn-primary" disabled={shelving} onclick={confirmShelve}>Oui</button>
-          <button type="button" class="btn" disabled={shelving} onclick={() => (confirming = false)}>Non</button>
+          <button type="button" class="kit-bronze" disabled={shelving} onclick={confirmShelve}>Oui</button>
+          <button type="button" class="kit-bronze is-quiet" disabled={shelving} onclick={() => (confirming = false)}>Non</button>
         </div>
       </div>
     {:else}
-      <button type="button" class="btn btn-ghost shelve" data-testid="quest-shelve-{quest.id}" onclick={() => (confirming = true)}>
+      <button type="button" class="kit-link shelve" data-testid="quest-shelve-{quest.id}" onclick={() => (confirming = true)}>
         Ranger
       </button>
     {/if}
@@ -107,7 +108,6 @@
 
 <style>
   .quest-card {
-    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -121,22 +121,28 @@
   .title {
     margin: 0;
   }
-  .chip-violet {
-    background: var(--violet-dark);
-    border-color: var(--violet);
-    color: var(--marble);
-    font-weight: 600;
+  .quest-kind {
+    flex-shrink: 0;
+    padding: 2px 10px;
+    border: 1.5px solid var(--bronze);
+    border-radius: 4px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bronze-dark);
   }
-  .chip-gold {
-    background: var(--gold-light);
-    border-color: var(--gold);
-    color: var(--ink);
-    font-weight: 600;
+  .quest-done {
+    margin: 0;
+    font-style: italic;
+    color: var(--form-ink-soft);
   }
   .reward-line {
     margin: 0;
     font-weight: 600;
-    color: var(--gold);
+    /* Playability #8 (UI1 #13): dark bronze on parchment, gold was below 4.5:1. */
+    color: var(--reward-ink);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -146,9 +152,12 @@
     flex-wrap: wrap;
     gap: 8px;
   }
+  /* A text's title: Alegreya, not the button's Cinzel caps (spec §2.7). */
   .text-btn {
-    text-decoration: none;
-    font-size: 15px;
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0;
   }
   .confirm {
     display: flex;

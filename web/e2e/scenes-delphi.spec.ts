@@ -116,9 +116,18 @@ test('the tablets open the quest board; a launched quest shows on the tablets ba
   await expect(page).toHaveURL(/\/quetes$/);
   const board = page.getByTestId('overlay-tablets');
   await expect(board.getByRole('heading', { name: 'Le mur des quêtes' })).toBeVisible();
+  // Playability #10: the reward and the treasure line are said once, never on each tablet.
+  await expect(board.getByTestId('board-reward')).toHaveCount(1);
+  await expect(board.getByText(/Récompense : \d+ XP/)).toHaveCount(0);
+  await expect(board.getByTestId('board-decor')).toHaveCount(1);
+  await expect(board.getByTestId('board-decor')).toContainText(/Encore \d+ quêtes? avant le prochain trésor de ta cabane/);
+  await expect(board.locator('.kit-tablet')).toHaveCount(6);
+  await expect(board.getByText(/\((s|x)\)/)).toHaveCount(0);
   await expect(board.getByTestId('board-boss')).toBeVisible();
   await board.getByTestId('board-challenge-echo').getByRole('button', { name: 'Lancer une quête' }).click();
   await expect(board.getByTestId('board-challenge-echo')).toContainText('Quête en cours');
+  await expect(board.getByTestId('board-challenge-echo').getByRole('button', { name: 'Lancer une quête' })).toHaveCount(0);
+  await expectOverlayTapTargets(page, 'overlay-tablets');
   await closeOverlay(page);
   await expect(page.getByTestId('delphi-tablets-badge')).toHaveText('1');
 });

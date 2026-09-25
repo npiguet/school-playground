@@ -10,10 +10,7 @@ const LEGACY = ['btn', 'btn-primary', 'btn-ghost', 'card', 'chip', 'chip-active'
 const SHARED = ['src/components/QuestCard.svelte'];
 // Files still waiting for their task. Tasks 6-12 each remove theirs; it may only shrink (a clean
 // file left here fails below), and Task 13 asserts it is empty.
-const PENDING = new Set<string>([
-  'src/components/places/delphi/TabletsPanel.svelte',
-  'src/components/QuestCard.svelte',
-]);
+const PENDING = new Set<string>([]);
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

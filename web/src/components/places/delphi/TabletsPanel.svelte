@@ -2,6 +2,8 @@
   // The quest board: quests in progress, a monster to challenge (a board quest), and Éris waiting
   // at the edge of the camp once enough lieutenants are neutralised (spec §3.6, plan Task 7).
   // UI3a Task 12: opened as the votive-tablet wall's overlay over the Delphi scene (Delphi.svelte).
+  // Immersion wave (playability #1, #10): six terracotta tablets hang on cords from a peg rail; the
+  // wall's reward and the cabin-treasure countdown are said once, never on each tablet.
   import QuestCard from '../../QuestCard.svelte';
   import Medallion from '../../juice/Medallion.svelte';
   import LieutenantBadge from '../../LieutenantBadge.svelte';
@@ -87,6 +89,8 @@
     void Promise.all([refreshCamp(profile.id), loadQuests()]);
   }
 
+  const decor = $derived(nextDecor());
+
   const boardXp = $derived(campStore.catalog?.quest_bonus.board ?? 60);
 
   function bossRewardName(tier: number | null): string {
@@ -102,70 +106,67 @@
 </script>
 
 <div class="panel-tablets board">
+  <!-- Playability #10: what a quest of the wall brings, said once for the whole wall. -->
+  <p class="wall-reward" data-testid="board-reward">Chaque quête du mur rapporte {boardXp} XP et une page du bestiaire.</p>
+
   <section>
     <h3 class="kit-section">En cours</h3>
     {#if activeQuests.length === 0}
-      <p class="muted">Aucune quête en cours. Défie un monstre ci-dessous ou consulte l'Oracle.</p>
+      <p class="muted">Aucune quête en cours. Défie un monstre sur le mur, ou va voir la Pythie.</p>
     {:else if campStore.catalog}
-      <div class="quest-list">
+      <div class="pinned">
         {#each activeQuests as q (q.id)}
           <QuestCard quest={q} {names} catalog={campStore.catalog} profileId={profile.id} {onShelve} />
         {/each}
       </div>
     {/if}
+    {#if decor}
+      <p class="decor-line" data-testid="board-decor">Encore {plural(decor.n, 'quête', 'quêtes')} avant le prochain trésor de ta cabane : {decor.name}.</p>
+    {/if}
   </section>
 
   <section>
     <h3 class="kit-section">Défier un monstre</h3>
-    {#if createError}<p class="orange" role="alert">{createError}</p>{/if}
-    <div class="grid">
+    {#if createError}<p class="kit-note" data-tone="eris" role="alert">{createError}</p>{/if}
+    <ul class="wall">
       {#each LIEUTENANT_ORDER as key (key)}
         {@const l = lieutenantState(key)}
-        {@const decor = nextDecor()}
-        <div class="card challenge-card" data-testid="board-challenge-{key}">
-          <LieutenantBadge lieutenantKey={key} size={48} />
-          <span class="name">{names[key] ?? key}</span>
-          <p class="technique muted">{technique(key)}</p>
-          {#if !l || !l.available}
-            <p class="muted">Dort encore à ce niveau.</p>
+        {@const asleep = !l || !l.available}
+        <li class="kit-tablet" class:is-asleep={asleep} data-testid="board-challenge-{key}">
+          <span class="rail" aria-hidden="true"></span>
+          <span class="pressed"><LieutenantBadge lieutenantKey={key} size={64} /></span>
+          <h4 class="tablet-name">{names[key] ?? key}</h4>
+          <p class="tablet-technique">{technique(key)}</p>
+          {#if asleep}
+            <p class="tablet-note">Dort encore à ce niveau.</p>
           {:else}
-            {#if l.neutralised}<span class="chip chip-gold">{agree('Neutralisé', key)}</span>{/if}
-            {#if l.active_quest_id}<span class="chip chip-aegean">Quête en cours</span>{/if}
-            <p class="reward-line">Récompense : {boardXp} XP · page du bestiaire</p>
-            {#if decor}<p class="muted decor-line">Encore {plural(decor.n, 'quête', 'quêtes')} avant le prochain trésor de ta cabane : {decor.name}.</p>{/if}
-            <button
-              type="button"
-              class="btn btn-primary"
-              disabled={!!l.active_quest_id || creating === key}
-              onclick={() => challenge(key)}
-            >
-              Lancer une quête
-            </button>
+            {#if l.neutralised}<span class="kit-tablet-stamp">{agree('Neutralisé', key)}</span>{/if}
+            {#if l.active_quest_id}
+              <span class="kit-tablet-ribbon">Quête en cours</span>
+            {:else}
+              <button type="button" class="kit-bronze" disabled={creating === key} onclick={() => challenge(key)}>Lancer une quête</button>
+            {/if}
           {/if}
-        </div>
+        </li>
       {/each}
-    </div>
+    </ul>
   </section>
 
   {#if campStore.data}
     <section>
       <h3 class="kit-section">Éris</h3>
-      <div class="parchment eris-panel" data-testid="board-boss">
+      <div class="kit-sheet eris-panel" data-testid="board-boss">
         {#if campStore.data.boss.tier_available !== null || campStore.data.boss.active_quest_id !== null}
           {@const rewardId = bossRewardId(campStore.data.boss.tier_available)}
-          <div class="boss-reward-line">
+          <p class="boss-reward-line">
             {#if rewardId}<Medallion {rewardId} size={40} />{/if}
             <span>
               Combat {romanTier(campStore.data.boss.tier_available ?? 1)} — récompense : {bossRewardName(
                 campStore.data.boss.tier_available,
               )}
             </span>
-          </div>
-          <button
-            type="button"
-            class="btn btn-primary"
-            onclick={() => go(href('boss', { profileId: String(profile.id) }))}
-          >
+          </p>
+          <button type="button" class="kit-bronze" onclick={() => go(href('boss', { profileId: String(profile.id) }))}>
             Se rendre au bord du camp
           </button>
         {:else if campStore.data.boss.tiers_won.length >= 3}
@@ -182,12 +183,12 @@
   {/if}
 
   <section>
-    <details>
-      <summary><h3 class="inline-summary kit-section">Terminées</h3></summary>
+    <details class="done">
+      <summary class="kit-bronze is-quiet">Quêtes terminées</summary>
       {#if doneQuests.length === 0}
         <p class="muted">Aucune quête terminée pour l'instant.</p>
       {:else if campStore.catalog}
-        <div class="quest-list">
+        <div class="pinned">
           {#each doneQuests as q (q.id)}
             <QuestCard quest={q} {names} catalog={campStore.catalog} profileId={profile.id} />
           {/each}
@@ -196,8 +197,8 @@
     </details>
   </section>
 
-  {#if questsError}<p class="orange">{questsError}</p>{/if}
-  {#if loadingQuests && allQuests.length === 0}<p class="muted">Les Muses relisent le tableau…</p>{/if}
+  {#if questsError}<p class="kit-note" data-tone="eris">{questsError}</p>{/if}
+  {#if loadingQuests && allQuests.length === 0}<p class="muted">Les Muses relisent le mur…</p>{/if}
 </div>
 
 <style>
@@ -206,56 +207,66 @@
     flex-direction: column;
     gap: 24px;
   }
-  .quest-list {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+  .board h3 {
+    margin: 0 0 10px;
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
-  }
-  .challenge-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    cursor: default;
-  }
-  .name {
-    font-family: var(--font-display);
-    font-weight: 600;
+  /* Gold on the wood: the one reward line of the wall. */
+  .wall-reward {
+    margin: 0;
     font-size: 17px;
-  }
-  .technique {
-    margin: 0;
-    font-size: 14px;
-  }
-  .chip-gold {
-    background: var(--gold-light);
-    border-color: var(--gold);
-    color: var(--ink);
     font-weight: 600;
-  }
-  .chip-aegean {
-    background: var(--aegean-light);
-    border-color: var(--aegean);
-    color: var(--aegean);
-    font-weight: 600;
-  }
-  .reward-line {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--gold);
+    color: var(--gold-light);
   }
   .decor-line {
+    margin: 12px 0 0;
+    font-style: italic;
+  }
+  .pinned {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  /* The wall: a bronze peg rail over each row, six tablets hung from it by their cords. */
+  .wall {
+    list-style: none;
     margin: 0;
-    font-size: 13px;
+    padding: 6px 0 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 22px;
+  }
+  /* Each tablet carries its stretch of the rail, half the gap wide on either side, so a row's
+     stretches meet into one rail whatever the number of rows; its cord (::after) ties over it. */
+  .rail {
+    position: absolute;
+    top: -37px;
+    left: -11px;
+    right: -11px;
+    height: 6px;
+    background: linear-gradient(180deg, #c89450, #7a5230 60%, #4e321b);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.45);
+  }
+  /* On clay, not on the wood: the tablet's own ink. The table's gold headings rule
+     (Overlay.svelte, 0-4-1) is outranked here (0-6-0). */
+  .wall .kit-tablet .tablet-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 17px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-shadow: none;
+  }
+  .tablet-technique,
+  .tablet-note {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.35;
+  }
+  .tablet-note {
+    font-style: italic;
   }
   .eris-panel {
-    padding: 16px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -269,11 +280,21 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    font-weight: 600;
+    color: var(--reward-ink);
   }
-  .inline-summary {
-    display: inline;
+  .done summary {
+    list-style: none;
   }
-  summary {
-    cursor: pointer;
+  .done summary::-webkit-details-marker {
+    display: none;
+  }
+  .done[open] summary {
+    margin-bottom: 14px;
+  }
+  @media (max-width: 900px) {
+    .wall {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 </style>

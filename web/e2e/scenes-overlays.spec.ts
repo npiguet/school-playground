@@ -161,6 +161,10 @@ test('the title has no HUD band: the naming ritual centres in the whole screen',
 test('the quest tablets hang on a wood table; the temple plaque and labels fade', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, hero(testInfo.project.name));
   await page.goto(`/#/p/${id}/quetes`);
-  await expect(page.getByTestId('overlay-tablets')).toHaveAttribute('data-variant', 'table');
+  const board = page.getByTestId('overlay-tablets');
+  await expect(board).toHaveAttribute('data-variant', 'table');
+  // Task 12: terracotta tablets on cords and pinned sheets, not legacy cards, pills or buttons.
+  await expect(board.locator('.kit-tablet')).toHaveCount(6);
+  await expect(board.locator('.card, .btn, .chip, .parchment')).toHaveCount(0);
   await expectOverlayClearsScene(page, 'overlay-tablets', 'delphi', true);
 });

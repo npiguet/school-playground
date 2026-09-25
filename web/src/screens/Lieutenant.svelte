@@ -60,7 +60,7 @@
     creating = true;
     try {
       createdQuest = await worldApi.createQuest(profile.id, lieutenantKey);
-      showToast('Quête affichée au tableau.');
+      showToast('Quête affichée au mur.');
       await refreshCamp(profile.id);
     } catch (e) {
       questError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';

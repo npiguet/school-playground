@@ -313,25 +313,17 @@
   .overlay-table .overlay-body :global(.orange) {
     color: #f2a15e;
   }
-  /* Until the tablets get their own objects (Task 12; the shelves have had theirs since Task 8),
-     their cards are sheets of parchment laid on the wood: opaque, so the board's light ink never
-     lands on cream. Inside one, the text goes back to the parchment's own ink (these outrank the
-     light rules above). Task 12 deletes these four rules with the tablets' last legacy class. */
-  .overlay-table .overlay-body :global(:is(.card, .parchment)) {
-    background:
-      var(--tex-parchment) 0 0 / 512px 512px repeat,
-      linear-gradient(180deg, #f6ecd4, #ecdbb8);
-    color: var(--ink);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
-  }
-  .overlay-table .overlay-body :global(:is(.card, .parchment) :is(h3, h4)) {
+  /* A sheet lying on the wood carries its own dark ink (kit-objects.css): inside one, headings,
+     muted lines and Éris's orange go back to the parchment's inks (these outrank the light rules
+     above). A terracotta tablet inks its own name (TabletsPanel). */
+  .overlay-table .overlay-body :global(.kit-sheet :is(h3, h4)) {
     color: var(--bronze-dark);
     text-shadow: none;
   }
-  .overlay-table .overlay-body :global(:is(.card, .parchment) .muted) {
+  .overlay-table .overlay-body :global(.kit-sheet .muted) {
     color: var(--form-ink-soft);
   }
-  .overlay-table .overlay-body :global(:is(.card, .parchment) .orange) {
+  .overlay-table .overlay-body :global(.kit-sheet .orange) {
     color: var(--orange-ink);
   }
 

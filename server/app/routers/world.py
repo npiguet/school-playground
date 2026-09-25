@@ -346,7 +346,7 @@ def shelve_quest(profile_id: int, quest_id: int, db: sqlite3.Connection = Depend
     if row is None:
         raise HTTPException(404, "Quest not found")
     if row["status"] != "active" or row["kind"] != "board":
-        raise HTTPException(409, "Seule une quête du tableau en cours peut être rangée.")
+        raise HTTPException(409, "Seule une quête du mur en cours peut être rangée.")
     db.execute("UPDATE quest SET status = 'shelved' WHERE id = ?", (quest_id,))
     db.commit()
     row = db.execute("SELECT * FROM quest WHERE id = ?", (quest_id,)).fetchone()
