@@ -102,7 +102,7 @@
     {:else}
       <div class="chips">
         {#each stats.trap_words as w (w.word)}
-          <span class="chip trap" title={`boîte ${w.box}`}>{w.word} <span class="muted">boîte {w.box}</span></span>
+          <span class="chip trap" title={`boîte ${w.box}`}>{w.word}<span class="muted">boîte {w.box}</span></span>
         {/each}
       </div>
     {/if}
