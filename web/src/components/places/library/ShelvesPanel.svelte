@@ -2,11 +2,20 @@
   // The shelves overlay of the library tent (UI3a Task 9, Ruling A3, A16): what was the whole
   // Library screen, minus its own TopBar/FAB (the tent's desk, lens and portal replace the old
   // add menu now - LibraryTent.svelte opens this as `overlay-shelves`).
+  // Immersion wave Task 8 (playability #1, #2): each text is a rolled scroll lying in a cubby of the
+  // shelf unit, sealed with wax until it has been defended (then the seal is broken and a laurel lies
+  // on it), with a paper tag in the camp's words: no grade pills, no word counts. Her own class comes
+  // first (« Pour toi »); every other level stays one toggle away (« Autres niveaux », parity).
+  import LevelMedallions from '../../ui/LevelMedallions.svelte';
+  import Icon from '../../ui/Icon.svelte';
   import { api, ApiError } from '../../../lib/api';
-  import { formatSwissDate, isProphecy } from '../../../lib/dates';
+  import { isProphecy } from '../../../lib/dates';
   import { levelIndex, LEVELS } from '../../../lib/levels';
+  import { historyLine, lengthOf, textByline } from '../../../lib/library/shelf';
   import { href } from '../../../lib/routes';
   import { go } from '../../../lib/scene/panelNav';
+  import { longDate } from '../../../lib/text/french';
+  import { ART, MARK_ICONS } from '../../../lib/world/art';
   import type { Profile, TextSummary } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -14,6 +23,7 @@
   let texts = $state<TextSummary[]>([]);
   let loading = $state(true);
   let error = $state('');
+  let othersOpen = $state(false);
   let levelFilter = $state<string>('Tous');
 
   async function load() {
@@ -30,36 +40,16 @@
 
   load();
 
-  function credits(t: TextSummary): string {
-    if (t.credits) return t.credits;
-    if (t.source === 'custom' && t.added_by_name) return `Ajouté par ${t.added_by_name}`;
-    return '';
-  }
-
-  function historyLine(t: TextSummary): string {
-    if (!t.history || t.history.times_played === 0) return 'Jamais joué';
-    const n = t.history.times_played;
-    if (t.history.best_catch_rate === null || t.history.best_catch_rate === undefined) {
-      return `Joué ${n}×`;
-    }
-    const pct = Math.round(t.history.best_catch_rate * 100);
-    return `Joué ${n}× · meilleur taux de pièges déjoués ${pct} %`;
-  }
-
   function play(t: TextSummary) {
     go(href('play', { profileId: String(profile.id), textId: String(t.id) }));
   }
 
-  const filtered = $derived(
-    levelFilter === 'Tous' ? texts : texts.filter((t) => t.level === levelFilter),
-  );
-
   const sortByLevelThenTitle = (a: TextSummary, b: TextSummary) =>
     levelIndex(a.level) - levelIndex(b.level) || a.title.localeCompare(b.title, 'fr');
 
-  // Prophecies (dictées préparées whose due date has not passed yet, spec's
-  // "Decisions" #14) get their own top section in the "Tous" view and are
-  // excluded from the two sections below so they aren't shown twice.
+  // Prophecies (dictées préparées whose due date has not passed yet, spec's "Decisions" #14) get
+  // their own top section and are left out of « Pour toi » and « Autres parchemins » so they aren't
+  // shown twice.
   const prophecies = $derived(
     texts
       .filter((t) => isProphecy(t.due_date))
@@ -69,49 +59,38 @@
   const ownLevel = $derived(
     texts.filter((t) => t.level === profile.level && !prophecyIds.has(t.id)).sort(sortByLevelThenTitle),
   );
-  const otherLevels = $derived(
-    texts.filter((t) => t.level !== profile.level && !prophecyIds.has(t.id)).sort(sortByLevelThenTitle),
+  // Behind « Autres niveaux »: every other level (« Tous »), or one level.
+  const others = $derived(
+    (levelFilter === 'Tous'
+      ? texts.filter((t) => t.level !== profile.level && !prophecyIds.has(t.id))
+      : texts.filter((t) => t.level === levelFilter)
+    ).sort(sortByLevelThenTitle),
   );
 </script>
 
 <div class="panel-shelves">
-  <div class="filters">
-    <button
-      type="button"
-      class="chip"
-      class:chip-active={levelFilter === 'Tous'}
-      onclick={() => (levelFilter = 'Tous')}
-    >
-      Tous
-    </button>
-    {#each LEVELS as l (l)}
-      <button
-        type="button"
-        class="chip"
-        class:chip-active={levelFilter === l}
-        onclick={() => (levelFilter = l)}
-      >
-        {l}
-      </button>
-    {/each}
-  </div>
-
-  {#snippet textCard(t: TextSummary)}
-    <button type="button" class="card text-card" data-testid="text-card" onclick={() => play(t)}>
-      <span class="title">{t.title}</span>
-      {#if credits(t)}<span class="credits muted">{credits(t)}</span>{/if}
-      <span class="chips">
-        <span class="chip">{t.level}</span>
-        <span class="chip">≈ {t.word_count} mots</span>
-        {#if t.source === 'scan'}<span class="chip chip-scan">Scanné</span>{/if}
-        {#if t.source === 'online'}<span class="chip chip-online">Alexandrie</span>{/if}
+  {#snippet cubby(t: TextSummary)}
+    {@const len = lengthOf(t.word_count)}
+    {@const defended = (t.history?.times_played ?? 0) > 0}
+    {@const byline = textByline(t)}
+    <button type="button" class="kit-cubby" data-testid="text-card" data-length={len} onclick={() => play(t)}>
+      <span class="kit-roll" data-length={len} aria-hidden="true">
+        <img class="roll-art" src={ART.ui.scrollRolled} alt="" draggable="false" />
+        <span class="kit-seal" class:is-broken={defended}>
+          <img src={MARK_ICONS.oracleSeal} alt="" />
+          {#if defended}<span class="seal-laurel"><Icon name="laurel" size={22} /></span>{/if}
+        </span>
+      </span>
+      <span class="kit-tag">
+        <span class="kit-tag-title">{t.title}</span>
+        {#if byline}<span class="kit-tag-meta">{byline}</span>{/if}
+        <span class="kit-tag-meta">parchemin {len} · {historyLine(t.history)}</span>
+        {#if t.source === 'scan'}<span class="kit-stamp">Déchiffré</span>{/if}
+        {#if t.source === 'online'}<span class="kit-stamp">Alexandrie</span>{/if}
         {#if t.due_date && isProphecy(t.due_date)}
-          <span class="chip chip-prophecy" data-testid="chip-prophecy"
-            >Prophétie : {formatSwissDate(t.due_date)}</span
-          >
+          <span class="kit-prophecy" data-testid="chip-prophecy">Prophétie · {longDate(t.due_date)}</span>
         {/if}
       </span>
-      <span class="history muted">{historyLine(t)}</span>
     </button>
   {/snippet}
 
@@ -119,104 +98,97 @@
     <p class="muted">Les Muses déroulent les parchemins…</p>
   {:else if error}
     <p class="orange">Impossible de lire les parchemins : {error}</p>
-  {:else if levelFilter === 'Tous'}
-    <section>
-      {#if prophecies.length > 0}
-        <section class="prophecies">
-          <h3 class="kit-section">Prophéties de l'Oracle</h3>
-          <p class="subtitle muted">Les dictées préparées pour l'école, à réviser avant le jour dit.</p>
-          <div class="grid">
-            {#each prophecies as t (t.id)}
-              {@render textCard(t)}
-            {/each}
-          </div>
-        </section>
-      {/if}
-      <h3 class="kit-section">À ton niveau ({profile.level})</h3>
-      <div class="grid">
-        {#each ownLevel as t (t.id)}
-          {@render textCard(t)}
-        {/each}
-      </div>
-      <h3 class="kit-section">Autres parchemins</h3>
-      <div class="grid">
-        {#each otherLevels as t (t.id)}
-          {@render textCard(t)}
-        {/each}
-      </div>
-    </section>
   {:else}
-    <div class="grid">
-      {#each filtered.slice().sort(sortByLevelThenTitle) as t (t.id)}
-        {@render textCard(t)}
-      {/each}
-    </div>
+    {#if prophecies.length > 0}
+      <section>
+        <h3>Prophéties de l'Oracle</h3>
+        <p class="muted">Ce que prépare ta classe : défends-les avant le jour dit.</p>
+        <div class="cubbies">
+          {#each prophecies as t (t.id)}{@render cubby(t)}{/each}
+        </div>
+      </section>
+    {/if}
+
+    <section>
+      <h3>Pour toi</h3>
+      {#if ownLevel.length > 0}
+        <div class="cubbies">
+          {#each ownLevel as t (t.id)}{@render cubby(t)}{/each}
+        </div>
+      {:else}
+        <p class="muted">
+          Aucun parchemin pour ta classe pour l'instant. Le pupitre, la lentille et le portail en
+          apportent de nouveaux.
+        </p>
+      {/if}
+    </section>
+
+    <section class="others">
+      <button
+        type="button"
+        class="kit-bronze is-quiet"
+        aria-expanded={othersOpen}
+        aria-controls="other-levels"
+        onclick={() => (othersOpen = !othersOpen)}
+      >
+        Autres niveaux
+      </button>
+      {#if othersOpen}
+        <div id="other-levels">
+          <LevelMedallions
+            legend="Quelle classe ?"
+            name="shelf-level"
+            options={['Tous', ...LEVELS]}
+            bind:value={levelFilter}
+            testId="shelf-levels"
+          />
+          <h3>{levelFilter === 'Tous' ? 'Autres parchemins' : `Classe ${levelFilter}`}</h3>
+          {#if others.length > 0}
+            <div class="cubbies">
+              {#each others as t (t.id)}{@render cubby(t)}{/each}
+            </div>
+          {:else}
+            <p class="muted">Aucun parchemin sur cette étagère.</p>
+          {/if}
+        </div>
+      {/if}
+    </section>
   {/if}
 </div>
 
 <style>
-  .subtitle {
-    margin-top: 0;
-  }
-  .filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  /* Interactive level-filter chips need a full touch target; the decorative
-     .chips spans on text cards (below) stay compact via their own override. */
-  .filters .chip {
-    min-height: 48px;
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  .text-card {
+  .panel-shelves {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 22px;
   }
-  .title {
-    font-family: var(--font-display);
-    font-size: 19px;
-    font-weight: 600;
+  .panel-shelves h3 {
+    margin: 0 0 10px;
   }
-  .credits {
-    font-size: 14px;
+  /* The shelf unit: cubbies in rows on the dark board. */
+  .cubbies {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 18px 14px;
+    padding: 10px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.3));
+    box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35);
   }
-  .chips {
+  /* Alternate the tags' tilt so a row doesn't look printed. */
+  .cubbies > :global(.kit-cubby:nth-child(3n + 2) .kit-tag) {
+    --tag-tilt: 1deg;
+  }
+  .cubbies > :global(.kit-cubby:nth-child(3n) .kit-tag) {
+    --tag-tilt: -0.4deg;
+  }
+  .others {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 4px 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
   }
-  .chips .chip {
-    cursor: default;
-    min-height: unset;
-    padding: 3px 10px;
-    font-size: 13px;
-  }
-  .chip-scan {
-    border-color: var(--olive);
-    color: var(--olive);
-  }
-  .chip-online {
-    border-color: var(--aegean);
-    color: var(--aegean);
-  }
-  .chip-prophecy {
-    border-color: var(--gold);
-    color: var(--gold);
-    font-weight: 600;
-  }
-  .prophecies {
-    margin-bottom: 8px;
-  }
-  .history {
-    font-size: 13px;
+  .others > div {
+    align-self: stretch;
   }
 </style>

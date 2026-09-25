@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createProfile, createText, stubSpeech, uniqueName } from './helpers';
+import { chooseLevel, createProfile, createText, stubSpeech, uniqueName } from './helpers';
 
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent. Le vent emporte leurs chansons jusqu\'au village. Les enfants sortent de leurs maisons, émerveillés. La musique descend de la forêt et la nuit est douce.';
 
@@ -13,7 +13,12 @@ test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', asyn
   // createText bypasses the UI (API only): the library's list was already fetched on mount, so
   // it needs a reload to pick up a text added out-of-band this way.
   await page.reload();
-  await page.locator('[data-testid="text-card"]', { hasText: title }).click();
+  // The text is 8H and the hero 10H: it waits behind « Autres niveaux » (immersion wave Task 8),
+  // so this also covers the toggle.
+  const shelves = page.getByTestId('overlay-shelves');
+  await shelves.getByRole('button', { name: 'Autres niveaux' }).click();
+  await chooseLevel(shelves.getByTestId('shelf-levels'), 'Tous');
+  await shelves.locator('[data-testid="text-card"]', { hasText: title }).click();
   await page.getByTestId('btn-grimoire').click();
   await expect(page.getByRole('heading', { name: 'Grimoire corrompu' })).toBeVisible();
   await page.getByTestId('btn-open-grimoire').click();

@@ -17,6 +17,9 @@ test('the shelves lie on a wood table below the HUD; the owl speaks; the tent la
   await expect(shelves).toHaveAttribute('data-variant', 'table');
   await expect(shelves.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'owl');
   await expect(shelves.getByTestId('overlay-voice')).toContainText("dés-accords d'Éris");
+  // Task 8: the texts are rolled scrolls in cubbies, not legacy cards, pills or buttons.
+  await expect(shelves.locator('.kit-cubby').first()).toBeVisible();
+  await expect(shelves.locator('.card, .btn, .chip')).toHaveCount(0);
   await expectOverlayClearsScene(page, 'overlay-shelves', 'library', true);
   // The labels come back once it closes.
   await shelves.getByTestId('overlay-close').click();

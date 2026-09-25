@@ -11,7 +11,6 @@ const SHARED = ['src/components/QuestCard.svelte', 'src/components/Scroll.svelte
 // Files still waiting for their task. Tasks 6-12 each remove theirs; it may only shrink (a clean
 // file left here fails below), and Task 13 asserts it is empty.
 const PENDING = new Set<string>([
-  'src/components/places/library/ShelvesPanel.svelte',
   'src/components/places/library/DeskPanel.svelte',
   'src/components/places/library/LensPanel.svelte',
   'src/components/places/library/PortalPanel.svelte',

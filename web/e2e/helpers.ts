@@ -169,6 +169,11 @@ export async function enterTitle(page: Page) {
   await expect(page.getByTestId('title-shields')).toBeVisible();
 }
 
+// Immersion wave Ruling W5: levels are medallion radios named by their level.
+export async function chooseLevel(scope: Locator, level: string) {
+  await scope.getByRole('radio', { name: level, exact: true }).check();
+}
+
 // Names a new hero through the ritual overlay and lands on the camp.
 export async function newHero(page: Page, name: string, level = '10H', pin?: string) {
   await page.goto('/');

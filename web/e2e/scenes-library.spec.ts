@@ -1,13 +1,17 @@
 import { test, expect, type Page } from '@playwright/test';
 import {
+  chooseLevel,
   closeOverlay,
   createProfileApi,
   createText,
   expectCamp,
   expectExitClearOfDialogueDock,
   expectInSafeZone,
+  expectOverlayTapTargets,
   expectScene,
   labelOverlaps,
+  makeResult,
+  postSession,
   redScan,
   tap,
   uniqueName,
@@ -53,11 +57,18 @@ test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back
   const shelves = page.getByTestId('overlay-shelves');
   await expect(shelves.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await expect(page.getByTestId('scene-library')).toHaveAttribute('inert', '');
+  await expect(shelves.getByRole('heading', { name: 'Pour toi' })).toBeVisible();
   await expect(shelves.locator('[data-testid="text-card"]').first()).toBeVisible();
-  // Parity: the level filter and the « Tous » sections.
-  await shelves.getByRole('button', { name: '9H', exact: true }).click();
-  await shelves.getByRole('button', { name: 'Tous', exact: true }).click();
-  await expect(shelves.getByRole('heading', { name: /À ton niveau/ })).toBeVisible();
+  // Playability #2: no school metadata on the shelves - no grade pills, no word counts.
+  await expect(shelves.getByText(/≈|\bmots\b|Jamais joué|\b10H\b/)).toHaveCount(0);
+  await expect(shelves.getByTestId('shelf-levels')).toHaveCount(0);
+  // Parity: every level is still one toggle away.
+  await shelves.getByRole('button', { name: 'Autres niveaux' }).click();
+  await chooseLevel(shelves.getByTestId('shelf-levels'), '9H');
+  await expect(shelves.getByRole('heading', { name: 'Classe 9H' })).toBeVisible();
+  await chooseLevel(shelves.getByTestId('shelf-levels'), 'Tous');
+  await expect(shelves.getByRole('heading', { name: 'Autres parchemins' })).toBeVisible();
+  await expectOverlayTapTargets(page, 'overlay-shelves');
   await shelves.getByTestId('overlay-close').click();
   await expect(shelves).toHaveCount(0);
   await expect(page).toHaveURL(/\/tente-parchemins$/);
@@ -81,15 +92,35 @@ test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back
   await expect(page).toHaveURL(/\/tente-parchemins$/);
 });
 
-test('a text card on the shelves starts the dictation; a prophecy wears its chip', async ({ page, request }, testInfo) => {
+test('a text card on the shelves starts the dictation; a prophecy wears its ribbon', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const title = uniqueName(`Prophétie tente ${testInfo.project.name}`);
   await createText(request, { title, body: 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.', level: '10H', due_date: '2099-01-01' });
   await page.goto(`/#/p/${id}/parchemins`);
   const card = page.getByTestId('overlay-shelves').locator('[data-testid="text-card"]', { hasText: title });
-  await expect(card.getByTestId('chip-prophecy')).toContainText('01.01.2099');
+  await expect(card.getByTestId('chip-prophecy')).toContainText('jeudi 1er janvier 2099');
+  await expect(card).toHaveAttribute('data-length', 'court');
+  await expect(card).toContainText('Jamais défendu');
   await card.click();
   await expect(page).toHaveURL(/\/play\/\d+$/);
+});
+
+test('a defended text wears a broken seal and a laurel; a new one keeps its seal whole', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const fresh = uniqueName('Sceau intact');
+  const defended = uniqueName('Sceau brisé');
+  const body = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
+  await createText(request, { title: fresh, body, level: '10H' });
+  const t = await createText(request, { title: defended, body, level: '10H' });
+  await postSession(request, { profileId: id, textId: t.id, day: new Date().toISOString().slice(0, 10), result: makeResult({ draft: 2, caught: 1 }) });
+  await page.goto(`/#/p/${id}/parchemins`);
+  const shelves = page.getByTestId('overlay-shelves');
+  const whole = shelves.locator('[data-testid="text-card"]', { hasText: fresh });
+  const broken = shelves.locator('[data-testid="text-card"]', { hasText: defended });
+  await expect(whole.locator('.kit-seal')).not.toHaveClass(/is-broken/);
+  await expect(broken.locator('.kit-seal')).toHaveClass(/is-broken/);
+  await expect(broken.locator('.seal-laurel')).toBeVisible();
+  await expect(broken).toContainText('Défendu 1 fois · 50 % des pièges déjoués');
 });
 
 test('places and labels sit in the safe zone, labels never cover another place', async ({ page, request }, testInfo) => {

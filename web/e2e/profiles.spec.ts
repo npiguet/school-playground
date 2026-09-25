@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { expectCamp, newHero, openShelves, pickHero, skipOnboarding, uniqueName } from './helpers';
+import { chooseLevel, expectCamp, newHero, openShelves, pickHero, skipOnboarding, uniqueName } from './helpers';
 
 const unique = () => uniqueName('Héros');
 
@@ -10,8 +10,13 @@ test('create a profile and reach the library with seed texts', async ({ page }) 
   await openShelves(page);
   // The list loads asynchronously (a plain .count() can race the fetch, especially with the
   // extra camp round-trip now in front of it) - wait for at least one card before counting.
-  await expect(page.locator('[data-testid="text-card"]').first()).toBeVisible();
-  expect(await page.locator('[data-testid="text-card"]').count()).toBeGreaterThanOrEqual(25);
+  const shelves = page.getByTestId('overlay-shelves');
+  await expect(shelves.locator('[data-testid="text-card"]').first()).toBeVisible();
+  // Her own level first; every other level waits behind « Autres niveaux » (immersion wave Task 8).
+  await shelves.getByRole('button', { name: 'Autres niveaux' }).click();
+  await chooseLevel(shelves.getByTestId('shelf-levels'), 'Tous');
+  await expect(shelves.getByRole('heading', { name: 'Autres parchemins' })).toBeVisible();
+  expect(await shelves.locator('[data-testid="text-card"]').count()).toBeGreaterThanOrEqual(25);
 });
 
 test('a profile with a code asks for it', async ({ page }) => {

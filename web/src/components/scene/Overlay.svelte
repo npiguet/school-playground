@@ -292,7 +292,8 @@
   .overlay-table .overlay-body {
     color: var(--bronze-ink);
   }
-  .overlay-table .overlay-body :global(:is(h3, h4)) {
+  /* Headings and a medallion row's legend (« Quelle classe ? » on the shelves) sit on the wood. */
+  .overlay-table .overlay-body :global(:is(h3, h4, legend)) {
     color: var(--gold-light);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   }
@@ -302,9 +303,10 @@
   .overlay-table .overlay-body :global(.orange) {
     color: #f2a15e;
   }
-  /* Until the shelves and the tablets get their own objects (Tasks 8, 12), their cards are sheets
-     of parchment laid on the wood: opaque, so the board's light ink never lands on cream. Inside
-     one, the text goes back to the parchment's own ink (these outrank the light rules above). */
+  /* Until the tablets get their own objects (Task 12; the shelves have had theirs since Task 8),
+     their cards are sheets of parchment laid on the wood: opaque, so the board's light ink never
+     lands on cream. Inside one, the text goes back to the parchment's own ink (these outrank the
+     light rules above). Task 12 deletes these four rules with the tablets' last legacy class. */
   .overlay-table .overlay-body :global(:is(.card, .parchment)) {
     background:
       var(--tex-parchment) 0 0 / 512px 512px repeat,
