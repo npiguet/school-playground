@@ -57,6 +57,7 @@
           type="button"
           class="card work-card"
           data-testid="work-card"
+          data-work-id={w.id}
           onclick={() => openWork(w)}
         >
           <span class="title">{w.title}</span>

@@ -103,14 +103,17 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
     if (!target) throw new Error('no chunk claimed');
     await expect(target.getByText('Rouleau ajouté aux Parchemins.')).toBeVisible();
     await target.getByTestId('btn-adopt-play').click();
+    // Fix round 1 #1 guard (Task 11 review): proves Overlay's OUT transition is local, not
+    // `|global` - leaving the work overlay for /play (an ancestor unmount: the whole library place,
+    // LibraryTent included, unmounts for the play place) must drop `scene-library` and
+    // `overlay-portal-work` at once rather than lingering for their 160ms fade. Before the fix, the
+    // still-fading overlay's own credits line coexisted with Play's own, and a bare
+    // `getByText(/Jules Verne/)` a few lines down hit Playwright's strict mode on two matches
+    // (found stress-testing this spec with --repeat-each=20 --workers=8, 20/20 failing).
+    await expect(page.getByTestId('scene-library')).toHaveCount(0, { timeout: 100 });
+    await expect(page.getByTestId('overlay-portal-work')).toHaveCount(0, { timeout: 100 });
     await expect(page.getByRole('button', { name: 'Commencer la dictée' })).toBeVisible();
-    // Task 11: the work's scrolls are now an Overlay, so leaving it for /play triggers its 160ms
-    // `out:leave|global` (Overlay.svelte) - the fading overlay-portal-work's own credits line can
-    // still be in the DOM (pointer-events: none, but visible to a bare text locator) alongside
-    // Play's. `.credits.muted` is Play's paragraph only (PortalWorkPanel's credits line has no
-    // "muted" class), found stress-testing this spec with --repeat-each=20 --workers=8 (a strict
-    // mode violation on two "Jules Verne..." matches, not a timing flake).
-    await expect(page.locator('p.credits.muted', { hasText: 'Jules Verne' })).toBeVisible();
+    await expect(page.getByText(/Jules Verne/)).toBeVisible();
     bodyPassed = true;
   } finally {
     // Only the run whose adopt created the text (201) releases it. The release is asserted only

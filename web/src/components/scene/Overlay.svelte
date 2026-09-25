@@ -30,12 +30,20 @@
   } = $props();
 
   const reduced = reducedMotion();
-  // Fix round 1 #1: once the overlay starts leaving (its own close, or an ancestor unmounting it -
-  // e.g. the title handing off to the camp while this overlay's `out:leave|global` is still
-  // playing), `<svelte:window onkeydown>` stays bound to the DOM for the whole transition. An
-  // Escape landing in that window must not fire `onClose` again: by the time it does, the caller's
-  // `onClose` may `replaceRoute` back over a place that has already moved on (preflight.md-style
-  // race, found in Task 8 review).
+  // Task 11 review, fix round 1 #1: the OUT transitions below are local (no `|global`), unlike the
+  // IN ones. An ancestor unmounting this overlay outright - leaving its place for a different one
+  // (the title handing off to the camp, a work's "Jouer maintenant" leaving for /play...) - now
+  // drops it at once instead of lingering for its 160ms close animation with a fixed full-screen
+  // scene still covering the next one, `overlayState.open` still above 0 (the next scene stuck
+  // `inert`), the modal stack still trapping Tab on the leaving panel, and `returnFocus` firing
+  // late onto a same-testId control in the new place. This had already forced three separate
+  // scoped-locator workarounds in the e2e suite before being root-caused.
+  // Local transitions still fire for this overlay's own removal though: closing it (its seal, Back,
+  // Escape) or the place swapping it for a sibling overlay (e.g. Task 11's portail <-> oeuvre) is
+  // this same `{#if}` chain's own branch toggling, not an ancestor's. `<svelte:window onkeydown>`
+  // stays bound to the DOM for that whole local 160ms fade, and an Escape landing there must not
+  // fire `onClose` again: by the time it does, the caller's `onClose` may `replaceRoute` back over
+  // a place that has already moved on (preflight.md-style race, found in Task 8 review).
   let closing = $state(false);
 
   // Focus, the Tab trap, the inert stage and focus return: the shared `modal` action
@@ -62,7 +70,7 @@
   tabindex="-1"
   onclick={onClose}
   in:fade|global={{ duration: 200 }}
-  out:leave|global={{ duration: 160 }}
+  out:leave={{ duration: 160 }}
 ></button>
 <div
   use:modal={{ returnFocus }}
@@ -76,7 +84,7 @@
   data-testid={testId}
   tabindex="-1"
   in:fly|global={{ y: reduced ? 0 : 40, duration: reduced ? 200 : 280, opacity: 0 }}
-  out:leave|global={{ duration: 160 }}
+  out:leave={{ duration: 160 }}
 >
   <header class="overlay-head">
     <h2 class="overlay-title">{title}</h2>

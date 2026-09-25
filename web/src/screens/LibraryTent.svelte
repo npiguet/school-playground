@@ -33,6 +33,17 @@
 
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
   const close = () => closePanel(sceneHref('library', profile.id));
+
+  // Fix round 1 #4: closing the work overlay lands back on the portal overlay, so focus should
+  // return to the work card the player opened, not to the (now inert, behind the portal overlay)
+  // `library-portal` hotspot. `params.workId` itself disappears the moment the route leaves
+  // 'oeuvre' (back onto 'portail'), so it's captured here while still known rather than read
+  // reactively at close time (same staleness risk `PortalWorkPanel` guards against for its own
+  // `workId`, fix round 1 #2).
+  let lastWorkId = $state('');
+  $effect(() => {
+    if (params.workId) lastWorkId = params.workId;
+  });
 </script>
 
 <PlaceScene {profile} scene={LIBRARY_SCENE} bind:debug>
@@ -63,7 +74,14 @@
     <PortalPanel {profile} />
   </Overlay>
 {:else if panel === 'oeuvre'}
-  <Overlay variant="scroll" size="wide" title="Bibliothèque d'Alexandrie" testId="overlay-portal-work" onClose={close} returnFocus={'[data-testid="library-portal"]'}>
+  <Overlay
+    variant="scroll"
+    size="wide"
+    title="Bibliothèque d'Alexandrie"
+    testId="overlay-portal-work"
+    onClose={close}
+    returnFocus={`[data-testid="work-card"][data-work-id="${lastWorkId}"]`}
+  >
     {#key params.workId}
       <PortalWorkPanel {profile} workId={params.workId ?? ''} />
     {/key}

@@ -191,9 +191,10 @@ test('the lens opens the three-step scan as a wide overlay', async ({ page, requ
 });
 
 // UI3a Task 11: the portal opens Alexandria's works, a work opens its scrolls, both as overlays
-// over the tent. Controller ruling U3: after a portail <-> oeuvre switch the outgoing overlay
-// stays in the DOM for its 160ms out:leave|global, so a page-wide `overlay-close` locator would
-// match two seals - every close click below is scoped to the overlay it targets.
+// over the tent. Controller ruling U3: a portail <-> oeuvre switch is this same `{#if}` chain's own
+// branch toggling (not an ancestor unmounting it), so Overlay's local `out:leave` still plays - the
+// outgoing overlay stays in the DOM for its 160ms fade, and a page-wide `overlay-close` locator
+// would match two seals - every close click below is scoped to the overlay it targets.
 test('the portal opens the works, a work opens its scrolls, « Toutes les œuvres » and the seal step back', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openTent(page, id);
@@ -218,4 +219,32 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   await portal.getByTestId('overlay-close').click();
   await expect(page).toHaveURL(/\/tente-parchemins$/);
   expect(await redScan(page)).toEqual([]);
+});
+
+// UI3a Task 11 fix round 1 #3: the portal's two untagged deep links - a bare reload has no history
+// entry behind it (Ruling A2), so closing must replace, never leaving a Back trap that reopens the
+// work (already proved for the shelves in the deep-link case above; this is the two-overlay chain's
+// own version of it).
+test('a deep link into a work: the seal and « Toutes les œuvres » replace, never a Back trap', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const work = page.getByTestId('overlay-portal-work');
+
+  // The seal replaces the deep-linked work entry with the bare scene.
+  await page.goto(`/#/p/${id}/alexandria/verne-vingt-mille-lieues`);
+  await expect(work.getByTestId('btn-refresh-work')).toBeVisible();
+  await work.getByTestId('overlay-close').click();
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
+  await expectScene(page, 'library');
+
+  // « Toutes les œuvres » replaces it with the works list instead; Back from there leaves for
+  // wherever came before the deep link (the tent, opened first here) rather than reopening the work.
+  await openTent(page, id);
+  await page.goto(`/#/p/${id}/alexandria/verne-vingt-mille-lieues`);
+  await expect(work).toBeVisible();
+  await work.getByTestId('portal-back').click();
+  await expect(page).toHaveURL(/\/alexandria$/);
+  await expect(page.getByTestId('overlay-portal')).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
+  await expect(work).toHaveCount(0);
 });

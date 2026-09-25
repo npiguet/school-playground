@@ -83,6 +83,15 @@ test('the naming ritual is an overlay with its own route; Back and the seal clos
   await expect(page.getByLabel(/Un code à quatre chiffres/)).toBeVisible();
   expect(await redScan(page)).toEqual([]);
   await page.getByRole('button', { name: 'Rejoindre le camp' }).click();
+  // Fix round 1 #1 guard (Task 11 review): proves Overlay's OUT transition is local, not `|global`
+  // - handing off from the title to the camp (an ancestor unmount) must drop `scene-title` and its
+  // ritual overlay at once rather than lingering for their 160ms fade (which used to leave the next
+  // scene `inert` and the ritual's `<svelte:window>` bound, see the Escape test below). Waits for
+  // the actual hand-off (the URL change) first - the profile creation itself is a network round
+  // trip, unrelated to the 160ms this is timing.
+  await page.waitForURL(/\/camp$/);
+  await expect(page.getByTestId('scene-title')).toHaveCount(0, { timeout: 100 });
+  await expect(ritual).toHaveCount(0, { timeout: 100 });
   await expectCamp(page);
   await expect(page.getByTestId('hud-hero').locator('img[src="/art/icons/avatar-trident.webp"]')).toBeVisible();
   // The form replaced its own entry: Back lands on the title, not on an empty ritual (fix round 1
@@ -93,11 +102,13 @@ test('the naming ritual is an overlay with its own route; Back and the seal clos
 });
 
 test('Escape while the ritual overlay is closing does not undo the hand-off to camp', async ({ page }, testInfo) => {
-  // Fix round 1 #1: Overlay.svelte's `out:leave|global` keeps the ritual (and the title behind it)
-  // mounted for its 160ms close animation while the camp has already loaded; its
-  // `<svelte:window onkeydown>` stays bound for that whole window. Before the fix, an Escape
-  // landing there re-ran `onClose` (`closeToTitle`), which replaced the just-loaded camp with the
-  // title.
+  // Fix round 1 #1 (original defect, Task 8 review): Overlay.svelte's `out:leave|global` used to
+  // keep the ritual (and the title behind it) mounted for its 160ms close animation while the camp
+  // had already loaded, its `<svelte:window onkeydown>` staying bound for that whole window - an
+  // Escape landing there re-ran `onClose` (`closeToTitle`), replacing the just-loaded camp with the
+  // title. Task 11 review, fix round 1: the OUT transition is now local, so handing off to the camp
+  // (an ancestor unmount, not the ritual's own toggle) drops the ritual at once instead - there is
+  // no longer a stale listener for Escape to hit here. Kept as a regression guard.
   const name = hero(testInfo.project.name);
   await page.goto('/');
   await enterTitle(page);

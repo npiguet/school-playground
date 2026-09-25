@@ -5,7 +5,7 @@
   // the spec requires public-domain attribution wherever an adopted text is offered.
   // UI3a Task 11: opened as an overlay of the library tent (panel 'oeuvre') rather than a full
   // screen; « Toutes les œuvres » steps back to the portal overlay.
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import { api, ApiError, isTimeout } from '../../../lib/api';
   import { LEVELS } from '../../../lib/levels';
   import { href } from '../../../lib/routes';
@@ -16,6 +16,14 @@
 
   let { profile, workId }: { profile: Profile; workId: string } = $props();
 
+  // Fix round 1 #2: LibraryTent.svelte `{#key}`s this panel by workId, so a fresh instance mounts
+  // per work - `workId` itself only ever needs to be read once. Captured explicitly rather than
+  // read live off the reactive prop: `workId` is still bound to `params.workId` while this instance
+  // fades out (Overlay's local `out:leave`, e.g. closing back onto the portal), and a refresh
+  // settling during that window must keep working with the work it was started for, not whatever
+  // the route now says (which could already be a different work, or none).
+  const id = untrack(() => workId);
+
   let work = $state<AlexandriaWork | null>(null);
   let workLoading = $state(true);
   let workError = $state('');
@@ -25,7 +33,7 @@
     workError = '';
     try {
       const all = await api.alexandria.works();
-      const found = all.find((w) => w.id === workId) ?? null;
+      const found = all.find((w) => w.id === id) ?? null;
       work = found;
       if (!found) workError = 'Œuvre inconnue.';
     } catch (e) {
@@ -44,7 +52,7 @@
     chunksLoading = true;
     chunksError = '';
     try {
-      chunks = await api.alexandria.chunks(workId, levelFilter === 'Tous' ? undefined : levelFilter);
+      chunks = await api.alexandria.chunks(id, levelFilter === 'Tous' ? undefined : levelFilter);
     } catch (e) {
       chunksError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
@@ -61,9 +69,9 @@
   loadChunks();
 
   // A refresh can take a minute, and the player may leave meanwhile (adopt a cached scroll and
-  // "Jouer maintenant", or go back): once this screen is gone its `workId` prop reads undefined,
-  // so the reload at the end of that refresh must not run (it used to GET
-  // /api/alexandria/works/undefined/chunks, a 404, found by the fix-round-4 e2e stress run).
+  // "Jouer maintenant", or go back): once this panel is gone, the reload at the end of that refresh
+  // must not run (it used to GET /api/alexandria/works/undefined/chunks, a 404, found by the
+  // fix-round-4 e2e stress run, back when this was a full screen keyed off the route directly).
   let destroyed = false;
   onDestroy(() => {
     destroyed = true;
@@ -78,7 +86,7 @@
     refreshing = true;
     refreshNote = null;
     try {
-      const result = await api.alexandria.refresh(workId);
+      const result = await api.alexandria.refresh(id);
       if (result.status === 'error') {
         refreshNote = {
           kind: 'error',
@@ -158,7 +166,8 @@
     <p class="orange">{workError}</p>
   {:else if work}
     <div class="header">
-      <h2>{work.title}</h2>
+      <!-- Fix round 1 #5: an h3, not an h2 - this now sits under the Overlay's own h2 title. -->
+      <h3>{work.title}</h3>
       <p class="credits">{work.credits}</p>
       <p class="muted domain-note">Les traducteurs et auteurs sont dans le domaine public.</p>
 
@@ -288,8 +297,11 @@
   .header {
     margin-bottom: 16px;
   }
-  .header h2 {
-    margin-bottom: 4px;
+  /* Fix round 1 #5: an h3 (it now sits under the Overlay's own h2 title), sized and margined to
+     look exactly as the h2 it replaces did - `.kit-form h3` alone would shrink it to 15px. */
+  .header h3 {
+    margin: 18px 0 4px;
+    font-size: 18px;
   }
   .credits {
     font-weight: 600;

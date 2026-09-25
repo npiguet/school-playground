@@ -299,13 +299,15 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   await expect(page).toHaveURL(/\/parchemins$/);
 
   // A deep link closes by replacing its own entry: Back never lands on ?panel=heros again.
-  // UI3a Task 9 fix: straight from `/parchemins` (the line above), this hash change to
-  // `camp?panel=heros` can still land while the shelves overlay is mid its 160ms
-  // `out:leave|global` (preflight.md D3) - a page-wide `overlay-close` would then match two wax
-  // seals, the one still leaving and this panel's own, hence the same `panel`-scoped click.
+  // UI3a Task 9 fix / Task 11 review fix round 1 #1: straight from `/parchemins` (the line above),
+  // this hash change to `camp?panel=heros` used to land while the shelves overlay was still mid its
+  // 160ms `out:leave|global` (preflight.md D3) - a page-wide `overlay-close` would then match two
+  // wax seals, the one still leaving and this panel's own. Overlay's OUT transition is now local:
+  // leaving the library place for the camp (an ancestor unmount) drops the shelves overlay at once,
+  // so the plain page-wide selector is unambiguous again.
   await page.goto(`/#/p/${id}/camp?panel=heros`);
   await expect(panel).toBeVisible();
-  await panel.getByTestId('overlay-close').click();
+  await page.getByTestId('overlay-close').click();
   await expect(panel).toHaveCount(0);
   await expect(page).toHaveURL(/\/camp$/);
   await page.goBack();
