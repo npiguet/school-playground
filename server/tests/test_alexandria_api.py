@@ -155,7 +155,7 @@ def test_refresh_stops_fetching_once_the_total_budget_is_spent(settings):
                            fetch_budget_s=90.0, clock=clock)
     assert fetcher.calls == 3
     assert result["status"] == "ok"
-    assert "manqué de temps" in result["error"]
+    assert "posé leurs calames" in result["error"]
     stats = json.loads(conn.execute("SELECT stats_json FROM online_work WHERE id = 'w'").fetchone()[0])
     assert stats["pages_ok"] == 3 and stats["stopped_early"] is True
 

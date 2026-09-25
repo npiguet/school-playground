@@ -371,7 +371,7 @@
         </div>
       {:else}
         <div class="parchment reveal-card boss-result" data-testid="reveal-boss">
-          <p class="line">« Éris s'enfuit avec la pomme… pour cette fois. Le combat reste ouvert, rien n'est perdu. »</p>
+          <p class="line">« Éris s'enfuit avec la pomme… pour cette fois. Le combat reste ouvert : tu la retrouveras. »</p>
         </div>
       {/if}
     </Reveal>

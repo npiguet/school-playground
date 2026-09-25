@@ -87,7 +87,7 @@ export const BESTIARY: BestiaryEntry[] = [
       "Dans l'Odyssée, Circé prévient Ulysse : le chant des Sirènes attire les marins vers la mort. Ulysse bouche les oreilles de ses compagnons avec de la cire et se fait attacher au mât pour écouter sans céder.",
       "Dans l'Antiquité, les Sirènes sont des femmes-oiseaux : un visage de femme sur un corps d'oiseau. Les sirènes à queue de poisson viennent du Moyen Âge.",
       'Le musicien Orphée, à bord du navire Argo, couvrit leur chant avec sa lyre pour sauver les Argonautes.',
-      'Les Sirènes sont associées aux Muses : dans certaines légendes, elles ont perdu un concours de chant contre elles.',
+      'Les Sirènes sont associées aux Muses : dans certaines légendes, elles défient les Muses à un concours de chant, et les Muses l'emportent.',
     ],
     sources: 'Homère, Odyssée, chant XII ; Apollonios de Rhodes, Argonautiques, IV ; Pausanias, Description de la Grèce, IX, 34.',
     inGame: 'Au camp, leur chant éloigne le sujet de son verbe, le cache derrière un pronom ou le met après.',

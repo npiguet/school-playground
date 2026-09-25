@@ -87,8 +87,8 @@
       <span>Récompense si tu gagnes : {campStore.catalog?.quest_bonus.boss ?? 300} XP · {bossRewardName()}</span>
     </div>
     <p class="rules muted">
-      Un long texte · les Yeux d'Argus restent éteints · aucun piège n'est perdu si Éris s'enfuit : tu pourras
-      recommencer.
+      Un long texte · les Yeux d'Argus restent éteints · chaque piège trouvé reste acquis, même si Éris s'enfuit : tu
+      pourras recommencer.
     </p>
 
     {#if startError}<p class="orange" role="alert">{startError}</p>{/if}
