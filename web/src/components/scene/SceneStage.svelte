@@ -17,6 +17,8 @@
   import { isDebugMode } from '../../lib/scene/debugMode';
   import { reducedMotion, watchReducedMotion } from '../../lib/juice/motion';
   import { router } from '../../lib/router.svelte';
+  import { tilt } from '../../lib/scene/tiltState.svelte';
+  import { tiltToNorm, type TiltSample } from '../../lib/scene/tilt';
   import type { SceneContext, SceneDef } from '../../lib/scene/types';
 
   let {
@@ -114,6 +116,40 @@
   function onPointerUp(e: PointerEvent) {
     if (e.pointerType !== 'mouse') resetPointer();
   }
+
+  // UI3 Ruling A5: device tilt drives the same nx/ny as the pointer, once « Entrer » was granted,
+  // never under reduced motion or ?debug, and never while an overlay covers the stage (the same
+  // rule that makes `covered` above stop the pointer: an `inert` stage takes no pointer input, but
+  // `deviceorientation` is a window-level listener that would otherwise keep updating parallax
+  // behind a modal). The first reading (and the first after a rotation) is the resting pose.
+  const tiltOn = $derived(tilt.permission === 'granted' && !runtime.reduced && !runtime.debug && !covered);
+  $effect(() => {
+    if (!tiltOn) return;
+    let base: TiltSample | null = null;
+    const angle = () => (typeof screen !== 'undefined' && screen.orientation ? screen.orientation.angle : 0);
+    const onTilt = (e: Event) => {
+      const { beta, gamma } = e as DeviceOrientationEvent;
+      if (beta === null || gamma === null || beta === undefined || gamma === undefined) return;
+      const sample = { beta, gamma };
+      if (!base) {
+        base = sample;
+        return;
+      }
+      const n = tiltToNorm(sample, base, angle());
+      runtime.nx = n.nx;
+      runtime.ny = n.ny;
+    };
+    const onTurn = () => {
+      base = null;
+    };
+    window.addEventListener('deviceorientation', onTilt);
+    screen.orientation?.addEventListener('change', onTurn);
+    return () => {
+      window.removeEventListener('deviceorientation', onTilt);
+      screen.orientation?.removeEventListener('change', onTurn);
+      resetPointer();
+    };
+  });
 </script>
 
 <svelte:window bind:innerWidth={vw} bind:innerHeight={vh} />
@@ -122,6 +158,7 @@
   class="scene-stage"
   data-testid="scene-{scene.id}"
   data-reduced-motion={runtime.reduced ? 'true' : 'false'}
+  data-tilt={tiltOn ? 'on' : 'off'}
   inert={covered}
   onpointermove={onPointerMove}
   onpointerleave={resetPointer}
