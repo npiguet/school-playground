@@ -2,6 +2,7 @@
 a scored chunk into the library (spec §5, SP2)."""
 from __future__ import annotations
 
+import asyncio
 import sqlite3
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -54,7 +55,8 @@ async def refresh(work_id: str, request: Request):
     # loop for that same result). Fetching runs on RefreshFlights' own generous limiter (fix round 6:
     # different works' fetches no longer queue behind each other); only the spaCy annotation step is
     # tightly bounded, via the shared AnnotationLimiter, since that's the actually CPU-bound part.
-    work = _work_or_404(_works(request), work_id)
+    # The allowlist is a JSON file read + parse: off the event loop (final review M15), like the rest.
+    work = _work_or_404(await asyncio.to_thread(_works, request), work_id)
     settings = request.app.state.settings
 
     def run() -> dict:

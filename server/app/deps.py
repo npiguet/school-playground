@@ -1,5 +1,6 @@
 """FastAPI dependency wiring for the NLP annotator (lazy-loaded, cached on app.state)."""
 from __future__ import annotations
+import threading
 from typing import Callable
 from fastapi import Request
 from app.lexicon import load_lexicon
@@ -15,7 +16,18 @@ def make_annotator(settings) -> Callable[[str], dict]:
     return lambda text: annotate(text, nlp, homophones, lexicon)
 
 
+# Several Alexandria refreshes (one flight per work) and text saves can reach a cold app at once:
+# without the lock each of them loaded its own spaCy model (final review M15).
+_annotator_lock = threading.Lock()
+
+
 def get_annotator(request: Request) -> Callable[[str], dict]:
-    if not hasattr(request.app.state, "annotator"):
-        request.app.state.annotator = make_annotator(request.app.state.settings)
-    return request.app.state.annotator
+    state = request.app.state
+    annotator = getattr(state, "annotator", None)
+    if annotator is None:
+        with _annotator_lock:
+            annotator = getattr(state, "annotator", None)
+            if annotator is None:
+                annotator = make_annotator(state.settings)
+                state.annotator = annotator
+    return annotator
