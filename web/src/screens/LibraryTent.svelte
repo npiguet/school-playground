@@ -9,6 +9,8 @@
   import ShelvesPanel from '../components/places/library/ShelvesPanel.svelte';
   import DeskPanel from '../components/places/library/DeskPanel.svelte';
   import LensPanel from '../components/places/library/LensPanel.svelte';
+  import PortalPanel from '../components/places/library/PortalPanel.svelte';
+  import PortalWorkPanel from '../components/places/library/PortalWorkPanel.svelte';
   import { LIBRARY_SCENE, owlGreeting } from '../lib/world/scenes/library';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { markGreetedKey, shouldGreetKey } from '../lib/scene/greeting';
@@ -16,7 +18,7 @@
   import type { DialogueLine, HotspotDef } from '../lib/scene/types';
   import type { Profile } from '../lib/types';
 
-  // `params` isn't read yet: Task 11's portal overlays (#/p/:id/alexandria/:workId) will.
+  // `params.workId` (#/p/:id/alexandria/:workId) picks which work the portal overlay shows.
   let { profile, panel, params }: { profile: Profile; panel: PanelId | null; params: Record<string, string> } = $props();
 
   // Final review M11: the stage owns ?debug; no greeting while it is on.
@@ -55,5 +57,15 @@
 {:else if panel === 'loupe'}
   <Overlay variant="scroll" size="wide" title="Scanner une feuille" testId="overlay-lens" onClose={close} returnFocus={'[data-testid="library-lens"]'}>
     <LensPanel {profile} />
+  </Overlay>
+{:else if panel === 'portail'}
+  <Overlay variant="scroll" size="wide" title="Bibliothèque d'Alexandrie" testId="overlay-portal" onClose={close} returnFocus={'[data-testid="library-portal"]'}>
+    <PortalPanel {profile} />
+  </Overlay>
+{:else if panel === 'oeuvre'}
+  <Overlay variant="scroll" size="wide" title="Bibliothèque d'Alexandrie" testId="overlay-portal-work" onClose={close} returnFocus={'[data-testid="library-portal"]'}>
+    {#key params.workId}
+      <PortalWorkPanel {profile} workId={params.workId ?? ''} />
+    {/key}
   </Overlay>
 {/if}

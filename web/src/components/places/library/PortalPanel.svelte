@@ -1,11 +1,12 @@
 <script lang="ts">
   // Bibliothèque d'Alexandrie (spec §5 SP2, "Decisions" #9/#12): browse the allowlisted
   // public-domain works so a player can adopt a scored chunk ("rouleau") as a parchemin.
-  import TopBar from '../components/TopBar.svelte';
-  import { api, ApiError } from '../lib/api';
-  import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
-  import type { AlexandriaWork, Profile } from '../lib/types';
+  // UI3a Task 11: opened as an overlay of the library tent (panel 'portail') rather than a full
+  // screen - the painted hero banner below is the view through the portal itself.
+  import { api, ApiError } from '../../../lib/api';
+  import { href } from '../../../lib/routes';
+  import { openPanel } from '../../../lib/scene/panelNav';
+  import type { AlexandriaWork, Profile } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
 
@@ -34,13 +35,11 @@
   }
 
   function openWork(w: AlexandriaWork) {
-    navigate(href('alexandria-work', { profileId: String(profile.id), workId: w.id }));
+    openPanel(href('alexandria-work', { profileId: String(profile.id), workId: w.id }));
   }
 </script>
 
-<TopBar {profile} title="Bibliothèque d'Alexandrie" />
-
-<div class="screen">
+<div class="panel-portal">
   <div class="hero" role="presentation"></div>
   <p class="subtitle muted">
     Les scribes d'Alexandrie recopient des œuvres anciennes. Choisis une œuvre, puis un rouleau à

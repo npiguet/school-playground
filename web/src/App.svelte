@@ -9,8 +9,6 @@
   import Title from './screens/Title.svelte';
   import Camp from './screens/Camp.svelte';
   import LibraryTent from './screens/LibraryTent.svelte';
-  import Alexandria from './screens/Alexandria.svelte';
-  import AlexandriaWork from './screens/AlexandriaWork.svelte';
   import Play from './screens/Play.svelte';
   import Stats from './screens/Stats.svelte';
   import Settings from './screens/Settings.svelte';
@@ -87,17 +85,14 @@
         <PinGate profile={gateProfile} {onUnlocked} />
       {:else if route.name === 'camp'}
         <Camp profile={gateProfile} />
-      {:else if route.name === 'alexandria'}
-        <Alexandria profile={gateProfile} />
-      {:else if route.name === 'alexandria-work'}
-        <AlexandriaWork profile={gateProfile} workId={route.params.workId} />
       {:else if view?.place === 'library'}
         <!-- UI3a Task 9, Ruling A1: the tent scene and its overlays (`library-tent`, `library`,
-             `text-new`, `text-scan`) share one place branch (not one per route.name, as above), so
-             opening or closing an overlay never remounts LibraryTent and replays its entry zoom
-             (Ruling 5: see scenes-library.spec.ts "the place stays mounted..."). Task 10 moved the
-             desk and the lens in as overlays too; alexandria/alexandria-work stay full legacy
-             screens above until Task 11 does the same for the portal. -->
+             `text-new`, `text-scan`, `alexandria`, `alexandria-work`) share one place branch (not
+             one per route.name, as above), so opening or closing an overlay never remounts
+             LibraryTent and replays its entry zoom (Ruling 5: see scenes-library.spec.ts "the
+             place stays mounted..."). Task 10 moved the desk and the lens in as overlays; Task 11
+             did the same for the portal and its works, so every library route now goes through
+             this one instance. -->
         <LibraryTent profile={gateProfile} panel={view.panel} params={route.params} />
       {:else if route.name === 'play'}
         <Play profile={gateProfile} textId={route.params.textId} query={route.query} />

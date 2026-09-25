@@ -3,14 +3,16 @@
   // source (graceful on network failure, spec §5 SP2), filter by level, adopt a chunk
   // into Les Parchemins. Credits (author/translator/work) stay visible at all times —
   // the spec requires public-domain attribution wherever an adopted text is offered.
+  // UI3a Task 11: opened as an overlay of the library tent (panel 'oeuvre') rather than a full
+  // screen; « Toutes les œuvres » steps back to the portal overlay.
   import { onDestroy } from 'svelte';
-  import TopBar from '../components/TopBar.svelte';
-  import { api, ApiError, isTimeout } from '../lib/api';
-  import { LEVELS } from '../lib/levels';
-  import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
-  import Icon from '../components/ui/Icon.svelte';
-  import type { AlexandriaChunk, AlexandriaWork, Profile } from '../lib/types';
+  import { api, ApiError, isTimeout } from '../../../lib/api';
+  import { LEVELS } from '../../../lib/levels';
+  import { href } from '../../../lib/routes';
+  import { navigate } from '../../../lib/router.svelte';
+  import { closePanel } from '../../../lib/scene/panelNav';
+  import Icon from '../../ui/Icon.svelte';
+  import type { AlexandriaChunk, AlexandriaWork, Profile } from '../../../lib/types';
 
   let { profile, workId }: { profile: Profile; workId: string } = $props();
 
@@ -140,9 +142,16 @@
   }
 </script>
 
-<TopBar {profile} title="Bibliothèque d'Alexandrie" />
+<div class="panel-portal-work">
+  <button
+    type="button"
+    class="btn btn-ghost portal-back"
+    data-testid="portal-back"
+    onclick={() => closePanel(href('alexandria', { profileId: String(profile.id) }))}
+  >
+    Toutes les œuvres
+  </button>
 
-<div class="screen">
   {#if workLoading}
     <p class="muted">Les Muses cherchent les scribes…</p>
   {:else if workError}
@@ -273,6 +282,9 @@
 </div>
 
 <style>
+  .portal-back {
+    margin-bottom: 8px;
+  }
   .header {
     margin-bottom: 16px;
   }

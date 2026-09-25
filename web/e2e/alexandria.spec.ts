@@ -66,6 +66,7 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
     await listReloaded;
     await expect(page.getByTestId('chunk-card').first()).toBeVisible();
     await expect(page.getByTestId('chunk-card').first()).toContainText(/Rouleau \d+/);
+    await expect(page.getByTestId('overlay-portal-work')).toBeVisible();
     const chunkCards = page.getByTestId('chunk-card');
     let target = null as Locator | null; // `as`: assigned in the toPass closure, keep TS from narrowing it to null
     let unexpectedStatus = null as number | null;
@@ -103,7 +104,13 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
     await expect(target.getByText('Rouleau ajouté aux Parchemins.')).toBeVisible();
     await target.getByTestId('btn-adopt-play').click();
     await expect(page.getByRole('button', { name: 'Commencer la dictée' })).toBeVisible();
-    await expect(page.getByText(/Jules Verne/)).toBeVisible();
+    // Task 11: the work's scrolls are now an Overlay, so leaving it for /play triggers its 160ms
+    // `out:leave|global` (Overlay.svelte) - the fading overlay-portal-work's own credits line can
+    // still be in the DOM (pointer-events: none, but visible to a bare text locator) alongside
+    // Play's. `.credits.muted` is Play's paragraph only (PortalWorkPanel's credits line has no
+    // "muted" class), found stress-testing this spec with --repeat-each=20 --workers=8 (a strict
+    // mode violation on two "Jules Verne..." matches, not a timing flake).
+    await expect(page.locator('p.credits.muted', { hasText: 'Jules Verne' })).toBeVisible();
     bodyPassed = true;
   } finally {
     // Only the run whose adopt created the text (201) releases it. The release is asserted only

@@ -189,3 +189,33 @@ test('the lens opens the three-step scan as a wide overlay', async ({ page, requ
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/tente-parchemins$/);
 });
+
+// UI3a Task 11: the portal opens Alexandria's works, a work opens its scrolls, both as overlays
+// over the tent. Controller ruling U3: after a portail <-> oeuvre switch the outgoing overlay
+// stays in the DOM for its 160ms out:leave|global, so a page-wide `overlay-close` locator would
+// match two seals - every close click below is scoped to the overlay it targets.
+test('the portal opens the works, a work opens its scrolls, « Toutes les œuvres » and the seal step back', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await openTent(page, id);
+  await tap(page.getByTestId('library-portal'), testInfo);
+  await expect(page).toHaveURL(/\/alexandria$/);
+  const portal = page.getByTestId('overlay-portal');
+  await expect(portal.getByRole('heading', { name: "Bibliothèque d'Alexandrie" })).toBeVisible();
+  await expect(portal.getByTestId('work-card').first()).toBeVisible();
+  expect(await portal.getByTestId('work-card').count()).toBeGreaterThanOrEqual(10);
+  await portal.getByTestId('work-card').first().click();
+  await expect(page).toHaveURL(/\/alexandria\/[^/]+$/);
+  const work = page.getByTestId('overlay-portal-work');
+  await expect(work.getByTestId('btn-refresh-work')).toBeVisible();
+  await expect(work).toContainText('Les traducteurs et auteurs sont dans le domaine public.');
+  await work.getByTestId('portal-back').click();
+  await expect(page).toHaveURL(/\/alexandria$/);
+  await expect(portal).toBeVisible();
+  await portal.getByTestId('work-card').first().click();
+  await expect(work).toBeVisible();
+  await work.getByTestId('overlay-close').click(); // steps back one overlay (Ruling A2)
+  await expect(portal).toBeVisible();
+  await portal.getByTestId('overlay-close').click();
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
+  expect(await redScan(page)).toEqual([]);
+});
