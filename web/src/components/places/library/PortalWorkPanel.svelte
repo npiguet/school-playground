@@ -9,8 +9,7 @@
   import { api, ApiError, isTimeout } from '../../../lib/api';
   import { LEVELS } from '../../../lib/levels';
   import { href } from '../../../lib/routes';
-  import { navigate } from '../../../lib/router.svelte';
-  import { closePanel } from '../../../lib/scene/panelNav';
+  import { closePanel, go } from '../../../lib/scene/panelNav';
   import Icon from '../../ui/Icon.svelte';
   import type { AlexandriaChunk, AlexandriaWork, Profile } from '../../../lib/types';
 
@@ -48,15 +47,21 @@
   let chunksError = $state('');
   let levelFilter = $state('Tous');
 
+  // Final review M17: two quick chip taps start two requests that can settle out of order; only
+  // the latest one may fill the list (same generation token as refreshCamp).
+  let chunksRequest = 0;
+
   async function loadChunks() {
+    const request = ++chunksRequest;
     chunksLoading = true;
     chunksError = '';
     try {
-      chunks = await api.alexandria.chunks(id, levelFilter === 'Tous' ? undefined : levelFilter);
+      const result = await api.alexandria.chunks(id, levelFilter === 'Tous' ? undefined : levelFilter);
+      if (request === chunksRequest) chunks = result;
     } catch (e) {
-      chunksError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
+      if (request === chunksRequest) chunksError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
-      chunksLoading = false;
+      if (request === chunksRequest) chunksLoading = false;
     }
   }
 
@@ -138,7 +143,7 @@
   }
 
   function playNow(textId: number) {
-    navigate(href('play', { profileId: String(profile.id), textId: String(textId) }));
+    go(href('play', { profileId: String(profile.id), textId: String(textId) }));
   }
 
   function dismissConfirmation() {

@@ -6,7 +6,6 @@
   import Gauge from './juice/Gauge.svelte';
   import Medallion from './juice/Medallion.svelte';
   import { worldApi } from '../lib/world/api';
-  import { rewardKindOf } from '../lib/world/art';
   import { questProgressLabel, questTitle, rewardLabel } from '../lib/world/quests';
   import type { QuestOut, WorldCatalog } from '../lib/world/types';
   import { ApiError } from '../lib/api';
@@ -56,7 +55,8 @@
 
 <div class="parchment quest-card" data-testid="quest-card-{quest.id}">
   <div class="head">
-    <h3 class="title">{title}</h3>
+    <!-- An h4: a quest card sits in a section (h3) of the Pythia or tablets overlay. -->
+    <h4 class="title">{title}</h4>
     <span class="chip {kindClass}">{kindLabel}</span>
   </div>
 
@@ -64,7 +64,7 @@
 
   <div class="reward-line">
     {#if quest.reward.reward_id}
-      <Medallion rewardId={quest.reward.reward_id} kind={rewardKindOf(quest.reward.reward_id, catalog)} size={32} />
+      <Medallion rewardId={quest.reward.reward_id} size={32} />
     {/if}
     <span>Récompense connue : {rewardLabel(quest, catalog)}</span>
   </div>

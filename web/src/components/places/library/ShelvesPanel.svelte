@@ -6,7 +6,7 @@
   import { formatSwissDate, isProphecy } from '../../../lib/dates';
   import { levelIndex, LEVELS } from '../../../lib/levels';
   import { href } from '../../../lib/routes';
-  import { navigate } from '../../../lib/router.svelte';
+  import { go } from '../../../lib/scene/panelNav';
   import type { Profile, TextSummary } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -47,7 +47,7 @@
   }
 
   function play(t: TextSummary) {
-    navigate(href('play', { profileId: String(profile.id), textId: String(t.id) }));
+    go(href('play', { profileId: String(profile.id), textId: String(t.id) }));
   }
 
   const filtered = $derived(
@@ -125,7 +125,7 @@
     <section>
       {#if prophecies.length > 0}
         <section class="prophecies">
-          <h2>Prophéties de l'Oracle</h2>
+          <h3 class="kit-section">Prophéties de l'Oracle</h3>
           <p class="subtitle muted">Les dictées préparées pour l'école, à réviser avant le jour dit.</p>
           <div class="grid">
             {#each prophecies as t (t.id)}
@@ -134,13 +134,13 @@
           </div>
         </section>
       {/if}
-      <h2>À ton niveau ({profile.level})</h2>
+      <h3 class="kit-section">À ton niveau ({profile.level})</h3>
       <div class="grid">
         {#each ownLevel as t (t.id)}
           {@render textCard(t)}
         {/each}
       </div>
-      <h2>Autres parchemins</h2>
+      <h3 class="kit-section">Autres parchemins</h3>
       <div class="grid">
         {#each otherLevels as t (t.id)}
           {@render textCard(t)}

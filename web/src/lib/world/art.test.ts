@@ -105,3 +105,15 @@ describe('art map', () => {
     expect(rewardKindOf('egide', null)).toBe('gear');
   });
 });
+
+describe('reward kinds before the catalog has loaded (final review M6)', () => {
+  // Medallion resolves the kind itself and falls back to the id guess until /world arrives: the
+  // guess must already agree with the server's catalog (server/app/world/catalog.py) for every
+  // reward, or a medallion would flicker from one look to another.
+  it('guesses the same kind as the server catalog for every reward', () => {
+    const source = readFileSync('../server/app/world/catalog.py', 'utf-8');
+    const rewards = [...source.matchAll(/_r\("([^"]+)", "([a-z]+)"/g)].map((m) => [m[1], m[2]]);
+    expect(rewards.length).toBeGreaterThan(15);
+    for (const [id, kind] of rewards) expect(rewardKindOf(id), id).toBe(kind);
+  });
+});

@@ -16,7 +16,7 @@
   import { api, ApiError } from '../lib/api';
   import type { Profile, StatsResponse } from '../lib/types';
   import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
+  import { go } from '../lib/scene/panelNav';
 
   let { profile }: { profile: Profile } = $props();
 
@@ -72,7 +72,7 @@
   });
 
   function goLieutenant(key: LieutenantKey) {
-    navigate(href('lieutenant', { profileId, key }));
+    go(href('lieutenant', { profileId, key }));
   }
 </script>
 

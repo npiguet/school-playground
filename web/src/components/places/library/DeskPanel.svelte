@@ -4,7 +4,7 @@
   import { api, ApiError } from '../../../lib/api';
   import { countWords } from '../../../lib/dictation/segment';
   import { href } from '../../../lib/routes';
-  import { replaceRoute } from '../../../lib/router.svelte';
+  import { go } from '../../../lib/scene/panelNav';
   import type { Profile } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -39,7 +39,9 @@
         translator: translator.trim() || null,
         added_by_profile_id: profile.id,
       });
-      replaceRoute(href('library', { profileId: String(profile.id) }));
+      // The saved parchment waits on the shelves, which replace this form (Back must not reopen
+      // it) and keep its history tag (final review I1: closing the shelves then steps back).
+      go(href('library', { profileId: String(profile.id) }), 'replace');
     } catch (e) {
       error = e instanceof ApiError ? e.detail : "Les Muses n'ont pas pu sauvegarder ce parchemin.";
     } finally {

@@ -12,7 +12,7 @@
   import { romanTier } from '../../../lib/world/quests';
   import { ApiError } from '../../../lib/api';
   import { href } from '../../../lib/routes';
-  import { navigate } from '../../../lib/router.svelte';
+  import { go } from '../../../lib/scene/panelNav';
   import type { Profile } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -102,7 +102,7 @@
 
 <div class="panel-tablets board">
   <section>
-    <h2>En cours</h2>
+    <h3 class="kit-section">En cours</h3>
     {#if activeQuests.length === 0}
       <p class="muted">Aucune quête en cours. Défie un monstre ci-dessous ou consulte l'Oracle.</p>
     {:else if campStore.catalog}
@@ -115,7 +115,7 @@
   </section>
 
   <section>
-    <h2>Défier un monstre</h2>
+    <h3 class="kit-section">Défier un monstre</h3>
     {#if createError}<p class="orange" role="alert">{createError}</p>{/if}
     <div class="grid">
       {#each LIEUTENANT_ORDER as key (key)}
@@ -148,12 +148,12 @@
 
   {#if campStore.data}
     <section>
-      <h2>Éris</h2>
+      <h3 class="kit-section">Éris</h3>
       <div class="parchment eris-panel" data-testid="board-boss">
         {#if campStore.data.boss.tier_available !== null || campStore.data.boss.active_quest_id !== null}
           {@const rewardId = bossRewardId(campStore.data.boss.tier_available)}
           <div class="boss-reward-line">
-            {#if rewardId}<Medallion {rewardId} kind="gear" size={40} />{/if}
+            {#if rewardId}<Medallion {rewardId} size={40} />{/if}
             <span>
               Combat {romanTier(campStore.data.boss.tier_available ?? 1)} — récompense : {bossRewardName(
                 campStore.data.boss.tier_available,
@@ -163,7 +163,7 @@
           <button
             type="button"
             class="btn btn-primary"
-            onclick={() => navigate(href('boss', { profileId: String(profile.id) }))}
+            onclick={() => go(href('boss', { profileId: String(profile.id) }))}
           >
             Se rendre au bord du camp
           </button>
@@ -182,7 +182,7 @@
 
   <section>
     <details>
-      <summary><h2 class="inline-summary">Terminées</h2></summary>
+      <summary><h3 class="inline-summary kit-section">Terminées</h3></summary>
       {#if doneQuests.length === 0}
         <p class="muted">Aucune quête terminée pour l'instant.</p>
       {:else if campStore.catalog}

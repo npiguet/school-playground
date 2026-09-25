@@ -287,7 +287,7 @@
         <div class="neutralised-body">
           <p class="title">{names[key] ?? key} — {agree('neutralisé', key as LieutenantKey)} !</p>
           <p>Sa ruse ne te piège plus : taux ≥ 80 % sur trois jours.</p>
-          <Medallion rewardId={RELIC_OF[key as LieutenantKey] ?? ''} kind="relic" size={56} label={relicName(key)} />
+          <Medallion rewardId={RELIC_OF[key as LieutenantKey] ?? ''} size={56} label={relicName(key)} />
         </div>
         <Particles trigger={neutralisedTriggers[i]} kind="burst" />
       </div>
@@ -297,7 +297,7 @@
   {#each extraRewards as r (r.id)}
     <Reveal delay={nextDelay()}>
       <div class="card reveal-card reward" data-testid="reveal-reward-{r.id}">
-        <Medallion rewardId={r.id} kind={r.kind} />
+        <Medallion rewardId={r.id} />
         <span class="name">{r.name}</span>
       </div>
     </Reveal>
@@ -356,7 +356,7 @@
             <p class="line">« Impossible ! Garde ta pomme, je reviendrai avec de nouvelles ruses. »</p>
             {#if bossReward}
               <div class="reward-line">
-                <Medallion rewardId={bossReward.id} kind="gear" size={48} />
+                <Medallion rewardId={bossReward.id} size={48} />
                 <span>{bossReward.name}</span>
               </div>
             {/if}

@@ -13,11 +13,10 @@
   import { SHIELD_SLOTS, TITLE_HOTSPOTS, TITLE_SCENE, titleShields } from '../lib/world/scenes/title';
   import { titleGate } from '../lib/scene/titleGate.svelte';
   import { requestTilt } from '../lib/scene/tiltState.svelte';
-  import { closePanel, openPanel } from '../lib/scene/panelNav';
+  import { closePanel, go } from '../lib/scene/panelNav';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
   import { api, ApiError } from '../lib/api';
   import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
   import type { PanelId } from '../lib/world/places';
   import type { Profile } from '../lib/types';
 
@@ -55,23 +54,9 @@
     titleGate.entered = true;
   }
 
-  function pick(p: Profile) {
-    unlockAudio();
-    playSfx('tap');
-    navigate(href('camp', { profileId: String(p.id) }));
-  }
-
-  function openNew() {
-    unlockAudio();
-    playSfx('tap');
-    openPanel(href('profile-new'));
-  }
-
-  function openAll() {
-    unlockAudio();
-    playSfx('tap');
-    openPanel(href('profiles', {}, { panel: 'tous' }));
-  }
+  const pick = (p: Profile) => go(href('camp', { profileId: String(p.id) }));
+  const openNew = () => go(href('profile-new'), 'panel');
+  const openAll = () => go(href('profiles', {}, { panel: 'tous' }), 'panel');
 
   const closeToTitle = () => closePanel(href('profiles'));
 </script>
@@ -115,7 +100,12 @@
     {#if loading}
       <p class="kit-banner title-note">Les Muses cherchent les héros…</p>
     {:else if error}
-      <p class="kit-banner title-note">Impossible de charger les héros : {error}</p>
+      <!-- Final review M16: the server's message wraps inside the art box, and the heroes can be
+           fetched again without a reload (the camp's own « Réessayer »). -->
+      <div class="kit-banner title-note title-error" role="alert" data-testid="title-error">
+        <span>Impossible de charger les héros : {error}</span>
+        <button type="button" class="kit-bronze" data-testid="title-retry" onclick={load}>Réessayer</button>
+      </div>
     {:else if profiles.length === 0}
       <p class="kit-banner title-note">Aucun héros pour l'instant. Crée le tien !</p>
     {/if}
@@ -231,13 +221,27 @@
     transform: translateX(-50%);
     z-index: 3;
     margin: 0;
-    white-space: nowrap;
   }
   .title-hint {
     bottom: 12%;
+    white-space: nowrap;
   }
   .title-note {
     bottom: 5%;
+    /* max-content up to 70 % of the art box: `left: 50%` alone would cap the shrink-to-fit width
+       at the remaining half. */
+    width: max-content;
+    max-width: 70%;
+    white-space: normal;
+    text-align: center;
+  }
+  .title-error {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .title-error span {
+    flex: 1;
   }
   .hero-list {
     list-style: none;

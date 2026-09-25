@@ -15,7 +15,7 @@
   import type { Annotation, SessionResult } from '../lib/grading/types';
   import { clearPlayState, loadPlayState, newPlayState, savePlayState, type PlayState } from '../lib/playState';
   import { loadProfile } from '../lib/profileStore.svelte';
-  import { navigate } from '../lib/router.svelte';
+  import { go } from '../lib/scene/panelNav';
   import { href } from '../lib/routes';
   import { withDerivedCategories } from '../lib/world/derived';
   import { campStore, refreshCamp } from '../lib/world/campStore.svelte';
@@ -136,7 +136,7 @@
   function toLibrary() {
     left = true;
     clearPlayState(profile.id, id, mode);
-    navigate(href('library', { profileId: String(profile.id) }));
+    go(href('library', { profileId: String(profile.id) }));
   }
 
   // "Pause" on the break nudge (spec §3.6, decision 16): back to the camp rather than the library,
@@ -144,7 +144,7 @@
   function toLibraryCamp() {
     left = true;
     clearPlayState(profile.id, id, mode);
-    navigate(href('camp', { profileId: String(profile.id) }));
+    go(href('camp', { profileId: String(profile.id) }));
   }
 
   // Active play time (dictation + proofreading only) drives the ~25-minute break nudge. Ticking
@@ -400,7 +400,7 @@
           type="button"
           class="btn"
           data-testid="btn-grimoire"
-          onclick={() => navigate(href('grimoire', { profileId: String(profile.id), textId: String(id) }))}
+          onclick={() => go(href('grimoire', { profileId: String(profile.id), textId: String(id) }))}
         >
           Grimoire corrompu
         </button>

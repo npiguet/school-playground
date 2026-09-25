@@ -106,6 +106,8 @@ export const ART = {
     pythia: '/art/characters/pythia_cut.webp',
     owl: '/art/characters/owl_cut.webp',
   },
+  // Not referenced yet on purpose (final review M7): UI3b's inputs for the war tent's codex
+  // lectern, the cabin's trophy shelf and a closer view of Delphi's tablets.
   props: {
     votiveTablets: '/art/props/votive_tablets_cut.webp',
     codexLectern: '/art/props/codex_lectern_cut.webp',
@@ -124,7 +126,6 @@ export const ART = {
     delphes: '/art/scenes/delphes.webp',
     alexandrie: '/art/scenes/alexandrie.webp',
     parchemins: '/art/scenes/parchemins.webp',
-    argus: '/art/scenes/argus.webp',
     battle: '/art/scenes/battle.webp',
     // UI2 scenes (2048×1152), one per place (docs/art/scenes.md).
     titleGates: '/art/scenes/title_gates.webp',
@@ -169,9 +170,9 @@ export function lieutenantIcon(key: string): string | null {
   return LIEUTENANT_ICONS[key as LieutenantKey] ?? null;
 }
 
-/** The server's own catalog is the source of truth for a reward's kind when it's cheaply
- *  available to the caller (review round 1 #7); the id-prefix/RELIC_OF guess below only covers
- *  the callers that don't have the catalog in hand (e.g. a purely presentational component). */
+/** The server's own catalog is the source of truth for a reward's kind (review round 1 #7); the
+ *  id-prefix/RELIC_OF guess below covers the moment before the catalog has loaded. Medallion is
+ *  the one caller (final review M6), always with `campStore.catalog`. */
 export function rewardKindOf(id: string, catalog?: WorldCatalog | null): RewardKind {
   const fromCatalog = catalog?.rewards[id]?.kind;
   if (fromCatalog) return fromCatalog;

@@ -6,7 +6,8 @@
   import { tick } from 'svelte';
   import { api, ApiError } from '../../../lib/api';
   import { href } from '../../../lib/routes';
-  import { openPanel } from '../../../lib/scene/panelNav';
+  import { go } from '../../../lib/scene/panelNav';
+  import { ART } from '../../../lib/world/art';
   import type { AlexandriaWork, Profile } from '../../../lib/types';
 
   // `focusWorkId`: fix round 2 finding 4. Closing the work overlay remounts this panel fresh, and
@@ -53,12 +54,13 @@
   }
 
   function openWork(w: AlexandriaWork) {
-    openPanel(href('alexandria-work', { profileId: String(profile.id), workId: w.id }));
+    go(href('alexandria-work', { profileId: String(profile.id), workId: w.id }), 'panel');
   }
 </script>
 
 <div class="panel-portal">
-  <div class="hero" role="presentation"></div>
+  <!-- The art path comes from the ART table (final review M7), so budgets and renames stay there. -->
+  <div class="hero" role="presentation" style="background-image: url({ART.scenes.alexandrie})"></div>
   <p class="subtitle muted">
     Les scribes d'Alexandrie recopient des œuvres anciennes. Choisis une œuvre, puis un rouleau à
     ajouter aux Parchemins.
@@ -94,7 +96,6 @@
   .hero {
     height: 140px;
     border-radius: var(--radius);
-    background-image: url('/art/scenes/alexandrie.webp');
     background-size: cover;
     background-position: center;
     margin-bottom: 16px;

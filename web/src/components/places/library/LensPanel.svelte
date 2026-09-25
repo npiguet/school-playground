@@ -11,7 +11,7 @@
   import { ADD_ICONS } from '../../../lib/world/art';
   import Icon from '../../ui/Icon.svelte';
   import { href } from '../../../lib/routes';
-  import { replaceRoute } from '../../../lib/router.svelte';
+  import { go } from '../../../lib/scene/panelNav';
   import type { Profile, ScanResult } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -140,7 +140,8 @@
         work: work.trim() || null,
         added_by_profile_id: profile.id,
       });
-      replaceRoute(href('library', { profileId: String(profile.id) }));
+      // Same as the desk (final review I1): the shelves replace the lens and keep its history tag.
+      go(href('library', { profileId: String(profile.id) }), 'replace');
     } catch (e) {
       saveError = e instanceof ApiError ? e.detail : "Les Muses n'ont pas pu sauvegarder ce parchemin.";
     } finally {
@@ -207,7 +208,7 @@
       <p class="muted" aria-live="polite">Les scribes déchiffrent la feuille…</p>
     {/if}
   {:else if step === 'verify' && scanResult}
-    <h2>Vérifie le texte avec la feuille</h2>
+    <h3 class="kit-section">Vérifie le texte avec la feuille</h3>
 
     <div class="verify-grid">
       <div class="photos">
@@ -293,7 +294,7 @@
       </div>
     {/if}
   {:else if step === 'details'}
-    <h2>Détails du parchemin</h2>
+    <h3 class="kit-section">Détails du parchemin</h3>
     <form onsubmit={saveScan}>
       <div class="field">
         <label for="scan-title-input">Titre</label>

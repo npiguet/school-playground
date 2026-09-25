@@ -92,7 +92,7 @@
     {#each equippedDecor as r, i (r.id)}
       {@const slot = DECOR_SLOTS[i % DECOR_SLOTS.length]}
       <div class="decor-pin" style="top:{slot.top};left:{slot.left}">
-        <Medallion rewardId={r.id} kind="decor" size={48} />
+        <Medallion rewardId={r.id} size={48} />
       </div>
     {/each}
     <h1>Ta cabane</h1>
@@ -125,7 +125,7 @@
                 <img src={ART.dragon.egg} alt="" />
               </span>
             {:else}
-              <Medallion rewardId={item.id} kind={section.kind} locked={!isOwned} />
+              <Medallion rewardId={item.id} locked={!isOwned} />
             {/if}
             <span class="name">{item.name}</span>
             <p class="desc muted">{item.desc}</p>

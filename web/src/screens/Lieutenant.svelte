@@ -14,7 +14,7 @@
   import { ApiError } from '../lib/api';
   import type { Profile } from '../lib/types';
   import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
+  import { go } from '../lib/scene/panelNav';
 
   let { profile, lieutenantKey }: { profile: Profile; lieutenantKey: string } = $props();
 
@@ -110,7 +110,7 @@
 
       {#if lieutenantState.neutralised}
         <div class="parchment neutralised-banner" data-testid="lieutenant-neutralised">
-          <Medallion rewardId={relicId} kind="relic" size={64} label={relicName} />
+          <Medallion rewardId={relicId} size={64} label={relicName} />
           <p>{agree('Neutralisé', lieutenantKey as LieutenantKey)} le {neutralisedDate()}</p>
         </div>
       {/if}
@@ -161,7 +161,7 @@
             type="button"
             class="btn"
             data-testid="lieutenant-grimoire"
-            onclick={() => navigate(grimoireHref(recommendedTexts![0].id))}
+            onclick={() => go(grimoireHref(recommendedTexts![0].id))}
           >
             Ouvrir son grimoire corrompu
           </button>

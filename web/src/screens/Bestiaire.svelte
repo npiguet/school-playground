@@ -10,7 +10,7 @@
   import { agree, pronounFor } from '../lib/world/eris';
   import type { LieutenantKey } from '../lib/world/types';
   import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
+  import { go } from '../lib/scene/panelNav';
   import type { Profile } from '../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -40,7 +40,7 @@
   }
 
   function open(key: string) {
-    navigate(href('bestiaire-entry', { profileId, key }));
+    go(href('bestiaire-entry', { profileId, key }));
   }
 </script>
 

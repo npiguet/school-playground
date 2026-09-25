@@ -4,18 +4,22 @@
   // as a mystery, never a blank (an unknown id falls back to the same « ? », also announced as
   // such - review round 1 #3). `label` names the reward for screen readers when no visible text
   // sits next to this medallion (review round 1 #2); it never overrides the locked/unknown mystery
-  // state, which must never leak which reward it is.
-  import { rewardIcon } from '../../lib/world/art';
+  // state, which must never leak which reward it is. The reward's kind is resolved here, in one
+  // place, from the server catalog when it is loaded (final review M6: callers used to pass it,
+  // some hard-coding « gear », some guessing without the catalog).
+  import { rewardIcon, rewardKindOf } from '../../lib/world/art';
+  import { campStore } from '../../lib/world/campStore.svelte';
   import { TINT_SWATCH } from '../../lib/world/dragon';
-  import type { RewardKind, Tint } from '../../lib/world/types';
+  import type { Tint } from '../../lib/world/types';
 
   let {
     rewardId,
-    kind,
     size = 72,
     locked = false,
     label,
-  }: { rewardId: string; kind: RewardKind; size?: number; locked?: boolean; label?: string } = $props();
+  }: { rewardId: string; size?: number; locked?: boolean; label?: string } = $props();
+
+  const kind = $derived(rewardKindOf(rewardId, campStore.catalog));
 
   const swatch = $derived(kind === 'tint' ? (TINT_SWATCH[rewardId.slice('tint:'.length) as Tint] ?? null) : null);
   const icon = $derived(kind === 'tint' ? null : rewardIcon(rewardId));

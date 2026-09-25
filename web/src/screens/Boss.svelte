@@ -83,7 +83,7 @@
   <div class="card info-card">
     <p class="tier" data-testid="boss-tier">Combat {romanTier(tier)}</p>
     <div class="reward" data-testid="boss-reward">
-      {#if bossRewardId}<Medallion rewardId={bossRewardId} kind="gear" size={40} />{/if}
+      {#if bossRewardId}<Medallion rewardId={bossRewardId} size={40} />{/if}
       <span>Récompense si tu gagnes : {campStore.catalog?.quest_bonus.boss ?? 300} XP · {bossRewardName()}</span>
     </div>
     <p class="rules muted">

@@ -13,18 +13,23 @@
   font-family: var(--font-body);
 }
 .kit-form h2,
-.kit-form h3 {
+.kit-form h3,
+.kit-form h4 {
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--bronze-dark);
 }
-.kit-form h2 {
+/* A section inside an overlay is an h3 under the overlay's own h2 title (final review M1: heading
+   navigation reads the sections as children of the dialog), with the section look it always had. */
+.kit-form h2,
+.kit-form .kit-section {
   font-size: 18px;
   margin: 18px 0 8px;
 }
-.kit-form h3 {
+.kit-form h3,
+.kit-form h4 {
   font-size: 15px;
 }
 .kit-form .muted {

@@ -9,7 +9,7 @@
   import { pronounFor } from '../lib/world/eris';
   import type { LieutenantKey } from '../lib/world/types';
   import { href } from '../lib/routes';
-  import { navigate } from '../lib/router.svelte';
+  import { go } from '../lib/scene/panelNav';
   import type { Profile } from '../lib/types';
 
   let { profile, entryKey }: { profile: Profile; entryKey: string } = $props();
@@ -28,7 +28,7 @@
   });
 
   function openLieutenant() {
-    navigate(href('lieutenant', { profileId, key: entryKey }));
+    go(href('lieutenant', { profileId, key: entryKey }));
   }
 </script>
 

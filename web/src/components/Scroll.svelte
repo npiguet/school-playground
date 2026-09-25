@@ -9,7 +9,7 @@
   import { untrack } from 'svelte';
   import Particles from './juice/Particles.svelte';
   import Medallion from './juice/Medallion.svelte';
-  import { MARK_ICONS, rewardKindOf } from '../lib/world/art';
+  import { MARK_ICONS } from '../lib/world/art';
   import { playSfx } from '../lib/juice/sfx';
 
   let {
@@ -69,12 +69,13 @@
     <span class="wax-seal"><img src={MARK_ICONS.oracleSeal} alt="" /></span>
     <span class="roll-end"></span>
   </div>
-  <h3 class="scroll-title">{title}</h3>
+  <!-- An h4: the Pythia overlay's « Les trois rouleaux » section (h3) holds the scrolls. -->
+  <h4 class="scroll-title">{title}</h4>
 
   {#if sealed}
     <p class="hint muted">{hint}</p>
     <div class="reward-line">
-      {#if rewardId}<Medallion {rewardId} kind={rewardKindOf(rewardId)} size={36} />{/if}
+      {#if rewardId}<Medallion {rewardId} size={36} />{/if}
       <span>Récompense de la semaine : {reward}</span>
     </div>
     {#if sealedStep}

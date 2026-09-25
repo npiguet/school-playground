@@ -9,7 +9,6 @@
   import Particles from '../../juice/Particles.svelte';
   import Medallion from '../../juice/Medallion.svelte';
   import LieutenantBadge from '../../LieutenantBadge.svelte';
-  import { rewardKindOf } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type OracleOut, type ScrollKey } from '../../../lib/world/types';
@@ -19,7 +18,7 @@
   import { formatSwissDate } from '../../../lib/dates';
   import { playSfx, unlockAudio } from '../../../lib/juice/sfx';
   import { href } from '../../../lib/routes';
-  import { prophecyWhen } from '../../../lib/world/scenes/camp';
+  import { prophecyWhen } from '../../../lib/world/prophecy';
   import { scrollTitle } from '../../../lib/world/scenes/delphi';
   import type { Profile } from '../../../lib/types';
 
@@ -142,7 +141,7 @@
   {:else if oracle}
     {#if oracle.prophecies.length > 0}
       <section>
-        <h2>Prophéties</h2>
+        <h3 class="kit-section">Prophéties</h3>
         <p class="muted">
           La Pythie a vu une épreuve se préparer dans ta classe. Révise-la avant le jour dit : l'XP est multipliée par 1,5.
         </p>
@@ -160,9 +159,9 @@
     {/if}
 
     <section>
-      <h2>Les trois rouleaux</h2>
+      <h3 class="kit-section">Les trois rouleaux</h3>
       <div class="reward-line" data-testid="oracle-reward">
-        {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} kind={rewardKindOf(oracle.reward_id, campStore.catalog)} size={36} />{/if}
+        {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} size={36} />{/if}
         <span>Cette semaine, ouvrir un rouleau rapporte : {oracleRewardLine()}</span>
       </div>
 
@@ -231,7 +230,7 @@
 
     {#if oracle.status === 'chosen' && oracle.quest && campStore.catalog}
       <section data-testid="oracle-quest">
-        <h2>La quête de la semaine</h2>
+        <h3 class="kit-section">La quête de la semaine</h3>
         <QuestCard quest={oracle.quest} {names} catalog={campStore.catalog} profileId={profile.id} />
         <p class="muted">L'Oracle parlera de nouveau lundi.</p>
       </section>
