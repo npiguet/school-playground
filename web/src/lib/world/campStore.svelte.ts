@@ -13,15 +13,27 @@ export const campStore = $state<{ data: CampResponse | null; loading: boolean; e
   catalog: null,
 });
 
+// UI3a Task 9: this store is shared, but its callers are no longer only Camp.svelte - every
+// PlaceScene mount (LibraryTent, and Delphi in Task 12) fires the same `refreshCamp` on the same
+// profile. A quick camp -> tent -> camp round trip (scenes-camp.spec.ts) can start a second fetch
+// before the first one lands; without this token, whichever response arrives last wins, even if it
+// was the older, now-superseded one. Bumped on every call, checked before each write: only the
+// most recently *started* refresh may ever update the store.
+let refreshToken = 0;
+
 export async function refreshCamp(profileId: number): Promise<void> {
+  const token = ++refreshToken;
   campStore.loading = true;
   campStore.error = '';
   try {
-    campStore.data = await worldApi.camp(profileId);
+    const data = await worldApi.camp(profileId);
+    if (token !== refreshToken) return;
+    campStore.data = data;
   } catch (e) {
+    if (token !== refreshToken) return;
     campStore.error = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
   } finally {
-    campStore.loading = false;
+    if (token === refreshToken) campStore.loading = false;
   }
 }
 

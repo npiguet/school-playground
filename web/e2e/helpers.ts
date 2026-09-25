@@ -349,6 +349,9 @@ export async function closeOverlay(page: Page) {
 
 // Every listed hotspot and its label plaque sit inside the art's 4:3 safe zone (x 12.5-87.5 %,
 // hotspots below the HUD band at y 14 %) and on screen; every hotspot is a 48 px touch target.
+// Review round 1 (Task 9): a label with a caption (a new hero, so the glow shows) is taller than a
+// bare one, so its own vertical position is checked too - below the HUD band, and clear of the
+// DialogueBox's dock (a plaque behind the narrator card would be unreadable while it's open).
 export async function expectInSafeZone(page: Page, sceneId: string, testIds: string[]) {
   const sel: Record<string, string> = { art: `[data-testid="scene-${sceneId}"] .art` };
   for (const id of testIds) {
@@ -364,6 +367,7 @@ export async function expectInSafeZone(page: Page, sceneId: string, testIds: str
     top: art.y + art.height * 0.14,
     bottom: art.y + art.height,
   };
+  const dock = dialogueDockRect(art);
   const EPS = 0.5; // sub-pixel rounding of shapes authored flush with the zone edge
   const vw = page.viewportSize()!.width;
   for (const id of testIds) {
@@ -377,6 +381,8 @@ export async function expectInSafeZone(page: Page, sceneId: string, testIds: str
     expect(Math.min(h.width, h.height), `${id} is a 48 px touch target`).toBeGreaterThanOrEqual(48);
     expect(l.x, `${id} label left edge in the safe zone`).toBeGreaterThanOrEqual(Math.max(0, zone.left - EPS));
     expect(l.x + l.width, `${id} label right edge in the safe zone`).toBeLessThanOrEqual(Math.min(vw, zone.right + EPS));
+    expect(l.y, `${id} label below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);
+    expect(rectsOverlap(l, dock), `${id} label overlaps the dialogue dock`).toBe(false);
   }
 }
 
@@ -401,22 +407,33 @@ export async function labelOverlaps(page: Page, sceneId: string): Promise<string
   }, sceneId);
 }
 
+// Strict rectangle overlap (mirrors web/src/lib/scene/geometry.ts's boxesOverlap): rects that only
+// touch along an edge do not overlap.
+export function rectsOverlap(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
+// The DialogueBox's dock, in viewport px, from a scene's own `.art` box. `DIALOGUE_DOCK` itself
+// lives in web/src/lib/scene/geometry.ts (x 27-87.5 %, y 80-100 %), kept as literal percentages
+// here (mirrors TextCreateInput's own comment above): the e2e project is excluded from
+// web/tsconfig.json, so it stays free of a cross-project source import.
+export function dialogueDockRect(art: Rect): Rect {
+  return {
+    x: art.x + art.width * 0.27,
+    y: art.y + art.height * 0.8,
+    width: art.width * (0.875 - 0.27),
+    height: art.height * 0.2,
+  };
+}
+
 // UI3a Task 9 (controller ruling 6): the first place e2e that has both a SceneExit sign and the
 // DialogueBox's dock must prove they never overlap - a bronze sign under a narrator card would be
-// unreachable. `DIALOGUE_DOCK` itself lives in web/src/lib/scene/geometry.ts, kept as literal
-// percentages here (mirrors TextCreateInput's own comment above): the e2e project is excluded from
-// web/tsconfig.json, so it stays free of a cross-project source import. Every future place scene
-// (Delphi, the war tent...) reuses this same check.
+// unreachable. Every future place scene (Delphi, the war tent...) reuses this same check.
 export async function expectExitClearOfDialogueDock(page: Page, sceneId: string) {
   const b = await measureBoxes(page, { art: `[data-testid="scene-${sceneId}"] .art`, exit: '[data-testid="scene-exit"]' });
   if (!b.art || !b.exit) throw new Error(`scene-${sceneId} .art or scene-exit did not render`);
-  const dock = {
-    x: b.art.x + b.art.width * 0.27,
-    y: b.art.y + b.art.height * 0.8,
-    width: b.art.width * (0.875 - 0.27),
-    height: b.art.height * 0.2,
-  };
-  const overlaps =
-    b.exit.x < dock.x + dock.width && dock.x < b.exit.x + b.exit.width && b.exit.y < dock.y + dock.height && dock.y < b.exit.y + b.exit.height;
-  expect(overlaps, 'scene-exit overlaps the dialogue dock (x 27-87.5%, y 80-100% of the art box)').toBe(false);
+  expect(
+    rectsOverlap(b.exit, dialogueDockRect(b.art)),
+    'scene-exit overlaps the dialogue dock (x 27-87.5%, y 80-100% of the art box)',
+  ).toBe(false);
 }

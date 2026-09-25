@@ -3,6 +3,7 @@ import {
   createProfileApi,
   createText,
   expectCamp,
+  expectInSafeZone,
   makeResult,
   measureBoxes,
   onlyOwnProphecy,
@@ -164,41 +165,11 @@ test('places and their labels sit inside the visible safe zone and work from the
   // HUD_BAND y >= 14%), not just "somewhere inside the viewport": the art box is cropped by the
   // viewport on iPad (stageBox() can size it wider/taller than the screen), so a hotspot could
   // pass a viewport-bounds check while still sitting outside the zone the spec actually guarantees
-  // is visible.
-  const boxes = await measureBoxes(page, {
-    art: '[data-testid="scene-camp"] .art',
-    ...Object.fromEntries(PLACES.map((p) => [p.id, `[data-testid="camp-${p.id}"]`])),
-    ...Object.fromEntries(PLACES.map((p) => [`${p.id}-label`, `[data-testid="camp-${p.id}"] .hotspot-label`])),
-  });
-  const art = boxes.art;
-  if (!art) throw new Error('scene-camp .art box has no bounding box: the art box did not render');
-  const zone = {
-    left: art.x + art.width * 0.125,
-    right: art.x + art.width * 0.875,
-    top: art.y + art.height * 0.14,
-    bottom: art.y + art.height,
-  };
-  // Sub-pixel rendering slack: `cabin` (camp.shapes.ts) is authored flush against the safe
-  // zone's right edge (cx 81.5 + rx 6 = 87.5, exactly SAFE_ZONE's own edge), so its rendered box
-  // can legitimately land a fraction of a px past the zone through ordinary browser rounding.
-  const EPS = 0.5;
-  for (const place of PLACES) {
-    const b = boxes[place.id];
-    if (!b) throw new Error(`camp-${place.id} has no bounding box: the hotspot did not render`);
-    expect(b.x, `${place.id} left edge inside the safe zone`).toBeGreaterThanOrEqual(zone.left - EPS);
-    expect(b.x + b.width, `${place.id} right edge inside the safe zone`).toBeLessThanOrEqual(zone.right + EPS);
-    expect(b.y, `${place.id} top edge below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);
-    expect(b.y + b.height, `${place.id} bottom edge inside the art box`).toBeLessThanOrEqual(zone.bottom + EPS);
-    expect(Math.min(b.width, b.height), `${place.id} meets the 48px touch target`).toBeGreaterThanOrEqual(48);
-    // Final review I4 / playability #1: the label plaque (« Le chemin de Delphes » used to start at
-    // x = 0 on the iPad) stays inside the safe zone too, and so inside the screen.
-    const l = boxes[`${place.id}-label`];
-    if (!l) throw new Error(`camp-${place.id}'s label has no bounding box`);
-    expect(l.x, `${place.id} label left edge inside the safe zone`).toBeGreaterThanOrEqual(zone.left - EPS);
-    expect(l.x + l.width, `${place.id} label right edge inside the safe zone`).toBeLessThanOrEqual(zone.right + EPS);
-    expect(l.x, `${place.id} label on screen`).toBeGreaterThanOrEqual(0);
-    expect(l.x + l.width, `${place.id} label on screen`).toBeLessThanOrEqual(page.viewportSize()!.width);
-  }
+  // is visible. `expectInSafeZone` also checks each label vertically now (Task 9 review round 1):
+  // below the HUD band and clear of the dialogue dock - this fresh hero has captions on (oracle,
+  // parchemins), so their taller labels are exercised too. Runs on both projects (1280x720 and
+  // 1180x820, the two sizes the review asked for).
+  await expectInSafeZone(page, 'camp', PLACES.map((p) => `camp-${p.id}`));
   // The stage and its art box clip rather than scroll: nothing (focus, a click scrolling a target
   // into view, a script) can pan the cropped painting sideways under the HUD.
   const scrolled = await page.evaluate(() =>
@@ -318,10 +289,9 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   // camp (here: to the library we came from) rather than reopening the panel.
   await page.getByTestId('hud-hero').click();
   await expect(panel).toBeVisible();
-  // Scoped to `panel` (not a page-wide `overlay-close`, UI3a Task 9 fix): the library's own shelves
-  // overlay this test passed through (`/parchemins`) can still be mid-`out:leave|global` (preflight.md
-  // D3, 160ms) right after a hash change lands here, and a bare page-wide selector then matches two
-  // wax seals - the one still leaving and this panel's own.
+  // Scoped to `panel`, not a page-wide `overlay-close` (UI3a Task 9): this test opens/closes several
+  // overlays in a row, so a bare page-wide selector is ambiguous the moment two of them are ever in
+  // the DOM together, whatever the reason.
   await panel.getByTestId('overlay-close').click();
   await expect(panel).toHaveCount(0);
   await expect(page).toHaveURL(/\/camp$/);
@@ -329,6 +299,10 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   await expect(page).toHaveURL(/\/parchemins$/);
 
   // A deep link closes by replacing its own entry: Back never lands on ?panel=heros again.
+  // UI3a Task 9 fix: straight from `/parchemins` (the line above), this hash change to
+  // `camp?panel=heros` can still land while the shelves overlay is mid its 160ms
+  // `out:leave|global` (preflight.md D3) - a page-wide `overlay-close` would then match two wax
+  // seals, the one still leaving and this panel's own, hence the same `panel`-scoped click.
   await page.goto(`/#/p/${id}/camp?panel=heros`);
   await expect(panel).toBeVisible();
   await panel.getByTestId('overlay-close').click();
