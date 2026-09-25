@@ -9,6 +9,7 @@
   import { LEVELS } from '../lib/levels';
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
+  import Icon from '../components/ui/Icon.svelte';
   import type { AlexandriaChunk, AlexandriaWork, Profile } from '../lib/types';
 
   let { profile, workId }: { profile: Profile; workId: string } = $props();
@@ -214,8 +215,8 @@
               <span class="seq">Rouleau {chunk.seq}</span>
               <span class="chip">{chunk.level}</span>
               <span class="muted">≈ {chunk.word_count} mots</span>
-              <span class="stars" title={`Richesse en accords : ${chunk.score}`}
-                >{'★'.repeat(starsFor(chunk.score))}</span
+              <span class="stars" role="img" aria-label="Richesse en accords : {starsFor(chunk.score)} sur 5"
+                >{#each Array.from({ length: starsFor(chunk.score) }, (_, i) => i) as i (i)}<Icon name="star" size={16} />{/each}</span
               >
             </div>
             <p class="preview">{chunk.preview}</p>

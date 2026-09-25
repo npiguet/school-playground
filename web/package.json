@@ -10,7 +10,6 @@
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "icons": "node scripts/make-icons.mjs",
     "fonts": "node scripts/vendor-fonts.mjs"
   },
   "devDependencies": {

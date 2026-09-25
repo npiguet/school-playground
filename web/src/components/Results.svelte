@@ -6,6 +6,7 @@
   import type { Annotation, SessionResult, StatKey, TokenError } from '$lib/grading/types';
   import { CATEGORY_LABELS, caughtText, erisLine, explain, statKeyOf } from '$lib/explain';
   import type { PlayMode, TextFull } from '$lib/types';
+  import Icon from './ui/Icon.svelte';
 
   let {
     reference,
@@ -217,7 +218,7 @@
             class="marker"
             class:marker-active={active?.type === 'missing' && active.anchor === piece.anchor && active.i === j}
             aria-label="Mot oublié"
-            onclick={() => tapMissing(piece.anchor, j)}>▢</button
+            onclick={() => tapMissing(piece.anchor, j)}><Icon name="gap" size={18} /></button
           >{/each}{:else}<button
           type="button"
           class="tok"
@@ -253,7 +254,7 @@
           {#each group.errors as e, i (i)}
             <li>
               <span class="expl">{explain(e, ctx).text}</span>
-              {#if caughtKeys.has(errorKey(e))}<span class="tag-caught">déjoué ✓</span>{/if}
+              {#if caughtKeys.has(errorKey(e))}<span class="tag-caught">déjoué <Icon name="check" size={14} /></span>{/if}
             </li>
           {/each}
         </ul>

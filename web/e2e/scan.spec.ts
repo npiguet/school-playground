@@ -51,7 +51,7 @@ test('a phone photo shows « À vérifier » chips that must each be looked at',
   await expect(page.getByTestId('btn-scan-verified')).toBeDisabled();
   const first = (await chips.first().textContent())!.trim();
   await chips.first().click();
-  await expect(chips.first()).toContainText('✓');
+  await expect(chips.first()).toHaveAttribute('aria-pressed', 'true');
   const selected = await ta.evaluate((el: HTMLTextAreaElement) => el.value.slice(el.selectionStart, el.selectionEnd));
   expect(selected.toLowerCase()).toBe(first.toLowerCase());
   for (let i = 1; i < (await chips.count()); i++) await chips.nth(i).click();

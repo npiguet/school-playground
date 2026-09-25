@@ -9,7 +9,7 @@
   import { untrack } from 'svelte';
   import Particles from './juice/Particles.svelte';
   import Medallion from './juice/Medallion.svelte';
-  import { rewardKindOf } from '../lib/world/art';
+  import { MARK_ICONS, rewardKindOf } from '../lib/world/art';
   import { playSfx } from '../lib/juice/sfx';
 
   let {
@@ -66,7 +66,7 @@
 <div class="scroll parchment" class:sealed data-testid={testid}>
   <div class="roll" aria-hidden="true">
     <span class="roll-end"></span>
-    <span class="wax-seal">✶</span>
+    <span class="wax-seal"><img src={MARK_ICONS.oracleSeal} alt="" /></span>
     <span class="roll-end"></span>
   </div>
   <h3 class="scroll-title">{title}</h3>
@@ -131,8 +131,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
     flex-shrink: 0;
+  }
+  .wax-seal img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
   .scroll-title {
     margin: 0;

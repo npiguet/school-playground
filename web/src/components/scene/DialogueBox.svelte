@@ -6,6 +6,7 @@
   import { DIALOGUE_DOCK } from '../../lib/scene/geometry';
   import { advance, typedLength } from '../../lib/scene/typewriter';
   import type { DialogueLine } from '../../lib/scene/types';
+  import Icon from '../ui/Icon.svelte';
 
   let { lines, onDone }: { lines: DialogueLine[]; onDone: () => void } = $props();
 
@@ -83,7 +84,7 @@
       <span class="speaker">{line.name}</span>
       <span class="text" data-testid="dialogue-text" aria-hidden="true">{line.text.slice(0, shown)}</span>
       <span class="sr-only" aria-live="polite" data-testid="dialogue-live">{announced}</span>
-      {#if complete}<span class="more" class:still={reducedMotion()} aria-hidden="true">▸</span>{/if}
+      {#if complete}<span class="more" class:still={reducedMotion()} aria-hidden="true"><Icon name="arrow-right" size={28} /></span>{/if}
     </button>
     <button type="button" class="kit-bronze skip" data-testid="dialogue-skip" onclick={onDone}>Tout passer</button>
   </div>

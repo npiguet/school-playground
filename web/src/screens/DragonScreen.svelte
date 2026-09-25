@@ -5,7 +5,7 @@
   import TopBar from '../components/TopBar.svelte';
   import Dragon from '../components/Dragon.svelte';
   import Gauge from '../components/juice/Gauge.svelte';
-  import { ART } from '../lib/world/art';
+  import { ART, MARK_ICONS } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { stageLabel, TINT_FILTERS, TINT_NAMES, validName } from '../lib/world/dragon';
@@ -171,7 +171,7 @@
           >
             <span class="swatch-circle" style={`filter: ${TINT_FILTERS[t]}`}>
               <img src={ART.dragon.egg} alt="" />
-              {#if !unlocked}<span class="lock" aria-hidden="true">🔒</span>{/if}
+              {#if !unlocked}<span class="lock" aria-hidden="true"><img src={MARK_ICONS.lock} alt="" /></span>{/if}
             </span>
             <span class="swatch-name">{TINT_NAMES[t]}</span>
           </button>
@@ -285,7 +285,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+  }
+  .lock img {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
   }
   .swatch-name {
     font-size: 13px;

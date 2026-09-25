@@ -104,7 +104,7 @@ describe('filTap', () => {
     expect(s.correct).toBe(1);
     expect(s.drawn).toBe(1);
     expect(s.highlightSubject).toEqual([0, 1]);
-    expect(s.message).toBe('Le fil est tendu : « dansent » ↔ « Les fées » (pluriel). Vérifie la terminaison du verbe.');
+    expect(s.message).toBe('Le fil est tendu entre « dansent » et « Les fées » (pluriel). Vérifie la terminaison du verbe.');
   });
 
   it('reveals the subject after two wrong taps and counts the thread as drawn but not correct', () => {
@@ -186,7 +186,7 @@ describe('filTap', () => {
     s = filTap(s, 0, ANN, typedTextOf); // "Les" (unchanged) belongs to the subject group
     expect(s.step).toBe('done');
     expect(s.message).toBe(
-      'Le fil est tendu : « danse » ↔ « Les fée » (pluriel). Vérifie la terminaison du verbe.',
+      'Le fil est tendu entre « danse » et « Les fée » (pluriel). Vérifie la terminaison du verbe.',
     );
     expect(s.message).not.toMatch(/dansent/);
     expect(s.message).not.toMatch(/fées/);

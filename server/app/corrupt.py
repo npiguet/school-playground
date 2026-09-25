@@ -299,7 +299,7 @@ def candidates(annotation: dict, lexicon, homophones, trap_words: set[str] = fro
                     if " " in m or m == text.lower():
                         continue
                     if skip_s_only and _differ_only_by_s(text, m):
-                        continue  # « leurs bras » ↔ « leur bras »
+                        continue  # « leurs bras » vs « leur bras »
                     add("homophone", t, match_case(text, m))
 
         accent_idx = _last_accent_index(text)

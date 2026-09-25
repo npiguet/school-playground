@@ -13,6 +13,7 @@
   import Overlay from '../components/scene/Overlay.svelte';
   import Onboarding from '../components/Onboarding.svelte';
   import Avatar from '../components/Avatar.svelte';
+  import Icon from '../components/ui/Icon.svelte';
   import {
     CAMP_DRAGON_LAYER,
     CAMP_SCENE,
@@ -179,35 +180,19 @@
       <nav class="medallions" aria-label="Ton héros">
         <a class="medallion" data-testid="hero-settings" href={href('settings', { profileId })}>
           <span class="medallion-disc" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="34" height="34">
-              <path d="M11 27C6 22 4 14 7 8c1-2 3-3 4-2M21 27c5-5 7-13 4-19-1-2-3-3-4-2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-              <path d="M7 10h18M10 27h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-              <path d="M13 10v17M16 10v17M19 10v17" stroke="currentColor" stroke-width="1.3" />
-            </svg>
+            <Icon name="lyre" size={34} />
           </span>
           <span class="medallion-caption">Réglages</span>
         </a>
         <a class="medallion" data-testid="hero-journal" href={href('dossier', { profileId })}>
           <span class="medallion-disc" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="34" height="34">
-              <path
-                d="M7 6h8c1 0 1 1 1 2v18c0-1-1-2-2-2H7z M25 6h-8c-1 0-1 1-1 2v18c0-1 1-2 2-2h7z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linejoin="round"
-              />
-              <path d="M10 11h3M10 15h3M19 11h3M19 15h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-            </svg>
+            <Icon name="journal" size={34} />
           </span>
           <span class="medallion-caption">Ton journal</span>
         </a>
         <a class="medallion" data-testid="hero-switch" href={href('profiles')} onclick={() => clearProfile()}>
           <span class="medallion-disc" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="34" height="34">
-              <path d="M16 4l10 4v7c0 7-5 11-10 13C11 26 6 22 6 15V8z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" />
-              <path d="M16 9v14M11 15h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            </svg>
+            <Icon name="shield" size={34} />
           </span>
           <span class="medallion-caption">Changer de héros</span>
         </a>

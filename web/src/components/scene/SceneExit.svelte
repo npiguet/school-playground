@@ -4,6 +4,7 @@
   import { href } from '../../lib/routes';
   import { navigate } from '../../lib/router.svelte';
   import { playSfx, unlockAudio } from '../../lib/juice/sfx';
+  import Icon from '../ui/Icon.svelte';
 
   let { profileId }: { profileId: number } = $props();
 
@@ -15,9 +16,7 @@
 </script>
 
 <button type="button" class="scene-exit kit-bronze" data-testid="scene-exit" onclick={go}>
-  <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
-    <path d="M19 7L10 16l9 9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-  </svg>
+  <Icon name="arrow-left" size={22} />
   <span>Le camp</span>
 </button>
 

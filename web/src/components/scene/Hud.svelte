@@ -8,6 +8,7 @@
   // iPad, the target device, since there's no mouse hover to trigger it.
   import Avatar from '../Avatar.svelte';
   import LaurelBar from '../ui/LaurelBar.svelte';
+  import Icon from '../ui/Icon.svelte';
   import { ART } from '../../lib/world/art';
   import { TINT_FILTERS } from '../../lib/world/dragon';
   import { hudXp } from '../../lib/scene/hud';
@@ -50,17 +51,7 @@
     {/if}
     <button type="button" class="hud-round" data-testid="hud-mute" aria-pressed={soundStore.muted} aria-label="Son" onclick={toggleMute}>
       <!-- Playability #9: a bronze lyre (struck through when muted), not an emoji. -->
-      <svg class="lyre" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
-        <path d="M11 27C6 22 4 14 7 8c1-2 3-3 4-2M21 27c5-5 7-13 4-19-1-2-3-3-4-2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-        <path d="M7 10h18M10 27h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-        <path d="M13 10v17M16 10v17M19 10v17" stroke="currentColor" stroke-width="1.3" />
-        {#if soundStore.muted}<path d="M5 27L27 5" stroke="var(--night)" stroke-width="5" stroke-linecap="round" /><path
-            d="M5 27L27 5"
-            stroke="currentColor"
-            stroke-width="2.4"
-            stroke-linecap="round"
-          />{/if}
-      </svg>
+      <Icon name={soundStore.muted ? 'lyre-muted' : 'lyre'} size={28} />
     </button>
   </div>
 </header>

@@ -226,8 +226,9 @@ margin, all under 20 KB). Contact sheet at 128 and 64 px on dark and parchment:
 
 `tint:*` rewards stay CSS swatches (the tinted egg). 43 generations in total (35 icons + 8 redos).
 The app icon is the painted apple on the terracotta ground (`#C0623B`, a soft lighter centre),
-at 74 % of the side and 56 % for the maskable one. It replaces the flat SVG apple, so **don't run
-`npm run icons` (`web/scripts/make-icons.mjs`)**, or it overwrites the painted PNGs.
+at 74 % of the side and 56 % for the maskable one. It replaces the flat SVG apple; the old
+`npm run icons` script (`web/scripts/make-icons.mjs`) has been removed (UI3a Task 6) so it can no
+longer be run by accident and overwrite the painted PNGs — see `tools/art/icons.py app` instead.
 
 **Composition sentence** (every prompt; the sidecars hold the full text): *"a single object centred
 in the frame with plenty of empty white room on every side, seen from a slight three-quarter angle,

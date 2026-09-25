@@ -137,7 +137,7 @@ function pickSubject(
       drawn: state.drawn + 1,
       correct: state.correct + 1,
       highlightSubject: chain.controller_group,
-      message: `${prefix}Le fil est tendu : « ${verb} » ↔ « ${group} » (${num}). Vérifie la terminaison du verbe.`,
+      message: `${prefix}Le fil est tendu entre « ${verb} » et « ${group} » (${num}). Vérifie la terminaison du verbe.`,
     };
   }
 

@@ -7,8 +7,9 @@
 
 The tool-* icons are made from the existing emblem cut-outs (REUSE), not
 from a generation. The app icon replaces the flat SVG apple that
-web/scripts/make-icons.mjs rasterised: do not run `npm run icons` again, or
-it overwrites the painted PNGs.
+web/scripts/make-icons.mjs used to rasterise; that script and its `npm run
+icons` entry were removed (UI3a Task 6) so it can't be run again and
+overwrite the painted PNGs.
 
 WebP: the cut-out is trimmed to its alpha bounding box, padded to a square
 with a small margin (so every icon fills its box the same way), downscaled to

@@ -100,8 +100,8 @@
       <h2>Voix de la dictée</h2>
       {#if voices.length === 0}
         <p class="orange">
-          Aucune voix française trouvée sur cet appareil. Sur iPad : Réglages → Accessibilité →
-          Contenu énoncé → Voix → Français.
+          Aucune voix française trouvée sur cet appareil. Sur iPad : ouvre Réglages, puis
+          Accessibilité, puis Contenu énoncé, puis Voix, puis Français.
         </p>
       {:else}
         <div class="field">

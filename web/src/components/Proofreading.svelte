@@ -5,6 +5,8 @@
   import { flushSync, untrack } from 'svelte';
   import TokenText from './TokenText.svelte';
   import WordEditor from './WordEditor.svelte';
+  import Icon from './ui/Icon.svelte';
+  import { TOOL_ICONS } from '$lib/world/art';
   import { activePasses, ARGUS_LABELS, HINTS_PER_STAGE, typedPassSets } from '$lib/argus';
   import { mapAnnotation, reverseAnnotationMap } from '$lib/grading/annotationMap';
   import { errorKey, gradeText } from '$lib/grading/grade';
@@ -335,6 +337,7 @@
 
   {#if helpStage <= 2 && activePass}
     <div class="passes" role="group" aria-label="Passes d'Argus">
+      <img class="tool-icon argus-mark" src={TOOL_ICONS.argus} alt="" />
       <div class="chips">
         {#each passes as pass, i (pass)}
           <button
@@ -345,12 +348,12 @@
             aria-pressed={i === play.passIndex}
             onclick={() => goToPass(i)}
           >
-            {i < play.passIndex ? '✓ ' : ''}{ARGUS_LABELS[pass].title}
+            {#if i < play.passIndex}<Icon name="check" size={16} />{/if}{ARGUS_LABELS[pass].title}
           </button>
         {/each}
         {#if !isLastPass}
           <button type="button" class="btn next-pass" data-testid="btn-next-pass" onclick={() => goToPass(play.passIndex + 1)}>
-            Passe suivante →
+            Passe suivante <Icon name="arrow-right" size={18} />
           </button>
         {/if}
       </div>
@@ -366,10 +369,12 @@
       aria-pressed={play.bouclier}
       onclick={toggleBouclier}
     >
-      🛡️ Bouclier de Persée
+      <img class="tool-icon" src={TOOL_ICONS.persee} alt="" />Bouclier de Persée
     </button>
     {#if helpStage < 4 && hintsLeft > 0}
-      <button type="button" class="chip tool" onclick={useChouette}>🦉 Chouette d'Athéna ({hintsLeft})</button>
+      <button type="button" class="chip tool" onclick={useChouette}>
+        <img class="tool-icon" src={TOOL_ICONS.athena} alt="" />Chouette d'Athéna ({hintsLeft})
+      </button>
     {/if}
     <button
       type="button"
@@ -379,7 +384,7 @@
       data-testid="btn-fil"
       onclick={toggleFil}
     >
-      🧵 Fil d'Ariane
+      <img class="tool-icon" src={TOOL_ICONS.ariane} alt="" />Fil d'Ariane
     </button>
     <button
       type="button"
@@ -388,7 +393,7 @@
       aria-pressed={wholeText}
       onclick={toggleWholeText}
     >
-      ✏️ Modifier tout le texte
+      <Icon name="pencil" size={20} />Modifier tout le texte
     </button>
   </div>
 
@@ -414,7 +419,7 @@
         disabled={clampSentence(sentenceIndex) === 0}
         onclick={() => moveSentence(-1)}
       >
-        ← Phrase précédente
+        <Icon name="arrow-left" size={18} /> Phrase précédente
       </button>
       <span class="sentence-pos">
         Phrase {spans.length - clampSentence(sentenceIndex)} sur {spans.length} — en partant de la fin
@@ -425,7 +430,7 @@
         disabled={clampSentence(sentenceIndex) >= spans.length - 1}
         onclick={() => moveSentence(1)}
       >
-        Phrase suivante →
+        Phrase suivante <Icon name="arrow-right" size={18} />
       </button>
     </div>
   {/if}
@@ -526,6 +531,16 @@
   }
   .tool {
     color: var(--ink);
+  }
+  .tool-icon {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    margin-right: 6px;
+  }
+  .argus-mark {
+    width: 34px;
+    height: 34px;
   }
   .sentence-nav {
     display: flex;

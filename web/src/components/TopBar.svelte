@@ -1,5 +1,6 @@
 <script lang="ts">
   import Avatar from './Avatar.svelte';
+  import Icon from './ui/Icon.svelte';
   import { clearProfile } from '../lib/profileStore.svelte';
   import { href } from '../lib/routes';
   import { soundStore, setMuted } from '../lib/juice/soundStore.svelte';
@@ -27,22 +28,27 @@
   </div>
   <h1 class="title">{title}</h1>
   <nav class="right">
-    <a class="link" data-testid="topbar-camp" href={href('camp', { profileId })}
-      ><span class="icon" aria-hidden="true">←</span><span class="label">Retour au camp</span></a
+    <a class="link" data-testid="topbar-camp" aria-label="Retour au camp" href={href('camp', { profileId })}
+      ><span class="icon"><Icon name="arrow-left" size={20} /></span><span class="label">Retour au camp</span></a
     >
-    <a class="link" href={href('dossier', { profileId })}><span class="icon">📊</span><span class="label">Progrès</span></a>
-    <a class="link" href={href('settings', { profileId })}><span class="icon">⚙️</span><span class="label">Réglages</span></a>
+    <a class="link" aria-label="Progrès" href={href('dossier', { profileId })}
+      ><span class="icon"><Icon name="journal" size={22} /></span><span class="label">Progrès</span></a
+    >
+    <a class="link" aria-label="Réglages" href={href('settings', { profileId })}
+      ><span class="icon"><Icon name="lamp" size={22} /></span><span class="label">Réglages</span></a
+    >
     <button
       type="button"
       class="link"
       data-testid="topbar-mute"
       aria-pressed={soundStore.muted}
+      aria-label="Son"
       onclick={toggleMute}
     >
-      <span class="icon">{soundStore.muted ? '🔇' : '🔊'}</span><span class="label">Son</span>
+      <span class="icon"><Icon name={soundStore.muted ? 'lyre-muted' : 'lyre'} size={22} /></span><span class="label">Son</span>
     </button>
-    <a class="link" href={href('profiles')} onclick={onChangeHero}>
-      <span class="icon">🔄</span><span class="label">Changer de héros</span>
+    <a class="link" aria-label="Changer de héros" href={href('profiles')} onclick={onChangeHero}>
+      <span class="icon"><Icon name="shield" size={22} /></span><span class="label">Changer de héros</span>
     </a>
   </nav>
 </header>
@@ -107,7 +113,8 @@
     background: var(--marble);
   }
   .icon {
-    font-size: 20px;
+    display: inline-flex;
+    color: var(--bronze);
   }
   @media (max-width: 900px) {
     .label {

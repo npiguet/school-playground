@@ -3,6 +3,7 @@
   import { createRunner, type RunnerState } from '../lib/dictation/runner';
   import { buildScript, type DictationPlan, type Pace } from '../lib/dictation/script';
   import { cancelSpeech, speak } from '../lib/dictation/tts';
+  import Icon from './ui/Icon.svelte';
 
   let {
     plan,
@@ -131,7 +132,7 @@
 <div class="dictation" style="height: var(--vvh)">
   <div class="header">
     <button type="button" class="btn btn-ghost quit" data-testid="btn-quit-dictation" onclick={requestQuit}>
-      ← Quitter
+      <Icon name="arrow-left" size={18} /> Quitter
     </button>
     <h2>Dictée</h2>
     <span class="progress">

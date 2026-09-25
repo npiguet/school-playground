@@ -10,6 +10,7 @@
   import { todayIso } from '../lib/dates';
   import { countWords } from '../lib/dictation/segment';
   import { ADD_ICONS } from '../lib/world/art';
+  import Icon from '../components/ui/Icon.svelte';
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
   import type { Profile, ScanResult } from '../lib/types';
@@ -235,7 +236,7 @@
                   aria-pressed={viewed.has(w)}
                   onclick={() => showWord(w)}
                 >
-                  {viewed.has(w) ? '✓ ' : ''}{w}
+                  {#if viewed.has(w)}<Icon name="check" size={16} />{/if}{w}
                 </button>
               {/each}
             </span>

@@ -8,6 +8,7 @@
   import { fade, fly } from 'svelte/transition';
   import { reducedMotion } from '../../lib/juice/motion';
   import { modal } from '../../lib/scene/overlayState.svelte';
+  import Icon from '../ui/Icon.svelte';
 
   let {
     variant,
@@ -69,11 +70,9 @@
 >
   <header class="overlay-head">
     <h2 class="overlay-title">{title}</h2>
-    <!-- Playability #4: a wax-seal ✕ rather than a « Fermer » button (a tap outside closes too). -->
+    <!-- Playability #4: a wax-seal close mark rather than a « Fermer » button (a tap outside closes too). -->
     <button type="button" class="overlay-seal" data-testid="overlay-close" aria-label="Fermer" onclick={onClose}>
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-        <path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-      </svg>
+      <Icon name="close" size={22} />
     </button>
   </header>
   <div class="overlay-body kit-form">{@render children()}</div>
