@@ -9,6 +9,7 @@ import {
   expectOverlayTapTargets,
   expectScene,
   measureBoxes,
+  rectsOverlap,
   redScan,
   uniqueName,
   watchOverlap,
@@ -113,6 +114,17 @@ test('the naming ritual is an overlay with its own route; Back and the seal clos
   await expect(ritual.getByLabel('Ton sceau à quatre chiffres')).toHaveCount(0);
   await ritual.getByRole('button', { name: "Protéger ton bouclier d'un sceau" }).click();
   await expect(ritual.getByLabel('Ton sceau à quatre chiffres')).toBeVisible();
+  // B2 fix round 1 #2: with the seal open, the submit stays fully on screen and clear of the
+  // scroll's bottom rod (both desktop 1280x720 and ipad 1180x820 run this same test).
+  {
+    const submitBox = await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).boundingBox();
+    const rodBox = await ritual.locator('.scroll-rod.rod-bottom').boundingBox();
+    const vh = page.viewportSize()!.height;
+    expect(submitBox, 'submit button rendered').not.toBeNull();
+    expect(submitBox!.y, 'submit inside the viewport').toBeGreaterThanOrEqual(0);
+    expect(submitBox!.y + submitBox!.height, 'submit inside the viewport').toBeLessThanOrEqual(vh);
+    if (rodBox) expect(rectsOverlap(submitBox!, rodBox), 'submit clear of the bottom rod').toBe(false);
+  }
   await ritual.getByRole('button', { name: "Protéger ton bouclier d'un sceau" }).click();
   await expect(ritual.getByLabel('Ton sceau à quatre chiffres')).toHaveCount(0);
   await expectOverlayTapTargets(page, 'overlay-hero-new');
@@ -193,9 +205,12 @@ test('an Escape before the hand-off to camp has been handled does not undo it', 
 });
 
 test('six slots: newest heroes, « Tous les héros » when there are more, « Nouveau héros » last', async ({ page, request }, testInfo) => {
+  // A realistic 14-character hyphenated name (created last, so it is always among the newest and
+  // shown on its own shield, never swallowed into « Tous les héros »).
+  const longName = `Anne-Charlotte-${testInfo.project.name.slice(0, 1)}${uniqueName('').slice(-4)}`;
   const names: string[] = [];
   for (let i = 0; i < 6; i++) {
-    const n = `${hero(testInfo.project.name)}-${i}`;
+    const n = i === 5 ? longName : `${hero(testInfo.project.name)}-${i}`;
     names.push(n);
     await createProfileApi(request, n);
   }
@@ -215,17 +230,25 @@ test('six slots: newest heroes, « Tous les héros » when there are more, « No
     expect(s.x + s.width, `shield ${i} right`).toBeLessThanOrEqual(art.x + art.width * 0.875 + 0.5);
     expect(Math.min(s.width, s.height), `shield ${i} touch target`).toBeGreaterThanOrEqual(48);
   }
-  // Playability #13: each ring sits on its painted hook. Mirrors SHIELD_SLOTS' y (every hook tip is
-  // at the same y on the painted rails, web/src/lib/world/scenes/title.ts).
-  const HOOK_Y = 55.5;
+  // Playability #13: every ring sits on its painted hook. Computed from the DOM (not a hand copy of
+  // title.ts's SHIELD_SLOTS - the e2e project can't import app modules): every hook tip shares the
+  // same y across both rails, and that y falls inside the spec's own safe hook band (53-58 %,
+  // title.test.ts).
   const ringSel: Record<string, string> = {};
   for (let i = 0; i < 6; i++) ringSel[`r${i}`] = `[data-testid="title-shields"] button.shield:nth-child(${i + 1}) .shield-ring`;
   const rings = await measureBoxes(page, ringSel);
-  for (let i = 0; i < 6; i++) {
-    const r = rings[`r${i}`]!;
-    const expectedY = art.y + (art.height * HOOK_Y) / 100;
-    expect(Math.abs(r.y - expectedY), `shield ${i} ring at the hook`).toBeLessThanOrEqual(art.height * 0.015);
+  const ringYs = Array.from({ length: 6 }, (_, i) => rings[`r${i}`]!.y);
+  for (const y of ringYs) {
+    expect(y, 'ring inside the hook band (title.test.ts 53-58%)').toBeGreaterThanOrEqual(art.y + art.height * 0.53 - 2);
+    expect(y, 'ring inside the hook band (title.test.ts 53-58%)').toBeLessThanOrEqual(art.y + art.height * 0.58 + 2);
+    expect(Math.abs(y - ringYs[0]), 'every hook tip at the same y').toBeLessThanOrEqual(2);
   }
+  // B2 fix round 1 #1: a realistic long name wraps (2-3 lines, smaller size) rather than being cut
+  // to an ellipsis.
+  const longShieldName = page.locator(`[data-testid="title-shields"] button[aria-label^="${longName}"] .shield-name`);
+  await expect(longShieldName).toHaveText(longName);
+  const clipped = await longShieldName.evaluate((el) => el.scrollHeight - el.clientHeight);
+  expect(clipped, 'the long name wraps, it is not clipped to an ellipsis').toBeLessThanOrEqual(1);
   await page.getByTestId('title-all').click();
   await expect(page).toHaveURL(/#\/\?panel=tous$/);
   await page.getByTestId('overlay-heroes').getByRole('button', { name: new RegExp(names[0]) }).click();
@@ -269,6 +292,8 @@ test('a protected hero asks for the code on a sealed parchment', async ({ page, 
   await page.goto(`/#/p/${id}/camp`);
   await expect(page.getByTestId('pin-gate')).toBeVisible();
   await expect(page.locator('.pin-title')).toHaveText(/^Le sceau d(e |')/);
+  // B2 fix round 1 #6: the real input masks the PIN like a real code entry.
+  await expect(page.locator('.pin-input')).toHaveCSS('-webkit-text-security', 'disc');
   expect(await redScan(page)).toEqual([]);
   await page.getByLabel('Tes quatre chiffres').fill('0000');
   await expect(page.getByText("Ce n'est pas le bon code")).toBeVisible();
@@ -278,16 +303,42 @@ test('a protected hero asks for the code on a sealed parchment', async ({ page, 
   await expectCamp(page);
 });
 
+// B2 fix round 1 #3 (brief Task 6 Step 5): the « Changer de héros » link keeps its role and name.
+test('the pin gate keeps a « Changer de héros » link', async ({ page, request }, testInfo) => {
+  const res = await request.post('/api/profiles', { data: { name: hero(testInfo.project.name), avatar: 'lyre', level: '10H', pin: '1234' } });
+  expect(res.ok()).toBeTruthy();
+  const id = (await res.json()).id as number;
+  await page.goto(`/#/p/${id}/camp`);
+  await expect(page.getByTestId('pin-gate').getByRole('link', { name: 'Changer de héros' })).toBeVisible();
+});
+
+// B2 fix round 1 #6: a network error on verify-pin shows an in-world message, not a bare failure.
+test('a network error checking the seal shows an in-world message', async ({ page, request }, testInfo) => {
+  const res = await request.post('/api/profiles', { data: { name: hero(testInfo.project.name), avatar: 'lyre', level: '10H', pin: '1234' } });
+  expect(res.ok()).toBeTruthy();
+  const id = (await res.json()).id as number;
+  await page.route('**/api/profiles/*/verify-pin', async (route) => {
+    await route.fulfill({ status: 500, json: { detail: 'Les Muses ne répondent plus. Réessaie.' } });
+  });
+  await page.goto(`/#/p/${id}/camp`);
+  await expect(page.getByTestId('pin-gate')).toBeVisible();
+  await page.getByLabel('Tes quatre chiffres').fill('1234');
+  await expect(page.getByText('Les Muses ne répondent plus. Réessaie.')).toBeVisible();
+  await expect(page.getByTestId('pin-gate')).toBeVisible(); // never bounced to the camp
+});
+
 // Task 6 (findings #14, #26): the seal's title elides correctly for a real long accented name and
 // the wax-parchment title still fits inside the seal.
-test("the seal speaks French with a long accented name: « Le sceau d'Élise-Marguerite »", async ({ page, request }, testInfo) => {
-  // A unique but realistic name (starts with a vowel, has an accent and a hyphen, ~20 chars).
-  const name = `Élise-Marguerite-${testInfo.project.name.slice(0, 1)}${uniqueName('').slice(-4)}`;
+test("the seal speaks French with a long accented name: « Le sceau d'Élise-M... »", async ({ page, request }, testInfo) => {
+  // B2 fix round 1 #7: a shorter fixed prefix, more random entropy in the suffix (8 chars rather
+  // than 4), still realistic (starts with a vowel, has an accent and a hyphen), well under the
+  // 30-character server limit.
+  const name = `Élise-M-${testInfo.project.name.slice(0, 1)}${uniqueName('').slice(-8)}`;
   const res = await request.post('/api/profiles', { data: { name, avatar: 'lyre', level: '10H', pin: '1234' } });
   expect(res.ok(), await res.text()).toBeTruthy();
   await page.goto(`/#/p/${(await res.json()).id}/camp`);
   const title = page.locator('.pin-title');
-  await expect(title).toContainText("Le sceau d'Élise-Marguerite");
+  await expect(title).toContainText("Le sceau d'Élise-M");
   const [t, seal] = await Promise.all([title.boundingBox(), page.locator('.pin-seal').boundingBox()]);
   expect(t!.x).toBeGreaterThanOrEqual(seal!.x);
   expect(t!.x + t!.width).toBeLessThanOrEqual(seal!.x + seal!.width);

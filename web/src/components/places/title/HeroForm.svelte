@@ -1,5 +1,6 @@
 <script lang="ts">
   import Avatar from '../../Avatar.svelte';
+  import Icon from '../../ui/Icon.svelte';
   import LevelMedallions from '../../ui/LevelMedallions.svelte';
   import { api, ApiError } from '../../../lib/api';
   import { AVATARS, LEVELS } from '../../../lib/levels';
@@ -64,7 +65,7 @@
     <!-- Playability #3: the shield that will hang on the gate, forged live. -->
     <div class="forge-preview" aria-hidden="true">
       <span class="forge-shield"><img data-testid="forge-emblem" src={avatarIcon(avatar)} alt="" /></span>
-      <span class="forge-banner" data-testid="forge-banner">{name.trim() || 'Ton prénom'}</span>
+      <span class="forge-banner" class:is-empty={!name.trim()} data-testid="forge-banner">{name.trim() || 'Ton prénom'}</span>
     </div>
 
     <div class="forge-fields">
@@ -79,7 +80,7 @@
           {#each AVATARS as a (a)}
             <label class="avatar-choice" class:selected={avatar === a}>
               <input type="radio" name="avatar" value={a} bind:group={avatar} />
-              <Avatar avatar={a} size={56} ring />
+              <Avatar avatar={a} size={32} ring />
               <span>{avatarLabel(a)}</span>
             </label>
           {/each}
@@ -89,7 +90,14 @@
       <LevelMedallions legend="Ta classe" name="level" bind:value={level} />
 
       <div class="seal">
-        <button type="button" class="kit-link" aria-expanded={sealOpen} aria-controls="seal-field" onclick={toggleSeal}>
+        <button
+          type="button"
+          class="kit-link seal-toggle"
+          aria-expanded={sealOpen}
+          aria-controls={sealOpen ? 'seal-field' : undefined}
+          onclick={toggleSeal}
+        >
+          <Icon name="chevron" size={14} />
           Protéger ton bouclier d'un sceau
         </button>
         {#if sealOpen}
@@ -123,7 +131,7 @@
   .forge {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 18px;
   }
   @media (min-width: 760px) {
     .forge {
@@ -175,8 +183,15 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 50%, 100% 100%, 0 100%, 14px 50%);
   }
+  /* B2 fix round 1 #5: the placeholder text (no name typed yet) reads as a hint, not an answer. */
+  .forge-banner.is-empty {
+    font-style: italic;
+    opacity: 0.65;
+  }
+  /* B2 fix round 1 #2: a tighter rhythm keeps the submit button on screen with the seal open, at
+     1180x820 and 1280x720. */
   .field {
-    margin-bottom: 18px;
+    margin-bottom: 0;
   }
   .field input[type='text'] {
     width: 100%;
@@ -186,16 +201,16 @@
   fieldset {
     border: none;
     padding: 0;
-    margin: 0 0 18px;
+    margin: 0 0 1px;
   }
   legend {
-    margin-bottom: 8px;
+    margin-bottom: 1px;
     padding: 0;
   }
   .avatars {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
   }
   /* Medallions without card boxes (playability #3). */
   .avatar-choice {
@@ -203,7 +218,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
     min-width: 64px;
     padding: 4px;
     border-radius: 12px;
@@ -227,16 +242,35 @@
     outline: 3px solid var(--bronze-light);
     outline-offset: 2px;
   }
+  .seal {
+    margin-bottom: 1px;
+  }
+  /* B2 fix round 1 #4: a visual open/closed cue, flush with the other field labels (kit-link's own
+     padding would otherwise indent it 8px from them). */
+  .seal-toggle {
+    margin-left: -8px;
+  }
+  .seal-toggle :global(.icon-svg) {
+    transition: transform 0.15s ease;
+  }
+  .seal-toggle[aria-expanded='true'] :global(.icon-svg) {
+    transform: rotate(180deg);
+  }
   .forge-submit {
-    margin-top: 6px;
+    margin-top: 0;
   }
   .hint {
     font-size: 15px;
-    margin: 4px 0 0;
+    margin: 0;
   }
   #pin {
     width: 160px;
     letter-spacing: 0.4em;
     -webkit-text-security: disc;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .seal-toggle :global(.icon-svg) {
+      transition: none;
+    }
   }
 </style>

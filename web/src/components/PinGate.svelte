@@ -152,4 +152,9 @@
     font-size: 16px;
     color: var(--form-ink-soft);
   }
+  /* B2 fix round 1 #8: the flex `gap` above already spaces the error text; a `<p>`'s own default
+     margin stacked on top of it, doubling the visible gap. */
+  .pin-seal p {
+    margin: 0;
+  }
 </style>

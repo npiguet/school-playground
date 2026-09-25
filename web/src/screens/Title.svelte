@@ -219,20 +219,25 @@
     background: rgba(21, 18, 26, 0.72);
   }
   /* Fix round 1 #5: two lines (line-clamp), not a one-line ellipsis - similar first names (e.g.
-     two "Alexandre"s with different avatars) stayed indistinguishable at ~8-9 visible characters. */
+     two "Alexandre"s with different avatars) stayed indistinguishable at ~8-9 visible characters.
+     B2 fix round 1 #1: 2 lines at 14px still cut a realistic name (« Anne-Charlotte » showed as
+     « Anne-Charlott… »). Up to 3 lines at a smaller size, breaking at the hyphen or, failing that,
+     anywhere, so a real name is never truncated; the line-clamp/ellipsis stay only as a fallback
+     for a name so long no reasonable size would fit it. */
   .shield-name {
     max-width: 100%;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
     overflow: hidden;
     text-overflow: ellipsis;
+    overflow-wrap: anywhere;
     white-space: normal;
     text-align: center;
     font-family: var(--font-body);
     font-weight: 700;
-    font-size: 14px;
+    font-size: 11px;
     line-height: 1.15;
   }
   .shield-level {
