@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './crashGuard';
 
 test('image serves API, SPA assets, PWA files and seed texts', async ({ request }) => {
   expect((await request.get('/api/health')).ok()).toBeTruthy();

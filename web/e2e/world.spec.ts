@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './crashGuard';
+import type { Page } from '@playwright/test';
 import { chooseLevel, enterTitle, expectCamp, expectScene, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day

@@ -14,7 +14,9 @@ ensure_volumes
 cd "$ROOT"
 docker compose -f compose.e2e.yaml build app
 set +e
-docker compose -f compose.e2e.yaml run --rm -T playwright npx playwright test "$@"
+# `npx playwright test "$@"`, plus the crash-only retry (Ruling F3): a test whose browser crashed
+# (upstream WebKit) runs once more; any other failure never does.
+docker compose -f compose.e2e.yaml run --rm -T playwright node scripts/playwright-crash-retry.mjs "$@"
 status=$?
 set -e
 # The app container (and its log) dies with `down` below: keep the server's side of a failure (a

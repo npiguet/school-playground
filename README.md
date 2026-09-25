@@ -206,6 +206,13 @@ scripts/check.sh
 To run only the e2e suite (e.g. while iterating on a spec): `scripts/playwright.sh`. Pass
 extra `npx playwright test` arguments through, e.g. `scripts/playwright.sh e2e/seed.spec.ts`.
 
+Playwright never retries a failed test. The one exception is a test whose browser crashed: WPE
+WebKit's web process crashes about once in 1 300 test executions, an upstream fault
+(`docs/reviews/ui3/webkit-crash-upstream.md`). Such a test fails with « browser crashed (upstream
+WebKit) » (`web/e2e/crashGuard.ts`, which every spec takes `test` from), and when that is the only
+kind of failure in the run, `web/scripts/playwright-crash-retry.mjs` runs those tests once more
+(with the rest of their serial group). Any other failure ends the run red, with no retry.
+
 **Two checkouts side by side** (e.g. two git worktrees): prefix any script with `STACK=<id>`, e.g.
 `STACK=b scripts/check.sh`. It gets its own compose project, app and server dev images and node_modules volume
 (`discorde-b…`, `npm ci` on first use); unset, the names stay `discorde`. A second dev stack also

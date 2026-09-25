@@ -10,6 +10,9 @@ export default defineConfig({
   testDir: './e2e',
   testIgnore: ['**/playability*.spec.ts'],
   timeout: 60_000,
+  // Never any retry: a failure is a defect (CLAUDE.md). The one exception, a test whose browser
+  // crashed (upstream WebKit, Ruling F3), runs once more through scripts/playwright-crash-retry.mjs,
+  // which reads what crashReporter.ts sorts out; the retry is not Playwright's.
   retries: 0,
   // Every worker drives the same single app container (compose.e2e.yaml), and Alexandria refreshes
   // run spaCy on it: at 24 concurrent workers that container can no longer answer in time. Cap the
@@ -18,7 +21,7 @@ export default defineConfig({
   // PW_WORKERS (passed through by compose.e2e.yaml) lowers it for a second stack running side by
   // side, e.g. `STACK=b PW_WORKERS=4 scripts/check.sh` (README §6).
   workers: Number(process.env.PW_WORKERS) || 8,
-  reporter: [['list']],
+  reporter: [['list'], ['./e2e/crashReporter.ts']],
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:8080',
     locale: 'fr-CH',

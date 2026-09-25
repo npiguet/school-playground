@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './crashGuard';
 import { createProfileApi, expectCamp, uniqueName } from './helpers';
 
 // Task 9b: the read-only `?debug` hotspot outline overlay (replaces the interactive `?edit`
