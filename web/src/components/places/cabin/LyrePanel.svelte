@@ -57,7 +57,7 @@
     event.preventDefault();
     if (saving) return;
     if (newPin && newPin.length !== 4) {
-      error = 'Le code doit avoir quatre chiffres.';
+      error = 'Ton sceau a quatre chiffres.';
       return;
     }
     saving = true;
@@ -134,7 +134,7 @@
     <section>
       <h3 class="kit-section">Ton sceau</h3>
       <div class="field">
-        <label for="new-pin">Nouveau code (quatre chiffres)</label>
+        <label for="new-pin">Tes quatre chiffres</label>
         <input
           id="new-pin"
           type="text"

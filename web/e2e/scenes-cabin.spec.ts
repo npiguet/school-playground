@@ -49,6 +49,10 @@ test('the trophy shelf shows every reward, each known in advance', async ({ page
   await expect(sandals).toHaveAttribute('data-owned', 'false');
   await expect(sandals).toContainText("Comment l'obtenir");
   await expect(sandals.locator('.medallion')).toHaveAttribute('aria-label', 'Récompense à découvrir');
+  // Fix round 1: a tint still to win is a grey egg; the filter is on the egg, not on its ring.
+  const ecume = shelf.getByTestId('cabin-reward-tint:ecume');
+  await expect(ecume.locator('.tint-egg')).toHaveCSS('filter', 'none');
+  await expect(ecume.locator('.tint-egg img')).toHaveCSS('filter', /grayscale\(1\)/);
   expect(await redScan(page)).toEqual([]);
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/cabane$/);
@@ -107,7 +111,7 @@ test('the lyre holds the settings, one mute with the HUD, the goal as medallions
   const lyre = page.getByTestId('overlay-lyre');
   await expect(lyre.getByRole('heading', { name: 'La lyre', level: 2 })).toBeVisible();
   await expect(lyre.getByRole('group', { name: 'Ta classe' })).toBeVisible();
-  await expect(lyre.getByLabel('Nouveau code (quatre chiffres)')).toBeVisible();
+  await expect(lyre.getByLabel('Tes quatre chiffres')).toBeVisible();
   // The settings' mute and the HUD's are one switch (UI3a Ruling A17: the sliders are UI5).
   const mute = lyre.getByLabel('Couper les sons du jeu (la dictée reste lue)');
   await expect(mute).not.toBeChecked();
@@ -141,6 +145,53 @@ test('the HUD hero chip opens the hero panel in the cabin from any place; its se
   await expect(page).toHaveURL(/\/stats$/);
   await closeOverlay(page); // steps back to the hero panel it came from
   await expect(panel).toBeVisible();
+  await expect(page).toHaveURL(/\/cabane\?panel=heros$/);
+  await expect(panel.getByTestId('hero-journal')).toBeFocused();
+  // The lyre opened from the panel hands focus back to its medallion too.
+  await panel.getByRole('link', { name: 'La lyre' }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await closeOverlay(page);
+  await expect(page).toHaveURL(/\/cabane\?panel=heros$/);
+  await expect(panel.getByTestId('hero-settings')).toBeFocused();
+});
+
+test('a deep link to the hero panel closes onto the cabin, focus on the HUD hero chip', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/cabane?panel=heros`);
+  await expect(page.getByTestId('overlay-heros')).toBeVisible();
+  await closeOverlay(page);
+  await expect(page).toHaveURL(/\/cabane$/);
+  await expect(page.getByTestId('hud-hero')).toBeFocused();
+});
+
+test('displayed decor hangs on bare wall, clear of every place and plaque', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  // Four pieces on display (the most the walls hold before they cycle): intercepted, so no quest has
+  // to be won first.
+  const decor = ['decor:lanterne', 'decor:tapis', 'decor:bibliotheque', 'decor:trophee'];
+  await page.route(`**/api/profiles/${id}/rewards`, (route) =>
+    route.fulfill({
+      json: decor.map((rid) => ({ id: rid, kind: 'decor', name: rid, desc: '', source: '', granted_at: '2026-09-21T12:00:00+00:00', equipped: true })),
+    }),
+  );
+  for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }]) {
+    await page.setViewportSize(size);
+    await openCabin(page, id);
+    for (const rid of decor) await expect(page.getByTestId(`cabin-decor-${rid}`)).toBeVisible();
+    const boxes = await page.evaluate(() => {
+      const r = (el: Element) => el.getBoundingClientRect();
+      const stage = document.querySelector('[data-testid="scene-cabin"]')!;
+      return {
+        decor: [...stage.querySelectorAll('[data-testid^="cabin-decor-"]')].map(r),
+        others: [...stage.querySelectorAll('.hotspot-label, .hotspot-leader, .stage-plaque, [data-testid^="cabin-"]:not([data-testid^="cabin-decor-"])')].map(r),
+      };
+    });
+    const overlap = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    for (const [i, d] of boxes.decor.entries()) {
+      for (const o of boxes.others) expect(overlap(d, o), `${size.width}x${size.height} decor ${i}`).toBe(false);
+      for (const e of boxes.decor.slice(i + 1)) expect(overlap(d, e), `${size.width}x${size.height} decor ${i} vs another`).toBe(false);
+    }
+  }
 });
 
 for (const o of [

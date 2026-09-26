@@ -8,7 +8,7 @@
   import { ART } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
-  import { TINT_FILTERS } from '../../../lib/world/dragon';
+  import { eggFilter } from '../../../lib/world/dragon';
   import type { RewardKind, RewardOut, Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import type { Profile } from '../../../lib/types';
@@ -93,7 +93,7 @@
           {@const isOwned = !!rewardRow}
           <li class="kit-cubby trophy" class:is-empty={!isOwned} data-testid="cabin-reward-{item.id}" data-owned={isOwned ? 'true' : 'false'}>
             {#if section.kind === 'tint'}
-              <span class="tint-egg" style={`filter: ${isOwned ? TINT_FILTERS[tintKey(item.id)] : 'grayscale(1) opacity(.5)'}`}><img src={ART.dragon.egg} alt="" /></span>
+              <span class="tint-egg"><img src={ART.dragon.egg} alt="" style={`filter: ${eggFilter(tintKey(item.id), isOwned)}`} /></span>
             {:else}
               <Medallion rewardId={item.id} locked={!isOwned} size={64} />
             {/if}
@@ -153,6 +153,11 @@
     font-size: 14px;
     font-style: italic;
     color: var(--gold-light);
+  }
+  /* « Exposer » / « Ranger » sit at the foot of their cubby, level across a row whatever the
+     length of the description above. */
+  .trophy > .kit-bronze {
+    margin-top: auto;
   }
   .tint-egg {
     width: 64px;

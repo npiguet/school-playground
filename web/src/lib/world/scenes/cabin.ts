@@ -34,11 +34,28 @@ export const CABIN_SCENE: SceneDef = {
   preload: [ART.scenes.hubCamp],
 };
 
-/** Free wall spots for the displayed decor (medallion centres, art %): the back wall between the
- *  windows, the right-hand wall, the wall above the desk. Cycled if more decor is displayed. */
+/** The bare whitewashed wall of cabin.webp (art %, x = px / 2048, y = px / 1152), measured on the
+ *  painting: nothing painted inside these rectangles (no beam, lintel, window frame, shelf, plant,
+ *  lamp or bed). The ceiling beam's underside is at y ~= 20; the lintels run at y ~= 25-27.5 over
+ *  x ~= 43.5-58 and 69-83; the left window's frame spans x ~= 46.5-56, the right one's x ~= 71.5-80.5;
+ *  the room's inner corner is at x ~= 41; the hanging plant ends at y ~= 40 and the pillow starts at
+ *  y ~= 58 on the right-hand wall (x ~= 81-88). */
+export const BARE_WALL = {
+  /** Between the windows, under the beam and above the lamp's chimney (y ~= 38.7). */
+  betweenWindows: { x: 56.5, y: 21, w: 12.5, h: 16.5 },
+  /** Between the room's inner corner and the left window, under its lintel. */
+  leftOfWindow: { x: 41.5, y: 28, w: 4.5, h: 16 },
+  /** The right-hand wall, under the plant and above the pillow (inside the safe zone). */
+  rightWall: { x: 81.5, y: 41, w: 6, h: 16.5 },
+} as const;
+
+/** Where the displayed decor hangs (medallion centres, art %), each on BARE_WALL and clear of the
+ *  lyre's and the journal's plaques (the lyre's sits at x ~= 62.5-69.5 above its lamp): left of the
+ *  lyre's leader between the windows, the wall left of the left window, twice on the right-hand
+ *  wall. Cycled if more decor is displayed. */
 export const DECOR_SLOTS: { x: number; y: number }[] = [
-  { x: 63.5, y: 22 },
-  { x: 80, y: 26 },
-  { x: 80, y: 42 },
-  { x: 46, y: 30 },
+  { x: 60, y: 31 },
+  { x: 84.5, y: 45 },
+  { x: 43.8, y: 35 },
+  { x: 84.5, y: 53 },
 ];

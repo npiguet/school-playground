@@ -35,7 +35,7 @@ describe("dragon's nest (UI3 Ruling B5)", () => {
 
   it('greets with its stage line and speaks in its care (immersion #23)', () => {
     expect(nestGreeting(egg).map((l) => l.text)).toEqual(["L'œuf frémit chaque fois qu'un piège d'Éris est déjoué."]);
-    expect(careLine(egg)).toMatchObject({ speaker: 'dragon', text: "Un œuf n'a pas encore de nom. Il éclora quand une ruse d'Éris sera neutralisée." });
+    expect(careLine(egg)).toMatchObject({ speaker: 'dragon', text: "Il frémit dans la paille. Il éclora quand une ruse d'Éris sera neutralisée." });
     expect(careLine({ ...egg, stage: 'hatchling' }).text).toBe('Il te regarde et attend un nom.');
     expect(careLine({ ...egg, stage: 'young', name: 'Braise' }).text).toBe('Braise se laisse admirer. Change sa teinte quand tu veux.');
     for (const d of [egg, { ...egg, stage: 'young' as const, name: 'Braise' }]) expect(careLine(d).text.length).toBeLessThanOrEqual(160);

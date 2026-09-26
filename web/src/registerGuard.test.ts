@@ -27,8 +27,9 @@ const BANNED: [RegExp, string][] = [
   [/\btableau des quêtes\b/i, 'one name: « Le mur des quêtes » (Ruling W13)'],
 ];
 
-// The legacy screens UI3b is moving into the places still use the old words; each task deletes its
-// line when the screen moves (the list may only shrink; a path that no longer exists fails below).
+// Screens exempted while they still used the old words. Empty since UI3b Task 6 moved the last one
+// (Stats) into the cabin's journal; it must stay empty (a path listed here that no longer exists
+// fails below).
 const PENDING = new Set<string>([]);
 const BATTLE = new Set(['src/screens/Play.svelte', 'src/screens/Boss.svelte']); // UI4
 

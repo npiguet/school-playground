@@ -61,7 +61,7 @@ export function nestGreeting(d: DragonOut): DialogueLine[] {
 
 /** What the dragon says from its care overlay's voice plate (Ruling B5, immersion #23). */
 export function careLine(d: DragonOut): DialogueLine {
-  if (d.stage === 'egg') return dragonSays(d, "Un œuf n'a pas encore de nom. Il éclora quand une ruse d'Éris sera neutralisée.");
+  if (d.stage === 'egg') return dragonSays(d, "Il frémit dans la paille. Il éclora quand une ruse d'Éris sera neutralisée.");
   if (!d.name) return dragonSays(d, 'Il te regarde et attend un nom.');
   return dragonSays(d, `${d.name} se laisse admirer. Change sa teinte quand tu veux.`);
 }

@@ -5,8 +5,8 @@
   // and the totals, loaded from the server.
   import { api, ApiError } from '../../../lib/api';
   import { CATEGORY_LABELS } from '../../../lib/explain';
-  import { HELP_STAGES, helpStageLine } from '../../../lib/world/journal';
-  import { longDate, plural } from '../../../lib/text/french';
+  import { HELP_STAGES, defenceMeta, helpStageLine, rateText } from '../../../lib/world/journal';
+  import { plural } from '../../../lib/text/french';
   import type { StatKey } from '../../../lib/grading/types';
   import type { CategoryRow, Profile, StatsResponse } from '../../../lib/types';
 
@@ -32,10 +32,6 @@
 
   function categoryLabel(category: string): string {
     return CATEGORY_LABELS[category as StatKey] ?? category;
-  }
-
-  function pct(rate: number | null): string {
-    return rate === null ? '—' : `${Math.round(100 * rate)} %`;
   }
 
   const categories = $derived((stats?.categories ?? []).filter((c: CategoryRow) => c.errors_in_draft > 0));
@@ -65,7 +61,7 @@
           <thead><tr><th>Ruse</th><th>Pièges</th><th>Déjoués</th><th>Réussite</th></tr></thead>
           <tbody>
             {#each categories as c (c.category)}
-              <tr><td>{categoryLabel(c.category)}</td><td>{c.errors_in_draft}</td><td>{c.caught}</td><td>{pct(c.catch_rate)}</td></tr>
+              <tr><td>{categoryLabel(c.category)}</td><td>{c.errors_in_draft}</td><td>{c.caught}</td><td>{rateText(c.catch_rate)}</td></tr>
             {/each}
           </tbody>
         </table>
@@ -97,7 +93,7 @@
           {#each stats.recent_sessions as s (s.id)}
             <li>
               <span class="defence-title">{s.title}</span>
-              <span class="defence-meta">{longDate(s.finished_at.slice(0, 10))} · {plural(s.score, 'point', 'points')} · {pct(s.catch_rate)} déjoués</span>
+              <span class="defence-meta">{defenceMeta(s)}</span>
               {#if s.mode === 'grimoire'}<span class="kit-stamp">Grimoire</span>{/if}
             </li>
           {/each}
@@ -180,7 +176,7 @@
     height: 16px;
     box-sizing: border-box;
     border-radius: 100% 0;
-    border: 1px solid var(--bronze);
+    border: 1.5px solid var(--bronze-dark);
     background: transparent;
     transform: rotate(-30deg);
   }

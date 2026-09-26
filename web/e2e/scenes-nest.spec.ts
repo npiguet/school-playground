@@ -42,12 +42,39 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(page).toHaveURL(/\/dragon\?panel=soin$/);
   const care = page.getByTestId('overlay-care');
   await expect(care.getByRole('heading', { name: 'Ton dragon', level: 2 })).toBeVisible();
-  await expect(care.getByTestId('overlay-voice')).toContainText("Un œuf n'a pas encore de nom.");
+  await expect(care.getByTestId('overlay-voice')).toContainText("Il frémit dans la paille. Il éclora quand une ruse d'Éris sera neutralisée.");
   await expect(care).toContainText('Tu lui donneras un nom quand il éclora.');
   await expect(care.getByTestId('dragon-tint-bronze')).toBeVisible();
   await expect(care.getByTestId('dragon-tint-ecume')).toBeDisabled();
   await expect(care.getByTestId('dragon-tint-ecume')).toContainText("À gagner : quête de l'Oracle");
   await expect(care.getByTestId('dragon-tint-ecume').locator('img[src="/art/icons/lock.webp"]')).toBeVisible();
+  // Fix round 1: the tint filters the egg picture only. Nothing around it is filtered, so the ring
+  // keeps its own colour (a filtered ring turned violet, Éris's colour) and the lock stays readable;
+  // a locked egg is grey, never tinted.
+  const token = (name: string) =>
+    page.evaluate((n) => {
+      const probe = document.createElement('span');
+      probe.style.color = `var(${n})`;
+      document.body.append(probe);
+      const c = getComputedStyle(probe).color;
+      probe.remove();
+      return c;
+    }, name);
+  const filtersAbove = (t: string) =>
+    care.getByTestId(`dragon-tint-${t}`).locator('.swatch-egg').evaluate((img) => {
+      const out: string[] = [];
+      for (let el = img.parentElement; el && el.dataset.testid !== 'overlay-care'; el = el.parentElement) {
+        const f = getComputedStyle(el).filter;
+        if (f !== 'none') out.push(f);
+      }
+      return out;
+    });
+  for (const t of ['bronze', 'ecume', 'argent']) expect(await filtersAbove(t), t).toEqual([]);
+  await expect(care.getByTestId('dragon-tint-bronze').locator('.swatch-circle')).toHaveCSS('border-top-color', await token('--olive'));
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-circle')).toHaveCSS('border-top-color', await token('--ink-soft'));
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.lock')).toHaveCSS('filter', 'none');
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveCSS('filter', /grayscale\(1\)/);
+  await expect(care.getByTestId('dragon-tint-bronze').locator('.swatch-egg')).toHaveCSS('filter', 'none');
   await closeOverlay(page);
   await expect(page.getByTestId('nest-dragon')).toBeFocused();
 });

@@ -6,7 +6,7 @@
   import { ART, MARK_ICONS } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
-  import { TINT_FILTERS, TINT_NAMES, validName } from '../../../lib/world/dragon';
+  import { TINT_NAMES, eggFilter, validName } from '../../../lib/world/dragon';
   import type { Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import { playSfx, unlockAudio } from '../../../lib/juice/sfx';
@@ -133,8 +133,10 @@
             class:locked={!unlocked}
             onclick={() => pickTint(t)}
           >
-            <span class="swatch-circle" style={`filter: ${TINT_FILTERS[t]}`}>
-              <img src={ART.dragon.egg} alt="" />
+            <!-- The tint (or the locked grey) filters the egg only: the ring and the lock keep
+                 their own colours (fix round 1). -->
+            <span class="swatch-circle">
+              <img class="swatch-egg" src={ART.dragon.egg} alt="" style={`filter: ${eggFilter(t, unlocked)}`} />
               {#if !unlocked}<span class="lock" aria-hidden="true"><img src={MARK_ICONS.lock} alt="" /></span>{/if}
             </span>
             <span class="swatch-name">{TINT_NAMES[t]}</span>
@@ -201,7 +203,7 @@
     align-items: center;
     justify-content: center;
   }
-  .swatch-circle img {
+  .swatch-egg {
     width: 44px;
     height: 44px;
     object-fit: contain;
@@ -211,8 +213,6 @@
     box-shadow: 0 0 0 2px var(--olive-light);
   }
   .tint-swatch.locked .swatch-circle {
-    filter: grayscale(1);
-    opacity: 0.6;
     border-color: var(--ink-soft);
   }
   .lock {
