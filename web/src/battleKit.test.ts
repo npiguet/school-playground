@@ -10,7 +10,6 @@ import { legacyUses } from './testing/legacyClasses';
 // only its own lines, so the two merge without a conflict. Task 8 asserts it is empty.
 const PENDING = new Set<string>([
   // --- lane V (Tasks 6-7) below this line ---
-  'src/components/battle/BossMuster.svelte',
 ]);
 
 function walk(dir: string, out: string[] = []): string[] {

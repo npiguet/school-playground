@@ -39,4 +39,15 @@ export function outcomeOf(r: { draft: number; caught: number }, boss: { won: boo
   return r.caught > 0 ? 'push' : 'standoff';
 }
 
-export const hpPercent = (hp: HpView) => Math.round(hp.value * 100);
+/** The reckoning's verdict, or null while it must wait. A boss fight's outcome is the server's
+ *  (progression.boss), so it waits for the session's progression: a failed submission gives no
+ *  provisional outcome that a retry would then replace (UI5 hears one outcome per battle). */
+export function reckoningVerdict(
+  r: { draft: number; caught: number },
+  o: { bossFight: boolean; progression: { boss: { won: boolean; too_easy: boolean } | null } | null },
+): Outcome | null {
+  if (o.bossFight && !o.progression) return null;
+  return outcomeOf(r, o.progression?.boss ?? null);
+}
+
+export const hpPercent =(hp: HpView) => Math.round(hp.value * 100);

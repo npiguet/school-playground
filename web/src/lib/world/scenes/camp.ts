@@ -133,7 +133,8 @@ export const CAMP_SCENE: SceneDef = {
   narrator: { enter: 'camp.enter', firstVisit: 'camp.first' },
   // Carry rec. 9, final review M14: every place the hub leads to, so none loads cold on its first
   // tap (the next step's place first: the tent and the temple, then the others and the battle).
-  preload: [ART.scenes.libraryTent, ART.scenes.delphi, ART.scenes.warTent, ART.scenes.nest, ART.scenes.cabin, ART.scenes.battle],
+  // UI4: the path to battle leads to Éris's lair (the boss's battle stage).
+  preload: [ART.scenes.libraryTent, ART.scenes.delphi, ART.scenes.warTent, ART.scenes.nest, ART.scenes.cabin, ART.scenes.erisLair],
 };
 
 const WIDTH: Record<DragonStage, number> = { egg: 6, hatchling: 7, young: 8, adult: 9 };

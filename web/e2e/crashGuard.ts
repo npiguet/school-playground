@@ -5,8 +5,11 @@ import { test as base, expect } from '@playwright/test';
 // fails with this named error, and only such a test is run once more, by
 // scripts/playwright-crash-retry.mjs (Playwright's own `retries` stays 0: every other failure is a
 // defect and never retries). Every spec imports `test` from here, not from '@playwright/test'
-// (guarded by src/e2eCrashGuard.test.ts).
-export const BROWSER_CRASHED = 'browser crashed (upstream WebKit)';
+// (guarded by src/e2eCrashGuard.test.ts). The error's name lives in crashClassify.ts, with the
+// other crashes the retry counts (Ruling U4-b: a worker or browser segfault).
+import { BROWSER_CRASHED } from './crashClassify';
+
+export { BROWSER_CRASHED };
 
 export const test = base.extend({
   // Watches every page of the test's context (the default page and any popup) for a renderer

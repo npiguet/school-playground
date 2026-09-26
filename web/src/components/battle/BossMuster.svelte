@@ -1,8 +1,13 @@
 <script lang="ts">
-  // The boss's muster (UI4 Task 2): Boss's challenge and info card, moved as they were onto the
-  // battle stage's parchment in Éris's lair. Task 7 restyles it and gives her challenge its voice
-  // plate. A lost fight never costs anything: the button always offers the fight again.
+  // The boss's muster in Éris's lair (UI4 Task 7, Ruling C7): her challenge for this tier as her own
+  // voice plate on the parchment, then the fight's stakes and rules and the grand button. The
+  // stage's plaque names her, so no heading repeats it. A lost fight never costs anything: the
+  // button always offers the fight again.
+  import { onMount } from 'svelte';
   import Medallion from '../juice/Medallion.svelte';
+  import OverlayVoice from '../scene/OverlayVoice.svelte';
+  import { BOSS } from '../../lib/battle/lines';
+  import { react } from '../../lib/battle/stage.svelte';
   import { romanTier } from '../../lib/world/quests';
   import type { DialogueLine } from '../../lib/scene/types';
 
@@ -29,30 +34,23 @@
     taunt: DialogueLine;
     onStart: () => void;
   } = $props();
+
+  // She throws down the challenge: her cut-out taunts as her line appears.
+  onMount(() => react('opponent', 'taunt'));
 </script>
 
 <div class="boss-muster">
-  <div class="parchment eris-panel challenge">
-    <p class="challenge-line">« {taunt.text} »</p>
-  </div>
-
-  <div class="card info-card">
-    <p class="tier" data-testid="boss-tier">Combat {romanTier(tier)}</p>
-    <div class="reward" data-testid="boss-reward">
-      {#if rewardId}<Medallion {rewardId} size={40} />{/if}
-      <span>Récompense si tu gagnes : {rewardXp} XP · {rewardName}</span>
-    </div>
-    <p class="rules muted">
-      Un long texte · les Yeux d'Argus restent éteints · chaque piège trouvé reste acquis, même si Éris s'enfuit : tu
-      pourras recommencer.
-    </p>
-
-    {#if startError}<p class="orange" role="alert">{startError}</p>{/if}
-
-    <button type="button" class="btn btn-primary" data-testid="boss-start" disabled={starting} onclick={onStart}>
-      {retry ? 'Relancer le combat' : 'Affronter Éris'}
-    </button>
-  </div>
+  <OverlayVoice line={taunt} testId="battle-voice" />
+  <p class="kit-ribbon tier" data-testid="boss-tier">{BOSS.tier(romanTier(tier))}</p>
+  <p class="stakes" data-testid="boss-reward">
+    {#if rewardId}<Medallion {rewardId} size={40} />{/if}
+    <span>{BOSS.reward(rewardXp, rewardName)}</span>
+  </p>
+  <p class="rules">{BOSS.rules}</p>
+  {#if startError}<p class="kit-note" data-tone="eris" role="alert">{startError}</p>{/if}
+  <button type="button" class="kit-bronze start" data-testid="boss-start" disabled={starting} onclick={onStart}>
+    {retry ? BOSS.restart : BOSS.start}
+  </button>
 </div>
 
 <style>
@@ -63,38 +61,57 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 16px;
+    align-items: center;
+    gap: 18px;
+    padding: 22px 28px;
+    color: var(--ink);
+    text-align: center;
   }
-  .challenge {
-    padding: 18px 20px;
-  }
-  .challenge-line {
+  .boss-muster :global(.overlay-voice) {
+    align-self: stretch;
     margin: 0;
-    font-style: italic;
-    font-size: 18px;
+    text-align: left;
   }
-  .info-card {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
+  .boss-muster p {
+    margin: 0;
+  }
+  /* Centred in the parchment's height while it fits, scrolling from the top when it does not. */
+  .boss-muster > :global(:first-child) {
+    margin-top: auto;
+  }
+  .boss-muster > :global(:last-child) {
+    margin-bottom: auto;
   }
   .tier {
-    margin: 0;
     font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 20px;
+    font-size: 22px;
+    letter-spacing: 0.06em;
   }
-  .reward {
-    margin: 0;
-    font-weight: 600;
-    color: var(--gold);
+  .stakes {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 10px;
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--reward-ink);
   }
   .rules {
-    margin: 0;
+    max-width: 34em;
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  .kit-note {
+    align-self: stretch;
+    text-align: left;
+  }
+  /* The grand button: the fight is one tap away. */
+  .start {
+    min-height: 56px;
+    padding: 12px 36px;
+    font-size: 19px;
   }
 </style>

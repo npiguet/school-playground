@@ -49,14 +49,16 @@ test('create profile → add text → dictation → proofreading → results →
   if (await confirm.isVisible()) await confirm.click();
 
   // Results
-  await expect(page.getByRole('heading', { name: 'Relecture terminée' })).toBeVisible();
+  await expect(page.getByTestId('victory-title')).toBeVisible();
   await expect(page.getByTestId('results-catch-rate')).toContainText('1 sur 2');
   // A narrow no-break space before « % » (French typography: the sign never wraps alone).
   // toContainText folds every space into ' ', so the character itself is read from the DOM.
   await expect(page.getByTestId('results-catch-rate')).toContainText('50 %');
   expect(await page.getByTestId('results-catch-rate').textContent()).toContain('50 %');
   await expect(page.getByTestId('results-score')).not.toContainText('NaN');
-  await expect(page.getByText(/chantent/).first()).toBeVisible();
+  await page.getByTestId('battle-revoir').click();
+  await expect(page.getByTestId('overlay-revoir').getByText(/chantent/).first()).toBeVisible();
+  await closeOverlay(page);
 
   // The stats reflect the session (the journal route; the hero panel and the dossier that lead to it
   // are covered by scenes-cabin and scenes-war).

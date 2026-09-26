@@ -1,27 +1,30 @@
 <script lang="ts">
-  // The post-session progression reveal (spec §3.6, plan Task 8): a short, joyful, staggered
-  // sequence of cards above the results screen - XP, quests touched, a lieutenant neutralised
-  // (permanent, spec ethics: nothing is ever lost), rewards not already shown, the dragon growing,
-  // the weekly goal and a boss outcome. Every reward here was already known in advance (the quest
-  // board / lieutenant page / boss screen showed it before the player committed) - this screen
-  // only confirms it happened.
+  // The victory's spoils (spec §3.6, plan Task 8; UI4 Task 6 moved it onto the victory sheet, built
+  // from kit objects): a short, joyful, staggered sequence - XP rising on the laurel, quests touched,
+  // a lieutenant neutralised (permanent, spec ethics: nothing is ever lost), rewards not already
+  // shown, the dragon growing, the weekly goal and a boss outcome. Every reward here was already
+  // known in advance (the quest board / lieutenant page / boss screen showed it before the player
+  // committed) - this only confirms it happened.
   import { untrack } from 'svelte';
-  import Reveal from './juice/Reveal.svelte';
-  import Gauge from './juice/Gauge.svelte';
-  import Medallion from './juice/Medallion.svelte';
-  import Particles from './juice/Particles.svelte';
-  import Dragon from './Dragon.svelte';
-  import { ART, RELIC_OF } from '../lib/world/art';
-  import { worldApi } from '../lib/world/api';
-  import { campStore, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
-  import { stageLabel, validName } from '../lib/world/dragon';
-  import { lowerLeadingArticle, romanTier } from '../lib/world/quests';
-  import { agree } from '../lib/world/eris';
-  import { ApiError } from '../lib/api';
-  import { playSfx, unlockAudio } from '../lib/juice/sfx';
-  import { reducedMotion } from '../lib/juice/motion';
-  import type { DragonOut, LieutenantKey, Progression } from '../lib/world/types';
-  import type { Profile } from '../lib/types';
+  import Reveal from '../juice/Reveal.svelte';
+  import Medallion from '../juice/Medallion.svelte';
+  import Particles from '../juice/Particles.svelte';
+  import Dragon from '../Dragon.svelte';
+  import LaurelBar from '../ui/LaurelBar.svelte';
+  import OverlayVoice from '../scene/OverlayVoice.svelte';
+  import { VICTORY } from '../../lib/battle/lines';
+  import { ART, RELIC_OF } from '../../lib/world/art';
+  import { worldApi } from '../../lib/world/api';
+  import { campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
+  import { stageLabel, validName } from '../../lib/world/dragon';
+  import { lowerLeadingArticle, romanTier } from '../../lib/world/quests';
+  import { agree } from '../../lib/world/eris';
+  import { erisSays } from '../../lib/world/voices';
+  import { ApiError } from '../../lib/api';
+  import { playSfx, unlockAudio } from '../../lib/juice/sfx';
+  import { reducedMotion } from '../../lib/juice/motion';
+  import type { DragonOut, LieutenantKey, Progression } from '../../lib/world/types';
+  import type { Profile } from '../../lib/types';
 
   let {
     progression,
@@ -64,9 +67,12 @@
 
   const rankedUp = $derived(progression.xp.rank_after > progression.xp.rank_before);
 
+  // Reduced motion (UI4 global constraints): the laurel jumps straight to its final value, on the
+  // new rank's scale.
+  const quick = reducedMotion();
   // Which scale the gauge currently shows: the old one until the rank-up switch fires (below),
   // the new one immediately when there is no rank-up at all.
-  let gaugePhase = $state<'before' | 'after'>('before');
+  let gaugePhase = $state<'before' | 'after'>(quick ? 'after' : 'before');
   const showingAfterRank = $derived(!rankedUp || gaugePhase === 'after');
   const gaugeFloor = $derived(showingAfterRank ? rankAfterFloor : rankBeforeFloor);
   const gaugeMax = $derived(showingAfterRank ? rankAfterMax : rankBeforeMax);
@@ -78,7 +84,9 @@
   let xpValue = $state(0);
   let xpAnimated = false;
   $effect(() => {
-    if (!xpAnimated) xpValue = Math.max(0, progression.xp.total_before - gaugeFloor);
+    if (!xpAnimated) {
+      xpValue = quick ? Math.max(0, progression.xp.total_after - rankAfterFloor) : Math.max(0, progression.xp.total_before - gaugeFloor);
+    }
   });
   const bonusChips = $derived([{ reason: 'session', amount: progression.xp.session }, ...progression.xp.bonuses]);
 
@@ -161,25 +169,30 @@
     const timers: ReturnType<typeof setTimeout>[] = [];
     // The XP gauge itself animates shortly after mount, independent of the other cues. A rank-up
     // fills the OLD scale to its max first, then (after the burst) switches the gauge to the NEW
-    // rank's floor/next and animates to `total_after` on that scale (P1-2).
-    timers.push(
-      setTimeout(() => {
-        xpAnimated = true;
-        if (rankedUp) {
-          xpValue = rankBeforeMax;
-          playSfx('chime');
-          xpBurstTrigger += 1;
-          timers.push(
-            setTimeout(() => {
-              gaugePhase = 'after';
-              xpValue = Math.max(0, progression.xp.total_after - rankAfterFloor);
-            }, 400),
-          );
-        } else {
-          xpValue = Math.max(0, progression.xp.total_after - rankAfterFloor);
-        }
-      }, 150),
-    );
+    // rank's floor/next and animates to `total_after` on that scale (P1-2). Reduced motion: the value
+    // is already final (above); only the rank-up chime plays.
+    if (quick) {
+      if (untrack(() => rankedUp)) playSfx('chime');
+    } else {
+      timers.push(
+        setTimeout(() => {
+          xpAnimated = true;
+          if (rankedUp) {
+            xpValue = rankBeforeMax;
+            playSfx('chime');
+            xpBurstTrigger += 1;
+            timers.push(
+              setTimeout(() => {
+                gaugePhase = 'after';
+                xpValue = Math.max(0, progression.xp.total_after - rankAfterFloor);
+              }, 400),
+            );
+          } else {
+            xpValue = Math.max(0, progression.xp.total_after - rankAfterFloor);
+          }
+        }, 150),
+      );
+    }
     let t = 350;
     progression.neutralised.forEach((_key, i) => {
       timers.push(
@@ -237,21 +250,21 @@
   }
 </script>
 
-<div class="reveal-stack">
+<div class="spoils">
   <Reveal delay={nextDelay()}>
-    <div class="card reveal-card" data-testid="reveal-xp">
-      <p class="headline">+{progression.xp.session} XP</p>
-      <div class="gauge-wrap">
-        <Gauge value={xpValue} max={gaugeMax} label={gaugeTitle} />
+    <div class="spoil xp" data-testid="reveal-xp">
+      <p class="xp-gain">+{progression.xp.session} XP</p>
+      <div class="xp-laurel">
+        <LaurelBar value={xpValue} max={gaugeMax} label={gaugeTitle} testId="victory-xp" />
         {#if rankedUp}<Particles trigger={xpBurstTrigger} kind="burst" />{/if}
       </div>
-      <div class="chips">
+      <div class="bonuses">
         {#each bonusChips as b, i (i)}
-          <span class="chip">{BONUS_LABELS[b.reason] ?? b.reason} +{b.amount}</span>
+          <span class="kit-tag bonus" style:--tag-tilt="{i % 2 ? 1.2 : -1.2}deg">{BONUS_LABELS[b.reason] ?? b.reason} +{b.amount}</span>
         {/each}
       </div>
       {#if rankedUp}
-        <p class="rank-up pop">Nouveau rang : {progression.xp.title_after}</p>
+        <p class="kit-ribbon rank-up">Nouveau rang : {progression.xp.title_after}</p>
       {/if}
     </div>
   </Reveal>
@@ -259,13 +272,13 @@
   {#each progression.quests as q (q.id)}
     {@const bonus = questBonus(q)}
     <Reveal delay={nextDelay()}>
-      <div class="card reveal-card" class:gold-frame={q.completed} data-testid="reveal-quest-{q.id}">
-        <p class="title">{questLabel(q)}</p>
-        <p class="progress-line">
+      <div class="kit-sheet spoil" class:is-complete={q.completed} data-testid="reveal-quest-{q.id}">
+        <p class="spoil-title">{questLabel(q)}</p>
+        <p>
           {q.counted ? 'Ce texte compte : ' : 'Ce texte ne compte pas cette fois : '}{q.progress} / {q.goal ?? '?'}
         </p>
         {#if q.completed}
-          <p class="accomplished">Quête accomplie !</p>
+          <p class="kit-stamp accomplished">Quête accomplie !</p>
           {#if bonus.xp !== null || bonus.rewardName}
             <p class="reward-line">
               {[bonus.xp !== null ? `${bonus.xp} XP` : null, bonus.rewardName].filter(Boolean).join(' · ')}
@@ -278,15 +291,15 @@
 
   {#each progression.neutralised as key, i (key)}
     <Reveal delay={nextDelay()}>
-      <div class="parchment reveal-card full" data-testid="reveal-neutralised-{key}">
+      <div class="neutralised" data-testid="reveal-neutralised-{key}">
         <img
           src={ART.lieutenants[key as keyof typeof ART.lieutenants] ?? ART.eris}
           alt={names[key] ?? key}
           class="lieutenant-art"
         />
-        <div class="neutralised-body">
-          <p class="title">{names[key] ?? key} — {agree('neutralisé', key as LieutenantKey)} !</p>
-          <p>Sa ruse ne te piège plus : taux ≥ 80 % sur trois jours.</p>
+        <div class="kit-sheet spoil neutralised-sheet">
+          <p class="spoil-title">{names[key] ?? key} — {agree('neutralisé', key as LieutenantKey)} !</p>
+          <p>{VICTORY.neutralised}</p>
           <Medallion rewardId={RELIC_OF[key as LieutenantKey] ?? ''} size={56} label={relicName(key)} />
         </div>
         <Particles trigger={neutralisedTriggers[i]} kind="burst" />
@@ -296,16 +309,16 @@
 
   {#each extraRewards as r (r.id)}
     <Reveal delay={nextDelay()}>
-      <div class="card reveal-card reward" data-testid="reveal-reward-{r.id}">
+      <div class="kit-cubby reward" data-testid="reveal-reward-{r.id}">
         <Medallion rewardId={r.id} />
-        <span class="name">{r.name}</span>
+        <span class="reward-name">{r.name}</span>
       </div>
     </Reveal>
   {/each}
 
   {#if dragonGrew}
     <Reveal delay={nextDelay()}>
-      <div class="card reveal-card" data-testid="reveal-dragon">
+      <div class="kit-sheet spoil" data-testid="reveal-dragon">
         <Dragon
           stage={isHatchEvent && hatchPhase === 'egg' ? 'egg' : progression.dragon.stage_after}
           tint={dragon?.tint ?? 'bronze'}
@@ -314,20 +327,29 @@
           name={dragon?.name}
         />
         {#if isHatchEvent}
-          <p class="title">L'œuf éclôt !</p>
+          <p class="spoil-title">L'œuf éclôt !</p>
         {:else}
-          <p class="title">{dragon?.name ?? 'Ton dragon'} grandit : {stageLabel(progression.dragon.stage_after)}</p>
+          <p class="spoil-title">{dragon?.name ?? 'Ton dragon'} grandit : {stageLabel(progression.dragon.stage_after)}</p>
         {/if}
         <Particles trigger={dragonSparkleTrigger} kind="sparkle" />
 
         {#if progression.dragon.needs_name && !dragonNameSaved}
-          <div class="name-form">
-            <input data-testid="reveal-name-input" maxlength="20" lang="fr" autocapitalize="words" bind:value={dragonNameInput} />
-            <button type="button" class="btn btn-primary" data-testid="reveal-name-save" disabled={savingDragonName} onclick={saveDragonName}>
+          <div class="kit-form name-form">
+            <input
+              data-testid="reveal-name-input"
+              aria-label="Nom du dragon"
+              maxlength="20"
+              lang="fr"
+              autocapitalize="words"
+              autocorrect="off"
+              spellcheck="false"
+              bind:value={dragonNameInput}
+            />
+            <button type="button" class="kit-bronze" data-testid="reveal-name-save" disabled={savingDragonName} onclick={saveDragonName}>
               C'est son nom
             </button>
           </div>
-          {#if dragonNameError}<p class="orange" role="alert">{dragonNameError}</p>{/if}
+          {#if dragonNameError}<p class="kit-note" data-tone="eris" role="alert">{dragonNameError}</p>{/if}
         {/if}
       </div>
     </Reveal>
@@ -335,11 +357,11 @@
 
   {#if progression.weekly.reached_now}
     <Reveal delay={nextDelay()}>
-      <div class="card reveal-card" data-testid="reveal-weekly">
+      <div class="kit-sheet spoil" data-testid="reveal-weekly">
         <span class="laurels" aria-hidden="true">
-          {#each Array.from({ length: progression.weekly.target }) as _, i (i)}<span class="leaf filled"></span>{/each}
+          {#each Array.from({ length: progression.weekly.target }) as _, i (i)}<span class="leaf"></span>{/each}
         </span>
-        <p class="title">
+        <p class="spoil-title">
           Objectif de la semaine atteint ! +{progression.xp.bonuses.find((b) => b.reason === 'weekly')?.amount ?? 40} XP
         </p>
         <Particles trigger={weeklyLaurelTrigger} kind="laurel" />
@@ -350,136 +372,123 @@
   {#if progression.boss}
     <Reveal delay={nextDelay()}>
       {#if progression.boss.won}
-        <div class="eris-panel reveal-card boss-result" data-testid="reveal-boss">
-          <img src={ART.erisSmug} alt="" class="eris-art flipped" />
-          <div>
-            <p class="line">« Impossible ! Garde ta pomme, je reviendrai avec de nouvelles ruses. »</p>
-            {#if bossReward}
-              <div class="reward-line">
-                <Medallion rewardId={bossReward.id} size={48} />
-                <span>{bossReward.name}</span>
-              </div>
-            {/if}
-          </div>
+        <div class="boss-won" data-testid="reveal-boss">
+          <OverlayVoice line={erisSays(VICTORY.bossWon)} testId="boss-voice" />
+          {#if bossReward}
+            <p class="reward-line">
+              <Medallion rewardId={bossReward.id} size={48} />
+              <span>{bossReward.name}</span>
+            </p>
+          {/if}
         </div>
       {:else if progression.boss.too_easy}
-        <div class="parchment reveal-card boss-result" data-testid="reveal-boss-too-easy">
-          <p class="line">
-            Dictée parfaite : Éris n'a rien pu saboter ! Furieuse, elle va corrompre le parchemin elle-même. Relance le
-            combat pour démasquer ses pièges.
-          </p>
-        </div>
+        <p class="kit-note" data-testid="reveal-boss-too-easy">{VICTORY.bossTooEasy}</p>
       {:else}
-        <div class="parchment reveal-card boss-result" data-testid="reveal-boss">
-          <p class="line">« Éris s'enfuit avec la pomme… pour cette fois. Le combat reste ouvert : tu la retrouveras. »</p>
-        </div>
+        <p class="kit-note" data-tone="eris" data-testid="reveal-boss">{VICTORY.bossLost}</p>
       {/if}
     </Reveal>
   {/if}
 
   <Reveal delay={nextDelay()}>
-    <button type="button" class="btn btn-primary continue-btn" data-testid="reveal-continue" onclick={onDone}>
-      Voir la relecture
-    </button>
+    <div class="continue">
+      <button type="button" class="kit-bronze" data-testid="reveal-continue" onclick={onDone}>{VICTORY.continue}</button>
+    </div>
   </Reveal>
 </div>
 
 <style>
-  .reveal-stack {
+  .spoils {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 12px;
   }
-  .reveal-card {
+  .spoil {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
     text-align: center;
-    padding: 18px;
   }
-  .reveal-card.full {
-    flex-direction: row;
-    text-align: left;
-    align-items: center;
-    gap: 16px;
-  }
-  .gold-frame {
-    border: 3px solid var(--gold);
-  }
-  .headline {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 24px;
+  .spoil p {
     margin: 0;
   }
-  .gauge-wrap {
-    position: relative;
-    width: 100%;
-    max-width: 320px;
+  /* A quest accomplished: the sheet's gold rim. */
+  .kit-sheet.is-complete {
+    box-shadow:
+      0 0 0 3px var(--gold),
+      0 6px 16px rgba(0, 0, 0, 0.35);
   }
-  .chips {
+  .xp-gain {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 26px;
+    color: var(--reward-ink);
+  }
+  .xp-laurel {
+    position: relative;
+  }
+  /* The bonuses hang as paper tags, their cords tucked under the laurel above. */
+  .bonuses {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 10px 14px;
     justify-content: center;
+    padding-top: 10px;
   }
-  .chip {
-    border: 1px solid var(--marble-dark);
-    border-radius: 999px;
-    padding: 4px 10px;
-    font-size: 13px;
+  .bonus {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 4px 10px 5px 24px;
   }
   .rank-up {
-    font-family: var(--font-display);
-    font-weight: 600;
-    color: var(--gold);
-    margin: 0;
+    font-size: 17px;
   }
-  .title {
+  .spoil-title {
     font-family: var(--font-display);
-    font-weight: 600;
-    margin: 0;
-  }
-  .progress-line {
-    margin: 0;
+    font-weight: 700;
+    color: var(--bronze-dark);
   }
   .accomplished {
-    margin: 0;
-    color: var(--gold);
-    font-weight: 700;
+    align-self: center;
+    font-size: 13px;
+    color: var(--reward-ink);
   }
   .reward-line {
-    margin: 0;
-    font-weight: 600;
-    color: var(--gold);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    font-weight: 700;
+    color: var(--reward-ink);
   }
-  /* The boss-won card is left-aligned (.boss-result), unlike every other card this rule sits in
-     (all centred) - review round 1 #5. */
-  .boss-result .reward-line {
-    justify-content: flex-start;
+  .neutralised {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .neutralised-sheet {
+    flex: 1;
   }
   .lieutenant-art {
-    width: 88px;
-    height: 88px;
+    width: 96px;
+    height: 96px;
     object-fit: contain;
     flex-shrink: 0;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
   }
-  .neutralised-body {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: flex-start;
+  /* The extra rewards lie in a cubby of the camp's shelves: dark wood, light ink. */
+  .reward {
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    cursor: default;
+    color: var(--bronze-ink);
   }
-  .reward .name {
+  .reward-name {
     font-family: var(--font-display);
-    font-weight: 600;
+    font-weight: 700;
   }
   .name-form {
     display: flex;
@@ -488,18 +497,14 @@
     justify-content: center;
   }
   .name-form input {
-    min-height: 48px;
-    padding: 0 12px;
-    border-radius: var(--radius);
-    border: 1px solid var(--marble-dark);
-    font-size: 16px;
+    width: 14em;
   }
   .laurels {
     display: inline-flex;
     gap: 4px;
   }
-  /* Same CSS-only leaf shape as `Camp.svelte`'s weekly ribbon (UI3 Ruling A12: no emoji) - every
-     leaf is filled here since this card only shows once the goal is actually reached. */
+  /* Same CSS-only leaf as the camp's weekly ribbon (UI3 Ruling A12: no emoji): every leaf is gold,
+     this sheet only shows once the goal is reached. */
   .leaf {
     width: 12px;
     height: 19px;
@@ -507,30 +512,13 @@
     border-radius: 100% 0;
     border: 1px solid var(--bronze-dark);
     transform: rotate(-30deg);
-  }
-  .leaf.filled {
     background: linear-gradient(135deg, var(--gold-light), var(--gold));
   }
-  .boss-result {
-    flex-direction: row;
-    text-align: left;
-    align-items: center;
-    gap: 16px;
+  .boss-won :global(.overlay-voice) {
+    margin: 0 0 8px;
   }
-  .eris-art {
-    width: 96px;
-    height: 96px;
-    object-fit: contain;
-    flex-shrink: 0;
-  }
-  .eris-art.flipped {
-    transform: scaleX(-1);
-  }
-  .line {
-    margin: 0;
-    font-style: italic;
-  }
-  .continue-btn {
-    align-self: center;
+  .continue {
+    display: flex;
+    justify-content: center;
   }
 </style>

@@ -1,4 +1,4 @@
-// The camp hub's data store: one shared `$state` so the HUD, the camp scene and BreakNudge can
+// The camp hub's data store: one shared `$state` so the HUD, the camp scene and the victory can
 // all read the latest dragon/xp/weekly snapshot without re-fetching. `refreshCamp` is tolerant of
 // the world API not existing yet (SP3 server Tasks 2-3 land separately) - a 404/network failure
 // just surfaces a friendly French message, never a crash.

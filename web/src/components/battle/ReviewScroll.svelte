@@ -1,64 +1,40 @@
 <script lang="ts">
-  // The results screen (spec §3.5, §1.6): kind, specific explanations, Éris's line framing the
-  // mistakes as her sabotage, catch rate celebrated. Orange for still-wrong words, olive for
-  // words she caught and fixed herself - never red.
+  // The « Revoir » scroll (UI4 Ruling C6, spec §3.5, §1.6): the old results screen's text and
+  // explanations, unrolled over the victory (`?panel=revoir`, Ruling C1). Every trap on the final
+  // text, tap for the correct form and why; then what Éris tried, by category. Orange for
+  // still-wrong words, the laurel's green for words she caught and fixed herself - never red. The
+  // tally, Éris's line, the help message and the actions live on the victory sheet.
   import { errorKey, gradeText, mapAnnotation } from '$lib/grading';
   import type { Annotation, SessionResult, StatKey, TokenError } from '$lib/grading/types';
-  import { CATEGORY_LABELS, caughtText, erisLine, explain, statKeyOf } from '$lib/explain';
-  import type { PlayMode, TextFull } from '$lib/types';
-  import Icon from './ui/Icon.svelte';
-  import { plural, rateText } from '$lib/text/french';
+  import { CATEGORY_LABELS, caughtText, explain, statKeyOf } from '$lib/explain';
+  import type { TextFull } from '$lib/types';
+  import Overlay from '../scene/Overlay.svelte';
+  import Icon from '../ui/Icon.svelte';
+  import { VICTORY } from '../../lib/battle/lines';
 
   let {
     reference,
     result,
     finalText,
-    helpMessage,
-    submitError,
-    submitting,
     level,
-    mode = 'dictation',
-    onReplay,
-    onCamp,
-    onRetry,
+    onClose,
   }: {
     reference: TextFull;
     result: SessionResult;
     finalText: string;
-    helpMessage: string | null;
-    submitError: string | null;
     /** The player's HarmoS level (SP2 Task 7): threaded into `ExplainContext` so the
      *  participle_avoir chain explanation only shows from 9H (spec §3.4). */
     level: string;
-    /** SP2 Task 9: picks Éris's grimoire-flavoured line and the "Dés-accords retrouvés" wording. */
-    mode?: PlayMode;
-    onReplay: () => void;
-    /** P2-2 (SP3 playability): the results screen's only exit besides replay goes to the camp,
-     *  not the library - after a session the camp is the screen that just changed (egg, quest
-     *  counters, boss panel), so the loop should close there instead of dropping the player one
-     *  more tap away from it. Renamed from `onLibrary` (was wired to the library route). */
-    onCamp: () => void;
-    /** Not in the task brief's prop list, but needed for the "Réessayer" retry button the brief
-     *  describes (Play.svelte step 3): retries the session submission without leaving the screen. */
-    onRetry?: () => void;
-    /** Not in the task brief's prop list either: disables "Réessayer" while a submission request
-     *  is outstanding, so a fast double-tap can't fire it twice. */
-    submitting?: boolean;
+    onClose: () => void;
   } = $props();
 
   const annotation = $derived(reference.annotation as Annotation);
   // Recomputed locally (pure function of reference + finalText): gives the token layout and the
-  // reference<->final alignment this screen needs to place caught/missing markers, independent
+  // reference<->final alignment this scroll needs to place caught/missing markers, independent
   // of what Play.svelte already computed in `result`.
   const grade = $derived(gradeText(reference.body, finalText, annotation));
   const annots = $derived(mapAnnotation(grade.refTokens, annotation));
   const ctx = $derived({ refTokens: grade.refTokens, annots, annotation, level, body: reference.body });
-
-  const draftCount = $derived(result.draftErrors.length);
-  const caughtCount = $derived(result.caught.length);
-  const introducedCount = $derived(result.introduced.length);
-  const rate = $derived(draftCount > 0 ? caughtCount / draftCount : null);
-  const erisText = $derived(erisLine(result.catchRate, draftCount, introducedCount, mode));
 
   // Maps a reference token index to its aligned position in the FINAL text's tokens, so a caught
   // draft error (whose own typedIndex points into the draft, not the final) and a missing-word
@@ -165,60 +141,28 @@
     const e = missingByAnchor.get(active.anchor)?.[active.i];
     return e ? { kind: 'missing' as const, e } : null;
   });
+
+  // The victory renders this scroll from inside the battle stage, which turns `inert` while an
+  // overlay is open (the places render theirs next to the stage instead). So the scroll moves to
+  // <body>, as RotateScreen does, and takes the focus the overlay could not give itself while it
+  // still sat inside the stage.
+  function toBody(node: HTMLElement) {
+    document.body.appendChild(node);
+    const panel = node.querySelector<HTMLElement>('[aria-modal="true"]');
+    if (panel && !node.contains(document.activeElement)) panel.focus();
+    return { destroy: () => node.remove() };
+  }
 </script>
 
-<div class="screen results">
-  <h1>Relecture terminée</h1>
-
-  <div class="card eris">
-    <p class="eris-label">Éris, agacée :</p>
-    <p class="eris-line">{erisText}</p>
-  </div>
-
-  <div class="hero">
-    <p class="hero-line" data-testid="results-catch-rate">
-      {#if draftCount === 0}
-        Texte parfait dès la dictée !
-      {:else if mode === 'grimoire'}
-        Dés-accords retrouvés : {caughtCount} sur {draftCount} ({rateText(rate)})
-      {:else}
-        Pièges déjoués : {caughtCount} sur {draftCount} ({rateText(rate)})
-      {/if}
-    </p>
-    <p class="hero-line" data-testid="results-score">Score : {result.score}</p>
-    <p class="hero-line">Mots justes : {result.correctWords} / {result.totalWords}</p>
-    {#if result.tools && result.tools.threadsDrawn > 0}
-      <p class="hero-line" data-testid="results-threads">
-        Fils d'Ariane tendus : {result.tools.threadsCorrect} sur {result.tools.threadsDrawn}
-      </p>
-    {/if}
-    {#if introducedCount > 0}
-      <p class="hero-line muted">
-        Éris a profité de la relecture pour glisser {plural(introducedCount, 'nouveau piège', 'nouveaux pièges')}. Ça arrive
-        : regarde-les ci-dessous.
-      </p>
-    {/if}
-  </div>
-
-  {#if helpMessage}
-    <div class="banner-olive">{helpMessage}</div>
-  {/if}
-
-  {#if submitError}
-    <div class="banner-error">
-      <p>Les Muses n'ont pas pu noter cette partie ({submitError}).</p>
-      <button type="button" class="btn" disabled={submitting} onclick={onRetry}>
-        {submitting ? 'Envoi en cours…' : 'Réessayer'}
-      </button>
-    </div>
-  {/if}
-
-  <div class="text">
+<div class="revoir-portal" use:toBody>
+<Overlay variant="scroll" size="wide" title={VICTORY.reviewTitle} testId="overlay-revoir" {onClose} returnFocus={'[data-testid="battle-revoir"]'}>
+  <h3 class="kit-section">{VICTORY.reviewText}</h3>
+  <div class="review-text">
     <p class="tokens" lang="fr">{#each pieces as piece, i (i)}{#if piece.kind === 'gap'}{piece.text}{:else if piece.kind === 'missing'}{#each piece.errors as e, j (j)}<button
             type="button"
             class="marker"
-            class:marker-active={active?.type === 'missing' && active.anchor === piece.anchor && active.i === j}
-            aria-label="Mot oublié"
+            class:active={active?.type === 'missing' && active.anchor === piece.anchor && active.i === j}
+            aria-label={VICTORY.missingWord}
             onclick={() => tapMissing(piece.anchor, j)}><Icon name="gap" size={18} /></button
           >{/each}{:else}<button
           type="button"
@@ -232,116 +176,66 @@
   </div>
 
   {#if activePanel}
-    <div class="popover-panel" role="note">
+    <div class="kit-note popover" data-tone={activePanel.kind === 'caught' ? undefined : 'eris'} role="note" data-testid="revoir-popover">
       {#if activePanel.kind === 'err'}
         {#if activePanel.err.expected !== null}
-          <p class="popover-expected">Attendu : « {activePanel.err.expected} »</p>
+          <p class="popover-expected">{VICTORY.expected(activePanel.err.expected)}</p>
         {/if}
-        <p class="popover-text">{explain(activePanel.err, ctx).text}</p>
+        <p>{explain(activePanel.err, ctx).text}</p>
       {:else if activePanel.kind === 'caught'}
-        <p class="popover-text caught-text">{caughtText(activePanel.caught)}</p>
+        <p class="caught-text">{caughtText(activePanel.caught)}</p>
       {:else}
-        <p class="popover-text">Mot oublié : « {activePanel.e.expected} »</p>
+        <p>{VICTORY.forgotten(activePanel.e.expected ?? '')}</p>
       {/if}
     </div>
   {/if}
 
   {#if grouped.length > 0}
-    <h2>Ce qu'Éris a tenté</h2>
+    <h3 class="kit-section">{VICTORY.reviewTried}</h3>
     {#each grouped as group (group.key)}
       <section class="category">
-        <h3>{group.label}</h3>
+        <h4>{group.label}</h4>
         <ul>
           {#each group.errors as e, i (i)}
             <li>
               <span class="expl">{explain(e, ctx).text}</span>
-              {#if caughtKeys.has(errorKey(e))}<span class="tag-caught">déjoué <Icon name="check" size={14} /></span>{/if}
+              {#if caughtKeys.has(errorKey(e))}<span class="kit-stamp foiled">{VICTORY.foiled} <Icon name="check" size={14} /></span>{/if}
             </li>
           {/each}
         </ul>
       </section>
     {/each}
   {/if}
-
-  <div class="actions">
-    <button type="button" class="btn btn-primary" onclick={onReplay}>Rejouer ce texte</button>
-    <button type="button" class="btn" data-testid="btn-back-camp" onclick={onCamp}>Retour au camp</button>
-  </div>
+</Overlay>
 </div>
 
 <style>
-  .results {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  .revoir-portal {
+    display: contents;
   }
-  .eris {
-    border: 1px solid var(--orange);
-    cursor: default;
-  }
-  .eris-label {
-    margin: 0 0 4px;
-    font-style: italic;
-    color: var(--orange);
-    font-weight: 600;
-  }
-  .eris-line {
-    margin: 0;
-  }
-  .hero {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .hero-line {
-    margin: 0;
-    font-size: 18px;
-  }
-  .banner-olive {
-    background: #eaeedc;
-    border: 1px solid var(--olive);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    color: var(--ink);
-  }
-  .banner-error {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    background: var(--orange-light);
-    border: 1px solid var(--orange);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-  }
-  .banner-error p {
-    margin: 0;
-  }
-  .banner-error .btn:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-  .text {
-    background: #fff;
-    border: 1px solid var(--marble-dark);
-    border-radius: var(--radius);
-    padding: 12px 16px;
+  /* The text as she left it (Ruling C12's legibility): Literata on the nearly opaque text zone. */
+  .review-text {
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: var(--battle-text-bg);
+    box-shadow: inset 0 0 0 1px var(--parchment-edge);
   }
   .tokens {
     margin: 0;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    font-family: var(--font-body);
-    font-size: 20px;
+    font-family: var(--font-reading);
+    font-size: clamp(22px, 1.9vw, 26px);
     line-height: 1.9;
     color: var(--ink);
   }
+  /* Each word is an inline target: its padding carries the hit area to ~44 px (global constraints,
+     accessibility), the line box stays the text's own. */
   .tok {
     display: inline;
     appearance: none;
     margin: 0;
-    padding: 6px 2px;
+    padding: 10px 2px;
     border: 0;
     border-radius: 6px;
     background: transparent;
@@ -350,9 +244,13 @@
     color: inherit;
     cursor: default;
   }
+  /* French typography (fix round 1 #5): « . » and « , » sit against their word, no gap before. */
   .tok.punct {
-    padding-left: 1px;
+    padding-left: 0;
     padding-right: 1px;
+  }
+  .tok:has(+ .tok.punct) {
+    padding-right: 0;
   }
   .tok.err,
   .tok.caught {
@@ -362,56 +260,54 @@
     text-decoration: underline;
     text-decoration-color: var(--orange);
     text-decoration-thickness: 3px;
-    text-underline-offset: 3px;
+    text-underline-offset: 4px;
   }
   .tok.caught {
     text-decoration: underline dotted;
-    text-decoration-color: var(--olive);
-    text-decoration-thickness: 2px;
-    text-underline-offset: 3px;
+    text-decoration-color: var(--laurel);
+    text-decoration-thickness: 3px;
+    text-underline-offset: 4px;
   }
   .tok.active {
-    background: var(--marble-dark);
+    background: rgba(201, 171, 116, 0.4);
+  }
+  .tok:focus-visible,
+  .marker:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
   }
   .marker {
     display: inline;
     appearance: none;
     margin: 0 2px;
-    padding: 2px 4px;
+    padding: 10px 4px;
     border: 0;
     border-radius: 4px;
     background: transparent;
-    color: var(--orange);
-    font-size: 16px;
+    color: var(--orange-ink);
     cursor: pointer;
     line-height: 1;
   }
-  .marker-active {
+  .marker.active {
     background: var(--orange-light);
   }
-  .popover-panel {
-    background: var(--marble);
-    border: 2px solid var(--aegean);
-    border-radius: var(--radius);
-    padding: 12px 16px;
+  .popover {
+    margin-top: 12px;
   }
-  .popover-panel p {
+  .popover p {
     margin: 0;
+    font-size: 18px;
   }
   .popover-expected {
-    font-weight: 600;
-    margin-bottom: 4px;
+    font-weight: 700;
+    margin-bottom: 4px !important;
   }
   .caught-text {
-    color: var(--olive);
+    color: var(--laurel);
     font-weight: 600;
   }
-  h2 {
-    margin-top: 8px;
-  }
-  .category h3 {
-    font-size: 18px;
-    margin: 0 0 6px;
+  .category h4 {
+    margin: 10px 0 6px;
   }
   .category ul {
     margin: 0 0 4px;
@@ -419,20 +315,16 @@
   }
   .category li {
     margin-bottom: 6px;
+    font-size: 17px;
   }
-  .expl {
-    color: var(--ink);
-  }
-  .tag-caught {
-    margin-left: 8px;
-    color: var(--olive);
-    font-weight: 600;
-  }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    padding: 8px 0 env(safe-area-inset-bottom);
+  /* « déjoué » stamped in the laurel's green beside the line (an ink stamp, not a hanging tag: a
+     tag's cord would cross the line above). */
+  .foiled {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 0 0 8px;
+    vertical-align: 2px;
+    color: var(--laurel);
   }
 </style>

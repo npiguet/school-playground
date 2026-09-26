@@ -1,7 +1,7 @@
 <script lang="ts">
   // The dragon companion's portrait: one cut WebP per stage, tinted with a CSS filter (decision
-  // 11 - never a new art generation for a tint). Used by Boss and ProgressionReveal
-  // so both animate the same way (the places draw the dragon as a SceneLayer cut-out).
+  // 11 - never a new art generation for a tint). Used by the victory's spoils
+  // (battle/VictorySpoils.svelte) for the hatch (the places draw the dragon as a SceneLayer cut-out).
   import { ART } from '../lib/world/art';
   import { TINT_FILTERS, type Mood } from '../lib/world/dragon';
   import type { DragonStage, Tint } from '../lib/world/types';

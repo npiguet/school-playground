@@ -44,7 +44,7 @@ describe('quest labels', () => {
 
   // P1-1 (SP3 playability): mid-sentence, a leading French article reads oddly capitalised
   // ("Tenir L'Hydre en échec") - screens that build their own quest label from a shape other than
-  // `QuestOut` (ProgressionReveal.svelte) must still lower it the same way as `questTitle()`.
+  // `QuestOut` (battle/VictorySpoils.svelte) must still lower it the same way as `questTitle()`.
   it('lowers a leading article mid-title, exported for callers that cannot use questTitle directly', () => {
     expect(lowerLeadingArticle("L'Hydre")).toBe("l'Hydre");
     expect(lowerLeadingArticle('La Chimère')).toBe('la Chimère');

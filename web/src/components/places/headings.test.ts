@@ -28,6 +28,8 @@ describe('headings inside overlays', () => {
     // One h4 per mode (the rolled scroll's, the unrolled sheet's).
     expect(levels('src/components/places/delphi/OracleScroll.svelte')).toEqual([4, 4]);
     expect(levels('src/components/QuestCard.svelte')).toEqual([4]);
+    // UI4: the « Revoir » scroll's two sections (h3) and its categories (h4).
+    expect(levels('src/components/battle/ReviewScroll.svelte')).toEqual([3, 3, 4]);
   });
 
   it('the overlay title itself is the h2', () => {
