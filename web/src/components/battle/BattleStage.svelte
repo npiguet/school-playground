@@ -37,6 +37,7 @@
     mode = 'dictation',
     hud = false,
     exit = false,
+    hug = false,
     onExit,
     children,
     overlay,
@@ -49,6 +50,9 @@
     dragon: DragonOut | null;
     hud?: boolean;
     exit?: boolean;
+    /** A short muster (Éris's lair, the grimoire, the resume ribbon): the parchment hugs its content,
+     *  centred, and the backdrop shows around it (UI4 playability #14). Full layout only. */
+    hug?: boolean;
     /** Runs as « Le camp » is tapped, before it leaves (the victory drops its saved results, M2). */
     onExit?: () => void;
     /** The phase on the parchment, given the layout and the stage's reduced-motion setting (one
@@ -160,7 +164,7 @@
       {/if}
     </div>
     <!-- No name of its own (M22): the phase's heading says what the parchment holds. -->
-    <section class="battle-parchment" data-testid="battle-parchment">
+    <section class="battle-parchment" class:hug={hug && !compact} data-testid="battle-parchment">
       {@render children(layout, reduced)}
     </section>
     {#if exit && !compact}<SceneExit profileId={profile.id} {onExit} />{/if}
@@ -229,11 +233,14 @@
     height: 120px;
     pointer-events: none;
   }
+  /* The hold hangs above the opponent's head (UI4 playability #20): centred on the right side's
+     middle, where the opponent stands, not in the far corner of a wide screen. */
   .hp-slot {
+    --hp-slot-w: min(240px, calc(var(--side) - 24px));
     position: absolute;
     top: var(--top);
-    right: 12px;
-    width: min(240px, calc(var(--side) - 24px));
+    right: max(12px, calc(var(--side) / 2 - var(--hp-slot-w) / 2));
+    width: var(--hp-slot-w);
     z-index: 3;
   }
   .battle-parchment {
@@ -255,6 +262,14 @@
       0 0 0 2px rgba(201, 171, 116, 0.55),
       0 12px 40px rgba(0, 0, 0, 0.45);
     overflow: hidden;
+  }
+  /* UI4 playability #14: a short muster's parchment hugs its content, centred between its top and
+     bottom lines (an absolute box with both insets, a content height and auto margins), and scrolls
+     inside once it would pass them. */
+  .battle-parchment.hug {
+    height: fit-content;
+    max-height: calc(100% - var(--top) - 12px - env(safe-area-inset-bottom));
+    margin-block: auto;
   }
   .battle-stage :global(.scene-exit) {
     left: calc(12px + env(safe-area-inset-left));
@@ -290,15 +305,16 @@
   .battle-stage[data-layout='compact'] .battle-backdrop {
     object-position: 50% 45%;
   }
+  /* Inset from the band's edges (UI4 playability #20: Léthé was clipped by the right edge). */
   .battle-stage[data-layout='compact'] .battle-scene :global(.combatant) {
-    --h: calc(var(--band) - 8px);
-    --feet: 4px;
+    --h: calc(var(--band) - 16px);
+    --feet: 6px;
   }
   .battle-stage[data-layout='compact'] .battle-scene :global(.combatant.left) {
-    --left-x: 12px;
+    --left-x: 24px;
   }
   .battle-stage[data-layout='compact'] .battle-scene :global(.combatant.right) {
-    --right-x: 12px;
+    --right-x: 24px;
   }
   .battle-stage[data-layout='compact'] {
     --hp-w: min(40vw, 320px);

@@ -53,6 +53,21 @@ export interface PlayState {
   /** UI4 Ruling C2c: the quest (`?quest=`) this battle was started under, `null` for none; submitted
    *  with the session. No version bump: an optional field. */
   quest?: number | null;
+  /** UI4 Ruling C2d: the help stage the battle's link imposed (`?help=`, the boss link's), `null` for
+   *  none (the profile's own stage). Kept with the encounter and quest, so a boss battle reopened from
+   *  the shelves keeps the boss's help stage. No version bump: absent in older saved states, which
+   *  keep taking the link's. */
+  help?: number | null;
+  /** UI4 Ruling M20: where the dictation's reading resumes, the script step of the unit (a sentence
+   *  or a chunk) that was being read when it was saved. No version bump: absent means the start. */
+  dictationStep?: number;
+}
+
+/** What a battle runs under (Rulings C2c, C2d): the encounter, the quest and the imposed help stage. */
+export interface BattleUnder {
+  encounter: string | null;
+  quest: number | null;
+  help?: number | null;
 }
 
 /** UI4 Ruling C2c: whether a saved battle is the one this URL opens. An intro keeps nothing. A link
@@ -66,14 +81,16 @@ export function resumesUnder(saved: PlayState, encounter: string | null): boolea
   return encounter === null || (saved.encounter ?? null) === encounter;
 }
 
-/** The encounter and quest a battle runs under: the saved battle's own once it has one, else the
- *  URL's (a fresh battle records them, `newPlayState`'s `under`). */
-export function battleContext(
-  state: PlayState | null,
-  url: { encounter: string | null; quest: number | null },
-): { encounter: string | null; quest: number | null } {
-  if (!state) return url;
-  return { encounter: state.encounter ?? null, quest: state.quest ?? null };
+/** The encounter, quest and imposed help stage a battle runs under: the saved battle's own once it
+ *  has one, else the URL's (a fresh battle records them, `newPlayState`'s `under`). An older save
+ *  without a help field keeps the URL's, as before Ruling C2d. */
+export function battleContext(state: PlayState | null, url: BattleUnder): Required<BattleUnder> {
+  if (!state) return { encounter: url.encounter, quest: url.quest, help: url.help ?? null };
+  return {
+    encounter: state.encounter ?? null,
+    quest: state.quest ?? null,
+    help: state.help !== undefined ? state.help : (url.help ?? null),
+  };
 }
 
 /** The localStorage key for a play session: distinct per mode so a dictation session and a
@@ -117,11 +134,12 @@ export function newPlayState(
   textId: number,
   pace: Pace,
   mode: PlayMode = 'dictation',
-  under: { encounter: string | null; quest: number | null } = { encounter: null, quest: null },
+  under: BattleUnder = { encounter: null, quest: null },
 ): PlayState {
   return {
     encounter: under.encounter,
     quest: under.quest,
+    help: under.help ?? null,
     version: VERSION,
     profileId,
     textId,

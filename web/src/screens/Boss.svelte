@@ -70,7 +70,7 @@
   }
 </script>
 
-<BattleStage {battle} phase="muster" {profile} {camp} mode="boss" dragon={camp?.dragon ?? null} hud exit>
+<BattleStage {battle} phase="muster" {profile} {camp} mode="boss" dragon={camp?.dragon ?? null} hud exit hug>
   {#snippet children()}
     <BossMuster
       {tier}

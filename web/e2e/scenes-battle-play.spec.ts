@@ -180,6 +180,12 @@ test('the dictation writes on the parchment, in Literata, with bronze controls',
   await startDictation(page, testInfo);
   const ta = page.getByTestId('dictation-textarea');
   await expect(ta).toBeVisible();
+  // UI4 playability #11: the battle is the text's (its title), the phase told in the fiction, and the
+  // rulings in the parchment's sepia.
+  await expect(page.getByTestId('battle-parchment').getByRole('heading', { name: text.title })).toBeVisible();
+  await expect(page.getByTestId('battle-parchment')).toContainText('Écris ce que dit la voix.');
+  await expect(page.getByTestId('battle-parchment').getByRole('heading', { name: 'Dictée', exact: true })).toHaveCount(0);
+  await expect(ta).toHaveCSS('background-image', /rgba\(92, 64, 24, 0\.14\)/);
   const font = await ta.evaluate((el) => {
     const cs = getComputedStyle(el);
     return { family: cs.fontFamily, size: parseFloat(cs.fontSize), line: parseFloat(cs.lineHeight) / parseFloat(cs.fontSize) };
@@ -319,6 +325,38 @@ test('Quitter asks first, then shows the resume ribbon with the draft kept', asy
   await expect(page.getByTestId('battle-resume')).toBeVisible();
   await resumeSeeded(page);
   await expect(page.getByTestId('dictation-textarea')).toHaveValue('Les fées');
+});
+
+// Ruling M20: a dictation left and resumed reads again the sentence it had reached, not the first.
+test('a resumed dictation restarts at the sentence it had reached', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Dic7-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Dictée reprise'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await startDictation(page, testInfo, 1);
+  await expect(page.getByTestId('btn-next')).toBeEnabled();
+  await tap(page.getByTestId('btn-next'), testInfo);
+  // The second sentence is read, and the play state keeps where the reading is (debounced save).
+  await expect.poll(() => page.evaluate(() => ((window as any).__spoken as string[]).at(-1) ?? '')).toContain('Elles chantent');
+  const key = `discorde.play.${id}.${text.id}`;
+  await expect.poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').dictationStep, key)).toBe(2);
+  await tap(page.getByTestId('btn-quit-dictation'), testInfo);
+  await tap(page.getByTestId('btn-quit-confirm'), testInfo);
+  await expect(page.getByTestId('battle-resume')).toBeVisible();
+  // The first words read after `from` (« Continuer » first speaks an empty line to unlock iOS speech).
+  const firstReadFrom = (from: number) =>
+    page.evaluate((n) => ((window as any).__spoken as string[]).slice(n).find((s) => s.trim() !== '') ?? '', from);
+  const heard = await page.evaluate(() => (window as any).__spoken.length);
+  await resumeSeeded(page);
+  await expectBattle(page, 'dictation');
+  await expect.poll(() => firstReadFrom(heard), 'the resumed reading starts on the second sentence').toContain('Elles chantent');
+  await expect(page.getByTestId('battle-parchment')).toContainText('Phrase 2 sur 2');
+  // And after a reload, from the saved state alone.
+  await page.reload();
+  await expectBattle(page, 'muster');
+  const again = await page.evaluate(() => (window as any).__spoken.length);
+  await resumeSeeded(page);
+  await expect.poll(() => firstReadFrom(again)).toContain('Elles chantent');
 });
 
 // Ruling C11: a flowing dictation (pace 3) pauses when the iPad turns to portrait, and waits.
@@ -475,28 +513,77 @@ test('the Argus passes and the four tools work from their painted controls; the 
   const dim = page.locator('[data-testid^="tok-"].dim').first();
   await expect(dim).toHaveCSS('color', 'rgb(102, 97, 90)');
   await expect(dim).toHaveCSS('opacity', '1');
+  // UI4 playability #12: a lit word paints its glyphs' band only, so lit rows never touch.
+  await expect(page.locator('[data-testid^="tok-"].lit').first()).toHaveCSS('background-image', /linear-gradient/);
   await tap(page.getByTestId('btn-next-pass'), testInfo);
   await expect(page.getByTestId('argus-pass-verbes')).not.toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('battle-dragon')).toHaveAttribute('data-reaction', 'cheer');
+  // UI4 playability #19: the owl's hints on its coin in the full layout too, never in brackets.
+  await expect(page.getByTestId('chouette-count')).toHaveText('3');
+  await expect(page.getByTestId('btn-chouette')).not.toContainText('(');
+  await expect(page.getByTestId('btn-chouette')).toHaveAccessibleName(/^Chouette d'Athéna ?, 3 indices$/);
   await tap(page.getByTestId('btn-chouette'), testInfo);
   await expect(page.getByTestId('chouette-note')).toContainText(/chouette|manque/i);
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'flinch');
+  await expect(page.getByTestId('chouette-count')).toHaveText('2');
+  // UI4 playability #6: the Bouclier walks from the last sentence up, in text order, with the
+  // directions named as on the page, and says once why it starts at the bottom.
   await tap(page.getByTestId('btn-bouclier'), testInfo);
   await expect(page.getByTestId('btn-bouclier')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText(/Phrase \d+ sur \d+, en partant de la fin/)).toBeVisible();
+  const pos = page.getByTestId('sentence-pos');
+  await expect(pos).toHaveText('Phrase 24 sur 24');
+  await expect(page.getByTestId('bouclier-note')).toHaveText('Le Bouclier de Persée te fait lire à rebours, de la dernière phrase à la première.');
+  await expect(page.getByTestId('btn-sentence-up')).toHaveText('Plus haut');
+  await expect(page.getByTestId('btn-sentence-down')).toHaveText('Plus bas');
+  await expect(page.getByTestId('btn-sentence-down')).toBeDisabled();
+  expect(await pos.evaluate((el) => el.getClientRects().length), 'the position on one line').toBe(1);
+  const sizes = await page.getByTestId('proof-text').evaluate((el) => {
+    const p = el.querySelector('.tokens') as HTMLElement;
+    return { spot: parseFloat(getComputedStyle(p).fontSize), zone: el.getBoundingClientRect(), p: p.getBoundingClientRect() };
+  });
+  expect(sizes.spot, 'the one sentence is set larger').toBeGreaterThanOrEqual(22 * 1.15 - 0.5);
+  expect(Math.abs(sizes.p.top - sizes.zone.top - (sizes.zone.bottom - sizes.p.bottom)), 'centred in the page').toBeLessThanOrEqual(24);
+  await tap(page.getByTestId('btn-sentence-up'), testInfo);
+  await expect(pos).toHaveText('Phrase 23 sur 24');
+  await expect(page.getByTestId('bouclier-note')).toHaveCount(0);
+  await expect(page.getByTestId('btn-sentence-down')).toBeEnabled();
   await tap(page.getByTestId('btn-bouclier'), testInfo);
   await tap(page.getByTestId('btn-fil'), testInfo);
   await expect(page.getByTestId('btn-fil')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('fil-message')).toContainText('Touche un verbe');
   await tap(page.getByTestId('btn-fil-exit'), testInfo);
   await expect(page.getByTestId('fil-message')).toHaveCount(0);
-  // An edit that fixes a trap moves nothing on the stage (Ruling C3).
+  // An edit never grades on the stage (Ruling C3): the hold stays full and the opponent unmoved; the
+  // dragon gives every change the same nod, a fix or a new slip alike (UI4 playability #20).
+  await expect(page.getByTestId('battle-dragon')).not.toHaveAttribute('data-reaction', 'brace');
   await tap(page.locator('[data-testid^="tok-"]', { hasText: /^danse$/ }).first(), testInfo);
+  // The editor's hint is in the foot, not under the word (UI4 playability #5).
+  await expect(page.getByTestId('proof-foot').getByTestId('editor-hint')).toHaveText('Efface tout pour retirer le mot');
   await page.getByTestId('word-editor').fill('dansent');
   await page.getByTestId('word-editor').press('Enter');
   await expect(page.locator('[data-testid^="tok-"]', { hasText: /^dansent$/ }).first()).toBeVisible();
   await expect(hp).toHaveAttribute('aria-valuenow', '100');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'flinch');
+  await expect(page.getByTestId('battle-dragon')).toHaveAttribute('data-reaction', 'brace');
+  await expect(page.getByTestId('editor-hint')).toHaveCount(0);
+});
+
+// UI4 playability #8: the fight against Éris has no side door; a lieutenant's grimoire stays hers.
+test('the boss muster offers no way out of the fight; a lieutenant muster keeps its encounter into the grimoire', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Mus8-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Porte'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}?encounter=eris&quest=1`);
+  await expectBattle(page, 'muster');
+  const sheet = page.getByTestId('battle-parchment');
+  await expect(sheet.getByRole('button', { name: 'Commencer la dictée' })).toBeVisible();
+  await expect(sheet.getByTestId('btn-grimoire')).toHaveCount(0);
+  await page.goto(`/#/p/${id}/play/${text.id}?encounter=hydre`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-opponent', 'hydre');
+  await tap(sheet.getByTestId('btn-grimoire'), testInfo);
+  await expect(page).toHaveURL(new RegExp(`/grimoire/${text.id}\\?encounter=hydre$`));
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-opponent', 'hydre');
 });
 
 test('help stage 3 notches the hold with the count it already shows', async ({ page, request }, testInfo) => {
@@ -606,6 +693,84 @@ for (const pan of [0, 120]) {
   });
 }
 
+// UI4 playability #5: with the keyboard up, the editor lies over its line (no row moves), the text
+// scrolls by whole lines (the top line is never cut in half under the bar), and the editor's hint
+// takes the count's place in the bar. Scrolled to a mid-line offset first, so the snap is exercised.
+test('editing a word under the keyboard: no row moves, the top line is whole, the hint is in the bar', async ({ page, request }, testInfo) => {
+  await installKeyboardSim(page);
+  await seededProof(page, request, testInfo, 3);
+  const inner = await page.evaluate(() => window.innerHeight);
+  const view = await setKeyboard(page, inner - 420);
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+  await expect(page.getByTestId('bar-count')).toBeVisible();
+  const zone = page.getByTestId('proof-text');
+  // Rows, as offsets from the text's top (scrolling moves none of them).
+  const rows = () =>
+    zone.evaluate((el) => {
+      const top = el.querySelector('.tokens')!.getBoundingClientRect().top;
+      const tops = Array.from(el.querySelectorAll<HTMLElement>('.tok')).map((t) => Math.round(t.getBoundingClientRect().top - top));
+      return [...new Set(tops)].sort((a, b) => a - b);
+    });
+  // The top line: whole, never under the zone's top edge.
+  const topLineWhole = () =>
+    zone.evaluate((el) => {
+      const pitch = parseFloat(getComputedStyle(el.querySelector('.tokens')!).lineHeight);
+      const visTop = el.getBoundingClientRect().top + el.clientTop;
+      const lineTops = Array.from(el.querySelectorAll<HTMLElement>('.tok')).map((t) => {
+        const r = t.getBoundingClientRect();
+        return (r.top + r.bottom) / 2 - pitch / 2;
+      });
+      const shown = lineTops.filter((t) => t + pitch > visTop + 1);
+      return Math.min(...shown) >= visTop - 1;
+    });
+  await zone.evaluate((el) => (el.scrollTop = 3.5 * parseFloat(getComputedStyle(el.querySelector('.tokens')!).lineHeight)));
+  expect(await topLineWhole(), 'the setup starts on a half-cut line').toBe(false);
+  const target = await zone.evaluate((el) => {
+    const z = el.getBoundingClientRect();
+    const tok = Array.from(el.querySelectorAll<HTMLElement>('[data-testid^="tok-"]')).find((t) => {
+      const r = t.getBoundingClientRect();
+      return r.top > z.top + z.height * 0.4 && r.bottom < z.bottom - 8 && (t.textContent ?? '').length > 3;
+    });
+    return tok!.dataset.testid!;
+  });
+  const before = await rows();
+  await tap(page.getByTestId(target), testInfo);
+  const editor = page.getByTestId('word-editor');
+  await expect(editor).toBeFocused();
+  expect(await rows(), 'no row moved for the editor').toEqual(before);
+  await expect.poll(topLineWhole, 'the top line is whole once the editor is placed').toBe(true);
+  const eb = (await editor.boundingBox())!;
+  const zb = (await zone.boundingBox())!;
+  expect(eb.y).toBeGreaterThanOrEqual(zb.y - 8);
+  expect(eb.y + eb.height).toBeLessThanOrEqual(Math.min(zb.y + zb.height, view.bottom) + 8);
+  await expect(page.getByTestId('editor-hint')).toHaveText('Efface tout pour retirer le mot');
+  await expect(page.getByTestId('bar-count')).toHaveCount(0);
+  const hint = (await page.getByTestId('editor-hint').boundingBox())!;
+  expect(hint.y + hint.height, 'the hint is in the bar, above the text').toBeLessThanOrEqual(zb.y);
+  await editor.press('Escape');
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByTestId('bar-count')).toBeVisible();
+  expect(await visibleLines(page)).toBeGreaterThanOrEqual(4);
+});
+
+// UI4 playability #13: in compact, the lines stay near 80 characters (the full layout keeps 44-72).
+test('compact lines stay near 80 characters', async ({ page, request }, testInfo) => {
+  await installKeyboardSim(page);
+  await seededProof(page, request, testInfo, 4);
+  const inner = await page.evaluate(() => window.innerHeight);
+  await setKeyboard(page, inner - 420);
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+  const longest = await page.getByTestId('proof-text').evaluate((el) => {
+    const byRow = new Map<number, string>();
+    for (const t of Array.from(el.querySelectorAll<HTMLElement>('.tok'))) {
+      const row = Math.round(t.getBoundingClientRect().top);
+      byRow.set(row, (byRow.get(row) ?? '') + ' ' + t.textContent);
+    }
+    return Math.max(...[...byRow.values()].map((s) => s.trim().length));
+  });
+  expect(longest, 'characters on the longest line').toBeLessThanOrEqual(85);
+});
+
 test('« Modifier tout le texte » folds under the keyboard too', async ({ page, request }, testInfo) => {
   await installKeyboardSim(page);
   await seededProof(page, request, testInfo, 4);
@@ -622,7 +787,10 @@ test('« Modifier tout le texte » folds under the keyboard too', async ({ page,
 });
 
 test('the proofreading has a way out: Quitter asks, then the resume ribbon keeps everything', async ({ page, request }, testInfo) => {
-  await seededProof(page, request, testInfo, 4);
+  const { text } = await seededProof(page, request, testInfo, 4);
+  // UI4 playability #11: the text's title heads the proofreading; stage 4 asks her to say so.
+  await expect(page.getByTestId('battle-parchment').getByRole('heading', { name: text.title })).toBeVisible();
+  await expect(page.getByTestId('battle-parchment')).toContainText("Traque les pièges d'Éris. À toi de jouer. Quand tout te semble juste, dis-le.");
   await tap(page.getByTestId('btn-quit-proof'), testInfo);
   await expect(page.getByText('Ta relecture est gardée. Veux-tu vraiment quitter ?')).toBeVisible();
   await expect(page.getByTestId('btn-quit-proof-confirm')).toBeFocused();

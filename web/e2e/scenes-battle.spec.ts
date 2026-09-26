@@ -123,7 +123,8 @@ test('a boss battle reopened from the shelves is still the boss fight, and is se
   const id = await createProfileApi(request, uniqueName(`Bat12-${testInfo.project.name}`), '10H');
   const text = await createText(request, { title: uniqueName('Combat repris'), body: BODY, level: '10H' });
   const draft = BODY.replace('dansent', 'danse');
-  await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft, pace: 3, opponent: 'eris', encounter: 'eris', quest: 4242 });
+  // Ruling C2d: the boss link's help stage (3) is kept with the battle; the shelves' link has none.
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft, pace: 3, opponent: 'eris', encounter: 'eris', quest: 4242, help: 3 });
   // The submission is caught and answered here: only what the battle sends matters.
   let sent: Record<string, unknown> | null = null;
   await page.route('**/api/sessions', async (route) => {
@@ -136,13 +137,13 @@ test('a boss battle reopened from the shelves is still the boss fight, and is se
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-backdrop', 'lair');
   await resumeSeeded(page);
   await expectBattle(page, 'proofreading');
+  // The boss's help stage, not the profile's own: stage 3's frozen count, no Argus passes.
+  await expect(page.getByTestId('battle-parchment')).toContainText('1 piège est caché dans ce texte.');
+  await expect(page.getByTestId('btn-next-pass')).toHaveCount(0);
   await tap(page.getByTestId('btn-done-proofreading'), testInfo);
-  const confirm = page.getByRole('button', { name: 'Oui, valider' });
-  await expect(confirm.or(page.getByTestId('victory-title'))).toBeVisible();
-  if (await confirm.isVisible()) await tap(confirm, testInfo);
   await expectBattle(page, 'victory');
   await expect.poll(() => sent).not.toBeNull();
-  expect(sent).toMatchObject({ encounter: 'eris', quest_id: 4242, pace_level: 3 });
+  expect(sent).toMatchObject({ encounter: 'eris', quest_id: 4242, pace_level: 3, help_stage: 3 });
   await page.unrouteAll({ behavior: 'ignoreErrors' });
 });
 
@@ -243,6 +244,37 @@ test('portrait turns the battle into the rotate screen, with its backdrop', asyn
   await page.goto(`/#/p/${id}/eris`);
   await expect(page.getByTestId('rotate-screen')).toBeVisible();
   await expect(page.locator('.rotate-backdrop')).toHaveAttribute('src', '/art/scenes/eris_lair.webp');
+  // UI4 playability #22: one line for every place, never « Le camp » over a battle.
+  await expect(page.getByTestId('rotate-screen')).toContainText("Tout se joue à l'horizontale.");
+});
+
+// UI4 playability #20: on a wide screen the hold hangs above the opponent, not in the far corner;
+// in the compact band both cut-outs stand clear of its edges.
+test('the hold hangs above the opponent on a wide screen; the band keeps both cut-outs whole', async ({ page, request }, testInfo) => {
+  await installKeyboardSim(page);
+  const id = await createProfileApi(request, uniqueName(`Bat14-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Large'), body: BODY, level: '10H' });
+  const size = page.viewportSize()!;
+  await page.setViewportSize({ width: 2560, height: 1080 });
+  await page.goto(`/#/p/${id}/play/${text.id}?encounter=lethe`);
+  await expectBattle(page, 'muster');
+  const wide = await battleRects(page);
+  const hold = wide.hp!.x + wide.hp!.width / 2;
+  expect(hold, 'the hold over the opponent').toBeGreaterThanOrEqual(wide.opponent!.x);
+  expect(hold, 'the hold over the opponent').toBeLessThanOrEqual(wide.opponent!.x + wide.opponent!.width);
+  expect((await page.getByTestId('battle-hp').boundingBox())!.height).toBeGreaterThanOrEqual(16);
+  await page.setViewportSize(size);
+  const inner = await page.evaluate(() => window.innerHeight);
+  await setKeyboard(page, inner - 420);
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+  await expect.poll(async () => (await battleRects(page)).scene?.height ?? 0).toBeLessThanOrEqual(104);
+  const r = await battleRects(page);
+  for (const part of ['dragon', 'opponent'] as const) {
+    const b = r[part]!;
+    expect(b.x, `${part} clear of the left edge`).toBeGreaterThanOrEqual(12);
+    expect(b.x + b.width, `${part} clear of the right edge`).toBeLessThanOrEqual(size.width - 12);
+    expect(b.y, `${part} clear of the band's top`).toBeGreaterThanOrEqual(r.scene!.y + 4);
+  }
 });
 
 test('reduced motion: no particles, no idle motion on the combatants', async ({ page, request }, testInfo) => {

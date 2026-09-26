@@ -40,8 +40,9 @@
 </script>
 
 <div class="boss-muster">
-  <OverlayVoice line={taunt} testId="battle-voice" />
+  <!-- The fight's banner first, then Éris's challenge under it (UI4 playability #14). -->
   <p class="kit-ribbon tier" data-testid="boss-tier">{BOSS.tier(romanTier(tier))}</p>
+  <OverlayVoice line={taunt} testId="battle-voice" />
   <p class="stakes" data-testid="boss-reward">
     {#if rewardId}<Medallion {rewardId} size={40} />{/if}
     <span>{BOSS.reward(rewardXp, rewardName)}</span>
@@ -83,8 +84,9 @@
     margin-bottom: auto;
   }
   .tier {
+    padding-inline: 44px;
     font-family: var(--font-display);
-    font-size: 22px;
+    font-size: 28px;
     letter-spacing: 0.06em;
   }
   .stakes {

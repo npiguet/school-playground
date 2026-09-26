@@ -1,6 +1,7 @@
 <script lang="ts">
   // Inline editor for one token of the player's text (spec §3.4 "tap a word → inline edit").
-  // Enter, the OK button and blur commit; Escape cancels; an empty value means "delete".
+  // Enter, the OK button and blur commit; Escape cancels; an empty value means "delete" (the hint
+  // saying so is shown by ProofPhase in its chrome, UI4 playability #5).
   import { onMount, untrack } from 'svelte';
   import { PROOF } from '../../lib/battle/lines';
 
@@ -8,7 +9,14 @@
     value,
     onCommit,
     onCancel,
-  }: { value: string; onCommit: (v: string) => void; onCancel: () => void } = $props();
+    onPlaced,
+  }: {
+    value: string;
+    onCommit: (v: string) => void;
+    onCancel: () => void;
+    /** Brings the editor into view once it has its size (ProofPhase: by whole lines in compact). */
+    onPlaced?: () => void;
+  } = $props();
 
   let draft = $state(untrack(() => value)); // seeded once; the editor owns its draft
   let input: HTMLInputElement | undefined = $state();
@@ -41,7 +49,7 @@
   onMount(() => {
     input?.focus();
     input?.select();
-    requestAnimationFrame(() => input?.scrollIntoView({ block: 'center', inline: 'nearest' }));
+    requestAnimationFrame(() => (onPlaced ? onPlaced() : input?.scrollIntoView({ block: 'center', inline: 'nearest' })));
   });
 </script>
 
@@ -60,6 +68,7 @@
       {size}
       data-testid="word-editor"
       aria-label={PROOF.editorLabel}
+      aria-describedby="proof-editor-hint"
       onkeydown={onKeydown}
       onblur={commit}
     />
@@ -67,20 +76,23 @@
       {PROOF.editorOk}
     </button>
   </span>
-  <span class="hint">{PROOF.editorHint}</span>
 </span>
 
 <style>
+  /* UI4 playability #5: the editor lies over its line and never changes it. A zero-height inline box
+     adds nothing to the line box; the 48 px row is centred on the line's middle and overflows it a
+     little, above and below, as a popover would. Its width stays in the line, so the words flow on. */
   .editor {
     display: inline-flex;
-    flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    height: 0;
     vertical-align: middle;
-    gap: 2px;
     margin: 0 4px;
     line-height: 1.3;
   }
   .row {
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -95,6 +107,7 @@
     border: 2px solid var(--gold);
     border-radius: 8px;
     width: auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   }
   input:focus-visible {
     outline: 3px solid var(--gold-light);
@@ -102,11 +115,5 @@
   }
   .ok {
     padding: 6px 16px;
-  }
-  .hint {
-    font-family: var(--font-body);
-    font-size: 13px;
-    color: var(--ink-soft);
-    white-space: nowrap;
   }
 </style>

@@ -55,17 +55,21 @@
   // Quest-aware Play (SP3 Task 7): `quest`/`encounter` come from a QuestCard/lieutenant/boss link
   // (`?quest=...&encounter=...`); `help` overrides the profile's adaptive help stage for a single
   // session (boss fights force it a stage down, never up the aids).
-  const urlUnder = $derived({ encounter: query.encounter ?? null, quest: query.quest ? Number(query.quest) : null });
+  const urlUnder = $derived({
+    encounter: query.encounter ?? null,
+    quest: query.quest ? Number(query.quest) : null,
+    help: query.help ? Number(query.help) : null,
+  });
   let playState = $state<PlayState | null>(null);
   // Ruling C2c: the battle runs under the encounter and quest it was started with (saved in its play
   // state), not the URL's: a boss fight reopened from the shelves is still the boss fight, and a free
-  // save never becomes one. Before the state exists, the URL's.
+  // save never becomes one. Before the state exists, the URL's. Ruling C2d: its help stage too.
   const under = $derived(battleContext(playState, urlUnder));
   const questId = $derived(under.quest);
   const encounter = $derived(under.encounter);
   // An encounter that names an opponent decides the battle, whatever was saved (fix round 1 #1).
   const pinned = $derived<OpponentId | null>(encounter && isOpponentId(encounter) ? encounter : null);
-  const helpOverride = $derived(query.help ? Number(query.help) : null);
+  const helpOverride = $derived(under.help);
   const helpStage = $derived(Math.min(4, Math.max(1, Math.round(helpOverride ?? profile.help_stage))) as 1 | 2 | 3 | 4);
   // Grimoire corrompu has no pace selector (plan decision #8: session.pace_level is always 1).
   const initialPace = $derived(mode === 'grimoire' ? 1 : defaultPace(profile.level));
@@ -150,6 +154,7 @@
   $effect(() => {
     if (playState?.phase !== 'dictation') return;
     void playState.draft; // tracked: reruns the debounce on every keystroke
+    void playState.dictationStep; // and on every new unit read (Ruling M20)
     saveDraftDebounced();
   });
 
@@ -436,6 +441,7 @@
   dragon={camp?.dragon ?? null}
   hud={phase === 'muster' || phase === 'victory'}
   exit={phase === 'muster' || phase === 'victory'}
+  hug={phase === 'muster' && !loading && !error && (showResumeBanner || mode === 'grimoire')}
   {onExit}
 >
   {#snippet children(layout, reduced)}
@@ -469,9 +475,14 @@
           pace={playState.pace}
           {voice}
           {layout}
+          title={text.title}
+          from={playState.dictationStep ?? 0}
           bind:text={playState.draft}
           onFinish={onDictationFinish}
           onQuit={quitDictation}
+          onProgress={(step) => {
+            if (playState) playState.dictationStep = step;
+          }}
         />
       {:else if playState.phase === 'proofreading'}
         <ProofPhase

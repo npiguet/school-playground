@@ -11,6 +11,8 @@ export type IconName =
   | 'lamp'
   | 'arrow-left'
   | 'arrow-right'
+  | 'arrow-up'
+  | 'arrow-down'
   | 'check'
   | 'star'
   | 'pencil'
@@ -53,6 +55,9 @@ export const ICONS: Record<IconName, IconPath[]> = {
   ],
   'arrow-left': [{ d: 'M19 7L10 16l9 9', width: 3 }],
   'arrow-right': [{ d: 'M13 7l9 9-9 9', width: 3 }],
+  // The Bouclier's steps up and down the page (UI4 playability #6).
+  'arrow-up': [{ d: 'M7 19l9-9 9 9', width: 3 }],
+  'arrow-down': [{ d: 'M7 13l9 9 9-9', width: 3 }],
   check: [{ d: 'M7 17l6 6L25 9', width: 3 }],
   star: [{ d: 'M16 4l3.5 7.6 8.3.9-6.2 5.6 1.8 8.2L16 22.1l-7.4 4.2 1.8-8.2-6.2-5.6 8.3-.9z', fill: true }],
   pencil: [{ d: 'M7 25l2-6L21 7l4 4-12 12z', width: 2.2 }, { d: 'M18 10l4 4', width: 2 }],

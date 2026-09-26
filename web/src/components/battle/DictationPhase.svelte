@@ -19,18 +19,27 @@
     pace,
     voice,
     text = $bindable(),
+    title,
+    from = 0,
     layout,
     onFinish,
     onQuit,
+    onProgress,
   }: {
     plan: DictationPlan;
     pace: Pace;
     voice: SpeechSynthesisVoice | null;
     text: string;
+    /** The text's title, the phase's heading (UI4 playability #11). */
+    title: string;
+    /** Ruling M20: the saved step a resumed dictation starts from (its unit's first step). */
+    from?: number;
     /** The stage's layout (UI4 Ruling C4): `compact` folds the controls into one bar. */
     layout: BattleLayout;
     onFinish: () => void;
     onQuit: () => void;
+    /** Ruling M20: the step to resume from, each time the reading moves to a new unit. */
+    onProgress?: (step: number) => void;
   } = $props();
 
   let runnerState = $state<RunnerState>({
@@ -40,20 +49,33 @@
     replaysLeft: Infinity,
     done: 0,
     total: 0,
+    resumeAt: 0,
   });
 
   // The runner is built once from this run's plan/pace (a new Dictation instance is mounted for
   // each run, per the caller), so `plan` and `pace` here are deliberately read only once, not
   // tracked - untrack() says so explicitly instead of looking like an accidental one-shot read.
+  let reported = untrack(() => from);
   const runner = untrack(() =>
-    createRunner(buildScript(plan, pace), {
-      pace,
-      speak: (spoken, rate) => speak(spoken, { rate, voice }),
-      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-      cancel: cancelSpeech,
-      onChange: (s) => (runnerState = s),
-    }),
+    createRunner(
+      buildScript(plan, pace),
+      {
+        pace,
+        speak: (spoken, rate) => speak(spoken, { rate, voice }),
+        sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+        cancel: cancelSpeech,
+        onChange: (s) => {
+          runnerState = s;
+          if (s.resumeAt !== reported) {
+            reported = s.resumeAt;
+            onProgress?.(s.resumeAt);
+          }
+        },
+      },
+      from,
+    ),
   );
+  runnerState = untrack(() => runner.state());
 
   onMount(() => {
     runner.start();
@@ -198,11 +220,15 @@
   {:else}
     <div class="head">
       {@render quitButton()}
-      <h2 class="phase-title">{DICTATION.title}</h2>
+      <!-- UI4 playability #11: the battle is the text's, the phase says what to do in the fiction. -->
+      <div class="titles">
+        <h2 class="phase-title">{title}</h2>
+        <p class="cue">{DICTATION.cue}</p>
+      </div>
       <span class="progress">{progress}</span>
     </div>
   {/if}
-  {#if compact}<h2 class="sr-only">{DICTATION.title}</h2>{/if}
+  {#if compact}<h2 class="sr-only">{title}</h2>{/if}
 
   {#if confirmQuit}
     <div class="kit-note confirm" role="status">
@@ -259,12 +285,25 @@
   .bar {
     gap: 10px;
   }
+  .titles {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
   .phase-title {
     margin: 0;
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 24px;
+    line-height: 1.15;
     color: var(--ink);
+  }
+  .cue {
+    margin: 0;
+    font-size: 16px;
+    font-style: italic;
+    color: var(--ink-soft);
   }
   .progress {
     margin-left: auto;
@@ -371,7 +410,8 @@
     font: 400 clamp(22px, 1.9vw, 26px) / 1.9 var(--font-reading);
     color: var(--ink);
     background-color: var(--battle-text-bg);
-    background-image: repeating-linear-gradient(transparent 0 calc(1.9em - 1px), rgba(138, 90, 40, 0.14) calc(1.9em - 1px) 1.9em);
+    /* Sepia rulings, the parchment's own ink (UI4 playability #11: not an exercise book's grey). */
+    background-image: repeating-linear-gradient(transparent 0 calc(1.9em - 1px), rgba(92, 64, 24, 0.14) calc(1.9em - 1px) 1.9em);
     background-attachment: local;
     background-position: 0 14px;
     border: 1px solid var(--parchment-edge);

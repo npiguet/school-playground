@@ -64,6 +64,10 @@
   // spec §3.2 - it must stay hidden while the child is writing).
   let showPhotos = $state(false);
 
+  // The lieutenant on stage stays the opponent of the grimoire way. The quest stays behind (the review
+  // asked for the encounter only): whether a grimoire counts for a quest is the server's rule.
+  const grimoireQuery = $derived(encounter ? { encounter } : undefined);
+
   function credits(t: TextFull): string {
     if (t.credits) return t.credits;
     if (t.source === 'custom' && t.added_by_name) return `Ajouté par ${t.added_by_name}`;
@@ -150,17 +154,21 @@
       <p class="glory">{MUSTER.paceGlory}</p>
       <button type="button" class="kit-bronze grand" onclick={onStart}>{MUSTER.start}</button>
 
-      <div class="grimoire-way">
-        <button
-          type="button"
-          class="kit-bronze is-quiet"
-          data-testid="btn-grimoire"
-          onclick={() => go(href('grimoire', { profileId: String(profileId), textId: String(text.id) }))}
-        >
-          {MUSTER.grimoire}
-        </button>
-        <p class="caption">{MUSTER.grimoireCaption}</p>
-      </div>
+      <!-- UI4 playability #8: the fight against Éris has one way in and no side door; a lieutenant's
+           grimoire keeps its encounter, so it is still that lieutenant's battle. -->
+      {#if encounter !== 'eris'}
+        <div class="grimoire-way">
+          <button
+            type="button"
+            class="kit-bronze is-quiet"
+            data-testid="btn-grimoire"
+            onclick={() => go(href('grimoire', { profileId: String(profileId), textId: String(text.id) }, grimoireQuery))}
+          >
+            {MUSTER.grimoire}
+          </button>
+          <p class="caption">{MUSTER.grimoireCaption}</p>
+        </div>
+      {/if}
     {/if}
   {/if}
 </div>

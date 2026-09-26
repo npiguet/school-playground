@@ -7,6 +7,7 @@ import {
   playKey,
   resumesUnder,
   savePlayState,
+  type BattleUnder,
   type PlayState,
 } from './playState';
 
@@ -130,14 +131,14 @@ describe('clearPlayState', () => {
 // UI4 Ruling C2c: a saved battle records the encounter and quest it was started under; resuming
 // compares encounters, never opponents (Éris fights the boss, every grimoire and a free text alike).
 describe('the battle a save belongs to (Ruling C2c)', () => {
-  function saved(phase: PlayState['phase'], under: { encounter: string | null; quest: number | null }): PlayState {
+  function saved(phase: PlayState['phase'], under: BattleUnder): PlayState {
     const s = newPlayState(1, 2, 1, 'dictation', under);
     s.phase = phase;
     s.opponent = 'eris';
     return s;
   }
-  const free = { encounter: null, quest: null };
-  const boss = { encounter: 'eris', quest: 7 };
+  const free = { encounter: null, quest: null, help: null };
+  const boss = { encounter: 'eris', quest: 7, help: 3 };
 
   it('records the encounter and quest it was started under, and keeps them through storage', () => {
     const s = newPlayState(1, 2, 3, 'dictation', boss);
@@ -145,8 +146,18 @@ describe('the battle a save belongs to (Ruling C2c)', () => {
     expect(s.quest).toBe(7);
     s.phase = 'dictation';
     savePlayState(s);
-    expect(loadPlayState(1, 2)).toMatchObject({ encounter: 'eris', quest: 7 });
-    expect(newPlayState(1, 2, 1)).toMatchObject({ encounter: null, quest: null });
+    expect(loadPlayState(1, 2)).toMatchObject({ encounter: 'eris', quest: 7, help: 3 });
+    expect(newPlayState(1, 2, 1)).toMatchObject({ encounter: null, quest: null, help: null });
+  });
+
+  // Ruling C2d: the boss link's help stage is the battle's, even reopened from the shelves (no ?help=).
+  it("keeps the help stage the battle's link imposed, and an older save takes the link's", () => {
+    expect(battleContext(saved('proofreading', boss), { encounter: null, quest: null, help: null }).help).toBe(3);
+    expect(battleContext(saved('proofreading', free), { encounter: null, quest: null, help: 2 }).help).toBeNull();
+    const old = saved('proofreading', boss);
+    delete old.help;
+    expect(battleContext(old, { encounter: null, quest: null, help: 2 }).help).toBe(2);
+    expect(battleContext(old, { encounter: null, quest: null }).help).toBeNull();
   });
 
   it('an intro never resumes', () => {
@@ -175,9 +186,10 @@ describe('the battle a save belongs to (Ruling C2c)', () => {
     const old = saved('dictation', free);
     delete old.encounter;
     delete old.quest;
+    delete old.help;
     expect(resumesUnder(old, null)).toBe(true);
     expect(resumesUnder(old, 'eris')).toBe(false);
-    expect(battleContext(old, boss)).toEqual(free);
+    expect(battleContext(old, boss)).toEqual({ encounter: null, quest: null, help: 3 });
   });
 
   it("a battle runs under its own encounter and quest once it has a state, the URL's before", () => {

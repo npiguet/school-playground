@@ -148,8 +148,10 @@
     outline: 3px solid var(--gold-light);
     outline-offset: -2px;
   }
+  /* UI4 playability #12: the spotlight paints the glyphs' band only, so lit words on two rows never
+     touch; the button's tap height is unchanged. */
   .tok.lit {
-    background: var(--aegean-light);
+    background: linear-gradient(transparent 18%, var(--aegean-light) 18% 88%, transparent 88%);
     color: var(--aegean-ink);
     font-weight: 600;
     box-decoration-break: clone;

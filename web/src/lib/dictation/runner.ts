@@ -13,6 +13,21 @@ export interface RunnerState {
   replaysLeft: number;
   done: number;
   total: number;
+  /** UI4 Ruling M20: the step a resumed dictation starts from, the first step of the unit (a
+   *  sentence, a chunk, or pace 4's whole-text read) read last. */
+  resumeAt: number;
+}
+
+/** Whether `step` opens a unit of the reading (its first say; a chunk's second say belongs to it). */
+function opensUnit(step: Step | undefined): boolean {
+  return step?.kind === 'say' && (step.repeat === 1 || step.unit === 'full');
+}
+
+/** UI4 Ruling M20: the first step of the unit that `index` lies in (0 before the first one), so a
+ *  resumed dictation reads that unit again from its start, never from the middle of a pause. */
+export function unitStart(steps: Step[], index: number): number {
+  for (let i = Math.min(index, steps.length - 1); i >= 0; i--) if (opensUnit(steps[i])) return i;
+  return 0;
 }
 
 export interface RunnerDeps {
@@ -26,21 +41,22 @@ export interface RunnerDeps {
   onChange: (s: RunnerState) => void;
 }
 
-export function createRunner(steps: Step[], deps: RunnerDeps) {
-  const total = steps.filter(
-    (s): s is SayStep => s.kind === 'say' && s.repeat === 1 && s.unit === 'chunk',
-  ).length;
+/** `from` (M20): a resumed dictation starts at that step's unit, its earlier units counted done. */
+export function createRunner(steps: Step[], deps: RunnerDeps, from = 0) {
+  const counted = (s: Step): s is SayStep => s.kind === 'say' && s.repeat === 1 && s.unit === 'chunk';
+  const total = steps.filter(counted).length;
 
-  let index = 0;
+  let index = from > 0 ? unitStart(steps, from) : 0;
+  let resumeAt = index;
   let status: RunnerStatus = 'idle';
   let lastSay: SayStep | null = null;
   let replaysLeft = replayLimit(deps.pace);
-  let done = 0;
+  let done = steps.slice(0, index).filter(counted).length;
   let paused = false;
   let stopped = false;
 
   function snapshot(): RunnerState {
-    return { index, status, lastSay, replaysLeft, done, total };
+    return { index, status, lastSay, replaysLeft, done, total, resumeAt };
   }
 
   function emit() {
@@ -61,6 +77,10 @@ export function createRunner(steps: Step[], deps: RunnerDeps) {
       const step = steps[index];
       if (step.kind === 'say') {
         lastSay = step;
+        if (opensUnit(step) && resumeAt !== index) {
+          resumeAt = index;
+          emit();
+        }
         await deps.speak(step.spoken, step.rate);
         if (stopped || paused) return;
         if (step.repeat === 1 && step.unit === 'chunk') done++;

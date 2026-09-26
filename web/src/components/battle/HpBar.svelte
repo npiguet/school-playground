@@ -42,8 +42,9 @@
   }
   .hp-track {
     position: relative;
-    height: 14px;
-    border-radius: 7px;
+    /* A 12 px fill inside the bronze rim (UI4 playability #20: 8-10 px read thin from the text). */
+    height: 16px;
+    border-radius: 8px;
     background: rgba(21, 18, 26, 0.72);
     border: 2px solid var(--bronze-light);
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);

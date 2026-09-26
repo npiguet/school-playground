@@ -5,7 +5,8 @@
   // count, 4 nothing. Legibility first (Ruling C12): the text zone is nearly opaque, Literata at
   // 22 px or more. While the keyboard is open (Ruling C4) the header, the Argus strip, the tools
   // and the footer fold into one bar of 48 px icon buttons, so the text keeps its lines. The stage
-  // reacts to the tools only, never to an edit (Ruling C3).
+  // reacts to the tools, and to an edit only with the same neutral nod whatever it did (Ruling C3,
+  // UI4 playability #20): nothing on the stage grades.
   import { flushSync, untrack } from 'svelte';
   import TokenText from './TokenText.svelte';
   import WordEditor from './WordEditor.svelte';
@@ -162,12 +163,53 @@
     savePlayState(play);
   });
 
+  // --- The word editor in view --------------------------------------------------------------
+  // UI4 playability #5: in compact the text zone shows four or five lines, so it scrolls by whole
+  // lines (never a half-cut line under the bar) and only as far as the edited word needs; the editor
+  // itself lies over its line (WordEditor) so no row moves. In the full layout, the word is centred.
+  let textZone = $state<HTMLDivElement | undefined>();
+
+  /** Scrolls the text zone so its top line is whole and the editor's line is in sight. */
+  function placeEditor() {
+    const zone = textZone;
+    const target = zone?.querySelector<HTMLElement>('.editor');
+    const lines = zone?.querySelector<HTMLElement>('.tokens');
+    if (!zone || !target || !lines) return;
+    const pitch = parseFloat(getComputedStyle(lines).lineHeight);
+    if (!(pitch > 0)) return;
+    const pad = parseFloat(getComputedStyle(zone).paddingTop) || 0;
+    const zr = zone.getBoundingClientRect();
+    const tr = target.getBoundingClientRect();
+    // The editor's line, counted from the text's first line.
+    const line = Math.max(0, Math.floor((tr.top + tr.height / 2 - (zr.top + zone.clientTop) + zone.scrollTop - pad) / pitch));
+    // Line n > 0 at the very top of the zone; line 0 under the zone's own padding.
+    const at = (n: number) => (n <= 0 ? 0 : pad + n * pitch);
+    const fits = (n: number) => Math.max(1, Math.floor((zone.clientHeight - (n <= 0 ? pad : 0)) / pitch));
+    let n = zone.scrollTop < pad / 2 ? 0 : Math.round((zone.scrollTop - pad) / pitch);
+    if (line < n) n = line;
+    if (line > n + fits(n) - 1) n = line - fits(1) + 1;
+    zone.scrollTop = at(n);
+  }
+
+  function keepEditorInView() {
+    if (editing === null) return;
+    if (compact) placeEditor();
+    else document.activeElement?.scrollIntoView({ block: 'center', inline: 'nearest' });
+  }
+
+  // Once the layout has settled (the keyboard folds the stage into compact after its resize event).
+  $effect(() => {
+    if (!compact || editing === null) return;
+    const id = requestAnimationFrame(placeEditor);
+    return () => cancelAnimationFrame(id);
+  });
+
   // Keep the edited word in view when the on-screen keyboard resizes the visual viewport. The
   // battle stage sizes the parchment to it (its `--vvh`, from `watchViewport`, UI4 Ruling C4).
   $effect(() => {
     const vv = window.visualViewport;
     const update = () => {
-      if (editing !== null) document.activeElement?.scrollIntoView({ block: 'center', inline: 'nearest' });
+      if (editing !== null) requestAnimationFrame(keepEditorInView);
     };
     untrack(update);
     vv?.addEventListener('resize', update);
@@ -192,8 +234,9 @@
         return PROOF.stage4;
     }
   });
-  // SP2 Task 9: the grimoire flow frames every stage sentence with Éris's own line first.
-  const subtitle = $derived(mode === 'grimoire' ? `${PROOF.grimoirePrefix} ${stageSentence}` : stageSentence);
+  // SP2 Task 9: the grimoire flow frames every stage sentence with Éris's own line first. UI4
+  // playability #11: the heading is the text's title; the phase is told in the fiction, first.
+  const subtitle = $derived(`${mode === 'grimoire' ? PROOF.grimoirePrefix : PROOF.cue} ${stageSentence}`);
 
   // --- Argus passes -------------------------------------------------------------------
 
@@ -217,15 +260,25 @@
     return Math.max(0, Math.min(spans.length - 1, i));
   }
 
+  // UI4 playability #6: the position in text order (the walk starts on the last sentence, « Phrase
+  // 24 sur 24 »), the directions as on the page (« Plus haut », « Plus bas »), and once, the first
+  // time the shield is raised, a note saying why she starts at the bottom.
+  const sentenceNo = $derived(clampSentence(sentenceIndex) + 1);
+  let bouclierTaught = untrack(() => play.bouclier);
+  let bouclierNote = $state(false);
+
   function toggleBouclier() {
     play.bouclier = !play.bouclier;
     if (play.bouclier) sentenceIndex = spans.length - 1;
+    bouclierNote = play.bouclier && !bouclierTaught;
+    if (play.bouclier) bouclierTaught = true;
     editing = null;
     emitBattle({ kind: 'tool', tool: 'bouclier' });
   }
 
   function moveSentence(delta: number) {
     sentenceIndex = clampSentence(clampSentence(sentenceIndex) + delta);
+    bouclierNote = false;
     editing = null;
   }
 
@@ -318,6 +371,9 @@
     if (next !== play.current) {
       play.current = next;
       chouetteMessage = '';
+      // UI4 playability #20: every change she makes gets the same nod from the dragon, right or
+      // wrong alike, so it tells nothing (Ruling C3: the hold stays full until the reckoning).
+      react('dragon', 'brace');
     }
   }
 
@@ -353,7 +409,13 @@
     value={grade.typedTokens[index]?.text ?? ''}
     onCommit={(v) => commitEdit(index, v)}
     onCancel={cancelEdit}
+    onPlaced={keepEditorInView}
   />
+{/snippet}
+
+<!-- The editor's hint lives in the chrome, never under the word (UI4 playability #5). -->
+{#snippet editHint()}
+  <span class="edit-hint" id="proof-editor-hint" data-testid="editor-hint">{PROOF.editorHint}</span>
 {/snippet}
 
 <!-- The four tools. Full layout: a painted emblem and its name. Compact: the emblem alone in a 48 px
@@ -364,9 +426,10 @@
       <img class="tool-icon" src={TOOL_ICONS.persee} alt="" /><span class:sr-only={compact}>{PROOF.bouclier}</span>
     </button>
     {#if helpStage < 4 && hintsLeft > 0}
-      <button type="button" class="kit-bronze is-quiet tool" data-testid="btn-chouette" title={compact ? PROOF.chouette(hintsLeft) : undefined} onclick={useChouette}>
-        <img class="tool-icon" src={TOOL_ICONS.athena} alt="" /><span class:sr-only={compact}>{PROOF.chouette(hintsLeft)}</span>
-        {#if compact}<span class="count" data-testid="chouette-count" aria-hidden="true">{hintsLeft}</span>{/if}
+      <!-- The hints left on the emblem's coin, in both layouts (UI4 playability #19). -->
+      <button type="button" class="kit-bronze is-quiet tool" data-testid="btn-chouette" title={compact ? PROOF.chouette : undefined} onclick={useChouette}>
+        <img class="tool-icon" src={TOOL_ICONS.athena} alt="" /><span class:sr-only={compact}>{PROOF.chouette}</span><span class="sr-only">, {PROOF.chouetteLeft(hintsLeft)}</span>
+        <span class="count" data-testid="chouette-count" aria-hidden="true">{hintsLeft}</span>
       </button>
     {/if}
     <button type="button" class="kit-bronze is-quiet tool" class:on={fil.step !== 'idle'} data-testid="btn-fil" aria-pressed={fil.step !== 'idle'} title={compact ? PROOF.fil : undefined} onclick={toggleFil}>
@@ -387,6 +450,7 @@
         <button type="button" class="kit-bronze is-quiet" onclick={() => (confirmDone = false)}>{PROOF.confirmNo}</button>
       </div>
     {:else}
+      {#if !compact && editing !== null}{@render editHint()}{/if}
       <button type="button" class="kit-bronze cta" data-testid="btn-done-proofreading" onclick={finish}>{PROOF.done}</button>
     {/if}
   </footer>
@@ -398,34 +462,37 @@
       <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-quit-proof" aria-label={PROOF.quit} onclick={askQuit}>
         <Icon name="arrow-left" size={22} />
       </button>
-      <h2 class="sr-only">{mode === 'grimoire' ? PROOF.grimoireTitle : PROOF.title}</h2>
+      <h2 class="sr-only">{reference.title}</h2>
+      <!-- While a word is edited, its hint takes the pass's name or the count (UI4 playability #5). -->
       {#if helpStage <= 2 && activePass}
         <div class="bar-group" role="group" aria-label={PROOF.passes}>
           <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-prev-pass" aria-label={PROOF.prevPass} title={PROOF.prevPass} disabled={play.passIndex === 0} onclick={() => goToPass(play.passIndex - 1)}>
             <Icon name="arrow-left" size={22} />
           </button>
-          <span class="bar-pass" data-testid="bar-pass">{ARGUS_LABELS[activePass].title}</span>
+          {#if editing !== null}{@render editHint()}{:else}<span class="bar-pass" data-testid="bar-pass">{ARGUS_LABELS[activePass].title}</span>{/if}
           {#if !isLastPass}
             <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-next-pass" aria-label={PROOF.nextPass} title={PROOF.nextPass} onclick={() => goToPass(play.passIndex + 1)}>
               <Icon name="arrow-right" size={22} />
             </button>
           {/if}
         </div>
+      {:else if editing !== null}
+        {@render editHint()}
       {:else if helpStage === 3}
         <span class="bar-count" data-testid="bar-count">{PROOF.countShort(play.initialErrors ?? 0)}</span>
       {/if}
       {@render tools()}
       {#if play.bouclier && spans.length > 0 && !wholeText}
         <div class="bar-group">
-          <button type="button" class="kit-bronze is-quiet icon-only" aria-label={PROOF.prevSentence} title={PROOF.prevSentence} disabled={clampSentence(sentenceIndex) === 0} onclick={() => moveSentence(-1)}>
-            <Icon name="arrow-left" size={22} />
+          <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-sentence-up" aria-label={PROOF.prevSentence} title={PROOF.prevSentence} disabled={clampSentence(sentenceIndex) === 0} onclick={() => moveSentence(-1)}>
+            <Icon name="arrow-up" size={22} />
           </button>
           <span class="bar-pos" data-testid="bar-sentence-pos">
-            <span aria-hidden="true">{spans.length - clampSentence(sentenceIndex)}/{spans.length}</span>
-            <span class="sr-only">{PROOF.sentencePos(spans.length - clampSentence(sentenceIndex), spans.length)}</span>
+            <span aria-hidden="true">{sentenceNo}/{spans.length}</span>
+            <span class="sr-only">{PROOF.sentencePos(sentenceNo, spans.length)}</span>
           </span>
-          <button type="button" class="kit-bronze is-quiet icon-only" aria-label={PROOF.nextSentence} title={PROOF.nextSentence} disabled={clampSentence(sentenceIndex) >= spans.length - 1} onclick={() => moveSentence(1)}>
-            <Icon name="arrow-right" size={22} />
+          <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-sentence-down" aria-label={PROOF.nextSentence} title={PROOF.nextSentence} disabled={clampSentence(sentenceIndex) >= spans.length - 1} onclick={() => moveSentence(1)}>
+            <Icon name="arrow-down" size={22} />
           </button>
         </div>
       {/if}
@@ -434,11 +501,12 @@
     <!-- The Fil's and the owl's words share one line under the bar; the Fil's toggle in the bar is
          its way out (« Quitter le fil » folds into it, M11). The Fil's follow-up hint stays, as the
          full layout has it. The full text stays in the DOM (role="status" reads it all). -->
-    {#if fil.step !== 'idle' || chouetteMessage}
+    {#if fil.step !== 'idle' || chouetteMessage || bouclierNote}
       <p class="kit-note line" data-tone={fil.step !== 'idle' ? 'aegean' : undefined} role="status">
         {#if fil.step !== 'idle'}<span class="fil-message" data-testid="fil-message">{fil.message}</span>{/if}
         {#if fil.step === 'done'}<span class="fil-next" data-testid="fil-next">{PROOF.filNext(filVerbText)}</span>{/if}
         {#if chouetteMessage}<span class="chouette" data-testid="chouette-note"><img class="line-icon" src={TOOL_ICONS.athena} alt="" />{chouetteMessage}</span>{/if}
+        {#if bouclierNote}<span class="bouclier-note" data-testid="bouclier-note">{PROOF.bouclierNote}</span>{/if}
       </p>
     {/if}
   {:else}
@@ -447,7 +515,7 @@
         <Icon name="arrow-left" size={18} />{PROOF.quit}
       </button>
       <div class="titles">
-        <h2 class="phase-title">{mode === 'grimoire' ? PROOF.grimoireTitle : PROOF.title}</h2>
+        <h2 class="phase-title">{reference.title}</h2>
         <p class="subtitle">{subtitle}</p>
       </div>
     </header>
@@ -506,14 +574,17 @@
 
   {#if !compact && play.bouclier && spans.length > 0 && !wholeText}
     <div class="sentence-nav">
-      <button type="button" class="kit-bronze is-quiet" disabled={clampSentence(sentenceIndex) === 0} onclick={() => moveSentence(-1)}>
-        <Icon name="arrow-left" size={18} />{PROOF.prevSentence}
+      <button type="button" class="kit-bronze is-quiet" data-testid="btn-sentence-up" disabled={clampSentence(sentenceIndex) === 0} onclick={() => moveSentence(-1)}>
+        <Icon name="arrow-up" size={18} />{PROOF.prevSentence}
       </button>
-      <span class="sentence-pos">{PROOF.sentencePos(spans.length - clampSentence(sentenceIndex), spans.length)}</span>
-      <button type="button" class="kit-bronze is-quiet" disabled={clampSentence(sentenceIndex) >= spans.length - 1} onclick={() => moveSentence(1)}>
-        {PROOF.nextSentence}<Icon name="arrow-right" size={18} />
+      <span class="sentence-pos" data-testid="sentence-pos">{PROOF.sentencePos(sentenceNo, spans.length)}</span>
+      <button type="button" class="kit-bronze is-quiet" data-testid="btn-sentence-down" disabled={clampSentence(sentenceIndex) >= spans.length - 1} onclick={() => moveSentence(1)}>
+        {PROOF.nextSentence}<Icon name="arrow-down" size={18} />
       </button>
     </div>
+    {#if bouclierNote}
+      <p class="kit-note bouclier-note" data-testid="bouclier-note" role="status">{PROOF.bouclierNote}</p>
+    {/if}
   {/if}
 
   {#if !compact && chouetteMessage}
@@ -522,7 +593,7 @@
     </p>
   {/if}
 
-  <div class="text-zone" data-testid="proof-text">
+  <div class="text-zone" class:spot={range !== null && !wholeText} data-testid="proof-text" bind:this={textZone}>
     {#if wholeText}
       <textarea
         lang="fr"
@@ -576,7 +647,11 @@
     padding: 8px 12px 8px;
   }
   .compact .kit-note {
-    padding: 4px 12px;
+    padding: 4px 12px 4px var(--note-pad);
+  }
+  /* A one-line slip: its seal on the line's middle. */
+  .compact .kit-note::before {
+    top: calc(50% - 6.5px);
   }
   .head {
     display: flex;
@@ -646,7 +721,7 @@
     align-items: center;
     gap: 14px;
     margin: 0;
-    padding: 4px 12px;
+    padding: 4px 12px 4px var(--note-pad);
     font-size: 16px;
     font-weight: 600;
     line-height: 1.3;
@@ -760,7 +835,7 @@
   }
   .compact .confirm-quit {
     flex-wrap: nowrap;
-    padding: 4px 12px;
+    padding: 4px 12px 4px var(--note-pad);
   }
   .compact .confirm-quit p {
     min-width: 0;
@@ -813,6 +888,38 @@
     font-size: 16px;
     color: var(--ink-soft);
     text-align: center;
+    white-space: nowrap;
+  }
+  .bouclier-note {
+    margin: 0;
+    font-size: 16px;
+    font-style: italic;
+  }
+  /* The editor's hint (UI4 playability #5): in the foot above « J'ai terminé », or in the compact bar
+     in place of the pass's name or the count. */
+  .edit-hint {
+    font-size: 15px;
+    font-style: italic;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .bar .edit-hint {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink);
+  }
+  /* The Bouclier's one sentence: a spotlight, larger, in the middle of the page (UI4 playability #6);
+     auto margins centre it and still let a long one scroll from its top. Full layout only: under the
+     keyboard every line of the four counts. */
+  .proof:not(.compact) .text-zone.spot {
+    display: flex;
+    flex-direction: column;
+  }
+  .proof:not(.compact) .text-zone.spot :global(.tokens) {
+    width: 100%;
+    margin-block: auto;
+    font-size: calc(1.15 * var(--read-size));
   }
   .chouette {
     display: flex;
@@ -840,8 +947,16 @@
   .compact .text-zone {
     padding: 12px 16px;
   }
+  /* Compact keeps the width it has, capped near 80 characters a line (UI4 playability #13: a
+     1100 px line loses her on the return sweep). The blank line after the text lets the zone scroll
+     its last lines by whole lines too (placeEditor). */
   .compact .text-zone :global(.tokens) {
-    max-width: none;
+    max-width: 40em;
+  }
+  .compact .text-zone :global(.tokens)::after {
+    content: '';
+    display: block;
+    height: 1.9em;
   }
   .text-zone textarea {
     display: block;
