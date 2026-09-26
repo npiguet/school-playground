@@ -1,6 +1,7 @@
 <script lang="ts">
   // Narrator box (scenes UI spec §4, §2.5): portrait + typewriter, tap to finish / advance,
-  // « Tout passer » to close. UI1 takes static lines from props; UI5 feeds it dialogue content files.
+  // « Tout passer » to close. UI5 feeds it content lines (spec §8) and runs the tours through `onLine`
+  // (called with the index of the line on show; `skipLabel` is the tour's « Passer la visite »).
   // Sits in the art box's dialogue dock, which hotspots never overlap (plan Ruling 3). `dock="fill"`
   // (UI4 Ruling C7): it fills its container instead, in the flow (the victory sheet).
   import { reducedMotion } from '../../lib/juice/motion';
@@ -9,9 +10,22 @@
   import type { DialogueLine } from '../../lib/scene/types';
   import Icon from '../ui/Icon.svelte';
 
-  let { lines, onDone, dock = 'art' }: { lines: DialogueLine[]; onDone: () => void; dock?: 'art' | 'fill' } = $props();
+  let {
+    lines,
+    onDone,
+    dock = 'art',
+    skipLabel = 'Tout passer',
+    onLine,
+  }: {
+    lines: DialogueLine[];
+    onDone: () => void;
+    dock?: 'art' | 'fill';
+    skipLabel?: string;
+    onLine?: (index: number) => void;
+  } = $props();
 
   let index = $state(0);
+  $effect(() => onLine?.(index));
   let shown = $state(0);
   // `lines` may be empty (UI5 feeds this from dialogue content files; a missing/empty event key is
   // valid data, not a bug): `advance()` never walks `index` past the last real line (on the final
@@ -72,6 +86,9 @@
     role="group"
     aria-label="Dialogue"
     data-testid="dialogue-box"
+    data-key={line.key}
+    data-speaker={line.speaker}
+    data-line={index}
     class:fill={dock === 'fill'}
     style={dock === 'art' ? `left:${DIALOGUE_DOCK.x}%;width:${DIALOGUE_DOCK.w}%;max-height:${DIALOGUE_DOCK.h - 2}%` : undefined}
   >
@@ -88,7 +105,7 @@
       <span class="sr-only" aria-live="polite" data-testid="dialogue-live">{announced}</span>
       {#if complete}<span class="more" class:still={reducedMotion()} aria-hidden="true"><Icon name="arrow-right" size={28} /></span>{/if}
     </button>
-    <button type="button" class="kit-bronze skip" data-testid="dialogue-skip" onclick={onDone}>Tout passer</button>
+    <button type="button" class="kit-bronze skip" data-testid="dialogue-skip" onclick={onDone}>{skipLabel}</button>
   </div>
 {/if}
 

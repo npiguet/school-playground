@@ -202,7 +202,7 @@
   <!-- Plan Ruling P6: RotateScreen must out-rank every overlay/modal in the app, not just this
        stage. `.scene-stage` is `position: fixed`, which always opens its own stacking context
        (CSS spec), so a z-index inside it can never beat a sibling overlay mounted outside it
-       (e.g. Onboarding). RotateScreen itself portals its DOM node to <body> on mount to escape
+       (e.g. TourLayer). RotateScreen itself portals its DOM node to <body> on mount to escape
        this stacking context; see RotateScreen.svelte and `--z-rotate-screen` in kit.css. -->
   <RotateScreen background={scene.background} />
 </main>

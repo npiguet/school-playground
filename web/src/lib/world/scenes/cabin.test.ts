@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { boxInside, boxesOverlap, shapeBox } from '../../scene/geometry';
+import { variantsOf } from '../../../testing/dialogue';
 import { validateScene } from '../../scene/validate';
 import type { CampResponse } from '../types';
 import type { DragonOut } from '../types';
@@ -15,7 +16,9 @@ describe('the cabin (UI3 Ruling B6)', () => {
   });
 
   it('lets the dragon speak at home: a greeting and a line on each overlay but the hero panel (UI3b playability #7)', () => {
-    expect(cabinGreeting(dragon)).toEqual([expect.objectContaining({ speaker: 'dragon', name: 'Braise', text: 'Ta cabane. Tout ce que tu as gagné est rangé ici.' })]);
+    const greeting = cabinGreeting(dragon);
+    expect(greeting).toEqual([expect.objectContaining({ key: 'cabin.enter', speaker: 'dragon', name: 'Braise' })]);
+    expect(variantsOf('cabin.enter')).toContain(greeting[0].text);
     expect(trophiesLine(dragon, 4).text).toBe('Chaque ruse neutralisée laisse une relique. Il en manque encore quatre !');
     expect(trophiesLine(dragon, 1).text).toBe('Chaque ruse neutralisée laisse une relique. Il en manque encore une !');
     expect(trophiesLine(dragon, 0).text).toBe('Chaque ruse neutralisée a laissé sa relique : elles sont toutes là !');

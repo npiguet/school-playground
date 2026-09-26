@@ -3,7 +3,8 @@
 // the `soin` overlay (#/p/:id/dragon?panel=soin), where it speaks from the voice plate.
 import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
-import { dragonCaption, stageLine } from '../dragon';
+import { dragonCaption } from '../dragon';
+import { sayKey } from '../../dialogue/select';
 import { plural } from '../../text/french';
 import type { DragonOut, DragonStage } from '../types';
 import { st, type DialogueLine, type HotspotDef, type SceneDef, type SceneLayerDef } from '../../scene/types';
@@ -54,8 +55,9 @@ export function growth(d: DragonOut): { value: number; max: number; label: strin
   return { value: d.neutralised, max, label: `Pour grandir : ${plural(d.next_stage_at, "ruse d'Éris neutralisée", "ruses d'Éris neutralisées")}` };
 }
 
+/** The dragon's greeting by its stage (UI5 Ruling E12); an unnamed hatchling asks for a name. */
 export function nestGreeting(d: DragonOut): DialogueLine[] {
-  return [dragonSays(d, stageLine(d.stage, d.name, Math.max(0, d.available - d.neutralised)))];
+  return [d.stage === 'hatchling' && !d.name ? sayKey('nest.name', { dragon: d }) : sayKey('nest.enter', { dragon: d })];
 }
 
 /** What the dragon says from its care overlay's voice plate (Ruling B5, immersion #23), in the

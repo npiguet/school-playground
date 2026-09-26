@@ -69,8 +69,8 @@
   <section class="codex-page page-left">
     <!-- The view through the portal, as a plate in the book (the art path comes from the ART table,
          final review M7, so budgets and renames stay there). -->
+    <!-- What the portal is, the library tour's step 4 and the owl's hint say it (UI5 Ruling E13). -->
     <figure class="plate"><img src={ART.scenes.alexandrie} alt="" /></figure>
-    <p class="page-note">Derrière le portail, les scribes d'Alexandrie recopient des livres anciens pour tes étagères.</p>
   </section>
   <section class="codex-page page-right">
     <h3>Les œuvres</h3>
@@ -117,11 +117,6 @@
     width: 100%;
     aspect-ratio: 4 / 3;
     object-fit: cover;
-  }
-  .page-note {
-    font-style: italic;
-    font-size: 17px;
-    margin: 0;
   }
   .page-right h3 {
     margin: 0 0 8px;

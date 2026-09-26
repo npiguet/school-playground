@@ -17,6 +17,7 @@
   import { dragonSays } from '../lib/world/scenes/speakers';
   import { bandFor, dossierLine, sleepingLine } from '../lib/world/eris';
   import { VOICES, erisSays } from '../lib/world/voices';
+  import { sayKey } from '../lib/dialogue/select';
   import { entry } from '../lib/world/bestiary';
   import { ART } from '../lib/world/art';
   import { campFor } from '../lib/world/campStore.svelte';
@@ -66,6 +67,9 @@
   );
   const pageFocus = $derived(from.of('page') === 'codex' ? `[data-testid="bestiary-card-${key}"]` : hotspotSelector('war', 'bestiary'));
 
+  // UI5 Ruling E12: Éris greets in her tent, from her portrait's frame (erisSays), once per page load.
+  const greet = () => [sayKey('war.enter')];
+
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
 
   // The tap on a locked sheet never takes the stage's one-tap guard (Hotspot.svelte), so the other
@@ -79,7 +83,7 @@
   const close = () => closePanel(sceneHref('war', profile.id));
 </script>
 
-<PlaceScene bind:this={place} {profile} scene={WAR_SCENE} bind:debug>
+<PlaceScene bind:this={place} {profile} scene={WAR_SCENE} bind:debug {greet}>
   {#snippet children(ctx)}
     {#each sheets as s (s.key)}
       {@const l = ctx.camp?.lieutenants.find((x) => x.key === s.key)}

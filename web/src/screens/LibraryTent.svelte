@@ -30,12 +30,9 @@
   const greet = () => owlGreeting();
 
   let place: PlaceScene | undefined = $state();
-  // Never the same hint twice in a row (owlHint).
-  let lastHint = -1;
+  // Never the same hint twice in a row (the selector remembers her last one).
   function speak() {
-    const { line, index } = owlHint(lastHint);
-    lastHint = index;
-    place?.say([line], hotspotSelector('library', 'owl'));
+    place?.say([owlHint()], hotspotSelector('library', 'owl'));
   }
   const activate = (def: HotspotDef) => (def.id === 'owl' ? speak() : openHotspot(def, profile.id));
   const close = () => closePanel(sceneHref('library', profile.id));

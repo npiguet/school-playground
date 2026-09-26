@@ -3,6 +3,7 @@
 // and the place never disagree on where to go.
 import type { CampResponse } from './types';
 import { nearestProphecy, prophecyWhen } from './prophecy';
+import type { DialogueKey } from '../dialogue/types';
 
 export type NextStep = 'battle' | 'first-text' | 'prophecy' | 'scrolls' | null;
 
@@ -30,16 +31,10 @@ export const HUB_PLACE = {
   scrolls: 'oracle',
 } as const satisfies Record<Exclude<NextStep, null>, string>;
 
-/** The greeting's last line names the same step (the tent when there is none). */
-export function nextStepLine(camp: CampResponse): string {
-  switch (nextStep(camp)) {
-    case 'prophecy':
-      return `La Pythie a vu ta prochaine épreuve, ${prophecyWhen(nearestProphecy(camp)!.days_left)}. Viens t'y préparer !`;
-    case 'battle':
-      return "Le sentier de la bataille est ouvert : Éris t'attend.";
-    case 'scrolls':
-      return "La Pythie t'attend à Delphes : trois rouleaux à ouvrir.";
-    default:
-      return "Les parchemins t'attendent, sous la tente.";
-  }
+/** The greeting's last line names the same step (UI5 Ruling E12: `camp.next.<step>` in the content,
+ *  `camp.next.none` when there is none). */
+export function nextStepKey(camp: CampResponse): { key: DialogueKey; vars?: Record<string, string> } {
+  const step = nextStep(camp);
+  if (step === 'prophecy') return { key: 'camp.next.prophecy', vars: { when: prophecyWhen(nearestProphecy(camp)!.days_left) } };
+  return { key: step ? `camp.next.${step}` : 'camp.next.none' };
 }

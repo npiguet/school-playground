@@ -16,7 +16,7 @@
   }: { line: DialogueLine; testId?: string; children?: Snippet } = $props();
 </script>
 
-<figure class="overlay-voice" data-testid={testId} data-speaker={line.speaker}>
+<figure class="overlay-voice" data-testid={testId} data-speaker={line.speaker} data-key={line.key}>
   <img class="voice-portrait" src={line.portrait} alt="" style:filter={line.portraitFilter} />
   <figcaption class="voice-body">
     <span class="voice-name">{line.name}</span>

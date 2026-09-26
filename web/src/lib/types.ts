@@ -15,7 +15,8 @@ export interface ProfileSettings {
   tours?: string[];
   /** Sessions per ISO week (decision 15), adjustable 2-5 on the cabin lyre (settings); defaults to 3 client-side. */
   weekly_goal?: number;
-  /** First-visit onboarding cards on the camp (decision 22); skippable, never re-shown once true. */
+  /** The camp's first visit was welcomed (decision 22): the Muses' cards before UI5, the camp tour
+   *  since (written with `tours`; true counts as the camp tour seen, Ruling E13). */
   onboarded?: boolean;
 }
 

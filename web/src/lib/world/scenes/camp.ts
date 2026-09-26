@@ -5,14 +5,15 @@ import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
 import { stageLine } from '../dragon';
 import { stirringCaption } from '../eris';
-import { HUB_PLACE, bossEngaged, nextStep, nextStepLine } from '../nextStep';
+import { HUB_PLACE, bossEngaged, nextStep, nextStepKey } from '../nextStep';
+import { sayKey } from '../../dialogue/select';
 import { nearestProphecy, prophecyWhen } from '../prophecy';
 import { romanTier, tricksBeforeEris } from '../quests';
 import { bossRewardName } from '../rewards';
 import { plural } from '../../text/french';
 import type { CampResponse, DragonStage, LieutenantKey, WorldCatalog } from '../types';
 import { st, type DialogueLine, type HotspotDef, type HotspotState, type SceneContext, type SceneDef, type SceneLayerDef } from '../../scene/types';
-import { dragonSpeaker } from './speakers';
+import { dragonSays } from './speakers';
 import { CAMP_SHAPES } from './camp.shapes';
 
 export type CampHotspotId = keyof typeof CAMP_SHAPES;
@@ -147,13 +148,15 @@ export function campDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 
   return { x: 17, y: 55, scale: WIDTH[stage], depth: 1, idle: 'breathe' };
 }
 
-/** The static greeting (dialogue content files arrive in UI5). */
+/** The camp's greeting (Ruling E12): her name, the dragon's stage, the week's goal when reached, the next step. */
 export function campGreeting(profileName: string, camp: CampResponse): DialogueLine[] {
   const d = camp.dragon;
-  const who = dragonSpeaker(d);
-  return [
-    { ...who, text: `Bienvenue au camp, ${profileName}.` },
-    { ...who, text: stageLine(d.stage, d.name, Math.max(0, d.available - d.neutralised)) },
-    { ...who, text: nextStepLine(camp) },
+  const lines = [
+    sayKey('camp.enter', { vars: { hero: profileName }, dragon: d }),
+    dragonSays(d, stageLine(d.stage, d.name, Math.max(0, d.available - d.neutralised))),
   ];
+  if (camp.weekly.reached) lines.push(sayKey('camp.weekly', { dragon: d }));
+  const next = nextStepKey(camp);
+  lines.push(sayKey(next.key, { vars: next.vars, dragon: d }));
+  return lines;
 }

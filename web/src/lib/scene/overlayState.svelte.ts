@@ -1,4 +1,4 @@
-// How many in-world modals are open (final review I5, M4): Overlay and Onboarding register through
+// How many in-world modals are open (final review I5, M4): Overlay and TourLayer register through
 // the `modal` action below. SceneStage makes the scene behind `inert` and FxCanvas pauses while this
 // is > 0. Lives outside the stage's context because modals are rendered next to the stage.
 import { tick, untrack } from 'svelte';

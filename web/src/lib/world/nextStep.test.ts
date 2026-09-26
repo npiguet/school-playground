@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CampResponse } from './types';
-import { HUB_PLACE, nextStep, nextStepLine } from './nextStep';
+import { HUB_PLACE, nextStep, nextStepKey } from './nextStep';
 import { prophecyWhen } from './prophecy';
 
 function camp(over: Partial<CampResponse> = {}): CampResponse {
@@ -49,10 +49,10 @@ describe('one next step for the whole camp (Ruling B9, order amended by the cont
   });
 
   it('names the same step in the greeting', () => {
-    expect(nextStepLine(camp({ boss: open, prophecies: prophecy(3) }))).toBe(`La Pythie a vu ta prochaine épreuve, ${prophecyWhen(3)}. Viens t'y préparer !`);
-    expect(nextStepLine(camp({ boss: open }))).toBe("Le sentier de la bataille est ouvert : Éris t'attend.");
-    expect(nextStepLine(camp({ oracle: sealed }))).toBe("La Pythie t'attend à Delphes : trois rouleaux à ouvrir.");
-    expect(nextStepLine(camp({ xp: fresh, oracle: sealed }))).toBe("Les parchemins t'attendent, sous la tente.");
-    expect(nextStepLine(camp())).toBe("Les parchemins t'attendent, sous la tente.");
+    expect(nextStepKey(camp({ boss: open, prophecies: prophecy(3) }))).toEqual({ key: 'camp.next.prophecy', vars: { when: prophecyWhen(3) } });
+    expect(nextStepKey(camp({ boss: open }))).toEqual({ key: 'camp.next.battle' });
+    expect(nextStepKey(camp({ oracle: sealed }))).toEqual({ key: 'camp.next.scrolls' });
+    expect(nextStepKey(camp({ xp: fresh, oracle: sealed }))).toEqual({ key: 'camp.next.first-text' });
+    expect(nextStepKey(camp())).toEqual({ key: 'camp.next.none' });
   });
 });

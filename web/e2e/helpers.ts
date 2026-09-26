@@ -57,17 +57,18 @@ export async function stubSpeech(page: Page) {
   });
 }
 
-// Dismisses the first-visit onboarding modal (spec's decision 22) if it's showing - tolerant so
-// it's safe to call after any camp arrival, whether or not this is the profile's first visit.
-// The Muses' card mounts with the camp, in the same render (Camp.svelte): it waits for a place to be
-// drawn first (the camp, or where a link sends an onboarded hero), so the look at the card is never
-// taken before the page has drawn it (UI4 wave B).
+// Skips the camp's first-visit tour (UI5 Ruling E13: it replaced the Muses' onboarding cards) if it
+// is showing - tolerant so it's safe to call after any camp arrival, whether or not this is the
+// profile's first visit. Tours are off in e2e unless a spec asks for them (crashGuard's `tours`
+// option), so this is a no-op in every spec that does not. It waits for a place to be drawn first
+// (the camp, or where a link sends the hero), so the look is never taken before the page has drawn
+// it (UI4 wave B); a spec with tours on waits for the tour itself (it follows the camp data).
 export async function skipOnboarding(page: Page) {
   await expect(page.locator('[data-testid^="scene-"]:not([data-testid="scene-exit"])').first()).toBeVisible();
-  const btn = page.getByTestId('onboarding-skip');
-  if (await btn.isVisible()) {
-    await btn.click();
-    await expect(page.getByTestId('onboarding')).toHaveCount(0);
+  const tour = page.locator('[data-testid="tour"][data-tour="camp"]');
+  if (await tour.isVisible()) {
+    await tour.getByTestId('dialogue-skip').click();
+    await expect(tour).toHaveCount(0);
   }
 }
 
@@ -847,10 +848,18 @@ export async function spokenVolumes(page: Page): Promise<number[]> {
   return page.evaluate(() => (window as unknown as { __spokenVolumes?: number[] }).__spokenVolumes ?? []);
 }
 
-/** Taps the dialogue box to its next line: once to finish the typing, once to go on. */
+/** Taps the dialogue box to its next line (or closes it after its last): once to finish the typing,
+ *  once to go on. Exactly one line on: the first tap may land just as the typing ends, and then it
+ *  has already moved on (the box's `data-line` says which line is on show). */
 export async function nextLine(page: Page) {
   const adv = page.getByTestId('dialogue-advance');
-  if ((await adv.getAttribute('aria-label')) !== 'Suite') await adv.click();
+  const lineOnShow = () =>
+    page.evaluate(() => document.querySelector('[data-testid="dialogue-box"]')?.getAttribute('data-line') ?? null);
+  const at = await lineOnShow();
+  if ((await adv.getAttribute('aria-label')) !== 'Suite') {
+    await adv.click();
+    if ((await lineOnShow()) !== at) return;
+  }
   await expect(adv).toHaveAttribute('aria-label', 'Suite');
   await adv.click();
 }

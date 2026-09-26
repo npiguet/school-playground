@@ -5,12 +5,12 @@
   // never leaves the world; the tablet (camera dot, home button) turns a quarter turn (a gentle pulse under reduced
   // motion, since reduced motion means "fades only").
   //
-  // Plan Ruling P6: this must paint above EVERYTHING in portrait - the onboarding modal, any
+  // Plan Ruling P6: this must paint above EVERYTHING in portrait - a first-visit tour, any
   // overlay, and the hero panel (Task 6/7) - not just above the scene it's mounted in. SceneStage
   // renders us as a child of `.scene-stage`, but `.scene-stage` uses `position: fixed`, which
   // (per the CSS stacking-context spec) *always* opens its own stacking context regardless of its
   // z-index. A z-index set inside that context can never out-rank a sibling of `.scene-stage`
-  // itself (e.g. Onboarding's overlay), so we portal our root node to <body> on mount: a true
+  // itself (e.g. TourLayer), so we portal our root node to <body> on mount: a true
   // top-level element, compared against every other top-level overlay by `--z-rotate-screen`
   // alone (see web/src/styles/kit.css).
   import { onMount } from 'svelte';

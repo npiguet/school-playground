@@ -5,6 +5,7 @@ import {
   expectCamp,
   expectInSafeZone,
   expectInWorldOverlay,
+  expectLineOf,
   expectScene,
   measureBoxes,
   redScan,
@@ -21,7 +22,8 @@ test('the nest: the egg in the straw, its growth, its greeting; the exit leads b
   await page.goto(`/#/p/${id}/dragon`);
   await expectScene(page, 'nest');
   await expect(page.locator('[data-testid="scene-nest"] .stage-plaque')).toHaveText('Le nid du dragon');
-  await expect(page.getByTestId('dialogue-text')).toHaveText("Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
+  // UI5 Ruling E12: one of the egg's nest.enter lines.
+  await expectLineOf(page.getByTestId('dialogue-box'), 'nest.enter');
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
   await expect(page.getByTestId('dragon-stage')).toHaveText('Œuf');

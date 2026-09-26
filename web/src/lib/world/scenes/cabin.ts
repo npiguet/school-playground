@@ -8,6 +8,7 @@ import { treasureCaption } from '../rewards';
 import type { DragonOut } from '../types';
 import { CABIN_SHAPES } from './cabin.shapes';
 import { dragonSays } from './speakers';
+import { sayKey } from '../../dialogue/select';
 
 export const CABIN_HOTSPOTS: HotspotDef[] = [
   {
@@ -70,9 +71,9 @@ export const WALLS_FULL_LINE = "Les murs sont pleins : range d'abord une pièce.
 // a greeting once per page load, and a line on the voice plate of the shelf, the journal and the
 // lyre (the hero panel is a short menu and has none).
 
-/** The cabin's greeting. */
+/** The cabin's greeting (UI5 Ruling E12). */
 export function cabinGreeting(d: DragonOut): DialogueLine[] {
-  return [dragonSays(d, 'Ta cabane. Tout ce que tu as gagné est rangé ici.')];
+  return [sayKey('cabin.enter', { dragon: d })];
 }
 
 const COUNT_WORDS = ['', 'une', 'deux', 'trois', 'quatre', 'cinq', 'six'];

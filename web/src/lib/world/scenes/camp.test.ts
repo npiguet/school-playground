@@ -3,6 +3,7 @@ import { validateScene } from '../../scene/validate';
 import type { CampResponse, LieutenantState, QuestOut, WorldCatalog } from '../types';
 import { nextStep, HUB_PLACE } from '../nextStep';
 import { prophecyWhen } from '../prophecy';
+import { variantsOf } from '../../../testing/dialogue';
 import {
   CAMP_HOTSPOTS,
   CAMP_SCENE,
@@ -118,14 +119,21 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     expect(state('dossier', camp())).toMatchObject({ badge: null, seals: 0 });
   });
 
-  it('greets with three static dragon lines, the last one naming the next step', () => {
+  it('greets with her name, the dragon\'s stage, then the next step, from the content (Ruling E12)', () => {
     const lines = campGreeting('Ariane', camp());
-    expect(lines.map((l) => l.text)).toEqual([
-      'Bienvenue au camp, Ariane.',
-      "Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.",
-      "Les parchemins t'attendent, sous la tente.",
-    ]);
-    expect(lines[0]).toMatchObject({ speaker: 'dragon', name: "L'œuf", portrait: '/art/dragon/dragon_egg_cut.webp', portraitFilter: 'none' });
+    expect(lines.map((l) => l.key)).toEqual(['camp.enter', undefined, 'camp.next.first-text']);
+    expect(variantsOf('camp.enter', { hero: 'Ariane' })).toContain(lines[0].text);
+    expect(lines[1].text).toBe("Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
+    expect(variantsOf('camp.next.first-text')).toContain(lines[2].text);
+    expect(lines[0]).toMatchObject({ key: 'camp.enter', speaker: 'dragon', name: "L'œuf", portrait: '/art/dragon/dragon_egg_cut.webp', portraitFilter: 'none' });
+  });
+
+  it('praises the week\'s goal when it is reached, and names a prophecy\'s day', () => {
+    const lines = campGreeting('Ariane', camp({ weekly: { week: 'w', target: 3, done: 3, reached: true }, prophecies: prophecy(2) }));
+    expect(lines.map((l) => l.key)).toEqual(['camp.enter', undefined, 'camp.weekly', 'camp.next.prophecy']);
+    expect(variantsOf('camp.weekly')).toContain(lines[2].text);
+    expect(variantsOf('camp.next.prophecy', { when: prophecyWhen(2) })).toContain(lines[3].text);
+    expect(campGreeting('Ariane', camp({ xp: seasoned, oracle: chosen })).at(-1)!.key).toBe('camp.next.none');
   });
 
   it('seats the dragon in the painted nest, on a shallow plane; preloads every place it leads to', () => {
