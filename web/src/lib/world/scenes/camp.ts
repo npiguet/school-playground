@@ -36,8 +36,8 @@ export function bossLockLine(camp: CampResponse): string {
 }
 
 /** The locked path's caption (final review M12, ethics: a lock says in advance how to get past it,
- *  without a tap): the tricks still to foil, as the dragon says it when tapped. Part of the lock,
- *  not news: it never takes one of the three news captions (campNews). */
+ *  without a tap): the tricks still to foil, as the dragon says it when tapped. Ruling B-d: it is
+ *  the battle path's news, first of the three captions (campNews). */
 export function bossLockCaption(camp: CampResponse): string | null {
   if (camp.boss.tiers_won.length >= 3) return 'Éris boude, loin du camp';
   const n = tricksBeforeEris(camp);
@@ -58,12 +58,13 @@ export function campNextStep(camp: CampResponse | null): CampHotspotId | null {
   return step ? HUB_PLACE[step] : null;
 }
 
-/** Captions only where there is news (carry rec. 5), three at most, by priority. */
+/** Captions only where there is news (carry rec. 5), three at most, by priority. Ruling B-d: the
+ *  battle path's caption counts too, locked (the tricks still to foil) or open (the fight), first. */
 export function campNews(camp: CampResponse, catalog: WorldCatalog | null): Partial<Record<CampHotspotId, string>> {
   const p = nearestProphecy(camp);
   const stirring = camp.lieutenants.find((l) => l.stirring && l.available && !l.neutralised);
   const all: [CampHotspotId, string | null][] = [
-    ['boss', bossLocked(camp) ? null : bossCaption(camp, catalog)],
+    ['boss', bossLocked(camp) ? bossLockCaption(camp) : bossCaption(camp, catalog)],
     ['oracle', p && p.days_left <= 7 ? `Une prophétie, ${prophecyWhen(p.days_left)}` : camp.oracle.status === 'sealed' ? 'Trois rouleaux à ouvrir' : null],
     ['parchemins', camp.xp.total === 0 ? 'Choisis un texte à défendre' : null],
     ['dragon', camp.dragon.stage !== 'egg' && !camp.dragon.name ? 'Il attend un nom' : null],
@@ -101,13 +102,13 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     shape: CAMP_SHAPES.dossier,
     labelPos: 'below',
     leader: true,
-    state: place('dossier', (camp) => {
-      const n = camp.lieutenants.filter((l) => l.neutralised).length;
-      return { badge: n > 0 ? n : null };
-    }),
+    // UI3b playability #17: the neutralised lieutenants are gold seals on the plaque (as on their
+    // sheets in the tent), not the gold coin that means « something waits here ».
+    state: place('dossier', (camp) => ({ seals: camp.lieutenants.filter((l) => l.neutralised).length })),
   },
-  // Inked on the cabin's white wall: a plaque above the roof hung on the olive tree (Task 7 review).
-  { id: 'cabin', label: 'Ta cabane', target: 'cabin', shape: CAMP_SHAPES.cabin, labelPos: 'on', state: place('cabin') },
+  // UI3b playability #8: the same dark plaque as every other place, pinned to the cabin's door and
+  // hanging in front of it (the pale 12 px ink on the white wall was the hardest name to read).
+  { id: 'cabin', label: 'Ta cabane', target: 'cabin', shape: CAMP_SHAPES.cabin, labelPos: 'below', leader: true, state: place('cabin') },
   {
     id: 'boss',
     label: 'Le sentier de la bataille',
@@ -115,10 +116,10 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     shape: CAMP_SHAPES.boss,
     labelPos: 'below',
     leader: true,
-    state: (ctx) =>
-      ctx.camp
-        ? place('boss', (camp) => (bossLocked(camp) ? { locked: true, caption: bossLockCaption(camp) } : {}))(ctx)
-        : st({ locked: true }),
+    // UI3b playability #10: the plaque slides right, off the war tent's finial and spears, over the
+    // olive tree; its leader still starts under the archway.
+    labelDx: 70,
+    state: (ctx) => (ctx.camp ? place('boss', (camp) => (bossLocked(camp) ? { locked: true } : {}))(ctx) : st({ locked: true })),
   },
 ];
 

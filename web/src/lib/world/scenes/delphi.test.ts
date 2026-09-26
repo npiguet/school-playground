@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validateScene } from '../../scene/validate';
 import type { CampResponse, QuestOut } from '../types';
 import { DELPHI_HOTSPOTS, DELPHI_SCENE, PYTHIA_LAYER, pythiaGreeting, scrollTitle } from './delphi';
+import { campNews } from './camp';
 
 function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {
@@ -42,11 +43,24 @@ describe('Delphi (UI3 Ruling A1, A10)', () => {
     expect(state('pythia', camp({ xp: { total: 0 } as CampResponse['xp'] }))).toMatchObject({ isNew: false, caption: 'Trois rouleaux à ouvrir' });
     expect(state('pythia', camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null } })).isNew).toBe(false);
     // A prophecy within a week comes first, the week chosen or not, even for a new hero.
-    expect(state('pythia', camp({ oracle: chosen, prophecies: soon }))).toMatchObject({ isNew: true, caption: 'Quête en cours' });
+    expect(state('pythia', camp({ oracle: chosen, prophecies: soon }))).toMatchObject({ isNew: true, caption: 'Une prophétie, dans 2 jours' });
     expect(state('pythia', camp({ xp: { total: 0 } as CampResponse['xp'], prophecies: soon })).isNew).toBe(true);
     const quests = [{ status: 'active' }, { status: 'active' }, { status: 'done' }] as QuestOut[];
     expect(state('tablets', camp({ quests })).badge).toBe(2);
     expect(state('tablets', camp()).badge).toBeNull();
+  });
+
+  // UI3b playability #9: the glow the hub promised as a prophecy is captioned as a prophecy here, in
+  // the hub plaque's own words, whatever the week's scrolls say.
+  it("captions the Pythia with the hub's prophecy words when the prophecy is the next step", () => {
+    const lieutenants = [] as CampResponse['lieutenants'];
+    const dragon = { stage: 'egg', name: null } as CampResponse['dragon'];
+    for (const oracle of [chosen, { week: 'w', status: 'sealed', reward_id: null } as const]) {
+      const c = camp({ oracle, prophecies: soon, lieutenants, dragon });
+      expect(state('pythia', c).caption).toBe(campNews(c, null).oracle);
+    }
+    const later = [{ ...soon[0], days_left: 12 }];
+    expect(state('pythia', camp({ oracle: chosen, prophecies: later })).caption).toBe('Quête en cours');
   });
 
   it('lets the Pythia greet with one static line', () => {

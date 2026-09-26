@@ -6,6 +6,7 @@ import type { CampResponse, ScrollKey } from '../types';
 import { st, type DialogueLine, type HotspotDef, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { DELPHI_SHAPES } from './delphi.shapes';
 import { nextStep } from '../nextStep';
+import { nearestProphecy, prophecyWhen } from '../prophecy';
 
 export const DELPHI_HOTSPOTS: HotspotDef[] = [
   {
@@ -16,11 +17,13 @@ export const DELPHI_HOTSPOTS: HotspotDef[] = [
     labelPos: 'above',
     leader: true,
     // Ruling B9: the Pythia glows only when the game's next step is hers (a near prophecy, or the
-    // week's sealed scrolls); her caption says what waits here either way.
+    // week's sealed scrolls); her caption says what waits here either way. UI3b playability #9: on a
+    // near prophecy it says what the hub's plaque promised, in the same words (camp.ts campNews).
     state: ({ camp }) => {
       if (!camp) return st();
       const step = nextStep(camp);
       const glow = step === 'prophecy' || step === 'scrolls';
+      if (step === 'prophecy') return st({ isNew: true, caption: `Une prophétie, ${prophecyWhen(nearestProphecy(camp)!.days_left)}` });
       return camp.oracle.status === 'sealed' ? st({ isNew: glow, caption: 'Trois rouleaux à ouvrir' }) : st({ isNew: glow, caption: 'Quête en cours' });
     },
   },

@@ -7,6 +7,7 @@
   // inside the art box; its overlays are rendered next to this component (they are
   // fixed-position).
   import { tick, untrack, type Snippet } from 'svelte';
+  import { fade } from 'svelte/transition';
   import SceneStage from './SceneStage.svelte';
   import Hud from './Hud.svelte';
   import SceneExit from './SceneExit.svelte';
@@ -14,6 +15,7 @@
   import { campFor, campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
   import { initSound } from '../../lib/juice/soundStore.svelte';
   import { go, heroPanelHref } from '../../lib/scene/panelNav';
+  import { reducedMotion } from '../../lib/juice/motion';
   import { greetKey, markGreeted, shouldGreet } from '../../lib/scene/greeting';
   import type { DialogueLine, SceneContext, SceneDef } from '../../lib/scene/types';
   import type { CampResponse } from '../../lib/world/types';
@@ -36,8 +38,10 @@
     /** The place's greeting: its lines, or null while it is not ready to greet yet (e.g. the camp
      *  data has not arrived). Called inside an effect, so what it reads is tracked. */
     greet?: (camp: CampResponse | null) => DialogueLine[] | null;
-    /** Opens the hero panel from the HUD chip; by default at once. The camp routes it through its
-     *  night fade, like its other ways out (final review M13). */
+    /** Opens the hero panel from the HUD chip. By default a place other than the cabin fades to
+     *  night first (UI3b playability #18: the hero panel lives in the cabin, Ruling B2, and the cabin
+     *  then rises behind its scroll, App.svelte, instead of cutting in); the camp routes it through
+     *  its own night fade, like its other ways out (final review M13). */
     onHero?: (path: string) => void;
     children: Snippet<[SceneContext]>;
   } = $props();
@@ -96,7 +100,18 @@
     (document.querySelector(back) as HTMLElement | null)?.focus();
   }
 
-  const openHero = () => (onHero ? onHero(heroPanelHref(profile.id)) : go(heroPanelHref(profile.id), 'panel'));
+  // Idempotent, and the timer dies with the place: a browser Back inside the fade wins.
+  let toHero = $state(false);
+  let heroTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => () => clearTimeout(heroTimer));
+  function openHero() {
+    const path = heroPanelHref(profile.id);
+    if (onHero) return onHero(path);
+    if (scene.id === 'cabin') return go(path, 'panel');
+    if (toHero) return;
+    toHero = true;
+    heroTimer = setTimeout(() => go(path, 'panel'), reducedMotion() ? 60 : 180);
+  }
 </script>
 
 <SceneStage {scene} {ctx} bind:debug>
@@ -127,6 +142,10 @@
   {/if}
 </SceneStage>
 
+{#if toHero}
+  <div class="hero-veil" data-testid="hero-veil" aria-hidden="true" in:fade={{ duration: 180 }}></div>
+{/if}
+
 <style>
   /* Under the place's plaque, in the sky band every scene keeps free of hotspots (the camp's
      weekly ribbon sits there once the data has arrived; this only shows before). */
@@ -149,5 +168,12 @@
   }
   .place-status p {
     margin: 0;
+  }
+  /* The night the hero chip fades through on its way to the cabin (Camp.svelte's exit veil). */
+  .hero-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--night);
   }
 </style>

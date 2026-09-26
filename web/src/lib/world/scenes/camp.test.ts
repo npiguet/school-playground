@@ -54,8 +54,10 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
       cabin: 'cabin',
       boss: 'boss',
     });
-    for (const h of CAMP_HOTSPOTS) expect(h.leader === true || h.labelPos === 'on', h.id).toBe(true);
-    expect(CAMP_HOTSPOTS.find((h) => h.id === 'cabin')!.labelPos).toBe('on');
+    // UI3b playability #8: every place, the cabin too, has the same dark plaque pinned by a leader.
+    for (const h of CAMP_HOTSPOTS) expect([h.labelPos, h.leader], h.id).toEqual(['below', true]);
+    // Playability #10: the battle path's plaque slides right, off the war tent's peak.
+    expect(CAMP_HOTSPOTS.find((h) => h.id === 'boss')!.labelDx).toBeGreaterThan(0);
   });
 
   it('always shows the path to battle, locked until Éris can be fought', () => {
@@ -77,16 +79,24 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
   });
 
   it('captions only the places with news, three at most, in priority order', () => {
-    expect(campNews(camp({ xp: seasoned, oracle: chosen }), null)).toEqual({});
+    const won = { tier_available: null, tiers_won: [1, 2, 3], active_quest_id: null };
+    expect(campNews(camp({ xp: seasoned, oracle: chosen, boss: won }), null)).toEqual({ boss: 'Éris boude, loin du camp' });
+    // Ruling B-d: the locked path's caption is the battle's news, first of the three.
+    expect(campNews(camp({ xp: seasoned, oracle: chosen, dragon: { ...hatchling, name: 'Braise', neutralised: 6 } }), null)).toEqual({});
+    expect(campNews(camp({ dragon: hatchling, lieutenants: echoStirs }), null)).toEqual({
+      boss: 'Encore 2 ruses',
+      oracle: 'Trois rouleaux à ouvrir',
+      parchemins: 'Choisis un texte à défendre',
+    });
     const busy = ready({ xp: seasoned, prophecies: prophecy(2), dragon: hatchling, lieutenants: echoStirs });
     expect(campNews(busy, catalog)).toEqual({ boss: "Combat I : Sandales d'Hermès", oracle: `Une prophétie, ${prophecyWhen(2)}`, dragon: 'Il attend un nom' });
     expect(state('dossier', busy, catalog).caption).toBeNull();
-    expect(campNews(camp({ xp: seasoned, dragon: hatchling, lieutenants: echoStirs }), null)).toEqual({
+    expect(campNews(camp({ xp: seasoned, dragon: { ...hatchling, neutralised: 6 }, lieutenants: echoStirs }), null)).toEqual({
       oracle: 'Trois rouleaux à ouvrir',
       dragon: 'Il attend un nom',
       dossier: "Écho s'agite",
     });
-    expect(campNews(camp(), null)).toEqual({ oracle: 'Trois rouleaux à ouvrir', parchemins: 'Choisis un texte à défendre' });
+    expect(campNews(camp(), null)).toEqual({ boss: 'Encore 2 ruses', oracle: 'Trois rouleaux à ouvrir', parchemins: 'Choisis un texte à défendre' });
   });
 
   it('glows on at most one place: the one the shared next step names (Ruling B9)', () => {
@@ -98,20 +108,21 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     }
   });
 
-  it('carries the quest count on the Delphi plaque and the foiled tricks on the war-tent plaque', () => {
+  it('carries the quest count on the Delphi plaque, the foiled tricks as gold seals on the war-tent plaque', () => {
     const quests = [{ status: 'active' }, { status: 'active' }, { status: 'done' }] as QuestOut[];
     expect(state('oracle', camp({ quests })).badge).toBe(2);
     expect(state('oracle', camp()).badge).toBeNull();
+    // UI3b playability #17: the coin means « something waits »; what is won is a seal.
     const lieutenants = [{ key: 'hydre', neutralised: true }, { key: 'echo', neutralised: false }] as LieutenantState[];
-    expect(state('dossier', camp({ lieutenants })).badge).toBe(1);
-    expect(state('dossier', camp()).badge).toBeNull();
+    expect(state('dossier', camp({ lieutenants }))).toMatchObject({ badge: null, seals: 1 });
+    expect(state('dossier', camp())).toMatchObject({ badge: null, seals: 0 });
   });
 
   it('greets with three static dragon lines, the last one naming the next step', () => {
     const lines = campGreeting('Ariane', camp());
     expect(lines.map((l) => l.text)).toEqual([
       'Bienvenue au camp, Ariane.',
-      "L'œuf frémit chaque fois qu'un piège d'Éris est déjoué.",
+      "Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.",
       "Les parchemins t'attendent, sous la tente.",
     ]);
     expect(lines[0]).toMatchObject({ speaker: 'dragon', name: "L'œuf", portrait: '/art/dragon/dragon_egg_cut.webp', portraitFilter: 'none' });

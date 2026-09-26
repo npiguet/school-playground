@@ -273,12 +273,25 @@ test('places and their labels sit inside the visible safe zone, never overlap, a
       if (id === ready) {
         await expect(page.getByTestId('camp-boss'), at).toContainText("Combat I : Sandales d'Hermès");
         await expect(page.getByTestId('camp-oracle-badge'), at).toBeVisible();
-        await expect(page.getByTestId('camp-dossier-badge'), at).toBeVisible();
+        await expect(page.getByTestId('camp-dossier-seals'), at).toBeVisible();
       } else {
         await expect(page.getByTestId('camp-boss').locator('img.hotspot-lock'), at).toBeVisible();
       }
       await expectInSafeZone(page, 'camp', ALL);
       expect(await labelOverlaps(page, 'camp'), at).toEqual([]);
+      // UI3b playability #8, #16: the cabin wears the same dark plaque as the others; gold means
+      // « next » only: the glowing plaque alone has the gold-leaf band.
+      await expect(page.getByTestId('camp-cabin'), at).toHaveClass(/label-below/);
+      const plaques = await page.evaluate(() =>
+        [...document.querySelectorAll('[data-testid="scene-camp"] button.hotspot')].map((b) => {
+          const l = getComputedStyle(b.querySelector('.hotspot-label')!);
+          return { id: b.getAttribute('data-testid'), glow: b.classList.contains('is-new'), band: l.backgroundImage, edge: l.borderTopColor };
+        }),
+      );
+      for (const p of plaques) {
+        if (p.glow) expect(p.band, `${at} ${p.id}`).toMatch(/gradient/);
+        else expect([p.band, p.edge], `${at} ${p.id}`).toEqual(['none', 'rgba(90, 58, 24, 0.9)']);
+      }
     }
   }
   // The stage and its art box clip rather than scroll: nothing (focus, a click scrolling a target
@@ -445,7 +458,7 @@ test('the dragon greets once per visit; a tap advances, « Tout passer » closes
   // Final review M6: the live region starts empty and is filled after insertion.
   await expect(page.getByTestId('dialogue-live')).toHaveText(`Bienvenue au camp, ${name}.`);
   await page.getByTestId('dialogue-advance').click();
-  await expect(text).toHaveText("L'œuf frémit chaque fois qu'un piège d'Éris est déjoué.");
+  await expect(text).toHaveText("Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
   // Playability #2: the last line points at where the texts are defended.
   await page.getByTestId('dialogue-advance').click();
   await expect(text).toHaveText("Les parchemins t'attendent, sous la tente.");
@@ -571,10 +584,13 @@ test('the path to battle opens once Éris can be fought; badges sit on their pla
   await expect(page.getByTestId('camp-dragon-layer').locator('img')).not.toHaveAttribute('src', /dragon_egg/);
 
   // Playability #5, UI3 Ruling B3: the quest count is pinned to the top-right corner of the Delphi
-  // plaque (the chimère board quest), the foiled tricks to the war tent's (two lieutenants).
+  // plaque (the chimère board quest). UI3b playability #17: the foiled tricks are two gold seals on
+  // the war tent's plaque, never the « something waits » coin.
   await expect(page.getByTestId('camp-oracle-badge')).toHaveText('1');
-  await expect(page.getByTestId('camp-dossier-badge')).toHaveText('2');
-  for (const place of ['oracle', 'dossier']) {
+  await expect(page.getByTestId('camp-dossier-badge')).toHaveCount(0);
+  await expect(page.getByTestId('camp-dossier-seals').locator('.hotspot-seal')).toHaveCount(2);
+  await expect(page.getByTestId('camp-dossier')).toHaveAccessibleName(/La tente de guerre.*2 ruses neutralisées/);
+  for (const place of ['oracle']) {
     const b = await measureBoxes(page, {
       badge: `[data-testid="camp-${place}-badge"]`,
       label: `[data-testid="camp-${place}"] .hotspot-label`,

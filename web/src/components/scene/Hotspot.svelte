@@ -14,6 +14,7 @@
   import { router } from '../../lib/router.svelte';
   import type { HotspotDef, HotspotState } from '../../lib/scene/types';
   import { MARK_ICONS } from '../../lib/world/art';
+  import { plural } from '../../lib/text/french';
 
   let {
     def,
@@ -45,7 +46,10 @@
   // near its edge (the camp's dragon nest, hard up against the safe zone's left edge). labelShift()
   // is a pure horizontal clamp keyed off the label's own centre and width, same as above/below
   // labels use; it already returns 0 (a no-op) for a label that fits without it.
-  const shift = $derived(labelShift(box.x + box.w / 2, labelW, rt.artW));
+  // UI3b playability #10: `labelDx` slides the plaque sideways (in % of the shape's width, which is
+  // the button's width), and the clamp keys off where the plaque really sits.
+  const dx = $derived(def.labelDx ?? 0);
+  const shift = $derived(labelShift(box.x + box.w / 2 + (dx * box.w) / 100, labelW, rt.artW));
   let timer: ReturnType<typeof setTimeout> | undefined;
   let releaseTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -107,10 +111,17 @@
     <span class="hotspot-glow" style="clip-path:{clipPath(def.shape)}" aria-hidden="true"></span>
     {#if pinned}<span class="hotspot-leader" aria-hidden="true"></span>{/if}
     {#if def.label}
-      <span class="hotspot-label" style="left:calc(50% + {shift}px)" bind:offsetWidth={labelW}>
+      <span class="hotspot-label" style="left:calc(50% + {dx}% + {shift}px)" bind:offsetWidth={labelW}>
         <span class="hotspot-name">
           {#if status.locked}<img class="hotspot-icon hotspot-lock" src={MARK_ICONS.lock} alt="" draggable="false" />{/if}
           {#if def.icon}<img class="hotspot-icon" src={def.icon} alt="" draggable="false" />{/if}{def.label}
+          {#if status.seals > 0}
+            <span class="hotspot-seals" data-testid="{hotspotTestId(sceneId, def.id)}-seals" data-count={status.seals}
+              >{#each Array.from({ length: status.seals }, (_, i) => i) as i (i)}<span class="hotspot-seal"></span>{/each}<span class="sr-only"
+                >({plural(status.seals, 'ruse neutralisée', 'ruses neutralisées')})</span
+              ></span
+            >
+          {/if}
         </span>
         {#if status.caption}<span class="hotspot-caption">{status.caption}</span>{/if}
         <!-- Playability #5: a badge lives on the plaque it counts for, never on the shape. -->
@@ -156,11 +167,14 @@
   .hotspot.bob .hotspot-glow {
     animation: kit-glow 3.2s ease-in-out infinite;
   }
-  /* Playability #11: the next step is visible on a bright painting - a gold-rimmed plaque with a
-     warm halo, and a stronger pulse on the shape. Under reduced motion (no .bob) the gold rim and
-     the brighter static glow stay. After `.hotspot.bob .hotspot-glow` (same specificity). */
+  /* Playability #11, UI3b playability #16: the next step is visible on a bright painting and in a
+     still frame. Gold means « next » and nothing else: the one glowing plaque alone has the gold
+     rim, a gold-leaf band behind its words and a warm halo (the other plaques keep a dark bronze
+     edge), and a stronger pulse on the shape. Under reduced motion (no .bob) all but the pulse stay.
+     After `.hotspot.bob .hotspot-glow` (same specificity). */
   .hotspot.is-new .hotspot-label {
     border-color: var(--gold-light);
+    background: linear-gradient(#5a4520, #2b2216);
     box-shadow:
       0 0 0 2px rgba(241, 220, 154, 0.6),
       0 0 18px rgba(255, 220, 140, 0.75),
@@ -204,7 +218,7 @@
     padding: 4px 12px;
     white-space: nowrap;
     border-radius: 8px;
-    border: 1px solid var(--bronze-light);
+    border: 1px solid rgba(90, 58, 24, 0.9);
     background: rgba(21, 18, 26, 0.66);
     color: var(--bronze-ink);
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
@@ -266,9 +280,13 @@
     color: var(--ink);
     box-shadow: none;
   }
-  .label-on .hotspot-name,
+  /* UI3b playability #8: ink on a landmark is read at arm's length too, never under 14 px. */
+  .label-on .hotspot-name {
+    font-size: 14px;
+    letter-spacing: 0.02em;
+  }
   .label-on .hotspot-caption {
-    font-size: 12px;
+    font-size: 14px;
   }
   .hotspot-name {
     display: inline-flex;
@@ -289,6 +307,19 @@
     font-family: var(--font-body);
     font-style: italic;
     font-size: 14px;
+  }
+  /* Things won here: small gold wax seals after the name (UI3b playability #17). */
+  .hotspot-seals {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 2px;
+  }
+  .hotspot-seal {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--gold-light), var(--gold) 70%);
+    box-shadow: 0 0 0 1px var(--bronze-dark);
   }
   .hotspot-badge {
     position: absolute;

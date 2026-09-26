@@ -51,14 +51,18 @@
   }
 
   // Playability #12: the camp fades to night before it hands over (Camp.svelte's exit veil); the
-  // screen it leads to then rises out of that night instead of cutting in.
+  // screen it leads to then rises out of that night instead of cutting in. UI3b playability #18: so
+  // does the hero chip from any other place (PlaceScene.svelte's veil): the cabin rises behind the
+  // hero's scroll instead of cutting in.
   let arriving = $state(false);
   let lastRoute = untrack(() => route.name);
   $effect(() => {
     const name = route.name;
     const from = lastRoute;
     lastRoute = name;
-    if (from !== 'camp' || name === 'camp') return;
+    const fromCamp = from === 'camp' && name !== 'camp';
+    const heroHandOff = name === 'cabin' && route.query.panel === 'heros' && from !== 'cabin';
+    if (!fromCamp && !heroHandOff) return;
     arriving = true;
     const t = setTimeout(() => (arriving = false), 30);
     return () => clearTimeout(t);

@@ -76,9 +76,13 @@ test('a prophecy within a week comes first: the Pythia and the road to Delphi gl
   await openTemple(page, id);
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('delphi-pythia')).toHaveClass(/is-new/);
+  // UI3b playability #9: the glow promised a prophecy at the hub, and says so here, in the same words.
+  const promise = /Une prophétie, dans\s2\sjours/;
+  await expect(page.getByTestId('delphi-pythia').locator('.hotspot-caption')).toHaveText(promise);
   await tap(page.getByTestId('scene-exit'), testInfo);
   await expectCamp(page);
   await expect(page.getByTestId('camp-oracle')).toHaveClass(/is-new/);
+  await expect(page.getByTestId('camp-oracle').locator('.hotspot-caption')).toHaveText(promise);
   await expect(page.getByTestId('camp-parchemins')).not.toHaveClass(/is-new/);
 });
 
@@ -236,6 +240,8 @@ test('the tablets open the quest board; a launched quest shows on the tablets ba
   // The whole tablet is the target: a tap on its clay, away from the pressed word, challenges.
   const echo = board.getByTestId('board-challenge-echo');
   await expect(echo.getByRole('button', { name: /^Défier / })).toHaveText('Défier');
+  // UI3b playability #23: the game's bronze button, never a faint tan word that looks disabled.
+  await expect(echo.getByRole('button', { name: /^Défier / })).toHaveClass(/kit-bronze/);
   await expect.poll(() => board.evaluate((e) => e.getAnimations({ subtree: true }).length)).toBe(0);
   await echo.scrollIntoViewIfNeeded();
   const clay = (await echo.locator('.tablet-technique').boundingBox())!;

@@ -66,12 +66,16 @@ export interface HotspotState {
   locked: boolean;
   /** Draws the stronger "something new here" glow. */
   isNew: boolean;
+  /** A count of things to do here (a gold coin on the plaque's corner): active quests. */
   badge: number | null;
+  /** Things won here, as small gold seals after the name (UI3b playability #17: a count of what is
+   *  done is never the « something waits » coin): the war tent's neutralised lieutenants. */
+  seals: number;
   /** Short second line under the place name (dragon name, reward, counts). */
   caption: string | null;
 }
 
-export const IDLE_HOTSPOT: HotspotState = { visible: true, locked: false, isNew: false, badge: null, caption: null };
+export const IDLE_HOTSPOT: HotspotState = { visible: true, locked: false, isNew: false, badge: null, seals: 0, caption: null };
 
 /** A hotspot state: the idle one with these fields changed (every scene module's `state`). */
 export const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
@@ -100,6 +104,9 @@ export interface HotspotDef {
   labelPos: LabelPos;
   /** A short bronze leader line + pin from the shape to its plaque (UI1 carry #17). */
   leader?: boolean;
+  /** Slides the plaque sideways, in % of the shape's width (+ to the right), off a landmark of
+   *  another place (UI3b playability #10); the leader stays on the shape. */
+  labelDx?: number;
   state: (ctx: SceneContext) => HotspotState;
 }
 
