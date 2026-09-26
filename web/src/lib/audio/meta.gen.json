@@ -1,1 +1,27 @@
-{}
+{
+  "battle": {
+    "priming": 1024,
+    "rate": 44100,
+    "samples": 2902152
+  },
+  "camp": {
+    "priming": 1024,
+    "rate": 44100,
+    "samples": 2513700
+  },
+  "lair": {
+    "priming": 1024,
+    "rate": 44100,
+    "samples": 2954700
+  },
+  "sea": {
+    "priming": 1024,
+    "rate": 44100,
+    "samples": 2513700
+  },
+  "temple": {
+    "priming": 1024,
+    "rate": 44100,
+    "samples": 2954700
+  }
+}
