@@ -359,19 +359,19 @@
      button, its name read out (sr-only, not aria-label, so « Tout le texte » labels one field only). -->
 {#snippet tools()}
   <div class="tools" data-testid="proof-tools">
-    <button type="button" class="kit-bronze is-quiet tool" class:on={play.bouclier} data-testid="btn-bouclier" aria-pressed={play.bouclier} onclick={toggleBouclier}>
+    <button type="button" class="kit-bronze is-quiet tool" class:on={play.bouclier} data-testid="btn-bouclier" aria-pressed={play.bouclier} title={compact ? PROOF.bouclier : undefined} onclick={toggleBouclier}>
       <img class="tool-icon" src={TOOL_ICONS.persee} alt="" /><span class:sr-only={compact}>{PROOF.bouclier}</span>
     </button>
     {#if helpStage < 4 && hintsLeft > 0}
-      <button type="button" class="kit-bronze is-quiet tool" data-testid="btn-chouette" onclick={useChouette}>
+      <button type="button" class="kit-bronze is-quiet tool" data-testid="btn-chouette" title={compact ? PROOF.chouette(hintsLeft) : undefined} onclick={useChouette}>
         <img class="tool-icon" src={TOOL_ICONS.athena} alt="" /><span class:sr-only={compact}>{PROOF.chouette(hintsLeft)}</span>
-        {#if compact}<span class="count" aria-hidden="true">{hintsLeft}</span>{/if}
+        {#if compact}<span class="count" data-testid="chouette-count" aria-hidden="true">{hintsLeft}</span>{/if}
       </button>
     {/if}
-    <button type="button" class="kit-bronze is-quiet tool" class:on={fil.step !== 'idle'} data-testid="btn-fil" aria-pressed={fil.step !== 'idle'} onclick={toggleFil}>
+    <button type="button" class="kit-bronze is-quiet tool" class:on={fil.step !== 'idle'} data-testid="btn-fil" aria-pressed={fil.step !== 'idle'} title={compact ? PROOF.fil : undefined} onclick={toggleFil}>
       <img class="tool-icon" src={TOOL_ICONS.ariane} alt="" /><span class:sr-only={compact}>{PROOF.fil}</span>
     </button>
-    <button type="button" class="kit-bronze is-quiet tool" class:on={wholeText} data-testid="btn-whole" aria-pressed={wholeText} onclick={toggleWholeText}>
+    <button type="button" class="kit-bronze is-quiet tool" class:on={wholeText} data-testid="btn-whole" aria-pressed={wholeText} title={compact ? PROOF.whole : undefined} onclick={toggleWholeText}>
       <Icon name="pencil" size={26} /><span class:sr-only={compact}>{PROOF.whole}</span>
     </button>
   </div>
@@ -399,16 +399,45 @@
       </button>
       <h2 class="sr-only">{mode === 'grimoire' ? PROOF.grimoireTitle : PROOF.title}</h2>
       {#if helpStage <= 2 && activePass}
-        <span class="bar-pass">{ARGUS_LABELS[activePass].title}</span>
-        {#if !isLastPass}
-          <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-next-pass" aria-label={PROOF.nextPass} onclick={() => goToPass(play.passIndex + 1)}>
-            <Icon name="arrow-right" size={22} />
+        <div class="bar-group" role="group" aria-label={PROOF.passes}>
+          <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-prev-pass" aria-label={PROOF.prevPass} title={PROOF.prevPass} disabled={play.passIndex === 0} onclick={() => goToPass(play.passIndex - 1)}>
+            <Icon name="arrow-left" size={22} />
           </button>
-        {/if}
+          <span class="bar-pass" data-testid="bar-pass">{ARGUS_LABELS[activePass].title}</span>
+          {#if !isLastPass}
+            <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-next-pass" aria-label={PROOF.nextPass} title={PROOF.nextPass} onclick={() => goToPass(play.passIndex + 1)}>
+              <Icon name="arrow-right" size={22} />
+            </button>
+          {/if}
+        </div>
+      {:else if helpStage === 3}
+        <span class="bar-count" data-testid="bar-count">{PROOF.countShort(play.initialErrors ?? 0)}</span>
       {/if}
       {@render tools()}
+      {#if play.bouclier && spans.length > 0 && !wholeText}
+        <div class="bar-group">
+          <button type="button" class="kit-bronze is-quiet icon-only" aria-label={PROOF.prevSentence} title={PROOF.prevSentence} disabled={clampSentence(sentenceIndex) === 0} onclick={() => moveSentence(-1)}>
+            <Icon name="arrow-left" size={22} />
+          </button>
+          <span class="bar-pos" data-testid="bar-sentence-pos">
+            <span aria-hidden="true">{spans.length - clampSentence(sentenceIndex)}/{spans.length}</span>
+            <span class="sr-only">{PROOF.sentencePos(spans.length - clampSentence(sentenceIndex), spans.length)}</span>
+          </span>
+          <button type="button" class="kit-bronze is-quiet icon-only" aria-label={PROOF.nextSentence} title={PROOF.nextSentence} disabled={clampSentence(sentenceIndex) >= spans.length - 1} onclick={() => moveSentence(1)}>
+            <Icon name="arrow-right" size={22} />
+          </button>
+        </div>
+      {/if}
       {@render foot()}
     </div>
+    <!-- The Fil's and the owl's words share one line under the bar; the Fil's toggle in the bar is
+         its way out. The full text stays in the DOM (role="status" reads it all). -->
+    {#if fil.step !== 'idle' || chouetteMessage}
+      <p class="kit-note line" data-tone={fil.step !== 'idle' ? 'aegean' : undefined} role="status">
+        {#if fil.step !== 'idle'}<span class="fil-message" data-testid="fil-message">{fil.message}</span>{/if}
+        {#if chouetteMessage}<span class="chouette" data-testid="chouette-note"><img class="line-icon" src={TOOL_ICONS.athena} alt="" />{chouetteMessage}</span>{/if}
+      </p>
+    {/if}
   {:else}
     <header class="head">
       <button type="button" class="kit-bronze is-quiet" data-testid="btn-quit-proof" onclick={askQuit}>
@@ -460,7 +489,7 @@
     </div>
   {/if}
 
-  {#if fil.step !== 'idle'}
+  {#if !compact && fil.step !== 'idle'}
     <div class="kit-note fil-panel" data-tone="aegean" role="status">
       <div class="fil-text">
         <p class="fil-message" data-testid="fil-message">{fil.message}</p>
@@ -472,7 +501,7 @@
     </div>
   {/if}
 
-  {#if play.bouclier && spans.length > 0 && !wholeText}
+  {#if !compact && play.bouclier && spans.length > 0 && !wholeText}
     <div class="sentence-nav">
       <button type="button" class="kit-bronze is-quiet" disabled={clampSentence(sentenceIndex) === 0} onclick={() => moveSentence(-1)}>
         <Icon name="arrow-left" size={18} />{PROOF.prevSentence}
@@ -484,7 +513,7 @@
     </div>
   {/if}
 
-  {#if chouetteMessage}
+  {#if !compact && chouetteMessage}
     <p class="kit-note chouette" data-testid="chouette-note" role="status">
       <img class="tool-icon" src={TOOL_ICONS.athena} alt="" />{chouetteMessage}
     </p>
@@ -577,12 +606,69 @@
     align-items: center;
     gap: 8px;
   }
-  .bar-pass {
+  .bar-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  /* « Quitter » stands apart from the pass arrows that follow it. */
+  .bar > .icon-only:first-child {
+    margin-right: 10px;
+  }
+  .bar-pass,
+  .bar-count,
+  .bar-pos {
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 15px;
     color: var(--aegean-ink);
     white-space: nowrap;
+  }
+  .bar-count {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 2px solid var(--orange);
+    background: rgba(252, 232, 214, 0.92);
+    color: var(--orange-ink);
+  }
+  .bar-pos {
+    color: var(--ink-soft);
+    font-family: var(--font-body);
+    font-size: 17px;
+  }
+  /* Compact: one line of notes, cut with an ellipsis (the whole text stays for screen readers). */
+  .kit-note.line {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0;
+    padding: 4px 12px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .line > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .line .fil-message {
+    flex: 1 1 auto;
+  }
+  .line .chouette {
+    display: inline-flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 6px;
+  }
+  .line-icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
   }
   .icon-only {
     padding: 0;
@@ -630,12 +716,13 @@
   .bar .tools {
     flex-wrap: nowrap;
   }
+  /* Four emblems on one row at 1180 and 1280 (fix round 1 #7). */
   .tool {
     position: relative;
-    gap: 6px;
-    padding: 6px 10px 6px 8px;
+    gap: 5px;
+    padding: 6px 9px 6px 6px;
     font-family: var(--font-body);
-    font-size: 16px;
+    font-size: 15px;
     letter-spacing: 0;
     color: var(--ink);
   }
@@ -653,13 +740,37 @@
     height: 28px;
     object-fit: contain;
   }
+  /* The owl's hints left, on a bronze disc at the emblem's corner: 16 px, cream on dark bronze. */
   .count {
     position: absolute;
-    right: 2px;
-    bottom: 1px;
-    font-size: 13px;
+    right: -6px;
+    top: -6px;
+    display: grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 4px;
+    border-radius: 11px;
+    background: var(--bronze-dark);
+    color: var(--bronze-ink);
+    font-family: var(--font-body);
+    font-size: 16px;
     font-weight: 700;
-    color: var(--bronze-dark);
+    line-height: 1;
+    text-shadow: none;
+  }
+  .compact .confirm-quit {
+    flex-wrap: nowrap;
+    padding: 4px 12px;
+  }
+  .compact .confirm-quit p {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .compact .confirm-actions {
+    flex-wrap: nowrap;
   }
   .confirm-quit,
   .fil-panel {

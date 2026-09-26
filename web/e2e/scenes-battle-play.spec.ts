@@ -150,7 +150,7 @@ test('the dictation writes on the parchment, in Literata, with bronze controls',
   });
   expect(font.family).toContain('Literata');
   expect(font.size).toBeGreaterThanOrEqual(22);
-  expect(font.line).toBeGreaterThanOrEqual(1.5);
+  expect(font.line).toBeGreaterThanOrEqual(1.8);
   await expect(page.getByTestId('btn-next')).toBeEnabled();
   await expect(page.getByTestId('dictation-status')).toHaveText("À toi d'écrire.");
   await expect(page.getByTestId('battle-parchment').locator(LEGACY_UI)).toHaveCount(0);
@@ -161,6 +161,7 @@ test('the dictation writes on the parchment, in Literata, with bronze controls',
 
 // Parity: « Réécouter » counts down at pace 2; « Pause » and « Reprendre » drive a flowing pace.
 test('replay counts down at pace 2; pause and resume a flowing pace', async ({ page, request }, testInfo) => {
+  await installKeyboardSim(page);
   const id = await createProfileApi(request, uniqueName(`Dic6-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Dictée rythmes'), body: LONG, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
@@ -180,6 +181,14 @@ test('replay counts down at pace 2; pause and resume a flowing pace', async ({ p
   await expect(page.getByTestId('btn-pause')).toBeEnabled();
   await tap(page.getByTestId('btn-pause'), testInfo);
   await expect(page.getByTestId('dictation-status')).toHaveText('En pause.');
+  // Under the keyboard the pause stays in sight, in the compact bar (fix round 1 #5).
+  const inner = await page.evaluate(() => window.innerHeight);
+  await setKeyboard(page, inner - 420);
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+  await expect(page.getByTestId('bar-status')).toBeVisible();
+  await expect(page.getByTestId('bar-status')).toHaveText('En pause.');
+  await setKeyboard(page, 0);
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'full');
   const paused = await page.evaluate(() => (window as any).__spoken.length);
   await tap(page.getByTestId('btn-resume'), testInfo);
   await expect(page.getByTestId('dictation-status')).toHaveText('Écoute…');
@@ -305,13 +314,21 @@ async function seededProof(page: Page, request: APIRequestContext, testInfo: Tes
   return { id, text };
 }
 
-/** How many lines of the text zone show at once (its visible height over the tokens' line box). */
+/** How many lines of text are really in sight: the text zone's content box, clipped by the
+ *  scrolling proofreading column and by the top of the (simulated) keyboard, over the line box. */
 async function visibleLines(page: Page): Promise<number> {
   return page.getByTestId('proof-text').evaluate((el) => {
     const p = el.querySelector('.tokens, textarea') as HTMLElement;
     const cs = getComputedStyle(el);
-    const inner = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    return inner / parseFloat(getComputedStyle(p).lineHeight);
+    const box = el.getBoundingClientRect();
+    const contentTop = box.top + el.clientTop + parseFloat(cs.paddingTop);
+    const contentBottom = box.top + el.clientTop + el.clientHeight - parseFloat(cs.paddingBottom);
+    const column = (el.closest('.proof') as HTMLElement).getBoundingClientRect();
+    const vv = window.visualViewport;
+    const keyboardTop = vv ? vv.offsetTop + vv.height : window.innerHeight;
+    const top = Math.max(contentTop, column.top);
+    const bottom = Math.min(contentBottom, column.bottom, keyboardTop);
+    return Math.max(0, bottom - top) / parseFloat(getComputedStyle(p).lineHeight);
   });
 }
 
@@ -348,6 +365,23 @@ test('a long proofreading text reads comfortably: size, measure, height, an opaq
   await expectOverlayTapTargets(page, 'proof-tools');
   await expectOverlayTapTargets(page, 'proof-foot');
   expect(await redScan(page)).toEqual([]);
+  // French typography (the lane V review): no gap before a full stop or a comma.
+  const gaps = await zone.evaluate((el) => {
+    const toks = Array.from(el.querySelectorAll<HTMLElement>('.tok'));
+    const out: number[] = [];
+    toks.forEach((t, i) => {
+      if (i > 0 && /^[.,]$/.test(t.textContent ?? '')) {
+        const prev = toks[i - 1].getClientRects();
+        const cur = t.getClientRects();
+        if (prev.length && cur.length && Math.abs(prev[prev.length - 1].top - cur[0].top) < 2) {
+          out.push(cur[0].left - prev[prev.length - 1].right);
+        }
+      }
+    });
+    return out;
+  });
+  expect(gaps.length).toBeGreaterThan(0);
+  for (const g of gaps) expect(g, 'gap before « . » or « , » (px)').toBeLessThanOrEqual(0.5);
 });
 
 test('the Argus passes and the four tools work from their painted controls; the hold never grades', async ({ page, request }, testInfo) => {
@@ -355,6 +389,14 @@ test('the Argus passes and the four tools work from their painted controls; the 
   const hp = page.getByTestId('battle-hp');
   await expect(hp).toHaveAttribute('aria-valuenow', '100');
   await expect(page.getByTestId('argus-pass-verbes')).toHaveAttribute('aria-pressed', 'true');
+  // The four tools sit on one row (fix round 1 #7), at 1180 (ipad) and 1280 (desktop).
+  const tops = await page.getByTestId('proof-tools').getByRole('button').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+  expect(tops).toHaveLength(4);
+  expect(new Set(tops).size, 'the tools on one row').toBe(1);
+  // Ruling U4-c: the spotlight steps the other words back in ink, never in opacity.
+  const dim = page.locator('[data-testid^="tok-"].dim').first();
+  await expect(dim).toHaveCSS('color', 'rgb(102, 97, 90)');
+  await expect(dim).toHaveCSS('opacity', '1');
   await tap(page.getByTestId('btn-next-pass'), testInfo);
   await expect(page.getByTestId('argus-pass-verbes')).not.toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('battle-dragon')).toHaveAttribute('data-reaction', 'cheer');
@@ -380,9 +422,56 @@ test('the Argus passes and the four tools work from their painted controls; the 
 });
 
 test('help stage 3 notches the hold with the count it already shows', async ({ page, request }, testInfo) => {
+  await installKeyboardSim(page);
   await seededProof(page, request, testInfo, 3);
   await expect(page.getByText('2 pièges sont cachés dans ce texte.')).toBeVisible();
   await expect(page.getByTestId('battle-hp')).toHaveAttribute('data-segments', '2');
+  // The compact bar keeps the count, short (fix round 1 #6).
+  const inner = await page.evaluate(() => window.innerHeight);
+  await setKeyboard(page, inner - 420);
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+  await expect(page.getByTestId('bar-count')).toHaveText('2 pièges');
+});
+
+// Fix round 1 #1: with the Bouclier, the Fil and the owl all open under the keyboard, the bar and
+// one line of notes leave four lines of text in sight; the passes go back as well as forward.
+test('all three notes open under the keyboard still leave four lines of text', async ({ page, request }, testInfo) => {
+  await installKeyboardSim(page);
+  await seededProof(page, request, testInfo, 1);
+  await tap(page.getByTestId('btn-chouette'), testInfo);
+  await tap(page.getByTestId('btn-bouclier'), testInfo);
+  await tap(page.getByTestId('btn-fil'), testInfo);
+  await expect(page.getByTestId('fil-message')).toBeVisible();
+  const inner = await page.evaluate(() => window.innerHeight);
+  await setKeyboard(page, inner - 420);
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+  const r = await battleRects(page);
+  const bandBottom = r.scene!.y + r.scene!.height;
+  await expect(page.getByTestId('fil-message')).toBeVisible();
+  await expect(page.getByTestId('chouette-note')).toBeVisible();
+  await expect(page.getByTestId('bar-sentence-pos')).toContainText(/\d+\/\d+/);
+  expect(await visibleLines(page), 'lines of text in view above the keyboard').toBeGreaterThanOrEqual(4);
+  for (const b of await page.getByTestId('battle-parchment').getByRole('button').all()) {
+    if (!(await b.isVisible())) continue;
+    const bb = (await b.boundingBox())!;
+    if (bb.y > 421) continue; // a token of the text below the fold scrolls, it is not a control
+    if ((await b.getAttribute('data-testid'))?.startsWith('tok-')) continue;
+    expect(Math.min(bb.width, bb.height)).toBeGreaterThanOrEqual(48);
+    expect(bb.y).toBeGreaterThanOrEqual(bandBottom - 1);
+    expect(bb.y + bb.height).toBeLessThanOrEqual(421);
+  }
+  // Compact icons carry a hover title; the owl's count reads large and dark on its disc.
+  await expect(page.getByTestId('btn-fil')).toHaveAttribute('title', "Fil d'Ariane");
+  const count = page.getByTestId('chouette-count');
+  await expect(count).toHaveText('2');
+  expect(parseFloat(await count.evaluate((el) => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+  // The passes step forward and back from the bar.
+  await expect(page.getByTestId('bar-pass')).toHaveText('Verbes');
+  await expect(page.getByTestId('btn-prev-pass')).toBeDisabled();
+  await tap(page.getByTestId('btn-next-pass'), testInfo);
+  await expect(page.getByTestId('bar-pass')).not.toHaveText('Verbes');
+  await tap(page.getByTestId('btn-prev-pass'), testInfo);
+  await expect(page.getByTestId('bar-pass')).toHaveText('Verbes');
 });
 
 // Spec §10: editing a word near the end of a long text with the keyboard open.

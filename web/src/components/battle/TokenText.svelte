@@ -60,6 +60,15 @@
     return out;
   });
 
+  // A token glued to its neighbour (« bruit. », « maisons, ») loses its padding on that side: no
+  // gap before a full stop or a comma (French typography; the lane V review).
+  function snugLeft(index: number): boolean {
+    return index > 0 && tokens[index - 1].end === tokens[index].start;
+  }
+  function snugRight(index: number): boolean {
+    return index < tokens.length - 1 && tokens[index + 1].start === tokens[index].end;
+  }
+
   function inActivePass(index: number): boolean {
     return activePass !== null && (passSets[index]?.has(activePass) ?? false);
   }
@@ -71,6 +80,8 @@
       type="button"
       class="tok"
       class:punct={tokens[piece.index].kind === 'punct'}
+      class:snug-left={snugLeft(piece.index)}
+      class:snug-right={snugRight(piece.index)}
       class:lit={inActivePass(piece.index)}
       class:dim={dim && activePass !== null && !inActivePass(piece.index)}
       class:hint={hintedTokenIndexes.has(piece.index)}
@@ -106,12 +117,18 @@
     color: inherit;
     cursor: pointer;
     transition:
-      opacity 0.2s ease,
+      color 0.2s ease,
       background 0.15s ease;
   }
   .tok.punct {
     padding-left: 1px;
     padding-right: 1px;
+  }
+  .tok.snug-left {
+    padding-left: 0;
+  }
+  .tok.snug-right {
+    padding-right: 0;
   }
   .tok:hover {
     background: rgba(201, 171, 116, 0.28);
@@ -127,13 +144,14 @@
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
   }
+  /* Ruling U4-c: the words outside the pass step back in colour, still 4.5:1 (legibility.test). */
   .tok.dim {
-    opacity: 0.3;
+    color: var(--battle-dim-ink);
   }
   .tok.hint {
     background: var(--orange-light);
     box-shadow: inset 0 -3px 0 var(--orange);
-    opacity: 1;
+    color: var(--ink);
   }
   .tok.fil-verb {
     outline: 3px solid var(--aegean);

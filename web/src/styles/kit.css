@@ -9,6 +9,9 @@
   /* UI4 Ruling C12: the battle parchment. Its text zone stays nearly opaque (7:1 over black,
      lib/battle/legibility.test.ts); only its torn edges let the battlefield through. */
   --battle-text-bg: rgba(250, 243, 226, 0.96);
+  /* Ruling U4-c: the words the Argus spotlight steps back from. A lighter ink, never an opacity:
+     still 4.5:1 on the text zone (legibility.test.ts). */
+  --battle-dim-ink: #66615a;
   --battle-parchment-edge: rgba(246, 236, 212, 0.72);
   --bronze: #8a5a28;
   --bronze-light: #c89450;

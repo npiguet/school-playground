@@ -181,6 +181,11 @@
   {#if compact}
     <div class="bar">
       {@render quitButton()}
+      <!-- The seal stays in sight, and a pause says so (the live status below is read out). -->
+      <span class="bar-status" data-testid="bar-status" aria-hidden="true">
+        <span class="seal" class:pulse={runnerState.status === 'playing'} data-status={runnerState.status}></span>
+        {#if runnerState.status === 'paused'}{DICTATION.status.paused}{/if}
+      </span>
       <span class="progress">{progress}</span>
       {@render controls()}
     </div>
@@ -263,6 +268,15 @@
   }
   .bar .progress {
     margin-left: 0;
+    white-space: nowrap;
+  }
+  .bar-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
     white-space: nowrap;
   }
   .icon-only {
@@ -351,10 +365,11 @@
     width: 100%;
     margin: 0;
     resize: none;
-    font: 400 clamp(22px, 1.9vw, 26px) / 1.8 var(--font-reading);
+    /* 1.9, the proofreading's line (Ruling C12): the global floor is 1.8. */
+    font: 400 clamp(22px, 1.9vw, 26px) / 1.9 var(--font-reading);
     color: var(--ink);
     background-color: var(--battle-text-bg);
-    background-image: repeating-linear-gradient(transparent 0 calc(1.8em - 1px), rgba(138, 90, 40, 0.14) calc(1.8em - 1px) 1.8em);
+    background-image: repeating-linear-gradient(transparent 0 calc(1.9em - 1px), rgba(138, 90, 40, 0.14) calc(1.9em - 1px) 1.9em);
     background-attachment: local;
     background-position: 0 14px;
     border: 1px solid var(--parchment-edge);

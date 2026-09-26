@@ -53,7 +53,7 @@
   // Grimoire corrompu has no pace selector (plan decision #8: session.pace_level is always 1).
   const initialPace = $derived(mode === 'grimoire' ? 1 : defaultPace(profile.level));
   // A boss fight never slows down below the profile's own default pace (Decision 8: fewer aids,
-  // never an easier one) - lower pace options stay visible but disabled (PaceSelect's `minPace`).
+  // never an easier one) - lower pace options stay visible but disabled (PaceMedallions' `minPace`).
   const minPace = $derived(encounter === 'eris' ? defaultPace(profile.level) : 1);
 
   let text = $state<TextFull | null>(null);
