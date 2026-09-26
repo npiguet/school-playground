@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchRoute, href } from './routes';
+import { battleKey, matchRoute, href } from './routes';
 
 describe('matchRoute', () => {
   it('matches every screen', () => {
@@ -74,5 +74,26 @@ describe('matchRoute', () => {
     expect(href('boss', { profileId: '3' })).toBe('#/p/3/eris');
     expect(href('dragon', { profileId: '3' })).toBe('#/p/3/dragon');
     expect(href('cabin', { profileId: '3' })).toBe('#/p/3/cabane');
+  });
+});
+
+describe('battleKey (UI4 Task 2 fix round 1 #2)', () => {
+  const key = (hash: string) => battleKey(matchRoute(hash));
+  it('is another battle for another text, mode, quest, encounter, help or focus', () => {
+    const keys = [
+      '#/p/1/play/5',
+      '#/p/1/play/6',
+      '#/p/1/grimoire/5',
+      '#/p/1/play/5?encounter=hydre',
+      '#/p/1/play/5?encounter=eris',
+      '#/p/1/play/5?quest=3&encounter=hydre',
+      '#/p/1/play/5?encounter=eris&help=2',
+      '#/p/1/grimoire/5?focus=homophone',
+    ].map(key);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+  it('is the same battle under its « Revoir » panel and whatever the query order (Ruling C1)', () => {
+    expect(key('#/p/1/play/5?encounter=hydre&panel=revoir')).toBe(key('#/p/1/play/5?encounter=hydre'));
+    expect(key('#/p/1/play/5?quest=3&encounter=hydre')).toBe(key('#/p/1/play/5?encounter=hydre&quest=3'));
   });
 });

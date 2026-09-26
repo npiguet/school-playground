@@ -5,7 +5,7 @@
   import { loadProfile, isUnlocked, profileStore } from './lib/profileStore.svelte';
   import { placeFor } from './lib/world/places';
   import { ApiError } from './lib/api';
-  import { href } from './lib/routes';
+  import { battleKey, href } from './lib/routes';
   import PinGate from './components/PinGate.svelte';
   import Title from './screens/Title.svelte';
   import Camp from './screens/Camp.svelte';
@@ -112,10 +112,16 @@
       {:else if view?.place === 'cabin'}
         <CabinRoom profile={gateProfile} panel={view.panel} />
       <!-- The battle routes render the battle stage (UI4); Play stays mounted across its phases and its « Revoir » panel (Ruling C1). -->
+      <!-- Keyed on the battle (text, mode, quest, encounter, help, focus; not the panel): play/A to
+           play/B in the app, or Back and Forward between them, is a fresh battle. -->
       {:else if route.name === 'play'}
-        <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
+        {#key battleKey(route)}
+          <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
+        {/key}
       {:else if route.name === 'grimoire'}
-        <Play profile={gateProfile} textId={route.params.textId} mode="grimoire" query={route.query} />
+        {#key battleKey(route)}
+          <Play profile={gateProfile} textId={route.params.textId} mode="grimoire" query={route.query} />
+        {/key}
       {:else if route.name === 'boss'}
         <Boss profile={gateProfile} />
       {/if}

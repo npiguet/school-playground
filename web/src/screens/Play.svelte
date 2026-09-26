@@ -10,7 +10,7 @@
   import ProofPhase from '../components/battle/ProofPhase.svelte';
   import VictoryPhase from '../components/battle/VictoryPhase.svelte';
   import { api, ApiError } from '../lib/api';
-  import { battleFor, opponentFor, type BattlePhase } from '../lib/battle/battle';
+  import { battleFor, isOpponentId, opponentFor, type BattlePhase, type OpponentId } from '../lib/battle/battle';
   import { hpDuringPlay } from '../lib/battle/hp';
   import { musterTaunt, STAGE } from '../lib/battle/lines';
   import { resetBattleStage, setHp } from '../lib/battle/stage.svelte';
@@ -46,6 +46,8 @@
   // session (boss fights force it a stage down, never up the aids).
   const questId = $derived(query.quest ? Number(query.quest) : null);
   const encounter = $derived(query.encounter ?? null);
+  // An encounter that names an opponent decides the battle, whatever was saved (fix round 1 #1).
+  const pinned = $derived<OpponentId | null>(encounter && isOpponentId(encounter) ? encounter : null);
   const helpOverride = $derived(query.help ? Number(query.help) : null);
   const helpStage = $derived(Math.min(4, Math.max(1, Math.round(helpOverride ?? profile.help_stage))) as 1 | 2 | 3 | 4);
   // Grimoire corrompu has no pace selector (plan decision #8: session.pace_level is always 1).
@@ -95,11 +97,14 @@
       stats = st;
       plan = buildPlan(t.body);
 
+      // The saved state's key ignores the encounter (fix round 1 #1): an intro keeps nothing (not even
+      // an opponent), and a battle saved against another opponent than this encounter's is not this
+      // battle, so a fresh one starts. Under its own encounter, or none, a saved battle resumes.
       const saved = loadPlayState(profile.id, id, mode);
-      if (saved) {
+      const otherBattle = !!saved && pinned !== null && saved.opponent !== undefined && saved.opponent !== pinned;
+      if (saved && saved.phase !== 'intro' && !otherBattle) {
         playState = saved;
-        // An intro is saved too (its opponent, Ruling C2), but there is nothing to resume yet.
-        showResumeBanner = saved.phase === 'dictation' || saved.phase === 'proofreading';
+        showResumeBanner = saved.phase !== 'results';
       } else {
         playState = newPlayState(profile.id, id, initialPace, mode);
       }
@@ -330,17 +335,20 @@
     });
   });
 
-  // Ruling C2: the opponent is chosen once (the camp answered, or failed to), then kept in the play
-  // state so a reload or a resume faces the same one.
+  // Ruling C2: the opponent is chosen once, then kept in the play state (saved with it from the
+  // dictation on) so a reload or a resume faces the same one. An explicit encounter, or Éris's own
+  // grimoire, needs no camp. A free text waits for this visit's /camp answer (fix round 1 #3): a
+  // cached snapshot may predate a lieutenant's waking or neutralisation.
   $effect(() => {
-    if (!playState || playState.opponent || (!camp && !campTried)) return;
+    if (!playState || playState.opponent) return;
+    if (!pinned && mode !== 'grimoire' && !campTried) return;
     playState.opponent = opponentFor({
       mode,
       encounter,
       textId: id,
       lieutenants: camp?.lieutenants ?? [],
     });
-    save();
+    if (playState.phase !== 'intro') save();
   });
   const battle = $derived(playState?.opponent ? battleFor(playState.opponent, { mode, encounter }) : null);
 

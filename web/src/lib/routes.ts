@@ -36,6 +36,18 @@ export interface Route {
   query: Record<string, string>;
 }
 
+/** Which battle a play/grimoire route is (UI4 Task 2 fix round 1 #2): App keys Play on it, so another
+ *  text, mode, quest, encounter, help stage or focus mounts a fresh battle, while the « Revoir »
+ *  panel (`?panel=revoir`, Ruling C1) stays inside the same one. */
+export function battleKey(route: Route): string {
+  const query = Object.entries(route.query)
+    .filter(([k]) => k !== 'panel')
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&');
+  return `${route.name}/${route.params.textId ?? ''}?${query}`;
+}
+
 interface Pattern {
   name: RouteName;
   // Segment matchers: a plain string matches literally, a function captures a param.

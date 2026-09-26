@@ -7,6 +7,7 @@ import {
   expectCamp,
   installKeyboardSim,
   redScan,
+  seedPlay,
   setKeyboard,
   stubSpeech,
   tap,
@@ -43,6 +44,75 @@ test('a free text meets a lieutenant on its own ground, and keeps it after a rel
   await page.reload();
   await expectBattle(page, 'muster');
   await expect(stage).toHaveAttribute('data-opponent', opponent);
+});
+
+// Task 2 fix round 1 #1: the play state's key ignores the encounter, so a saved opponent must never
+// outlive it. An explicit encounter always wins; an intro keeps nothing; a saved battle resumes only
+// under its own (or no) encounter, another one starts a fresh battle.
+test('an explicit encounter always wins over the free muster before it', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Bat7-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Rencontre'), body: BODY, level: '10H' });
+  const stage = page.getByTestId('scene-battle');
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await expect(stage).toHaveAttribute('data-opponent', /^(hydre|echo|chimere|protee|sirenes|lethe)$/);
+  const free = (await stage.getAttribute('data-opponent'))!;
+  const other = free === 'hydre' ? 'sirenes' : 'hydre';
+  for (const opponent of [other, 'eris']) {
+    const hash = `/#/p/${id}/play/${text.id}?encounter=${opponent}`;
+    await page.goto(hash);
+    await expectBattle(page, 'muster');
+    await expect(stage, hash).toHaveAttribute('data-opponent', opponent);
+    await page.reload();
+    await expectBattle(page, 'muster');
+    await expect(stage, `${hash} reloaded`).toHaveAttribute('data-opponent', opponent);
+  }
+});
+
+test('a saved intro never keeps its opponent', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Bat8-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Prélude'), body: BODY, level: '10H' });
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'intro', opponent: 'eris' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-opponent', /^(hydre|echo|chimere|protee|sirenes|lethe)$/);
+  await expect(page.getByTestId('battle-resume')).toHaveCount(0);
+});
+
+test('a saved battle resumes under its own encounter, another encounter starts a fresh one', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Bat9-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Reprise'), body: BODY, level: '10H' });
+  const stage = page.getByTestId('scene-battle');
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'dictation', draft: 'Les fées', opponent: 'echo' });
+  await page.goto(`/#/p/${id}/play/${text.id}?encounter=hydre`);
+  await expectBattle(page, 'muster');
+  await expect(stage).toHaveAttribute('data-opponent', 'hydre');
+  await expect(page.getByTestId('battle-parchment').getByTestId('pace-option-1')).toBeVisible();
+  await expect(page.getByTestId('battle-resume')).toHaveCount(0);
+  for (const hash of [`/#/p/${id}/play/${text.id}`, `/#/p/${id}/play/${text.id}?encounter=echo`]) {
+    await page.goto(hash);
+    await expectBattle(page, 'muster');
+    await expect(page.getByTestId('battle-resume'), hash).toBeVisible();
+    await expect(stage, hash).toHaveAttribute('data-opponent', 'echo');
+  }
+});
+
+// Task 2 fix round 1 #2: play/A -> play/B inside the app (a link, Back, Forward) is another battle.
+test('another text in the address bar is another battle, and Back returns to the first', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Bat10-${testInfo.project.name}`));
+  const a = await createText(request, { title: uniqueName('Premier'), body: BODY, level: '10H' });
+  const b = await createText(request, { title: uniqueName('Second'), body: BODY, level: '10H' });
+  const parchment = page.getByTestId('battle-parchment');
+  await page.goto(`/#/p/${id}/play/${a.id}`);
+  await expectBattle(page, 'muster');
+  await expect(parchment.getByRole('heading', { name: a.title })).toBeVisible();
+  await page.goto(`/#/p/${id}/play/${b.id}`);
+  await expectBattle(page, 'muster');
+  await expect(parchment.getByRole('heading', { name: b.title })).toBeVisible();
+  await expect(parchment.getByRole('heading', { name: a.title })).toHaveCount(0);
+  await page.goBack();
+  await expect(parchment.getByRole('heading', { name: a.title })).toBeVisible();
+  await expect(parchment.getByRole('heading', { name: b.title })).toHaveCount(0);
 });
 
 test('a quest, a grimoire and the boss bring their own opponent and ground', async ({ page, request }, testInfo) => {

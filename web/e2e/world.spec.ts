@@ -1,6 +1,6 @@
 import { test, expect } from './crashGuard';
 import type { Page } from '@playwright/test';
-import { chooseLevel, closeOverlay, enterTitle, expectCamp, expectScene, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
+import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -379,13 +379,16 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
       (seed) => sessionStorage.setItem(seed.key, seed.value),
       { key: 'discorde.playClock', value: JSON.stringify({ activeMs: 26 * 60000, running: false, lastTick: null, lastStop: Date.now() }) },
     );
-    await page.goto(`/#/p/${profileId}/play/${textId}`);
+    // Help stage 3 for this session (the `help` override): a frozen count, no Argus passes, so the
+    // « J'ai terminé » tap validates at once, with no « passes left » confirm (Task 2 fix round 1
+    // #5: the step no longer depends on the hero's adaptive stage).
+    await page.goto(`/#/p/${profileId}/play/${textId}?help=3`);
     await page.reload();
 
-    // This text was already fully played in step 4: the play screen resumes straight to its old
-    // results: "Rejouer ce texte" clears that saved state and starts a fresh session.
-    const replay = page.getByRole('button', { name: 'Rejouer ce texte' });
-    if (await replay.isVisible()) await replay.click();
+    // Each test has its own browser context: step 4's saved play state is not here, so this is a
+    // fresh muster, never the old results.
+    await expectBattle(page, 'muster');
+    await expect(page.getByRole('button', { name: 'Rejouer ce texte' })).toHaveCount(0);
 
     await page.getByTestId('pace-option-1').click();
     await page.getByRole('button', { name: 'Commencer la dictée' }).click();
@@ -398,8 +401,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.getByTestId('btn-finish-writing').click();
     await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
     await page.getByTestId('btn-done-proofreading').click();
-    const confirm = page.getByRole('button', { name: 'Oui, valider' });
-    if (await confirm.isVisible()) await confirm.click();
+    await expect(page.getByRole('button', { name: 'Oui, valider' })).toHaveCount(0);
 
     await expect(page.getByTestId('break-nudge')).toBeVisible();
     await expect(page.getByTestId('break-nudge')).toContainText('Braise bâille');

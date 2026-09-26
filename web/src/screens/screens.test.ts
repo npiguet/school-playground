@@ -38,7 +38,8 @@ describe('UI3: the places replaced the screens', () => {
   });
 
   it('uses no legacy .screen / .scene class in a place', () => {
-    const places = [...walk('src/components/places'), ...walk('src/screens').filter((f) => !/(Boss|Play)\.svelte$/.test(f))];
+    // The battle screens too, since UI4 put them on the stage.
+    const places = [...walk('src/components/places'), ...walk('src/screens')];
     for (const f of places) expect(readFileSync(f, 'utf-8'), f).not.toMatch(LEGACY_CLASS);
   });
 
