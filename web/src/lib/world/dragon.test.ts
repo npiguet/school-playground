@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LOCKED_EGG_FILTER, TINT_FILTERS, TINT_SWATCH, eggFilter, stageActivity, stageLabel, stageLine, validName } from './dragon';
+import { LOCKED_EGG_FILTER, TINT_FILTERS, TINT_SWATCH, dragonCaption, eggFilter, stageActivity, stageLabel, stageLine, validName } from './dragon';
 
 describe('dragon helpers', () => {
   it('never offers violet (reserved for Éris) and has six tints', () => {
@@ -9,6 +9,9 @@ describe('dragon helpers', () => {
   it('labels and lines', () => {
     expect(stageLabel('egg')).toBe('Œuf');
     expect(stageLabel('adult')).toBe('Dragon adulte');
+    expect(dragonCaption({ name: null, stage: 'egg' })).toBe('Un œuf de dragon');
+    expect(dragonCaption({ name: null, stage: 'young' })).toBe('Jeune dragon');
+    expect(dragonCaption({ name: 'Braise', stage: 'young' })).toBe('Braise');
     expect(stageLine('egg', null, 1)).toContain("L'œuf frémit");
     expect(stageLine('young', 'Braise', 2)).toBe('Braise bat des ailes : encore 2 techniques à neutraliser.');
     expect(stageLine('young', 'Braise', 1)).toBe('Braise bat des ailes : encore 1 technique à neutraliser.');

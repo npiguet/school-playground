@@ -3,11 +3,9 @@
 // its legacy route as an overlay (UI3 Ruling A1); the three ways in replace the old add menu (A16).
 // Athena's owl is a fifth, plaque-less hotspot: a tap makes her speak (immersion wave, #23).
 import { ADD_ICONS, ART, PLACE_ICONS } from '../art';
-import { IDLE_HOTSPOT, type DialogueLine, type HotspotDef, type HotspotState, type SceneDef, type SceneLayerDef } from '../../scene/types';
+import { st, type DialogueLine, type HotspotDef, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { LIBRARY_SHAPES } from './library.shapes';
 import { nextStep } from '../nextStep';
-
-const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
 
 export const LIBRARY_HOTSPOTS: HotspotDef[] = [
   {

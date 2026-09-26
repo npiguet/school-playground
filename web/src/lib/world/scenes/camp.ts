@@ -2,49 +2,25 @@
 // places pinned to their painted landmarks, captions only where there is news (three at most), one
 // next-step glow (Ruling B9), the path to battle locked until Éris can be fought.
 import { ART } from '../art';
-import { stageLabel, stageLine } from '../dragon';
+import { stageLine } from '../dragon';
 import { stirringCaption } from '../eris';
-import { HUB_PLACE, nextStep, nextStepLine } from '../nextStep';
+import { HUB_PLACE, bossEngaged, nextStep, nextStepLine } from '../nextStep';
 import { nearestProphecy, prophecyWhen } from '../prophecy';
-import { tricksBeforeEris } from '../quests';
-import type { CampResponse, DragonOut, DragonStage, LieutenantKey, WorldCatalog } from '../types';
-import { IDLE_HOTSPOT, type DialogueLine, type HotspotDef, type HotspotState, type SceneContext, type SceneDef, type SceneLayerDef } from '../../scene/types';
+import { romanTier, tricksBeforeEris } from '../quests';
+import { bossRewardName } from '../rewards';
+import { plural } from '../../text/french';
+import type { CampResponse, DragonStage, LieutenantKey, WorldCatalog } from '../types';
+import { st, type DialogueLine, type HotspotDef, type HotspotState, type SceneContext, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { dragonSpeaker } from './speakers';
 import { CAMP_SHAPES } from './camp.shapes';
 
-export { nextStepLine };
-
 export type CampHotspotId = keyof typeof CAMP_SHAPES;
-
-const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
-
-/** The dragon's identity: its name, else what it is (the nest's caption). */
-export function dragonCaption(d: DragonOut): string {
-  return d.name ?? (d.stage === 'egg' ? 'Un œuf de dragon' : stageLabel(d.stage));
-}
-
-/** The boss reward "known in advance" (SP3 decisions 9/12), or a generic phrase. */
-export function bossRewardName(camp: CampResponse, catalog: WorldCatalog | null): string {
-  const tier = camp.boss.tier_available;
-  if (tier === null) return 'une récompense';
-  const rewardId = catalog?.boss_rewards[String(tier)];
-  const name = rewardId ? catalog?.rewards[rewardId]?.name : undefined;
-  return name ?? 'une récompense';
-}
-
-/** « 1 trésor », « 2 trésors », « Aucun trésor encore » (the cabin's shelf). */
-export function treasureCaption(n: number): string {
-  if (n <= 0) return 'Aucun trésor encore';
-  return n === 1 ? '1 trésor' : `${n} trésors`;
-}
 
 /** The weekly goal ribbon, in-world words. */
 export function weeklyCaption(w: CampResponse['weekly']): string {
   if (w.reached) return 'Objectif atteint ! Les Muses sont fières.';
   return `Cette semaine : ${w.done} / ${w.target} parchemins défendus`;
 }
-
-const engaged = (camp: CampResponse) => camp.quests.some((q) => q.kind === 'boss' && q.status === 'active');
 
 /** Éris hides until enough tricks are foiled (the quest wall's rule, SP3 decision 8). */
 export function bossLocked(camp: CampResponse): boolean {
@@ -59,6 +35,23 @@ export function bossLockLine(camp: CampResponse): string {
   return `Éris se cache encore. Neutralise encore ${n === 1 ? 'une ruse' : `${n} ruses`} et elle sortira.`;
 }
 
+/** The locked path's caption (final review M12, ethics: a lock says in advance how to get past it,
+ *  without a tap): the tricks still to foil, as the dragon says it when tapped. Part of the lock,
+ *  not news: it never takes one of the three news captions (campNews). */
+export function bossLockCaption(camp: CampResponse): string | null {
+  if (camp.boss.tiers_won.length >= 3) return 'Éris boude, loin du camp';
+  const n = tricksBeforeEris(camp);
+  return n > 0 ? `Encore ${plural(n, 'ruse', 'ruses')}` : null;
+}
+
+/** The open path's caption: the fight's number as the battle screen writes it (Roman, final review
+ *  M10) and its reward known in advance. */
+function bossCaption(camp: CampResponse, catalog: WorldCatalog | null): string {
+  if (bossEngaged(camp)) return 'Un combat est déjà engagé contre Éris.';
+  const tier = camp.boss.tier_available;
+  return `Combat ${romanTier(tier ?? 1)} : ${bossRewardName(tier, catalog)}`;
+}
+
 /** The hub place the shared next step names (Ruling B9), or null. */
 export function campNextStep(camp: CampResponse | null): CampHotspotId | null {
   const step = nextStep(camp);
@@ -70,7 +63,7 @@ export function campNews(camp: CampResponse, catalog: WorldCatalog | null): Part
   const p = nearestProphecy(camp);
   const stirring = camp.lieutenants.find((l) => l.stirring && l.available && !l.neutralised);
   const all: [CampHotspotId, string | null][] = [
-    ['boss', bossLocked(camp) ? null : engaged(camp) ? 'Un combat est déjà engagé contre Éris.' : `Combat ${camp.boss.tier_available} : ${bossRewardName(camp, catalog)}`],
+    ['boss', bossLocked(camp) ? null : bossCaption(camp, catalog)],
     ['oracle', p && p.days_left <= 7 ? `Une prophétie, ${prophecyWhen(p.days_left)}` : camp.oracle.status === 'sealed' ? 'Trois rouleaux à ouvrir' : null],
     ['parchemins', camp.xp.total === 0 ? 'Choisis un texte à défendre' : null],
     ['dragon', camp.dragon.stage !== 'egg' && !camp.dragon.name ? 'Il attend un nom' : null],
@@ -122,7 +115,10 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     shape: CAMP_SHAPES.boss,
     labelPos: 'below',
     leader: true,
-    state: (ctx) => (ctx.camp ? place('boss', (camp) => ({ locked: bossLocked(camp) }))(ctx) : st({ locked: true })),
+    state: (ctx) =>
+      ctx.camp
+        ? place('boss', (camp) => (bossLocked(camp) ? { locked: true, caption: bossLockCaption(camp) } : {}))(ctx)
+        : st({ locked: true }),
   },
 ];
 
@@ -134,8 +130,9 @@ export const CAMP_SCENE: SceneDef = {
   hotspots: CAMP_HOTSPOTS,
   ambience: { particles: 'embers', music: null },
   narrator: { enter: 'camp.enter', firstVisit: 'camp.first' },
-  // Carry rec. 9: the two places the hub leads to most (the tent, the temple).
-  preload: [ART.scenes.libraryTent, ART.scenes.delphi],
+  // Carry rec. 9, final review M14: every place the hub leads to, so none loads cold on its first
+  // tap (the next step's place first: the tent and the temple, then the others and the battle).
+  preload: [ART.scenes.libraryTent, ART.scenes.delphi, ART.scenes.warTent, ART.scenes.nest, ART.scenes.cabin, ART.scenes.battle],
 };
 
 const WIDTH: Record<DragonStage, number> = { egg: 6, hatchling: 7, young: 8, adult: 9 };

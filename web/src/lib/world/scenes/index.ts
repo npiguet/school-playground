@@ -1,30 +1,14 @@
-// Registry of every scene definition. UI3b lanes each add their own line inside their fence.
+// Registry of every scene definition.
 import type { SceneDef } from '../../scene/types';
+import { CABIN_SCENE } from './cabin';
 import { CAMP_SCENE } from './camp';
 import { DELPHI_SCENE } from './delphi';
 import { LIBRARY_SCENE } from './library';
-import { TITLE_SCENE } from './title';
-import { WAR_SCENE } from './war'; // --- lane W (Task 2)
-
-// --- lane H (Task 4):
 import { NEST_SCENE } from './nest';
-
-// --- lane H (Task 5):
-import { CABIN_SCENE } from './cabin';
+import { TITLE_SCENE } from './title';
+import { WAR_SCENE } from './war';
 
 /** Scenes UI spec §4: "≤ 600 KB WebP per scene background". */
 export const SCENE_BUDGET_BYTES = 600 * 1024;
 
-export const SCENES: SceneDef[] = [
-  CAMP_SCENE,
-  TITLE_SCENE,
-  LIBRARY_SCENE,
-  DELPHI_SCENE,
-  WAR_SCENE, // --- lane W (Task 2)
-
-  // --- lane H (Task 4):
-  NEST_SCENE,
-
-  // --- lane H (Task 5):
-  CABIN_SCENE,
-];
+export const SCENES: SceneDef[] = [CAMP_SCENE, TITLE_SCENE, LIBRARY_SCENE, DELPHI_SCENE, WAR_SCENE, NEST_SCENE, CABIN_SCENE];

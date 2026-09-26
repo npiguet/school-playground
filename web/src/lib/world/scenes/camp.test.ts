@@ -10,8 +10,7 @@ import {
   campDragonLayer,
   campGreeting,
   campNews,
-  dragonCaption,
-  treasureCaption,
+  bossLockCaption,
   weeklyCaption,
 } from './camp';
 
@@ -62,21 +61,25 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
   it('always shows the path to battle, locked until Éris can be fought', () => {
     for (const h of CAMP_HOTSPOTS) expect(h.state({ camp: null, catalog: null }).visible, h.id).toBe(true);
     expect(state('boss', null).locked).toBe(true);
-    expect(state('boss', camp())).toMatchObject({ locked: true, caption: null, isNew: false });
-    expect(state('boss', ready(), catalog)).toMatchObject({ locked: false, isNew: true, caption: "Combat 1 : Sandales d'Hermès" });
-    expect(state('boss', ready(), null).caption).toBe('Combat 1 : une récompense');
+    // Final review M12: the lock says how to get past it without a tap.
+    expect(state('boss', camp())).toMatchObject({ locked: true, caption: 'Encore 2 ruses', isNew: false });
+    // Final review M10: the fight's number as the battle screen writes it (Roman).
+    expect(state('boss', ready(), catalog)).toMatchObject({ locked: false, isNew: true, caption: "Combat I : Sandales d'Hermès" });
+    expect(state('boss', ready(), null).caption).toBe('Combat I : une récompense');
   });
 
   it("explains the locked path in the dragon's words", () => {
     expect(bossLockLine(camp())).toBe('Éris se cache encore. Neutralise encore 2 ruses et elle sortira.');
     expect(bossLockLine(camp({ dragon: { ...camp().dragon, neutralised: 1 } }))).toBe('Éris se cache encore. Neutralise encore une ruse et elle sortira.');
     expect(bossLockLine(camp({ boss: { tier_available: null, tiers_won: [1, 2, 3], active_quest_id: null } }))).toBe('Éris est vaincue trois fois. Elle boude, loin du camp.');
+    expect(bossLockCaption(camp({ dragon: { ...camp().dragon, neutralised: 1 } }))).toBe('Encore 1 ruse');
+    expect(bossLockCaption(camp({ boss: { tier_available: null, tiers_won: [1, 2, 3], active_quest_id: null } }))).toBe('Éris boude, loin du camp');
   });
 
   it('captions only the places with news, three at most, in priority order', () => {
     expect(campNews(camp({ xp: seasoned, oracle: chosen }), null)).toEqual({});
     const busy = ready({ xp: seasoned, prophecies: prophecy(2), dragon: hatchling, lieutenants: echoStirs });
-    expect(campNews(busy, catalog)).toEqual({ boss: "Combat 1 : Sandales d'Hermès", oracle: `Une prophétie, ${prophecyWhen(2)}`, dragon: 'Il attend un nom' });
+    expect(campNews(busy, catalog)).toEqual({ boss: "Combat I : Sandales d'Hermès", oracle: `Une prophétie, ${prophecyWhen(2)}`, dragon: 'Il attend un nom' });
     expect(state('dossier', busy, catalog).caption).toBeNull();
     expect(campNews(camp({ xp: seasoned, dragon: hatchling, lieutenants: echoStirs }), null)).toEqual({
       oracle: 'Trois rouleaux à ouvrir',
@@ -114,15 +117,21 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     expect(lines[0]).toMatchObject({ speaker: 'dragon', name: "L'œuf", portrait: '/art/dragon/dragon_egg_cut.webp', portraitFilter: 'none' });
   });
 
-  it('seats the dragon in the painted nest, on a shallow plane; preloads the tent and the temple', () => {
+  it('seats the dragon in the painted nest, on a shallow plane; preloads every place it leads to', () => {
     expect(campDragonLayer('egg')).toMatchObject({ x: 17, y: 55, depth: 1 });
     expect(campDragonLayer('adult').scale).toBeGreaterThan(campDragonLayer('egg').scale);
-    expect(CAMP_SCENE.preload).toEqual(['/art/scenes/library_tent.webp', '/art/scenes/delphi.webp']);
+    // Final review M14: none of the hub's destinations loads cold on its first tap.
+    expect(CAMP_SCENE.preload).toEqual([
+      '/art/scenes/library_tent.webp',
+      '/art/scenes/delphi.webp',
+      '/art/scenes/war_tent.webp',
+      '/art/scenes/nest.webp',
+      '/art/scenes/cabin.webp',
+      '/art/scenes/battle.webp',
+    ]);
   });
 
   it('keeps the words the other places use', () => {
-    expect(dragonCaption(camp().dragon)).toBe('Un œuf de dragon');
-    expect([0, 1, 2].map(treasureCaption)).toEqual(['Aucun trésor encore', '1 trésor', '2 trésors']);
     expect(weeklyCaption({ week: 'w', target: 3, done: 1, reached: false })).toBe('Cette semaine : 1 / 3 parchemins défendus');
     expect(weeklyCaption({ week: 'w', target: 3, done: 3, reached: true })).toBe('Objectif atteint ! Les Muses sont fières.');
   });

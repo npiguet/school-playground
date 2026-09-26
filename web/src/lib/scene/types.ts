@@ -73,6 +73,9 @@ export interface HotspotState {
 
 export const IDLE_HOTSPOT: HotspotState = { visible: true, locked: false, isNew: false, badge: null, caption: null };
 
+/** A hotspot state: the idle one with these fields changed (every scene module's `state`). */
+export const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
+
 export interface HotspotDef {
   id: string;
   /** Place name shown on the plaque (Cinzel caps). '' for a hotspot with no plaque (a character you

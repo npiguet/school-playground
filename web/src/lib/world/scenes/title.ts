@@ -2,10 +2,8 @@
 // Éris's shadow in the sky. « Entrer » opens the gate onto the heroes' painted shields.
 import { ART } from '../art';
 import type { Profile } from '../../types';
-import { IDLE_HOTSPOT, type HotspotDef, type HotspotState, type SceneDef } from '../../scene/types';
+import { st, type HotspotDef, type SceneDef } from '../../scene/types';
 import { TITLE_SHAPES } from './title.shapes';
-
-const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
 
 export const TITLE_HOTSPOTS: HotspotDef[] = [
   { id: 'gate', label: 'Entrer', target: null, shape: TITLE_SHAPES.gate, labelPos: 'above', leader: true, grand: true, state: () => st({ isNew: true }) },

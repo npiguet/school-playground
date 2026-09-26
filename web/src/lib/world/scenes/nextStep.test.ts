@@ -2,13 +2,7 @@
 // scene, whatever the camp state. The place glows read the shared nextStep(camp) (../nextStep.ts).
 import { describe, expect, it } from 'vitest';
 import type { CampResponse } from '../types';
-import { LIBRARY_SCENE } from './library';
-import { DELPHI_SCENE } from './delphi';
-import { TITLE_SCENE } from './title';
-import { CAMP_SCENE } from './camp';
-import { WAR_SCENE } from './war';
-import { NEST_SCENE } from './nest';
-import { CABIN_SCENE } from './cabin';
+import { SCENES } from './index';
 
 const noBoss = { tier_available: null, tiers_won: [], active_quest_id: null };
 const base = { dragon: { name: null, stage: 'egg' }, lieutenants: [], rewards_count: 0, boss: noBoss, prophecies: [] };
@@ -32,7 +26,9 @@ const camps = [
 ] as unknown as (CampResponse | null)[];
 
 describe('one glow per scene', () => {
-  it.each([LIBRARY_SCENE, DELPHI_SCENE, TITLE_SCENE, CAMP_SCENE, WAR_SCENE, NEST_SCENE, CABIN_SCENE])('$id', (scene) => {
+  // Every registered scene (final review M20): a new one cannot escape the check.
+  it('covers the seven places', () => expect(SCENES.map((s) => s.id).sort()).toEqual(['cabin', 'camp', 'delphi', 'library', 'nest', 'title', 'war']));
+  it.each(SCENES)('$id', (scene) => {
     for (const camp of camps) {
       const lit = scene.hotspots.filter((h) => h.state({ camp, catalog: null }).isNew).map((h) => h.id);
       expect(lit.length, `${scene.id} with ${JSON.stringify(camp?.xp ?? null)}: ${lit}`).toBeLessThanOrEqual(1);

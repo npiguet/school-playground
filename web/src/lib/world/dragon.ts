@@ -3,7 +3,7 @@
 // DOM/store access, so `Dragon.svelte`, the nest and its care panel, the trophy shelf and
 // `ProgressionReveal.svelte` all share the same wording and this file stays trivially testable.
 import { plural } from '../text/french';
-import type { DragonStage, Tint } from './types';
+import type { DragonOut, DragonStage, Tint } from './types';
 
 export type Mood = 'idle' | 'happy' | 'sleepy';
 
@@ -57,6 +57,11 @@ const STAGE_LABELS: Record<DragonStage, string> = {
 
 export function stageLabel(stage: DragonStage): string {
   return STAGE_LABELS[stage];
+}
+
+/** The dragon's identity: its name, else what it is (the nest's caption, the cut-out's alt). */
+export function dragonCaption(d: Pick<DragonOut, 'name' | 'stage'>): string {
+  return d.name ?? (d.stage === 'egg' ? 'Un œuf de dragon' : stageLabel(d.stage));
 }
 
 /** The camp speech-bubble line for a dragon stage (moved out of `Camp.svelte`, spec Task 8 step

@@ -2,7 +2,7 @@
 // counts, defences instead of « joué », who wrote it without repeating the title.
 import { isProphecy } from '../dates';
 import { levelIndex } from '../levels';
-import { plural } from '../text/french';
+import { plural, rateText } from '../text/french';
 import type { AlexandriaWork, TextSummary } from '../types';
 
 export type Length = 'court' | 'moyen' | 'long';
@@ -18,10 +18,9 @@ export function historyLine(h: TextSummary['history']): string {
   if (!h || h.times_played === 0) return 'Jamais défendu';
   const times = `Défendu ${h.times_played} fois`;
   if (h.best_catch_rate === null || h.best_catch_rate === undefined) return times;
-  // A narrow no-break space before « % » (French typography): the sign never wraps alone.
   // Polish: "déjoués" dropped - at the tag's width (kit-tag-meta, 14 px) the full phrase wrapped to
   // a third line and ran past the cubby (shot a07, "Le chant des sirènes"); this fits two lines.
-  return `${times} · ${Math.round(h.best_catch_rate * 100)} % des pièges`;
+  return `${times} · ${rateText(h.best_catch_rate)} des pièges`;
 }
 
 /** A chapter's title « Livre — chapitre » (Alexandria's rolls, service.py) as the book and the

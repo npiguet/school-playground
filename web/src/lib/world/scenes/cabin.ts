@@ -2,11 +2,9 @@
 // the journal on the desk (stats), the lamp and the lyre (settings). Displayed decor hangs on the
 // walls. The hero panel is an overlay here too (Ruling B2, Task 6).
 import { ART } from '../art';
-import { IDLE_HOTSPOT, type HotspotDef, type HotspotState, type SceneDef } from '../../scene/types';
-import { treasureCaption } from './camp';
+import { st, type HotspotDef, type SceneDef } from '../../scene/types';
+import { treasureCaption } from '../rewards';
 import { CABIN_SHAPES } from './cabin.shapes';
-
-const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
 
 export const CABIN_HOTSPOTS: HotspotDef[] = [
   {

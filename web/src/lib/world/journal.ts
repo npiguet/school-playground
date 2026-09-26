@@ -1,6 +1,6 @@
 // The journal's words (UI3 Ruling B6): what the Muses do at each help stage, said the camp's way
 // (the old Stats said « niveau N sur 4 » and « Comme en classe », school register).
-import { longDate, plural } from '../text/french';
+import { longDate, plural, rateText } from '../text/french';
 
 export const HELP_STAGES = [1, 2, 3, 4] as const;
 
@@ -13,11 +13,6 @@ const LINES: Record<number, string> = {
 
 export function helpStageLine(stage: number): string {
   return LINES[stage] ?? '';
-}
-
-/** A catch rate in words: « 75 % » (no-break space), or « — » when there was nothing to catch. */
-export function rateText(rate: number | null): string {
-  return rate === null ? '—' : `${Math.round(100 * rate)} %`;
 }
 
 /** The day a defence was finished, on the hero's own clock (the server stores UTC: a text finished

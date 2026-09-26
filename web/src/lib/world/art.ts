@@ -140,7 +140,6 @@ export const ART = {
     scrollRolled: '/art/ui/scroll_rolled.webp',
   },
   scenes: {
-    camp: '/art/scenes/camp.webp',
     delphes: '/art/scenes/delphes.webp',
     alexandrie: '/art/scenes/alexandrie.webp',
     parchemins: '/art/scenes/parchemins.webp',

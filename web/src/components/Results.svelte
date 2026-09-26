@@ -7,7 +7,7 @@
   import { CATEGORY_LABELS, caughtText, erisLine, explain, statKeyOf } from '$lib/explain';
   import type { PlayMode, TextFull } from '$lib/types';
   import Icon from './ui/Icon.svelte';
-  import { plural } from '$lib/text/french';
+  import { plural, rateText } from '$lib/text/french';
 
   let {
     reference,
@@ -57,7 +57,7 @@
   const draftCount = $derived(result.draftErrors.length);
   const caughtCount = $derived(result.caught.length);
   const introducedCount = $derived(result.introduced.length);
-  const pct = $derived(draftCount > 0 ? Math.round((100 * caughtCount) / draftCount) : null);
+  const rate = $derived(draftCount > 0 ? caughtCount / draftCount : null);
   const erisText = $derived(erisLine(result.catchRate, draftCount, introducedCount, mode));
 
   // Maps a reference token index to its aligned position in the FINAL text's tokens, so a caught
@@ -180,9 +180,9 @@
       {#if draftCount === 0}
         Texte parfait dès la dictée !
       {:else if mode === 'grimoire'}
-        Dés-accords retrouvés : {caughtCount} sur {draftCount} ({pct} %)
+        Dés-accords retrouvés : {caughtCount} sur {draftCount} ({rateText(rate)})
       {:else}
-        Pièges déjoués : {caughtCount} sur {draftCount} ({pct} %)
+        Pièges déjoués : {caughtCount} sur {draftCount} ({rateText(rate)})
       {/if}
     </p>
     <p class="hero-line" data-testid="results-score">Score : {result.score}</p>

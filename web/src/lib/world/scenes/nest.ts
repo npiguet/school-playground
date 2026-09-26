@@ -2,15 +2,12 @@
 // stage, in its tint, in the straw bed; its growth on a parchment in the scene; its name and tint in
 // the `soin` overlay (#/p/:id/dragon?panel=soin), where it speaks from the voice plate.
 import { ART } from '../art';
-import { stageLine } from '../dragon';
+import { dragonCaption, stageLine } from '../dragon';
 import { plural } from '../../text/french';
 import type { DragonOut, DragonStage } from '../types';
-import { IDLE_HOTSPOT, type DialogueLine, type HotspotDef, type HotspotState, type SceneDef, type SceneLayerDef } from '../../scene/types';
-import { dragonCaption } from './camp';
+import { st, type DialogueLine, type HotspotDef, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { dragonSays } from './speakers';
 import { NEST_SHAPES } from './nest.shapes';
-
-const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
 
 export const NEST_HOTSPOTS: HotspotDef[] = [
   {

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { HELP_STAGES, defenceMeta, helpStageLine, localDay, rateText } from './journal';
+import { HELP_STAGES, defenceMeta, helpStageLine, localDay } from './journal';
+import { rateText } from '../text/french';
 
 describe("the journal's words (UI3 Ruling B6; the register guard's « niveau » carry)", () => {
   it('says what the Muses do at each of the four stages, with no school word', () => {
@@ -30,12 +31,12 @@ describe('a defence in the journal (fix round 1)', () => {
 
   it('dates a text finished at 00:30 local time on that local day, not the UTC one', () => {
     expect(localDay('2026-09-21T22:30:00+00:00')).toBe('2026-09-22');
-    expect(defenceMeta({ finished_at: '2026-09-21T22:30:00+00:00', score: 10, catch_rate: 0.75 }, today)).toBe('mardi 22 septembre · 10 points · 75 % déjoués');
+    expect(defenceMeta({ finished_at: '2026-09-21T22:30:00+00:00', score: 10, catch_rate: 0.75 }, today)).toBe('mardi 22 septembre · 10 points · 75 % déjoués');
   });
 
   it('leaves the rate out when there was nothing to catch, with a real plural for the points', () => {
     expect(defenceMeta({ finished_at: '2026-09-22T12:00:00+00:00', score: 1, catch_rate: null }, today)).toBe('mardi 22 septembre · 1 point');
     expect(rateText(null)).toBe('—');
-    expect(rateText(0.5)).toBe('50 %');
+    expect(rateText(0.5)).toBe('50 %');
   });
 });

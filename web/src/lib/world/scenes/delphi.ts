@@ -3,11 +3,9 @@
 // (UI3 Ruling A1). The Pythia greets with a static line (A9).
 import { ART } from '../art';
 import type { CampResponse, ScrollKey } from '../types';
-import { IDLE_HOTSPOT, type DialogueLine, type HotspotDef, type HotspotState, type SceneDef, type SceneLayerDef } from '../../scene/types';
+import { st, type DialogueLine, type HotspotDef, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { DELPHI_SHAPES } from './delphi.shapes';
 import { nextStep } from '../nextStep';
-
-const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
 
 export const DELPHI_HOTSPOTS: HotspotDef[] = [
   {

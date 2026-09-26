@@ -6,7 +6,8 @@ import { nearestProphecy, prophecyWhen } from './prophecy';
 
 export type NextStep = 'battle' | 'first-text' | 'prophecy' | 'scrolls' | null;
 
-const bossEngaged = (camp: CampResponse) => camp.quests.some((q) => q.kind === 'boss' && q.status === 'active');
+/** A fight against Éris is already under way (her quest is active). */
+export const bossEngaged = (camp: CampResponse) => camp.quests.some((q) => q.kind === 'boss' && q.status === 'active');
 
 /** Ruling B9, order amended by the controller: a prophecy falling due within a week first (the
  *  real-school dictation is what the game prepares for), then a battle ready to be fought, then a

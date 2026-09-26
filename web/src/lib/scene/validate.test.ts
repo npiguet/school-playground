@@ -41,7 +41,7 @@ describe('validateScene', () => {
     const scene: SceneDef = {
       id: 'camp',
       title: 'Le camp',
-      background: '/art/scenes/camp.webp',
+      background: '/art/scenes/hub_camp.webp',
       layers: [{ id: 'l', src: '/x.webp', alt: '', x: 120, y: 50, scale: 10, depth: 1, idle: 'none' }],
       hotspots: [def('a', e(30, 50)), def('a', e(60, 50))],
       ambience: { particles: 'none', music: null },

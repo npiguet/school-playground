@@ -4,10 +4,8 @@
 import { ART } from '../art';
 import { agree, lieutenantName, sleepingCaption, stirringCaption } from '../eris';
 import { LIEUTENANT_ORDER, type LieutenantKey } from '../types';
-import { IDLE_HOTSPOT, type HotspotDef, type HotspotState, type SceneContext, type SceneDef } from '../../scene/types';
+import { st, type HotspotDef, type HotspotState, type SceneContext, type SceneDef } from '../../scene/types';
 import { WAR_SHAPES } from './war.shapes';
-
-const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
 
 export const LIEUTENANT_NAMES = Object.fromEntries(LIEUTENANT_ORDER.map((k) => [k, lieutenantName(k)])) as Record<LieutenantKey, string>;
 
