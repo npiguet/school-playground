@@ -138,7 +138,7 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
       '/art/scenes/war_tent.webp',
       '/art/scenes/nest.webp',
       '/art/scenes/cabin.webp',
-      '/art/scenes/battle.webp',
+      '/art/scenes/eris_lair.webp',
     ]);
   });
 

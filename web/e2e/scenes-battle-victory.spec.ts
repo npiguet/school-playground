@@ -139,3 +139,33 @@ test('after twenty-five minutes the dragon suggests a pause, on the sheet', asyn
   await tap(page.getByTestId('btn-back-camp'), testInfo);
   await expectCamp(page);
 });
+
+test("Éris's lair: her challenge, the fight's stakes and the rules on the parchment", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Lair-${testInfo.project.name}`));
+  await page.goto(`/#/p/${id}/eris`);
+  await expectBattle(page, 'muster');
+  const stage = page.getByTestId('scene-battle');
+  await expect(stage).toHaveAttribute('data-backdrop', 'lair');
+  await expect(stage).toHaveAttribute('data-opponent', 'eris');
+  const sheet = page.getByTestId('battle-parchment');
+  await expect(sheet.getByTestId('battle-voice')).toHaveAttribute('data-speaker', 'eris');
+  await expect(sheet.getByTestId('battle-voice')).toContainText('Voyons si mes pièges tiennent');
+  await expect(sheet.getByTestId('boss-tier')).toHaveText('Combat I');
+  await expect(sheet.getByTestId('boss-reward')).toContainText('Récompense si tu gagnes');
+  await expect(sheet.getByTestId('boss-start')).toHaveText('Affronter Éris');
+  await expect(sheet.locator(LEGACY_UI)).toHaveCount(0);
+  await expectOverlayTapTargets(page, 'battle-parchment');
+  expect(await redScan(page)).toEqual([]);
+});
+
+test('a fight Éris refuses says why, in her colour, and nothing is lost', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Lair2-${testInfo.project.name}`));
+  await page.goto(`/#/p/${id}/eris`);
+  await expectBattle(page, 'muster');
+  await tap(page.getByTestId('boss-start'), testInfo);
+  const refusal = page.getByTestId('battle-parchment').locator('.kit-note[data-tone="eris"][role="alert"]');
+  await expect(refusal).toBeVisible();
+  // A fresh hero has no tier open: the server's 409 (routers/world.py BOSS_MESSAGE), word for word.
+  await expect(refusal).toHaveText("Éris ne se montre pas encore. Neutralise d'abord ses lieutenants.");
+  await expect(page).toHaveURL(/\/eris$/);
+});

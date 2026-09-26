@@ -143,6 +143,8 @@ export const ART = {
     delphes: '/art/scenes/delphes.webp',
     alexandrie: '/art/scenes/alexandrie.webp',
     parchemins: '/art/scenes/parchemins.webp',
+    // The old battlefield: no battle stage uses it since UI4, but the war tent's lieutenant portrait
+    // stands on it (PortraitPanel), so it stays (artReferenced.test.ts).
     battle: '/art/scenes/battle.webp',
     // UI4 battle backdrops (docs/art/scenes.md "Battle backdrops"), one per ground (lib/battle/battle.ts HOME).
     battleRiver: '/art/scenes/battle_river.webp',

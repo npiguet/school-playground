@@ -14,7 +14,6 @@ const PENDING = new Set<string>([
   'src/components/battle/ProofPhase.svelte',
   'src/components/battle/WordEditor.svelte',
   // --- lane V (Tasks 6-7) below this line ---
-  'src/components/battle/BossMuster.svelte',
 ]);
 
 function walk(dir: string, out: string[] = []): string[] {
