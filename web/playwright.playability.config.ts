@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Playability walks (scenes spec §10): one long test per iPad orientation, screenshots into
-// docs/reviews/<milestone>/ (playability-ui3.spec.ts). Run with
+// Playability walks (scenes spec §10): one long test per iPad orientation. Screenshots go to a
+// scratch dir under web/test-results, or to the tracked docs/reviews/<milestone>/ baseline with
+// WALK_OUT (playability-ui3.spec.ts's header has both commands). Run with
 // scripts/playwright.sh --config playwright.playability.config.ts playability-ui3
 export default defineConfig({
   testDir: './e2e',

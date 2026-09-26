@@ -7,7 +7,8 @@ import type { CampResponse } from './types';
 export function prophecyWhen(daysLeft: number): string {
   if (daysLeft <= 0) return "aujourd'hui";
   if (daysLeft === 1) return 'demain';
-  return `dans ${daysLeft} jours`;
+  // A no-break space: « 2 » never ends a line with « jours » on the next (the altar card, walk a13).
+  return `dans ${daysLeft} jours`;
 }
 
 /** The prophecy a place shows: the one falling due first. */

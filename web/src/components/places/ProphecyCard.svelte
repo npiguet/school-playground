@@ -24,7 +24,8 @@
 
 <div class="kit-parchment prophecy-card" class:is-compact={compact} data-testid={testId}>
   <p class="prophecy-card-text">
-    <span class="prophecy-card-when">La Pythie a vu ton épreuve, {prophecyWhen(prophecy.days_left)} :</span>
+    <!-- A narrow no-break space before « : » - the colon never wraps onto a line of its own. -->
+    <span class="prophecy-card-when">La Pythie a vu ton épreuve, {prophecyWhen(prophecy.days_left)} :</span>
     <span class="prophecy-card-title">{prophecy.title}</span>
   </p>
   <button type="button" class="kit-bronze" onclick={() => onReview(prophecy.text_id)}>Te préparer</button>

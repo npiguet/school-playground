@@ -40,6 +40,9 @@ services:
       CI: "true"
       # The worker count (playwright.config.ts: 8 when unset or empty).
       PW_WORKERS: ${PW_WORKERS:-}
+      # Where the playability walk writes its screenshots (web/e2e/playability-ui3.spec.ts; a scratch
+      # dir under web/test-results when unset, docs/reviews/ui3 to refresh the review baseline).
+      WALK_OUT: ${WALK_OUT:-}
       LP_NUM_THREADS: "2"
       WEBKIT_SKIA_ENABLE_CPU_RENDERING: "1"
     volumes: [".:/work", "node_modules:/work/web/node_modules"]

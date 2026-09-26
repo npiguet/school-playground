@@ -1,5 +1,6 @@
 import { test, expect } from './crashGuard';
-import type { Page } from '@playwright/test';
+import type { APIRequestContext, Page } from '@playwright/test';
+import { posix } from 'node:path';
 import {
   chooseLevel,
   closeOverlay,
@@ -10,18 +11,42 @@ import {
   redScan,
   skipOnboarding,
   stubSpeech,
-  uniqueName,
   waitForSceneSettled,
 } from './helpers';
 
-// UI3 playability walk (scenes spec §10): iPad-size screenshots of every place and overlay into
-// docs/reviews/ui3/<project>-<id>-<name>.png for the Opus playability/immersion review ("does
-// anything still look like a school form?"), then one `?debug` screenshot per scene to check the
-// hand-authored hotspots against their landmarks (docs/art/scenes.md). UI3a: title, library tent,
-// Delphi. UI3b appends its sections to SECTIONS and DEBUG_SHOTS.
-// Run: scripts/playwright.sh --config playwright.playability.config.ts playability-ui3
+// UI3 playability walk (scenes spec §10): iPad-size screenshots of every place and overlay,
+// <project>-<id>-<name>.png, for the Opus playability/immersion review ("does anything still look
+// like a school form?"), then one `?debug` screenshot per scene to check the hand-authored hotspots
+// against their landmarks (docs/art/scenes.md). UI3a: title, library tent, Delphi. UI3b appends its
+// sections to SECTIONS and DEBUG_SHOTS.
+//
+// Where the shots go - WALK_OUT, a path relative to the repo root (or absolute in the container):
+// - unset: web/test-results/walk-ui3, a scratch dir (git-ignored), so a walk run to look at the
+//   places never dirties the tracked review baseline:
+//     scripts/playwright.sh --config playwright.playability.config.ts playability-ui3
+// - docs/reviews/ui3: deliberately refreshes the review baseline (tracked PNGs), for a re-review:
+//     WALK_OUT=docs/reviews/ui3 scripts/playwright.sh --config playwright.playability.config.ts playability-ui3
+// compose.e2e.yaml passes WALK_OUT into the Playwright container.
+const OUT = posix.resolve('/work', process.env.WALK_OUT || 'web/test-results/walk-ui3');
 
-const OUT = '/work/docs/reviews/ui3';
+// Playability #26: a real long accented name shows real truncation. The playability config runs
+// one worker and only ipad-landscape walks the scenes (Ruling W12), so fixed names are safe - but
+// an earlier walk's copies are deleted first so the ritual never meets « Ce nom est déjà pris. ».
+const HERO = 'Anne-Charlotte';
+const LOCKED = 'Élise-Marguerite';
+const PROPHECY_TITLE = 'La dictée du jeudi';
+const DESK_TITLE = 'Les fées de la clairière';
+
+async function clearEarlierWalk(request: APIRequestContext) {
+  const profiles = (await (await request.get('/api/profiles')).json()) as { id: number; name: string }[];
+  for (const p of profiles.filter((x) => x.name === HERO || x.name === LOCKED)) {
+    expect((await request.delete(`/api/profiles/${p.id}`)).status()).toBe(204);
+  }
+  const texts = (await (await request.get('/api/texts')).json()) as { id: number; title: string }[];
+  for (const t of texts.filter((x) => x.title === PROPHECY_TITLE || x.title === DESK_TITLE)) {
+    expect((await request.delete(`/api/texts/${t.id}`)).status()).toBe(204);
+  }
+}
 
 interface Walk {
   page: Page;
@@ -113,6 +138,13 @@ async function titleSection(w: Walk) {
   await chooseLevel(ritual, '10H');
   await shot(w, 'a03-title-naming-ritual');
   await noRed(w, 'naming ritual');
+  const sealToggle = ritual.getByRole('button', { name: "Protéger ton bouclier d'un sceau" });
+  await sealToggle.click();
+  await expect(sealToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(ritual.getByLabel('Ton sceau à quatre chiffres')).toBeVisible();
+  await shot(w, 'a03b-title-ritual-seal-open');
+  await sealToggle.click();
+  await expect(sealToggle).toHaveAttribute('aria-expanded', 'false');
   await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
   await expectCamp(page);
   w.profileId = Number(page.url().match(/#\/p\/(\d+)\//)?.[1]);
@@ -120,18 +152,25 @@ async function titleSection(w: Walk) {
   await skipOnboarding(page);
   await skipGreeting(w, 'camp');
 
-  // A protected hero's sealed parchment. `w.heroName` is already unique (uniqueName); appending a
-  // fixed suffix (no second uniqueName wrap - profile.name has a 30-char server limit, and stacking
-  // two random suffixes overflowed it, so the create 422'd and left `locked` undefined).
+  // A protected hero's wax seal, two digits in: the elision « Le sceau d'Élise-Marguerite ».
   const res = await page.request.post('/api/profiles', {
-    data: { name: `${w.heroName}-code`, avatar: 'trident', level: '10H', pin: '4321' },
+    data: { name: LOCKED, avatar: 'trident', level: '10H', pin: '4321' },
   });
   expect(res.ok(), await res.text()).toBeTruthy();
   const locked = (await res.json()).id as number;
   await page.goto(`/#/p/${locked}/camp`);
   await expect(page.getByTestId('pin-gate')).toBeVisible();
+  await page.getByLabel('Tes quatre chiffres').fill('43');
   await shot(w, 'a04-title-pin-seal');
   await noRed(w, 'pin seal');
+
+  // Playability #26: the two real names on their shields (a02 ran before either existed).
+  await page.goto('/');
+  await enterTitle(page);
+  await expect(page.getByTestId(`title-hero-${w.profileId}`)).toBeVisible();
+  await expect(page.getByTestId(`title-hero-${locked}`)).toBeVisible();
+  await waitForOverlaySettled(page, 'title-shields');
+  await shot(w, 'a04b-title-shields-named');
 }
 
 async function librarySection(w: Walk) {
@@ -146,14 +185,29 @@ async function librarySection(w: Walk) {
   await skipGreeting(w, 'library');
   await shot(w, 'a06-library-tent');
   await noRed(w, 'library tent');
+  // Playability #23: the owl is a character - tapped, she gives a hint in the dialogue box.
+  await page.getByTestId('library-owl').click();
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await settleDialogue(page);
+  await shot(w, 'a06b-library-owl-hint');
+  await page.getByTestId('dialogue-skip').click();
+  await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
   await page.getByTestId('library-shelves').click();
   await waitForOverlaySettled(page, 'overlay-shelves');
   await shot(w, 'a07-library-shelves');
   await noRed(w, 'shelves');
+  const shelves = page.getByTestId('overlay-shelves');
+  await shelves.getByRole('button', { name: 'Autres niveaux' }).click();
+  await chooseLevel(shelves, 'Tous');
+  const others = shelves.getByRole('heading', { name: 'Autres parchemins' });
+  await others.scrollIntoViewIfNeeded();
+  await expect(others).toBeInViewport();
+  await shot(w, 'a07b-library-shelves-other-levels');
   await closeOverlay(page);
   await page.getByTestId('library-desk').click();
   await waitForOverlaySettled(page, 'overlay-desk');
-  await page.getByLabel('Titre').fill(uniqueName('Les fées de la clairière'));
+  await page.getByLabel('Titre').fill(DESK_TITLE);
+  // 13 words: the gauge asks for more (« il en faut au moins 80 »).
   await page.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
   await shot(w, 'a08-library-desk');
   await noRed(w, 'desk');
@@ -161,11 +215,18 @@ async function librarySection(w: Walk) {
   await page.getByTestId('library-lens').click();
   await waitForOverlaySettled(page, 'overlay-lens');
   await shot(w, 'a09-library-lens');
+  const lens = page.getByTestId('overlay-lens');
+  await lens.getByTestId('scan-input').first().setInputFiles('/work/server/tests/fixtures/scan/handout.png');
+  await expect(lens.getByTestId('btn-scan-read')).toBeVisible();
+  await shot(w, 'a09b-library-lens-photo');
   await closeOverlay(page);
   await page.getByTestId('library-portal').click();
   await waitForOverlaySettled(page, 'overlay-portal');
   await shot(w, 'a10-library-portal');
-  await page.getByTestId('overlay-portal').getByTestId('work-card').first().click();
+  // A never-copied work shows the scribes' next step; the shared database may hold copies of all.
+  const portal = page.getByTestId('overlay-portal');
+  const never = portal.locator('[data-testid="work-card"][data-status="never"]');
+  await ((await never.count()) > 0 ? never : portal.getByTestId('work-card')).first().click();
   await waitForOverlaySettled(page, 'overlay-portal-work');
   await shot(w, 'a11-library-portal-work');
   await noRed(w, 'portal');
@@ -179,7 +240,7 @@ async function delphiSection(w: Walk) {
   const { page } = w;
   const due = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
   await createText(page.request, {
-    title: uniqueName('La dictée du jeudi'),
+    title: PROPHECY_TITLE,
     body: 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.',
     level: '10H',
     due_date: due,
@@ -190,6 +251,7 @@ async function delphiSection(w: Walk) {
   await expectScene(page, 'delphi');
   await expect(page.getByTestId('dialogue-box')).toBeVisible();
   await settleDialogue(page);
+  await expect(page.getByTestId('dialogue-text')).toContainText('Approche.');
   await shot(w, 'a12-delphi-pythia-greeting');
   await skipGreeting(w, 'delphi');
   await shot(w, 'a13-delphi-temple');
@@ -197,8 +259,11 @@ async function delphiSection(w: Walk) {
   await page.getByTestId('delphi-pythia').click();
   await waitForOverlaySettled(page, 'overlay-pythia');
   await shot(w, 'a14-delphi-pythia-scrolls');
-  await page.getByTestId('scroll-ecole').getByTestId('scroll-open').click();
-  await expect(page.getByTestId('oracle-monster-hydre')).toBeVisible();
+  const oracle = page.getByTestId('overlay-pythia');
+  await oracle.getByTestId('scroll-ecole').getByTestId('scroll-open').click();
+  await expect(oracle.getByTestId('oracle-monster-hydre')).toBeVisible();
+  // The school scroll has finished unrolling (the same wait as scenes-delphi.spec.ts).
+  await expect.poll(() => oracle.evaluate((e) => e.getAnimations({ subtree: true }).length)).toBe(0);
   await shot(w, 'a15-delphi-ecole-picker');
   await page.getByTestId('oracle-cancel').click();
   await closeOverlay(page);
@@ -226,19 +291,24 @@ const DEBUG_SHOTS: { hash: string; sceneId: string; name: string }[] = [
 test('UI3 playability walk', async ({ page }, testInfo) => {
   test.setTimeout(600_000);
   const project = testInfo.project.name;
-  // Task 13 controller ruling 3: a unique hero name, not a bare `Ariane-${project}` - avoids a 409
-  // from profile.name's UNIQUE constraint on a rerun (uniqueName's own doc comment in helpers.ts).
-  const w: Walk = { page, project, profileId: 0, heroName: uniqueName('Ariane'), notes: [] };
+  const w: Walk = { page, project, profileId: 0, heroName: HERO, notes: [] };
   const origins = new Set<string>();
   page.on('request', (req) => {
     const url = new URL(req.url());
     if (url.protocol === 'http:' || url.protocol === 'https:') origins.add(url.origin);
   });
   await stubSpeech(page);
+  await clearEarlierWalk(page.request);
   try {
     if (project === 'ipad-portrait') {
       await page.goto('/');
       await expect(page.getByTestId('rotate-screen')).toBeVisible();
+      // The still shows the tablet mid-turn (playability #27): paused at 60 % of its 2.4 s turn.
+      await page.locator('.rotate-icon').evaluate((e) => {
+        const a = e.getAnimations()[0];
+        a.pause();
+        a.currentTime = 0.6 * 2400;
+      });
       await shot(w, 'a01-rotate-screen');
       return;
     }
