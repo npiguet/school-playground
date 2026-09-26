@@ -170,10 +170,13 @@
     gap: 10px;
     flex-wrap: wrap;
   }
+  /* Equal columns, so the six eggs stand in one even row (UI3b walk b13: a wrapping flex row left
+     the unlocked pair huddled and the last egg alone on a second line). */
   .tints {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 16px 8px;
+    align-items: start;
   }
   .tint-swatch {
     appearance: none;
@@ -234,7 +237,6 @@
     font-size: 13px;
     font-style: italic;
     color: var(--reward-ink);
-    max-width: 96px;
     text-align: center;
   }
 </style>

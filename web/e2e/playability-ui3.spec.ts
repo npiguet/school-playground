@@ -19,8 +19,8 @@ import {
 // UI3 playability walk (scenes spec §10): iPad-size screenshots of every place and overlay,
 // <project>-<id>-<name>.png, for the Opus playability/immersion review ("does anything still look
 // like a school form?"), then one `?debug` screenshot per scene to check the hand-authored hotspots
-// against their landmarks (docs/art/scenes.md). UI3a: title, library tent, Delphi. UI3b appends its
-// sections to SECTIONS and DEBUG_SHOTS.
+// against their landmarks (docs/art/scenes.md). UI3a: title, library tent, Delphi. UI3b: hub, war
+// tent, nest, cabin, wide viewports.
 //
 // Where the shots go - WALK_OUT, a path relative to the repo root (or absolute in the container):
 // - unset: web/test-results/walk-ui3, a scratch dir (git-ignored), so a walk run to look at the
@@ -42,6 +42,10 @@ const DESK_TITLE = 'Les fées de la clairière';
 // five more heroes so the gate shows « Tous les héros » (seven in all, with HERO and LOCKED).
 const DEFENDED_TITLE = 'Le chant des sirènes';
 const MORE_HEROES = ['Achille', 'Pénélope', 'Nausicaa', 'Télémaque', 'Hélène'];
+// UI3b carry #16 / M9: a 7H hero, for whom Protée still sleeps (the war tent's locked sheet).
+const YOUNG = 'Ismène';
+// The hub's lived-in camp: two lieutenants foiled over three days on this text.
+const VEILLEE_TITLE = 'La veillée des héros';
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 // 100 words: the desk's gauge at « parfait » (a08b).
 const BODY_100 = Array.from({ length: 10 }, () => 'La chouette veille sur les parchemins du camp quand la nuit tombe doucement.').join(' ').split(' ').slice(0, 100).join(' ');
@@ -61,8 +65,8 @@ async function deleteTexts(request: APIRequestContext, titles: string[]) {
 }
 
 async function clearEarlierWalk(request: APIRequestContext) {
-  await deleteHeroes(request, [HERO, LOCKED, ...MORE_HEROES]);
-  await deleteTexts(request, [PROPHECY_TITLE, DESK_TITLE, DEFENDED_TITLE]);
+  await deleteHeroes(request, [HERO, LOCKED, YOUNG, ...MORE_HEROES]);
+  await deleteTexts(request, [PROPHECY_TITLE, DESK_TITLE, DEFENDED_TITLE, VEILLEE_TITLE]);
 }
 
 interface Walk {
@@ -341,10 +345,165 @@ async function delphiSection(w: Walk) {
   await closeOverlay(page);
 }
 
+async function hubSection(w: Walk) {
+  const { page } = w;
+  // The camp greets once per hero per page load, and it already greeted this hero in the title
+  // section (a hash-only goto keeps the document): a reload is the hero's return to the camp.
+  await page.goto(`/#/p/${w.profileId}/camp`);
+  await page.reload();
+  await expectCamp(page);
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await settleDialogue(page);
+  await shot(w, 'b01-hub-greeting');
+  await skipGreeting(w, 'camp');
+  await shot(w, 'b02-hub');
+  await noRed(w, 'hub');
+  // Carry #16 / M9: the locked path to battle, explained by the dragon.
+  await page.getByTestId('camp-boss').click();
+  await expect(page.getByTestId('dialogue-text')).toContainText('Éris se cache encore');
+  await settleDialogue(page);
+  await shot(w, 'b03-hub-locked-battle-path');
+  await page.getByTestId('dialogue-skip').click();
+  // A lived-in camp: two lieutenants foiled over three days, a quest on the wall, the battle open.
+  const text = await createText(page.request, { title: VEILLEE_TITLE, body: BODY, level: '10H' });
+  for (const day of ['2026-08-03', '2026-08-04', '2026-08-05']) {
+    for (const category of ['agreement:verb', 'homophone']) {
+      await postSession(page.request, { profileId: w.profileId, textId: text.id, day, result: makeResult({ draft: 4, caught: 4, category }) });
+    }
+  }
+  const quest = await page.request.post(`/api/profiles/${w.profileId}/quests`, { data: { target: 'chimere' } });
+  expect(quest.ok(), await quest.text()).toBeTruthy();
+  // The reload greets again (once per page load): skipped, so the shot shows the whole camp.
+  await page.reload();
+  await skipGreeting(w, 'camp');
+  await expect(page.getByTestId('camp-boss')).not.toHaveAttribute('aria-disabled', 'true');
+  await expect(page.getByTestId('camp-boss').locator('img.hotspot-lock')).toHaveCount(0);
+  await shot(w, 'b04-hub-lived-in');
+  await noRed(w, 'hub lived-in');
+  // Ruling B9: the walk's prophecy (due in 3 days) comes first, so the oracle glows above. Without a
+  // prophecy the open battle is the next step: /camp's prophecies are emptied for this shot only.
+  await page.route('**/api/profiles/*/camp', async (route) => {
+    const res = await route.fetch();
+    const json = await res.json();
+    json.prophecies = [];
+    await route.fulfill({ response: res, json });
+  });
+  await page.reload();
+  await skipGreeting(w, 'camp');
+  await expect(page.getByTestId('camp-boss')).toHaveClass(/is-new/);
+  await shot(w, 'b04b-hub-battle-glow');
+  await page.unrouteAll({ behavior: 'wait' });
+}
+
+async function warSection(w: Walk) {
+  const { page } = w;
+  await page.goto(`/#/p/${w.profileId}/camp`);
+  await expectCamp(page);
+  await page.getByTestId('camp-dossier').click();
+  await expectScene(page, 'war');
+  await shot(w, 'b05-war-tent');
+  await noRed(w, 'war tent');
+  await page.getByTestId('war-hydre').click();
+  await waitForOverlaySettled(page, 'overlay-portrait');
+  await shot(w, 'b06-war-portrait-hydre');
+  await closeOverlay(page);
+  await page.getByTestId('war-dossier').click();
+  await waitForOverlaySettled(page, 'overlay-dossier');
+  await shot(w, 'b07-war-dossier');
+  await noRed(w, 'dossier');
+  await closeOverlay(page);
+  await page.getByTestId('war-bestiary').click();
+  await waitForOverlaySettled(page, 'overlay-codex');
+  await shot(w, 'b08-war-codex');
+  await page.getByTestId('bestiary-card-hydre').click();
+  await waitForOverlaySettled(page, 'overlay-codex-page');
+  await shot(w, 'b09-war-codex-page');
+  await closeOverlay(page);
+  await closeOverlay(page);
+  // Carry #16 / M9 again: a lieutenant asleep at a 7H hero's class.
+  const r = await page.request.post('/api/profiles', { data: { name: YOUNG, avatar: 'lyre', level: '7H' } });
+  expect(r.ok()).toBeTruthy();
+  const young = (await r.json()).id as number;
+  await page.goto(`/#/p/${young}/tente-de-guerre`);
+  await expectScene(page, 'war');
+  await page.getByTestId('war-protee').click();
+  await expect(page.getByTestId('dialogue-text')).toContainText('Protée dort encore');
+  await settleDialogue(page);
+  await shot(w, 'b10-war-sleeping-lieutenant');
+}
+
+async function nestSection(w: Walk) {
+  const { page } = w;
+  await page.goto(`/#/p/${w.profileId}/camp`);
+  await expectCamp(page);
+  await page.getByTestId('camp-dragon').click();
+  await expectScene(page, 'nest');
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await settleDialogue(page);
+  await shot(w, 'b11-nest-greeting');
+  await skipGreeting(w, 'nest');
+  await shot(w, 'b12-nest');
+  await noRed(w, 'nest');
+  await page.getByTestId('nest-dragon').click();
+  await waitForOverlaySettled(page, 'overlay-care');
+  await shot(w, 'b13-nest-care');
+  await closeOverlay(page);
+}
+
+async function cabinSection(w: Walk) {
+  const { page } = w;
+  await page.goto(`/#/p/${w.profileId}/camp`);
+  await expectCamp(page);
+  await page.getByTestId('camp-cabin').click();
+  await expectScene(page, 'cabin');
+  await shot(w, 'b14-cabin');
+  await noRed(w, 'cabin');
+  for (const [spot, overlay, name] of [
+    ['cabin-trophies', 'overlay-trophies', 'b15-cabin-trophies'],
+    ['cabin-journal', 'overlay-journal', 'b16-cabin-journal'],
+    ['cabin-lyre', 'overlay-lyre', 'b17-cabin-lyre'],
+  ] as const) {
+    await page.getByTestId(spot).click();
+    await waitForOverlaySettled(page, overlay);
+    await shot(w, name);
+    await noRed(w, overlay);
+    await closeOverlay(page);
+  }
+  // Carry #4: the HUD's hero chip opens the hero panel in the cabin, from any place.
+  await page.goto(`/#/p/${w.profileId}/temple`);
+  await expectScene(page, 'delphi');
+  await page.getByTestId('hud-hero').click();
+  await waitForOverlaySettled(page, 'overlay-heros');
+  await shot(w, 'b18-cabin-hero-panel');
+  await closeOverlay(page);
+}
+
+async function wideSection(w: Walk) {
+  const { page } = w;
+  for (const [size, name] of [
+    [{ width: 1440, height: 900 }, 'b19-laptop-1440x900'],
+    [{ width: 2560, height: 1080 }, 'b20-ultrawide-2560x1080'],
+  ] as const) {
+    await page.setViewportSize(size);
+    // A reload at each size: the camp greets once per page load, and a greeting that lands a moment
+    // after the shot (or not at all, on a hash-only goto) would make the wide shots race it.
+    await page.goto(`/#/p/${w.profileId}/camp`);
+    await page.reload();
+    await skipGreeting(w, 'camp');
+    await shot(w, name);
+  }
+  await page.setViewportSize({ width: 1180, height: 820 });
+}
+
 const SECTIONS: { name: string; run: (w: Walk) => Promise<void> }[] = [
   { name: 'title', run: titleSection },
   { name: 'library', run: librarySection },
   { name: 'delphi', run: delphiSection },
+  { name: 'hub', run: hubSection },
+  { name: 'war', run: warSection },
+  { name: 'nest', run: nestSection },
+  { name: 'cabin', run: cabinSection },
+  { name: 'wide', run: wideSection },
 ];
 
 // One `?debug` screenshot per scene: the outlines, the safe zone, the HUD band and the dialogue
@@ -353,6 +512,10 @@ const DEBUG_SHOTS: { hash: string; sceneId: string; name: string }[] = [
   { hash: '/', sceneId: 'title', name: 'd01-debug-title' },
   { hash: '/p/{id}/tente-parchemins', sceneId: 'library', name: 'd02-debug-library' },
   { hash: '/p/{id}/temple', sceneId: 'delphi', name: 'd03-debug-delphi' },
+  { hash: '/p/{id}/camp', sceneId: 'camp', name: 'd04-debug-hub' },
+  { hash: '/p/{id}/tente-de-guerre', sceneId: 'war', name: 'd05-debug-war-tent' },
+  { hash: '/p/{id}/dragon', sceneId: 'nest', name: 'd06-debug-nest' },
+  { hash: '/p/{id}/cabane', sceneId: 'cabin', name: 'd07-debug-cabin' },
 ];
 
 test('UI3 playability walk', async ({ page }, testInfo) => {
@@ -391,7 +554,7 @@ test('UI3 playability walk', async ({ page }, testInfo) => {
     }
     // Re-review N15: the walk's global fixtures leave with it (a prophecy due in 3 days would be
     // every other hero's next step); the heroes stay for a look until the next walk clears them.
-    await deleteTexts(page.request, [PROPHECY_TITLE, DEFENDED_TITLE]);
+    await deleteTexts(page.request, [PROPHECY_TITLE, DEFENDED_TITLE, VEILLEE_TITLE]);
   } finally {
     w.notes.push(`request origins: ${JSON.stringify([...origins])}`);
     console.log(`\n===== NOTES ${project} =====\n${w.notes.join('\n')}\n`);
