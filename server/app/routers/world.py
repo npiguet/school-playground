@@ -30,6 +30,10 @@ BOSS_MESSAGE = "Éris ne se montre pas encore. Neutralise d'abord ses lieutenant
 TWO_QUESTS_MESSAGE = "Deux quêtes à la fois, c'est déjà beaucoup. Termine-en une ou range-la."
 ALREADY_ACTIVE_MESSAGE = "Cette quête est déjà en cours."
 TINT_LOCKED_MESSAGE = "Cette teinte n'est pas encore débloquée."
+# The cabin's walls hold four pieces of decor (UI3b ruling: DECOR_SLOTS in
+# web/src/lib/world/scenes/cabin.ts); a fifth would hang over the first.
+MAX_DISPLAYED_DECOR = 4
+WALLS_FULL_MESSAGE = "Les murs sont pleins : range d'abord une pièce."
 ORACLE_ALREADY_CONSULTED = "L'Oracle a déjà parlé cette semaine. Reviens lundi."
 
 
@@ -403,6 +407,11 @@ def patch_reward(profile_id: int, reward_id: str, body: RewardPatch, db: sqlite3
     row = db.execute("SELECT * FROM reward WHERE profile_id = ? AND reward_id = ?", (profile_id, reward_id)).fetchone()
     if row is None:
         raise HTTPException(404, "Reward not found")
+    if body.equipped and not row["equipped"] and REWARDS[reward_id]["kind"] == "decor":
+        displayed = [r["reward_id"] for r in db.execute(
+            "SELECT reward_id FROM reward WHERE profile_id = ? AND equipped = 1", (profile_id,)).fetchall()]
+        if sum(1 for rid in displayed if REWARDS[rid]["kind"] == "decor") >= MAX_DISPLAYED_DECOR:
+            raise HTTPException(409, WALLS_FULL_MESSAGE)
     db.execute("UPDATE reward SET equipped = ? WHERE profile_id = ? AND reward_id = ?", (int(body.equipped), profile_id, reward_id))
     db.commit()
     row = db.execute("SELECT * FROM reward WHERE profile_id = ? AND reward_id = ?", (profile_id, reward_id)).fetchone()

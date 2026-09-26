@@ -205,3 +205,31 @@ for (const o of [
     await expectInWorldOverlay(page, o.testId, 'cabin', true, o.variant, null);
   });
 }
+
+test('the walls hold four pieces: a fifth « Exposer » says so and hangs nothing', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const row = (rid: string, equipped: boolean) => ({ id: rid, kind: 'decor', name: rid, desc: '', source: '', granted_at: '2026-09-21T12:00:00+00:00', equipped });
+  const shown = ['decor:lanterne', 'decor:tapis', 'decor:bibliotheque', 'decor:trophee'];
+  const patches: string[] = [];
+  await page.route(`**/api/profiles/${id}/rewards**`, (route) => {
+    if (route.request().method() === 'PATCH') {
+      patches.push(route.request().url());
+      return route.fulfill({ status: 409, json: { detail: "Les murs sont pleins : range d'abord une pièce." } });
+    }
+    return route.fulfill({ json: [...shown.map((rid) => row(rid, true)), row('decor:fresque', false)] });
+  });
+  await page.goto(`/#/p/${id}/cabane?panel=tresors`);
+  const shelf = page.getByTestId('overlay-trophies');
+  const fresque = shelf.getByTestId('cabin-equip-decor:fresque');
+  await expect(fresque).toHaveText('Exposer');
+  await expect(fresque).toBeEnabled(); // never disabled without a word
+  await expect(shelf.getByTestId('cabin-walls-full')).toHaveCount(0);
+  await fresque.click();
+  await expect(shelf.getByTestId('cabin-walls-full')).toHaveText("Les murs sont pleins : range d'abord une pièce.");
+  await expect(fresque).toHaveText('Exposer');
+  expect(patches, 'the client refuses before asking the server').toEqual([]);
+  await closeOverlay(page);
+  await expectScene(page, 'cabin');
+  for (const rid of shown) await expect(page.getByTestId(`cabin-decor-${rid}`)).toBeVisible();
+  await expect(page.getByTestId('cabin-decor-decor:fresque')).toHaveCount(0);
+});

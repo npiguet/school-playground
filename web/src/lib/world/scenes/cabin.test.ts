@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { boxInside, boxesOverlap, shapeBox } from '../../scene/geometry';
 import { validateScene } from '../../scene/validate';
 import type { CampResponse } from '../types';
-import { BARE_WALL, CABIN_HOTSPOTS, CABIN_SCENE, DECOR_SLOTS } from './cabin';
+import { BARE_WALL, CABIN_HOTSPOTS, CABIN_SCENE, DECOR_SLOTS, MAX_DISPLAYED_DECOR, WALLS_FULL_LINE } from './cabin';
 
 describe('the cabin (UI3 Ruling B6)', () => {
   it('is a valid scene whose plaque echoes the hub label', () => {
@@ -41,5 +41,11 @@ describe('the cabin (UI3 Ruling B6)', () => {
     // Two pieces never hang on the same spot.
     for (const [i, a] of DECOR_SLOTS.entries())
       for (const b of DECOR_SLOTS.slice(i + 1)) expect(boxesOverlap({ x: a.x - 2.05, y: a.y - 3.65, w: 4.1, h: 7.3 }, { x: b.x - 2.05, y: b.y - 3.65, w: 4.1, h: 7.3 })).toBe(false);
+  });
+
+  it('holds one piece per wall spot and says so in words when they are all taken', () => {
+    expect(MAX_DISPLAYED_DECOR).toBe(4);
+    expect(MAX_DISPLAYED_DECOR).toBe(DECOR_SLOTS.length);
+    expect(WALLS_FULL_LINE).toBe("Les murs sont pleins : range d'abord une pièce.");
   });
 });

@@ -9,6 +9,7 @@
   import { worldApi } from '../../../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
   import { eggFilter } from '../../../lib/world/dragon';
+  import { MAX_DISPLAYED_DECOR, WALLS_FULL_LINE } from '../../../lib/world/scenes/cabin';
   import type { RewardKind, RewardOut, Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import type { Profile } from '../../../lib/types';
@@ -56,18 +57,29 @@
 
   let equippingId = $state<string | null>(null);
   let equipError = $state('');
+  // The walls hold MAX_DISPLAYED_DECOR pieces (UI3b ruling). A fifth « Exposer » stays tappable
+  // and says why nothing is hung, instead of being disabled without a word; the server refuses
+  // it too (409, the same line).
+  let wallsFull = $state(false);
+  const displayedDecor = $derived((owned ?? []).filter((r) => r.kind === 'decor' && r.equipped).length);
 
   async function toggleEquip(id: string) {
     const current = ownedById.get(id);
     if (!current) return;
-    equippingId = id;
     equipError = '';
+    wallsFull = false;
+    if (current.kind === 'decor' && !current.equipped && displayedDecor >= MAX_DISPLAYED_DECOR) {
+      wallsFull = true;
+      return;
+    }
+    equippingId = id;
     try {
       const updated = await worldApi.patchReward(profile.id, id, !current.equipped);
       owned = (owned ?? []).map((r) => (r.id === id ? updated : r));
       onChange?.();
     } catch (e) {
-      equipError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
+      if (e instanceof ApiError && e.status === 409 && current.kind === 'decor') wallsFull = true;
+      else equipError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
       equippingId = null;
     }
@@ -87,6 +99,9 @@
   {#each SECTIONS as section (section.kind)}
     <section>
       <h3 class="kit-section">{section.title}</h3>
+      {#if section.kind === 'decor' && wallsFull}
+        <p class="kit-note walls-full" role="status" data-testid="cabin-walls-full">{WALLS_FULL_LINE}</p>
+      {/if}
       <ul class="cubbies">
         {#each itemsFor(section.kind) as item (item.id)}
           {@const rewardRow = ownedById.get(item.id)}

@@ -52,10 +52,15 @@ export const BARE_WALL = {
 /** Where the displayed decor hangs (medallion centres, art %), each on BARE_WALL and clear of the
  *  lyre's and the journal's plaques (the lyre's sits at x ~= 62.5-69.5 above its lamp): left of the
  *  lyre's leader between the windows, the wall left of the left window, twice on the right-hand
- *  wall. Cycled if more decor is displayed. */
+ *  wall. One piece per slot: the walls hold MAX_DISPLAYED_DECOR pieces (below). */
 export const DECOR_SLOTS: { x: number; y: number }[] = [
   { x: 60, y: 31 },
   { x: 84.5, y: 45 },
   { x: 43.8, y: 35 },
   { x: 84.5, y: 53 },
 ];
+
+/** The walls hold one piece per slot (UI3b ruling): a fifth piece would hang over the first. The
+ *  server refuses it too (409, `MAX_DISPLAYED_DECOR` and the same line in server/app/routers/world.py). */
+export const MAX_DISPLAYED_DECOR = DECOR_SLOTS.length;
+export const WALLS_FULL_LINE = "Les murs sont pleins : range d'abord une pièce.";

@@ -189,3 +189,26 @@ def test_camp_survives_a_concurrent_first_visit_sealing_the_oracle(client, setti
     r = client.get(f"/api/profiles/{pid}/camp")
     assert r.status_code == 200
     assert r.json()["oracle"]["status"] == "sealed"
+
+
+def test_the_cabin_walls_hold_four_pieces_of_decor(client, settings):
+    # UI3b ruling: four wall spots (DECOR_SLOTS); a fifth piece would hang over the first.
+    pid = make_profile(client)
+    decor = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee", "decor:fresque"]
+    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
+    for rid in [*decor, "sandales_hermes"]:
+        conn.execute("INSERT INTO reward(profile_id, reward_id, source, granted_at) VALUES (?,?,?,?)",
+                     (pid, rid, "test", "2026-09-21T12:00:00+00:00"))
+    conn.commit(); conn.close()
+    patch = lambda rid, on: client.patch(f"/api/profiles/{pid}/rewards/{rid}", json={"equipped": on})
+    for rid in decor[:4]:
+        assert patch(rid, True).status_code == 200
+    full = patch("decor:fresque", True)
+    assert full.status_code == 409 and full.json()["detail"] == "Les murs sont pleins : range d'abord une pièce."
+    assert not next(r for r in client.get(f"/api/profiles/{pid}/rewards").json() if r["id"] == "decor:fresque")["equipped"]
+    # Gear is worn, not hung; a piece already on the wall can be patched again.
+    assert patch("sandales_hermes", True).json()["equipped"] is True
+    assert patch("decor:tapis", True).status_code == 200
+    # Putting one away frees its spot.
+    assert patch("decor:tapis", False).json()["equipped"] is False
+    assert patch("decor:fresque", True).json()["equipped"] is True

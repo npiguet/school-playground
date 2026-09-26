@@ -26,7 +26,9 @@
 
   let debug = $state(false);
   let owned = $state<RewardOut[]>([]);
-  const displayed = $derived(owned.filter((r) => r.kind === 'decor' && r.equipped));
+  // One piece per wall slot (the walls hold four, server-enforced); a fifth left on display from
+  // before the limit stays on the shelf rather than hanging over the first.
+  const displayed = $derived(owned.filter((r) => r.kind === 'decor' && r.equipped).slice(0, DECOR_SLOTS.length));
 
   // Only the hero id is tracked: the walls reload for a new hero, and on demand (onChange).
   let generation = 0;
@@ -63,7 +65,7 @@
 <PlaceScene {profile} scene={CABIN_SCENE} bind:debug>
   {#snippet children(ctx)}
     {#each displayed as r, i (r.id)}
-      {@const slot = DECOR_SLOTS[i % DECOR_SLOTS.length]}
+      {@const slot = DECOR_SLOTS[i]}
       <div class="cabin-decor" data-testid="cabin-decor-{r.id}" style="left:{slot.x}%;top:{slot.y}%">
         <Medallion rewardId={r.id} size={52} label={r.name} />
       </div>
