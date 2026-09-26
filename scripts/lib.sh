@@ -130,3 +130,69 @@ build_server_dev_image() {
   # after `cd "$ROOT"`); $ROOT itself is only for bash's own file operations.
   docker build -q -t "$SERVER_DEV_IMAGE" -f "$HOST_ROOT/server/Dockerfile.dev" "$HOST_ROOT/server" >/dev/null
 }
+
+# One CPU-heavy run at a time on this machine, whatever the stack, worktree or caller: Playwright's
+# browsers (scripts/playwright.sh) and the audio tools' ffmpeg (tools/audio/run_docker.sh, Ruling
+# F4) all starve each other's rendering/encoding if they overlap, so both wait on the same lock. A
+# mkdir lock in the host temp dir, outside every checkout; the holder writes its PID, stack and start
+# time. A holder whose PID is gone (killed, crashed) is taken over. PLAYWRIGHT_LOCK_WAIT (seconds,
+# default 7200) bounds the wait. Usage: `with_playwright_lock <command> [args...]` runs the command
+# while holding the lock and releases it as soon as the command finishes (whatever its exit status),
+# returning that status.
+PLAYWRIGHT_LOCK="${TMPDIR:-${TMP:-/tmp}}/discorde-e2e.lock"
+with_playwright_lock() {
+  local waited=0 said="" lock_owned=0
+  local wait_max="${PLAYWRIGHT_LOCK_WAIT:-7200}"
+  _playwright_lock_release() {
+    if [ "$lock_owned" = 1 ] && [ "$(sed -n 1p "$PLAYWRIGHT_LOCK/owner" 2>/dev/null)" = "$$" ]; then
+      rm -rf "$PLAYWRIGHT_LOCK"
+    fi
+    lock_owned=0
+  }
+  while :; do
+    if mkdir "$PLAYWRIGHT_LOCK" 2>/dev/null; then
+      printf '%s\n%s\n%s\n' "$$" "$STACK_NAME" "$(date '+%Y-%m-%d %H:%M:%S')" > "$PLAYWRIGHT_LOCK/owner"
+      lock_owned=1
+      trap _playwright_lock_release EXIT
+      trap '_playwright_lock_release; exit 130' INT TERM
+      break
+    fi
+    local pid stack started
+    pid="$(sed -n 1p "$PLAYWRIGHT_LOCK/owner" 2>/dev/null || true)"
+    stack="$(sed -n 2p "$PLAYWRIGHT_LOCK/owner" 2>/dev/null || true)"
+    started="$(sed -n 3p "$PLAYWRIGHT_LOCK/owner" 2>/dev/null || true)"
+    # No owner file a minute after its mkdir: the holder died before writing it.
+    if [ -z "$pid" ] && [ -n "$(find "$PLAYWRIGHT_LOCK" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
+      rm -rf "$PLAYWRIGHT_LOCK"
+      continue
+    fi
+    if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+      # Stale: move it aside atomically, and put it back if another taker got there first.
+      local aside="$PLAYWRIGHT_LOCK.stale.$$"
+      if mv "$PLAYWRIGHT_LOCK" "$aside" 2>/dev/null; then
+        if [ "$(sed -n 1p "$aside/owner" 2>/dev/null)" = "$pid" ]; then
+          echo "playwright lock: taking over from stack $stack (PID $pid, started $started), which is gone" >&2
+          rm -rf "$aside"
+        else
+          mv "$aside" "$PLAYWRIGHT_LOCK" 2>/dev/null || rm -rf "$aside"
+        fi
+      fi
+      continue
+    fi
+    if [ "$waited" -ge "$wait_max" ]; then
+      echo "playwright lock: gave up after ${wait_max}s waiting for stack ${stack:-?} (PID ${pid:-?}, started ${started:-?}); lock: $PLAYWRIGHT_LOCK" >&2
+      return 1
+    fi
+    if [ "$said" != "$pid" ]; then
+      echo "playwright lock: waiting for the run of stack ${stack:-?} started at ${started:11:5} (PID ${pid:-?})" >&2
+      said="$pid"
+    fi
+    sleep 5
+    waited=$((waited + 5))
+  done
+  "$@"
+  local status=$?
+  _playwright_lock_release
+  trap - EXIT INT TERM
+  return $status
+}
