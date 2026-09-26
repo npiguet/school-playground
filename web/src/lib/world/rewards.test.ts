@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { bossRewardId, bossRewardName, treasureCaption } from './rewards';
+import { HOW_TO_WIN_IDS, bossRewardId, bossRewardName, howToWin, treasureCaption } from './rewards';
+import { REWARD_ICONS } from './art';
 import type { WorldCatalog } from './types';
 
 const catalog = {
@@ -19,5 +20,15 @@ describe('reward words', () => {
 
   it('counts the cabin treasures', () => {
     expect([0, 1, 2].map(treasureCaption)).toEqual(['Aucun trésor encore', '1 trésor', '2 trésors']);
+  });
+
+  it('says how to win every reward as a sentence to the player, agreed with the reward (UI3b playability #13)', () => {
+    const tints = ['ecume', 'olivier', 'braise', 'jade', 'argent'].map((t) => `tint:${t}`);
+    expect([...HOW_TO_WIN_IDS].sort()).toEqual([...Object.keys(REWARD_ICONS), ...tints].sort());
+    expect(howToWin('criniere_chimere', 'Neutraliser la Chimère')).toBe('Neutralise la Chimère pour la gagner.');
+    expect(howToWin('pavot_lethe', 'Neutraliser Léthé')).toBe('Neutralise Léthé pour le gagner.');
+    expect(howToWin('sandales_hermes', '')).toBe('Bats Éris une première fois pour les gagner.');
+    expect(howToWin('decor:new', 'Dix quêtes du mur')).toBe('À gagner : dix quêtes du mur.');
+    for (const id of HOW_TO_WIN_IDS) expect(howToWin(id, '')).not.toMatch(/Comment l'obtenir|Neutraliser|Vaincre/);
   });
 });

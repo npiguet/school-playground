@@ -2,9 +2,11 @@
 // the journal on the desk (stats), the lamp and the lyre (settings). Displayed decor hangs on the
 // walls. The hero panel is an overlay here too (Ruling B2, Task 6).
 import { ART } from '../art';
-import { st, type HotspotDef, type SceneDef } from '../../scene/types';
+import { st, type DialogueLine, type HotspotDef, type SceneDef } from '../../scene/types';
 import { treasureCaption } from '../rewards';
+import type { DragonOut } from '../types';
 import { CABIN_SHAPES } from './cabin.shapes';
+import { dragonSays } from './speakers';
 
 export const CABIN_HOTSPOTS: HotspotDef[] = [
   {
@@ -62,3 +64,30 @@ export const DECOR_SLOTS: { x: number; y: number }[] = [
  *  server refuses it too (409, `MAX_DISPLAYED_DECOR` and the same line in server/app/routers/world.py). */
 export const MAX_DISPLAYED_DECOR = DECOR_SLOTS.length;
 export const WALLS_FULL_LINE = "Les murs sont pleins : range d'abord une pièce.";
+
+// UI3b playability #7: the cabin is home, and the dragon (the narrator, spec §2.5) speaks here too:
+// a greeting once per page load, and a line on the voice plate of the shelf, the journal and the
+// lyre (the hero panel is a short menu and has none).
+
+/** The cabin's greeting. */
+export function cabinGreeting(d: DragonOut): DialogueLine[] {
+  return [dragonSays(d, 'Ta cabane. Tout ce que tu as gagné est rangé ici.')];
+}
+
+const COUNT_WORDS = ['', 'une', 'deux', 'trois', 'quatre', 'cinq', 'six'];
+
+/** The shelf's line: how many relics are still to win (`missing` null while the rewards load). */
+export function trophiesLine(d: DragonOut, missing: number | null): DialogueLine {
+  if (missing === null) return dragonSays(d, 'Chaque ruse neutralisée laisse une relique.');
+  if (missing <= 0) return dragonSays(d, 'Chaque ruse neutralisée a laissé sa relique : elles sont toutes là !');
+  const n = COUNT_WORDS[missing] ?? String(missing);
+  return dragonSays(d, `Chaque ruse neutralisée laisse une relique. Il en manque encore ${n} !`);
+}
+
+export function journalLine(d: DragonOut): DialogueLine {
+  return dragonSays(d, 'Ton journal se souvient de chaque texte défendu.');
+}
+
+export function lyreLine(d: DragonOut): DialogueLine {
+  return dragonSays(d, 'Ici, tu choisis la voix qui te lit la dictée, et si le camp fait du bruit.');
+}

@@ -1,7 +1,10 @@
 <script lang="ts">
   // The lyre (UI3 Ruling B6, was the Settings screen): the dictation voice, the hero's class, the
   // game's single mute (shared with the HUD, UI3a Ruling A17), the weekly goal as medallions, the
-  // seal (PIN) and the credits (immersion Deferred #7), on a scroll in the cabin.
+  // seal (PIN) and the credits (immersion Deferred #7), on a scroll in the cabin. UI3b playability
+  // #6: every choice is a medallion (the mute too: « Joués » / « Coupés », real radios), the voice's
+  // select wears the parchment look with no label over it, and the dragon says what the lyre is for
+  // from the overlay's voice plate (CabinRoom.svelte), so the headings stay short.
   import { untrack } from 'svelte';
   import LevelMedallions from '../../ui/LevelMedallions.svelte';
   import { api, ApiError } from '../../../lib/api';
@@ -26,8 +29,15 @@
   let saving = $state(false);
   let removingPin = $state(false);
 
-  function onMuteChange(event: Event) {
-    void setMuted(profile.id, (event.target as HTMLInputElement).checked);
+  // The mute as a medallion pair; it applies at once (not with « Enregistrer »), like the HUD's.
+  const SOUNDS_ON = 'Joués';
+  const SOUNDS_OFF = 'Coupés';
+  let sounds = $state(untrack(() => (soundStore.muted ? SOUNDS_OFF : SOUNDS_ON)));
+  $effect(() => {
+    sounds = soundStore.muted ? SOUNDS_OFF : SOUNDS_ON;
+  });
+  function onSoundsChange(value: string) {
+    void setMuted(profile.id, value === SOUNDS_OFF);
   }
 
   async function loadVoices() {
@@ -97,8 +107,7 @@
         <p class="kit-note">Aucune voix française sur cet appareil. Sur iPad : ouvre Réglages, puis Accessibilité, puis Contenu énoncé, puis Voix, puis Français.</p>
       {:else}
         <div class="field">
-          <label for="voice">Voix</label>
-          <select id="voice" bind:value={voiceName}>
+          <select id="voice" aria-label="Voix de la dictée" data-testid="lyre-voice" bind:value={voiceName}>
             {#each voices as v (v.name)}
               <option value={v.name}>{v.name}</option>
             {/each}
@@ -113,11 +122,8 @@
     </section>
 
     <section>
-      <h3 class="kit-section">Les sons</h3>
-      <label class="checkbox-field">
-        <input type="checkbox" checked={soundStore.muted} onchange={onMuteChange} />
-        Couper les sons du jeu (la dictée reste lue)
-      </label>
+      <LevelMedallions legend="Les sons du camp" name="camp-sounds" options={[SOUNDS_ON, SOUNDS_OFF]} bind:value={sounds} onchange={onSoundsChange} testId="lyre-sounds" />
+      <p class="note">La dictée est toujours lue.</p>
     </section>
 
     <section>
@@ -175,17 +181,11 @@
   .field {
     margin-bottom: 12px;
   }
-  .checkbox-field {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: normal;
-    min-height: 48px;
-  }
-  .checkbox-field input {
-    min-height: unset;
-    width: 22px;
-    height: 22px;
+  .note {
+    margin: 4px 0 0;
+    font-size: 15px;
+    font-style: italic;
+    color: var(--form-ink-soft);
   }
   .lyre-credits {
     margin-top: 22px;

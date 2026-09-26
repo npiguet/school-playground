@@ -4,6 +4,8 @@
   // (#/p/:id/settings). Displayed decor hangs on the walls; it reloads when the cabin opens and
   // whenever the shelf puts something on display or away. The hero panel lives here too
   // (#/p/:id/cabane?panel=heros, Ruling B2): the HUD's hero chip is its shortcut from every place.
+  // UI3b playability #7: the dragon greets here once per page load and speaks on the shelf's, the
+  // journal's and the lyre's voice plates (the hero panel is a short menu, with no plate).
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
@@ -12,7 +14,9 @@
   import JournalPanel from '../components/places/cabin/JournalPanel.svelte';
   import LyrePanel from '../components/places/cabin/LyrePanel.svelte';
   import HeroPanel from '../components/places/cabin/HeroPanel.svelte';
-  import { CABIN_SCENE, DECOR_SLOTS } from '../lib/world/scenes/cabin';
+  import { CABIN_SCENE, DECOR_SLOTS, cabinGreeting, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
+  import { campFor } from '../lib/world/campStore.svelte';
+  import { LIEUTENANT_ORDER } from '../lib/world/types';
   import { worldApi } from '../lib/world/api';
   import { ApiError } from '../lib/api';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
@@ -20,7 +24,7 @@
   import { openedFrom } from '../lib/scene/openedFrom.svelte';
   import { OVERLAY_TITLES, sceneHref, type PanelId } from '../lib/world/places';
   import type { HotspotDef } from '../lib/scene/types';
-  import type { RewardOut } from '../lib/world/types';
+  import type { CampResponse, RewardOut } from '../lib/world/types';
   import type { Profile } from '../lib/types';
 
   let { profile, panel }: { profile: Profile; panel: PanelId | null } = $props();
@@ -54,6 +58,11 @@
   $effect(() => loadRewards(profile.id));
   const updated = (r: RewardOut) => (owned = (owned ?? []).map((x) => (x.id === r.id ? r : x)));
 
+  const dragon = $derived(campFor(profile.id)?.dragon ?? null);
+  const greet = (camp: CampResponse | null) => (camp ? cabinGreeting(camp.dragon) : null);
+  // One relic per lieutenant: how many are still on the shelf to win (null while /rewards loads).
+  const missingRelics = $derived(owned === null ? null : LIEUTENANT_ORDER.length - owned.filter((r) => r.kind === 'relic').length);
+
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
   const close = () => closePanel(sceneHref('cabin', profile.id));
 
@@ -62,7 +71,7 @@
   const from = openedFrom(() => panel, ['journal', 'lyre']);
 </script>
 
-<PlaceScene {profile} scene={CABIN_SCENE} bind:debug>
+<PlaceScene {profile} scene={CABIN_SCENE} bind:debug {greet}>
   {#snippet children(ctx)}
     {#each displayed as r, i (r.id)}
       {@const slot = DECOR_SLOTS[i]}
@@ -77,15 +86,15 @@
 </PlaceScene>
 
 {#if panel === 'tresors'}
-  <Overlay variant="table" size="wide" title={OVERLAY_TITLES.tresors} testId="overlay-trophies" onClose={close} returnFocus={hotspotSelector('cabin', 'trophies')}>
+  <Overlay variant="table" size="wide" title={OVERLAY_TITLES.tresors} testId="overlay-trophies" voice={dragon ? trophiesLine(dragon, missingRelics) : null} onClose={close} returnFocus={hotspotSelector('cabin', 'trophies')}>
     <TrophiesPanel {profile} {owned} loadError={rewardsError} onUpdated={updated} />
   </Overlay>
 {:else if panel === 'journal'}
-  <Overlay variant="codex" title={OVERLAY_TITLES.journal} testId="overlay-journal" onClose={close} returnFocus={from.of('journal') === 'heros' ? '[data-testid="hero-journal"]' : hotspotSelector('cabin', 'journal')}>
+  <Overlay variant="codex" title={OVERLAY_TITLES.journal} testId="overlay-journal" voice={dragon ? journalLine(dragon) : null} onClose={close} returnFocus={from.of('journal') === 'heros' ? '[data-testid="hero-journal"]' : hotspotSelector('cabin', 'journal')}>
     <JournalPanel {profile} />
   </Overlay>
 {:else if panel === 'lyre'}
-  <Overlay variant="scroll" title={OVERLAY_TITLES.lyre} testId="overlay-lyre" onClose={close} returnFocus={from.of('lyre') === 'heros' ? '[data-testid="hero-settings"]' : hotspotSelector('cabin', 'lyre')}>
+  <Overlay variant="scroll" title={OVERLAY_TITLES.lyre} testId="overlay-lyre" voice={dragon ? lyreLine(dragon) : null} onClose={close} returnFocus={from.of('lyre') === 'heros' ? '[data-testid="hero-settings"]' : hotspotSelector('cabin', 'lyre')}>
     <LyrePanel {profile} />
   </Overlay>
 {:else if panel === 'heros'}

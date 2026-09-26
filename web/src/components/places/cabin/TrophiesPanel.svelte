@@ -11,6 +11,7 @@
   import { campStore } from '../../../lib/world/campStore.svelte';
   import { eggFilter } from '../../../lib/world/dragon';
   import { MAX_DISPLAYED_DECOR, WALLS_FULL_LINE } from '../../../lib/world/scenes/cabin';
+  import { howToWin } from '../../../lib/world/rewards';
   import type { RewardKind, RewardOut, Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import type { Profile } from '../../../lib/types';
@@ -103,7 +104,7 @@
             <h4 class="trophy-name">{item.name}</h4>
             <p class="trophy-desc">{item.desc}</p>
             {#if !isOwned}
-              <p class="trophy-how">Comment l'obtenir : {item.source}</p>
+              <p class="trophy-how">{howToWin(item.id, item.source)}</p>
             {:else if (section.kind === 'gear' || section.kind === 'decor') && rewardRow}
               <button type="button" class="kit-bronze is-quiet" data-testid="cabin-equip-{item.id}" disabled={equippingId === item.id} onclick={() => toggleEquip(item.id)}>
                 {rewardRow.equipped ? 'Ranger' : 'Exposer'}
@@ -131,7 +132,8 @@
     padding: 0;
   }
   /* A cubby of the dark wood: its words in the board's light inks (the table overlay's), the
-     « how to win it » line in its gold, as the library shelves write theirs. */
+     « how to win it » sentence in parchment ink, 14 px (UI3b playability #13: the small gold italic
+     was faint on the wood). */
   .trophy {
     display: flex;
     flex-direction: column;
@@ -155,7 +157,7 @@
     margin: 0;
     font-size: 14px;
     font-style: italic;
-    color: var(--gold-light);
+    color: var(--parchment-solid);
   }
   /* « Exposer » / « Ranger » sit at the foot of their cubby, level across a row whatever the
      length of the description above. */

@@ -65,5 +65,7 @@ test('create profile → add text → dictation → proofreading → results →
   await expectCamp(page);
   await page.goto(`/#/p/${profileId}/stats`);
   await expect(page.getByTestId('journal-totals')).toContainText('1 texte défendu');
-  await expect(page.getByText("Accord du verbe avec son sujet (L'Hydre)").first()).toBeVisible();
+  // UI3b playability #1: the trick is told by its monster, the grammar as its small print.
+  await expect(page.getByTestId('journal-ruse-hydre')).toContainText("L'Hydre — tu as déjoué");
+  await expect(page.getByTestId('journal-ruse-hydre')).toContainText("l'accord du verbe avec son sujet");
 });

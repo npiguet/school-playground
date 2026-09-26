@@ -2,13 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { boxInside, boxesOverlap, shapeBox } from '../../scene/geometry';
 import { validateScene } from '../../scene/validate';
 import type { CampResponse } from '../types';
-import { BARE_WALL, CABIN_HOTSPOTS, CABIN_SCENE, DECOR_SLOTS, MAX_DISPLAYED_DECOR, WALLS_FULL_LINE } from './cabin';
+import type { DragonOut } from '../types';
+import { BARE_WALL, CABIN_HOTSPOTS, CABIN_SCENE, DECOR_SLOTS, MAX_DISPLAYED_DECOR, WALLS_FULL_LINE, cabinGreeting, journalLine, lyreLine, trophiesLine } from './cabin';
+
+const dragon = { name: 'Braise', tint: 'bronze', stage: 'young', neutralised: 2, available: 6, next_stage_at: 4, unlocked_tints: ['bronze'] } as DragonOut;
 
 describe('the cabin (UI3 Ruling B6)', () => {
   it('is a valid scene whose plaque echoes the hub label', () => {
     expect(validateScene(CABIN_SCENE)).toEqual([]);
     expect(CABIN_SCENE).toMatchObject({ id: 'cabin', title: 'Ta cabane', background: '/art/scenes/cabin.webp' });
     expect(CABIN_SCENE.preload).toEqual(['/art/scenes/hub_camp.webp']);
+  });
+
+  it('lets the dragon speak at home: a greeting and a line on each overlay but the hero panel (UI3b playability #7)', () => {
+    expect(cabinGreeting(dragon)).toEqual([expect.objectContaining({ speaker: 'dragon', name: 'Braise', text: 'Ta cabane. Tout ce que tu as gagné est rangé ici.' })]);
+    expect(trophiesLine(dragon, 4).text).toBe('Chaque ruse neutralisée laisse une relique. Il en manque encore quatre !');
+    expect(trophiesLine(dragon, 1).text).toBe('Chaque ruse neutralisée laisse une relique. Il en manque encore une !');
+    expect(trophiesLine(dragon, 0).text).toBe('Chaque ruse neutralisée a laissé sa relique : elles sont toutes là !');
+    expect(trophiesLine(dragon, null).text).toBe('Chaque ruse neutralisée laisse une relique.');
+    expect(journalLine(dragon).text).toBe('Ton journal se souvient de chaque texte défendu.');
+    expect(lyreLine(dragon).text).toBe('Ici, tu choisis la voix qui te lit la dictée, et si le camp fait du bruit.');
+    for (const l of [trophiesLine(dragon, 4), journalLine(dragon), lyreLine(dragon), ...cabinGreeting(dragon)]) {
+      expect(l.text.length).toBeLessThanOrEqual(160);
+      expect(l.portrait).toBe('/art/dragon/dragon_young_cut.webp');
+    }
   });
 
   it('opens the trophies, the journal and the lyre', () => {

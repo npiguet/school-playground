@@ -1,8 +1,9 @@
 <script lang="ts">
   // A reward medallion (UI3 Ruling A12): the painted reward icon in a gold ring; a tint is a flat
-  // colour swatch; `locked` greys the ring and shows a plain « ? » so an undiscovered reward reads
-  // as a mystery, never a blank (an unknown id falls back to the same « ? », also announced as
-  // such - review round 1 #3). `label` names the reward for screen readers when no visible text
+  // colour swatch; `locked` greys the ring and shows the reward's dark silhouette (UI3b playability
+  // #13: a « ? » coin looked like a missing picture; the shelf names every reward in advance anyway,
+  // ethics: nothing hidden), or a plain « ? » when there is no picture to darken (a tint, an unknown
+  // id, also announced as such - review round 1 #3). `label` names the reward for screen readers when no visible text
   // sits next to this medallion (review round 1 #2); it never overrides the locked/unknown mystery
   // state, which must never leak which reward it is. The reward's kind is resolved here, in one
   // place, from the server catalog when it is loaded (final review M6: callers used to pass it,
@@ -40,6 +41,8 @@
     <span class="swatch" style="background:radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.55), {swatch} 62%)" aria-hidden="true"></span>
   {:else if !locked && icon}
     <img class="icon" src={icon} alt={label ?? ''} draggable="false" />
+  {:else if locked && icon}
+    <img class="icon silhouette" src={icon} alt="" draggable="false" />
   {:else}
     <span class="mystery" aria-hidden="true">?</span>
   {/if}
@@ -67,6 +70,10 @@
     height: 72%;
     border-radius: 50%;
     box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.15);
+  }
+  /* The reward's shape, dark, on the grey coin: what waits, before it is won. */
+  .icon.silhouette {
+    filter: brightness(0) opacity(0.35);
   }
   .mystery {
     font-family: var(--font-display);

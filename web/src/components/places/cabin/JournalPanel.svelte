@@ -1,15 +1,16 @@
 <script lang="ts">
   // The hero's journal (UI3 Ruling B6, was the Stats screen; spec §3.6): a two-page codex on the
-  // cabin desk. Left page: the Muses' help stage (four medallions and what they do) and Éris's
-  // tricks one by one; right page: the trap words (laurel leaves for their box), the last defences
-  // and the totals, loaded from the server.
+  // cabin desk, the one place for the all-time counts (UI3b playability #3). Left page: what the
+  // Muses do at the hero's help stage, in their words, and Éris's tricks one by one, each told by the
+  // monster that plays it with laurels for what was foiled (playability #1, #2: no gradebook, no
+  // numbered steps); right page: the trap words (laurel leaves for their box), the texts last
+  // defended, one line per text (playability #14), and the totals, loaded from the server. The
+  // dragon speaks from the overlay's voice plate (CabinRoom.svelte, playability #7).
+  import LieutenantBadge from '../../LieutenantBadge.svelte';
   import { api, ApiError } from '../../../lib/api';
-  import { CATEGORY_LABELS } from '../../../lib/explain';
-  import { HELP_STAGES, defenceMeta, helpStageLine } from '../../../lib/world/journal';
-  import { rateText } from '../../../lib/text/french';
+  import { HELP_RULE, defenceGroups, helpStageLine, journalRuses } from '../../../lib/world/journal';
   import { plural } from '../../../lib/text/french';
-  import type { StatKey } from '../../../lib/grading/types';
-  import type { CategoryRow, Profile, StatsResponse } from '../../../lib/types';
+  import type { Profile, StatsResponse } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
 
@@ -31,11 +32,9 @@
 
   load();
 
-  function categoryLabel(category: string): string {
-    return CATEGORY_LABELS[category as StatKey] ?? category;
-  }
-
-  const categories = $derived((stats?.categories ?? []).filter((c: CategoryRow) => c.errors_in_draft > 0));
+  const ruses = $derived(journalRuses(stats?.categories ?? []));
+  const defences = $derived(defenceGroups(stats?.recent_sessions ?? []));
+  const LEAVES = [1, 2, 3, 4, 5];
 </script>
 
 <div class="codex-spread panel-journal">
@@ -47,29 +46,27 @@
     {:else if stats}
       <h3 class="kit-section">L'aide des Muses</h3>
       <div class="help" data-testid="journal-help">
-        <!-- Final review M16: a screen reader hears « L'aide des Muses, étape 3 sur 4, étape actuelle »,
-             not four bare numbers. -->
-        <ol class="help-stages" aria-label="L'aide des Muses" data-testid="journal-help-stages">
-          {#each HELP_STAGES as s (s)}
-            <li class="kit-medallion is-small" aria-current={s === stats.profile.help_stage ? 'step' : undefined}
-              ><span aria-hidden="true">{s}</span><span class="sr-only">étape {s} sur {HELP_STAGES.length}</span></li
-            >
-          {/each}
-        </ol>
         <p class="help-line">{helpStageLine(stats.profile.help_stage)}</p>
+        <p class="help-rule">{HELP_RULE}</p>
       </div>
-      <h3 class="kit-section">Ses ruses, une à une</h3>
-      {#if categories.length === 0}
+      <h3 class="kit-section">Les ruses d'Éris, une à une</h3>
+      {#if ruses.length === 0}
         <p class="muted">Éris n'a encore rien noté. Défends un texte !</p>
       {:else}
-        <table class="tricks">
-          <thead><tr><th>Ruse</th><th>Pièges</th><th>Déjoués</th><th>Réussite</th></tr></thead>
-          <tbody>
-            {#each categories as c (c.category)}
-              <tr><td>{categoryLabel(c.category)}</td><td>{c.errors_in_draft}</td><td>{c.caught}</td><td>{rateText(c.catch_rate)}</td></tr>
-            {/each}
-          </tbody>
-        </table>
+        <ul class="ruses">
+          {#each ruses as r (r.key)}
+            <li data-testid="journal-ruse-{r.key}">
+              <LieutenantBadge lieutenantKey={r.key} size={40} />
+              <span class="ruse-text">
+                <span class="ruse-line"><span class="ruse-title">{r.title}</span> — {r.line}</span>
+                <span class="ruse-rule">{r.rules}</span>
+                <span class="leaves" role="img" aria-label="{plural(r.leaves, 'feuille', 'feuilles')} de laurier sur 5">
+                  {#each LEAVES as n (n)}<span class="leaf" class:filled={n <= r.leaves}></span>{/each}
+                </span>
+              </span>
+            </li>
+          {/each}
+        </ul>
       {/if}
     {/if}
   </section>
@@ -84,28 +81,28 @@
             <li>
               <span class="trap-word">{w.word}</span>
               <span class="leaves" role="img" aria-label="{plural(w.box, 'feuille', 'feuilles')} de laurier sur 5">
-                {#each [1, 2, 3, 4, 5] as n (n)}<span class="leaf" class:filled={n <= w.box}></span>{/each}
+                {#each LEAVES as n (n)}<span class="leaf" class:filled={n <= w.box}></span>{/each}
               </span>
             </li>
           {/each}
         </ul>
       {/if}
       <h3 class="kit-section">Tes dernières défenses</h3>
-      {#if stats.recent_sessions.length === 0}
+      {#if defences.length === 0}
         <p class="muted">Aucun texte défendu pour l'instant.</p>
       {:else}
         <ul class="defences">
-          {#each stats.recent_sessions as s (s.id)}
-            <li>
-              <span class="defence-title">{s.title}</span>
-              <span class="defence-meta">{defenceMeta(s)}</span>
-              {#if s.mode === 'grimoire'}<span class="kit-stamp">Grimoire</span>{/if}
+          {#each defences as d (d.key)}
+            <li data-testid="journal-defence">
+              <span class="defence-title">{d.title}</span>
+              <span class="defence-meta">{d.line}</span>
+              {#if d.grimoire}<span class="kit-stamp">Grimoire</span>{/if}
             </li>
           {/each}
         </ul>
       {/if}
       <h3 class="kit-section">Depuis le début</h3>
-      <p data-testid="journal-totals">{plural(stats.totals.sessions, 'texte défendu', 'textes défendus')} · {plural(stats.totals.score, 'point', 'points')} · {plural(stats.totals.caught, 'piège déjoué', 'pièges déjoués')}</p>
+      <p data-testid="journal-totals">{plural(stats.totals.sessions, 'texte défendu', 'textes défendus')} · {plural(stats.totals.caught, 'piège déjoué', 'pièges déjoués')}</p>
     {/if}
   </section>
 </div>
@@ -120,38 +117,48 @@
     flex-direction: column;
     gap: 6px;
   }
-  .help-stages {
-    display: flex;
-    gap: 10px;
-    list-style: none;
-    margin: 0 0 6px;
-    padding: 0;
-  }
-  .help-stages [aria-current='step'] {
-    border-color: var(--gold-light);
-    box-shadow:
-      0 0 0 3px var(--gold-light),
-      0 0 12px rgba(255, 220, 140, 0.8);
+  .help p {
+    margin: 0;
   }
   .help-line {
-    margin: 0;
+    font-size: 18px;
+  }
+  .help-rule {
     font-style: italic;
-  }
-  /* Ink on the codex page: no cells, a hairline under each row. */
-  .tricks {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  .tricks th,
-  .tricks td {
-    text-align: left;
-    padding: 6px 8px;
-    border-bottom: 1px solid var(--parchment-edge);
-  }
-  .tricks th {
-    font-weight: 600;
-    font-size: 14px;
     color: var(--form-ink-soft);
+  }
+  /* One monster per entry: its medallion, then its name and what was foiled, the rule it bends in
+     small italic, and its laurels (playability #1). */
+  .ruses {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ruses li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .ruse-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .ruse-title {
+    font-family: var(--font-body);
+    font-weight: 700;
+  }
+  .ruse-rule {
+    font-size: 15px;
+    font-style: italic;
+    color: var(--form-ink-soft);
+  }
+  .ruse-text .leaves {
+    margin-top: 2px;
   }
   .trap-words {
     list-style: none;
@@ -197,8 +204,8 @@
     flex-direction: column;
     gap: 8px;
   }
-  /* One defence per entry: its title, then its date, points and rate underneath (and the grimoire's
-     stamp), so every entry reads the same whatever the title's length. */
+  /* One text per entry: its title, then how often and when it was last defended underneath (and the
+     grimoire's stamp), so every entry reads the same whatever the title's length. */
   .defences li {
     display: flex;
     flex-direction: column;
