@@ -47,6 +47,17 @@
   letter-spacing: 0.03em;
   color: var(--bronze-dark);
 }
+/* Re-review N5: a medallion row's legend (« Choisis ton emblème », « Ta classe », « Pour quelle
+   classe ? ») and a `.caption` label read as an italic caption, not a form label. Later and as
+   specific as the rule above, so it wins. */
+.kit-form legend,
+.kit-form .caption {
+  font-style: italic;
+  font-variant: normal;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0;
+}
 .kit-form input:not([type='radio']):not([type='checkbox']):not([type='file']),
 .kit-form select,
 .kit-form textarea {

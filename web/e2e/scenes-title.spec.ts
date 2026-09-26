@@ -103,7 +103,7 @@ test('the naming ritual is an overlay with its own route; Back and the seal clos
   await expect(ritual.getByRole('heading', { name: 'Forge ton bouclier' })).toBeVisible();
   await expect(ritual.getByTestId('overlay-voice')).toContainText('bannière');
   await ritual.getByLabel('Ton prénom').fill(name);
-  await expect(ritual.getByTestId('forge-banner')).toHaveText(name);
+  await expect(ritual.getByTestId('forge-banner')).toHaveValue(name);
   await ritual.locator('label.avatar-choice', { hasText: 'Trident' }).click();
   await expect(ritual.getByTestId('forge-emblem')).toHaveAttribute('src', '/art/icons/avatar-trident.webp');
   await expect(ritual.getByRole('group', { name: 'Ta classe' })).toBeVisible();
@@ -236,7 +236,7 @@ test('the camp a new hero lands on is a screen of its own, not a tagged overlay 
 test('six slots: newest heroes, « Tous les héros » when there are more, « Nouveau héros » last', async ({ page, request }, testInfo) => {
   // A realistic 14-character hyphenated name (created last, so it is always among the newest and
   // shown on its own shield, never swallowed into « Tous les héros »).
-  const longName = `Anne-Charlotte-${testInfo.project.name.slice(0, 1)}${uniqueName('').slice(-4)}`;
+  const longName = `Anne-Char${testInfo.project.name.slice(0, 1)}${uniqueName('').slice(-4)}`;
   const names: string[] = [];
   for (let i = 0; i < 6; i++) {
     const n = i === 5 ? longName : `${hero(testInfo.project.name)}-${i}`;
@@ -281,14 +281,34 @@ test('six slots: newest heroes, « Tous les héros » when there are more, « No
     expect(y, 'ring inside the hook band (title.test.ts 53-58%)').toBeLessThanOrEqual(art.y + art.height * 0.58 + 2);
     expect(Math.abs(y - ringYs[0]), 'every hook tip at the same y').toBeLessThanOrEqual(2);
   }
-  // B2 fix round 1 #1: a realistic long name wraps (2-3 lines, smaller size) rather than being cut
-  // to an ellipsis.
+  // Re-review N4 (replaces B2's 3-line wrap): a realistic 14-character hyphenated name reads on
+  // one line of its ribbon at 15 px - not wrapped at its hyphen, not cut to an ellipsis - and the
+  // gate shows no grade code.
   const longShieldName = page.locator(`[data-testid="title-shields"] button[aria-label^="${longName}"] .shield-name`);
   await expect(longShieldName).toHaveText(longName);
-  const clipped = await longShieldName.evaluate((el) => el.scrollHeight - el.clientHeight);
-  expect(clipped, 'the long name wraps, it is not clipped to an ellipsis').toBeLessThanOrEqual(1);
+  await expect(longShieldName).toHaveCSS('font-size', '15px');
+  const fit = await longShieldName.evaluate((el) => ({ clipped: el.scrollWidth - el.clientWidth, height: el.getBoundingClientRect().height }));
+  expect(fit.clipped, 'the long name is not cut to an ellipsis').toBeLessThanOrEqual(1);
+  expect(fit.height, 'the long name is one line').toBeLessThan(15 * 1.3 * 1.5);
+  await expect(page.getByTestId('title-shields')).not.toContainText(/\b\d{1,2}H\b/);
+  // Ribbons never cover each other (every other one hangs lower).
+  const plaques = await page.getByTestId('title-shields').locator('.shield-plaque').evaluateAll((els) =>
+    els.map((e) => {
+      const r = e.getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width, h: r.height };
+    }),
+  );
+  for (let i = 0; i < plaques.length; i++)
+    for (let j = i + 1; j < plaques.length; j++) {
+      const [a, c] = [plaques[i], plaques[j]];
+      const hit = a.x < c.x + c.w && c.x < a.x + a.w && a.y < c.y + c.h && c.y < a.y + a.h;
+      expect(hit, `ribbons ${i} and ${j} overlap`).toBe(false);
+    }
   await page.getByTestId('title-all').click();
   await expect(page).toHaveURL(/#\/\?panel=tous$/);
+  // Re-review N4: no grade code beside a name in the list either (the level stays in the label).
+  await expect(page.getByTestId('overlay-heroes').getByRole('button', { name: new RegExp(names[0]) })).toBeVisible();
+  await expect(page.getByTestId('overlay-heroes')).not.toContainText(/\b\d{1,2}H\b/);
   await page.getByTestId('overlay-heroes').getByRole('button', { name: new RegExp(names[0]) }).click();
   await expectCamp(page);
 });
@@ -331,12 +351,12 @@ test('a protected hero asks for the code on a sealed parchment', async ({ page, 
   await expect(page.getByTestId('pin-gate')).toBeVisible();
   await expect(page.locator('.pin-title')).toHaveText(/^Le sceau d(e |')/);
   // B2 fix round 1 #6: the real input masks the PIN like a real code entry.
-  await expect(page.locator('.pin-input')).toHaveCSS('-webkit-text-security', 'disc');
+  await expect(page.locator('#pin-input')).toHaveCSS('-webkit-text-security', 'disc');
   expect(await redScan(page)).toEqual([]);
   await page.getByLabel('Tes quatre chiffres').fill('0000');
   await expect(page.getByText("Ce n'est pas le bon code")).toBeVisible();
   await page.getByLabel('Tes quatre chiffres').fill('12');
-  await expect(page.getByTestId('pin-slots').locator('.pin-slot:not(.is-empty)')).toHaveCount(2);
+  await expect(page.getByTestId('pin-slots').locator('.seal-slot:not(.is-empty)')).toHaveCount(2);
   await page.getByLabel('Tes quatre chiffres').fill('1234');
   await expectCamp(page);
 });

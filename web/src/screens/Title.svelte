@@ -82,7 +82,6 @@
             <span class="shield-face"><Avatar avatar={s.profile.avatar} size={44} ring /></span>
             <span class="shield-plaque stage-text">
               <span class="shield-name">{s.profile.name}</span>
-              <span class="shield-level">{s.profile.level}</span>
             </span>
           </button>
         {:else if s.kind === 'all'}
@@ -134,10 +133,10 @@
     <ul class="hero-list">
       {#each byName as p (p.id)}
         <li>
+          <!-- Re-review N4: no grade code by a name (the level stays in the accessible name). -->
           <button type="button" class="hero-row" aria-label="{p.name}, {p.level}" onclick={() => pick(p)}>
             <Avatar avatar={p.avatar} size={44} ring />
             <span class="hero-row-name">{p.name}</span>
-            <span class="hero-row-level">{p.level}</span>
           </button>
         </li>
       {/each}
@@ -156,7 +155,7 @@
     position: absolute;
     transform: translateX(-50%);
     width: 5.5%;
-    min-width: 64px;
+    min-width: 80px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -191,12 +190,22 @@
       inset 0 0 0 4px rgba(255, 240, 200, 0.25),
       0 4px 10px rgba(0, 0, 0, 0.45);
   }
-  /* The new-hero shield is a blank shield to forge, not a coin (playability #13). */
+  /* The new-hero shield is a blank shield to forge, not a coin (playability #13). Re-review N4:
+     full opacity, never dashed - a bronze rim round a bare wooden face, a bronze « + » at its boss. */
   .shield-face.is-blank {
-    background: radial-gradient(circle, rgba(243, 230, 200, 0.28), rgba(243, 230, 200, 0.12) 70%);
-    border: 3px dashed var(--bronze-light);
-    color: var(--gold-light);
-    box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.35);
+    border: 4px solid var(--bronze);
+    background:
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 9px, rgba(40, 24, 10, 0.18) 9px 11px),
+      radial-gradient(circle at 40% 35%, #9a6b3f, #6e4524 70%, #4e321b);
+    color: var(--bronze-light);
+    box-shadow:
+      inset 0 0 0 2px var(--bronze-dark),
+      inset 0 0 12px rgba(0, 0, 0, 0.45),
+      0 0 0 1px var(--bronze-dark),
+      0 4px 10px rgba(0, 0, 0, 0.45);
+  }
+  .shield-face.is-blank :global(.icon-svg) {
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
   }
   .shield:hover .shield-face {
     filter: brightness(1.1);
@@ -208,40 +217,54 @@
     outline: 3px solid var(--gold-light);
     outline-offset: 2px;
   }
+  /* Re-review N4: the hero's name on a small cloth ribbon (the gate's own ribbon), one line in
+     Alegreya 600 at 15 px, as wide as the name (an ellipsis only past 150 px). A ribbon is wider
+     than its shield: neighbouring slots are ~70 px apart, so every other ribbon hangs lower on a
+     short cord and two ribbons never cover each other. No grade code on the gate: the level stays
+     in the shield's accessible name. */
   .shield-plaque {
-    max-width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2px 6px;
-    border-radius: 6px;
-    border: 1px solid var(--bronze-light);
-    background: rgba(21, 18, 26, 0.72);
+    position: relative;
+    isolation: isolate;
+    display: block;
+    width: max-content;
+    max-width: 150px;
+    padding: 3px 14px;
   }
-  /* Fix round 1 #5: two lines (line-clamp), not a one-line ellipsis - similar first names (e.g.
-     two "Alexandre"s with different avatars) stayed indistinguishable at ~8-9 visible characters.
-     B2 fix round 1 #1: 2 lines at 14px still cut a realistic name (« Anne-Charlotte » showed as
-     « Anne-Charlott… »). Up to 3 lines at a smaller size, breaking at the hyphen or, failing that,
-     anywhere, so a real name is never truncated; the line-clamp/ellipsis stay only as a fallback
-     for a name so long no reasonable size would fit it. */
+  .shield-plaque::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(180deg, #a5532f, #7e3b20);
+    box-shadow: inset 0 2px 0 rgba(255, 220, 190, 0.25);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%, 8px 50%);
+  }
+  .shield:nth-child(even) .shield-plaque {
+    margin-top: 30px;
+  }
+  .shield:nth-child(even) .shield-plaque::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    width: 2px;
+    height: 34px;
+    margin-left: -1px;
+    background: linear-gradient(#c9a26b, #8a6a3e);
+    z-index: -2;
+  }
   .shield-name {
+    display: block;
     max-width: 100%;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
     overflow: hidden;
     text-overflow: ellipsis;
-    overflow-wrap: anywhere;
-    white-space: normal;
+    white-space: nowrap;
     text-align: center;
     font-family: var(--font-body);
-    font-weight: 700;
-    font-size: 11px;
-    line-height: 1.15;
-  }
-  .shield-level {
-    font-size: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.3;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   }
   .shield-count {
     font-family: var(--font-display);
@@ -298,9 +321,5 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .hero-row-level {
-    font-size: 14px;
-    color: var(--form-ink-soft);
   }
 </style>

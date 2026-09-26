@@ -74,6 +74,14 @@ describe('in-world form kit', () => {
     expect(css).toMatch(/\.kit-form label,\s*\n?\s*\.kit-form legend/);
   });
 
+  it('turns legends and caption labels into italic captions, after the label face (re-review N5)', () => {
+    const m = /\.kit-form legend,\s*\n?\s*\.kit-form \.caption\s*\{([^}]*)\}/.exec(css);
+    expect(m, 'caption rule').not.toBeNull();
+    expect(m![1]).toMatch(/font-style:\s*italic/);
+    expect(m![1]).toMatch(/font-variant:\s*normal/);
+    expect(css.indexOf(m![0])).toBeGreaterThan(css.search(/\.kit-form label,\s*\n?\s*\.kit-form legend/));
+  });
+
   it('keeps every control in an overlay a 48 px touch target (playability #25)', () => {
     expect(css).toMatch(/\.kit-form :is\(button, summary, a\.kit-bronze, a\.kit-link\)\s*\{[^}]*min-height:\s*48px/);
   });

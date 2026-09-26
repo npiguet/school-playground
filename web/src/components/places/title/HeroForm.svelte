@@ -2,6 +2,7 @@
   import Avatar from '../../Avatar.svelte';
   import Icon from '../../ui/Icon.svelte';
   import LevelMedallions from '../../ui/LevelMedallions.svelte';
+  import SealSlots from '../../ui/SealSlots.svelte';
   import { api, ApiError } from '../../../lib/api';
   import { AVATARS, LEVELS } from '../../../lib/levels';
   import { markUnlocked } from '../../../lib/profileStore.svelte';
@@ -64,31 +65,42 @@
 <div class="hero-form">
   <form class="forge" onsubmit={submit}>
     <!-- Playability #3: the shield that will hang on the gate, forged live. -->
-    <div class="forge-preview" aria-hidden="true">
-      <span class="forge-shield"><img data-testid="forge-emblem" src={avatarIcon(avatar)} alt="" /></span>
-      <span class="forge-banner" class:is-empty={!name.trim()} data-testid="forge-banner">{name.trim() || 'Ton prénom'}</span>
+    <!-- Re-review N5: she writes her name on the banner itself - the ribbon is the input. -->
+    <div class="forge-preview">
+      <span class="forge-shield" aria-hidden="true"><img data-testid="forge-emblem" src={avatarIcon(avatar)} alt="" /></span>
+      <label for="name" class="sr-only">Ton prénom</label>
+      <span class="forge-banner-wrap">
+        <input
+          id="name"
+          class="forge-banner"
+          data-testid="forge-banner"
+          type="text"
+          maxlength="30"
+          autocapitalize="words"
+          placeholder="Ton prénom"
+          bind:value={name}
+          required
+        />
+      </span>
     </div>
 
     <div class="forge-fields">
-      <div class="field">
-        <label for="name">Ton prénom</label>
-        <input id="name" type="text" maxlength="30" autocapitalize="words" bind:value={name} required />
-      </div>
-
+      <!-- Re-review N3: the emblem is the personal choice, so it is the big medallion row; the class
+           (LevelMedallions size="sm") reads as secondary. -->
       <fieldset class="field">
-        <legend>Ton emblème</legend>
+        <legend class="caption">Choisis ton emblème</legend>
         <div class="avatars">
           {#each AVATARS as a (a)}
             <label class="avatar-choice" class:selected={avatar === a}>
               <input type="radio" name="avatar" value={a} bind:group={avatar} />
-              <Avatar avatar={a} size={32} ring />
+              <Avatar avatar={a} size={60} ring />
               <span>{avatarLabel(a)}</span>
             </label>
           {/each}
         </div>
       </fieldset>
 
-      <LevelMedallions legend="Ta classe" name="level" bind:value={level} />
+      <LevelMedallions legend="Ta classe" name="level" size="sm" bind:value={level} />
 
       <div class="seal">
         <button
@@ -102,18 +114,10 @@
           Protéger ton bouclier d'un sceau
         </button>
         {#if sealOpen}
-          <div class="field" id="seal-field">
-            <label for="pin">Ton sceau à quatre chiffres</label>
-            <input
-              id="pin"
-              type="text"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              maxlength="4"
-              autocomplete="new-password"
-              value={pin}
-              oninput={onPinInput}
-            />
+          <!-- Re-review N5: the same four wax slots as the seal she will break at the gate. -->
+          <div class="field seal-field" id="seal-field">
+            <label for="pin" class="caption">Ton sceau à quatre chiffres</label>
+            <SealSlots id="pin" value={pin} oninput={onPinInput} autocomplete="new-password" testId="forge-seal" />
             <p class="hint muted">Personne d'autre que toi ne pourra l'ouvrir.</p>
           </div>
         {/if}
@@ -168,36 +172,56 @@
     object-fit: contain;
     filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
   }
-  /* Her name on a cloth banner across the shield's foot. */
-  .forge-banner {
-    max-width: 230px;
+  /* Her name on a cloth banner across the shield's foot - re-review N5: the banner IS the name
+     field. The cloth is the wrapper's ::before (its clip-path would also clip a focus ring drawn on
+     the input), and the ring goes round the wrapper. */
+  .forge-banner-wrap {
+    position: relative;
+    isolation: isolate;
+    display: block;
+    width: 230px;
     margin-top: -26px;
-    padding: 6px 30px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  }
+  .forge-banner-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
     background: linear-gradient(180deg, #a5532f, #7e3b20);
-    color: var(--bronze-ink);
-    font-family: var(--font-body);
-    font-weight: 700;
-    font-size: 20px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 50%, 100% 100%, 0 100%, 14px 50%);
   }
-  /* B2 fix round 1 #5: the placeholder text (no name typed yet) reads as a hint, not an answer. */
-  .forge-banner.is-empty {
+  .forge-banner-wrap:focus-within {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  /* Outranks `.kit-form input:not(...)` (the parchment field look) with the component's classes. */
+  .forge .forge-preview input.forge-banner {
+    width: 100%;
+    min-height: 48px;
+    padding: 6px 28px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    color: var(--bronze-ink);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 20px;
+    text-align: center;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+  /* B2 fix round 1 #5: the placeholder (no name typed yet) reads as a hint, not an answer. */
+  .forge .forge-preview input.forge-banner::placeholder {
+    color: rgba(255, 240, 220, 0.72);
     font-style: italic;
-    opacity: 0.65;
   }
   /* B2 fix round 1 #2: a tighter rhythm keeps the submit button on screen with the seal open, at
      1180x820 and 1280x720. */
   .field {
     margin-bottom: 0;
-  }
-  .field input[type='text'] {
-    width: 100%;
-    min-height: 48px;
-    font-size: 19px;
   }
   fieldset {
     border: none;
@@ -220,7 +244,7 @@
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    min-width: 64px;
+    min-width: 84px;
     padding: 4px;
     border-radius: 12px;
     font-variant: normal;
@@ -264,10 +288,10 @@
     font-size: 15px;
     margin: 0;
   }
-  #pin {
-    width: 160px;
-    letter-spacing: 0.4em;
-    -webkit-text-security: disc;
+  .seal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
   @media (prefers-reduced-motion: reduce) {
     .seal-toggle :global(.icon-svg) {

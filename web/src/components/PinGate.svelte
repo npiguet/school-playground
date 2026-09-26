@@ -5,6 +5,7 @@
   import { markUnlocked } from '../lib/profileStore.svelte';
   import { href } from '../lib/routes';
   import { de } from '../lib/text/french';
+  import SealSlots from './ui/SealSlots.svelte';
   import { ART, MARK_ICONS } from '../lib/world/art';
   import type { Profile } from '../lib/types';
 
@@ -46,25 +47,8 @@
   <div class="pin-seal kit-parchment kit-form">
     <img class="pin-lock" src={MARK_ICONS.lock} alt="" />
     <h1 class="kit-plaque pin-title">Le sceau {de(profile.name)}</h1>
-    <!-- Playability #14: four wax slots fill as digits arrive; the real input lies over them
-         (opacity 0), so a tap anywhere on the slots opens the keypad. -->
-    <div class="pin-slots" data-testid="pin-slots">
-      {#each [0, 1, 2, 3] as i (i)}
-        <span class="kit-seal pin-slot" class:is-empty={pin.length <= i} aria-hidden="true"></span>
-      {/each}
-      <input
-        id="pin-input"
-        class="pin-input"
-        type="text"
-        inputmode="numeric"
-        pattern="[0-9]*"
-        maxlength="4"
-        autocomplete="off"
-        value={pin}
-        oninput={onInput}
-        disabled={checking}
-      />
-    </div>
+    <!-- Playability #14: four wax slots fill as digits arrive (SealSlots, shared with the ritual). -->
+    <SealSlots id="pin-input" value={pin} oninput={onInput} disabled={checking} testId="pin-slots" />
     <label class="pin-caption" for="pin-input">Tes quatre chiffres</label>
     {#if error}
       <p class="orange" role="alert">{error}</p>
@@ -113,37 +97,6 @@
     font-size: 18px;
     white-space: normal;
     text-wrap: balance;
-  }
-  .pin-slots {
-    position: relative;
-    display: flex;
-    gap: 14px;
-  }
-  .pin-slot {
-    --seal-size: 52px;
-  }
-  .pin-slot.is-empty {
-    background: rgba(92, 64, 24, 0.12);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
-    border: 2px dashed rgba(138, 90, 40, 0.5);
-  }
-  .pin-input {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    font-size: 16px; /* no iOS zoom on focus */
-    caret-color: transparent;
-    /* Fix round 1 #6: mask the code like a real PIN entry. WebKit-only app (Desktop Safari + iPad
-       projects), and `inputmode="numeric"` still drives the on-screen numeric keypad with `type`
-       left as `text`, so no logic below has to change. */
-    -webkit-text-security: disc;
-  }
-  .pin-slots:focus-within {
-    outline: 3px solid var(--gold-light);
-    outline-offset: 6px;
-    border-radius: 12px;
   }
   .pin-caption {
     font-family: var(--font-body);
