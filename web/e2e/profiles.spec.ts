@@ -12,8 +12,8 @@ test('create a profile and reach the library with seed texts', async ({ page }) 
   // extra camp round-trip now in front of it) - wait for at least one card before counting.
   const shelves = page.getByTestId('overlay-shelves');
   await expect(shelves.locator('[data-testid="text-card"]').first()).toBeVisible();
-  // Her own level first; every other level waits behind « Autres niveaux » (immersion wave Task 8).
-  await shelves.getByRole('button', { name: 'Autres niveaux' }).click();
+  // Her own level first; every other level waits behind « Autres classes » (immersion wave Task 8).
+  await shelves.getByRole('button', { name: 'Autres classes' }).click();
   await chooseLevel(shelves.getByTestId('shelf-levels'), 'Tous');
   await expect(shelves.getByRole('heading', { name: 'Autres parchemins' })).toBeVisible();
   expect(await shelves.locator('[data-testid="text-card"]').count()).toBeGreaterThanOrEqual(25);

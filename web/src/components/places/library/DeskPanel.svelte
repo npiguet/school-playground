@@ -60,7 +60,8 @@
     <!-- Playability #5: two columns on the iPad - the text on the left, and the title, the class and
          the way to finish on the right, always in view. -->
     <div class="desk-text">
-      <label for="body">Texte</label>
+      <!-- Re-review N5: the owl already says what to write here; the label is for assistive tech. -->
+      <label for="body" class="sr-only">Texte</label>
       <textarea
         id="body"
         rows="12"
@@ -77,12 +78,14 @@
     </div>
 
     <div class="desk-side">
+      <!-- Re-review N5: the title is a heading line written on the parchment, not a boxed field. -->
       <div class="field">
-        <label for="title">Titre</label>
-        <input id="title" type="text" maxlength="120" bind:value={title} required />
+        <label for="title" class="sr-only">Titre</label>
+        <input id="title" class="title-line" type="text" maxlength="120" placeholder="Le titre de ton parchemin" bind:value={title} required />
       </div>
 
-      <LevelMedallions legend="Classe" name="desk-level" bind:value={level} />
+      <!-- Re-review N8: 48 px medallions, 4 px apart - all seven in one row of the side column. -->
+      <LevelMedallions legend="Pour quelle classe ?" name="desk-level" size="sm" bind:value={level} />
 
       {#if error}
         <p class="orange" role="alert">{error}</p>
@@ -143,6 +146,23 @@
   }
   .field {
     margin-bottom: 12px;
+  }
+  /* A line of ink on the parchment: a bottom rule only (outranks `.kit-form input:not(...)`). */
+  .desk-side .field input.title-line {
+    border: 0;
+    border-bottom: 2px solid var(--form-edge);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 6px 2px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 20px;
+  }
+  .desk-side .field input.title-line::placeholder {
+    color: var(--form-ink-soft);
+    font-style: italic;
+    font-weight: 400;
   }
   .who summary {
     list-style: none;

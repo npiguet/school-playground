@@ -16,6 +16,9 @@
   import Icon from '../../ui/Icon.svelte';
   import LevelMedallions from '../../ui/LevelMedallions.svelte';
   import { lengthOf, workByline } from '../../../lib/library/shelf';
+  import OverlayVoice from '../../scene/OverlayVoice.svelte';
+  import { ART } from '../../../lib/world/art';
+  import { VOICES } from '../../../lib/world/voices';
   import type { AlexandriaChunk, AlexandriaWork, Profile } from '../../../lib/types';
 
   let { profile, workId }: { profile: Profile; workId: string } = $props();
@@ -224,10 +227,10 @@
             français…).
           </p>
         {:else}
-          <!-- Playability #7: a next step, pointing at the button on the left page. -->
-          <p class="scribes-empty" data-testid="scribes-empty">
-            <Icon name="arrow-left" size={22} /> Les scribes n'ont encore rien recopié de ce livre. Demande-leur !
-          </p>
+          <!-- Playability #7, re-review N11: the owl points at the button on the left page (no chevron:
+               that is the back button's glyph), over the view through the portal, so the page isn't bare. -->
+          <OverlayVoice line={VOICES.scribesEmpty} testId="scribes-empty" />
+          <figure class="plate"><img src={ART.scenes.alexandrie} alt="" /></figure>
         {/if}
       {:else}
         <ol class="rolls">
@@ -308,6 +311,20 @@
     gap: 10px;
     font-size: 18px;
     font-style: italic;
+  }
+  /* The view through the portal under the owl's plate (the same plate as the works' left page). */
+  .plate {
+    margin: 0;
+    border: 6px solid #e2cfa4;
+    box-shadow:
+      0 0 0 1px var(--parchment-edge),
+      0 4px 10px rgba(92, 64, 24, 0.3);
+  }
+  .plate img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
   }
   .rolls {
     list-style: none;

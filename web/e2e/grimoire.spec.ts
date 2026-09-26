@@ -13,10 +13,10 @@ test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', asyn
   // createText bypasses the UI (API only): the library's list was already fetched on mount, so
   // it needs a reload to pick up a text added out-of-band this way.
   await page.reload();
-  // The text is 8H and the hero 10H: it waits behind « Autres niveaux » (immersion wave Task 8),
+  // The text is 8H and the hero 10H: it waits behind « Autres classes » (immersion wave Task 8),
   // so this also covers the toggle.
   const shelves = page.getByTestId('overlay-shelves');
-  await shelves.getByRole('button', { name: 'Autres niveaux' }).click();
+  await shelves.getByRole('button', { name: 'Autres classes' }).click();
   await chooseLevel(shelves.getByTestId('shelf-levels'), 'Tous');
   await shelves.locator('[data-testid="text-card"]', { hasText: title }).click();
   await page.getByTestId('btn-grimoire').click();

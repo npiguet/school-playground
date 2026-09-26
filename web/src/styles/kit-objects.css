@@ -9,7 +9,8 @@
   text-shadow: none;
 }
 .kit-bronze:disabled {
-  filter: saturate(0.35) brightness(0.92);
+  /* Re-review N12: the same bronze, fainter - never a different (grey-brown) fill. */
+  opacity: 0.55;
   cursor: default;
   transform: none;
 }
@@ -148,6 +149,19 @@ label.kit-bronze.is-quiet {
   font-weight: 600;
   font-size: 19px;
   line-height: 1.2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+/* Re-review N2: a chapter's name under its book, on its own line (ShelvesPanel, splitTitle). */
+.kit-tag-chapter {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.2;
+  color: var(--ink);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;

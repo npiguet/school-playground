@@ -79,7 +79,7 @@ function worstOf(fg: string, bg: string[]): number {
 describe('object kit', () => {
   it('defines every object class the places use', () => {
     for (const cls of [
-      'kit-seal', 'kit-tag', 'kit-tag-title', 'kit-tag-meta', 'kit-stamp', 'kit-prophecy', 'kit-cubby', 'kit-roll',
+      'kit-seal', 'kit-tag', 'kit-tag-title', 'kit-tag-chapter', 'kit-tag-meta', 'kit-stamp', 'kit-prophecy', 'kit-cubby', 'kit-roll',
       'roll-css', 'kit-sheet', 'kit-tablet', 'kit-medallion', 'kit-ribbon', 'kit-link', 'kit-note', 'kit-gauge',
     ]) {
       expect(css, cls).toMatch(new RegExp(`\\.${cls}[\\s,.:{\\[]`));
@@ -120,6 +120,7 @@ describe('object kit', () => {
     const cases: Array<[string, string, string[]]> = [
       ['.kit-stamp (on the tag)', colorOf(ruleBodyOf(css, '.kit-stamp')), tagBg],
       ['.kit-tag-meta (on the tag)', colorOf(ruleBodyOf(css, '.kit-tag-meta')), tagBg],
+      ['.kit-tag-chapter (on the tag)', colorOf(ruleBodyOf(css, '.kit-tag-chapter')), tagBg],
       [
         '.kit-tablet-stamp (on its own backing)',
         colorOf(ruleBodyOf(css, '.kit-tablet-stamp')),

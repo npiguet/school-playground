@@ -22,6 +22,19 @@ export function historyLine(h: TextSummary['history']): string {
   return `${times} · ${Math.round(h.best_catch_rate * 100)} % des pièges déjoués`;
 }
 
+/** A chapter's title « Livre — chapitre » (Alexandria's rolls, service.py) as the book and the
+ *  chapter, each on its own line of the tag (re-review N2). A title without a spaced em dash, or
+ *  with an empty side, stays whole. */
+export function splitTitle(title: string): { book: string; chapter: string | null } {
+  const at = title.indexOf(' — ');
+  if (at >= 0) {
+    const book = title.slice(0, at).trim();
+    const chapter = title.slice(at + 3).trim();
+    if (book && chapter) return { book, chapter };
+  }
+  return { book: title.trim(), chapter: null };
+}
+
 /** Author (and translator); « Ajouté par X » for her own texts; the seed credits as a last resort. */
 export function textByline(t: Pick<TextSummary, 'author' | 'translator' | 'source' | 'added_by_name' | 'credits'>): string {
   if (t.author) return t.translator ? `${t.author}, trad. ${t.translator}` : t.author;
@@ -33,13 +46,16 @@ export function workByline(w: Pick<AlexandriaWork, 'author' | 'translator'>): st
   return w.translator ? `${w.author}, trad. ${w.translator}` : w.author;
 }
 
-/** The desk's quill gauge: how many words, and whether that is enough. */
+/** The desk's quill gauge: how many words, and how far from the ideal. Re-review N7: the server
+ *  shelves a text of any length (schemas.py), so 80-200 words is the ideal, never a minimum - the
+ *  owl (VOICES.desk), this label and the always-enabled submit agree. */
 export function wordGauge(n: number): { label: string; state: 'short' | 'ok' | 'long'; fill: number } {
   const words = plural(n, 'mot', 'mots');
   const fill = Math.min(1, n / WORDS_MAX);
-  if (n < WORDS_MIN) return { label: `${words} · il en faut au moins ${WORDS_MIN}`, state: 'short', fill };
+  const ideal = `${words} · l'idéal : ${WORDS_MIN} à ${WORDS_MAX}`;
+  if (n < WORDS_MIN) return { label: ideal, state: 'short', fill };
   if (n <= WORDS_MAX) return { label: `${words} · parfait`, state: 'ok', fill };
-  return { label: `${words} · au plus ${WORDS_MAX}`, state: 'long', fill };
+  return { label: ideal, state: 'long', fill };
 }
 
 type ShelfText = Pick<TextSummary, 'id' | 'level' | 'title' | 'due_date'>;
@@ -49,7 +65,7 @@ const byLevelThenTitle = (a: ShelfText, b: ShelfText) =>
 
 /** The shelves' three sections, each text on one shelf only (immersion wave Task 8, fix round 1):
  *  the Oracle's prophecies (a due date not yet passed, soonest first), « Pour toi » (her class), and
- *  behind « Autres niveaux » every other class (`filter` « Tous ») or one class - minus whatever
+ *  behind « Autres classes » every other class (`filter` « Tous ») or one class - minus whatever
  *  already lies on a shelf above, so choosing her own class or a prophecy's never repeats a scroll. */
 export function shelfSections<T extends ShelfText>(
   texts: readonly T[],

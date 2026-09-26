@@ -157,16 +157,19 @@
   {#if step === 'capture'}
     <div class="lens-capture">
       <!-- Playability #6: a round bronze lens frame; the owl gives the photo advice (VOICES.lens). -->
+      <!-- Re-review N9: the latest page lies whole under the glass (contained, on parchment, a little
+           tilted), never cropped round; a single page is not repeated as a thumbnail below. -->
       <div class="lens-frame" aria-hidden="true">
         {#if photos.length > 0}
-          <img src={photos[photos.length - 1].url} alt="" />
+          <img class="lens-page" src={photos[photos.length - 1].url} alt="" />
         {:else}
           <img class="lens-glass" src={ADD_ICONS.scan} alt="" />
         {/if}
       </div>
+      <!-- After the first photo, « Déchiffrer » is the only primary: another page is secondary. -->
       <div class="capture-actions">
-        <label class="kit-bronze capture-label">
-          Prendre une photo
+        <label class="kit-bronze capture-label" class:is-quiet={photos.length > 0}>
+          {photos.length > 0 ? 'Une autre page' : 'Prendre une photo'}
           <input
             type="file"
             accept="image/*"
@@ -198,11 +201,14 @@
         <button type="button" class="kit-bronze is-quiet" onclick={clearPhotos}>Reprendre les photos</button>
       {/if}
 
-      {#if photos.length > 0}
+      {#if photos.length === 1}
+        <button type="button" class="kit-link" data-testid="scan-remove" onclick={() => removePhoto(0)}>Retirer cette page</button>
+      {:else if photos.length > 1}
+        <!-- Several pages: each one a small parchment sheet with its own « Retirer ». -->
         <div class="thumbs">
           {#each photos as p, i (p.url)}
             <div class="thumb">
-              <img src={p.url} alt={`Photo ${i + 1}`} />
+              <img src={p.url} alt={`Page ${i + 1}`} />
               <button type="button" class="kit-link" onclick={() => removePhoto(i)}>Retirer</button>
             </div>
           {/each}
@@ -358,10 +364,16 @@
       0 0 0 3px var(--bronze-light),
       0 8px 16px rgba(0, 0, 0, 0.35);
   }
-  .lens-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  /* The whole sheet under the glass: contained on parchment, tilted like a page laid under it; 64 %
+     keeps its tilted corners inside the round glass. */
+  .lens-frame .lens-page {
+    width: 64%;
+    height: 64%;
+    object-fit: contain;
+    padding: 4px;
+    background: var(--parchment-solid);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    transform: rotate(-4deg);
   }
   .lens-frame .lens-glass {
     width: 55%;
@@ -402,11 +414,19 @@
     gap: 6px;
   }
   .thumb img {
-    width: 120px;
+    width: 96px;
     height: 120px;
-    object-fit: cover;
-    border-radius: var(--radius);
-    border: 1px solid var(--marble-dark);
+    object-fit: contain;
+    padding: 4px;
+    border-radius: 2px;
+    background: var(--parchment-solid);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  }
+  .thumb:nth-child(odd) img {
+    transform: rotate(-2deg);
+  }
+  .thumb:nth-child(even) img {
+    transform: rotate(1.5deg);
   }
   .read-btn {
     min-width: 240px;

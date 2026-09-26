@@ -21,9 +21,9 @@ const BANNED: [RegExp, string][] = [
   [/≈/, 'catalogue metadata'],
   [/multipliée par/i, 'mechanic-speak'],
   [/domaine public/i, 'credits live in ASSETS-LICENSES.md (Ruling W9)'],
-  // The singular only: « Autres niveaux » is the shelves' toggle, named verbatim by the plan
-  // (Global Constraints, feature parity). « niveau 3 », « à ce niveau », a « Niveau » heading are not.
-  [/\bniveau\b/i, 'school register: a medallion says the class (« Ta classe »)'],
+  // Singular and plural (« Autres niveaux » became « Autres classes », controller ruling after the
+  // B5 batch): « niveau 3 », « à ce niveau », a « Niveau » heading, « Autres niveaux » are not.
+  [/\bniveaux?\b/i, 'school register: a medallion says the class (« Ta classe », « Autres classes »)'],
   [/\btableau des quêtes\b/i, 'one name: « Le mur des quêtes » (Ruling W13)'],
 ];
 
@@ -67,8 +67,9 @@ describe('the places speak the camp, not the school', () => {
       'svelte',
     );
     expect(banned(planted)).toHaveLength(3);
+    expect(banned(screenText('<button>Autres niveaux</button>', 'svelte'))).toHaveLength(1);
     const quiet = screenText(
-      '<script>// réviser, niveau\nimport { api } from "./api";\napi.profiles.scan(x);</script>\n<!-- Profil -->\n<button onclick={() => sauvegarder(niveau)}>Autres niveaux</button>',
+      '<script>// réviser, niveau\nimport { api } from "./api";\napi.profiles.scan(x);</script>\n<!-- Profil -->\n<button onclick={() => sauvegarder(niveau)}>Autres classes</button>',
       'svelte',
     );
     expect(banned(quiet)).toEqual([]);

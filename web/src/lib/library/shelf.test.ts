@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { historyLine, lengthOf, shelfSections, textByline, wordGauge, workByline } from './shelf';
+import { historyLine, lengthOf, shelfSections, splitTitle, textByline, wordGauge, workByline } from './shelf';
 
 describe('the shelves speak the camp, not the catalogue (playability #2, #5, #24)', () => {
   it('turns a word count into a scroll length', () => {
@@ -26,11 +26,13 @@ describe('the shelves speak the camp, not the catalogue (playability #2, #5, #24
     expect(workByline({ author: 'Lewis Carroll', translator: 'Henri Bué' })).toBe('Lewis Carroll, trad. Henri Bué');
   });
 
-  it('measures a text against the 80-200 words it needs (the desk gauge)', () => {
-    expect(wordGauge(13)).toEqual({ label: '13 mots · il en faut au moins 80', state: 'short', fill: 13 / 200 });
-    expect(wordGauge(1).label).toBe('1 mot · il en faut au moins 80');
+  // Re-review N7: the server takes a text of any length (schemas.py: body min_length=1), so 80-200 is
+  // the ideal, not a rule - the owl, the gauge and the (enabled) submit say the same thing.
+  it('measures a text against the ideal 80-200 words (the desk gauge)', () => {
+    expect(wordGauge(13)).toEqual({ label: "13 mots · l'idéal : 80 à 200", state: 'short', fill: 13 / 200 });
+    expect(wordGauge(1).label).toBe("1 mot · l'idéal : 80 à 200");
     expect(wordGauge(94)).toEqual({ label: '94 mots · parfait', state: 'ok', fill: 94 / 200 });
-    expect(wordGauge(214)).toEqual({ label: '214 mots · au plus 200', state: 'long', fill: 1 });
+    expect(wordGauge(214)).toEqual({ label: "214 mots · l'idéal : 80 à 200", state: 'long', fill: 1 });
   });
 });
 
@@ -60,5 +62,20 @@ describe('shelfSections: each scroll lies on one shelf only (Task 8 fix round 1)
 
   it('never repeats a prophecy under its class', () => {
     expect(ids(shelfSections(texts, '10H', '9H', today).others)).toEqual([4]);
+  });
+});
+
+// Re-review N2: a chapter title « Livre — chapitre » is split so the part that tells two chapters of
+// one book apart is never the part a clamp cuts.
+describe('splitTitle', () => {
+  it('splits a book and its chapter at the first spaced em dash', () => {
+    expect(splitTitle('Les Trois Mousquetaires — la lettre')).toEqual({ book: 'Les Trois Mousquetaires', chapter: 'la lettre' });
+    expect(splitTitle('Contes — Le Petit Poucet — la forêt')).toEqual({ book: 'Contes', chapter: 'Le Petit Poucet — la forêt' });
+  });
+
+  it('keeps a plain title whole', () => {
+    expect(splitTitle("L'île de Circé")).toEqual({ book: "L'île de Circé", chapter: null });
+    expect(splitTitle('Arc-en-ciel—sans espaces')).toEqual({ book: 'Arc-en-ciel—sans espaces', chapter: null });
+    expect(splitTitle(' — ')).toEqual({ book: '—', chapter: null });
   });
 });

@@ -98,7 +98,7 @@ test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back
   await expect(shelves.getByText(/≈|\bmots\b|Jamais joué|\b10H\b/)).toHaveCount(0);
   await expect(shelves.getByTestId('shelf-levels')).toHaveCount(0);
   // Parity: every level is still one toggle away.
-  await shelves.getByRole('button', { name: 'Autres niveaux' }).click();
+  await shelves.getByRole('button', { name: 'Autres classes' }).click();
   await chooseLevel(shelves.getByTestId('shelf-levels'), '9H');
   await expect(shelves.getByRole('heading', { name: 'Classe 9H' })).toBeVisible();
   await chooseLevel(shelves.getByTestId('shelf-levels'), 'Tous');
@@ -140,8 +140,8 @@ test('a text card on the shelves starts the dictation; a prophecy wears its ribb
   await expect(card.getByTestId('chip-prophecy')).toContainText('jeudi 1er janvier 2099');
   await expect(card).toHaveAttribute('data-length', 'court');
   await expect(card).toContainText('Jamais défendu');
-  // A prophecy is not repeated under its class behind « Autres niveaux ».
-  await page.getByTestId('overlay-shelves').getByRole('button', { name: 'Autres niveaux' }).click();
+  // A prophecy is not repeated under its class behind « Autres classes ».
+  await page.getByTestId('overlay-shelves').getByRole('button', { name: 'Autres classes' }).click();
   await chooseLevel(page.getByTestId('overlay-shelves').getByTestId('shelf-levels'), '10H');
   await expect(card).toHaveCount(1);
   await card.click();
@@ -253,10 +253,21 @@ test('the desk writes a new parchment; saving lands on the shelves and Back neve
   const title = uniqueName(`Pupitre ${testInfo.project.name}`);
   await desk.getByLabel('Titre').fill(title);
   await desk.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
-  await expect(desk.getByTestId('desk-gauge')).toContainText('13 mots · il en faut au moins 80');
+  // Re-review N7: the server shelves a text of any length, so 80-200 words is the ideal the owl, the
+  // gauge and the enabled submit all agree on (never a minimum that is then not enforced).
+  await expect(desk.getByTestId('overlay-voice')).toContainText("c'est l'idéal");
+  await expect(desk.getByTestId('desk-gauge')).toContainText("13 mots · l'idéal : 80 à 200");
+  await expect(desk.getByTestId('desk-gauge')).not.toContainText('il en faut');
   // A text to defend is set in Literata (Ruling A8).
   expect(await desk.getByLabel('Texte').evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Literata');
-  await expect(desk.getByRole('group', { name: 'Classe' })).toBeVisible();
+  const classes = desk.getByRole('group', { name: 'Pour quelle classe ?' });
+  await expect(classes).toBeVisible();
+  // Re-review N8: the seven class medallions sit in one row of the side column on the iPad.
+  if (testInfo.project.name === 'ipad') {
+    const tops = await classes.locator('label.kit-medallion').evaluateAll((els) => els.map((e) => (e as HTMLElement).offsetTop)); // layout, not the chosen one's lift
+    expect(tops).toHaveLength(7);
+    expect(new Set(tops).size, `one row of medallions (tops ${tops.join(', ')})`).toBe(1);
+  }
   await expect(desk.locator('select')).toHaveCount(0);
   // Parity: author, work and translator are one tap away.
   await desk.getByText("Qui l'a écrit ?").click();
@@ -325,6 +336,13 @@ test('the lens opens the three-step scan as a wide overlay', async ({ page, requ
   await expect(page.getByTestId('btn-scan-read')).toHaveText('Déchiffrer');
   await expect(lens.locator('.lens-frame img')).toBeVisible();
   await expect(lens.locator('.lens-frame img.lens-glass')).toHaveCount(0);
+  // Re-review N9: the page lies whole under the glass (never cropped round), a single page is not
+  // shown twice, and « Déchiffrer » is the only primary once a photo exists.
+  await expect(lens.locator('.lens-frame img.lens-page')).toHaveCSS('object-fit', 'contain');
+  await expect(lens.locator('.thumbs')).toHaveCount(0);
+  await expect(lens.getByTestId('scan-remove')).toBeVisible();
+  await expect(lens.getByText('Une autre page')).toHaveClass(/is-quiet/);
+  await expect(lens.locator('.kit-bronze:not(.is-quiet)')).toHaveText(['Déchiffrer']);
   await expectOverlayTapTargets(page, 'overlay-lens');
   const box = await lens.boundingBox();
   expect(box!.width, 'wide overlay').toBeGreaterThan(700);
@@ -354,6 +372,10 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   await expect(portal.getByText(/niveau \d/)).toHaveCount(0);
   expect(await portal.getByTestId('work-card').count()).toBeGreaterThanOrEqual(10);
   const workId = await portal.getByTestId('work-card').first().getAttribute('data-work-id');
+  // Re-review N10: a status is written only when something exists; « Pas encore recopié » is for
+  // assistive tech only.
+  await expect(portal.locator('[data-testid="work-card"][data-status="never"] .entry-status:not(.sr-only)')).toHaveCount(0);
+  const firstStatus = await portal.getByTestId('work-card').first().getAttribute('data-status');
   await portal.getByTestId('work-card').first().click();
   await expect(page).toHaveURL(/\/alexandria\/[^/]+$/);
   const work = page.getByTestId('overlay-portal-work');
@@ -361,8 +383,9 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   await expect(work).not.toContainText('domaine public');
   // Playability #7: a never-copied work points at the scribes, with no filter to filter nothing. The
   // shared database may already hold copies of this work (alexandria.spec.ts covers that branch).
-  if ((await portal.getByTestId('work-card').first().getAttribute('data-status')) === 'never') {
-    await expect(work.getByTestId('scribes-empty')).toContainText("Les scribes n'ont encore rien recopié de ce livre. Demande-leur !");
+  if (firstStatus === 'never') {
+    await expect(work.getByTestId('scribes-empty')).toContainText("Les scribes n'ont encore rien recopié de ce livre. Demande-leur, à gauche.");
+    await expect(work.getByTestId('scribes-empty')).toHaveAttribute('data-speaker', 'owl');
     await expect(work.getByTestId('work-levels')).toHaveCount(0);
     await expect(work.getByTestId('btn-refresh-work')).toHaveText('Demander aux scribes');
   }

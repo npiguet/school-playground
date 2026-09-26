@@ -387,6 +387,49 @@
     margin: -8px;
     scroll-padding: 8px;
   }
+  /* Re-review N10: nothing is printed across the binding. On a spread, the title and the voice plate
+     sit on the left page, above its own content, and the right page rises to the voice's level
+     (the seal keeps the title row's right corner). The body and the spread step aside
+     (`display: contents`), so the two pages are the panel's own grid items, either side of the
+     same 72 px gutter as before. */
+  @media (min-width: 901px) {
+    .overlay-codex {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: auto auto minmax(0, 1fr);
+      column-gap: 72px;
+    }
+    .overlay-codex .overlay-head {
+      grid-column: 1;
+      grid-row: 1;
+      position: static;
+      justify-content: flex-start;
+      padding-inline: 0;
+    }
+    .overlay-codex .overlay-title {
+      text-align: left;
+    }
+    .overlay-codex .overlay-seal {
+      top: 24px;
+      right: 44px;
+    }
+    .overlay-codex > :global(.overlay-voice) {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    .overlay-codex .overlay-body,
+    .overlay-codex .overlay-body > :global(.codex-spread) {
+      display: contents;
+    }
+    .overlay-codex .overlay-body :global(.codex-page:first-child) {
+      grid-column: 1;
+      grid-row: 3;
+    }
+    .overlay-codex .overlay-body :global(.codex-page:last-child) {
+      grid-column: 2;
+      grid-row: 2 / -1;
+    }
+  }
   @media (max-width: 900px) {
     .overlay-codex .overlay-body {
       overflow: auto;

@@ -5,13 +5,13 @@
   // Immersion wave Task 8 (playability #1, #2): each text is a rolled scroll lying in a cubby of the
   // shelf unit, sealed with wax until it has been defended (then the seal is broken and a laurel lies
   // on it), with a paper tag in the camp's words: no grade pills, no word counts. Her own class comes
-  // first (« Pour toi »); every other level stays one toggle away (« Autres niveaux », parity).
+  // first (« Pour toi »); every other level stays one toggle away (« Autres classes », parity).
   import LevelMedallions from '../../ui/LevelMedallions.svelte';
   import Icon from '../../ui/Icon.svelte';
   import { api, ApiError } from '../../../lib/api';
   import { isProphecy } from '../../../lib/dates';
   import { LEVELS } from '../../../lib/levels';
-  import { historyLine, lengthOf, shelfSections, textByline } from '../../../lib/library/shelf';
+  import { historyLine, lengthOf, shelfSections, splitTitle, textByline } from '../../../lib/library/shelf';
   import { href } from '../../../lib/routes';
   import { go } from '../../../lib/scene/panelNav';
   import { longDate } from '../../../lib/text/french';
@@ -57,6 +57,7 @@
     {@const len = lengthOf(t.word_count)}
     {@const defended = (t.history?.times_played ?? 0) > 0}
     {@const byline = textByline(t)}
+    {@const parts = splitTitle(t.title)}
     <button type="button" class="kit-cubby" data-testid="text-card" data-length={len} onclick={() => play(t)}>
       <span class="kit-roll" data-length={len} aria-hidden="true">
         <img class="roll-art" src={ART.ui.scrollRolled} alt="" draggable="false" />
@@ -65,10 +66,19 @@
           {#if defended}<span class="seal-laurel"><Icon name="laurel" size={22} /></span>{/if}
         </span>
       </span>
+      <!-- Re-review N2: the book and the chapter on lines of their own (a clamp never cuts the part
+           that tells two chapters apart). The length is the roll's thickness and the unbroken seal
+           says « never defended »: both are told to assistive tech only; a defence is written. -->
       <span class="kit-tag">
-        <span class="kit-tag-title">{t.title}</span>
+        <span class="kit-tag-title">{parts.book}</span>
+        {#if parts.chapter}<span class="kit-tag-chapter">{parts.chapter}</span>{/if}
         {#if byline}<span class="kit-tag-meta">{byline}</span>{/if}
-        <span class="kit-tag-meta">parchemin {len} · {historyLine(t.history)}</span>
+        <span class="sr-only">parchemin {len}</span>
+        {#if defended}
+          <span class="kit-tag-meta" data-testid="text-history">{historyLine(t.history)}</span>
+        {:else}
+          <span class="sr-only">{historyLine(t.history)}</span>
+        {/if}
         {#if t.source === 'scan'}<span class="kit-stamp">Déchiffré</span>{/if}
         {#if t.source === 'online'}<span class="kit-stamp">Alexandrie</span>{/if}
         {#if t.due_date && isProphecy(t.due_date)}
@@ -108,14 +118,16 @@
     </section>
 
     <section class="others">
+      <!-- Re-review N14: a text link with a turning chevron, like the ritual's seal toggle. -->
       <button
         type="button"
-        class="kit-bronze is-quiet"
+        class="kit-link others-toggle"
         aria-expanded={othersOpen}
         aria-controls="other-levels"
         onclick={() => (othersOpen = !othersOpen)}
       >
-        Autres niveaux
+        <Icon name="chevron" size={14} />
+        Autres classes
       </button>
       {#if othersOpen}
         <div id="other-levels">
@@ -176,5 +188,22 @@
   }
   .others > div {
     align-self: stretch;
+  }
+  /* On the dark wood the link is written in the board's gold, flush with the headings. */
+  .others-toggle {
+    margin-left: -8px;
+    color: var(--gold-light);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+  .others-toggle :global(.icon-svg) {
+    transition: transform 0.15s ease;
+  }
+  .others-toggle[aria-expanded='true'] :global(.icon-svg) {
+    transform: rotate(180deg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .others-toggle :global(.icon-svg) {
+      transition: none;
+    }
   }
 </style>

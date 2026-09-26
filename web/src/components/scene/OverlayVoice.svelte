@@ -2,16 +2,25 @@
   // A character speaking inside an overlay (immersion wave Ruling W2). The scene's DialogueBox sits
   // on the inert, dimmed stage under the backdrop, so the owl or the Pythia speaks from this plate
   // at the top of the panel instead. Static, no typewriter, not a control.
+  import type { Snippet } from 'svelte';
   import type { DialogueLine } from '../../lib/scene/types';
 
-  let { line }: { line: DialogueLine } = $props();
+  // `testId`: a plate spoken inside a panel's own content (the owl on an empty codex page) keeps
+  // `overlay-voice` for the one at the top of the overlay. `children`: a line built from live data
+  // with its own marked parts (the quest wall's reward and treasure, re-review N13) replaces
+  // `line.text`.
+  let {
+    line,
+    testId = 'overlay-voice',
+    children,
+  }: { line: DialogueLine; testId?: string; children?: Snippet } = $props();
 </script>
 
-<figure class="overlay-voice" data-testid="overlay-voice" data-speaker={line.speaker}>
+<figure class="overlay-voice" data-testid={testId} data-speaker={line.speaker}>
   <img class="voice-portrait" src={line.portrait} alt="" style:filter={line.portraitFilter} />
   <figcaption class="voice-body">
     <span class="voice-name">{line.name}</span>
-    <span class="voice-text">{line.text}</span>
+    <span class="voice-text">{#if children}{@render children()}{:else}{line.text}{/if}</span>
   </figcaption>
 </figure>
 

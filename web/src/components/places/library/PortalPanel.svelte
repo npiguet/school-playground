@@ -52,10 +52,12 @@
     });
   });
 
+  // Re-review N10: a status is written only when there is something to say (« 3 rouleaux
+  // recopiés », « Hors d'atteinte »); a work never copied says so to assistive tech only.
   function statusLabel(w: AlexandriaWork): string {
     if (w.status === 'never') return 'Pas encore recopié';
     if (w.status === 'error') return "Hors d'atteinte";
-    return plural(w.chunk_count, 'rouleau', 'rouleaux');
+    return plural(w.chunk_count, 'rouleau recopié', 'rouleaux recopiés');
   }
 
   function openWork(w: AlexandriaWork) {
@@ -92,7 +94,7 @@
               <span class="entry-by">{workByline(w)}</span>
               <span class="entry-meta">
                 <span class="kit-medallion is-small" role="img" aria-label="Classe {w.level_hint}">{w.level_hint}</span>
-                <span class="entry-status" class:is-away={w.status === 'error'}>{statusLabel(w)}</span>
+                <span class="entry-status" class:is-away={w.status === 'error'} class:sr-only={w.status === 'never'}>{statusLabel(w)}</span>
               </span>
             </button>
           </li>

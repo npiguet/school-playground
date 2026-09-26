@@ -149,11 +149,20 @@ test('the portal is a codex: two pages, and nothing crosses the gutter', async (
   const pages = portal.locator('.codex-page');
   await expect(pages).toHaveCount(2);
   if ((page.viewportSize()?.width ?? 0) > 900) {
-    const spread = (await portal.locator('.codex-spread').boundingBox())!;
-    const gutter = spread.x + spread.width / 2;
+    // The panel's padding is symmetric, so its centre is the book's gutter (the spread itself is
+    // `display: contents` on a wide screen, re-review N10, and has no box of its own).
+    await expect.poll(() => portal.evaluate((e) => e.getAnimations({ subtree: true }).length)).toBe(0);
+    const panel = (await portal.boundingBox())!;
+    const gutter = panel.x + panel.width / 2;
     const [left, right] = [(await pages.nth(0).boundingBox())!, (await pages.nth(1).boundingBox())!];
     expect(left.x + left.width, 'left page ends before the gutter').toBeLessThanOrEqual(gutter);
     expect(right.x, 'right page starts after the gutter').toBeGreaterThanOrEqual(gutter);
+    // Re-review N10: the title and the owl's plate sit on the left page, never across the binding,
+    // and the works start at the top of the right page (level with the owl's plate).
+    const [title, voice] = [(await portal.locator('.overlay-title').boundingBox())!, (await portal.getByTestId('overlay-voice').boundingBox())!];
+    expect(title.x + title.width, 'title ends before the gutter').toBeLessThanOrEqual(gutter);
+    expect(voice.x + voice.width, 'owl plate ends before the gutter').toBeLessThanOrEqual(gutter);
+    expect(right.y, 'right page starts level with the owl plate').toBeLessThanOrEqual(voice.y + 1);
   }
 });
 
@@ -191,7 +200,7 @@ const OVERLAYS = [
   { hash: (id: number) => `/p/${id}/texts/scan`, testId: 'overlay-lens', scene: 'library', hud: true, variant: 'scroll', voice: 'owl' },
   { hash: (id: number) => `/p/${id}/alexandria`, testId: 'overlay-portal', scene: 'library', hud: true, variant: 'codex', voice: 'owl' },
   { hash: (id: number) => `/p/${id}/delphes`, testId: 'overlay-pythia', scene: 'delphi', hud: true, variant: 'scroll', voice: 'pythia' },
-  { hash: (id: number) => `/p/${id}/quetes`, testId: 'overlay-tablets', scene: 'delphi', hud: true, variant: 'table', voice: null },
+  { hash: (id: number) => `/p/${id}/quetes`, testId: 'overlay-tablets', scene: 'delphi', hud: true, variant: 'table', voice: 'pythia' },
 ] as const;
 
 const LEGACY = '.btn, .btn-primary, .btn-ghost, .card, .chip, .chip-active, .parchment';
