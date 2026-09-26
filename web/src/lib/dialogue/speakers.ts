@@ -8,11 +8,7 @@ import type { DialogueLine, SpeakerId } from '../scene/types';
 /** The dragon before /camp has answered: an egg, in bronze. */
 export const EGG = { name: null, stage: 'egg', tint: 'bronze' } as unknown as DragonOut;
 
-function frame(line: DialogueLine): Omit<DialogueLine, 'text'> {
-  const { text, ...rest } = line;
-  void text;
-  return rest;
-}
+const frame = ({ text: _text, ...rest }: DialogueLine): Omit<DialogueLine, 'text'> => rest;
 
 export function frameFor(speaker: SpeakerId, dragon: DragonOut | null | undefined): Omit<DialogueLine, 'text'> {
   switch (speaker) {

@@ -26,7 +26,9 @@ export function poolFor(lines: LineDef[], ctx: DialogueCtx): LineDef[] {
 
 export function pick(pool: LineDef[], last: string | undefined, rnd: () => number): LineDef | null {
   if (pool.length === 0) return null;
-  const fresh = pool.length > 1 ? pool.filter((l) => l.text !== last) : pool;
+  // Every variant equal to the last one (a duplicated line): any of them will do.
+  const others = pool.filter((l) => l.text !== last);
+  const fresh = others.length > 0 ? others : pool;
   return fresh[Math.min(fresh.length - 1, Math.floor(rnd() * fresh.length))];
 }
 

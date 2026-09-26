@@ -30,6 +30,19 @@ export const banned = (text: string): string[] => BANNED.filter(([re]) => re.tes
  *  « Il manque un mot » (a neutral hint) and « ratisser » are fine. Global: use with matchAll/match. */
 export const GUILT = /(?<![\p{L}])(manquée?s?|ratée?s?|perdue?s?)(?![\p{L}])/giu;
 
-/** Rulings C7, C8: never an adjective or participle agreeing with the player (« prête », « sûre »,
- *  « seule »…; « perdue » is GUILT's), never « héros » as a vocative addressed to her. */
-export const GENDERED = /\b(prête|sûre|arrêtée|piégée|seule|contente|fatiguée)\b|(^|[,!?«]\s*)(cher |jeune |petite? )?héro(s|ïne)\s*[,!]/iu;
+/** The adjectives and participles that would agree with the player (« perdue » is GUILT's). */
+export const AGREEING = ['prête', 'sûre', 'arrêtée', 'piégée', 'seule', 'contente', 'fatiguée'];
+
+// Said to the player: « tu es », « es-tu », « t'es », « te sens », « sois », « te voilà »… A bare
+// word would also flag a right agreement with a feminine noun (« la dictée avancera toute seule »,
+// « une seule catégorie »), so only these second-person frames count.
+const YOU = String.raw`(?:tu (?:es|étais|seras|serais|sembles|semblais|parais|restes|deviens|as l[’']air)|tu n[’'](?:es|étais|as pas l[’']air)|es-tu|étais-tu|seras-tu|t[’'](?:es|étais|as l[’']air)|te (?:sens|sentais|voilà|revoilà|voici)|sois)`;
+// Adverbs that may sit between the verb and the adjective (« Tu es bien prête ? », « pas toute seule »).
+const FILLER = String.raw`(?:(?:si|très|bien|trop|tout|toute|déjà|enfin|encore|vraiment|pas|plus|jamais|assez)\s+)*`;
+
+/** Rulings C7, C8: never an adjective or participle agreeing with the player, never « héros » as a
+ *  vocative addressed to her. */
+export const GENDERED = new RegExp(
+  String.raw`(?<!\p{L})${YOU}\s+${FILLER}(?:${AGREEING.join('|')})(?!\p{L})|(^|[,!?«]\s*)(cher |jeune |petite? )?héro(s|ïne)\s*[,!]`,
+  'iu',
+);

@@ -27,6 +27,8 @@ describe('picking a line (spec §8)', () => {
     expect(pick(pool, 'b', seq(0.99))!.text).toBe('c');
     expect(pick([l('a')], 'a', seq(0))!.text).toBe('a');
     expect(pick([], undefined, seq(0))).toBeNull();
+    // Two identical variants, both said last: still a line, never undefined.
+    expect(pick([l('a'), l('a')], 'a', seq(0.99))!.text).toBe('a');
   });
 
   it('fills the declared placeholders and leaves unknown ones visible (the content test forbids them)', () => {

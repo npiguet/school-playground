@@ -1,5 +1,7 @@
 import { expect, type APIRequestContext, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+// The loader's own typography (Ruling E15), so the variants read exactly as the app shows them.
+import { frenchSpacing } from '../src/lib/text/french';
 
 // Stubs the Web Speech API before any navigation so the dictation runner never depends on a
 // real TTS engine (none is available in the headless Playwright container anyway). Installed
@@ -871,14 +873,12 @@ const CONTENT_LINES: Record<string, { text: string }[]> = Object.assign(
   ),
 );
 
-// Identical to frenchSpacing (src/lib/text/french.ts, Ruling E15): keep the two in step.
-const spaced = (t: string) => t.replace(/[ \u00a0]+([:;!?»])/g, '\u202f$1').replace(/«[ \u00a0]+/g, '«\u202f');
 
 /** The dialogue box (or a voice plate) says one of `key`'s variants (the pick is random, Ruling E11). */
 export async function expectLineOf(box: Locator, key: string, vars: Record<string, string> = {}) {
   await expect(box).toHaveAttribute('data-key', key);
   const fill = (t: string) => t.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m);
-  const variants = (CONTENT_LINES[key] ?? []).map((l) => spaced(fill(l.text)));
+  const variants = (CONTENT_LINES[key] ?? []).map((l) => frenchSpacing(fill(l.text)));
   expect(variants.length, key).toBeGreaterThan(0);
   const text = box.getByTestId('dialogue-text').or(box.locator('.voice-text'));
   await expect.poll(async () => variants.includes(((await text.first().textContent()) ?? '').trim())).toBe(true);

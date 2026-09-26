@@ -40,7 +40,7 @@ export const MUSTER = {
   showSheet: 'Voir la feuille',
   hideSheet: 'Cacher la feuille',
   sheetAlt: (n: number) => `Page ${n} de la feuille`,
-  noVoice: "Cet appareil ne sait pas lire à voix haute. La dictée avancera d'elle-même, sans voix.",
+  noVoice: 'Cet appareil ne sait pas lire à voix haute. La dictée avancera toute seule, sans voix.',
   paceHeading: 'Choisis ton rythme',
   paceLocked: 'Pas pendant un combat',
   paceGlory: 'Plus le rythme est vif, plus la gloire est grande.',
