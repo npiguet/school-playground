@@ -28,16 +28,16 @@ describe("dragon's nest (UI3 Ruling B5)", () => {
   });
 
   it('measures growth to the next stage in words, with a real plural', () => {
-    expect(growth(egg)).toEqual({ value: 0, max: 1, label: 'Prochaine étape : 1 technique neutralisée' });
-    expect(growth({ ...egg, stage: 'hatchling', neutralised: 1, next_stage_at: 3 })).toEqual({ value: 1, max: 3, label: 'Prochaine étape : 3 techniques neutralisées' });
-    expect(growth({ ...egg, stage: 'adult', neutralised: 6, next_stage_at: null })).toEqual({ value: 6, max: 6, label: 'Étape finale atteinte' });
+    expect(growth(egg)).toEqual({ value: 0, max: 1, label: "Pour grandir : 1 ruse d'Éris neutralisée" });
+    expect(growth({ ...egg, stage: 'hatchling', neutralised: 1, next_stage_at: 3 })).toEqual({ value: 1, max: 3, label: "Pour grandir : 3 ruses d'Éris neutralisées" });
+    expect(growth({ ...egg, stage: 'adult', neutralised: 6, next_stage_at: null })).toEqual({ value: 6, max: 6, label: 'Il a fini de grandir.' });
   });
 
   it('greets with its stage line and speaks in its care (immersion #23)', () => {
-    expect(nestGreeting(egg).map((l) => l.text)).toEqual(["L'œuf frémit chaque fois qu'un piège d'Éris est déjoué."]);
-    expect(careLine(egg)).toMatchObject({ speaker: 'dragon', text: "Il frémit dans la paille. Il éclora quand une ruse d'Éris sera neutralisée." });
-    expect(careLine({ ...egg, stage: 'hatchling' }).text).toBe('Il te regarde et attend un nom.');
-    expect(careLine({ ...egg, stage: 'young', name: 'Braise' }).text).toBe('Braise se laisse admirer. Change sa teinte quand tu veux.');
+    expect(nestGreeting(egg).map((l) => l.text)).toEqual(["Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille."]);
+    expect(careLine(egg)).toMatchObject({ speaker: 'dragon', text: "Je frémis dans la paille. J'éclorai quand une ruse d'Éris sera neutralisée." });
+    expect(careLine({ ...egg, stage: 'hatchling' }).text).toBe('Te revoilà ! Tu me donnes un nom ?');
+    expect(careLine({ ...egg, stage: 'young', name: 'Braise' }).text).toBe('Admire-moi ! Tu peux changer ma teinte quand tu veux.');
     for (const d of [egg, { ...egg, stage: 'young' as const, name: 'Braise' }]) expect(careLine(d).text.length).toBeLessThanOrEqual(160);
   });
 });

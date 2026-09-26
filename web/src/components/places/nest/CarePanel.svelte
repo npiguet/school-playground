@@ -1,8 +1,11 @@
 <script lang="ts">
   // The dragon's care (UI3 Ruling B5, was DragonScreen): naming it once it hatches and picking an
   // unlocked tint (spec §2, §3.6; plan Decision 11). The nest itself shows the dragon, its stage and
-  // its growth; the dragon speaks from the overlay's voice plate. Tints are known in advance (locked
-  // swatches say how to win them, ethics: nothing is a gamble) and changing one is instant/optimistic.
+  // its growth; the dragon speaks from the overlay's voice plate (it asks for its name, so no « Son
+  // nom » heading). UI3b playability #4: she writes the name on a painted ribbon, as she wrote her own
+  // on the forge's banner (HeroForm.svelte), not in a « label + field + submit » form. Tints are known
+  // in advance (the locked ones say once, under the row, how to win them; ethics: nothing is a
+  // gamble) and changing one is instant/optimistic.
   import { ART, MARK_ICONS } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
   import { untrack } from 'svelte';
@@ -99,19 +102,22 @@
     {/if}
   {:else if dragon}
     <section class="name-section">
-      <h3 class="kit-section">Son nom</h3>
       {#if dragon.stage === 'egg'}
         <p class="muted">Tu lui donneras un nom quand il éclora.</p>
       {:else}
         <div class="name-form">
-          <input
-            data-testid="dragon-name-input"
-            aria-label="Le nom de ton dragon"
-            maxlength="20"
-            lang="fr"
-            autocapitalize="words"
-            bind:value={nameInput}
-          />
+          <span class="name-banner">
+            <input
+              class="name-field"
+              data-testid="dragon-name-input"
+              aria-label="Le nom de ton dragon"
+              placeholder="Écris son nom…"
+              maxlength="20"
+              lang="fr"
+              autocapitalize="words"
+              bind:value={nameInput}
+            />
+          </span>
           <button type="button" class="kit-bronze" data-testid="dragon-name-save" disabled={savingName} onclick={saveName}>
             Garder ce nom
           </button>
@@ -143,10 +149,13 @@
               {#if !unlocked}<span class="lock" aria-hidden="true"><img src={MARK_ICONS.lock} alt="" /></span>{/if}
             </span>
             <span class="swatch-name">{TINT_NAMES[t]}</span>
-            {#if !unlocked}<span class="swatch-how">À gagner : quête de l'Oracle</span>{/if}
+            {#if !unlocked}<span class="sr-only"> (à gagner dans les quêtes de l'Oracle)</span>{/if}
           </button>
         {/each}
       </div>
+      {#if TINTS_ALL.some((t) => !isUnlocked(t))}
+        <p class="tint-how" data-testid="dragon-tint-how">Les autres teintes se gagnent dans les quêtes de l'Oracle.</p>
+      {/if}
     </section>
   {/if}
 </div>
@@ -168,10 +177,56 @@
   .tint-section > p {
     margin: 0;
   }
+  /* The name on a cloth ribbon under the dragon's plate, the forge's banner (HeroForm.svelte): the
+     ribbon is the field. The cloth is the wrapper's ::before (its clip-path would also clip a focus
+     ring drawn on the input), and the ring goes round the wrapper. */
   .name-form {
     display: flex;
-    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
     flex-wrap: wrap;
+  }
+  .name-banner {
+    position: relative;
+    isolation: isolate;
+    display: block;
+    width: 260px;
+  }
+  .name-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(180deg, #a5532f, #7e3b20);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 50%, 100% 100%, 0 100%, 14px 50%);
+  }
+  .name-banner:focus-within {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  /* Outranks `.kit-form input:not(...)` (the parchment field look) with the component's classes. */
+  .panel-care .name-banner input.name-field {
+    width: 100%;
+    min-height: 48px;
+    padding: 6px 28px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    color: var(--bronze-ink);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 20px;
+    text-align: center;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+  .panel-care .name-banner input.name-field::placeholder {
+    color: rgba(255, 240, 220, 0.72);
+    font-style: italic;
   }
   /* Equal columns, so the six eggs stand in one even row (UI3b walk b13: a wrapping flex row left
      the unlocked pair huddled and the last egg alone on a second line). */
@@ -234,10 +289,9 @@
     object-fit: contain;
   }
   .swatch-name {
-    font-size: 13px;
+    font-size: 14px;
   }
-  .swatch-how {
-    font-size: 13px;
+  .tint-how {
     font-style: italic;
     color: var(--reward-ink);
     text-align: center;

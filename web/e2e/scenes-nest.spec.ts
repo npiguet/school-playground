@@ -21,12 +21,14 @@ test('the nest: the egg in the straw, its growth, its greeting; the exit leads b
   await page.goto(`/#/p/${id}/dragon`);
   await expectScene(page, 'nest');
   await expect(page.locator('[data-testid="scene-nest"] .stage-plaque')).toHaveText('Le nid du dragon');
-  await expect(page.getByTestId('dialogue-text')).toHaveText("L'œuf frémit chaque fois qu'un piège d'Éris est déjoué.");
+  await expect(page.getByTestId('dialogue-text')).toHaveText("Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
   await expect(page.getByTestId('dragon-stage')).toHaveText('Œuf');
-  await expect(page.getByTestId('nest-growth')).toContainText('Prochaine étape : 1 technique neutralisée');
-  await expect(page.getByTestId('nest-growth')).toContainText('Frémit');
+  // UI3b playability #5: the camp's words (« ruses »), a sentence for its mood, a pinned sheet.
+  await expect(page.getByTestId('nest-growth')).toContainText("Pour grandir : 1 ruse d'Éris neutralisée");
+  await expect(page.getByTestId('nest-growth')).toContainText('Il frémit dans sa coquille.');
+  await expect(page.getByTestId('nest-growth')).toHaveClass(/kit-sheet/);
   await expect(page.getByTestId('nest-dragon')).toContainText('Un œuf de dragon');
   const b = await measureBoxes(page, { growth: '[data-testid="nest-growth"]', dragon: '[data-testid="nest-dragon"]' });
   expect(b.growth!.x + b.growth!.width, 'growth parchment left of the dragon').toBeLessThanOrEqual(b.dragon!.x);
@@ -42,11 +44,14 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(page).toHaveURL(/\/dragon\?panel=soin$/);
   const care = page.getByTestId('overlay-care');
   await expect(care.getByRole('heading', { name: 'Ton dragon', level: 2 })).toBeVisible();
-  await expect(care.getByTestId('overlay-voice')).toContainText("Il frémit dans la paille. Il éclora quand une ruse d'Éris sera neutralisée.");
+  await expect(care.getByTestId('overlay-voice')).toContainText("Je frémis dans la paille. J'éclorai quand une ruse d'Éris sera neutralisée.");
   await expect(care).toContainText('Tu lui donneras un nom quand il éclora.');
+  await expect(care.getByRole('heading', { name: 'Son nom' })).toHaveCount(0);
   await expect(care.getByTestId('dragon-tint-bronze')).toBeVisible();
   await expect(care.getByTestId('dragon-tint-ecume')).toBeDisabled();
-  await expect(care.getByTestId('dragon-tint-ecume')).toContainText("À gagner : quête de l'Oracle");
+  // UI3b playability #4: the locked rule is said once, under the row.
+  await expect(care.getByTestId('dragon-tint-how')).toHaveText("Les autres teintes se gagnent dans les quêtes de l'Oracle.");
+  await expect(care.getByTestId('dragon-tint-ecume')).toHaveAccessibleName(/Écume.*quêtes de l'Oracle/);
   await expect(care.getByTestId('dragon-tint-ecume').locator('img[src="/art/icons/lock.webp"]')).toBeVisible();
   // Fix round 1: the tint filters the egg picture only. Nothing around it is filtered, so the ring
   // keeps its own colour (a filtered ring turned violet, Éris's colour) and the lock stays readable;

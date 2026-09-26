@@ -64,29 +64,28 @@ export function dragonCaption(d: Pick<DragonOut, 'name' | 'stage'>): string {
   return d.name ?? (d.stage === 'egg' ? 'Un œuf de dragon' : stageLabel(d.stage));
 }
 
-/** The camp speech-bubble line for a dragon stage (moved out of `Camp.svelte`, spec Task 8 step
- *  1): `name` is `null` before it hatches (egg has no name yet); `remaining` is the number of
- *  available lieutenants left to neutralise before the next stage (only meaningful for `young`). */
+/** What the dragon says of itself at its stage, in its own voice (UI3b playability #15: its plate
+ *  names it, so it speaks in the first person; the egg speaks from inside its shell). The camp's
+ *  greeting and the nest's. `name` is null until it is named (a hatchling then asks for one);
+ *  `remaining` is the number of available lieutenants left to neutralise (only said when `young`). */
 export function stageLine(stage: DragonStage, name: string | null, remaining: number | null): string {
-  const label = name ?? 'Ton dragon';
-  if (stage === 'egg') return "L'œuf frémit chaque fois qu'un piège d'Éris est déjoué.";
-  if (stage === 'hatchling') return `${label} te regarde avec de grands yeux ambre.`;
+  if (stage === 'egg') return "Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.";
+  if (stage === 'hatchling') return name ? "Te revoilà ! Chaque ruse d'Éris neutralisée me fait grandir." : 'Te revoilà ! Tu me donnes un nom ?';
   if (stage === 'young') {
-    return `${label} bat des ailes : encore ${plural(Math.max(0, remaining ?? 0), 'technique', 'techniques')} à neutraliser.`;
+    const n = Math.max(0, remaining ?? 0);
+    if (n === 0) return "Je bats des ailes ! Toutes les ruses d'Éris sont neutralisées, pour l'instant.";
+    return `Je bats des ailes ! Encore ${plural(n, "ruse d'Éris", "ruses d'Éris")} à neutraliser.`;
   }
-  return `${label} veille sur le camp. Éris n'a qu'à bien se tenir.`;
+  return "Je veille sur le camp. Éris n'a qu'à bien se tenir.";
 }
 
-// Task 10b round 1 #3: `stageLine()` above (up to 64 chars) is what the dragon is up to, but a
-// `title` tooltip carrying it never shows on iPad (the target device has no mouse hover), and it's
-// too long for a hotspot label pill (`white-space: nowrap`). This is the same ambient status,
-// short enough to sit in the `camp-dragon` hotspot's caption instead (Camp.svelte's HUD dragon
-// button is icon-only, unchanged) - same thematic words as stageLine, just not a full sentence.
+// What the dragon is up to, as a sentence under its growth in the nest (UI3b playability #5: a lone
+// « Curieux » read like a form value).
 const STAGE_ACTIVITY: Record<DragonStage, string> = {
-  egg: 'Frémit',
-  hatchling: 'Curieux',
-  young: "S'entraîne",
-  adult: 'Monte la garde',
+  egg: 'Il frémit dans sa coquille.',
+  hatchling: 'Il est curieux.',
+  young: "Il s'entraîne à voler.",
+  adult: 'Il monte la garde.',
 };
 
 export function stageActivity(stage: DragonStage): string {

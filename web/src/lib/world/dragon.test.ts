@@ -12,18 +12,23 @@ describe('dragon helpers', () => {
     expect(dragonCaption({ name: null, stage: 'egg' })).toBe('Un œuf de dragon');
     expect(dragonCaption({ name: null, stage: 'young' })).toBe('Jeune dragon');
     expect(dragonCaption({ name: 'Braise', stage: 'young' })).toBe('Braise');
-    expect(stageLine('egg', null, 1)).toContain("L'œuf frémit");
-    expect(stageLine('young', 'Braise', 2)).toBe('Braise bat des ailes : encore 2 techniques à neutraliser.');
-    expect(stageLine('young', 'Braise', 1)).toBe('Braise bat des ailes : encore 1 technique à neutraliser.');
-    // A real plural (plural()): 0 takes the singular in French.
-    expect(stageLine('young', 'Braise', 0)).toBe('Braise bat des ailes : encore 0 technique à neutraliser.');
-    expect(stageLine('adult', 'Braise', null)).toBe("Braise veille sur le camp. Éris n'a qu'à bien se tenir.");
+    // UI3b playability #15: the dragon speaks in the first person under its own plate.
+    expect(stageLine('egg', null, 1)).toBe("Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
+    expect(stageLine('hatchling', null, 5)).toBe('Te revoilà ! Tu me donnes un nom ?');
+    expect(stageLine('hatchling', 'Braise', 5)).toBe("Te revoilà ! Chaque ruse d'Éris neutralisée me fait grandir.");
+    expect(stageLine('young', 'Braise', 2)).toBe("Je bats des ailes ! Encore 2 ruses d'Éris à neutraliser.");
+    expect(stageLine('young', 'Braise', 1)).toBe("Je bats des ailes ! Encore 1 ruse d'Éris à neutraliser.");
+    expect(stageLine('young', 'Braise', 0)).toBe("Je bats des ailes ! Toutes les ruses d'Éris sont neutralisées, pour l'instant.");
+    expect(stageLine('adult', 'Braise', null)).toBe("Je veille sur le camp. Éris n'a qu'à bien se tenir.");
+    for (const st of ['egg', 'hatchling', 'young', 'adult'] as const) {
+      expect(stageLine(st, 'Braise', 2)).not.toMatch(/Braise|Ton dragon|technique/);
+    }
   });
-  it('has a short ambient activity per stage, for a hotspot caption (unlike stageLine, no title tooltip on iPad)', () => {
-    expect(stageActivity('egg')).toBe('Frémit');
-    expect(stageActivity('hatchling')).toBe('Curieux');
-    expect(stageActivity('young')).toBe("S'entraîne");
-    expect(stageActivity('adult')).toBe('Monte la garde');
+  it('says what it is up to as a sentence, never a lone word (UI3b playability #5)', () => {
+    expect(stageActivity('egg')).toBe('Il frémit dans sa coquille.');
+    expect(stageActivity('hatchling')).toBe('Il est curieux.');
+    expect(stageActivity('young')).toBe("Il s'entraîne à voler.");
+    expect(stageActivity('adult')).toBe('Il monte la garde.');
   });
   it('tints a won egg and greys a locked one (fix round 1: on the egg picture only)', () => {
     expect(eggFilter('ecume', true)).toBe(TINT_FILTERS.ecume);

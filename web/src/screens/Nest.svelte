@@ -1,12 +1,13 @@
 <script lang="ts">
   // The dragon's nest (scenes UI spec §3, UI3 Ruling B5): the dragon in the straw bed at its stage
-  // and tint, its growth on a parchment, a tap on it opens its care (#/p/:id/dragon?panel=soin:
-  // name and tint), where it speaks. It greets once per page load with its stage line.
+  // and tint, its growth on a sheet pinned to the cliff (UI3b playability #5: the war tent's pinned
+  // parchment and its laurel gauge, not a web card), a tap on it opens its care
+  // (#/p/:id/dragon?panel=soin: name and tint), where it speaks. It greets once per page load with
+  // its stage line.
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import SceneLayer from '../components/scene/SceneLayer.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
-  import Gauge from '../components/juice/Gauge.svelte';
   import CarePanel from '../components/places/nest/CarePanel.svelte';
   import { NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from '../lib/world/scenes/nest';
   import { ART } from '../lib/world/art';
@@ -38,9 +39,22 @@
         filter={TINT_FILTERS[d.tint]}
         testId="nest-dragon-layer"
       />
-      <div class="kit-parchment nest-growth stage-text" data-testid="nest-growth">
+      <div class="kit-sheet nest-growth stage-text" data-testid="nest-growth">
         <span class="kit-plaque nest-stage" data-testid="dragon-stage">{stageLabel(d.stage)}</span>
-        <Gauge value={g.value} max={g.max} label={g.label} />
+        <span
+          class="kit-gauge"
+          role="progressbar"
+          aria-label={g.label}
+          aria-valuemin={0}
+          aria-valuemax={g.max}
+          aria-valuenow={g.value}
+          data-state={g.value >= g.max ? 'ok' : 'short'}
+          style:--fill="{Math.min(100, (g.value / g.max) * 100)}%"
+        >
+          <span class="kit-gauge-label growth-label">{g.label}</span>
+          <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
+          <span class="growth-count">{g.value} sur {g.max}</span>
+        </span>
         <p class="nest-activity">{stageActivity(d.stage)}</p>
       </div>
     {/if}
@@ -57,32 +71,37 @@
 {/if}
 
 <style>
-  /* The growth parchment on the cliff, left of the nest (art x 13.5-32.5, from y 18): inside the safe
-     zone, clear of the dragon's place (x 34+) and the HUD band; `stage-text` fades it under overlays. */
+  /* The growth sheet pinned on the cliff, left of the nest (art x 13.5-32.5, from y 18, its rods
+     included): inside the safe zone, clear of the dragon's place (x 34+) and the HUD band;
+     `stage-text` fades it under overlays. .kit-sheet's own margin leaves room for its rods. */
   .nest-growth {
     position: absolute;
     left: 13.5%;
     top: 18%;
-    width: 19%;
+    width: calc(19% - 20px);
+    box-sizing: border-box;
     z-index: 3;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    padding: 10px 12px;
+    padding: 16px 14px 12px;
     text-align: center;
   }
   .nest-stage {
     font-size: 15px;
   }
-  /* The gauge spans the sheet, its words centred above the « n / m » count (the sheet is narrow). */
-  .nest-growth :global(.gauge) {
+  /* The gauge spans the sheet, its words centred above the track and the count under it. */
+  .nest-growth .kit-gauge {
     align-self: stretch;
+    gap: 4px;
   }
-  .nest-growth :global(.gauge-label) {
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
+  .growth-label {
+    font-size: 15px;
+  }
+  .growth-count {
+    font-size: 14px;
+    color: var(--form-ink-soft);
   }
   .nest-activity {
     margin: 0;
