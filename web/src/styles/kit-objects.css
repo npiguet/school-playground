@@ -514,6 +514,11 @@ label.kit-medallion::before,
   border-left-color: var(--orange);
   background: rgba(252, 232, 214, 0.92);
 }
+/* The heroes' tools speaking (the Fil d'Ariane, UI4 Task 5): the Aegean. */
+.kit-note[data-tone='aegean'] {
+  border-left-color: var(--aegean);
+  background: rgba(221, 234, 242, 0.92);
+}
 
 /* --- The quill gauge: how long a text is, against the 80-200 words it needs ---------------- */
 .kit-gauge {

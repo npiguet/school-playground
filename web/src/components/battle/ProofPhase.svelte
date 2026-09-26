@@ -1,12 +1,19 @@
 <script lang="ts">
-  // The proofreading screen (spec §3.4) — the main game. The player's text is the only text
-  // on screen; the reference is used silently for spotlight mapping, hints and the stage-3
-  // count. Help stages: 1 spotlight passes, 2 named passes, 3 error count, 4 nothing.
+  // The proofreading on the battle parchment (spec §3.4, §5; UI4 Task 5) — the main game. The
+  // player's text is the only text on screen; the reference is used silently for spotlight
+  // mapping, hints and the stage-3 count. Help stages: 1 spotlight passes, 2 named passes, 3 error
+  // count, 4 nothing. Legibility first (Ruling C12): the text zone is nearly opaque, Literata at
+  // 22 px or more. While the keyboard is open (Ruling C4) the header, the Argus strip, the tools
+  // and the footer fold into one bar of 48 px icon buttons, so the text keeps its lines. The stage
+  // reacts to the tools only, never to an edit (Ruling C3).
   import { flushSync, untrack } from 'svelte';
   import TokenText from './TokenText.svelte';
   import WordEditor from './WordEditor.svelte';
   import Icon from '../ui/Icon.svelte';
   import { TOOL_ICONS } from '$lib/world/art';
+  import { PROOF } from '$lib/battle/lines';
+  import { react } from '$lib/battle/stage.svelte';
+  import { emitBattle } from '$lib/battle/events';
   import { activePasses, ARGUS_LABELS, HINTS_PER_STAGE, typedPassSets } from '$lib/argus';
   import { mapAnnotation, reverseAnnotationMap } from '$lib/grading/annotationMap';
   import { errorKey, gradeText } from '$lib/grading/grade';
@@ -39,10 +46,10 @@
      *  framing line; the stage-3 count itself is unchanged (always `gradeText`'s own count, never
      *  the plant count - see `freezeInitialErrors` below). */
     mode?: PlayMode;
-    /** The stage's layout (UI4 Ruling C4); Task 5 reads it for the compact tool bar. */
+    /** The stage's layout (UI4 Ruling C4): `compact` folds the controls into one bar. */
     layout: BattleLayout;
     onDone: () => void;
-    /** « Quitter » (UI4 Ruling C15): wired by Play now, rendered by Task 5. */
+    /** « Quitter » (UI4 Ruling C15): the play state is saved already; Play shows the resume ribbon. */
     onQuit: () => void;
   } = $props();
 
@@ -109,6 +116,7 @@
 
   function toggleFil() {
     fil = fil.step === 'idle' ? filStart({ drawn: fil.drawn, correct: fil.correct }) : filExit(fil);
+    emitBattle({ kind: 'tool', tool: 'fil' });
   }
 
   function exitFil() {
@@ -144,7 +152,10 @@
   // already on after a reload / Safari backgrounding) starts at the last sentence.
   let sentenceIndex = $state(untrack(() => spans.length - 1));
   let chouetteMessage = $state('');
+  // The two confirms never show together: opening one closes the other.
   let confirmDone = $state(false);
+  let confirmQuit = $state(false);
+  const compact = $derived(layout === 'compact');
 
   $effect(() => {
     savePlayState(play);
@@ -171,27 +182,30 @@
   const stageSentence = $derived.by(() => {
     switch (helpStage) {
       case 1:
-        return "Les Yeux d'Argus éclairent une catégorie à la fois.";
+        return PROOF.stage1;
       case 2:
-        return "Relis une catégorie à la fois, comme Argus te l'a appris.";
-      case 3: {
-        const n = play.initialErrors ?? 0;
-        if (n === 0) return "Éris n'a rien trouvé à saboter cette fois. Relis une dernière fois, puis valide.";
-        return n === 1 ? '1 piège est caché dans ce texte.' : `${n} pièges sont cachés dans ce texte.`;
-      }
+        return PROOF.stage2;
+      case 3:
+        return PROOF.count(play.initialErrors ?? 0);
       default:
-        return 'À toi de jouer. Valide quand tu es sûre.';
+        return PROOF.stage4;
     }
   });
   // SP2 Task 9: the grimoire flow frames every stage sentence with Éris's own line first.
-  const subtitle = $derived(mode === 'grimoire' ? `Éris a corrompu ce grimoire. ${stageSentence}` : stageSentence);
+  const subtitle = $derived(mode === 'grimoire' ? `${PROOF.grimoirePrefix} ${stageSentence}` : stageSentence);
 
   // --- Argus passes -------------------------------------------------------------------
 
   const isLastPass = $derived(play.passIndex >= passes.length - 1);
 
   function goToPass(i: number) {
-    play.passIndex = Math.max(0, Math.min(passes.length - 1, i));
+    const next = Math.max(0, Math.min(passes.length - 1, i));
+    // A new pass is a step forward for the heroes: the dragon cheers (Ruling C3, neutral).
+    if (next > play.passIndex) {
+      react('dragon', 'cheer');
+      emitBattle({ kind: 'tool', tool: 'argus' });
+    }
+    play.passIndex = next;
   }
 
   // --- Bouclier de Persée (one sentence at a time, last to first) ----------------------
@@ -206,6 +220,7 @@
     play.bouclier = !play.bouclier;
     if (play.bouclier) sentenceIndex = spans.length - 1;
     editing = null;
+    emitBattle({ kind: 'tool', tool: 'bouclier' });
   }
 
   function moveSentence(delta: number) {
@@ -244,15 +259,15 @@
     const revealed = new Set(play.revealedKeys);
     const next = grade.errors.find((e) => !revealed.has(errorKey(e)));
     if (!next) {
-      chouetteMessage = 'La chouette ne voit plus aucun piège.';
+      chouetteMessage = PROOF.owlNone;
       return;
     }
     play.revealedKeys = [...play.revealedKeys, errorKey(next)];
     play.hintsUsed += 1;
-    chouetteMessage =
-      next.sub === 'missing' || (next.typedIndex === null && next.expected !== null)
-        ? "Il manque un mot près d'ici."
-        : 'La chouette a repéré un piège ici.';
+    chouetteMessage = next.sub === 'missing' || (next.typedIndex === null && next.expected !== null) ? PROOF.owlMissing : PROOF.owlHere;
+    // The owl's hint already shows the spot: the opponent flinches at being seen (Ruling C3).
+    react('opponent', 'flinch');
+    emitBattle({ kind: 'tool', tool: 'chouette' });
     // In Bouclier mode, jump to the sentence that holds the hinted token.
     const i = hintTypedIndex(next, grade);
     if (play.bouclier && i !== null) {
@@ -312,16 +327,23 @@
   function toggleWholeText() {
     wholeText = !wholeText;
     editing = null;
+    emitBattle({ kind: 'tool', tool: 'whole' });
   }
 
-  // --- Done -----------------------------------------------------------------------------
+  // --- Done, and the way out (Ruling C15) ------------------------------------------------
 
   function finish() {
     if (helpStage <= 2 && !isLastPass) {
+      confirmQuit = false;
       confirmDone = true;
       return;
     }
     onDone();
+  }
+
+  function askQuit() {
+    confirmDone = false;
+    confirmQuit = true;
   }
 </script>
 
@@ -333,23 +355,82 @@
   />
 {/snippet}
 
-<section class="proof" aria-label="Relecture">
-  <header class="head">
-    <h2>{mode === 'grimoire' ? 'Grimoire corrompu' : 'Relecture'}</h2>
-    <p class="subtitle muted">{subtitle}</p>
-  </header>
+<!-- The four tools. Full layout: a painted emblem and its name. Compact: the emblem alone in a 48 px
+     button, its name read out (sr-only, not aria-label, so « Tout le texte » labels one field only). -->
+{#snippet tools()}
+  <div class="tools" data-testid="proof-tools">
+    <button type="button" class="kit-bronze is-quiet tool" class:on={play.bouclier} data-testid="btn-bouclier" aria-pressed={play.bouclier} onclick={toggleBouclier}>
+      <img class="tool-icon" src={TOOL_ICONS.persee} alt="" /><span class:sr-only={compact}>{PROOF.bouclier}</span>
+    </button>
+    {#if helpStage < 4 && hintsLeft > 0}
+      <button type="button" class="kit-bronze is-quiet tool" data-testid="btn-chouette" onclick={useChouette}>
+        <img class="tool-icon" src={TOOL_ICONS.athena} alt="" /><span class:sr-only={compact}>{PROOF.chouette(hintsLeft)}</span>
+        {#if compact}<span class="count" aria-hidden="true">{hintsLeft}</span>{/if}
+      </button>
+    {/if}
+    <button type="button" class="kit-bronze is-quiet tool" class:on={fil.step !== 'idle'} data-testid="btn-fil" aria-pressed={fil.step !== 'idle'} onclick={toggleFil}>
+      <img class="tool-icon" src={TOOL_ICONS.ariane} alt="" /><span class:sr-only={compact}>{PROOF.fil}</span>
+    </button>
+    <button type="button" class="kit-bronze is-quiet tool" class:on={wholeText} data-testid="btn-whole" aria-pressed={wholeText} onclick={toggleWholeText}>
+      <Icon name="pencil" size={26} /><span class:sr-only={compact}>{PROOF.whole}</span>
+    </button>
+  </div>
+{/snippet}
 
-  {#if helpStage <= 2 && activePass}
-    <div class="passes" role="group" aria-label="Passes d'Argus">
-      <div class="passes-row">
-        <img class="tool-icon argus-mark" src={TOOL_ICONS.argus} alt="" />
-        <div class="chips">
+{#snippet foot()}
+  <footer class="foot" data-testid="proof-foot">
+    {#if confirmDone}
+      <p class="confirm">{PROOF.confirmAsk}</p>
+      <div class="confirm-actions">
+        <button type="button" class="kit-bronze" onclick={onDone}>{PROOF.confirmYes}</button>
+        <button type="button" class="kit-bronze is-quiet" onclick={() => (confirmDone = false)}>{PROOF.confirmNo}</button>
+      </div>
+    {:else}
+      <button type="button" class="kit-bronze cta" data-testid="btn-done-proofreading" onclick={finish}>{PROOF.done}</button>
+    {/if}
+  </footer>
+{/snippet}
+
+<section class="proof" class:compact aria-label={PROOF.title}>
+  {#if compact}
+    <div class="bar">
+      <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-quit-proof" aria-label={PROOF.quit} onclick={askQuit}>
+        <Icon name="arrow-left" size={22} />
+      </button>
+      <h2 class="sr-only">{mode === 'grimoire' ? PROOF.grimoireTitle : PROOF.title}</h2>
+      {#if helpStage <= 2 && activePass}
+        <span class="bar-pass">{ARGUS_LABELS[activePass].title}</span>
+        {#if !isLastPass}
+          <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-next-pass" aria-label={PROOF.nextPass} onclick={() => goToPass(play.passIndex + 1)}>
+            <Icon name="arrow-right" size={22} />
+          </button>
+        {/if}
+      {/if}
+      {@render tools()}
+      {@render foot()}
+    </div>
+  {:else}
+    <header class="head">
+      <button type="button" class="kit-bronze is-quiet" data-testid="btn-quit-proof" onclick={askQuit}>
+        <Icon name="arrow-left" size={18} />{PROOF.quit}
+      </button>
+      <div class="titles">
+        <h2 class="phase-title">{mode === 'grimoire' ? PROOF.grimoireTitle : PROOF.title}</h2>
+        <p class="subtitle">{subtitle}</p>
+      </div>
+    </header>
+
+    {#if helpStage <= 2 && activePass}
+      <div class="argus" role="group" aria-label={PROOF.passes}>
+        <div class="argus-row">
+          <img class="argus-mark" src={TOOL_ICONS.argus} alt="" />
           {#each passes as pass, i (pass)}
             <button
               type="button"
-              class="chip"
-              class:chip-active={i === play.passIndex}
-              class:chip-done={i < play.passIndex}
+              class="kit-bronze is-quiet pass"
+              class:active={i === play.passIndex}
+              class:done={i < play.passIndex}
+              data-testid="argus-pass-{pass}"
               aria-pressed={i === play.passIndex}
               onclick={() => goToPass(i)}
             >
@@ -357,95 +438,59 @@
             </button>
           {/each}
           {#if !isLastPass}
-            <button type="button" class="btn next-pass" data-testid="btn-next-pass" onclick={() => goToPass(play.passIndex + 1)}>
-              Passe suivante <Icon name="arrow-right" size={18} />
+            <button type="button" class="kit-bronze next-pass" data-testid="btn-next-pass" onclick={() => goToPass(play.passIndex + 1)}>
+              {PROOF.nextPass}<Icon name="arrow-right" size={18} />
             </button>
           {/if}
         </div>
+        <p class="pass-hint">{ARGUS_LABELS[activePass].hint}</p>
       </div>
-      <p class="pass-hint">{ARGUS_LABELS[activePass].hint}</p>
+    {/if}
+
+    {@render tools()}
+  {/if}
+
+  {#if confirmQuit}
+    <div class="kit-note confirm-quit" role="status">
+      <p>{PROOF.quitAsk}</p>
+      <div class="confirm-actions">
+        <button type="button" class="kit-bronze" data-testid="btn-quit-proof-confirm" onclick={onQuit}>{PROOF.quitYes}</button>
+        <button type="button" class="kit-bronze is-quiet" onclick={() => (confirmQuit = false)}>{PROOF.confirmNo}</button>
+      </div>
     </div>
   {/if}
 
-  <div class="tools">
-    <button
-      type="button"
-      class="chip tool"
-      class:chip-active={play.bouclier}
-      aria-pressed={play.bouclier}
-      onclick={toggleBouclier}
-    >
-      <img class="tool-icon" src={TOOL_ICONS.persee} alt="" />Bouclier de Persée
-    </button>
-    {#if helpStage < 4 && hintsLeft > 0}
-      <button type="button" class="chip tool" onclick={useChouette}>
-        <img class="tool-icon" src={TOOL_ICONS.athena} alt="" />Chouette d'Athéna ({hintsLeft})
-      </button>
-    {/if}
-    <button
-      type="button"
-      class="chip tool"
-      class:chip-active={fil.step !== 'idle'}
-      aria-pressed={fil.step !== 'idle'}
-      data-testid="btn-fil"
-      onclick={toggleFil}
-    >
-      <img class="tool-icon" src={TOOL_ICONS.ariane} alt="" />Fil d'Ariane
-    </button>
-    <button
-      type="button"
-      class="chip tool"
-      class:chip-active={wholeText}
-      aria-pressed={wholeText}
-      onclick={toggleWholeText}
-    >
-      <Icon name="pencil" size={20} />Modifier tout le texte
-    </button>
-  </div>
-
   {#if fil.step !== 'idle'}
-    <div class="fil-panel" role="status">
+    <div class="kit-note fil-panel" data-tone="aegean" role="status">
       <div class="fil-text">
         <p class="fil-message" data-testid="fil-message">{fil.message}</p>
         {#if fil.step === 'done'}
-          <p class="fil-next" data-testid="fil-next">
-            Touche un autre verbe pour tendre un nouveau fil{filVerbText ? `, ou touche « ${filVerbText} » pour le corriger` : ''}.
-          </p>
+          <p class="fil-next" data-testid="fil-next">{PROOF.filNext(filVerbText)}</p>
         {/if}
       </div>
-      <button type="button" class="btn" data-testid="btn-fil-exit" onclick={exitFil}>Quitter le fil</button>
+      <button type="button" class="kit-bronze is-quiet" data-testid="btn-fil-exit" onclick={exitFil}>{PROOF.filExit}</button>
     </div>
   {/if}
 
   {#if play.bouclier && spans.length > 0 && !wholeText}
     <div class="sentence-nav">
-      <button
-        type="button"
-        class="btn"
-        disabled={clampSentence(sentenceIndex) === 0}
-        onclick={() => moveSentence(-1)}
-      >
-        <Icon name="arrow-left" size={18} /> Phrase précédente
+      <button type="button" class="kit-bronze is-quiet" disabled={clampSentence(sentenceIndex) === 0} onclick={() => moveSentence(-1)}>
+        <Icon name="arrow-left" size={18} />{PROOF.prevSentence}
       </button>
-      <span class="sentence-pos">
-        Phrase {spans.length - clampSentence(sentenceIndex)} sur {spans.length} — en partant de la fin
-      </span>
-      <button
-        type="button"
-        class="btn"
-        disabled={clampSentence(sentenceIndex) >= spans.length - 1}
-        onclick={() => moveSentence(1)}
-      >
-        Phrase suivante <Icon name="arrow-right" size={18} />
+      <span class="sentence-pos">{PROOF.sentencePos(spans.length - clampSentence(sentenceIndex), spans.length)}</span>
+      <button type="button" class="kit-bronze is-quiet" disabled={clampSentence(sentenceIndex) >= spans.length - 1} onclick={() => moveSentence(1)}>
+        {PROOF.nextSentence}<Icon name="arrow-right" size={18} />
       </button>
     </div>
   {/if}
 
   {#if chouetteMessage}
-    <p class="chouette orange" role="status">{chouetteMessage}</p>
+    <p class="kit-note chouette" data-testid="chouette-note" role="status">
+      <img class="tool-icon" src={TOOL_ICONS.athena} alt="" />{chouetteMessage}
+    </p>
   {/if}
 
-  <div class="text">
+  <div class="text-zone" data-testid="proof-text">
     {#if wholeText}
       <textarea
         lang="fr"
@@ -453,7 +498,7 @@
         autocapitalize="off"
         autocomplete="off"
         spellcheck="false"
-        aria-label="Tout le texte"
+        aria-label={PROOF.wholeLabel}
         bind:value={play.current}
       ></textarea>
     {:else}
@@ -474,123 +519,159 @@
     {/if}
   </div>
 
-  <footer class="foot">
-    {#if confirmDone}
-      <p class="confirm">Il reste des passes à faire. Valider quand même ?</p>
-      <div class="confirm-actions">
-        <button type="button" class="btn btn-primary" onclick={onDone}>Oui, valider</button>
-        <button type="button" class="btn" onclick={() => (confirmDone = false)}>Continuer la relecture</button>
-      </div>
-    {:else}
-      <button type="button" class="btn btn-primary done" data-testid="btn-done-proofreading" onclick={finish}>J'ai terminé ma relecture</button>
-    {/if}
-  </footer>
+  {#if !compact}{@render foot()}{/if}
 </section>
 
 <style>
   .proof {
+    --read-size: clamp(22px, 1.9vw, 26px);
     display: flex;
     flex-direction: column;
-    height: 100%;
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 8px 16px;
-    padding-left: calc(16px + env(safe-area-inset-left));
-    padding-right: calc(16px + env(safe-area-inset-right));
     gap: 8px;
+    height: 100%;
+    min-height: 0;
+    padding: 12px 18px;
+    /* Should the notes push past the parchment, the column scrolls rather than squeeze the text
+       below its four lines. */
+    overflow-y: auto;
+    color: var(--ink);
+    font-family: var(--font-body);
   }
-  .head h2 {
-    font-size: 24px;
+  /* Compact: the chrome is one bar of 48 px controls, the notes thinner, so a note and four lines
+     of text fit above the keyboard without scrolling the bar away. */
+  .proof.compact {
+    gap: 6px;
+    padding: 8px 12px 8px;
+  }
+  .compact .kit-note {
+    padding: 4px 12px;
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .titles {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .phase-title {
     margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 1.15;
+    color: var(--ink);
   }
   .subtitle {
     margin: 0;
     font-size: 16px;
+    color: var(--ink-soft);
   }
-  .passes-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-  }
-  .chips {
+  .bar {
+    flex: none;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
   }
-  .chip {
-    min-height: 44px;
+  .bar-pass {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--aegean-ink);
+    white-space: nowrap;
   }
-  .chip-done {
-    opacity: 0.7;
+  .icon-only {
+    padding: 0;
+    width: 48px;
   }
-  .next-pass {
-    min-height: 44px;
-    padding: 6px 16px;
-    font-size: 16px;
-  }
-  .pass-hint {
-    margin: 6px 0 0;
-    font-size: 16px;
-    color: var(--aegean);
-    font-weight: 600;
-  }
-  .tools {
+  .argus-row {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
-  }
-  .tool {
-    color: var(--ink);
-  }
-  .tool-icon {
-    width: 26px;
-    height: 26px;
-    object-fit: contain;
-    /* Spacing from the text/next icon comes from the flex `gap` on `.chip` (or `.passes-row` for
-       the Argus mark) since fix round 1 #4 - no own margin, or the two would add up. */
   }
   .argus-mark {
     width: 34px;
     height: 34px;
+    object-fit: contain;
   }
-  .sentence-nav {
+  .pass {
+    padding: 8px 14px;
+    font-size: 15px;
+  }
+  .pass.active {
+    border-color: var(--gold);
+    box-shadow:
+      0 0 0 3px var(--gold-light),
+      inset 0 1px 0 rgba(255, 240, 200, 0.6);
+  }
+  .pass.done {
+    opacity: 0.75;
+  }
+  .next-pass {
+    padding: 8px 16px;
+  }
+  .pass-hint {
+    margin: 6px 0 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--aegean-ink);
+  }
+  .tools {
+    flex: none;
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
     gap: 8px;
   }
-  .sentence-nav .btn {
-    min-height: 44px;
-    padding: 6px 14px;
+  .bar .tools {
+    flex-wrap: nowrap;
+  }
+  .tool {
+    position: relative;
+    gap: 6px;
+    padding: 6px 10px 6px 8px;
+    font-family: var(--font-body);
     font-size: 16px;
+    letter-spacing: 0;
+    color: var(--ink);
   }
-  .sentence-nav .btn:disabled {
-    opacity: 0.4;
-    cursor: default;
+  .bar .tool {
+    width: 48px;
+    padding: 0;
   }
-  .sentence-pos {
-    font-size: 15px;
-    color: var(--ink-soft);
-    text-align: center;
-    flex: 1;
+  .tool.on {
+    border-color: var(--gold);
+    background: linear-gradient(180deg, #fff6d8, #f1dc9a);
+    box-shadow: 0 0 0 3px rgba(212, 166, 58, 0.35);
   }
-  .chouette {
-    margin: 0;
-    font-weight: 600;
+  .tool-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
   }
+  .count {
+    position: absolute;
+    right: 2px;
+    bottom: 1px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--bronze-dark);
+  }
+  .confirm-quit,
   .fil-panel {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    background: var(--aegean-light);
-    border: 1px solid var(--aegean);
-    border-radius: var(--radius);
-    padding: 10px 14px;
+    gap: 8px 12px;
+  }
+  .confirm-quit p {
+    margin: 0;
+    font-weight: 600;
   }
   .fil-text {
     display: flex;
@@ -602,43 +683,101 @@
   .fil-message {
     margin: 0;
     font-weight: 600;
-    color: var(--aegean);
+    color: var(--aegean-ink);
   }
   .fil-next {
     margin: 0;
     font-size: 16px;
     color: var(--ink-soft);
   }
-  .text {
+  .sentence-nav {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .sentence-pos {
     flex: 1;
-    min-height: 0;
+    font-size: 16px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .chouette {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-weight: 600;
+  }
+  /* Ruling C12: the text zone. Nearly opaque, never animated over, four lines at the least. */
+  .text-zone {
+    flex: 1;
+    min-height: calc(4 * 1.9 * var(--read-size) + 34px);
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-    background: #fff;
-    border: 1px solid var(--marble-dark);
-    border-radius: var(--radius);
+    background: var(--battle-text-bg);
+    border: 1px solid var(--parchment-edge);
+    border-radius: 10px;
+    padding: 16px 22px;
+    box-shadow: inset 0 1px 3px rgba(92, 64, 24, 0.18);
+  }
+  .text-zone :global(.tokens) {
+    max-width: 34em;
+    margin-inline: auto;
+  }
+  .compact .text-zone {
     padding: 12px 16px;
   }
-  .text textarea {
+  .compact .text-zone :global(.tokens) {
+    max-width: none;
+  }
+  .text-zone textarea {
     display: block;
     width: 100%;
+    max-width: 34em;
     height: 100%;
+    margin: 0 auto;
+    padding: 0;
     resize: none;
-    font-size: 22px;
-    line-height: 1.6;
-    font-family: var(--font-reading);
-    padding: 16px;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font: 400 var(--read-size) / 1.9 var(--font-reading);
+  }
+  .compact .text-zone textarea {
+    max-width: none;
+  }
+  .text-zone textarea:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
   }
   .foot {
+    flex: none;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    padding-bottom: env(safe-area-inset-bottom);
   }
-  .done {
+  .bar .foot {
+    margin-left: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  /* « J'ai terminé ma relecture »: the gold call to action. */
+  .cta {
     width: 100%;
     max-width: 480px;
+    border-color: #8a6a12;
+    background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold) 55%, #9a7a1a 100%);
+    color: var(--ink);
+    text-shadow: none;
+  }
+  .bar .cta {
+    width: auto;
+    white-space: nowrap;
   }
   .confirm {
     margin: 0;

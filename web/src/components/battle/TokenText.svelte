@@ -5,6 +5,7 @@
   import type { Snippet } from 'svelte';
   import { tokenize } from '$lib/grading/tokenize';
   import type { ArgusPass } from '$lib/grading/types';
+  import { PROOF } from '$lib/battle/lines';
 
   let {
     text,
@@ -76,9 +77,7 @@
       class:fil-verb={filVerb === piece.index}
       class:fil-subject={filSubjects.has(piece.index)}
       data-testid={`tok-${piece.index}`}
-      aria-label={filActive
-        ? `Fil d'Ariane : choisir « ${tokens[piece.index].text} »`
-        : `Modifier « ${tokens[piece.index].text} »`}
+      aria-label={filActive ? PROOF.tokenFil(tokens[piece.index].text) : PROOF.tokenEdit(tokens[piece.index].text)}
       onclick={() => onEditToken(piece.index)}>{tokens[piece.index].text}</button>{/if}{/each}</p>
 
 <style>
@@ -87,7 +86,8 @@
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     font-family: var(--font-reading);
-    font-size: 22px;
+    /* UI4 Ruling C12: 22 px at the least, 1.9 line height (the 44 px tap rows). */
+    font-size: clamp(22px, 1.9vw, 26px);
     line-height: 1.9;
     color: var(--ink);
   }
@@ -114,15 +114,15 @@
     padding-right: 1px;
   }
   .tok:hover {
-    background: var(--marble-dark);
+    background: rgba(201, 171, 116, 0.28);
   }
   .tok:focus-visible {
-    outline: 3px solid var(--aegean);
+    outline: 3px solid var(--gold-light);
     outline-offset: -2px;
   }
   .tok.lit {
     background: var(--aegean-light);
-    color: var(--aegean);
+    color: var(--aegean-ink);
     font-weight: 600;
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;

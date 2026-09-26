@@ -2,6 +2,7 @@
   // Inline editor for one token of the player's text (spec §3.4 "tap a word → inline edit").
   // Enter, the OK button and blur commit; Escape cancels; an empty value means "delete".
   import { onMount, untrack } from 'svelte';
+  import { PROOF } from '$lib/battle/lines';
 
   let {
     value,
@@ -58,15 +59,15 @@
       enterkeyhint="done"
       {size}
       data-testid="word-editor"
-      aria-label="Nouveau mot"
+      aria-label={PROOF.editorLabel}
       onkeydown={onKeydown}
       onblur={commit}
     />
-    <button type="button" class="btn btn-primary ok" onmousedown={(e) => e.preventDefault()} onclick={commit}>
-      OK
+    <button type="button" class="kit-bronze ok" onmousedown={(e) => e.preventDefault()} onclick={commit}>
+      {PROOF.editorOk}
     </button>
   </span>
-  <span class="hint muted">Vide = supprimer le mot</span>
+  <span class="hint">{PROOF.editorHint}</span>
 </span>
 
 <style>
@@ -84,21 +85,28 @@
     align-items: center;
     gap: 6px;
   }
+  /* The token's own face and size (TokenText), on the text zone's paper, rimmed in gold. */
   input {
-    min-height: 44px;
-    padding: 6px 10px;
-    font-size: 22px;
-    font-family: var(--font-reading);
-    border-color: var(--aegean);
+    min-height: 48px;
+    padding: 4px 10px;
+    font: 400 1em var(--font-reading);
+    color: var(--ink);
+    background: var(--battle-text-bg);
+    border: 2px solid var(--gold);
+    border-radius: 8px;
     width: auto;
   }
+  input:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 1px;
+  }
   .ok {
-    min-height: 44px;
-    padding: 6px 14px;
-    font-size: 16px;
+    padding: 6px 16px;
   }
   .hint {
+    font-family: var(--font-body);
     font-size: 13px;
+    color: var(--ink-soft);
     white-space: nowrap;
   }
 </style>
