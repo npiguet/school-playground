@@ -519,6 +519,16 @@ export async function expectExitClearOfDialogueDock(page: Page, sceneId: string)
   ).toBe(false);
 }
 
+// What is still animating on an element (none once an overlay has settled), described so that a
+// failure says which animation is left and in what state (playState, currentTime, startTime,
+// duration), not just "1".
+export function runningAnimations(el: Element): string[] {
+  return el.getAnimations().map((a) => {
+    const t = a.effect?.getComputedTiming();
+    return `${a.playState} t=${Math.round(Number(a.currentTime))} start=${Math.round(Number(a.startTime))} duration=${t?.duration}`;
+  });
+}
+
 // Immersion wave (playability #12, #21): an open overlay - its rods included - starts below the
 // HUD, and the scene's text chrome behind it has faded out (SceneStage `has-overlay`). `hud` says
 // whether the scene has a HUD (the title has none): when it should, it must be there, so a HUD
@@ -526,7 +536,7 @@ export async function expectExitClearOfDialogueDock(page: Page, sceneId: string)
 export async function expectOverlayClearsScene(page: Page, overlayTestId: string, sceneId: string, hud: boolean) {
   const panel = page.getByTestId(overlayTestId);
   await expect(panel).toBeVisible();
-  await expect.poll(() => panel.evaluate((el) => el.getAnimations().length)).toBe(0);
+  await expect.poll(() => panel.evaluate(runningAnimations)).toEqual([]);
   const hudItems = page.locator(`[data-testid="scene-${sceneId}"] [data-testid="stage-hud"] *`);
   if (hud) await expect(hudItems.first()).toBeVisible();
   else await expect(hudItems).toHaveCount(0);
@@ -593,7 +603,7 @@ export async function expectFocusRingInsideBody(page: Page, overlayTestId: strin
 export async function expectOverlayTapTargets(page: Page, overlayTestId: string) {
   // Measure the settled panel: during its fly-in a 48 px control can read 47.x (B3 fix round 1).
   const panel = page.getByTestId(overlayTestId);
-  await expect.poll(() => panel.evaluate((e) => e.getAnimations().length)).toBe(0);
+  await expect.poll(() => panel.evaluate(runningAnimations)).toEqual([]);
   const small = await panel.evaluate((root) => {
     const sel = [
       'button',
