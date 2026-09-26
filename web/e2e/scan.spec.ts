@@ -32,7 +32,7 @@ test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
   await expect(card.getByTestId('chip-prophecy')).toContainText('samedi 30 juin 2035');
   await expect(page.getByRole('heading', { name: "Prophéties de l'Oracle" })).toBeVisible();
   await card.click();
-  await expect(page.getByTestId('play-prophecy')).toContainText('30.06.2035');
+  await expect(page.getByTestId('play-prophecy')).toContainText('samedi 30 juin 2035');
   await page.getByRole('button', { name: 'Voir la feuille' }).click();
   await expect(page.locator('img[src*="/api/scan/"]')).toBeVisible();
 });

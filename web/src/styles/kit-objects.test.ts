@@ -132,6 +132,11 @@ describe('object kit', () => {
         colorOf(ruleBodyOf(css, '.kit-note')), // the tone variant only overrides the border and background
         backgroundColoursOf(ruleBodyOf(css, ".kit-note[data-tone='eris']")),
       ],
+      [
+        "kit-note[data-tone='aegean']",
+        colorOf(ruleBodyOf(css, '.kit-note')),
+        backgroundColoursOf(ruleBodyOf(css, ".kit-note[data-tone='aegean']")),
+      ],
       ['.kit-prophecy (on the gold ribbon)', colorOf(ruleBodyOf(css, '.kit-prophecy')), goldBg],
       ['.kit-tablet-ribbon (on the gold ribbon)', colorOf(ruleBodyOf(css, '.kit-tablet-ribbon')), goldBg],
       ['.kit-ribbon (on its cloth gradient)', colorOf(ruleBodyOf(css, '.kit-ribbon')), backgroundColoursOf(ruleBodyOf(css, '.kit-ribbon'))],

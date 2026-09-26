@@ -1,16 +1,24 @@
 <script lang="ts">
-  // The muster (UI4 Task 2): what Play showed before the battle - the resume banner and the intro
-  // (the dictation's pace choice, or the grimoire's opening) - moved as it was onto the battle
-  // stage's parchment. Task 3 restyles it in the kit and gives Éris's `taunt` its voice plate.
-  import PaceSelect from '../PaceSelect.svelte';
+  // The muster (UI4 Task 3): the order of battle on the parchment before the fight. The resume
+  // ribbon when a dictation or a proofreading waits; otherwise the text's title, its length in
+  // words (no grade code, no « ≈ », Ruling C8), the quest, boss and prophecy ribbons, Éris's taunt
+  // on her voice plate (Ruling C7), the sheet fold, then the pace medallions and « Commencer la
+  // dictée » - or, for the grimoire, Éris's rule and « Ouvrir le grimoire ».
+  import { onMount } from 'svelte';
+  import OverlayVoice from '../scene/OverlayVoice.svelte';
+  import PaceMedallions from './PaceMedallions.svelte';
   import { api } from '../../lib/api';
-  import { formatSwissDate, isProphecy } from '../../lib/dates';
+  import { MUSTER } from '../../lib/battle/lines';
+  import { react } from '../../lib/battle/stage.svelte';
+  import { isProphecy } from '../../lib/dates';
   import { ttsAvailable } from '../../lib/dictation/tts';
   import type { Pace } from '../../lib/dictation/script';
   import type { PlayState } from '../../lib/playState';
   import { go } from '../../lib/scene/panelNav';
   import { href } from '../../lib/routes';
   import type { DialogueLine } from '../../lib/scene/types';
+  import { longDate } from '../../lib/text/french';
+  import { MARK_ICONS } from '../../lib/world/art';
   import type { PlayMode, TextFull } from '../../lib/types';
 
   let {
@@ -38,11 +46,11 @@
     minPace: Pace;
     questId: number | null;
     encounter: string | null;
-    /** A saved dictation or proofreading waits: the resume banner instead of the intro. */
+    /** A saved dictation or proofreading waits: the resume ribbon instead of the order of battle. */
     resume: boolean;
     corrupting: boolean;
     corruptError: string | null;
-    /** Éris's line at the muster (Ruling C7), rendered by Task 3. */
+    /** Éris's line at the muster (Ruling C7), on her voice plate. */
     taunt: DialogueLine | null;
     profileId: number;
     onContinue: () => void;
@@ -61,105 +69,95 @@
     if (t.source === 'custom' && t.added_by_name) return `Ajouté par ${t.added_by_name}`;
     return '';
   }
+
+  // The two sides square up: the opponent taunts, the dragon braces (Ruling C10).
+  onMount(() => {
+    react('opponent', 'taunt');
+    react('dragon', 'brace');
+  });
 </script>
 
 <div class="muster">
   {#if resume}
-    <div class="screen">
-      <h2 class="title">{text.title}</h2>
-      <div class="banner" data-testid="battle-resume">
-        <p>Tu reprends là où tu t’étais arrêtée.</p>
-        <div class="banner-actions">
-          <button type="button" class="btn btn-primary" data-testid="battle-resume-continue" onclick={onContinue}>Continuer</button>
-          <button type="button" class="btn" data-testid="battle-resume-restart" onclick={onRestart}>Recommencer</button>
+    <div class="resume">
+      <h2 class="muster-title">{text.title}</h2>
+      <div class="resume-sheet" data-testid="battle-resume">
+        <p class="kit-ribbon">{MUSTER.resume}</p>
+        <div class="actions">
+          <button type="button" class="kit-bronze" data-testid="battle-resume-continue" onclick={onContinue}>{MUSTER.continue}</button>
+          <button type="button" class="kit-bronze is-quiet" data-testid="battle-resume-restart" onclick={onRestart}>{MUSTER.restart}</button>
         </div>
       </div>
     </div>
   {:else}
-    <div class="screen">
-      <h2 class="title">{mode === 'grimoire' ? 'Grimoire corrompu' : text.title}</h2>
-      {#if credits(text)}<p class="credits muted">{credits(text)}</p>{/if}
-      <div class="chips">
-        <span class="chip">{text.level}</span>
-        <span class="chip">≈ {text.word_count} mots</span>
+    <header class="head">
+      <h2 class="muster-title">{mode === 'grimoire' ? MUSTER.grimoire : text.title}</h2>
+      {#if credits(text)}<p class="credits">{credits(text)}</p>{/if}
+      <div class="tags">
+        <span class="kit-tag" data-testid="muster-words">{MUSTER.words(text.word_count)}</span>
+        {#if questId}
+          <span class="kit-tag quest" data-testid="play-quest-banner">
+            <span class="kit-seal" aria-hidden="true"><img src={MARK_ICONS.oracleSeal} alt="" /></span>{MUSTER.quest}
+          </span>
+        {/if}
+        {#if text.due_date && isProphecy(text.due_date)}
+          <span class="kit-prophecy" data-testid="play-prophecy">{MUSTER.prophecy(longDate(text.due_date))}</span>
+        {/if}
       </div>
-
-      {#if text.due_date && isProphecy(text.due_date)}
-        <p class="prophecy" data-testid="play-prophecy">
-          Dictée préparée pour le {formatSwissDate(text.due_date)} — la prophétie de l'Oracle.
-        </p>
-      {/if}
-
-      {#if questId}
-        <div class="parchment quest-banner" data-testid="play-quest-banner">
-          <p>Ce texte compte pour ta quête.</p>
-        </div>
-      {/if}
-
       {#if encounter === 'eris'}
-        <div class="eris-panel boss-banner" data-testid="play-boss-banner">
-          <p>Combat contre Éris — les Yeux d'Argus restent éteints.</p>
-        </div>
+        <p class="kit-note" data-tone="eris" data-testid="play-boss-banner">{MUSTER.boss}</p>
       {/if}
+    </header>
 
-      {#if text.photo_count > 0}
-        <button type="button" class="btn photos-toggle" onclick={() => (showPhotos = !showPhotos)}>
-          {showPhotos ? 'Cacher la feuille' : 'Voir la feuille'}
+    {#if taunt}<OverlayVoice line={taunt} testId="battle-voice" />{/if}
+
+    {#if text.photo_count > 0}
+      <div class="sheet-fold">
+        <button type="button" class="kit-link" aria-expanded={showPhotos} onclick={() => (showPhotos = !showPhotos)}>
+          {showPhotos ? MUSTER.hideSheet : MUSTER.showSheet}
         </button>
         {#if showPhotos}
           <div class="scan-photos">
             {#each Array.from({ length: text.photo_count }, (_, i) => i + 1) as n (n)}
-              <img
-                src={api.scan.pageUrl(text.scan_id ?? '', n)}
-                alt={`Page ${n} de la feuille scannée`}
-                class="scan-photo"
-              />
+              <img src={api.scan.pageUrl(text.scan_id ?? '', n)} alt={MUSTER.sheetAlt(n)} class="scan-photo" />
             {/each}
           </div>
         {/if}
-      {/if}
+      </div>
+    {/if}
 
-      {#if mode === 'grimoire'}
-        <p>Éris a recopié ce parchemin en y semant ses dés-accords. Pas de dictée cette fois : retrouve-les et répare-les.</p>
-
-        {#if corruptError}
-          <p class="orange">{corruptError}</p>
-          <button type="button" class="btn" data-testid="btn-back-library" onclick={onToLibrary}>Retour aux Parchemins</button>
-        {:else if corrupting}
-          <p class="muted">Éris corrompt le grimoire…</p>
-        {:else}
-          <button type="button" class="btn btn-primary" data-testid="btn-open-grimoire" onclick={onOpenGrimoire}>
-            Ouvrir le grimoire
-          </button>
-        {/if}
+    {#if mode === 'grimoire'}
+      <p class="rule">{MUSTER.grimoireRule}</p>
+      {#if corruptError}
+        <div class="kit-note" data-tone="eris" role="alert">
+          <p>{corruptError}</p>
+          <button type="button" class="kit-bronze is-quiet" data-testid="btn-back-library" onclick={onToLibrary}>{MUSTER.backToShelves}</button>
+        </div>
+      {:else if corrupting}
+        <p class="kit-ribbon waiting">{MUSTER.corrupting}</p>
       {:else}
-        {#if !ttsAvailable()}
-          <p class="orange">
-            Cet appareil ne sait pas lire à voix haute. La dictée avancera toute seule, sans son.
-          </p>
-        {/if}
+        <button type="button" class="kit-bronze grand" data-testid="btn-open-grimoire" onclick={onOpenGrimoire}>{MUSTER.openGrimoire}</button>
+      {/if}
+    {:else}
+      {#if !ttsAvailable()}
+        <p class="kit-note" data-tone="eris">{MUSTER.noVoice}</p>
+      {/if}
+      <PaceMedallions bind:pace={playState.pace} {minPace} />
+      <p class="glory">{MUSTER.paceGlory}</p>
+      <button type="button" class="kit-bronze grand" onclick={onStart}>{MUSTER.start}</button>
 
-        <h3>Choisis ton rythme</h3>
-        <PaceSelect bind:pace={playState.pace} {minPace} />
-        <p class="muted">Les récompenses augmentent avec le rythme.</p>
-
-        <button type="button" class="btn btn-primary" onclick={onStart}>
-          Commencer la dictée
-        </button>
-
+      <div class="grimoire-way">
         <button
           type="button"
-          class="btn"
+          class="kit-bronze is-quiet"
           data-testid="btn-grimoire"
           onclick={() => go(href('grimoire', { profileId: String(profileId), textId: String(text.id) }))}
         >
-          Grimoire corrompu
+          {MUSTER.grimoire}
         </button>
-        <p class="muted">
-          Éris a déjà recopié ce texte… avec ses dés-accords. Pas de dictée : relis et répare.
-        </p>
-      {/if}
-    </div>
+        <p class="caption">{MUSTER.grimoireCaption}</p>
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -169,71 +167,152 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-  }
-  .muster .screen {
-    min-height: 0;
-  }
-  .title {
-    margin-top: 0;
-  }
-  .chips {
     display: flex;
-    gap: 8px;
-    margin: 12px 0 20px;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 22px;
+    color: var(--ink);
+    font-family: var(--font-body);
   }
-  .prophecy {
-    color: var(--gold);
+  .muster > :global(*) {
+    flex: none;
+  }
+  .muster :global(.overlay-voice) {
+    margin: 0;
+  }
+  .muster-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+  .head {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .credits {
+    margin: -4px 0 0;
+    font-size: 16px;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+  }
+  .tags .kit-tag {
+    font-size: 17px;
     font-weight: 600;
-    margin: 0 0 16px;
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
-  .quest-banner,
-  .boss-banner {
-    padding: 12px 16px;
-    margin: 0 0 16px;
+  /* Nothing to tie the tag to on the parchment: the punched hole stays, the cord goes. */
+  .tags .kit-tag::after {
+    display: none;
   }
-  .quest-banner p,
-  .boss-banner p {
+  .tags .quest {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    --tag-tilt: 1deg;
+  }
+  .quest .kit-seal {
+    --seal-size: 28px;
+  }
+  .tags .kit-prophecy {
+    margin: 0;
+    font-size: 16px;
+  }
+  .kit-note {
     margin: 0;
     font-weight: 600;
   }
-  .photos-toggle {
-    margin-bottom: 16px;
+  .kit-note p {
+    margin: 0 0 10px;
+  }
+  .sheet-fold {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
   .scan-photos {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 20px;
+    width: 100%;
   }
   .scan-photo {
     width: 100%;
-    object-fit: contain;
     max-height: 70vh;
-    border-radius: var(--radius);
-    border: 1px solid var(--marble-dark);
-    background: #fff;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid var(--parchment-edge);
+    background: var(--battle-text-bg);
   }
-  .banner {
+  .rule {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.45;
+  }
+  .glory {
+    margin: 0;
+    font-size: 16px;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+  .grand {
+    align-self: center;
+    min-width: min(100%, 320px);
+    min-height: 56px;
+    font-size: 18px;
+  }
+  .waiting {
+    align-self: center;
+  }
+  .grimoire-way {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    background: var(--aegean-light);
-    border: 1px solid var(--aegean);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    margin-bottom: 20px;
+    gap: 6px;
+    margin-top: 6px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(138, 90, 40, 0.45);
+    text-align: center;
   }
-  .banner p {
+  .caption {
+    margin: 0;
+    max-width: 34em;
+    font-size: 16px;
+    color: var(--ink-soft);
+  }
+  .resume {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    text-align: center;
+  }
+  .resume-sheet {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .resume-sheet .kit-ribbon {
     margin: 0;
   }
-  .banner-actions {
+  .actions {
     display: flex;
-    gap: 8px;
     flex-wrap: wrap;
-  }
-  h3 {
-    margin-top: 24px;
+    justify-content: center;
+    gap: 12px;
   }
 </style>

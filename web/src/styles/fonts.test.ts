@@ -52,7 +52,8 @@ describe('self-hosted fonts (scenes spec §2.7)', () => {
     expect(app).toMatch(/--font-body:\s*'Alegreya'/);
     expect(app).toMatch(/--font-reading:\s*'Literata'/);
     for (const c of ['DictationPhase', 'TokenText', 'ProofPhase', 'WordEditor']) {
-      expect(readFileSync(`src/components/battle/${c}.svelte`, 'utf-8'), c).toContain('font-family: var(--font-reading)');
+      // `font-family:` or the `font:` shorthand (UI4 Tasks 4-5 set size and line height with it).
+      expect(readFileSync(`src/components/battle/${c}.svelte`, 'utf-8'), c).toMatch(/\bfont(?:-family)?:[^;]*var\(--font-reading\)/);
     }
   });
 });

@@ -130,6 +130,9 @@ export const PROOF = {
   editorOk: 'OK',
   tokenEdit: (w: string) => `Modifier « ${w} »`,
   tokenFil: (w: string) => `Fil d'Ariane : choisir « ${w} »`,
+  // Lane P fix round 1: the compact bar's short stage-3 count, and its tools' hover titles.
+  countShort: (n: number) => plural(n, 'piège', 'pièges'),
+  prevPass: 'Passe précédente',
 } as const;
 
 // ===== Victory (Task 6) =====

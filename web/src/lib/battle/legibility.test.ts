@@ -22,4 +22,17 @@ describe('the battle text reads at 7:1 on any backdrop (Ruling C12)', () => {
     expect(contrastRatio(INK, over(bg, [0, 0, 0]))).toBeGreaterThanOrEqual(7);
     expect(contrastRatio(INK, over(bg, [255, 255, 255]))).toBeGreaterThanOrEqual(7);
   });
+  // Ruling U4-c: the spotlight's dimmed words step back in colour, and still read at 4.5:1.
+  it('keeps the dimmed words at 4.5:1 on the text zone, over black and over white', () => {
+    const dim = /--battle-dim-ink:\s*(#[0-9a-f]{6})/i.exec(kit)![1];
+    const bg = rgba('battle-text-bg');
+    expect(contrastRatio(dim, over(bg, [0, 0, 0]))).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(dim, over(bg, [255, 255, 255]))).toBeGreaterThanOrEqual(4.5);
+  });
+  it('dims with that ink, never with an opacity', () => {
+    const tokenText = readFileSync('src/components/battle/TokenText.svelte', 'utf-8');
+    const dimRule = /\.tok\.dim\s*\{([^}]*)\}/.exec(tokenText)![1];
+    expect(dimRule).toContain('var(--battle-dim-ink)');
+    expect(dimRule).not.toMatch(/opacity/);
+  });
 });

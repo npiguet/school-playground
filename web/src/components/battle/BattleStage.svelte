@@ -239,7 +239,8 @@
     inset: auto 0 auto 0;
     top: var(--vv-top, 0px);
     height: var(--vvh, 100dvh);
-    --parchment-w: min(96vw, 60rem);
+    /* The whole width under the band (lane P fix round 1): no night gutter beside the parchment. */
+    --parchment-w: 100vw;
   }
   .battle-stage[data-layout='compact'] .battle-scene {
     inset: 0 0 auto 0;
@@ -273,7 +274,7 @@
   .battle-stage[data-layout='compact'] .battle-parchment {
     top: var(--band);
     bottom: 0;
-    border-radius: 0 0 14px 14px;
+    border-radius: 0;
   }
 
   /* Keep in sync with RotateScreen.svelte's media query (spec §4: "portrait and aspect < 1"). */

@@ -9,10 +9,6 @@ import { legacyUses } from './testing/legacyClasses';
 // a legacy class. Lane P's files, then the fence line, then lane V's (Ruling C13): each lane removes
 // only its own lines, so the two merge without a conflict. Task 8 asserts it is empty.
 const PENDING = new Set<string>([
-  'src/components/battle/MusterPhase.svelte',
-  'src/components/battle/DictationPhase.svelte',
-  'src/components/battle/ProofPhase.svelte',
-  'src/components/battle/WordEditor.svelte',
   // --- lane V (Tasks 6-7) below this line ---
   'src/components/battle/BossMuster.svelte',
 ]);

@@ -5,6 +5,7 @@
   import type { Snippet } from 'svelte';
   import { tokenize } from '$lib/grading/tokenize';
   import type { ArgusPass } from '$lib/grading/types';
+  import { PROOF } from '$lib/battle/lines';
 
   let {
     text,
@@ -59,6 +60,15 @@
     return out;
   });
 
+  // A token glued to its neighbour (« bruit. », « maisons, ») loses its padding on that side: no
+  // gap before a full stop or a comma (French typography; the lane V review).
+  function snugLeft(index: number): boolean {
+    return index > 0 && tokens[index - 1].end === tokens[index].start;
+  }
+  function snugRight(index: number): boolean {
+    return index < tokens.length - 1 && tokens[index + 1].start === tokens[index].end;
+  }
+
   function inActivePass(index: number): boolean {
     return activePass !== null && (passSets[index]?.has(activePass) ?? false);
   }
@@ -70,15 +80,15 @@
       type="button"
       class="tok"
       class:punct={tokens[piece.index].kind === 'punct'}
+      class:snug-left={snugLeft(piece.index)}
+      class:snug-right={snugRight(piece.index)}
       class:lit={inActivePass(piece.index)}
       class:dim={dim && activePass !== null && !inActivePass(piece.index)}
       class:hint={hintedTokenIndexes.has(piece.index)}
       class:fil-verb={filVerb === piece.index}
       class:fil-subject={filSubjects.has(piece.index)}
       data-testid={`tok-${piece.index}`}
-      aria-label={filActive
-        ? `Fil d'Ariane : choisir « ${tokens[piece.index].text} »`
-        : `Modifier « ${tokens[piece.index].text} »`}
+      aria-label={filActive ? PROOF.tokenFil(tokens[piece.index].text) : PROOF.tokenEdit(tokens[piece.index].text)}
       onclick={() => onEditToken(piece.index)}>{tokens[piece.index].text}</button>{/if}{/each}</p>
 
 <style>
@@ -87,7 +97,8 @@
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     font-family: var(--font-reading);
-    font-size: 22px;
+    /* UI4 Ruling C12: 22 px at the least, 1.9 line height (the 44 px tap rows). */
+    font-size: clamp(22px, 1.9vw, 26px);
     line-height: 1.9;
     color: var(--ink);
   }
@@ -106,34 +117,41 @@
     color: inherit;
     cursor: pointer;
     transition:
-      opacity 0.2s ease,
+      color 0.2s ease,
       background 0.15s ease;
   }
   .tok.punct {
     padding-left: 1px;
     padding-right: 1px;
   }
+  .tok.snug-left {
+    padding-left: 0;
+  }
+  .tok.snug-right {
+    padding-right: 0;
+  }
   .tok:hover {
-    background: var(--marble-dark);
+    background: rgba(201, 171, 116, 0.28);
   }
   .tok:focus-visible {
-    outline: 3px solid var(--aegean);
+    outline: 3px solid var(--gold-light);
     outline-offset: -2px;
   }
   .tok.lit {
     background: var(--aegean-light);
-    color: var(--aegean);
+    color: var(--aegean-ink);
     font-weight: 600;
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
   }
+  /* Ruling U4-c: the words outside the pass step back in colour, still 4.5:1 (legibility.test). */
   .tok.dim {
-    opacity: 0.3;
+    color: var(--battle-dim-ink);
   }
   .tok.hint {
     background: var(--orange-light);
     box-shadow: inset 0 -3px 0 var(--orange);
-    opacity: 1;
+    color: var(--ink);
   }
   .tok.fil-verb {
     outline: 3px solid var(--aegean);
