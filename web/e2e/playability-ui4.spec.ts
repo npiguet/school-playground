@@ -303,7 +303,9 @@ async function bossSection(w: Walk) {
   // the real session is posted, and its progression answers « won » or « lost » at tier I.
   for (const [key, won, pose, name] of [
     ['bossWon', true, 'defeat', 'c18b-boss-won'],
-    ['bossLost', false, 'retreat', 'c18c-boss-lost'],
+    // Closing item 2: a lost boss fight is a standoff (never the "push" half-victory), so her pose
+    // is a taunt (she keeps her apple, defiant), not a retreat.
+    ['bossLost', false, 'taunt', 'c18c-boss-lost'],
   ] as const) {
     await page.route('**/api/sessions', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback();
@@ -318,8 +320,8 @@ async function bossSection(w: Walk) {
     await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-backdrop', 'lair');
     await expect(page.getByTestId('reveal-boss')).toBeVisible();
     await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', pose);
-    // UI4 Task A: her defeat swaps in the flustered pose (a sore loser caught off guard); a retreat
-    // (she escapes with her apple) keeps her standing card.
+    // UI4 Task A: her defeat swaps in the flustered pose (a sore loser caught off guard); a taunt
+    // (she keeps her apple, defiant) keeps her standing card.
     await expect(page.getByTestId('battle-opponent').locator('img')).toHaveAttribute(
       'src',
       pose === 'defeat' ? '/art/characters/eris_flustered_cut.webp' : '/art/characters/eris_cut.webp',

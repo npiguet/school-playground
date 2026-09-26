@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FORBIDDEN } from '../world/eris';
+import { outcomeOf } from './hp';
 import * as L from './lines';
 
 // Every string reachable from lines.ts, functions called with representative arguments.
@@ -57,6 +58,29 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
     expect(L.victoryTitle('push', 'sirenes')).toBe('Les Sirènes reculent !');
     expect(L.victoryTitle('push', 'eris')).toBe('Éris recule !');
     expect(L.victoryTitle('standoff', 'echo')).toBe('Le combat continue');
+  });
+
+  // Closing item 2: c18c showed « Éris recule ! » (a half-victory title) over her line about keeping
+  // the apple. Each boss outcome now gets a title and a line that agree: a win is the only "Victoire",
+  // and both kinds of loss (too easy, or a genuine defeat) share a title that never claims she was
+  // pushed back, matching her own line about the fight staying open.
+  it('gives each boss outcome a title and a line that agree with each other', () => {
+    const won = outcomeOf({ draft: 5, caught: 5 }, { won: true, too_easy: false });
+    expect(L.victoryTitle(won, 'eris')).toBe('Victoire !');
+    expect(L.VICTORY.bossWon).not.toMatch(/recule|reculent/);
+
+    const tooEasy = outcomeOf({ draft: 0, caught: 0 }, { won: false, too_easy: true });
+    expect(L.victoryTitle(tooEasy, 'eris')).toBe('Le combat continue');
+    expect(L.VICTORY.bossTooEasy).not.toMatch(/recule|reculent/);
+
+    // A genuine loss, whatever she caught along the way (never the "push" half-victory title).
+    for (const caught of [0, 3, 5]) {
+      const lost = outcomeOf({ draft: 5, caught }, { won: false, too_easy: false });
+      expect(L.victoryTitle(lost, 'eris'), `caught ${caught}`).toBe('Le combat continue');
+    }
+    // Her line keeps the apple - the title must never say she was pushed back.
+    expect(L.VICTORY.bossLost).toMatch(/pomme/);
+    expect(L.VICTORY.bossLost).not.toMatch(/recule|reculent/);
   });
 
   it('lets the dragon tell the tally in words', () => {

@@ -34,7 +34,9 @@ describe("the opponent's hold on the text (Ruling C3)", () => {
     expect(outcomeOf({ draft: 3, caught: 1 }, null)).toBe('push');
     expect(outcomeOf({ draft: 3, caught: 0 }, null)).toBe('standoff');
     expect(outcomeOf({ draft: 5, caught: 4 }, { won: true, too_easy: false })).toBe('rout');
-    expect(outcomeOf({ draft: 5, caught: 5 }, { won: false, too_easy: false })).toBe('push');
+    // Closing item 2: a lost boss fight is always a standoff, whatever she caught (never a "push"
+    // half-victory - the server's win/loss is binary, and a loss must not borrow that title).
+    expect(outcomeOf({ draft: 5, caught: 5 }, { won: false, too_easy: false })).toBe('standoff');
     expect(outcomeOf({ draft: 0, caught: 0 }, { won: false, too_easy: true })).toBe('standoff');
     expect(hpPercent({ value: 0.504, segments: null })).toBe(50);
   });
@@ -44,7 +46,7 @@ describe("the opponent's hold on the text (Ruling C3)", () => {
     // A failed submission leaves the boss with no verdict (no outcome yet), never a provisional one.
     expect(reckoningVerdict(r, { bossFight: true, progression: null })).toBeNull();
     expect(reckoningVerdict(r, { bossFight: true, progression: { boss: { won: true, too_easy: false } } })).toBe('rout');
-    expect(reckoningVerdict(r, { bossFight: true, progression: { boss: { won: false, too_easy: false } } })).toBe('push');
+    expect(reckoningVerdict(r, { bossFight: true, progression: { boss: { won: false, too_easy: false } } })).toBe('standoff');
     // Any other fight is the client's own result, with or without the server.
     expect(reckoningVerdict(r, { bossFight: false, progression: null })).toBe('push');
     expect(reckoningVerdict({ draft: 0, caught: 0 }, { bossFight: false, progression: null })).toBe('rout');

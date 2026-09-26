@@ -29,12 +29,14 @@ export function reckoningSteps(draft: number, caught: number): number[] {
   return Array.from({ length: strikes }, (_, i) => Math.max(0, round3(1 - (lost * (i + 1)) / strikes)));
 }
 
+// Closing item 2: a lost boss fight is always 'standoff', whatever she caught along the way. 'push'
+// (a lieutenant "on the back foot", partway to a rout) reads as ground won; the boss's win/loss is
+// binary (the server's `boss.won`), and a real loss must never borrow that half-victory title
+// ("Éris recule !") while her own line says she keeps the apple. 'standoff' ("Le combat continue")
+// fits either kind of loss: too_easy (undefeated - she'll try harder) or a genuine defeat (she keeps
+// the apple, but stays open to a rematch), and its opponent reaction is a taunt, not a retreat.
 export function outcomeOf(r: { draft: number; caught: number }, boss: { won: boolean; too_easy: boolean } | null): Outcome {
-  if (boss) {
-    if (boss.won) return 'rout';
-    if (boss.too_easy) return 'standoff';
-    return r.caught > 0 ? 'push' : 'standoff';
-  }
+  if (boss) return boss.won ? 'rout' : 'standoff';
   if (r.draft === 0 || r.caught >= r.draft) return 'rout';
   return r.caught > 0 ? 'push' : 'standoff';
 }
