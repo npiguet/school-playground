@@ -38,6 +38,7 @@
     hud = false,
     exit = false,
     children,
+    overlay,
   }: {
     battle: BattleDef | null;
     phase: BattlePhase;
@@ -48,6 +49,9 @@
     hud?: boolean;
     exit?: boolean;
     children: Snippet<[BattleLayout]>;
+    /** The stage's overlays (the « Revoir » scroll): rendered next to the stage, outside the `<main>`
+     *  that turns `inert` while they are open, as the places render theirs next to SceneStage. */
+    overlay?: Snippet;
   } = $props();
 
   resetBattleStage();
@@ -137,6 +141,7 @@
   </div>
   <RotateScreen background={battle?.backdrop.src ?? null} />
 </main>
+{@render overlay?.()}
 
 <style>
   .battle-stage {
@@ -167,6 +172,11 @@
   }
   .battle-stage[data-phase='proofreading'] .battle-backdrop {
     filter: brightness(0.7) saturate(0.85);
+  }
+  /* Ruling C6: the victory sheet unrolls over the dimmed battlefield. Only the ground dims: the
+     combatants stay lit, so the reckoning's strikes and end poses read beside the sheet. */
+  .battle-stage[data-phase='victory'] .battle-backdrop {
+    filter: brightness(0.6) saturate(0.8);
   }
   .battle-scene :global(.combatant.left) {
     --h: clamp(140px, 36vh, 320px);

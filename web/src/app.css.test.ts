@@ -17,6 +17,15 @@ function reducedMotionBlock(): string {
   return css.slice(start, end);
 }
 
+// UI4 Ruling C14: the legacy kit retired once nothing used it (placesKit.test.ts guards the markup).
+describe('the legacy kit', () => {
+  it('defines none of the retired legacy classes', () => {
+    for (const c of ['screen', 'btn', 'btn-primary', 'btn-ghost', 'card', 'chip', 'chip-active', 'parchment', 'scene', 'eris-panel']) {
+      expect(css, `.${c}`).not.toMatch(new RegExp(`^\\.${c}\\b`, 'm'));
+    }
+  });
+});
+
 describe('reduced motion', () => {
   it('zeroes animation-delay and transition-delay, not just the durations', () => {
     const block = reducedMotionBlock();

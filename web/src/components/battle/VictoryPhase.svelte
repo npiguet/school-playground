@@ -1,12 +1,12 @@
 <script lang="ts">
   // The victory (UI4 Task 6, Rulings C3, C6, C7): the reckoning on the stage, then the victory sheet
   // on the parchment - the outcome's title under the laurels, the tally, the Muses' status, the
-  // spoils, Éris's and the dragon's words, the actions - with the dragon's break nudge on top and the
-  // « Revoir » scroll (`?panel=revoir`, Ruling C1) over it all.
+  // spoils, Éris's and the dragon's words, the actions - with the dragon's break nudge on top. The
+  // « Revoir » scroll (`?panel=revoir`, Ruling C1) it opens is Play's, rendered through the stage's
+  // `overlay` snippet, outside the stage that turns inert while it is open.
   import { untrack } from 'svelte';
   import VictorySheet from './VictorySheet.svelte';
   import VictorySpoils from './VictorySpoils.svelte';
-  import ReviewScroll from './ReviewScroll.svelte';
   import DragonNudge from './DragonNudge.svelte';
   import DialogueBox from '../scene/DialogueBox.svelte';
   import { DRAGON_REVIEW_HINT, dragonTally, opponentName, STAGE, VICTORY, victoryTitle } from '../../lib/battle/lines';
@@ -23,10 +23,9 @@
   import type { CampResponse, DragonOut } from '../../lib/world/types';
   import { erisSays } from '../../lib/world/voices';
   import type { DialogueLine } from '../../lib/scene/types';
-  import type { PlayMode, Profile, TextFull } from '../../lib/types';
+  import type { PlayMode, Profile } from '../../lib/types';
 
   let {
-    text,
     result,
     playState,
     profile,
@@ -38,15 +37,12 @@
     submitError,
     submitting,
     revealDone = $bindable(),
-    reviewOpen,
     names,
     onReplay,
     onCamp,
     onRetry,
     onReview,
-    onCloseReview,
   }: {
-    text: TextFull;
     /** Null while the Muses count (the grading has not run yet). */
     result: SessionResult | null;
     playState: PlayState;
@@ -62,15 +58,13 @@
     submitting: boolean;
     /** The spoils play once, then fold away (a replay needs a fresh one). */
     revealDone: boolean;
-    /** « Revoir » is `?panel=revoir` on this URL (Ruling C1). */
-    reviewOpen: boolean;
     /** Lieutenant key -> French name, for the spoils' quest and neutralised titles. */
     names: Record<string, string>;
     onReplay: () => void;
     onCamp: () => void;
     onRetry: () => void;
+    /** Opens « Revoir » (`?panel=revoir` on this URL, Ruling C1). */
     onReview: () => void;
-    onCloseReview: () => void;
   } = $props();
 
   let reduced = $state(reducedMotion());
@@ -199,9 +193,6 @@
       {/if}
     {/snippet}
   </VictorySheet>
-  {#if reviewOpen}
-    <ReviewScroll reference={text} {result} finalText={playState.current} level={profile.level} onClose={onCloseReview} />
-  {/if}
 {:else}
   <p class="kit-ribbon counting" data-testid="battle-status">{STAGE.counting}</p>
 {/if}

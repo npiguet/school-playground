@@ -164,7 +164,7 @@
   {#if camp}
     <section>
       <h3 class="kit-section">Éris</h3>
-      <div class="kit-sheet eris-panel" data-testid="board-boss">
+      <div class="kit-sheet boss-sheet" data-testid="board-boss">
         {#if camp.boss.tier_available !== null || camp.boss.active_quest_id !== null}
           {@const rewardId = bossRewardId(camp.boss.tier_available, campStore.catalog)}
           <div class="boss-reward-line">
@@ -306,14 +306,14 @@
   .tablet-note {
     font-style: italic;
   }
-  .eris-panel {
+  .boss-sheet {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
   }
-  .eris-panel p {
+  .boss-sheet p {
     margin: 0;
   }
   .boss-reward-line {

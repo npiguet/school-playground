@@ -98,6 +98,20 @@
     return out;
   });
 
+  // Glued pieces (a word, its full stop, a missing-word marker) form one unbreakable run: every
+  // button is an atomic inline box, and a line may otherwise break before a full stop (TokenText).
+  type Run = { kind: 'gap'; text: string } | { kind: 'run'; items: Exclude<Piece, { kind: 'gap' }>[] };
+  const runs = $derived.by(() => {
+    const out: Run[] = [];
+    for (const p of pieces) {
+      const last = out.at(-1);
+      if (p.kind === 'gap') out.push(p);
+      else if (last?.kind === 'run') last.items.push(p);
+      else out.push({ kind: 'run', items: [p] });
+    }
+    return out;
+  });
+
   // "Ce qu'Éris a tenté": every error she planted (the draft's errors, whether caught or missed)
   // plus the ones she slipped in during proofreading, grouped by category.
   const caughtKeys = $derived(new Set(result.caught.map(errorKey)));
@@ -141,24 +155,14 @@
     const e = missingByAnchor.get(active.anchor)?.[active.i];
     return e ? { kind: 'missing' as const, e } : null;
   });
-
-  // The victory renders this scroll from inside the battle stage, which turns `inert` while an
-  // overlay is open (the places render theirs next to the stage instead). So the scroll moves to
-  // <body>, as RotateScreen does, and takes the focus the overlay could not give itself while it
-  // still sat inside the stage.
-  function toBody(node: HTMLElement) {
-    document.body.appendChild(node);
-    const panel = node.querySelector<HTMLElement>('[aria-modal="true"]');
-    if (panel && !node.contains(document.activeElement)) panel.focus();
-    return { destroy: () => node.remove() };
-  }
 </script>
 
-<div class="revoir-portal" use:toBody>
+<!-- Play renders this scroll through BattleStage's `overlay` snippet, next to the stage rather than
+     inside its `<main>`, which turns inert while an overlay is open (as the places do). -->
 <Overlay variant="scroll" size="wide" title={VICTORY.reviewTitle} testId="overlay-revoir" {onClose} returnFocus={'[data-testid="battle-revoir"]'}>
   <h3 class="kit-section">{VICTORY.reviewText}</h3>
   <div class="review-text">
-    <p class="tokens" lang="fr">{#each pieces as piece, i (i)}{#if piece.kind === 'gap'}{piece.text}{:else if piece.kind === 'missing'}{#each piece.errors as e, j (j)}<button
+    <p class="tokens" lang="fr">{#each runs as run, r (r)}{#if run.kind === 'gap'}{run.text}{:else}<span class="run">{#each run.items as piece, i (i)}{#if piece.kind === 'missing'}{#each piece.errors as e, j (j)}<button
             type="button"
             class="marker"
             class:active={active?.type === 'missing' && active.anchor === piece.anchor && active.i === j}
@@ -172,7 +176,7 @@
           class:caught={caughtAtTyped.has(piece.index)}
           class:active={active?.type === 'tok' && active.index === piece.index}
           onclick={() => tapTok(piece.index)}>{grade.typedTokens[piece.index].text}</button
-        >{/if}{/each}</p>
+        >{/if}{/each}</span>{/if}{/each}</p>
   </div>
 
   {#if activePanel}
@@ -207,12 +211,8 @@
     {/each}
   {/if}
 </Overlay>
-</div>
 
 <style>
-  .revoir-portal {
-    display: contents;
-  }
   /* The text as she left it (Ruling C12's legibility): Literata on the nearly opaque text zone. */
   .review-text {
     padding: 8px 16px;
@@ -229,13 +229,16 @@
     line-height: 1.9;
     color: var(--ink);
   }
-  /* Each word is an inline target: its padding carries the hit area to ~44 px (global constraints,
-     accessibility), the line box stays the text's own. */
+  .run {
+    white-space: nowrap;
+  }
+  /* Each word is an inline target. A button is an atomic inline box, so vertical padding would make
+     every row taller than the line height (TokenText's note): the 1.9 line height is the ~44 px row. */
   .tok {
     display: inline;
     appearance: none;
     margin: 0;
-    padding: 10px 2px;
+    padding: 0 2px;
     border: 0;
     border-radius: 6px;
     background: transparent;

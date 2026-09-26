@@ -9,6 +9,7 @@
   import DictationPhase from '../components/battle/DictationPhase.svelte';
   import ProofPhase from '../components/battle/ProofPhase.svelte';
   import VictoryPhase from '../components/battle/VictoryPhase.svelte';
+  import ReviewScroll from '../components/battle/ReviewScroll.svelte';
   import { api, ApiError } from '../lib/api';
   import { battleFor, isOpponentId, opponentFor, type BattlePhase, type OpponentId } from '../lib/battle/battle';
   import { hpDuringPlay } from '../lib/battle/hp';
@@ -69,8 +70,8 @@
   let helpMessage = $state<string | null>(null);
   let submitError = $state<string | null>(null);
   let submitting = $state(false);
-  // SP3 Task 8: the progression reveal (XP, quests, dragon growth...) plays once above the
-  // results screen, then collapses; `restart()` (replay) needs a fresh one.
+  // The victory's spoils (VictorySpoils: XP, quests, dragon growth...) play once on the victory
+  // sheet, then fold away; `restart()` (replay) needs a fresh one.
   let revealDone = $state(false);
   // Set once the player has explicitly left this session (toLibrary/clearPlayState): guards a
   // still-in-flight submitSession() from resurrecting the play state into localStorage after
@@ -298,7 +299,7 @@
       helpMessage = created.help_stage_message;
       save();
       // Refreshes profileStore's help_stage so the next play session uses it, and campStore so
-      // the dragon/XP/quests the ProgressionReveal reads (and the camp screen on return) are
+      // the dragon/XP/quests the victory's spoils read (and the camp screen on return) are
       // fresh with this session's progression already applied server-side.
       await Promise.all([loadProfile(profile.id), refreshCamp(profile.id)]);
     } catch (e) {
@@ -314,7 +315,7 @@
     if (playState && !playState.submitted) await submitSession();
   }
 
-  // Lieutenant key -> French name for ProgressionReveal's quest/neutralised titles (SP3 Task 8);
+  // Lieutenant key -> French name for the spoils' quest/neutralised titles (VictorySpoils);
   // 'eris' is added for the boss quest title, which the camp's lieutenant list doesn't carry.
   const progressionNames = $derived.by(() => {
     const out: Record<string, string> = { eris: 'Éris' };
@@ -448,7 +449,6 @@
         />
       {:else}
         <VictoryPhase
-          {text}
           {result}
           {playState}
           {profile}
@@ -460,15 +460,20 @@
           {submitError}
           {submitting}
           bind:revealDone
-          {reviewOpen}
           names={progressionNames}
           onReplay={restart}
           onCamp={toLibraryCamp}
           onRetry={submitSession}
           onReview={openReview}
-          onCloseReview={closeReview}
         />
       {/if}
+    {/if}
+  {/snippet}
+  {#snippet overlay()}
+    <!-- Outside the stage's inert <main> (BattleStage's `overlay`), so the scroll takes focus, Tab
+         and taps like every place's overlay. -->
+    {#if reviewOpen && phase === 'victory' && text && playState && result}
+      <ReviewScroll reference={text} {result} finalText={playState.current} level={profile.level} onClose={closeReview} />
     {/if}
   {/snippet}
 </BattleStage>

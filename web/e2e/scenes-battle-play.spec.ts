@@ -354,6 +354,15 @@ test('a long proofreading text reads comfortably: size, measure, height, an opaq
   expect(m.measure, 'column width in font sizes (~44-72 characters)').toBeGreaterThanOrEqual(22);
   expect(m.measure).toBeLessThanOrEqual(36);
   expect(m.height, 'the text zone takes most of the screen').toBeGreaterThanOrEqual(0.55);
+  // A word is a button, an atomic inline box: its own height sets the row (Task 8 walk). The rows
+  // are the line height (1.8-1.9 font sizes, the ~44 px tap row), not taller.
+  const rows = await zone.evaluate((el) => {
+    const tops = [...new Set(Array.from(el.querySelectorAll<HTMLElement>('.tok')).map((t) => Math.round(t.getBoundingClientRect().top)))].sort((a, b) => a - b);
+    const size = parseFloat(getComputedStyle(el.querySelector('.tokens')!).fontSize);
+    return { pitch: (tops[5] - tops[0]) / 5 / size, tap: el.querySelector<HTMLElement>('.tok')!.getBoundingClientRect().height };
+  });
+  expect(rows.pitch, 'row pitch in font sizes').toBeLessThanOrEqual(2);
+  expect(rows.tap, 'a word is still a ~44 px tap row').toBeGreaterThanOrEqual(41);
   const alpha = Number(/rgba?\([^)]*?,\s*([\d.]+)\)$/.exec(m.bg)?.[1] ?? '1');
   expect(alpha).toBeGreaterThanOrEqual(0.94);
   await expect(page.locator('.battle-backdrop')).toHaveCSS('filter', /brightness\(0\.7\)/);
@@ -366,15 +375,19 @@ test('a long proofreading text reads comfortably: size, measure, height, an opaq
   await expectOverlayTapTargets(page, 'proof-foot');
   expect(await redScan(page)).toEqual([]);
   // French typography (the lane V review): no gap before a full stop or a comma.
-  const gaps = await zone.evaluate((el) => {
+  const { gaps, orphans, loose } = await zone.evaluate((el) => {
     const toks = Array.from(el.querySelectorAll<HTMLElement>('.tok'));
-    const out: number[] = [];
+    const out = { gaps: [] as number[], orphans: [] as string[], loose: [] as string[] };
     toks.forEach((t, i) => {
       if (i > 0 && /^[.,]$/.test(t.textContent ?? '')) {
         const prev = toks[i - 1].getClientRects();
         const cur = t.getClientRects();
         if (prev.length && cur.length && Math.abs(prev[prev.length - 1].top - cur[0].top) < 2) {
-          out.push(cur[0].left - prev[prev.length - 1].right);
+          out.gaps.push(cur[0].left - prev[prev.length - 1].right);
+        } else out.orphans.push(`${toks[i - 1].textContent}${t.textContent}`);
+        // Task 8 walk: a full stop once opened a line. It shares its word's unbreakable run.
+        if (t.previousElementSibling !== toks[i - 1] || getComputedStyle(t.parentElement!).whiteSpace !== 'nowrap') {
+          out.loose.push(`${toks[i - 1].textContent}${t.textContent}`);
         }
       }
     });
@@ -382,6 +395,8 @@ test('a long proofreading text reads comfortably: size, measure, height, an opaq
   });
   expect(gaps.length).toBeGreaterThan(0);
   for (const g of gaps) expect(g, 'gap before « . » or « , » (px)').toBeLessThanOrEqual(0.5);
+  expect(orphans, 'a full stop or a comma never opens a line').toEqual([]);
+  expect(loose, 'a full stop or a comma is glued to its word').toEqual([]);
 });
 
 test('the Argus passes and the four tools work from their painted controls; the hold never grades', async ({ page, request }, testInfo) => {

@@ -624,8 +624,8 @@ export async function expectOverlayTapTargets(page: Page, overlayTestId: string)
 }
 
 // Classes of the legacy kit (buttons, cards, chips, parchment boxes) that an in-world overlay never
-// uses (immersion wave Task 13).
-export const LEGACY_UI = '.btn, .btn-primary, .btn-ghost, .card, .chip, .chip-active, .parchment';
+// uses (immersion wave Task 13), and the rest of the kit UI4 retired (src/testing/legacyClasses.ts).
+export const LEGACY_UI = '.btn, .btn-primary, .btn-ghost, .card, .chip, .chip-active, .parchment, .screen, .scene, .eris-panel, .banner, .banner-olive, .banner-error';
 
 // Immersion wave Task 13 (playability #1, #12, #21, #25; Rulings W1, W2, W4): an overlay is an
 // in-world object of its variant, clear of the HUD with the scene's words faded, 48 px targets, kit

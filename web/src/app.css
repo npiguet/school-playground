@@ -60,119 +60,15 @@ textarea {
   color: inherit;
 }
 
-.screen {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 16px;
-  padding-top: calc(16px + env(safe-area-inset-top));
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  padding-left: calc(16px + env(safe-area-inset-left));
-  padding-right: calc(16px + env(safe-area-inset-right));
-  min-height: 100dvh;
-}
-
+/* UI4 Ruling C14: the legacy kit (.screen, .btn*, .card, .chip*, .parchment, .scene, .eris-panel)
+   is gone; the places and the battle are built from the kit (styles/kit*.css). `.muted` and
+   `.orange` stay: a few panels still use them as plain text tones. */
 .muted {
   color: var(--ink-soft);
 }
 
 .orange {
   color: var(--orange);
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 10px 22px;
-  border-radius: var(--radius);
-  border: 2px solid var(--marble-dark);
-  background: var(--marble);
-  color: var(--ink);
-  font-size: 18px;
-  font-family: var(--font-body);
-  cursor: pointer;
-  transition:
-    transform 0.1s ease,
-    background 0.15s ease;
-}
-
-.btn:hover {
-  background: var(--marble-dark);
-}
-
-.btn:active {
-  transform: scale(0.97);
-}
-
-.btn:focus-visible {
-  outline: 3px solid var(--aegean);
-  outline-offset: 2px;
-}
-
-.btn-primary {
-  background: var(--terracotta);
-  border-color: var(--terracotta);
-  color: var(--marble);
-}
-
-.btn-primary:hover {
-  background: var(--terracotta-dark);
-  border-color: var(--terracotta-dark);
-}
-
-.btn-ghost {
-  background: transparent;
-  border-color: transparent;
-}
-
-.btn-ghost:hover {
-  background: var(--marble-dark);
-}
-
-.card {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: #fff;
-  border: 1px solid var(--marble-dark);
-  border-radius: var(--radius);
-  padding: 16px;
-  min-height: 48px;
-  box-shadow: 0 1px 3px rgba(43, 42, 40, 0.08);
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-}
-
-button.card {
-  appearance: none;
-}
-
-.card:hover {
-  box-shadow: 0 2px 8px rgba(43, 42, 40, 0.14);
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 40px;
-  padding: 6px 16px;
-  border-radius: 999px;
-  border: 2px solid var(--marble-dark);
-  background: var(--marble);
-  color: var(--ink-soft);
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.chip-active {
-  background: var(--aegean-light);
-  border-color: var(--aegean);
-  color: var(--aegean);
-  font-weight: 600;
 }
 
 input,
@@ -266,37 +162,6 @@ label {
   75% {
     transform: rotate(3deg);
   }
-}
-
-.parchment {
-  background: linear-gradient(#fbf6ea, #f1e7d0);
-  border: 1px solid #d9c9a3;
-  border-radius: 10px;
-  box-shadow:
-    inset 0 0 24px rgba(120, 90, 30, 0.12),
-    0 2px 6px rgba(43, 42, 40, 0.12);
-}
-
-.scene {
-  position: relative;
-  background-size: cover;
-  background-position: center bottom;
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.scene::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(rgba(244, 239, 230, 0.75), rgba(244, 239, 230, 0.15) 35%, rgba(244, 239, 230, 0));
-  pointer-events: none;
-}
-
-.eris-panel {
-  background: linear-gradient(135deg, var(--violet-dark), var(--violet));
-  color: var(--marble);
-  border-radius: var(--radius);
 }
 
 @media (prefers-reduced-motion: reduce) {

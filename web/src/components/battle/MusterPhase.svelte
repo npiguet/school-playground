@@ -77,7 +77,7 @@
   });
 </script>
 
-<div class="muster">
+<div class="muster" class:short={mode === 'grimoire' && !resume}>
   {#if resume}
     <div class="resume">
       <h2 class="muster-title">{text.title}</h2>
@@ -176,6 +176,14 @@
   }
   .muster > :global(*) {
     flex: none;
+  }
+  /* The grimoire's muster is short: centred in the parchment's height, as Éris's lair is (Task 8
+     walk c03: it left the lower half of the parchment empty); from the top when it overflows. */
+  .muster.short > :global(:first-child) {
+    margin-top: auto;
+  }
+  .muster.short > :global(:last-child) {
+    margin-bottom: auto;
   }
   .muster :global(.overlay-voice) {
     margin: 0;

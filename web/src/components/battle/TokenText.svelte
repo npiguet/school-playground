@@ -45,15 +45,23 @@
   const from = $derived(range?.start ?? 0);
   const to = $derived(range?.end ?? text.length);
 
-  // Pieces to render, in order: a gap (plain text) before every visible token, then the
-  // trailing gap up to the end of the range.
+  // Pieces to render, in order: a gap (plain text) before every visible run of tokens, then the
+  // trailing gap up to the end of the range. A run is the tokens glued together with no gap
+  // (« bruit. », « maisons, », « jusqu'au »): rendered unbreakable, since every button is an atomic
+  // inline box and a line may otherwise break before its full stop (Task 8 walk).
   const pieces = $derived.by(() => {
-    const out: ({ kind: 'gap'; text: string } | { kind: 'tok'; index: number })[] = [];
+    const out: ({ kind: 'gap'; text: string } | { kind: 'run'; indexes: number[] })[] = [];
     let cursor = from;
     tokens.forEach((t, index) => {
       if (t.start < from || t.end > to) return;
+      const last = out.at(-1);
       if (t.start > cursor) out.push({ kind: 'gap', text: text.slice(cursor, t.start) });
-      out.push({ kind: 'tok', index });
+      else if (last?.kind === 'run') {
+        last.indexes.push(index);
+        cursor = t.end;
+        return;
+      }
+      out.push({ kind: 'run', indexes: [index] });
       cursor = t.end;
     });
     if (to > cursor) out.push({ kind: 'gap', text: text.slice(cursor, to) });
@@ -76,20 +84,20 @@
 
 <!-- Deliberately written without whitespace between blocks: the container is `pre-wrap`,
      so any stray newline in the markup would show up as a line break in the text. -->
-<p class="tokens" lang="fr">{#each pieces as piece, i (i)}{#if piece.kind === 'gap'}{piece.text}{:else if piece.index === editingIndex && editor}{@render editor(piece.index)}{:else}<button
+<p class="tokens" lang="fr">{#each pieces as piece, i (i)}{#if piece.kind === 'gap'}{piece.text}{:else}<span class="run">{#each piece.indexes as index (index)}{#if index === editingIndex && editor}{@render editor(index)}{:else}<button
       type="button"
       class="tok"
-      class:punct={tokens[piece.index].kind === 'punct'}
-      class:snug-left={snugLeft(piece.index)}
-      class:snug-right={snugRight(piece.index)}
-      class:lit={inActivePass(piece.index)}
-      class:dim={dim && activePass !== null && !inActivePass(piece.index)}
-      class:hint={hintedTokenIndexes.has(piece.index)}
-      class:fil-verb={filVerb === piece.index}
-      class:fil-subject={filSubjects.has(piece.index)}
-      data-testid={`tok-${piece.index}`}
-      aria-label={filActive ? PROOF.tokenFil(tokens[piece.index].text) : PROOF.tokenEdit(tokens[piece.index].text)}
-      onclick={() => onEditToken(piece.index)}>{tokens[piece.index].text}</button>{/if}{/each}</p>
+      class:punct={tokens[index].kind === 'punct'}
+      class:snug-left={snugLeft(index)}
+      class:snug-right={snugRight(index)}
+      class:lit={inActivePass(index)}
+      class:dim={dim && activePass !== null && !inActivePass(index)}
+      class:hint={hintedTokenIndexes.has(index)}
+      class:fil-verb={filVerb === index}
+      class:fil-subject={filSubjects.has(index)}
+      data-testid={`tok-${index}`}
+      aria-label={filActive ? PROOF.tokenFil(tokens[index].text) : PROOF.tokenEdit(tokens[index].text)}
+      onclick={() => onEditToken(index)}>{tokens[index].text}</button>{/if}{/each}</span>{/if}{/each}</p>
 
 <style>
   .tokens {
@@ -102,13 +110,19 @@
     line-height: 1.9;
     color: var(--ink);
   }
-  /* Inline (not inline-block) so a word and its trailing comma never split across lines;
-     the vertical padding extends the tap target to ~44 px without changing the line box. */
+  /* Glued tokens stay on one line (a word and its full stop or comma). */
+  .run {
+    white-space: nowrap;
+  }
+  /* A word is a button, and a button is always an atomic inline box (whatever its `display`): its
+     height is its own line height plus its padding, and that height sets the row. So no vertical
+     padding (Task 8 walk: 10 px each way made every row ~2.7 font sizes tall and the gaps between
+     words wide): the row is the 1.9 line height, which is itself the ~44 px tap row (Ruling C12). */
   .tok {
     display: inline;
     appearance: none;
     margin: 0;
-    padding: 10px 4px;
+    padding: 0 2px;
     border: 0;
     border-radius: 8px;
     background: transparent;

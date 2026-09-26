@@ -1,16 +1,13 @@
-// Immersion wave Ruling W4 (playability #1): the places are built from kit classes only. Fails on a
-// legacy class - .btn, .btn-primary, .btn-ghost, .card, .chip, .chip-active, .parchment - used in
-// the markup (class attribute or class: directive) or reached through :global() in the <style> of
-// any component under components/places/, and of the shared components the places render.
+// Immersion wave Ruling W4 (playability #1), UI4 Ruling C14: the app is built from kit classes only.
+// Fails on a legacy class (testing/legacyClasses.ts: .btn, .card, .chip, .parchment, .screen,
+// .scene, .eris-panel, .banner...) used in the markup (class attribute or class: directive) or
+// reached through :global() in the <style> of any component or screen: the places, the battle
+// (UI4 Task 8 folded battleKit.test.ts in here once its pending list was empty) and everything else.
+// app.css no longer defines them (app.css.test.ts).
 import { describe, expect, it } from 'vitest';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { legacyUses } from './testing/legacyClasses';
-
-const SHARED = ['src/components/QuestCard.svelte'];
-// Files still waiting for their task. Tasks 6-12 each remove theirs; it may only shrink (a clean
-// file left here fails below), and Task 13 asserts it is empty.
-const PENDING = new Set<string>([]);
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -21,25 +18,21 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-const files = [...walk('src/components/places'), ...SHARED.filter((f) => existsSync(f))];
+const files = [...walk('src/components'), ...walk('src/screens'), 'src/App.svelte'];
 
-describe('places use the kit, never the legacy UI classes (Ruling W4)', () => {
-  it('finds no legacy class outside the pending files', () => {
+describe('the app uses the kit, never the legacy UI classes (Rulings W4, C14)', () => {
+  it('scans the places, the battle and the screens', () => {
+    for (const f of ['src/components/places/delphi/TabletsPanel.svelte', 'src/components/battle/BattleStage.svelte', 'src/screens/Play.svelte']) {
+      expect(files).toContain(f);
+    }
+  });
+
+  it('finds no legacy class', () => {
     const report: string[] = [];
     for (const f of files) {
-      if (PENDING.has(f)) continue;
       for (const hit of legacyUses(readFileSync(f, 'utf-8'))) report.push(`${f}:${hit}`);
     }
     expect(report).toEqual([]);
-  });
-
-  it('has no file left pending (Task 13)', () => expect([...PENDING]).toEqual([]));
-
-  it('keeps the pending list honest: every pending file still has a legacy class', () => {
-    for (const f of PENDING) {
-      expect(existsSync(f), `${f} no longer exists: remove it from PENDING`).toBe(true);
-      expect(legacyUses(readFileSync(f, 'utf-8')).length, `${f} is clean: remove it from PENDING`).toBeGreaterThan(0);
-    }
   });
 
   it('catches every legacy form (self-test)', () => {
@@ -51,7 +44,8 @@ describe('places use the kit, never the legacy UI classes (Ruling W4)', () => {
       '<style>.grid :global(.chip) { min-height: 48px; }</style>',
     ].join('\n');
     expect(legacyUses(planted)).toHaveLength(7);
-    expect(legacyUses('<button class="kit-bronze is-quiet">x</button><div class="kit-cubby">y</div>')).toEqual([]);
+    expect(legacyUses('<main class="screen"><div class="kit-sheet eris-panel banner">x</div></main>')).toHaveLength(3);
+    expect(legacyUses('<button class="kit-bronze is-quiet">x</button><div class="kit-cubby battle-scene">y</div>')).toEqual([]);
     expect(legacyUses('<script>const btn = "btn";</script><!-- class="card" -->')).toEqual([]);
   });
 });

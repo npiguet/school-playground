@@ -1,7 +1,22 @@
 // The legacy UI classes the kit replaced (immersion wave Ruling W4, UI4 Ruling C14), and the scanner
-// the kit guards share (placesKit.test.ts, battleKit.test.ts). A plain module, not a test file: a
+// the kit guard uses (placesKit.test.ts). A plain module, not a test file: a
 // test module importing another test module would register its tests twice.
-export const LEGACY_CLASSES = ['btn', 'btn-primary', 'btn-ghost', 'card', 'chip', 'chip-active', 'parchment'];
+export const LEGACY_CLASSES = [
+  'btn',
+  'btn-primary',
+  'btn-ghost',
+  'card',
+  'chip',
+  'chip-active',
+  'parchment',
+  // UI4 Task 8: the rest of the retired kit (app.css no longer defines any of them).
+  'screen',
+  'scene',
+  'eris-panel',
+  'banner',
+  'banner-olive',
+  'banner-error',
+];
 
 export function legacyUses(source: string): string[] {
   const hits: string[] = [];

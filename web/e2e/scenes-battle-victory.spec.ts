@@ -47,6 +47,9 @@ test('the reckoning strikes once per trap caught, then the lieutenant falls back
   await expect(page.getByTestId('battle-dragon')).toHaveAttribute('data-reaction', 'cheer');
   await expect(page.getByTestId('victory-title')).toHaveText("L'Hydre recule !");
   await expect(page.getByTestId('victory-laurel')).toBeVisible();
+  // Ruling C6: the sheet unrolls over the dimmed battlefield; the combatants stay lit.
+  await expect(page.locator('.battle-backdrop')).toHaveCSS('filter', /brightness\(0\.6\)/);
+  await expect(page.getByTestId('battle-opponent').locator('img')).toHaveCSS('filter', 'none');
   await expect(page.getByTestId('results-catch-rate')).toContainText('1 sur 2');
   // A narrow no-break space before « % » (rateText), read from the DOM as happy-path does.
   expect(await page.getByTestId('results-catch-rate').textContent()).toContain('50 %');
@@ -83,6 +86,11 @@ test('« Revoir » opens the review scroll: each trap explained on tap; Back and
   await expect(scroll.getByTestId('overlay-close')).toBeVisible();
   expect(await redScan(page)).toEqual([]);
   await expect(scroll.getByRole('heading', { name: "Ce qu'Éris a tenté" })).toBeVisible();
+  // A full stop never opens a line: it shares its word's unbreakable run (Task 8 walk).
+  const loose = await scroll.locator('.tok.punct').evaluateAll((els) =>
+    els.filter((t) => !t.previousElementSibling || getComputedStyle(t.parentElement!).whiteSpace !== 'nowrap').map((t) => t.textContent),
+  );
+  expect(loose).toEqual([]);
   await tap(scroll.getByRole('button', { name: 'chante', exact: true }), testInfo);
   await expect(scroll.getByTestId('revoir-popover')).toContainText('Attendu : « chantent »');
   await page.reload();
@@ -93,6 +101,37 @@ test('« Revoir » opens the review scroll: each trap explained on tap; Back and
   await tap(page.getByTestId('battle-revoir'), testInfo);
   await closeOverlay(page);
   await expect(page.getByTestId('battle-revoir')).toBeFocused();
+});
+
+// Task 8: the scroll is rendered next to the stage (BattleStage's `overlay` snippet), not inside its
+// inert <main>: it takes the focus, keeps Tab inside, closes on Escape and hands the focus back, and
+// leaves nothing behind when the battle goes.
+test('« Revoir » is a real modal: focus inside, Tab trapped, Escape closes, nothing left behind', async ({ page, request }, testInfo) => {
+  const { id } = await victory(page, request, `Vic3b-${testInfo.project.name}`, HALF);
+  await page.getByTestId('battle-revoir').click();
+  const scroll = page.getByTestId('overlay-revoir');
+  await expect(scroll).toBeVisible();
+  // Outside the stage: the stage is inert, the scroll is not inside it.
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('inert', '');
+  expect(await scroll.evaluate((el) => !!el.closest('[data-testid="scene-battle"]'))).toBe(false);
+  await expect.poll(() => scroll.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press('Tab');
+    expect(await scroll.evaluate((el) => el.contains(document.activeElement)), `Tab ${i + 1} stays in the scroll`).toBe(true);
+  }
+  await page.keyboard.press('Escape');
+  await expect(scroll).toHaveCount(0);
+  await expect(page).not.toHaveURL(/panel=revoir/);
+  await expect(page.getByTestId('scene-battle')).not.toHaveAttribute('inert', '');
+  await expect(page.getByTestId('battle-revoir')).toBeFocused();
+  // Leaving the battle with the scroll open takes the scroll along: the camp is not left inert.
+  await page.getByTestId('battle-revoir').click();
+  await expect(scroll).toBeVisible();
+  await page.evaluate((pid) => (location.hash = `#/p/${pid}/camp`), id);
+  await expectCamp(page);
+  await expect(page.locator('.overlay-panel')).toHaveCount(0);
+  await expect(page.locator('.overlay-backdrop')).toHaveCount(0);
+  await expect(page.getByTestId('scene-camp')).not.toHaveAttribute('inert', '');
 });
 
 test('every trap caught routs the lieutenant', async ({ page, request }, testInfo) => {
