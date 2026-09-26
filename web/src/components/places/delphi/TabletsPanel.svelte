@@ -16,6 +16,8 @@
   import { href } from '../../../lib/routes';
   import { plural } from '../../../lib/text/french';
   import { go } from '../../../lib/scene/panelNav';
+  import OverlayVoice from '../../scene/OverlayVoice.svelte';
+  import { VOICES } from '../../../lib/world/voices';
   import type { Profile } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -106,27 +108,29 @@
 </script>
 
 <div class="panel-tablets board">
-  <!-- Playability #10: what a quest of the wall brings, said once for the whole wall. -->
-  <p class="wall-reward" data-testid="board-reward">Chaque quête du mur rapporte {boardXp} XP et une page du bestiaire.</p>
+  <!-- Playability #10, re-review N13: the wall's reward and the cabin's next treasure, said once, by
+       the Pythia (the wall was the only overlay without a voice). -->
+  <OverlayVoice line={VOICES.wall}>
+    <span data-testid="board-reward">Chaque monstre défié rapporte {boardXp} XP et une page du bestiaire.</span>
+    {#if decor}
+      <span data-testid="board-decor">Encore {plural(decor.n, 'quête', 'quêtes')}, et ta cabane gagne un trésor : {decor.name}.</span>
+    {/if}
+  </OverlayVoice>
 
-  <section>
-    <h3 class="kit-section">En cours</h3>
-    {#if activeQuests.length === 0}
-      <p class="muted">Aucune quête en cours. Défie un monstre sur le mur, ou va voir la Pythie.</p>
-    {:else if campStore.catalog}
+  <!-- Re-review N13: « En cours » only when a quest is in progress - no empty state above the wall. -->
+  {#if activeQuests.length > 0 && campStore.catalog}
+    <section data-testid="board-active">
+      <h3 class="kit-section">En cours</h3>
       <div class="pinned">
         {#each activeQuests as q (q.id)}
           <QuestCard quest={q} {names} catalog={campStore.catalog} profileId={profile.id} {onShelve} />
         {/each}
       </div>
-    {/if}
-    {#if decor}
-      <p class="decor-line" data-testid="board-decor">Encore {plural(decor.n, 'quête', 'quêtes')} avant le prochain trésor de ta cabane : {decor.name}.</p>
-    {/if}
-  </section>
+    </section>
+  {/if}
 
-  <section>
-    <h3 class="kit-section">Défier un monstre</h3>
+  <section aria-labelledby="wall-title">
+    <h3 id="wall-title" class="sr-only">Défier un monstre</h3>
     {#if createError}<p class="kit-note" data-tone="eris" role="alert">{createError}</p>{/if}
     <ul class="wall">
       {#each LIEUTENANT_ORDER as key (key)}
@@ -147,7 +151,15 @@
             {#if l.active_quest_id}
               <span class="kit-tablet-ribbon">Quête en cours</span>
             {:else}
-              <button type="button" class="kit-bronze" disabled={creating === key} onclick={() => challenge(key)}>Lancer une quête</button>
+              <!-- Re-review N13: the whole tablet is the target (the button's ::after covers the clay);
+                   one word pressed into it. -->
+              <button
+                type="button"
+                class="tablet-defy"
+                aria-label="Défier {names[key] ?? key}"
+                disabled={creating === key}
+                onclick={() => challenge(key)}>Défier</button
+              >
             {/if}
           {/if}
           </div>
@@ -214,16 +226,43 @@
   .board h3 {
     margin: 0 0 10px;
   }
-  /* Gold on the wood: the one reward line of the wall. */
-  .wall-reward {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--gold-light);
+  /* « Défier » pressed into the clay: a recessed word, not a bronze slab. Its ::after spans the
+     whole tablet (the tablet is the positioned box), so a tap anywhere on the clay challenges. */
+  .tablet-defy {
+    margin-top: auto;
+    min-height: 48px;
+    padding: 4px 22px;
+    border: 0;
+    border-radius: 8px;
+    background: radial-gradient(ellipse at 50% 40%, rgba(92, 40, 20, 0.12), rgba(92, 40, 20, 0.32));
+    box-shadow:
+      inset 0 3px 6px rgba(92, 40, 20, 0.55),
+      0 1px 0 rgba(255, 230, 200, 0.5);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-shadow: 0 1px 0 rgba(255, 230, 200, 0.55);
+    cursor: pointer;
   }
-  .decor-line {
-    margin: 12px 0 0;
-    font-style: italic;
+  .tablet-defy::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 46% 46% 10px 10px / 18% 18% 10px 10px;
+  }
+  .tablet-defy:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+  .tablet-defy:focus-visible {
+    outline: none;
+  }
+  .tablet-defy:focus-visible::after {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 3px;
   }
   .pinned {
     display: flex;

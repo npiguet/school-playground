@@ -24,7 +24,7 @@
   import { go } from '../../../lib/scene/panelNav';
   import { playSfx, unlockAudio } from '../../../lib/juice/sfx';
   import { href } from '../../../lib/routes';
-  import { prophecyWhen } from '../../../lib/world/prophecy';
+  import { prophecyBonus, prophecyWhen } from '../../../lib/world/prophecy';
   import { scrollTitle } from '../../../lib/world/scenes/delphi';
   import type { Profile } from '../../../lib/types';
 
@@ -89,9 +89,10 @@
     return out;
   });
 
-  // The prophecies lead once the scrolls are done for the week, or when one is due within 7 days
-  // (the horizon of the camp's next-step line, nextStepLine in scenes/camp.ts).
-  const prophecyFirst = $derived(!!oracle && (oracle.status === 'chosen' || oracle.prophecies.some((p) => p.days_left <= 7)));
+  // Ruling W-f (re-review N1): while the week is not chosen, the three scrolls lead - choosing one is
+  // what she came to the Pythia for, and the altar card already shows the nearest prophecy on the
+  // scene. Once the week is chosen, the prophecies lead (the scrolls are done until Monday).
+  const prophecyFirst = $derived(oracle?.status === 'chosen');
 
   const reduced = reducedMotion();
   let pickerEl = $state<HTMLElement | null>(null);
@@ -164,15 +165,17 @@
 
 {#snippet propheciesSection(prophecies: OracleOut['prophecies'])}
   {#if prophecies.length > 0}
-    <section data-testid="oracle-prophecies">
-      <h3 class="kit-section">Prophéties</h3>
-      <p class="muted">Défends chaque prophétie avant son jour : la Pythie te promet une fois et demie plus de gloire (+50 % XP).</p>
+    <!-- Re-review N1/N6: no heading and no rule paragraph; each strip carries its own bonus tag. -->
+    <section data-testid="oracle-prophecies" aria-labelledby="oracle-prophecies-title">
+      <h3 id="oracle-prophecies-title" class="sr-only">Prophéties</h3>
       <ul class="prophecy-list">
         {#each prophecies as p (p.text_id)}
+          {@const bonus = prophecyBonus(p)}
           <li class="kit-sheet prophecy-row" data-testid="oracle-prophecy-{p.text_id}">
             <p>
               <span class="prophecy-title">« {p.title} »</span>
               <span class="prophecy-when">{longDate(p.due_date)} · {prophecyWhen(p.days_left)}</span>
+              {#if bonus}<span class="prophecy-bonus" data-testid="oracle-prophecy-bonus">{bonus}</span>{/if}
             </p>
             <button type="button" class="kit-bronze" onclick={() => review(p.text_id)}>Te préparer</button>
           </li>
@@ -188,11 +191,11 @@
   {:else if loadError}
     <p class="kit-note" data-tone="eris">Impossible de rejoindre l'Oracle : {loadError}</p>
   {:else if oracle}
-    <!-- Review fix round 1: once the week is chosen, or when a prophecy is due within a week (what
-         the camp's next-step line calls THE next step), the prophecies come first. -->
     {#if prophecyFirst}{@render propheciesSection(oracle.prophecies)}{/if}
-    <section>
-      <h3 class="kit-section">Les trois rouleaux</h3>
+    <!-- Re-review N1: no visible heading over the scrolls (the reward line leads them); the h3 stays
+         for heading navigation, above the scrolls' own h4s. -->
+    <section data-testid="oracle-scrolls" aria-labelledby="oracle-scrolls-title">
+      <h3 id="oracle-scrolls-title" class="sr-only">Les trois rouleaux</h3>
       <!-- Playability #8: the reward once, with its medallion, in dark bronze. -->
       <div class="reward-line" data-testid="oracle-reward">
         {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} size={36} />{/if}
@@ -218,7 +221,7 @@
                       disabled={!isAvailable(key)}
                       onclick={() => (selectedMonster = key)}
                     >
-                      <LieutenantBadge lieutenantKey={key} size={64} />
+                      <LieutenantBadge lieutenantKey={key} size={72} />
                       <span class="monster-name">{nameFor(key)}</span>
                       {#if !isAvailable(key)}<span class="monster-note">dort encore</span>{/if}
                     </button>
@@ -328,11 +331,13 @@
     font-size: 18px;
     font-style: italic;
   }
-  /* Playability #9: a 3x2 grid of monster medallions (>= 56 px), names under them. */
+  /* Playability #9: a 3x2 grid of monster medallions, names under them. Re-review N12: straight on
+     the parchment (no card boxes); the medallion and its name are the whole (>= 48 px) target, and
+     the chosen one is ringed in gold. */
   .picker-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(120px, 1fr));
-    gap: 12px;
+    gap: 8px 12px;
     width: 100%;
   }
   .monster {
@@ -340,20 +345,23 @@
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    min-height: 120px;
-    padding: 10px 6px;
-    border: 2px solid transparent;
+    min-height: 48px;
+    padding: 6px;
+    border: 0;
     border-radius: 12px;
-    background: rgba(255, 250, 238, 0.55);
+    background: none;
     color: var(--ink);
     font: inherit;
     cursor: pointer;
   }
-  .monster.is-picked {
+  .monster.is-picked :global(.lt-badge) {
     border-color: var(--gold-light);
     box-shadow:
-      0 0 0 2px var(--bronze),
-      0 0 14px rgba(255, 220, 140, 0.7);
+      0 0 0 3px var(--gold-light),
+      0 0 16px rgba(255, 220, 140, 0.85);
+  }
+  .monster.is-picked .monster-name {
+    color: var(--bronze-dark);
   }
   .monster:disabled {
     opacity: 0.55;
@@ -425,6 +433,14 @@
   }
   .prophecy-title {
     font-weight: 700;
+  }
+  /* Re-review N6: the prophecy's bonus, a reward-ink tag on its own line of the strip. */
+  .prophecy-bonus {
+    display: block;
+    margin-top: 2px;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--reward-ink);
   }
   @media (orientation: portrait) {
     .rolls {

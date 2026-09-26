@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { de, longDate, plural } from './french';
+import { de, longDate, plural, weekdayOf } from './french';
 
 describe('French wording helpers', () => {
   it('counts without a form plural (playability #10)', () => {
@@ -40,5 +40,14 @@ describe('French wording helpers', () => {
     expect(longDate('2026-10-01T00:00:00', today)).toBe('jeudi 1er octobre');
     // B1 fix round 1: malformed input comes back unchanged.
     for (const bad of ['', 'demain', '2026-9-28', '2026-13-01', '2026-02-30', '2026-00-10']) expect(longDate(bad, today)).toBe(bad);
+  });
+});
+
+describe('weekdayOf', () => {
+  it('names the weekday of a real date, null otherwise', () => {
+    expect(weekdayOf('2026-09-28')).toBe('lundi');
+    expect(weekdayOf('2099-01-01')).toBe('jeudi');
+    expect(weekdayOf('2026-10-04T00:00:00')).toBe('dimanche');
+    for (const bad of ['', 'demain', '2026-02-30', '2026-13-01']) expect(weekdayOf(bad)).toBeNull();
   });
 });

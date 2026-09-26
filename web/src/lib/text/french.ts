@@ -27,15 +27,22 @@ export function de(name: string): string {
 const WEEKDAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
+/** The weekday of a YYYY-MM-DD date (« lundi »), or null when it is not a real date. */
+export function weekdayOf(iso: string): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!match) return null;
+  const [y, m, d] = match.slice(1).map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) return null;
+  return WEEKDAYS[date.getUTCDay()];
+}
+
 /** « lundi 28 septembre », « jeudi 1er janvier 2099 »: the year only when it is not this one. Input
  *  that is not a real YYYY-MM-DD date comes back as it was, never « undefined NaN ». */
 export function longDate(iso: string, today: Date = new Date()): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (!match) return iso;
-  const [y, m, d] = match.slice(1).map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d));
-  if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) return iso;
-  const weekday = WEEKDAYS[date.getUTCDay()];
+  const weekday = weekdayOf(iso);
+  if (!weekday) return iso;
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
   const day = d === 1 ? '1er' : String(d);
   const year = y === today.getFullYear() ? '' : ` ${y}`;
   return `${weekday} ${day} ${MONTHS[m - 1]}${year}`;

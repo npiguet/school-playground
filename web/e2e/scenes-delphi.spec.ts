@@ -1,5 +1,5 @@
 import { test, expect } from './crashGuard';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import {
   closeOverlay,
   createProfileApi,
@@ -78,6 +78,12 @@ test('the Pythia opens the three scrolls; « Ce que prépare ta classe »; seal,
     expect(Math.min(box.width, box.height), `${key} medallion button`).toBeGreaterThanOrEqual(56);
   }
   await expect(oracle.getByTestId('oracle-cancel')).toBeInViewport();
+  // Re-review N12: medallions straight on the parchment (no card boxes); the confirm is the same
+  // bronze as every primary, only fainter until a monster is chosen.
+  await expect(oracle.getByTestId('oracle-monster-hydre')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(oracle.getByTestId('oracle-confirm')).toHaveCSS('opacity', '0.55');
+  await oracle.locator('[data-testid^="oracle-monster-"]:not([disabled])').first().click();
+  await expect(oracle.getByTestId('oracle-confirm')).toHaveCSS('opacity', '1');
   await expectOverlayTapTargets(page, 'overlay-pythia');
   await oracle.getByTestId('oracle-cancel').click();
   await expect(oracle.getByTestId('scroll-open')).toHaveCount(3);
@@ -106,20 +112,30 @@ test('the Pythia speaks of a prophecy by its day, not its date; « Te préparer 
   await expect(row).not.toContainText('01.01.2099');
   const oracle = page.getByTestId('overlay-pythia');
   await expect(oracle).not.toContainText('multipliée');
-  // Review fix round 1: a sealed week with a far prophecy leads with the scrolls; once the week is
-  // chosen, the prophecies lead (the scrolls are done until Monday).
-  const sections = oracle.locator('h3.kit-section');
-  await expect(sections).toHaveText(['Les trois rouleaux', 'Prophéties']);
+  // Re-review N6: no « Prophéties » heading nor rule paragraph; the bonus is a tag on the strip
+  // (the day is a year off, so « son jour » rather than an ambiguous weekday).
+  await expect(oracle.getByText('une fois et demie')).toHaveCount(0);
+  await expect(oracle.locator('h3.kit-section', { hasText: 'Prophéties' })).toHaveCount(0);
+  await expect(row.getByTestId('oracle-prophecy-bonus')).toHaveText("Défendue avant son jour : +50 % d'XP");
+  // Ruling W-f: a sealed week leads with the scrolls; once the week is chosen, the prophecies lead
+  // (the scrolls are done until Monday).
+  await expect.poll(() => sectionOrder(oracle)).toEqual(['oracle-scrolls', 'oracle-prophecies']);
   await oracle.getByTestId('scroll-faible').getByTestId('scroll-open').click();
   await expect(oracle.getByTestId('oracle-quest')).toBeVisible();
-  await expect(sections).toHaveText(['Prophéties', 'Les trois rouleaux', 'La quête de la semaine']);
+  await expect.poll(() => sectionOrder(oracle)).toEqual(['oracle-prophecies', 'oracle-scrolls', 'oracle-quest']);
+  // Once chosen, the Pythia no longer asks her to choose.
+  await expect(oracle.getByTestId('overlay-voice')).toContainText('Le rouleau de la semaine est ouvert');
   const btn = row.getByRole('button', { name: 'Te préparer' });
   await expect(btn).toHaveCSS('text-decoration-line', 'none');
   await btn.click();
   await expect(page).toHaveURL(new RegExp(`/play/${text.id}$`));
 });
 
-test('a prophecy due within a week leads the Pythia panel, even while the scrolls are sealed', async ({ page, request }, testInfo) => {
+// Re-review N1, ruling W-f (replaces B4's « a prophecy due within a week leads the panel »): while
+// the week is sealed, the three scrolls lead even with a prophecy due in 3 days - choosing one is
+// what she came for, and the altar card already shows the prophecy - and all three are fully in
+// view, below the voice plate and above the bottom rod, at both desktop sizes the app targets.
+test('while the week is sealed, the three scrolls lead and are fully in view, even with a prophecy due soon', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   // A real text due in 3 days would be every parallel hero's next step (the camp's greeting reads
   // all prophecies): keep the text far off and bring it near in this page's /oracle answer only.
@@ -132,12 +148,32 @@ test('a prophecy due within a week leads the Pythia panel, even while the scroll
       .map((p: { days_left: number }) => ({ ...p, days_left: 3 }));
     await route.fulfill({ response: res, json });
   });
-  await page.goto(`/#/p/${id}/delphes`);
   const oracle = page.getByTestId('overlay-pythia');
-  await expect(oracle.getByTestId('scroll-open')).toHaveCount(3);
-  await expect(oracle.locator('h3.kit-section')).toHaveText(['Prophéties', 'Les trois rouleaux']);
-  await expect(oracle.getByTestId(`oracle-prophecy-${text.id}`)).toBeInViewport();
+  for (const size of [{ width: 1180, height: 820 }, { width: 1280, height: 720 }]) {
+    const at = `${size.width}x${size.height}`;
+    await page.setViewportSize(size);
+    await page.goto(`/#/p/${id}/delphes`);
+    await expect(oracle.getByTestId('scroll-open')).toHaveCount(3);
+    await expect(oracle.getByTestId(`oracle-prophecy-${text.id}`)).toBeVisible();
+    // The day is 3 days off: the tag names it (2099-01-01 is a Thursday).
+    await expect(oracle.getByTestId('oracle-prophecy-bonus')).toHaveText("Défendue avant jeudi : +50 % d'XP");
+    await expect.poll(() => sectionOrder(oracle)).toEqual(['oracle-scrolls', 'oracle-prophecies']);
+    await expect.poll(() => oracle.evaluate((e) => e.getAnimations({ subtree: true }).length)).toBe(0);
+    const body = (await oracle.locator('.overlay-body').boundingBox())!;
+    const rod = (await oracle.locator('.scroll-rod.rod-bottom').boundingBox())!;
+    for (const key of ['faible', 'ecole', 'destin']) {
+      const s = (await oracle.getByTestId(`scroll-${key}`).boundingBox())!;
+      expect(s.y, `scroll-${key} top inside the body at ${at}`).toBeGreaterThanOrEqual(body.y);
+      expect(s.y + s.height, `scroll-${key} bottom inside the body at ${at}`).toBeLessThanOrEqual(body.y + body.height);
+      expect(s.y + s.height, `scroll-${key} clear of the bottom rod at ${at}`).toBeLessThanOrEqual(rod.y);
+    }
+  }
 });
+
+/** The Pythia panel's sections, in the order they are drawn (their test ids). */
+function sectionOrder(oracle: Locator): Promise<string[]> {
+  return oracle.locator('[data-testid="oracle-scrolls"], [data-testid="oracle-prophecies"], [data-testid="oracle-quest"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''));
+}
 
 test('the tablets open the quest board; a launched quest shows on the tablets badge', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
@@ -152,13 +188,25 @@ test('the tablets open the quest board; a launched quest shows on the tablets ba
   await expect(board.getByTestId('board-reward')).toHaveCount(1);
   await expect(board.getByText(/Récompense : \d+ XP/)).toHaveCount(0);
   await expect(board.getByTestId('board-decor')).toHaveCount(1);
-  await expect(board.getByTestId('board-decor')).toContainText(/Encore \d+ quêtes? avant le prochain trésor de ta cabane/);
+  await expect(board.getByTestId('board-decor')).toContainText(/Encore \d+ quêtes?, et ta cabane gagne un trésor/);
+  // Re-review N13: the Pythia says the rule and the treasure; no empty « En cours » over the wall.
+  await expect(board.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'pythia');
+  await expect(board.getByTestId('overlay-voice').getByTestId('board-reward')).toContainText('Chaque monstre défié rapporte');
+  await expect(board.getByTestId('board-active')).toHaveCount(0);
+  await expect(board.getByText('Aucune quête en cours')).toHaveCount(0);
   await expect(board.locator('.kit-tablet')).toHaveCount(6);
   await expect(board.getByText(/\((s|x)\)/)).toHaveCount(0);
   await expect(board.getByTestId('board-boss')).toBeVisible();
-  await board.getByTestId('board-challenge-echo').getByRole('button', { name: 'Lancer une quête' }).click();
+  // The whole tablet is the target: a tap on its clay, away from the pressed word, challenges.
+  const echo = board.getByTestId('board-challenge-echo');
+  await expect(echo.getByRole('button', { name: /^Défier / })).toHaveText('Défier');
+  await expect.poll(() => board.evaluate((e) => e.getAnimations({ subtree: true }).length)).toBe(0);
+  await echo.scrollIntoViewIfNeeded();
+  const clay = (await echo.locator('.tablet-technique').boundingBox())!;
+  await page.mouse.click(clay.x + clay.width / 2, clay.y + clay.height / 2);
   await expect(board.getByTestId('board-challenge-echo')).toContainText('Quête en cours');
-  await expect(board.getByTestId('board-challenge-echo').getByRole('button', { name: 'Lancer une quête' })).toHaveCount(0);
+  await expect(board.getByTestId('board-active')).toBeVisible();
+  await expect(board.getByTestId('board-challenge-echo').getByRole('button', { name: /^Défier / })).toHaveCount(0);
   await expectOverlayTapTargets(page, 'overlay-tablets');
   await closeOverlay(page);
   await expect(page.getByTestId('delphi-tablets-badge')).toHaveText('1');

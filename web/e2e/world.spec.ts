@@ -126,14 +126,14 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await expect(page.getByTestId(`quest-card-${oracleQuestId}`)).toContainText('Récompense connue : 150 XP · Teinte Écume');
 
     // Two board quests can run alongside the (non-board) Oracle quest; a third is refused.
-    await page.getByTestId('board-challenge-echo').getByRole('button', { name: 'Lancer une quête' }).click();
+    await page.getByTestId('board-challenge-echo').getByRole('button', { name: /^Défier / }).click();
     await expect(page.getByTestId('board-challenge-echo')).toContainText('Quête en cours');
     await expect(page.getByTestId('board-challenge-echo').locator('img[src="/art/icons/lt-echo.webp"]')).toBeVisible();
 
-    await page.getByTestId('board-challenge-chimere').getByRole('button', { name: 'Lancer une quête' }).click();
+    await page.getByTestId('board-challenge-chimere').getByRole('button', { name: /^Défier / }).click();
     await expect(page.getByTestId('board-challenge-chimere')).toContainText('Quête en cours');
 
-    await page.getByTestId('board-challenge-protee').getByRole('button', { name: 'Lancer une quête' }).click();
+    await page.getByTestId('board-challenge-protee').getByRole('button', { name: /^Défier / }).click();
     await expect(page.getByRole('alert')).toContainText('Deux quêtes à la fois');
 
     await page.goto(`/#/p/${profileId}/monstres/hydre`);

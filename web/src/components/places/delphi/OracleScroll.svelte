@@ -56,6 +56,16 @@
     gap: 10px;
     text-align: center;
   }
+  /* Re-review N1: the kit's upright roll is 200 px; capped here so the three scrolls, their titles
+     and their « Briser le sceau » fit above the bottom rod at 1280x720 and 1180x820. The turned art's
+     width is the roll's visible height. */
+  .oracle-roll .kit-roll.is-upright {
+    --roll-h: clamp(140px, 22vh, 180px);
+    height: var(--roll-h);
+  }
+  .oracle-roll .kit-roll.is-upright > .roll-art {
+    width: var(--roll-h);
+  }
   .oracle-roll.is-closed {
     opacity: 0.75;
   }

@@ -11,6 +11,7 @@
   import TabletsPanel from '../components/places/delphi/TabletsPanel.svelte';
   import { DELPHI_SCENE, pythiaGreeting } from '../lib/world/scenes/delphi';
   import { VOICES } from '../lib/world/voices';
+  import { campStore } from '../lib/world/campStore.svelte';
   import { nearestProphecy } from '../lib/world/prophecy';
   import { closePanel, go, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
@@ -48,7 +49,7 @@
 </PlaceScene>
 
 {#if panel === 'pythie'}
-  <Overlay variant="scroll" size="wide" title={OVERLAY_TITLES.pythie} testId="overlay-pythia" voice={VOICES.pythia} onClose={close} returnFocus={hotspotSelector('delphi', 'pythia')}>
+  <Overlay variant="scroll" size="wide" title={OVERLAY_TITLES.pythie} testId="overlay-pythia" voice={campStore.data?.oracle.status === 'chosen' ? VOICES.pythiaChosen : VOICES.pythia} onClose={close} returnFocus={hotspotSelector('delphi', 'pythia')}>
     <PythiaPanel {profile} />
   </Overlay>
 {:else if panel === 'tablettes'}
