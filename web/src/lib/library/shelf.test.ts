@@ -10,7 +10,7 @@ describe('the shelves speak the camp, not the catalogue (playability #2, #5, #24
     expect(historyLine(null)).toBe('Jamais défendu');
     expect(historyLine({ times_played: 0, best_catch_rate: null } as never)).toBe('Jamais défendu');
     expect(historyLine({ times_played: 3, best_catch_rate: null } as never)).toBe('Défendu 3 fois');
-    expect(historyLine({ times_played: 1, best_catch_rate: 0.916 } as never)).toBe('Défendu 1 fois · 92 % des pièges déjoués');
+    expect(historyLine({ times_played: 1, best_catch_rate: 0.916 } as never)).toBe('Défendu 1 fois · 92 % des pièges');
   });
 
   it('names who wrote it, never the title again', () => {

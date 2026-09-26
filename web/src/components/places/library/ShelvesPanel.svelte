@@ -94,9 +94,12 @@
     <p class="kit-note" data-tone="eris">Impossible de lire les parchemins : {error}</p>
   {:else}
     {#if prophecies.length > 0}
+      <!-- Polish: the same heading+rule-paragraph pattern the re-review's N1 removed from the
+           Pythia (PythiaPanel.svelte's oracle-prophecies/oracle-scrolls). Each cubby's own
+           `chip-prophecy` tag already says « Prophétie · <date> », so the section keeps only a
+           short in-world title, in the same plain style as « Pour toi » below. -->
       <section>
         <h3>Prophéties de l'Oracle</h3>
-        <p class="muted">Ce que prépare ta classe : défends-les avant le jour dit.</p>
         <div class="cubbies">
           {#each prophecies as t (t.id)}{@render cubby(t)}{/each}
         </div>

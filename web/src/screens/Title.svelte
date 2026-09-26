@@ -154,8 +154,14 @@
   .shield {
     position: absolute;
     transform: translateX(-50%);
+    /* Playability polish: title.ts's SHIELD_SLOTS keeps every pair of neighbours >= SHIELD_W + 0.3
+       (5.8 %) apart, always above this 5.5 %, so two shield buttons' boxes are disjoint by design as
+       long as this floor never inflates the width past that margin. `min-width: 80px` used to (5.5 %
+       of the art box is only 70.4 px at 1280x720, so the floor pushed the box out to 80 px there and
+       ate the neighbouring shield's edge by ~4.5 px - a tap near it hit the wrong hero). 64 px is
+       still comfortably above the 48 px touch floor and below every measured gap. */
     width: 5.5%;
-    min-width: 80px;
+    min-width: 64px;
     display: flex;
     flex-direction: column;
     align-items: center;

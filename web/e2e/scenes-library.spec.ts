@@ -151,11 +151,13 @@ test('a text card on the shelves starts the dictation; a prophecy wears its ribb
 test('a defended text wears a broken seal and a laurel; a new one keeps its seal whole', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const fresh = uniqueName('Sceau intact');
-  const defended = uniqueName('Sceau brisé');
+  // A realistic long title (shot a07's own text): the history line used to wrap to a third line at
+  // the tag's width and run past the cubby before "déjoués" was dropped from historyLine (shelf.ts).
+  const defended = uniqueName('Le chant des sirènes');
   const body = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
   await createText(request, { title: fresh, body, level: '10H' });
   const t = await createText(request, { title: defended, body, level: '10H' });
-  await postSession(request, { profileId: id, textId: t.id, day: new Date().toISOString().slice(0, 10), result: makeResult({ draft: 2, caught: 1 }) });
+  await postSession(request, { profileId: id, textId: t.id, day: new Date().toISOString().slice(0, 10), result: makeResult({ draft: 4, caught: 3 }) });
   await page.goto(`/#/p/${id}/parchemins`);
   const shelves = page.getByTestId('overlay-shelves');
   const whole = shelves.locator('[data-testid="text-card"]', { hasText: fresh });
@@ -163,7 +165,18 @@ test('a defended text wears a broken seal and a laurel; a new one keeps its seal
   await expect(whole.locator('.kit-seal')).not.toHaveClass(/is-broken/);
   await expect(broken.locator('.kit-seal')).toHaveClass(/is-broken/);
   await expect(broken.locator('.seal-laurel')).toBeVisible();
-  await expect(broken).toContainText('Défendu 1 fois · 50 % des pièges déjoués');
+  const history = broken.getByTestId('text-history');
+  await expect(history).toHaveText('Défendu 1 fois · 75 % des pièges');
+  // Polish: the line fits two lines (never a third, which used to run past the cubby) at every
+  // tested width, with the long title above.
+  for (const size of [{ width: 1024, height: 768 }, { width: 1180, height: 820 }, { width: 1280, height: 720 }]) {
+    await page.setViewportSize(size);
+    const fit = await history.evaluate((el) => ({
+      height: el.getBoundingClientRect().height,
+      lineHeight: parseFloat(getComputedStyle(el).lineHeight),
+    }));
+    expect(fit.height, `${size.width}x${size.height} history line`).toBeLessThanOrEqual(fit.lineHeight * 2 + 4);
+  }
 });
 
 test('places and labels sit in the safe zone, labels never cover another place', async ({ page, request }, testInfo) => {

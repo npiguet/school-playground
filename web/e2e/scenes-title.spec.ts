@@ -268,6 +268,13 @@ test('six slots: newest heroes, « Tous les héros » when there are more, « No
     expect(s.x + s.width, `shield ${i} right`).toBeLessThanOrEqual(art.x + art.width * 0.875 + 0.5);
     expect(Math.min(s.width, s.height), `shield ${i} touch target`).toBeGreaterThanOrEqual(48);
   }
+  // Polish: neighbouring shield buttons' hit areas never overlap (a tightly-packed rail used to
+  // give the button box's transparent edge to the wrong hero, ~4.5 px on this project at 1180x820 /
+  // 1280x720 - Title.svelte's `.shield` width).
+  for (let i = 0; i < 6; i++)
+    for (let j = i + 1; j < 6; j++) {
+      expect(rectsOverlap(b[`s${i}`]!, b[`s${j}`]!), `shields ${i} and ${j} overlap`).toBe(false);
+    }
   // Playability #13: every ring sits on its painted hook. Computed from the DOM (not a hand copy of
   // title.ts's SHIELD_SLOTS - the e2e project can't import app modules): every hook tip shares the
   // same y across both rails, and that y falls inside the spec's own safe hook band (53-58 %,
