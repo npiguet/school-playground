@@ -5,6 +5,7 @@ import { ART } from '../art';
 import type { CampResponse, ScrollKey } from '../types';
 import { IDLE_HOTSPOT, type DialogueLine, type HotspotDef, type HotspotState, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { DELPHI_SHAPES } from './delphi.shapes';
+import { nextStep } from '../nextStep';
 
 const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
 
@@ -16,9 +17,13 @@ export const DELPHI_HOTSPOTS: HotspotDef[] = [
     shape: DELPHI_SHAPES.pythia,
     labelPos: 'above',
     leader: true,
+    // Ruling B9: the Pythia glows only when the game's next step is hers (a near prophecy, or the
+    // week's sealed scrolls); her caption says what waits here either way.
     state: ({ camp }) => {
       if (!camp) return st();
-      return camp.oracle.status === 'sealed' ? st({ isNew: true, caption: 'Trois rouleaux à ouvrir' }) : st({ caption: 'Quête en cours' });
+      const step = nextStep(camp);
+      const glow = step === 'prophecy' || step === 'scrolls';
+      return camp.oracle.status === 'sealed' ? st({ isNew: glow, caption: 'Trois rouleaux à ouvrir' }) : st({ isNew: glow, caption: 'Quête en cours' });
     },
   },
   {

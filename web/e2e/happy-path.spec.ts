@@ -1,5 +1,5 @@
 import { test, expect } from './crashGuard';
-import { closeOverlay, newHero, openShelves, stubSpeech, skipOnboarding, uniqueName } from './helpers';
+import { closeOverlay, expectCamp, newHero, openShelves, stubSpeech, skipOnboarding, uniqueName } from './helpers';
 
 const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
@@ -58,13 +58,12 @@ test('create profile → add text → dictation → proofreading → results →
   await expect(page.getByTestId('results-score')).not.toContainText('NaN');
   await expect(page.getByText(/chantent/).first()).toBeVisible();
 
-  // Stats reflect the session. The hero panel's « Ton journal » medallion points at `dossier` (SP3 decision
-  // 14, wired in Task 6); its own "Voir les chiffres bruts" link goes on to the raw stats page.
+  // The stats reflect the session (the journal route; the hero panel and the dossier that lead to it
+  // are covered by scenes-cabin and scenes-war).
+  const profileId = /\/p\/(\d+)\//.exec(page.url())![1];
   await page.getByTestId('btn-back-camp').click();
-  await page.getByTestId('hud-hero').click();
-  await page.getByTestId('hero-journal').click();
-  await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
-  await page.getByRole('link', { name: 'Voir les chiffres bruts' }).click();
+  await expectCamp(page);
+  await page.goto(`/#/p/${profileId}/stats`);
   await expect(page.getByText(/1 parties?/).first()).toBeVisible();
   await expect(page.getByText("Accord du verbe avec son sujet (L'Hydre)").first()).toBeVisible();
 });

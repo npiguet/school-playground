@@ -22,6 +22,22 @@ const GENDER: Record<LieutenantKey, Gender> = {
   lethe: 'f',
 };
 
+// The camp's names (catalog.py `LIEUTENANTS[*].name`), static like GENDER so the module stays
+// store-free.
+const NAMES: Record<LieutenantKey, string> = {
+  hydre: "L'Hydre",
+  echo: 'Écho',
+  chimere: 'La Chimère',
+  protee: 'Protée',
+  sirenes: 'Les Sirènes',
+  lethe: 'Léthé',
+};
+
+/** A lieutenant's name as the camp says it. */
+export function lieutenantName(key: LieutenantKey): string {
+  return NAMES[key];
+}
+
 export function genderFor(key: LieutenantKey): Gender {
   return GENDER[key];
 }
@@ -133,12 +149,24 @@ export function smallTricksLine(traps: number, caught: number): string {
   return `Mes petites ruses (accents, lettres, majuscules) : ${traps} tentative${traps > 1 ? 's' : ''}, ${caught} déjouée${caught > 1 ? 's' : ''}. Je note.`;
 }
 
-/** The "still asleep at this level" caption for a locked/unavailable lieutenant row (Dossier) -
- *  parameterised by name so it's correct for any lieutenant, not only Protée, the one that
- *  happens to need the highest level today (review round 1 #1: the row used to say "Protée"
- *  whichever lieutenant it was). */
-export function lockedLine(name: string): string {
-  return `${name} dort encore. Son heure viendra.`;
+/** Why a lieutenant still sleeps and when it wakes (UI3 Ruling B11): the server wakes each one at
+ *  its `min_level` (catalog.py), so the child learns it comes with a bigger class. One source for
+ *  the war tent's locked sheets, the dossier's sleeping rows and the quest wall's asleep tablets. */
+export function sleepingLine(key: LieutenantKey): string {
+  const name = NAMES[key];
+  return GENDER[key] === 'fp'
+    ? `${name} dorment encore. Leurs ruses viendront dans une classe plus grande.`
+    : `${name} dort encore. Ses ruses viendront dans une classe plus grande.`;
+}
+
+/** The short caption on a locked sheet or tablet. */
+export function sleepingCaption(key: LieutenantKey): string {
+  return GENDER[key] === 'fp' ? 'Dorment encore' : 'Dort encore';
+}
+
+/** The short caption of a lieutenant that stirs again (a revenge quest waits). */
+export function stirringCaption(key: LieutenantKey): string {
+  return GENDER[key] === 'fp' ? "S'agitent" : "S'agite";
 }
 
 export function campGreeting(hour: number): string {

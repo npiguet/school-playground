@@ -3,7 +3,7 @@
 // camp.shapes.ts (pure data, authored by hand from docs/art/scenes.md and re-checked with the
 // `?debug` overlay whenever UI2 repaints the camp).
 import { ART } from '../art';
-import { TINT_FILTERS, stageActivity, stageLabel, stageLine } from '../dragon';
+import { stageActivity, stageLabel, stageLine } from '../dragon';
 import type { CampResponse, DragonOut, WorldCatalog } from '../types';
 import {
   IDLE_HOTSPOT,
@@ -14,7 +14,11 @@ import {
   type SceneLayerDef,
 } from '../../scene/types';
 import { CAMP_SHAPES } from './camp.shapes';
-import { nearestProphecy, prophecyWhen } from '../prophecy';
+import { HUB_PLACE, nextStep, nextStepLine } from '../nextStep';
+import { dragonSpeaker } from './speakers';
+
+// The greeting's last line moved to the shared next step (Ruling B9); kept here for its callers.
+export { nextStepLine } from '../nextStep';
 
 export type CampHotspotId = keyof typeof CAMP_SHAPES;
 
@@ -54,18 +58,12 @@ export function weeklyCaption(w: CampResponse['weekly']): string {
 
 const bossEngaged = (camp: CampResponse) => camp.quests.some((q) => q.kind === 'boss' && q.status === 'active');
 
-/** The one camp place that wears the next-step glow (Ruling W14: at most one per scene), or null.
- *  1. The battle path while a tier is open and no fight is engaged: rare, earned, and it waits for
- *     nothing else (it is also the greeting's next step before the tent, see nextStepLine).
- *  2. The parchemins tent while no text has been defended (xp 0): a new hero's first step - the
- *     Oracle's scrolls only mean something once she has played.
- *  3. The road to Delphi while the week's scrolls are sealed. */
-export function campNextStep(camp: CampResponse | null): 'boss' | 'parchemins' | 'oracle' | null {
-  if (!camp) return null;
-  if (camp.boss.tier_available !== null && !bossEngaged(camp)) return 'boss';
-  if (camp.xp.total === 0) return 'parchemins';
-  if (camp.oracle.status === 'sealed') return 'oracle';
-  return null;
+/** The one camp place that wears the next-step glow (Ruling W14: at most one per scene), or null:
+ *  the hub place of the game's one next step (Ruling B9, lib/world/nextStep.ts), so the hub, the
+ *  greeting and each place always agree on where to go. */
+export function campNextStep(camp: CampResponse | null): (typeof HUB_PLACE)[keyof typeof HUB_PLACE] | null {
+  const step = nextStep(camp);
+  return step ? HUB_PLACE[step] : null;
 }
 
 export const CAMP_HOTSPOTS: HotspotDef[] = [
@@ -117,7 +115,8 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     shape: CAMP_SHAPES.parchemins,
     labelPos: 'above',
     // Playability #2: the tent where the dictations are fought says so, and glows until the first
-    // text has been defended (no XP yet = no session played), unless a battle outranks it.
+    // text has been defended (no XP yet = no session played), unless a near prophecy or a battle
+    // outranks it (Ruling B9).
     state: ({ camp }) => st({ caption: 'Choisis un texte à défendre', isNew: campNextStep(camp) === 'parchemins' }),
   },
   {
@@ -192,25 +191,11 @@ export const CAMP_DRAGON_LAYER: Omit<SceneLayerDef, 'id' | 'src' | 'alt'> = {
   idle: 'breathe',
 };
 
-/** The greeting's last line: where to go next (playability #2 - the hub points at the next
- *  action). A prophecy due within a week first, then a battle ready to be fought, else the tent
- *  where the texts are defended. */
-export function nextStepLine(camp: CampResponse): string {
-  const p = nearestProphecy(camp);
-  if (p && p.days_left <= 7) return `La Pythie a vu ta prochaine épreuve, ${prophecyWhen(p.days_left)}. Viens t'y préparer !`;
-  if (camp.boss.tier_available !== null && !bossEngaged(camp)) return "Le sentier de la bataille est ouvert : Éris t'attend.";
-  return "Les parchemins t'attendent, sous la tente.";
-}
-
-/** UI1's static greeting (dialogue content files arrive in UI5). */
+/** UI1's static greeting (dialogue content files arrive in UI5). Its last line points at the next
+ *  step (playability #2, Ruling B9: nextStepLine). */
 export function campGreeting(profileName: string, camp: CampResponse): DialogueLine[] {
   const d = camp.dragon;
-  const who = {
-    speaker: 'dragon' as const,
-    name: d.name ?? (d.stage === 'egg' ? "L'œuf" : 'Ton dragon'),
-    portrait: ART.dragon[d.stage],
-    portraitFilter: TINT_FILTERS[d.tint],
-  };
+  const who = dragonSpeaker(d);
   return [
     { ...who, text: `Bienvenue au camp, ${profileName}.` },
     { ...who, text: stageLine(d.stage, d.name, Math.max(0, d.available - d.neutralised)) },

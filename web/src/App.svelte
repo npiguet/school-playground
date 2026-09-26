@@ -11,15 +11,19 @@
   import LibraryTent from './screens/LibraryTent.svelte';
   import Delphi from './screens/Delphi.svelte';
   import Play from './screens/Play.svelte';
-  import Stats from './screens/Stats.svelte';
-  import Settings from './screens/Settings.svelte';
+  import Boss from './screens/Boss.svelte';
+  // --- UI3b lane W (Tasks 2-3) replaces this block with WarTent ---
   import Dossier from './screens/Dossier.svelte';
   import Bestiaire from './screens/Bestiaire.svelte';
   import BestiaireEntry from './screens/BestiaireEntry.svelte';
   import Lieutenant from './screens/Lieutenant.svelte';
-  import Boss from './screens/Boss.svelte';
+  // --- UI3b Task 4 replaces this block with Nest ---
   import DragonScreen from './screens/DragonScreen.svelte';
+  // --- UI3b Tasks 5-6 replace this block with CabinRoom ---
   import Cabin from './screens/Cabin.svelte';
+  import Stats from './screens/Stats.svelte';
+  import Settings from './screens/Settings.svelte';
+  // --- end of the UI3b blocks ---
 
   const route = $derived(router.route);
   const view = $derived(placeFor(route));
@@ -99,14 +103,7 @@
              overlays (`delphi`, `oracle`, `quests`) share one place branch so opening or closing
              the Pythia's or the tablets' overlay never remounts Delphi and replays its entry zoom. -->
         <Delphi profile={gateProfile} panel={view.panel} />
-      {:else if route.name === 'play'}
-        <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
-      {:else if route.name === 'grimoire'}
-        <Play profile={gateProfile} textId={route.params.textId} mode="grimoire" query={route.query} />
-      {:else if route.name === 'stats'}
-        <Stats profile={gateProfile} />
-      {:else if route.name === 'settings'}
-        <Settings profile={gateProfile} />
+      <!-- UI3b lane W (Tasks 2-3) replaces this block with the war place branch. -->
       {:else if route.name === 'dossier'}
         <Dossier profile={gateProfile} />
       {:else if route.name === 'bestiaire'}
@@ -115,12 +112,23 @@
         <BestiaireEntry profile={gateProfile} entryKey={route.params.key} />
       {:else if route.name === 'lieutenant'}
         <Lieutenant profile={gateProfile} lieutenantKey={route.params.key} />
-      {:else if route.name === 'boss'}
-        <Boss profile={gateProfile} />
+      <!-- UI3b Task 4 replaces this block with the nest place branch. -->
       {:else if route.name === 'dragon'}
         <DragonScreen profile={gateProfile} />
+      <!-- UI3b Tasks 5-6 replace this block with the cabin place branch. -->
       {:else if route.name === 'cabin'}
         <Cabin profile={gateProfile} />
+      {:else if route.name === 'stats'}
+        <Stats profile={gateProfile} />
+      {:else if route.name === 'settings'}
+        <Settings profile={gateProfile} />
+      <!-- End of the UI3b blocks: the battle screens below stay until UI4. -->
+      {:else if route.name === 'play'}
+        <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
+      {:else if route.name === 'grimoire'}
+        <Play profile={gateProfile} textId={route.params.textId} mode="grimoire" query={route.query} />
+      {:else if route.name === 'boss'}
+        <Boss profile={gateProfile} />
       {/if}
     {/if}
   {/key}

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { matchRoute } from '../routes';
 import { OVERLAY_TITLES, placeFor, sceneHref } from './places';
-import { LIBRARY_SCENE } from './scenes/library';
-import { DELPHI_SCENE } from './scenes/delphi';
+import { SCENES } from './scenes';
 import { CAMP_HOTSPOTS } from './scenes/camp';
 
 const at = (hash: string) => placeFor(matchRoute(hash));
@@ -35,10 +34,27 @@ describe('places (UI3 Ruling A1: every legacy route is its place plus an overlay
     expect(at('#/p/3/quetes')).toEqual({ place: 'delphi', panel: 'tablettes' });
   });
 
-  it('leaves the battle routes and the places UI3b builds to their current screens', () => {
-    for (const h of ['#/p/3/play/1', '#/p/3/grimoire/1', '#/p/3/eris', '#/p/3/dossier', '#/p/3/dragon', '#/p/3/cabane', '#/p/3/stats']) {
-      expect(at(h), h).toBeNull();
-    }
+  it('opens the war tent: the map table, the codex, a codex page and the portrait sheets', () => {
+    expect(at('#/p/3/tente-de-guerre')).toEqual({ place: 'war', panel: null });
+    expect(at('#/p/3/dossier')).toEqual({ place: 'war', panel: 'dossier' });
+    expect(at('#/p/3/bestiaire')).toEqual({ place: 'war', panel: 'codex' });
+    expect(at('#/p/3/bestiaire/echo')).toEqual({ place: 'war', panel: 'page' });
+    expect(at('#/p/3/monstres/hydre')).toEqual({ place: 'war', panel: 'portrait' });
+  });
+
+  it('opens the nest and the cabin, with their overlays', () => {
+    expect(at('#/p/3/dragon')).toEqual({ place: 'nest', panel: null });
+    expect(at('#/p/3/dragon?panel=soin')).toEqual({ place: 'nest', panel: 'soin' });
+    expect(at('#/p/3/dragon?panel=nope')).toEqual({ place: 'nest', panel: null });
+    expect(at('#/p/3/cabane')).toEqual({ place: 'cabin', panel: null });
+    expect(at('#/p/3/cabane?panel=tresors')).toEqual({ place: 'cabin', panel: 'tresors' });
+    expect(at('#/p/3/cabane?panel=heros')).toEqual({ place: 'cabin', panel: 'heros' });
+    expect(at('#/p/3/stats')).toEqual({ place: 'cabin', panel: 'journal' });
+    expect(at('#/p/3/settings')).toEqual({ place: 'cabin', panel: 'lyre' });
+  });
+
+  it('leaves only the battle routes to their legacy screens (UI4)', () => {
+    for (const h of ['#/p/3/play/1', '#/p/3/grimoire/1', '#/p/3/eris']) expect(at(h), h).toBeNull();
   });
 
   it('knows the bare scene an overlay closes onto', () => {
@@ -46,6 +62,9 @@ describe('places (UI3 Ruling A1: every legacy route is its place plus an overlay
     expect(sceneHref('camp', 3)).toBe('#/p/3/camp');
     expect(sceneHref('library', 3)).toBe('#/p/3/tente-parchemins');
     expect(sceneHref('delphi', 3)).toBe('#/p/3/temple');
+    expect(sceneHref('war', 3)).toBe('#/p/3/tente-de-guerre');
+    expect(sceneHref('nest', 3)).toBe('#/p/3/dragon');
+    expect(sceneHref('cabin', 3)).toBe('#/p/3/cabane');
   });
 
   it('names every overlay once, echoing the plaque that opens it (carry #12, playability #15, Ruling W6)', () => {
@@ -60,12 +79,24 @@ describe('places (UI3 Ruling A1: every legacy route is its place plus an overlay
       oeuvre: "Le portail d'Alexandrie",
       pythie: 'La Pythie',
       tablettes: 'Le mur des quêtes',
+      dossier: "Le dossier d'Éris",
+      codex: 'Le bestiaire',
+      page: 'Le bestiaire',
+      portrait: "Les lieutenants d'Éris",
+      soin: 'Ton dragon',
+      tresors: 'Tes trésors',
+      journal: 'Ton journal',
+      lyre: 'La lyre',
     });
-    for (const scene of [LIBRARY_SCENE, DELPHI_SCENE]) {
+    // `portrait` and `page` are titled by the lieutenant / the entry itself (B1); a hotspot that
+    // leads to another place (every hub place) names that place, not one of its overlays.
+    const DYNAMIC = new Set(['portrait', 'page']);
+    for (const scene of SCENES) {
       for (const h of scene.hotspots) {
         if (!h.target || !h.label) continue;
-        const view = placeFor({ name: h.target, params: { profileId: '1', workId: 'w', ...h.params }, query: h.query ?? {} });
-        const title = OVERLAY_TITLES[view!.panel!];
+        const view = placeFor({ name: h.target, params: { profileId: '1', workId: 'w', key: 'hydre', ...h.params }, query: h.query ?? {} });
+        if (!view?.panel || view.place !== scene.id || DYNAMIC.has(view.panel)) continue;
+        const title = OVERLAY_TITLES[view.panel];
         expect(title.startsWith(h.label), `${scene.id}/${h.id}: « ${h.label} » opens « ${title} »`).toBe(true);
       }
     }

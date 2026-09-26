@@ -9,6 +9,7 @@ describe('matchRoute', () => {
     expect(matchRoute('#/p/3/camp')).toEqual({ name: 'camp', params: { profileId: '3' }, query: {} });
     expect(matchRoute('#/p/3/tente-parchemins')).toEqual({ name: 'library-tent', params: { profileId: '3' }, query: {} });
     expect(matchRoute('#/p/3/temple')).toEqual({ name: 'delphi', params: { profileId: '3' }, query: {} });
+    expect(matchRoute('#/p/3/tente-de-guerre')).toEqual({ name: 'war-tent', params: { profileId: '3' }, query: {} });
     expect(matchRoute('#/p/3/parchemins')).toEqual({ name: 'library', params: { profileId: '3' }, query: {} });
     expect(matchRoute('#/p/3/texts/new')).toEqual({ name: 'text-new', params: { profileId: '3' }, query: {} });
     expect(matchRoute('#/p/3/texts/scan')).toEqual({ name: 'text-scan', params: { profileId: '3' }, query: {} });
@@ -58,6 +59,7 @@ describe('matchRoute', () => {
     expect(href('camp', { profileId: '3' })).toBe('#/p/3/camp');
     expect(href('library-tent', { profileId: '3' })).toBe('#/p/3/tente-parchemins');
     expect(href('delphi', { profileId: '3' })).toBe('#/p/3/temple');
+    expect(href('war-tent', { profileId: '3' })).toBe('#/p/3/tente-de-guerre');
     expect(href('text-scan', { profileId: '3' })).toBe('#/p/3/texts/scan');
     expect(href('grimoire', { profileId: '3', textId: '12' })).toBe('#/p/3/grimoire/12');
     expect(href('alexandria', { profileId: '3' })).toBe('#/p/3/alexandria');

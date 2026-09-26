@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { FORBIDDEN, agree, bandFor, confirmChoiceLabel, dossierLine, genderFor, lockedLine, pronounFor } from './eris';
+import {
+  FORBIDDEN,
+  agree,
+  bandFor,
+  confirmChoiceLabel,
+  dossierLine,
+  genderFor,
+  lieutenantName,
+  pronounFor,
+  sleepingCaption,
+  sleepingLine,
+  stirringCaption,
+} from './eris';
 import { LIEUTENANT_ORDER } from './types';
 
 const BANDS = ['none', 'strong', 'contested', 'weak', 'neutralised'] as const;
@@ -30,15 +42,18 @@ describe("Éris's dossier lines", () => {
     expect(bandFor(l(5, 0.1, true))).toBe('neutralised');
   });
 
-  // Dossier.svelte's locked-row caption used to hardcode "Protée" (the only lieutenant that can
-  // actually be locked today, since every other one's min_level is the game's own floor, 5H) -
-  // this proves the line is parameterised by name, for any lieutenant, not just Protée
-  // (review round 1 #1). No other lieutenant can be reached locked through the running app
-  // (Ruling: level 5H, the lowest playable level, already unlocks all but Protée), so this is
-  // covered at the unit level instead of e2e.
-  it('names whichever lieutenant is actually locked, not a fixed one', () => {
-    expect(lockedLine('Protée')).toBe('Protée dort encore. Son heure viendra.');
-    expect(lockedLine("L'Hydre")).toBe("L'Hydre dort encore. Son heure viendra.");
+  // The line names whichever lieutenant sleeps, never a fixed one (review round 1 #1), and says
+  // it wakes with a bigger class. Only Protée (min_level 8H) can be reached asleep through the
+  // running app today, so the plural is covered here at the unit level.
+  it('says why a lieutenant sleeps and when it wakes, in the right number (Ruling B11)', () => {
+    expect(sleepingLine('protee')).toBe('Protée dort encore. Ses ruses viendront dans une classe plus grande.');
+    expect(sleepingLine('sirenes')).toBe('Les Sirènes dorment encore. Leurs ruses viendront dans une classe plus grande.');
+    expect([sleepingCaption('protee'), sleepingCaption('sirenes')]).toEqual(['Dort encore', 'Dorment encore']);
+    expect([stirringCaption('echo'), stirringCaption('sirenes')]).toEqual(["S'agite", "S'agitent"]);
+  });
+
+  it('names every lieutenant as the camp does', () => {
+    expect(LIEUTENANT_ORDER.map(lieutenantName)).toEqual(["L'Hydre", 'Écho', 'La Chimère', 'Protée', 'Les Sirènes', 'Léthé']);
   });
 });
 

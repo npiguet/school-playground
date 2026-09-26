@@ -3,14 +3,15 @@
   // a glow clipped to the shape, a visible Cinzel label (+ caption, badge), idle glow + bob, a
   // flash on tap. Test id `<sceneId>-<hotspot id>` (UI1 Ruling 4). UI3: `labelPos: 'on'` writes
   // the label in ink on the landmark itself; `leader` pins the plaque to its landmark with a
-  // short bronze line (carry #17); `icon` draws a painted icon on the plaque; a locked place
-  // explains itself through `onLocked`; `onPress` runs inside the tap itself (user-gesture work
+  // short bronze line (carry #17); `icon` draws a painted icon on the plaque; a locked place wears
+  // the painted lock on its plaque and explains itself through `onLocked`; `onPress` runs inside the tap itself (user-gesture work
   // such as the audio unlock and the tilt permission, UI3 Ruling A5).
   import { clipPath, labelShift, shapeBox } from '../../lib/scene/geometry';
   import { useSceneRuntime } from '../../lib/scene/runtime.svelte';
   import { hotspotTestId } from '../../lib/scene/hotspotId';
   import { router } from '../../lib/router.svelte';
   import type { HotspotDef, HotspotState } from '../../lib/scene/types';
+  import { MARK_ICONS } from '../../lib/world/art';
 
   let {
     def,
@@ -107,6 +108,7 @@
     {#if def.label}
       <span class="hotspot-label" style="left:calc(50% + {shift}px)" bind:offsetWidth={labelW}>
         <span class="hotspot-name">
+          {#if status.locked}<img class="hotspot-icon hotspot-lock" src={MARK_ICONS.lock} alt="" draggable="false" />{/if}
           {#if def.icon}<img class="hotspot-icon" src={def.icon} alt="" draggable="false" />{/if}{def.label}
         </span>
         {#if status.caption}<span class="hotspot-caption">{status.caption}</span>{/if}
@@ -309,6 +311,11 @@
   }
   .hotspot.locked {
     cursor: default;
+  }
+  /* UI1 carry #16: a locked place shows the painted lock on its plaque (and keeps its grey glow). */
+  .label-on .hotspot-lock {
+    width: 16px;
+    height: 16px;
   }
   .hotspot.locked .hotspot-glow {
     opacity: 0.1;

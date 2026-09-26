@@ -17,7 +17,7 @@
   import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type OracleOut, type ScrollKey } from '../../../lib/world/types';
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
-  import { confirmChoiceLabel } from '../../../lib/world/eris';
+  import { confirmChoiceLabel, sleepingCaption } from '../../../lib/world/eris';
   import { ApiError } from '../../../lib/api';
   import { longDate } from '../../../lib/text/french';
   import { reducedMotion } from '../../../lib/juice/motion';
@@ -223,7 +223,7 @@
                     >
                       <LieutenantBadge lieutenantKey={key} size={72} />
                       <span class="monster-name">{nameFor(key)}</span>
-                      {#if !isAvailable(key)}<span class="monster-note">dort encore</span>{/if}
+                      {#if !isAvailable(key)}<span class="monster-note">{sleepingCaption(key).toLowerCase()}</span>{/if}
                     </button>
                   {/each}
                 </div>

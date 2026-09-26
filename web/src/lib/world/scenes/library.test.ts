@@ -62,9 +62,13 @@ describe('library tent (UI3 Ruling A1, A16)', () => {
     expect(seen.size).toBe(4);
   });
 
-  it('points a new hero at the shelves', () => {
-    expect(state('shelves', { xp: { total: 0 } } as Partial<CampResponse>)).toMatchObject({ isNew: true, caption: 'Choisis un texte à défendre' });
-    expect(state('shelves', { xp: { total: 40 } } as Partial<CampResponse>).isNew).toBe(false);
+  it('points a new hero at the shelves, unless a prophecy within a week comes first (Ruling B9)', () => {
+    const base = { quests: [], prophecies: [], oracle: { status: 'sealed' }, boss: { tier_available: null, active_quest_id: null } };
+    const at = (over: object) => ({ ...base, ...over }) as unknown as Partial<CampResponse>;
+    expect(state('shelves', at({ xp: { total: 0 } }))).toMatchObject({ isNew: true, caption: 'Choisis un texte à défendre' });
+    expect(state('shelves', at({ xp: { total: 40 } })).isNew).toBe(false);
+    const soon = [{ text_id: 1, title: 'La mer', due_date: '2026-09-28', days_left: 2 }];
+    expect(state('shelves', at({ xp: { total: 0 }, prophecies: soon }))).toMatchObject({ isNew: false, caption: 'Choisis un texte à défendre' });
   });
 
   it('seats the owl on the side table and lets it greet with one static line', () => {

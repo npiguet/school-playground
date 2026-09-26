@@ -1,10 +1,10 @@
 // Which place (scene) a route shows and which overlay is open on it (scenes UI spec §2.2-2.3,
 // UI3 Ruling A1). Every legacy route keeps working: it becomes "its place + its overlay", so
 // selectors, deep links, reload and Back behave as before. Routes that return null still render
-// their legacy screen (the battle routes until UI4; dossier, dragon, cabin... until UI3b).
+// their legacy screen (the battle routes, until UI4).
 import { href, type Route } from '../routes';
 
-export type PlaceId = 'title' | 'camp' | 'library' | 'delphi';
+export type PlaceId = 'title' | 'camp' | 'library' | 'delphi' | 'war' | 'nest' | 'cabin';
 
 export type PanelId =
   | 'tous'
@@ -16,7 +16,15 @@ export type PanelId =
   | 'portail'
   | 'oeuvre'
   | 'pythie'
-  | 'tablettes';
+  | 'tablettes'
+  | 'dossier'
+  | 'codex'
+  | 'page'
+  | 'portrait'
+  | 'soin'
+  | 'tresors'
+  | 'journal'
+  | 'lyre';
 
 /** Every overlay's title (Ruling W6): a place hotspot's plaque starts its overlay's title, so the
  *  player opens what she tapped (carry #12, playability #15). One table, read by every place. */
@@ -31,6 +39,16 @@ export const OVERLAY_TITLES: Record<PanelId, string> = {
   oeuvre: "Le portail d'Alexandrie",
   pythie: 'La Pythie',
   tablettes: 'Le mur des quêtes',
+  dossier: "Le dossier d'Éris",
+  codex: 'Le bestiaire',
+  // `page` and `portrait` are titled by the entry / the lieutenant itself: these are the fallbacks
+  // for an unknown key (UI3 Ruling B1).
+  page: 'Le bestiaire',
+  portrait: "Les lieutenants d'Éris",
+  soin: 'Ton dragon',
+  tresors: 'Tes trésors',
+  journal: 'Ton journal',
+  lyre: 'La lyre',
 };
 
 export interface PlaceView {
@@ -64,6 +82,26 @@ export function placeFor(route: Route): PlaceView | null {
       return { place: 'delphi', panel: 'pythie' };
     case 'quests':
       return { place: 'delphi', panel: 'tablettes' };
+    case 'war-tent':
+      return { place: 'war', panel: null };
+    case 'dossier':
+      return { place: 'war', panel: 'dossier' };
+    case 'bestiaire':
+      return { place: 'war', panel: 'codex' };
+    case 'bestiaire-entry':
+      return { place: 'war', panel: 'page' };
+    case 'lieutenant':
+      return { place: 'war', panel: 'portrait' };
+    case 'dragon':
+      return { place: 'nest', panel: route.query.panel === 'soin' ? 'soin' : null };
+    case 'cabin': {
+      const p = route.query.panel;
+      return { place: 'cabin', panel: p === 'tresors' || p === 'heros' ? p : null };
+    }
+    case 'stats':
+      return { place: 'cabin', panel: 'journal' };
+    case 'settings':
+      return { place: 'cabin', panel: 'lyre' };
     default:
       return null;
   }
@@ -81,5 +119,11 @@ export function sceneHref(place: PlaceId, profileId: number): string {
       return href('library-tent', p);
     case 'delphi':
       return href('delphi', p);
+    case 'war':
+      return href('war-tent', p);
+    case 'nest':
+      return href('dragon', p);
+    case 'cabin':
+      return href('cabin', p);
   }
 }

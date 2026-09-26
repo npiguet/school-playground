@@ -10,7 +10,7 @@
   import { worldApi } from '../../../lib/world/api';
   import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../../../lib/world/types';
-  import { agree } from '../../../lib/world/eris';
+  import { agree, sleepingLine } from '../../../lib/world/eris';
   import { romanTier } from '../../../lib/world/quests';
   import { ApiError } from '../../../lib/api';
   import { href } from '../../../lib/routes';
@@ -145,7 +145,7 @@
           <h4 class="tablet-name">{names[key] ?? key}</h4>
           <p class="tablet-technique">{technique(key)}</p>
           {#if asleep}
-            <p class="tablet-note">Dort encore. Son heure viendra.</p>
+            <p class="tablet-note">{sleepingLine(key)}</p>
           {:else}
             {#if l.neutralised}<span class="kit-tablet-stamp">{agree('Neutralisé', key)}</span>{/if}
             {#if l.active_quest_id}

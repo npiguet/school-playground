@@ -5,11 +5,16 @@ import { DELPHI_HOTSPOTS, DELPHI_SCENE, PYTHIA_LAYER, pythiaGreeting, scrollTitl
 
 function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {
+    xp: { total: 40 },
     oracle: { week: 'w', status: 'sealed', reward_id: null },
     quests: [],
+    prophecies: [],
+    boss: { tier_available: null, tiers_won: [], active_quest_id: null },
     ...over,
   } as CampResponse;
 }
+const chosen = { week: 'w', status: 'chosen', reward_id: null } as const;
+const soon = [{ text_id: 1, title: 'La mer', due_date: '2026-09-28', days_left: 2 }];
 const state = (id: string, c: CampResponse | null) => DELPHI_HOTSPOTS.find((h) => h.id === id)!.state({ camp: c, catalog: null });
 
 describe('Delphi (UI3 Ruling A1, A10)', () => {
@@ -30,9 +35,15 @@ describe('Delphi (UI3 Ruling A1, A10)', () => {
     expect(PYTHIA_LAYER).toMatchObject({ src: '/art/characters/pythia_cut.webp', x: 32.5, y: 77, scale: 16 });
   });
 
-  it('glows on the Pythia while the week is sealed; counts active quests on the tablets', () => {
+  it('glows on the Pythia only when the next step is hers (Ruling B9); counts active quests on the tablets', () => {
     expect(state('pythia', camp())).toMatchObject({ isNew: true, caption: 'Trois rouleaux à ouvrir' });
-    expect(state('pythia', camp({ oracle: { week: 'w', status: 'chosen', reward_id: null } }))).toMatchObject({ isNew: false, caption: 'Quête en cours' });
+    expect(state('pythia', camp({ oracle: chosen }))).toMatchObject({ isNew: false, caption: 'Quête en cours' });
+    // A new hero's next step is the tent; an open battle outranks the scrolls.
+    expect(state('pythia', camp({ xp: { total: 0 } as CampResponse['xp'] }))).toMatchObject({ isNew: false, caption: 'Trois rouleaux à ouvrir' });
+    expect(state('pythia', camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null } })).isNew).toBe(false);
+    // A prophecy within a week comes first, the week chosen or not, even for a new hero.
+    expect(state('pythia', camp({ oracle: chosen, prophecies: soon }))).toMatchObject({ isNew: true, caption: 'Quête en cours' });
+    expect(state('pythia', camp({ xp: { total: 0 } as CampResponse['xp'], prophecies: soon })).isNew).toBe(true);
     const quests = [{ status: 'active' }, { status: 'active' }, { status: 'done' }] as QuestOut[];
     expect(state('tablets', camp({ quests })).badge).toBe(2);
     expect(state('tablets', camp()).badge).toBeNull();

@@ -5,6 +5,7 @@
 import { ADD_ICONS, ART, PLACE_ICONS } from '../art';
 import { IDLE_HOTSPOT, type DialogueLine, type HotspotDef, type HotspotState, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { LIBRARY_SHAPES } from './library.shapes';
+import { nextStep } from '../nextStep';
 
 const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });
 
@@ -18,7 +19,10 @@ export const LIBRARY_HOTSPOTS: HotspotDef[] = [
     shape: LIBRARY_SHAPES.shelves,
     labelPos: 'above',
     leader: true,
-    state: ({ camp }) => (camp !== null && camp.xp.total === 0 ? st({ isNew: true, caption: 'Choisis un texte à défendre' }) : st()),
+    // Ruling B9: the shelves glow only when a first text is the game's next step; a new hero keeps
+    // the caption even while a near prophecy or a battle comes first.
+    state: ({ camp }) =>
+      st({ isNew: nextStep(camp) === 'first-text', caption: camp !== null && camp.xp.total === 0 ? 'Choisis un texte à défendre' : null }),
   },
   {
     id: 'desk',

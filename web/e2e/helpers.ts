@@ -592,3 +592,22 @@ export async function expectOverlayTapTargets(page: Page, overlayTestId: string)
   });
   expect(small, `${overlayTestId}: controls under 48 px`).toEqual([]);
 }
+
+// Classes of the legacy kit (buttons, cards, chips, parchment boxes) that an in-world overlay never
+// uses (immersion wave Task 13).
+export const LEGACY_UI = '.btn, .btn-primary, .btn-ghost, .card, .chip, .chip-active, .parchment';
+
+// Immersion wave Task 13 (playability #1, #12, #21, #25; Rulings W1, W2, W4): an overlay is an
+// in-world object of its variant, clear of the HUD with the scene's words faded, 48 px targets, kit
+// classes only, and the character who speaks in it (or nobody). Each UI3b place spec calls it for
+// its own overlays.
+export async function expectInWorldOverlay(page: Page, testId: string, scene: string, hud: boolean, variant: string, voice: string | null) {
+  const panel = page.getByTestId(testId);
+  await expect(panel).toHaveAttribute('data-variant', variant);
+  await expectOverlayClearsScene(page, testId, scene, hud);
+  await expectOverlayTapTargets(page, testId);
+  await expect(panel.locator(LEGACY_UI)).toHaveCount(0);
+  if (voice) await expect(panel.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', voice);
+  else await expect(panel.getByTestId('overlay-voice')).toHaveCount(0);
+  expect(await redScan(page)).toEqual([]);
+}

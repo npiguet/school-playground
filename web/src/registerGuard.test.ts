@@ -1,10 +1,10 @@
 // Immersion wave (spec §1 "not a school application", playability #2-#7, #19): the words on the
 // places' screens are the camp's, not the school's, the office's or the IT department's. Scans the
-// places' components, the title/library/Delphi screens, the PIN seal, the level medallions, the
-// settings and the world data (scenes, voices, Éris, the bestiary) - markup text and string
-// literals only (comments and code are not on screen).
+// places' components, every screen but the battle ones (UI4) and the pending list below, the PIN
+// seal, the level medallions and the world data (scenes, voices, Éris, the bestiary) - markup text
+// and string literals only (comments and code are not on screen).
 import { describe, expect, it } from 'vitest';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { screenText } from './lib/text/screenText';
 
@@ -27,15 +27,17 @@ const BANNED: [RegExp, string][] = [
   [/\btableau des quêtes\b/i, 'one name: « Le mur des quêtes » (Ruling W13)'],
 ];
 
+// The legacy screens UI3b is moving into the places still use the old words; each task deletes its
+// line when the screen moves (the list may only shrink; a path that no longer exists fails below).
+const PENDING = new Set<string>(['src/screens/Stats.svelte']);
+const BATTLE = new Set(['src/screens/Play.svelte', 'src/screens/Boss.svelte']); // UI4
+
 const FILES = [
   ...walk('src/components/places'),
   'src/components/PinGate.svelte',
   'src/components/QuestCard.svelte',
   'src/components/ui/LevelMedallions.svelte',
-  'src/screens/Title.svelte',
-  'src/screens/LibraryTent.svelte',
-  'src/screens/Delphi.svelte',
-  'src/screens/Settings.svelte',
+  ...walk('src/screens').filter((f) => !BATTLE.has(f) && !PENDING.has(f)),
   ...walk('src/lib/world'),
   'src/lib/library/shelf.ts',
 ];
@@ -59,6 +61,10 @@ describe('the places speak the camp, not the school', () => {
       for (const hit of banned(text)) report.push(`${f}: ${hit}`);
     }
     expect(report).toEqual([]);
+  });
+
+  it('keeps the pending list honest (UI3b)', () => {
+    for (const f of PENDING) expect(existsSync(f), `${f} moved: remove it from PENDING`).toBe(true);
   });
 
   it('catches the planted words and ignores comments and code (self-test)', () => {

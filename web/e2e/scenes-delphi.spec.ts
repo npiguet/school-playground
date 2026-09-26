@@ -10,9 +10,11 @@ import {
   expectOverlayTapTargets,
   expectScene,
   labelOverlaps,
+  makeResult,
   measureBoxes,
   onlyOwnOracleProphecy,
   onlyOwnProphecy,
+  postSession,
   redScan,
   tap,
   uniqueName,
@@ -40,10 +42,43 @@ test('the hub path leads to the temple; the Pythia greets; the exit sign leads b
   await expect(page.locator('.stage-plaque')).toHaveText('Le temple de Delphes');
   await expect(page.getByTestId('dialogue-text')).toHaveText("Approche. Trois rouleaux scellés t'attendent cette semaine.");
   await page.getByTestId('dialogue-skip').click();
-  await expect(page.getByTestId('delphi-pythia')).toHaveClass(/is-new/);
+  // Ruling B9: a new hero's next step is the tent, so the Pythia keeps her caption but not the glow
+  // (the caption first: it proves the camp has loaded before the glow is checked).
   await expect(page.getByTestId('delphi-pythia')).toContainText('Trois rouleaux à ouvrir');
+  await expect(page.getByTestId('delphi-pythia')).not.toHaveClass(/is-new/);
   await tap(page.getByTestId('scene-exit'), testInfo);
   await expectCamp(page);
+});
+
+test('the Pythia glows once the tent is behind her: the sealed scrolls are the next step', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const text = await createText(request, { title: uniqueName(`Delphes ${testInfo.project.name}`), body: BODY, level: '10H' });
+  await postSession(request, { profileId: id, textId: text.id, day: '2026-08-03', result: makeResult({ draft: 4, caught: 2, category: 'homophone' }) });
+  await openTemple(page, id);
+  await page.getByTestId('dialogue-skip').click();
+  await expect(page.getByTestId('delphi-pythia')).toHaveClass(/is-new/);
+});
+
+test('a prophecy within a week comes first: the Pythia and the road to Delphi glow for a new hero', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  // A real text due in 2 days would be every parallel hero's next step (prophecies are global):
+  // keep it far off and bring it near in this page's /camp answer only.
+  const text = await createText(request, { title: uniqueName('Une prophétie en tête'), body: BODY, level: '10H', due_date: '2099-01-01' });
+  await page.route('**/api/profiles/*/camp', async (route) => {
+    const res = await route.fetch();
+    const json = await res.json();
+    json.prophecies = json.prophecies
+      .filter((p: { text_id: number }) => p.text_id === text.id)
+      .map((p: { days_left: number }) => ({ ...p, days_left: 2 }));
+    await route.fulfill({ response: res, json });
+  });
+  await openTemple(page, id);
+  await page.getByTestId('dialogue-skip').click();
+  await expect(page.getByTestId('delphi-pythia')).toHaveClass(/is-new/);
+  await tap(page.getByTestId('scene-exit'), testInfo);
+  await expectCamp(page);
+  await expect(page.getByTestId('camp-oracle')).toHaveClass(/is-new/);
+  await expect(page.getByTestId('camp-parchemins')).not.toHaveClass(/is-new/);
 });
 
 test('the Pythia opens the three scrolls; « Ce que prépare ta classe »; seal, Escape and Back close', async ({ page, request }, testInfo) => {

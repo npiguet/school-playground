@@ -36,7 +36,7 @@ export interface Box {
 export type Depth = 0 | 1 | 2 | 3;
 export type IdlePreset = 'none' | 'bob' | 'sway' | 'breathe';
 export type FxPreset = 'none' | 'embers' | 'dust';
-export type SceneId = 'camp' | 'title' | 'library' | 'delphi';
+export type SceneId = 'camp' | 'title' | 'library' | 'delphi' | 'war' | 'nest' | 'cabin';
 /** Where a hotspot's plaque sits: above or below its shape, or written `on` the landmark itself
  *  (ink on parchment, e.g. the war tent's portrait sheets). */
 export type LabelPos = 'above' | 'below' | 'on';

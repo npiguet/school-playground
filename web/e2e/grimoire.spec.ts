@@ -1,5 +1,5 @@
 import { test, expect } from './crashGuard';
-import { chooseLevel, createProfile, createText, stubSpeech, uniqueName } from './helpers';
+import { chooseLevel, createProfile, createText, expectCamp, stubSpeech, uniqueName } from './helpers';
 
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent. Le vent emporte leurs chansons jusqu\'au village. Les enfants sortent de leurs maisons, émerveillés. La musique descend de la forêt et la nuit est douce.';
 
@@ -57,13 +57,12 @@ test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', asyn
   await expect(page.getByTestId('results-catch-rate')).toContainText(/Dés-accords retrouvés : \d+ sur \d+/);
   const m = /sur (\d+)/.exec((await page.getByTestId('results-catch-rate').textContent()) ?? '');
   expect(Number(m?.[1])).toBeGreaterThanOrEqual(3);
+  // The stats reflect the session (the journal route; the hero panel and the dossier that lead to it
+  // are covered by scenes-cabin and scenes-war).
+  const profileId = /\/p\/(\d+)\//.exec(page.url())![1];
   await page.getByTestId('btn-back-camp').click();
-  // The hero panel's « Ton journal » medallion points at `dossier` (SP3 decision 14, wired in Task 6);
-  // its own "Voir les chiffres bruts" link goes on to the raw stats page.
-  await page.getByTestId('hud-hero').click();
-  await page.getByTestId('hero-journal').click();
-  await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
-  await page.getByRole('link', { name: 'Voir les chiffres bruts' }).click();
+  await expectCamp(page);
+  await page.goto(`/#/p/${profileId}/stats`);
   await expect(page.getByText('Grimoire').first()).toBeVisible();
   expect(t.id).toBeGreaterThan(0);
 });

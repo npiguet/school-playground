@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
-import { VOICES } from './voices';
+import { VOICES, erisSays } from './voices';
 
 describe('overlay voices (Ruling W2, W10)', () => {
   it('gives every overlay line a speaker with a painted portrait', () => {
     for (const [id, line] of Object.entries(VOICES)) {
-      expect(['owl', 'pythia'], id).toContain(line.speaker);
+      expect(['owl', 'pythia', 'eris', 'dragon'], id).toContain(line.speaker);
       expect(existsSync('public' + line.portrait), id).toBe(true);
     }
   });
@@ -22,5 +22,10 @@ describe('overlay voices (Ruling W2, W10)', () => {
     expect(VOICES.desk.text).toBe("Hou ! Entre 80 et 200 mots, c'est l'idéal, et les nombres en lettres.");
     expect(VOICES.lens.text).toContain('une photo par page');
     expect(VOICES.pythia.speaker).toBe('pythia');
+  });
+
+  it('lets Éris speak in the war tent with her smug portrait', () => {
+    expect(erisSays('Dossier ouvert.')).toEqual({ speaker: 'eris', name: 'Éris', portrait: '/art/characters/eris_smug_cut.webp', text: 'Dossier ouvert.' });
+    expect(VOICES.bestiary.speaker).toBe('owl');
   });
 });

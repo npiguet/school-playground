@@ -133,10 +133,18 @@ describe('camp hub wording (playability #2, #6, #16)', () => {
     expect(weeklyCaption({ week: 'w', target: 3, done: 3, reached: true })).toBe('Objectif atteint ! Les Muses sont fières.');
   });
 
-  it('lights one next step: the open battle, else the tent for a new hero, else the sealed Oracle (Ruling W14)', () => {
+  it('lights one next step: a prophecy within a week, else the open battle, else the tent for a new hero, else the sealed Oracle (Rulings W14, B9)', () => {
     const mid = { total: 90, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 };
     const open = { tier_available: 1, tiers_won: [], active_quest_id: null };
+    const chosen = { week: 'w', status: 'chosen' as const, reward_id: null };
+    const soon = [{ text_id: 1, title: 'x', due_date: '2026-09-29', days_left: 2 }];
     expect(campNextStep(null)).toBeNull();
+    expect(campNextStep(camp({ xp: mid, prophecies: soon, oracle: chosen }))).toBe('oracle');
+    // The real-school dictation outranks even an open battle and a new hero's first text.
+    expect(campNextStep(camp({ boss: open, prophecies: soon }))).toBe('oracle');
+    expect(state('boss', camp({ boss: open, prophecies: soon })).isNew).toBe(false);
+    expect(state('parchemins', camp({ prophecies: soon })).isNew).toBe(false);
+    expect(state('oracle', camp({ boss: open, prophecies: soon }))).toMatchObject({ isNew: true, caption: 'Trois rouleaux à ouvrir' });
     expect(campNextStep(camp())).toBe('parchemins');
     expect(campNextStep(camp({ boss: open }))).toBe('boss');
     expect(campNextStep(camp({ xp: mid }))).toBe('oracle');
@@ -153,7 +161,7 @@ describe('camp hub wording (playability #2, #6, #16)', () => {
     expect(state('parchemins', camp({ xp: { total: 40, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 } })).isNew).toBe(false);
   });
 
-  it('ends the greeting on the next step: a near prophecy, else a ready battle, else the tent', () => {
+  it('ends the greeting on the next step: a near prophecy, else a ready battle, else the tent, else the sealed scrolls', () => {
     const prophecies = [
       { text_id: 2, title: 'Les fées', due_date: '2026-10-01', days_left: 7 },
       { text_id: 1, title: 'La mer', due_date: '2026-09-27', days_left: 3 },
@@ -161,8 +169,11 @@ describe('camp hub wording (playability #2, #6, #16)', () => {
     expect(nearestProphecy(camp({ prophecies }))?.title).toBe('La mer');
     expect(nextStepLine(camp({ prophecies }))).toBe("La Pythie a vu ta prochaine épreuve, dans 3 jours. Viens t'y préparer !");
     const ready = camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null } });
+    expect(nextStepLine(camp({ ...ready, prophecies }))).toBe(`La Pythie a vu ta prochaine épreuve, ${prophecyWhen(3)}. Viens t'y préparer !`);
     expect(nextStepLine(ready)).toBe("Le sentier de la bataille est ouvert : Éris t'attend.");
     expect(nextStepLine(camp())).toBe("Les parchemins t'attendent, sous la tente.");
+    const played = { total: 40, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 };
+    expect(nextStepLine(camp({ xp: played }))).toBe("La Pythie t'attend à Delphes : trois rouleaux à ouvrir.");
   });
 
   it('keeps the dragon cut-out on a shallow parallax plane and preloads the likely next scenes', () => {

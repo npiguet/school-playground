@@ -7,6 +7,11 @@ import type { DialogueLine } from '../scene/types';
 const owl = (text: string): DialogueLine => ({ speaker: 'owl', name: "La chouette d'Athéna", portrait: ART.characters.owl, text });
 const pythia = (text: string): DialogueLine => ({ speaker: 'pythia', name: 'La Pythie', portrait: ART.characters.pythia, text });
 
+/** Éris speaks in her war tent (UI3 Ruling B10): lines built from live data (her dossier lines). */
+export function erisSays(text: string): DialogueLine {
+  return { speaker: 'eris', name: 'Éris', portrait: ART.erisSmug, text };
+}
+
 export const VOICES = {
   ritual: owl('Hou ! Écris ton prénom sur la bannière, choisis ton emblème, et ton bouclier rejoindra la porte du camp.'),
   shelves: owl("Hou ! Choisis un parchemin à protéger des dés-accords d'Éris."),
@@ -20,4 +25,6 @@ export const VOICES = {
   pythia: pythia("Un seul rouleau s'ouvre chaque semaine, et les trois promettent la même récompense. Choisis celui qui t'appelle."),
   // Re-review N13: the quest wall's voice; TabletsPanel speaks it with the live reward and treasure.
   wall: pythia('Chaque monstre défié rapporte de la gloire et une page du bestiaire.'),
+  // UI3b: the owl keeps the bestiary (the old subtitle, immersion Ruling W2).
+  bestiary: owl("Hou ! Chaque page raconte d'abord le vrai mythe. Ce que le camp en a fait est écrit à part, sous « Au camp »."),
 } as const satisfies Record<string, DialogueLine>;

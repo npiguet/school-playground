@@ -8,6 +8,7 @@ export type RouteName =
   | 'camp'
   | 'library-tent'
   | 'delphi'
+  | 'war-tent'
   | 'library'
   | 'text-new'
   | 'text-scan'
@@ -50,6 +51,7 @@ const PATTERNS: Pattern[] = [
   // UI3 Ruling A1: the bare district scenes; the legacy routes open them with an overlay.
   { name: 'library-tent', segments: ['p', { param: 'profileId' }, 'tente-parchemins'] },
   { name: 'delphi', segments: ['p', { param: 'profileId' }, 'temple'] },
+  { name: 'war-tent', segments: ['p', { param: 'profileId' }, 'tente-de-guerre'] },
   { name: 'text-new', segments: ['p', { param: 'profileId' }, 'texts', 'new'] },
   { name: 'text-scan', segments: ['p', { param: 'profileId' }, 'texts', 'scan'] },
   { name: 'grimoire', segments: ['p', { param: 'profileId' }, 'grimoire', { param: 'textId' }] },
@@ -114,6 +116,8 @@ export function href(name: RouteName, params: Record<string, string> = {}, query
         return `#/p/${params.profileId}/tente-parchemins`;
       case 'delphi':
         return `#/p/${params.profileId}/temple`;
+      case 'war-tent':
+        return `#/p/${params.profileId}/tente-de-guerre`;
       case 'text-new':
         return `#/p/${params.profileId}/texts/new`;
       case 'text-scan':

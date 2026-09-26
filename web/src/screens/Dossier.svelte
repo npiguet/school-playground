@@ -11,7 +11,7 @@
   import { ART } from '../lib/world/art';
   import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey } from '../lib/world/types';
-  import { agree, bandFor, dossierLine, dossierIntro, lockedLine, smallTricksLine } from '../lib/world/eris';
+  import { agree, bandFor, dossierLine, dossierIntro, sleepingLine, smallTricksLine } from '../lib/world/eris';
   import { entry as bestiaryEntry } from '../lib/world/bestiary';
   import { api, ApiError } from '../lib/api';
   import type { Profile, StatsResponse } from '../lib/types';
@@ -106,7 +106,7 @@
                 <div class="parchment row row-locked">
                   <LieutenantBadge lieutenantKey={key} size={40} dim />
                   <span class="row-name">{nameFor(key)}</span>
-                  <span class="muted">{lockedLine(nameFor(key))}</span>
+                  <span class="muted">{sleepingLine(key)}</span>
                 </div>
               {:else}
                 {@const band = bandFor(l)}

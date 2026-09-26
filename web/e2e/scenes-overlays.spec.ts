@@ -3,10 +3,9 @@ import type { Page } from '@playwright/test';
 import {
   createProfileApi,
   expectFocusRingInsideBody,
+  expectInWorldOverlay,
   expectOverlayClearsScene,
-  expectOverlayTapTargets,
   expectScene,
-  redScan,
   tap,
   uniqueName,
 } from './helpers';
@@ -192,7 +191,9 @@ test('the quest tablets hang on a wood table; the temple plaque and labels fade'
 // opened by its deep link on a fresh hero - its variant, clear of the HUD with the scene's words
 // faded, 48 px targets, kit classes only, and the character who speaks in it. The work overlay needs
 // a real work id (its own test below); « Tous les héros » needs more than five heroes to matter and
-// stays with scenes-title.spec.ts; the camp's hero panel is a legacy screen until UI3b.
+// stays with scenes-title.spec.ts; the camp's hero panel moves to the cabin in UI3b: its row lives
+// in scenes-cabin.spec.ts. The check itself is `expectInWorldOverlay` (helpers.ts), which each UI3b
+// place spec calls for its own overlays.
 const OVERLAYS = [
   { hash: () => '/profiles/new', testId: 'overlay-hero-new', scene: 'title', hud: false, variant: 'scroll', voice: 'owl' },
   { hash: (id: number) => `/p/${id}/parchemins`, testId: 'overlay-shelves', scene: 'library', hud: true, variant: 'table', voice: 'owl' },
@@ -202,19 +203,6 @@ const OVERLAYS = [
   { hash: (id: number) => `/p/${id}/delphes`, testId: 'overlay-pythia', scene: 'delphi', hud: true, variant: 'scroll', voice: 'pythia' },
   { hash: (id: number) => `/p/${id}/quetes`, testId: 'overlay-tablets', scene: 'delphi', hud: true, variant: 'table', voice: 'pythia' },
 ] as const;
-
-const LEGACY = '.btn, .btn-primary, .btn-ghost, .card, .chip, .chip-active, .parchment';
-
-async function expectInWorldOverlay(page: Page, testId: string, scene: string, hud: boolean, variant: string, voice: string | null) {
-  const panel = page.getByTestId(testId);
-  await expect(panel).toHaveAttribute('data-variant', variant);
-  await expectOverlayClearsScene(page, testId, scene, hud);
-  await expectOverlayTapTargets(page, testId);
-  await expect(panel.locator(LEGACY)).toHaveCount(0);
-  if (voice) await expect(panel.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', voice);
-  else await expect(panel.getByTestId('overlay-voice')).toHaveCount(0);
-  expect(await redScan(page)).toEqual([]);
-}
 
 for (const o of OVERLAYS) {
   test(`${o.testId}: an in-world ${o.variant}, clear of the HUD, 48 px targets, kit classes only`, async ({ page, request }, testInfo) => {
