@@ -24,6 +24,9 @@ describe('one next step for the whole camp (Ruling B9, order amended by the cont
     // The real-school dictation comes first: it outranks even an open battle and a new hero's first text.
     expect(nextStep(camp({ boss: open, xp: fresh, prophecies: prophecy(1), oracle: sealed }))).toBe('prophecy');
     expect(nextStep(camp({ prophecies: prophecy(7), oracle: sealed }))).toBe('prophecy');
+    // Due today, or already past: still the next step (prophecyWhen says « aujourd'hui »).
+    expect(nextStep(camp({ prophecies: prophecy(0) }))).toBe('prophecy');
+    expect(nextStep(camp({ prophecies: prophecy(-1) }))).toBe('prophecy');
     expect(nextStep(camp({ boss: open, xp: fresh, prophecies: prophecy(8), oracle: sealed }))).toBe('battle');
     expect(nextStep(camp({ xp: fresh, prophecies: prophecy(8), oracle: sealed }))).toBe('first-text');
     expect(nextStep(camp({ prophecies: prophecy(8), oracle: sealed }))).toBe('scrolls');
