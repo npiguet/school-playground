@@ -1,6 +1,6 @@
 // Howler arrives by a dynamic import (lane A review #12): an e2e page (the recording backend) never
-// loads it, and a player's page starts fetching it as soon as the mixer is made, well before the
-// first tap. Until it is there, what the engine asks is kept and replayed: the context's last wish
+// loads it, and a player's page starts fetching it at startup (main.ts → installAudio → audio()),
+// long before « Entrer ». Until it is there, what the engine asks is kept and replayed: the context's last wish
 // (running or suspended), the effects' warm-up and each loop still wanted, at its latest gain.
 // Effects asked meanwhile are dropped (they are short cues, late is worse than never).
 import type { AudioBackend, ContextState, TrackHandle } from './engine';
@@ -13,7 +13,19 @@ interface Pending {
   real: TrackHandle | null;
 }
 
-export function lazyBackend(load: () => Promise<AudioBackend>): AudioBackend {
+/** The next tap or key press anywhere, once (the default: the page's own). */
+function nextGesture(fn: () => void): void {
+  if (typeof window === 'undefined') return;
+  const once = () => {
+    window.removeEventListener('pointerdown', once, true);
+    window.removeEventListener('keydown', once, true);
+    fn();
+  };
+  window.addEventListener('pointerdown', once, true);
+  window.addEventListener('keydown', once, true);
+}
+
+export function lazyBackend(load: () => Promise<AudioBackend>, onNextGesture: (fn: () => void) => void = nextGesture): AudioBackend {
   let backend: AudioBackend | null = null;
   let warm = false;
   let context: 'resume' | 'suspend' | null = null;
@@ -23,8 +35,17 @@ export function lazyBackend(load: () => Promise<AudioBackend>): AudioBackend {
     .then((b) => {
       backend = b;
       if (warm) b.warm();
-      if (context === 'resume') b.resume();
-      else if (context === 'suspend') b.suspend();
+      if (context === 'resume') {
+        b.resume();
+        // The unlock's tap came before Howler: its context is born outside a gesture, and iOS
+        // keeps it suspended until one. The next tap anywhere resumes it (Howler's autoUnlock does
+        // the same; this does not depend on it).
+        if (b.state() !== 'running') {
+          onNextGesture(() => {
+            if (backend && context === 'resume' && backend.state() !== 'running') backend.resume();
+          });
+        }
+      } else if (context === 'suspend') b.suspend();
       for (const p of pending) {
         if (p.stopped || !p.started) continue;
         p.real = b.track(p.id);
@@ -64,12 +85,12 @@ export function lazyBackend(load: () => Promise<AudioBackend>): AudioBackend {
       else warm = true;
     },
     resume() {
-      if (backend) backend.resume();
-      else context = 'resume';
+      context = 'resume';
+      backend?.resume();
     },
     suspend() {
-      if (backend) backend.suspend();
-      else context = 'suspend';
+      context = 'suspend';
+      backend?.suspend();
     },
     state(): ContextState {
       return backend ? backend.state() : 'none';

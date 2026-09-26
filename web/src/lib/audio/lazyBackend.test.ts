@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { lazyBackend } from './lazyBackend';
 import { recordingBackend } from './recordingBackend';
+import { createEngine } from './engine';
 
 function deferred() {
   const real = recordingBackend();
@@ -42,6 +43,43 @@ describe('the lazily loaded backend (lane A review #12)', () => {
     open();
     await tick();
     expect(real.log.state).toBe('suspended');
+  });
+
+  // iOS: a context made outside a gesture starts suspended, and resume() works only inside one. When
+  // « Entrer » comes before Howler, the unlock's gesture is spent: the next tap resumes the context.
+  it('ends up running when the unlock tap came before Howler: the next gesture resumes it', async () => {
+    let inGesture = false;
+    const real = recordingBackend();
+    real.resume = () => {
+      if (inGesture) real.log.state = 'running';
+    };
+    let open!: () => void;
+    const loaded = new Promise<typeof real>((r) => (open = () => r(real)));
+    const gestures: (() => void)[] = [];
+    const lazy = lazyBackend(() => loaded, (fn) => gestures.push(fn));
+    const engine = createEngine(lazy);
+    inGesture = true;
+    engine.unlock(); // « Entrer », Howler still on its way
+    inGesture = false;
+    open();
+    await tick();
+    expect(real.log.state).toBe('suspended');
+    expect(gestures).toHaveLength(1);
+    inGesture = true;
+    gestures[0](); // the next tap, anywhere
+    inGesture = false;
+    expect(real.log.state).toBe('running');
+    expect(engine.snapshot().unlocked).toBe(true);
+  });
+
+  it('asks for no extra gesture when the context is already running once Howler arrives', async () => {
+    const gestures: (() => void)[] = [];
+    const real = recordingBackend();
+    const late = lazyBackend(() => Promise.resolve(real), (fn) => gestures.push(fn));
+    late.resume();
+    await tick();
+    expect(real.log.state).toBe('running');
+    expect(gestures).toEqual([]);
   });
 
   it('stays silent, never throwing, when the backend cannot load', async () => {

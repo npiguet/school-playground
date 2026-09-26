@@ -35,6 +35,9 @@ export function withAudio(fn: (e: AudioEngine) => void): void {
 
 /** Called once from main.ts, before the app mounts. Returns its teardown (tests). */
 export function installAudio(): () => void {
+  // The mixer is made here, at startup: on a player's page that starts Howler's import now, long
+  // before « Entrer » (lazyBackend also covers a late arrival: the next tap resumes the context).
+  withAudio(() => undefined);
   // A channel changed from a control reaches the mixer at once, inside the same tap (review #5: the
   // confirming effect after unmuting the effects was dropped); the effect below covers the rest (a
   // hero's settings seeded on load).
