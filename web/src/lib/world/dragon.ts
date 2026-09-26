@@ -1,7 +1,7 @@
 // The dragon companion: tints (CSS filters on the same cut image, decision 11 - never a new
 // generation), stage labels/camp speech lines and name validation. Pure functions/data only, no
 // DOM/store access, so `Dragon.svelte`, the nest and its care panel, the trophy shelf and
-// `ProgressionReveal.svelte` all share the same wording and this file stays trivially testable.
+// the victory's spoils (`battle/VictorySpoils.svelte`) all share the same wording and this file stays trivially testable.
 import { plural } from '../text/french';
 import type { DragonOut, DragonStage, Tint } from './types';
 

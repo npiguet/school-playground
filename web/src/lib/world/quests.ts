@@ -8,7 +8,7 @@ import type { CampResponse, QuestOut, WorldCatalog } from './types';
 const LEADING_ARTICLE = /^(L'|La |Le |Les )/;
 
 // Exported so screens that build their own quest label from a differently-shaped quest object
-// (e.g. `ProgressionReveal.svelte`'s `Progression['quests']`, which has no `QuestOut.goal.tier`)
+// (e.g. `battle/VictorySpoils.svelte`'s `Progression['quests']`, which has no `QuestOut.goal.tier`)
 // still lower the article the same way instead of re-deriving the regex.
 export function lowerLeadingArticle(name: string): string {
   return name.replace(LEADING_ARTICLE, (m) => m.toLowerCase());

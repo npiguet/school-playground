@@ -1,14 +1,15 @@
 <script lang="ts">
   // Narrator box (scenes UI spec §4, §2.5): portrait + typewriter, tap to finish / advance,
   // « Tout passer » to close. UI1 takes static lines from props; UI5 feeds it dialogue content files.
-  // Sits in the art box's dialogue dock, which hotspots never overlap (plan Ruling 3).
+  // Sits in the art box's dialogue dock, which hotspots never overlap (plan Ruling 3). `dock="fill"`
+  // (UI4 Ruling C7): it fills its container instead, in the flow (the victory sheet).
   import { reducedMotion } from '../../lib/juice/motion';
   import { DIALOGUE_DOCK } from '../../lib/scene/geometry';
   import { advance, typedLength } from '../../lib/scene/typewriter';
   import type { DialogueLine } from '../../lib/scene/types';
   import Icon from '../ui/Icon.svelte';
 
-  let { lines, onDone }: { lines: DialogueLine[]; onDone: () => void } = $props();
+  let { lines, onDone, dock = 'art' }: { lines: DialogueLine[]; onDone: () => void; dock?: 'art' | 'fill' } = $props();
 
   let index = $state(0);
   let shown = $state(0);
@@ -71,7 +72,8 @@
     role="group"
     aria-label="Dialogue"
     data-testid="dialogue-box"
-    style="left:{DIALOGUE_DOCK.x}%;width:{DIALOGUE_DOCK.w}%;max-height:{DIALOGUE_DOCK.h - 2}%"
+    class:fill={dock === 'fill'}
+    style={dock === 'art' ? `left:${DIALOGUE_DOCK.x}%;width:${DIALOGUE_DOCK.w}%;max-height:${DIALOGUE_DOCK.h - 2}%` : undefined}
   >
     <img class="portrait" src={line.portrait} alt="" style="filter:{line.portraitFilter ?? 'none'}" />
     <button
@@ -166,6 +168,12 @@
     50% {
       opacity: 0.4;
     }
+  }
+  .dialogue.fill {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    width: 100%;
   }
   .skip {
     flex-shrink: 0;
