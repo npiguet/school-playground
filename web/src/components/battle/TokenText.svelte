@@ -3,9 +3,10 @@
   // reproduced exactly: tokens become buttons, the gaps between them (spaces, newlines)
   // are plain text inside a `white-space: pre-wrap` container.
   import type { Snippet } from 'svelte';
-  import { tokenize } from '$lib/grading/tokenize';
-  import type { ArgusPass } from '$lib/grading/types';
-  import { PROOF } from '$lib/battle/lines';
+  import { tokenize } from '../../lib/grading/tokenize';
+  import type { ArgusPass } from '../../lib/grading/types';
+  import { PROOF } from '../../lib/battle/lines';
+  import { glueRuns, snug, type Gap } from '../../lib/battle/runs';
 
   let {
     text,
@@ -46,36 +47,19 @@
   const to = $derived(range?.end ?? text.length);
 
   // Pieces to render, in order: a gap (plain text) before every visible run of tokens, then the
-  // trailing gap up to the end of the range. A run is the tokens glued together with no gap
-  // (« bruit. », « maisons, », « jusqu'au »): rendered unbreakable, since every button is an atomic
-  // inline box and a line may otherwise break before its full stop (Task 8 walk).
+  // trailing gap up to the end of the range; the glued tokens form unbreakable runs (`glueRuns`).
   const pieces = $derived.by(() => {
-    const out: ({ kind: 'gap'; text: string } | { kind: 'run'; indexes: number[] })[] = [];
+    const out: (Gap | { kind: 'tok'; index: number })[] = [];
     let cursor = from;
     tokens.forEach((t, index) => {
       if (t.start < from || t.end > to) return;
-      const last = out.at(-1);
       if (t.start > cursor) out.push({ kind: 'gap', text: text.slice(cursor, t.start) });
-      else if (last?.kind === 'run') {
-        last.indexes.push(index);
-        cursor = t.end;
-        return;
-      }
-      out.push({ kind: 'run', indexes: [index] });
+      out.push({ kind: 'tok', index });
       cursor = t.end;
     });
     if (to > cursor) out.push({ kind: 'gap', text: text.slice(cursor, to) });
-    return out;
+    return glueRuns(out);
   });
-
-  // A token glued to its neighbour (« bruit. », « maisons, ») loses its padding on that side: no
-  // gap before a full stop or a comma (French typography; the lane V review).
-  function snugLeft(index: number): boolean {
-    return index > 0 && tokens[index - 1].end === tokens[index].start;
-  }
-  function snugRight(index: number): boolean {
-    return index < tokens.length - 1 && tokens[index + 1].start === tokens[index].end;
-  }
 
   function inActivePass(index: number): boolean {
     return activePass !== null && (passSets[index]?.has(activePass) ?? false);
@@ -84,12 +68,12 @@
 
 <!-- Deliberately written without whitespace between blocks: the container is `pre-wrap`,
      so any stray newline in the markup would show up as a line break in the text. -->
-<p class="tokens" lang="fr">{#each pieces as piece, i (i)}{#if piece.kind === 'gap'}{piece.text}{:else}<span class="run">{#each piece.indexes as index (index)}{#if index === editingIndex && editor}{@render editor(index)}{:else}<button
+<p class="tokens" lang="fr">{#each pieces as piece, i (i)}{#if piece.kind === 'gap'}{piece.text}{:else}<span class="run">{#each piece.items as { index } (index)}{#if index === editingIndex && editor}{@render editor(index)}{:else}<button
       type="button"
       class="tok"
       class:punct={tokens[index].kind === 'punct'}
-      class:snug-left={snugLeft(index)}
-      class:snug-right={snugRight(index)}
+      class:snug-left={snug(tokens, index).left}
+      class:snug-right={snug(tokens, index).right}
       class:lit={inActivePass(index)}
       class:dim={dim && activePass !== null && !inActivePass(index)}
       class:hint={hintedTokenIndexes.has(index)}
@@ -133,6 +117,19 @@
     transition:
       color 0.2s ease,
       background 0.15s ease;
+    position: relative;
+  }
+  /* The tap area (final review M7): the row is the 1.9 line height (~42 px at 22 px), so an
+     invisible band a little taller than the row makes every word a 44 px target without moving a
+     line (a pseudo-element takes the taps of its button, and never takes part in the layout). */
+  .tok::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: max(44px, 100%);
+    transform: translateY(-50%);
   }
   .tok.punct {
     padding-left: 1px;

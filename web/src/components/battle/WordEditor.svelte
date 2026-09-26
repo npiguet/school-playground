@@ -2,7 +2,7 @@
   // Inline editor for one token of the player's text (spec §3.4 "tap a word → inline edit").
   // Enter, the OK button and blur commit; Escape cancels; an empty value means "delete".
   import { onMount, untrack } from 'svelte';
-  import { PROOF } from '$lib/battle/lines';
+  import { PROOF } from '../../lib/battle/lines';
 
   let {
     value,

@@ -10,19 +10,20 @@
   import TokenText from './TokenText.svelte';
   import WordEditor from './WordEditor.svelte';
   import Icon from '../ui/Icon.svelte';
-  import { TOOL_ICONS } from '$lib/world/art';
-  import { PROOF } from '$lib/battle/lines';
-  import { react } from '$lib/battle/stage.svelte';
-  import { emitBattle } from '$lib/battle/events';
-  import { activePasses, ARGUS_LABELS, HINTS_PER_STAGE, typedPassSets } from '$lib/argus';
-  import { mapAnnotation, reverseAnnotationMap } from '$lib/grading/annotationMap';
-  import { errorKey, gradeText } from '$lib/grading/grade';
-  import type { Annotation, ArgusPass, GradeResult, TokenError } from '$lib/grading/types';
-  import { filDoneAction, filExit, filStart, filTap, type FilState, type TypedTextLookup } from '$lib/fil';
-  import { savePlayState, type PlayState } from '$lib/playState';
-  import { replaceSpan, sentenceSpans } from '$lib/textEdit';
-  import type { PlayMode, TextFull } from '$lib/types';
-  import type { BattleLayout } from '$lib/battle/layout';
+  import { TOOL_ICONS } from '../../lib/world/art';
+  import { PROOF } from '../../lib/battle/lines';
+  import { react } from '../../lib/battle/stage.svelte';
+  import { emitBattle } from '../../lib/battle/events';
+  import { focusOnMount } from '../../lib/battle/focus';
+  import { activePasses, ARGUS_LABELS, HINTS_PER_STAGE, typedPassSets } from '../../lib/argus';
+  import { mapAnnotation, reverseAnnotationMap } from '../../lib/grading/annotationMap';
+  import { errorKey, gradeText } from '../../lib/grading/grade';
+  import type { Annotation, ArgusPass, GradeResult, TokenError } from '../../lib/grading/types';
+  import { filDoneAction, filExit, filStart, filTap, type FilState, type TypedTextLookup } from '../../lib/fil';
+  import { savePlayState, type PlayState } from '../../lib/playState';
+  import { replaceSpan, sentenceSpans } from '../../lib/textEdit';
+  import type { PlayMode, TextFull } from '../../lib/types';
+  import type { BattleLayout } from '../../lib/battle/layout';
 
   let {
     reference,
@@ -67,7 +68,7 @@
   const spans = $derived(sentenceSpans(play.current));
 
   // --- Fil d'Ariane (spec §3.4: "tap a verb, then its subject") -----------------------
-  // `fil` is the pure state machine (`$lib/fil.ts`); everything here just maps between the
+  // `fil` is the pure state machine (`lib/fil.ts`); everything here just maps between the
   // player's typed-token space (what TokenText renders) and the annotation's token space
   // (what `filTap` reasons about), via the reference token each typed token is aligned to.
   let fil = $state<FilState>(filExit(filStart(play.fil)));
@@ -162,7 +163,7 @@
   });
 
   // Keep the edited word in view when the on-screen keyboard resizes the visual viewport. The
-  // battle stage sizes the parchment to it (its `watchViewport` owns `--vvh`, UI4 Ruling C4).
+  // battle stage sizes the parchment to it (its `--vvh`, from `watchViewport`, UI4 Ruling C4).
   $effect(() => {
     const vv = window.visualViewport;
     const update = () => {
@@ -382,7 +383,7 @@
     {#if confirmDone}
       <p class="confirm">{PROOF.confirmAsk}</p>
       <div class="confirm-actions">
-        <button type="button" class="kit-bronze" onclick={onDone}>{PROOF.confirmYes}</button>
+        <button type="button" class="kit-bronze" onclick={onDone} use:focusOnMount>{PROOF.confirmYes}</button>
         <button type="button" class="kit-bronze is-quiet" onclick={() => (confirmDone = false)}>{PROOF.confirmNo}</button>
       </div>
     {:else}
@@ -431,10 +432,12 @@
       {@render foot()}
     </div>
     <!-- The Fil's and the owl's words share one line under the bar; the Fil's toggle in the bar is
-         its way out. The full text stays in the DOM (role="status" reads it all). -->
+         its way out (« Quitter le fil » folds into it, M11). The Fil's follow-up hint stays, as the
+         full layout has it. The full text stays in the DOM (role="status" reads it all). -->
     {#if fil.step !== 'idle' || chouetteMessage}
       <p class="kit-note line" data-tone={fil.step !== 'idle' ? 'aegean' : undefined} role="status">
         {#if fil.step !== 'idle'}<span class="fil-message" data-testid="fil-message">{fil.message}</span>{/if}
+        {#if fil.step === 'done'}<span class="fil-next" data-testid="fil-next">{PROOF.filNext(filVerbText)}</span>{/if}
         {#if chouetteMessage}<span class="chouette" data-testid="chouette-note"><img class="line-icon" src={TOOL_ICONS.athena} alt="" />{chouetteMessage}</span>{/if}
       </p>
     {/if}
@@ -483,7 +486,7 @@
     <div class="kit-note confirm-quit" role="status">
       <p>{PROOF.quitAsk}</p>
       <div class="confirm-actions">
-        <button type="button" class="kit-bronze" data-testid="btn-quit-proof-confirm" onclick={onQuit}>{PROOF.quitYes}</button>
+        <button type="button" class="kit-bronze" data-testid="btn-quit-proof-confirm" onclick={onQuit} use:focusOnMount>{PROOF.quitYes}</button>
         <button type="button" class="kit-bronze is-quiet" onclick={() => (confirmQuit = false)}>{PROOF.confirmNo}</button>
       </div>
     </div>
@@ -669,10 +672,6 @@
     width: 20px;
     height: 20px;
     object-fit: contain;
-  }
-  .icon-only {
-    padding: 0;
-    width: 48px;
   }
   .argus-row {
     display: flex;

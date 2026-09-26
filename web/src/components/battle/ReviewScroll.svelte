@@ -4,13 +4,14 @@
   // text, tap for the correct form and why; then what Éris tried, by category. Orange for
   // still-wrong words, the laurel's green for words she caught and fixed herself - never red. The
   // tally, Éris's line, the help message and the actions live on the victory sheet.
-  import { errorKey, gradeText, mapAnnotation } from '$lib/grading';
-  import type { Annotation, SessionResult, StatKey, TokenError } from '$lib/grading/types';
-  import { CATEGORY_LABELS, caughtText, explain, statKeyOf } from '$lib/explain';
-  import type { TextFull } from '$lib/types';
+  import { errorKey, gradeText, mapAnnotation } from '../../lib/grading';
+  import type { Annotation, SessionResult, StatKey, TokenError } from '../../lib/grading/types';
+  import { CATEGORY_LABELS, caughtText, explain, statKeyOf } from '../../lib/explain';
+  import type { TextFull } from '../../lib/types';
   import Overlay from '../scene/Overlay.svelte';
   import Icon from '../ui/Icon.svelte';
   import { VICTORY } from '../../lib/battle/lines';
+  import { glueRuns, snug, type Gap } from '../../lib/battle/runs';
 
   let {
     reference,
@@ -76,12 +77,11 @@
     return m;
   });
 
-  type Piece =
-    | { kind: 'gap'; text: string }
-    | { kind: 'tok'; index: number }
-    | { kind: 'missing'; anchor: number; errors: TokenError[] };
+  type Piece = Gap | { kind: 'tok'; index: number } | { kind: 'missing'; anchor: number; errors: TokenError[] };
 
-  const pieces = $derived.by(() => {
+  // The glued pieces (a word, its full stop, a missing-word marker) form one unbreakable run
+  // (`glueRuns`, shared with TokenText).
+  const runs = $derived.by(() => {
     const out: Piece[] = [];
     const tokens = grade.typedTokens;
     let cursor = 0;
@@ -95,22 +95,16 @@
       if (after) out.push({ kind: 'missing', anchor: index, errors: after });
     });
     if (finalText.length > cursor) out.push({ kind: 'gap', text: finalText.slice(cursor) });
-    return out;
+    return glueRuns(out);
   });
 
-  // Glued pieces (a word, its full stop, a missing-word marker) form one unbreakable run: every
-  // button is an atomic inline box, and a line may otherwise break before a full stop (TokenText).
-  type Run = { kind: 'gap'; text: string } | { kind: 'run'; items: Exclude<Piece, { kind: 'gap' }>[] };
-  const runs = $derived.by(() => {
-    const out: Run[] = [];
-    for (const p of pieces) {
-      const last = out.at(-1);
-      if (p.kind === 'gap') out.push(p);
-      else if (last?.kind === 'run') last.items.push(p);
-      else out.push({ kind: 'run', items: [p] });
-    }
-    return out;
-  });
+  // M10: a trap's word says what it is, not only by its colour; the other words are plain text.
+  function tokLabel(index: number): string | undefined {
+    const word = grade.typedTokens[index].text;
+    if (errAtTyped.has(index)) return VICTORY.tokTrap(word);
+    if (caughtAtTyped.has(index)) return VICTORY.tokFoiled(word);
+    return undefined;
+  }
 
   // "Ce qu'Éris a tenté": every error she planted (the draft's errors, whether caught or missed)
   // plus the ones she slipped in during proofreading, grouped by category.
@@ -167,15 +161,25 @@
             class="marker"
             class:active={active?.type === 'missing' && active.anchor === piece.anchor && active.i === j}
             aria-label={VICTORY.missingWord}
+            aria-expanded={active?.type === 'missing' && active.anchor === piece.anchor && active.i === j}
             onclick={() => tapMissing(piece.anchor, j)}><Icon name="gap" size={18} /></button
-          >{/each}{:else}<button
+          >{/each}{:else if tokLabel(piece.index)}<button
           type="button"
           class="tok"
           class:punct={grade.typedTokens[piece.index].kind === 'punct'}
+          class:snug-left={snug(grade.typedTokens, piece.index).left}
+          class:snug-right={snug(grade.typedTokens, piece.index).right}
           class:err={errAtTyped.has(piece.index)}
           class:caught={caughtAtTyped.has(piece.index)}
           class:active={active?.type === 'tok' && active.index === piece.index}
+          aria-label={tokLabel(piece.index)}
+          aria-expanded={active?.type === 'tok' && active.index === piece.index}
           onclick={() => tapTok(piece.index)}>{grade.typedTokens[piece.index].text}</button
+        >{:else}<span
+          class="tok"
+          class:punct={grade.typedTokens[piece.index].kind === 'punct'}
+          class:snug-left={snug(grade.typedTokens, piece.index).left}
+          class:snug-right={snug(grade.typedTokens, piece.index).right}>{grade.typedTokens[piece.index].text}</span
         >{/if}{/each}</span>{/if}{/each}</p>
   </div>
 
@@ -247,17 +251,33 @@
     color: inherit;
     cursor: default;
   }
-  /* French typography (fix round 1 #5): « . » and « , » sit against their word, no gap before. */
+  /* French typography (fix round 1 #5): « . » and « , » sit against their word, no gap before
+     (`snug`, as TokenText does). */
   .tok.punct {
-    padding-left: 0;
+    padding-left: 1px;
     padding-right: 1px;
   }
-  .tok:has(+ .tok.punct) {
+  .tok.snug-left {
+    padding-left: 0;
+  }
+  .tok.snug-right {
     padding-right: 0;
   }
   .tok.err,
   .tok.caught {
+    position: relative;
     cursor: pointer;
+  }
+  /* A 44 px tap band over the ~42 px row (final review M7, TokenText's note). */
+  .tok.err::after,
+  .tok.caught::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: max(44px, 100%);
+    transform: translateY(-50%);
   }
   .tok.err {
     text-decoration: underline;

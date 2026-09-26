@@ -23,6 +23,12 @@ label.kit-bronze {
 label.kit-bronze.is-quiet {
   color: var(--bronze-dark);
 }
+/* A bronze button that holds its icon alone: a 48 px square (the battle's compact bars; its name is
+   its aria-label). One rule for the dictation and the proofreading (UI4 final review M15). */
+.kit-bronze.icon-only {
+  padding: 0;
+  width: 48px;
+}
 
 /* --- A small text link: « Changer de héros », « Retirer », « Qui l'a écrit ? » -------------- */
 .kit-link {

@@ -11,6 +11,7 @@
   import Icon from '../ui/Icon.svelte';
   import { DICTATION } from '../../lib/battle/lines';
   import { react } from '../../lib/battle/stage.svelte';
+  import { focusOnMount } from '../../lib/battle/focus';
   import type { BattleLayout } from '../../lib/battle/layout';
 
   let {
@@ -148,6 +149,11 @@
   {/if}
 {/snippet}
 
+<!-- The status seal, in the full status line and in the compact bar alike (final review M15). -->
+{#snippet seal()}
+  <span class="seal" class:pulse={runnerState.status === 'playing'} data-status={runnerState.status} aria-hidden="true"></span>
+{/snippet}
+
 {#snippet controls()}
   <div class="controls" data-testid="dictation-controls">
     {#if pace === 1 || pace === 2}
@@ -183,7 +189,7 @@
       {@render quitButton()}
       <!-- The seal stays in sight, and a pause says so (the live status below is read out). -->
       <span class="bar-status" data-testid="bar-status" aria-hidden="true">
-        <span class="seal" class:pulse={runnerState.status === 'playing'} data-status={runnerState.status}></span>
+        {@render seal()}
         {#if runnerState.status === 'paused'}{DICTATION.status.paused}{/if}
       </span>
       <span class="progress">{progress}</span>
@@ -202,14 +208,14 @@
     <div class="kit-note confirm" role="status">
       <p>{DICTATION.quitAsk}</p>
       <div class="confirm-actions">
-        <button type="button" class="kit-bronze" data-testid="btn-quit-confirm" onclick={confirmedQuit}>{DICTATION.quitYes}</button>
+        <button type="button" class="kit-bronze" data-testid="btn-quit-confirm" onclick={confirmedQuit} use:focusOnMount>{DICTATION.quitYes}</button>
         <button type="button" class="kit-bronze is-quiet" onclick={() => (confirmQuit = false)}>{DICTATION.quitNo}</button>
       </div>
     </div>
   {/if}
 
   <div class="status" class:sr-only={compact}>
-    <span class="seal" class:pulse={runnerState.status === 'playing'} data-status={runnerState.status} aria-hidden="true"></span>
+    {@render seal()}
     <span data-testid="dictation-status" aria-live="polite">{statusText}</span>
   </div>
 
@@ -278,10 +284,6 @@
     font-weight: 600;
     color: var(--ink);
     white-space: nowrap;
-  }
-  .icon-only {
-    padding: 0;
-    width: 48px;
   }
   .confirm {
     display: flex;

@@ -337,7 +337,7 @@
           <div class="kit-form name-form">
             <input
               data-testid="reveal-name-input"
-              aria-label="Nom du dragon"
+              aria-label={VICTORY.dragonName}
               maxlength="20"
               lang="fr"
               autocapitalize="words"
