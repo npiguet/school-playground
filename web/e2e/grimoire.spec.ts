@@ -22,7 +22,8 @@ test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', asyn
   await page.getByTestId('btn-grimoire').click();
   await expect(page.getByRole('heading', { name: 'Grimoire corrompu' })).toBeVisible();
   await page.getByTestId('btn-open-grimoire').click();
-  await expect(page.getByRole('heading', { name: 'Grimoire corrompu' })).toBeVisible();
+  // UI4 playability #11: the proofreading is headed by the text's title; Éris's framing follows.
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
   await expect(page.getByText(/Éris a corrompu ce grimoire/)).toBeVisible();
   // the shown text differs from the original
   const shown = (await page.locator('[data-testid^="tok-"]').allTextContents()).join(' ');
@@ -54,12 +55,17 @@ test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', asyn
   const results = page.getByTestId('results-catch-rate');
   await expect(confirm.or(results)).toBeVisible();
   if (await confirm.isVisible()) await confirm.click();
-  await expect(page.getByTestId('results-catch-rate')).toContainText(/Dés-accords retrouvés : \d+ sur \d+/);
-  const m = /sur (\d+)/.exec((await page.getByTestId('results-catch-rate').textContent()) ?? '');
-  expect(Number(m?.[1])).toBeGreaterThanOrEqual(3);
+  // Éris plants at random: none of hers may be caught, and the tally then says they hid (UI4
+  // playability #1: never « 0 sur n »). She planted three at least, as the saved grimoire shows.
+  await expect(page.getByTestId('results-catch-rate')).toHaveText(/^(Dés-accords retrouvés : [1-9]\d* sur \d+|Ses dés-accords se sont bien cachés cette fois)$/);
+  const profileId = /\/p\/(\d+)\//.exec(page.url())![1];
+  const plants = await page.evaluate(
+    ([pid, tid]) => (JSON.parse(localStorage.getItem(`discorde.play.${pid}.${tid}.grimoire`) ?? '{}').plants ?? []).length as number,
+    [profileId, t.id] as const,
+  );
+  expect(plants).toBeGreaterThanOrEqual(3);
   // The stats reflect the session (the journal route; the hero panel and the dossier that lead to it
   // are covered by scenes-cabin and scenes-war).
-  const profileId = /\/p\/(\d+)\//.exec(page.url())![1];
   await page.getByTestId('btn-back-camp').click();
   await expectCamp(page);
   await page.goto(`/#/p/${profileId}/stats`);

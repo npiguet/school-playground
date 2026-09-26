@@ -11,6 +11,7 @@
   import Overlay from '../scene/Overlay.svelte';
   import Icon from '../ui/Icon.svelte';
   import { VICTORY } from '../../lib/battle/lines';
+  import { MARK_ICONS } from '../../lib/world/art';
   import { glueRuns, snug, type Gap } from '../../lib/battle/runs';
 
   let {
@@ -207,7 +208,8 @@
           {#each group.errors as e, i (i)}
             <li>
               <span class="expl">{explain(e, ctx).text}</span>
-              {#if caughtKeys.has(errorKey(e))}<span class="kit-stamp foiled">{VICTORY.foiled} <Icon name="check" size={14} /></span>{/if}
+              <!-- UI4 playability #18: a wax seal, the quest tag's, not a teacher's tick. -->
+              {#if caughtKeys.has(errorKey(e))}<span class="foiled" data-testid="revoir-foiled"><span class="kit-seal" aria-hidden="true"><img src={MARK_ICONS.oracleSeal} alt="" /></span>{VICTORY.foiled}</span>{/if}
             </li>
           {/each}
         </ul>
@@ -217,11 +219,13 @@
 </Overlay>
 
 <style>
-  /* The text as she left it (Ruling C12's legibility): Literata on the nearly opaque text zone. */
+  /* The text as she left it (Ruling C12's legibility): Literata on the scroll's own paper, grained,
+     never a white field that reads as an input (UI4 playability #18). The scroll is opaque, so the
+     ink keeps its contrast. */
   .review-text {
     padding: 8px 16px;
     border-radius: 6px;
-    background: var(--battle-text-bg);
+    background: var(--grain), rgba(255, 250, 235, 0.5);
     box-shadow: inset 0 0 0 1px var(--parchment-edge);
   }
   .tokens {
@@ -340,14 +344,19 @@
     margin-bottom: 6px;
     font-size: 17px;
   }
-  /* « déjoué » stamped in the laurel's green beside the line (an ink stamp, not a hanging tag: a
-     tag's cord would cross the line above). */
+  /* « déjoué » beside the line, under a small wax seal (the quest tag's), in the laurel's green. */
   .foiled {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     margin: 0 0 0 8px;
-    vertical-align: 2px;
+    vertical-align: -4px;
     color: var(--laurel);
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .foiled .kit-seal {
+    --seal-size: 22px;
   }
 </style>

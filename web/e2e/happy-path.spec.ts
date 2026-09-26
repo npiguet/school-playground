@@ -37,7 +37,9 @@ test('create profile → add text → dictation → proofreading → results →
   await page.getByTestId('btn-finish-writing').click();
 
   // Proofreading: stage 1 with Argus passes; fix one of the two errors
-  await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
+  // UI4 playability #11: the heading is the text's title, the phase told in the fiction.
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-phase', 'proofreading');
+  await expect(page.getByText("Traque les pièges d'Éris.", { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Verbes', exact: true })).toBeVisible();
   const danse = page.locator('[data-testid^="tok-"]', { hasText: /^danse$/ });
   await danse.click();
@@ -53,12 +55,13 @@ test('create profile → add text → dictation → proofreading → results →
 
   // Results
   await expect(page.getByTestId('victory-title')).toBeVisible();
-  await expect(page.getByTestId('results-catch-rate')).toContainText('1 sur 2');
-  // A narrow no-break space before « % » (French typography: the sign never wraps alone).
-  // toContainText folds every space into ' ', so the character itself is read from the DOM.
-  await expect(page.getByTestId('results-catch-rate')).toContainText('50 %');
-  expect(await page.getByTestId('results-catch-rate').textContent()).toContain('50 %');
-  await expect(page.getByTestId('results-score')).not.toContainText('NaN');
+  // UI4 playability #1: the tally in the game's words - no percentage, no « Score », no « x / y ».
+  await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués : 1 sur 2');
+  await expect(page.getByTestId('victory')).not.toContainText(/Score|%/);
+  // Nor the rate as it used to read (with its narrow no-break space): the journal keeps it.
+  await expect(page.getByTestId('results-catch-rate')).not.toContainText('50 %');
+  expect(await page.getByTestId('results-catch-rate').textContent()).not.toContain('50 %');
+  await expect(page.getByTestId('results-score')).toHaveText(/^Gloire gagnée : \d+$/);
   await page.getByTestId('battle-revoir').click();
   await expect(page.getByTestId('overlay-revoir').getByText(/chantent/).first()).toBeVisible();
   await closeOverlay(page);

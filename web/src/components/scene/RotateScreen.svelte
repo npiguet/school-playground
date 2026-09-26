@@ -33,7 +33,8 @@
   {#if background}<img class="rotate-backdrop" src={background} alt="" aria-hidden="true" />{/if}
   <div class="rotate-icon" aria-hidden="true"></div>
   <p class="kit-plaque">Tourne ton iPad</p>
-  <p class="rotate-hint">Le camp se découvre à l'horizontale.</p>
+  <!-- UI4 playability #22: one line for every place (the camp, a battle, Éris's lair). -->
+  <p class="rotate-hint">Tout se joue à l'horizontale.</p>
 </div>
 
 <style>

@@ -52,9 +52,13 @@ test('the reckoning strikes once per trap caught, then the lieutenant falls back
   // Ruling C6: the sheet unrolls over the dimmed battlefield; the combatants stay lit.
   await expect(page.locator('.battle-backdrop')).toHaveCSS('filter', /brightness\(0\.6\)/);
   await expect(page.getByTestId('battle-opponent').locator('img')).toHaveCSS('filter', 'none');
-  await expect(page.getByTestId('results-catch-rate')).toContainText('1 sur 2');
-  // A narrow no-break space before « % » (rateText), read from the DOM as happy-path does.
-  expect(await page.getByTestId('results-catch-rate').textContent()).toContain('50 %');
+  // UI4 playability #1: the tally in the game's words - no percentage (the rate as rateText wrote
+  // it, narrow no-break space and all), no « Score », no « x / y ».
+  await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués : 1 sur 2');
+  await expect(page.getByTestId('results-score')).toHaveText(/^Gloire gagnée : \d+$/);
+  await expect(page.getByTestId('victory')).toContainText('12 mots sur 13 tiennent bon');
+  await expect(page.getByTestId('victory')).not.toContainText(/Score|%|\d\s*\/\s*\d/);
+  expect(await page.getByTestId('results-catch-rate').textContent()).not.toContain('50 %');
 });
 
 test('the sheet: spoils, then « Continuer » lets Éris and the dragon speak; the actions are there throughout', async ({ page, request }, testInfo) => {
@@ -73,6 +77,40 @@ test('the sheet: spoils, then « Continuer » lets Éris and the dragon speak; t
   await page.getByTestId('dialogue-advance').click(); // finish typing
   await page.getByTestId('dialogue-advance').click(); // next line
   await expect(page.getByTestId('dialogue-text')).toContainText('Tu as déjoué 1 piège sur 2.');
+  // UI4 playability #7: one trap left is « le dernier ».
+  await expect(page.getByTestId('dialogue-text')).toContainText('Le dernier se cache encore : on le débusquera ensemble.');
+});
+
+// UI4 playability #2, #3, #21: the headline is everything she earned; the laurel is ink on the
+// parchment; the actions stay quiet while the spoils and the dialogue lead, then « Revoir » leads.
+test('the XP headline is her whole gain, the laurel sits on the paper, and « Revoir » leads once the dragon points to it', async ({ page, request }, testInfo) => {
+  const { id, text } = await victory(page, request, `Vic12-${testInfo.project.name}`, HALF);
+  const sheet = page.getByTestId('victory');
+  await expect(sheet.getByTestId('reveal-xp')).toBeVisible();
+  const xp = await page.evaluate(
+    ([pid, tid]) => JSON.parse(localStorage.getItem(`discorde.play.${pid}.${tid}`)!).progression.xp,
+    [id, text.id] as const,
+  );
+  await expect(sheet.getByTestId('reveal-xp-gain')).toHaveText(`+${xp.total_after - xp.total_before} XP`);
+  const laurel = sheet.getByTestId('victory-xp');
+  await expect(laurel).toHaveAttribute('data-surface', 'parchment');
+  await expect(laurel).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(laurel).toHaveCSS('box-shadow', 'none');
+  const revoir = sheet.getByTestId('battle-revoir');
+  await expect(revoir).toHaveClass(/is-quiet/);
+  await tap(sheet.getByTestId('reveal-continue'), testInfo);
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await expect(revoir).toHaveClass(/is-quiet/);
+  await tap(page.getByTestId('dialogue-skip'), testInfo);
+  await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
+  await expect(revoir).not.toHaveClass(/is-quiet/);
+});
+
+// UI4 playability #1: a standoff never reads « 0 sur 2 ».
+test('nothing caught: the tally says her traps hid, never « 0 sur »', async ({ page, request }, testInfo) => {
+  await victory(page, request, `Vic13-${testInfo.project.name}`, DRAFT, 'echo');
+  await expect(page.getByTestId('results-catch-rate')).toHaveText('Ses pièges se sont bien cachés cette fois');
+  await expect(page.getByTestId('victory')).not.toContainText(/0 sur|%/);
 });
 
 test('« Revoir » opens the review scroll: each trap explained on tap; Back and reload keep it honest', async ({ page, request }, testInfo) => {
@@ -88,6 +126,11 @@ test('« Revoir » opens the review scroll: each trap explained on tap; Back and
   await expect(scroll.getByTestId('overlay-close')).toBeVisible();
   expect(await redScan(page)).toEqual([]);
   await expect(scroll.getByRole('heading', { name: "Ce qu'Éris a tenté" })).toBeVisible();
+  // UI4 playability #18: « déjoué » under a wax seal, no tick; her text on grained paper, no white field.
+  await expect(scroll.getByTestId('revoir-foiled')).toHaveText('déjoué');
+  await expect(scroll.getByTestId('revoir-foiled').locator('.kit-seal')).toBeVisible();
+  await expect(scroll.getByTestId('revoir-foiled').locator('svg')).toHaveCount(0);
+  await expect(scroll.locator('.review-text')).toHaveCSS('background-image', /url/);
   // A full stop never opens a line: it shares its word's unbreakable run (Task 8 walk).
   const loose = await scroll.locator('.tok.punct').evaluateAll((els) =>
     els.filter((t) => !t.previousElementSibling || getComputedStyle(t.parentElement!).whiteSpace !== 'nowrap').map((t) => t.textContent),
@@ -101,15 +144,15 @@ test('« Revoir » opens the review scroll: each trap explained on tap; Back and
   await expect(scroll.locator('.tokens')).toContainText('Les fées dansent');
   await tap(trap, testInfo);
   await expect(trap).toHaveAttribute('aria-expanded', 'true');
-  await expect(scroll.getByTestId('revoir-popover')).toContainText('Attendu : « chantent »');
+  // UI4 playability #18: the word it needed, not the corrector's « Attendu ».
+  await expect(scroll.getByTestId('revoir-popover')).toContainText('Il fallait : « chantent »');
   await page.reload();
   await expect(page.getByTestId('overlay-revoir')).toBeVisible();
   await page.goBack();
   await expect(page.getByTestId('overlay-revoir')).toHaveCount(0);
   await expect(page).not.toHaveURL(/panel=revoir/);
   await tap(page.getByTestId('battle-revoir'), testInfo);
-  // The scroll opens on the route change, after the tap: wait for it (closeOverlay samples once).
-  await expect(page.getByTestId('overlay-revoir')).toBeVisible();
+  // The scroll opens on the route change, after the tap: closeOverlay waits for it.
   await closeOverlay(page);
   await expect(page.getByTestId('battle-revoir')).toBeFocused();
 });
@@ -272,11 +315,105 @@ test('after twenty-five minutes the dragon suggests a pause, on the sheet', asyn
   );
   await victory(page, request, `Vic8-${testInfo.project.name}`, HALF);
   const nudge = page.getByTestId('break-nudge');
-  await expect(nudge).toContainText("ça fait vingt-cinq minutes qu'on chasse les pièges");
+  // UI4 playability #16: the egg speaks for itself, and the way home says what it does.
+  await expect(nudge).toContainText("(L'œuf frémit.) Vingt-cinq minutes qu'on chasse les pièges… On souffle un peu ?");
+  await expect(page.getByTestId('break-pause')).toHaveText('On rentre souffler');
   await tap(page.getByTestId('break-continue'), testInfo);
   await expect(nudge).toHaveCount(0);
   await tap(page.getByTestId('btn-back-camp'), testInfo);
   await expectCamp(page);
+});
+
+// A victory the Muses have already counted (the play state keeps its progression), so the spoils
+// show exactly this one: a boss won or lost, a hatch, a rank-up.
+function progression(o: Record<string, unknown> = {}) {
+  return {
+    xp: { session: 51, bonuses: [], total_before: 487, total_after: 538, rank_before: 3, rank_after: 3, title_after: 'Sentinelle des textes' },
+    quests: [],
+    neutralised: [],
+    rewards: [],
+    dragon: { stage_before: 'egg', stage_after: 'egg', needs_name: false },
+    weekly: { target: 5, done: 1, reached_now: false },
+    boss: null,
+    encounter: null,
+    ...o,
+  };
+}
+
+async function counted(page: import('@playwright/test').Page, request: import('@playwright/test').APIRequestContext, name: string, p: object, boss = false) {
+  const id = await createProfileApi(request, uniqueName(name));
+  const text = await createText(request, { title: uniqueName('Compté'), body: REF, level: '10H' });
+  await seedPlay(page, {
+    profileId: id,
+    textId: text.id,
+    phase: 'results',
+    draft: DRAFT,
+    current: boss ? REF : HALF,
+    opponent: boss ? 'eris' : 'hydre',
+    encounter: boss ? 'eris' : null,
+    progression: p,
+  });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'victory');
+  return page.getByTestId('victory');
+}
+
+// UI4 playability #4: the biggest win of the game - Éris's defeat line, her treasure once, on the
+// scroll's own paper, brought into view as it is revealed.
+test('beating Éris: her defeat line and her treasure, once, in the parchment style, in view', async ({ page, request }, testInfo) => {
+  const sheet = await counted(
+    page,
+    request,
+    `Vic14-${testInfo.project.name}`,
+    progression({
+      xp: { session: 51, bonuses: [{ reason: 'boss', amount: 300 }], total_before: 487, total_after: 838, rank_before: 3, rank_after: 4, title_after: 'Garde des Parchemins' },
+      quests: [{ id: 9, kind: 'boss', target: 'eris', counted: true, progress: 1, goal: 1, completed: true, reward_id: 'sandales_hermes' }],
+      rewards: [{ id: 'sandales_hermes', kind: 'gear', name: "Sandales d'Hermès" }],
+      boss: { tier: 1, won: true, too_easy: false },
+      encounter: 'eris',
+    }),
+    true,
+  );
+  const boss = sheet.getByTestId('reveal-boss');
+  await expect(boss).toBeVisible();
+  await expect(boss.getByTestId('boss-voice')).toContainText('Impossible ! Garde ta pomme');
+  await expect(boss.getByTestId('reveal-boss-reward')).toHaveText("Ta récompense : Sandales d'Hermès !");
+  expect(((await sheet.textContent()) ?? '').split("Sandales d'Hermès").length - 1, 'the treasure is named once').toBe(1);
+  await expect(sheet.getByTestId('reveal-reward-sandales_hermes')).toHaveCount(0);
+  await expect(sheet.locator('.kit-cubby')).toHaveCount(0);
+  await expect(boss).toHaveClass(/kit-sheet/);
+  // The whole gain in the headline (+300 for Éris included); the new rank's leaves grow back.
+  await expect(sheet.getByTestId('reveal-xp-gain')).toHaveText('+351 XP');
+  await expect(sheet.getByTestId('victory-xp')).toContainText('Les feuilles repoussent');
+  // The climax is not left below the fold: the block scrolls into the sheet's view.
+  await expect
+    .poll(() =>
+      boss.evaluate((el) => {
+        const body = el.closest('.sheet-body')!.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        return r.top >= body.top - 1 && r.bottom <= body.bottom + 1;
+      }),
+    )
+    .toBe(true);
+});
+
+test('Éris escaping speaks for herself, on her plate', async ({ page, request }, testInfo) => {
+  const sheet = await counted(page, request, `Vic15-${testInfo.project.name}`, progression({ boss: { tier: 1, won: false, too_easy: false }, encounter: 'eris' }), true);
+  const boss = sheet.getByTestId('reveal-boss');
+  await expect(boss.getByTestId('boss-voice')).toHaveAttribute('data-speaker', 'eris');
+  await expect(boss).toContainText("Ha ! Je garde ma pomme… pour cette fois. Le combat reste ouvert : reviens m'affronter quand tu veux.");
+  await expect(sheet.locator('.kit-note[data-tone="eris"]')).toHaveCount(0);
+});
+
+// UI4 playability #9: naming the dragon is a question, answered on the parchment's line.
+test('the egg hatches: « Comment vas-tu l\'appeler ? », and her answer is inked on a line', async ({ page, request }, testInfo) => {
+  const sheet = await counted(page, request, `Vic16-${testInfo.project.name}`, progression({ dragon: { stage_before: 'egg', stage_after: 'hatchling', needs_name: true } }));
+  await expect(sheet.getByTestId('reveal-dragon')).toContainText("Comment vas-tu l'appeler ?");
+  const field = sheet.getByTestId('reveal-name-input');
+  await expect(field).toHaveAttribute('placeholder', 'Son nom…');
+  await expect(field).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(field).toHaveCSS('border-top-width', '0px');
+  expect((await field.boundingBox())!.height).toBeGreaterThanOrEqual(48);
 });
 
 test("Éris's lair: her challenge, the fight's stakes and the rules on the parchment", async ({ page, request }, testInfo) => {
@@ -292,6 +429,21 @@ test("Éris's lair: her challenge, the fight's stakes and the rules on the parch
   await expect(sheet.getByTestId('boss-tier')).toHaveText('Combat I');
   await expect(sheet.getByTestId('boss-reward')).toContainText('Récompense si tu gagnes');
   await expect(sheet.getByTestId('boss-start')).toHaveText('Affronter Éris');
+  await expect(sheet).toContainText("Un long texte, sans les Yeux d'Argus. Chaque piège que tu trouves reste acquis : si Éris s'enfuit, tu pourras revenir l'affronter.");
+  // UI4 playability #14: the « Combat I » banner above her plate, and the parchment hugs its content,
+  // centred, so her lair shows around it.
+  const tierBox = (await sheet.getByTestId('boss-tier').boundingBox())!;
+  const voiceBox = (await sheet.getByTestId('battle-voice').boundingBox())!;
+  expect(tierBox.y + tierBox.height).toBeLessThanOrEqual(voiceBox.y + 1);
+  expect(parseFloat(await sheet.getByTestId('boss-tier').evaluate((el) => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(28);
+  const hug = await sheet.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const stage = el.closest('[data-testid="scene-battle"]')!.getBoundingClientRect();
+    const muster = el.firstElementChild as HTMLElement;
+    return { h: r.height, stage: stage.height, fits: muster.scrollHeight <= muster.clientHeight + 1 };
+  });
+  expect(hug.fits, 'nothing scrolls: the parchment holds its content').toBe(true);
+  expect(hug.h, 'the parchment is no taller than its content').toBeLessThan(hug.stage * 0.8);
   await expect(sheet.locator(LEGACY_UI)).toHaveCount(0);
   await expectOverlayTapTargets(page, 'battle-parchment');
   expect(await redScan(page)).toEqual([]);

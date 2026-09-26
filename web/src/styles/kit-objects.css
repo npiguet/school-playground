@@ -508,22 +508,42 @@ label.kit-medallion::before,
   clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 50%, 100% 100%, 0 100%, 16px 50%);
 }
 
-/* --- A note pinned in a panel: the scribes' news (olive) or Éris's hand (orange, never red) -- */
+/* --- A note pinned in a panel: the scribes' news (olive) or Éris's hand (orange, never red) --
+       UI4 playability #10: a torn slip of paper held by a small wax seal in its tone, not the web's
+       left-border alert. The seal sits in the slip's left margin (`--note-pad`). */
 .kit-note {
-  padding: 10px 14px;
-  border-radius: 6px;
-  border-left: 4px solid var(--olive);
-  background: rgba(234, 238, 220, 0.9);
+  --note-seal: var(--olive);
+  --note-pad: 34px;
+  position: relative;
+  padding: 10px 14px 10px var(--note-pad);
+  border: 1px solid rgba(92, 64, 24, 0.25);
+  border-radius: 3px;
+  background: var(--grain), rgba(234, 238, 220, 0.9);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   color: var(--ink);
 }
-.kit-note[data-tone='eris'] {
-  border-left-color: var(--orange);
-  background: rgba(252, 232, 214, 0.92);
+.kit-note::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 14px;
+  width: 13px;
+  height: 13px;
+  border-radius: 47% 53% 50% 50% / 53% 47% 53% 47%;
+  background: radial-gradient(circle at 38% 32%, rgba(255, 255, 255, 0.45), var(--note-seal) 60%);
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.35);
 }
-/* The heroes' tools speaking (the Fil d'Ariane, UI4 Task 5): the Aegean. */
+.kit-note[data-tone='eris'] {
+  --note-seal: var(--orange);
+  background: var(--grain), rgba(252, 232, 214, 0.92);
+}
+/* The heroes' tools speaking (the Fil d'Ariane, UI4 Task 5): the Aegean, under a gold thread. */
 .kit-note[data-tone='aegean'] {
-  border-left-color: var(--aegean);
-  background: rgba(221, 234, 242, 0.92);
+  --note-seal: var(--aegean);
+  border-top: 2px dashed var(--gold);
+  background: var(--grain), rgba(221, 234, 242, 0.92);
 }
 
 /* --- The quill gauge: how long a text is, against the 80-200 words it needs ---------------- */

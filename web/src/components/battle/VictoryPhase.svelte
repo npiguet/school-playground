@@ -155,7 +155,17 @@
 </script>
 
 {#if result}
-  <VictorySheet {title} {result} {mode} {reduced} showActions={!pending} {onReview} {onReplay} {onCamp}>
+  <VictorySheet
+    {title}
+    {result}
+    {mode}
+    {reduced}
+    showActions={!pending}
+    quietActions={showSpoils || (showDialogue && !!spoken && !talked)}
+    {onReview}
+    {onReplay}
+    {onCamp}
+  >
     {#snippet nudge()}
       {#if playClock.needsBreak}
         <DragonNudge dragon={camp?.dragon ?? null} onPause={onCamp} onContinue={() => clockReset()} />

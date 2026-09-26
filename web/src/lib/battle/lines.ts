@@ -3,7 +3,7 @@
 // Static lines (UI3 Ruling A9's precedent); the dialogue content files are UI5 (spec §8). Each
 // section is fenced by the task that renders it; a lane edits only its own fence.
 import { dossierLine, genderFor, lieutenantName, type Band } from '../world/eris';
-import { plural, rateText } from '../text/french';
+import { plural } from '../text/french';
 import type { PlayMode } from '../types';
 import type { OpponentId } from './battle';
 import type { Outcome } from './hp';
@@ -65,7 +65,8 @@ export function musterTaunt(o: { opponent: OpponentId; band: Band | null; mode: 
 
 // ===== Dictation (Task 4) =====
 export const DICTATION = {
-  title: 'Dictée',
+  /** UI4 playability #11: the heading is the text's title; the phase, in the fiction, under it. */
+  cue: 'Écris ce que dit la voix.',
   quit: 'Quitter',
   quitAsk: 'Ton brouillon est gardé. Veux-tu vraiment quitter la dictée ?',
   quitYes: 'Oui, quitter',
@@ -90,12 +91,14 @@ export const DICTATION = {
 
 // ===== Proofreading (Task 5) =====
 export const PROOF = {
+  /** Screen readers' name of the parchment's section; the heading is the text's own title. */
   title: 'Relecture',
-  grimoireTitle: 'Grimoire corrompu',
   grimoirePrefix: 'Éris a corrompu ce grimoire.',
+  /** UI4 playability #11: the phase, in the fiction, before the help stage's sentence. */
+  cue: "Traque les pièges d'Éris.",
   stage1: "Les Yeux d'Argus éclairent une catégorie à la fois.",
   stage2: "Relis une catégorie à la fois, comme Argus te l'a appris.",
-  stage4: 'À toi de jouer. Valide quand tout te semble juste.',
+  stage4: 'À toi de jouer. Quand tout te semble juste, dis-le.',
   count: (n: number) =>
     n === 0
       ? "Éris n'a rien trouvé à saboter cette fois. Relis une dernière fois, puis valide."
@@ -105,15 +108,19 @@ export const PROOF = {
   passes: "Passes d'Argus",
   nextPass: 'Passe suivante',
   bouclier: 'Bouclier de Persée',
-  chouette: (left: number) => `Chouette d'Athéna (${left})`,
+  // UI4 playability #19: the count rides on the emblem's coin in both layouts, never in brackets.
+  chouette: "Chouette d'Athéna",
+  chouetteLeft: (left: number) => plural(left, 'indice', 'indices'),
   fil: "Fil d'Ariane",
   whole: 'Modifier tout le texte',
   wholeLabel: 'Tout le texte',
   filNext: (verb: string) => `Touche un autre verbe pour tendre un nouveau fil${verb ? `, ou touche « ${verb} » pour le corriger` : ''}.`,
   filExit: 'Quitter le fil',
-  prevSentence: 'Phrase précédente',
-  nextSentence: 'Phrase suivante',
-  sentencePos: (k: number, n: number) => `Phrase ${k} sur ${n}, en partant de la fin`,
+  // UI4 playability #6: the directions as they are on the page, the position in text order.
+  prevSentence: 'Plus haut',
+  nextSentence: 'Plus bas',
+  sentencePos: (k: number, n: number) => `Phrase ${k} sur ${n}`,
+  bouclierNote: 'Le Bouclier de Persée te fait lire à rebours, de la dernière phrase à la première.',
   owlNone: 'La chouette ne voit plus aucun piège.',
   owlMissing: "Il manque un mot près d'ici.",
   owlHere: 'La chouette a repéré un piège ici.',
@@ -125,7 +132,7 @@ export const PROOF = {
   quitAsk: 'Ta relecture est gardée. Veux-tu vraiment quitter ?',
   quitYes: 'Oui, quitter',
   editorLabel: 'Nouveau mot',
-  editorHint: 'Vide = supprimer le mot',
+  editorHint: 'Efface tout pour retirer le mot',
   editorOk: 'OK',
   tokenEdit: (w: string) => `Modifier « ${w} »`,
   tokenFil: (w: string) => `Fil d'Ariane : choisir « ${w} »`,
@@ -149,11 +156,36 @@ export const VICTORY = {
   retry: 'Réessayer',
   sending: 'Envoi en cours…',
   perfect: 'Texte parfait dès la dictée !',
-  caught: (c: number, d: number, rate: number | null, mode: PlayMode) =>
-    mode === 'grimoire' ? `Dés-accords retrouvés : ${c} sur ${d} (${rateText(rate)})` : `Pièges déjoués : ${c} sur ${d} (${rateText(rate)})`,
-  score: (s: number) => `Score : ${s}`,
-  words: (ok: number, all: number) => `Mots justes : ${ok} / ${all}`,
+  // UI4 playability #1: the tally in the game's words, never a marked test. No percentage here (the
+  // « Revoir » scroll and the journal keep the rate), and no « 0 sur n »: her traps hid this time.
+  caught: (c: number, d: number, mode: PlayMode) =>
+    c === 0
+      ? `${mode === 'grimoire' ? 'Ses dés-accords' : 'Ses pièges'} se sont bien cachés cette fois`
+      : `${mode === 'grimoire' ? 'Dés-accords retrouvés' : 'Pièges déjoués'} : ${c} sur ${d}`,
+  /** The score is the glory the muster promised (« Plus le rythme est vif, plus la gloire est grande »). */
+  score: (s: number) => `Gloire gagnée : ${s}`,
+  words: (ok: number, all: number) =>
+    ok === all
+      ? 'Pas un mot de travers !'
+      : ok === 0
+        ? 'Aucun mot ne tient encore : on reprend ensemble'
+        : `${plural(ok, 'mot', 'mots')} sur ${all} ${ok === 1 ? 'tient' : 'tiennent'} bon`,
   threads: (ok: number, all: number) => `Fils d'Ariane tendus : ${ok} sur ${all}`,
+  /** UI4 playability #2: the headline is everything she earned; the tags below break it down. */
+  xpGain: (xp: number) => `+${xp} XP`,
+  // Under the branch after a rank-up; the ribbon below already says « Nouveau rang : … ».
+  rankFresh: 'Les feuilles repoussent',
+  treasure: (name: string) => `Nouveau trésor : ${name}`,
+  /** The boss's reward (#4). No article: the treasures' names take le, la, l' or les. */
+  bossReward: (name: string) => `Ta récompense : ${name} !`,
+  nameAsk: "Comment vas-tu l'appeler ?",
+  namePlaceholder: 'Son nom…',
+  nameSave: "C'est son nom",
+  // UI4 playability #16: the dragon speaks for itself, and the way home says what it does.
+  nudgeDragon: "(Il bâille.) Vingt-cinq minutes qu'on chasse les pièges… On souffle un peu ?",
+  nudgeEgg: "(L'œuf frémit.) Vingt-cinq minutes qu'on chasse les pièges… On souffle un peu ?",
+  nudgeHome: 'On rentre souffler',
+  nudgeMore: 'Encore un texte',
   introduced: (n: number) =>
     `Éris a profité de la relecture pour glisser ${plural(n, 'nouveau piège', 'nouveaux pièges')}. Ça arrive : « Revoir » te les montre.`,
   continue: 'Continuer',
@@ -168,11 +200,12 @@ export const VICTORY = {
   dragonName: 'Nom du dragon',
   tokTrap: (w: string) => `${w} : piège, touche pour voir`,
   tokFoiled: (w: string) => `${w} : déjoué, touche pour voir`,
-  expected: (w: string) => `Attendu : « ${w} »`,
+  expected: (w: string) => `Il fallait : « ${w} »`,
   forgotten: (w: string) => `Mot oublié : « ${w} »`,
   neutralised: 'Sa ruse ne te piège plus : trois jours de garde et 8 pièges sur 10 déjoués.',
   bossWon: 'Impossible ! Garde ta pomme, je reviendrai avec de nouvelles ruses.',
-  bossLost: "Éris s'enfuit avec la pomme… pour cette fois. Le combat reste ouvert : tu la retrouveras.",
+  // UI4 playability #10: her exit, in her own voice on her plate (it was a narrator's note).
+  bossLost: "Ha ! Je garde ma pomme… pour cette fois. Le combat reste ouvert : reviens m'affronter quand tu veux.",
   bossTooEasy:
     "Dictée parfaite : Éris n'a rien pu saboter ! Furieuse, elle va corrompre le parchemin elle-même. Relance le combat pour démasquer ses pièges.",
 } as const;
@@ -184,7 +217,12 @@ export function dragonTally(o: { draft: number; caught: number; mode: PlayMode }
   const head = `Tu as ${verb} ${plural(o.caught, one, many)} sur ${o.draft}.`;
   const rate = o.caught / o.draft;
   if (rate >= 0.8) return `${head} Ses lieutenants s'en souviendront !`;
-  if (rate >= 0.5) return `${head} Les autres se cachent encore : on les débusquera ensemble.`;
+  // UI4 playability #7: one left is « le dernier » (piège and dés-accord are both masculine).
+  const rest =
+    o.draft - o.caught === 1
+      ? 'Le dernier se cache encore : on le débusquera ensemble.'
+      : 'Les autres se cachent encore : on les débusquera ensemble.';
+  if (rate >= 0.5) return `${head} ${rest}`;
   return `${head} Chaque ${one} ${verb} en fait un de moins pour la prochaine fois.`;
 }
 export const DRAGON_REVIEW_HINT = 'Touche « Revoir » pour voir chaque piège, mot à mot.';
@@ -198,7 +236,7 @@ export const CHALLENGE_LINES: Record<number, string> = {
 export const BOSS = {
   tier: (roman: string) => `Combat ${roman}`,
   reward: (xp: number, name: string) => `Récompense si tu gagnes : ${xp} XP · ${name}`,
-  rules: "Un long texte · les Yeux d'Argus restent éteints · chaque piège trouvé reste acquis, même si Éris s'enfuit : tu pourras recommencer.",
+  rules: "Un long texte, sans les Yeux d'Argus. Chaque piège que tu trouves reste acquis : si Éris s'enfuit, tu pourras revenir l'affronter.",
   start: 'Affronter Éris',
   restart: 'Relancer le combat',
 } as const;

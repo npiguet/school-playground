@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { FORBIDDEN } from '../world/eris';
-import { rateText } from '../text/french';
 import * as L from './lines';
 
 // Every string reachable from lines.ts, functions called with representative arguments.
@@ -29,7 +28,7 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   });
 
   it('keeps Éris on her own tricks', () => {
-    for (const s of [...Object.values(L.CHALLENGE_LINES), L.ERIS_MUSTER.free, L.ERIS_MUSTER.grimoire]) {
+    for (const s of [...Object.values(L.CHALLENGE_LINES), L.ERIS_MUSTER.free, L.ERIS_MUSTER.grimoire, L.VICTORY.bossWon, L.VICTORY.bossLost]) {
       for (const f of FORBIDDEN) expect(s.toLowerCase().includes(f), `${f} in ${s}`).toBe(false);
     }
   });
@@ -63,7 +62,10 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   it('lets the dragon tell the tally in words', () => {
     expect(L.dragonTally({ draft: 0, caught: 0, mode: 'dictation' })).toBe("Pas un piège dans ta dictée : Éris n'a rien pu glisser !");
     expect(L.dragonTally({ draft: 5, caught: 5, mode: 'dictation' })).toBe("Tu as déjoué 5 pièges sur 5. Ses lieutenants s'en souviendront !");
-    expect(L.dragonTally({ draft: 2, caught: 1, mode: 'dictation' })).toBe('Tu as déjoué 1 piège sur 2. Les autres se cachent encore : on les débusquera ensemble.');
+    // UI4 playability #7: one trap left is « le dernier », never « les autres ».
+    expect(L.dragonTally({ draft: 2, caught: 1, mode: 'dictation' })).toBe('Tu as déjoué 1 piège sur 2. Le dernier se cache encore : on le débusquera ensemble.');
+    expect(L.dragonTally({ draft: 3, caught: 2, mode: 'grimoire' })).toBe('Tu as retrouvé 2 dés-accords sur 3. Le dernier se cache encore : on le débusquera ensemble.');
+    expect(L.dragonTally({ draft: 4, caught: 2, mode: 'dictation' })).toBe('Tu as déjoué 2 pièges sur 4. Les autres se cachent encore : on les débusquera ensemble.');
     expect(L.dragonTally({ draft: 4, caught: 1, mode: 'grimoire' })).toBe(
       'Tu as retrouvé 1 dés-accord sur 4. Chaque dés-accord retrouvé en fait un de moins pour la prochaine fois.',
     );
@@ -71,8 +73,33 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   });
 
   it('keeps the wordings the e2e reads', () => {
-    expect(L.VICTORY.caught(1, 2, 0.5, 'dictation')).toBe(`Pièges déjoués : 1 sur 2 (${rateText(0.5)})`);
-    expect(L.VICTORY.caught(3, 4, 0.75, 'grimoire')).toBe(`Dés-accords retrouvés : 3 sur 4 (${rateText(0.75)})`);
+    expect(L.VICTORY.caught(1, 2, 'dictation')).toBe('Pièges déjoués : 1 sur 2');
+    expect(L.VICTORY.caught(3, 4, 'grimoire')).toBe('Dés-accords retrouvés : 3 sur 4');
     expect([L.MUSTER.words(84), L.MUSTER.words(1)]).toEqual(['84 mots', '1 mot']);
+  });
+
+  // UI4 playability #1: the victory tally is the game's, not a marked test.
+  it('tells the tally without a score, a percentage or a fraction', () => {
+    const tally = [
+      L.VICTORY.caught(0, 2, 'dictation'),
+      L.VICTORY.caught(0, 3, 'grimoire'),
+      L.VICTORY.caught(1, 2, 'dictation'),
+      L.VICTORY.score(94),
+      L.VICTORY.words(12, 13),
+      L.VICTORY.words(1, 13),
+      L.VICTORY.words(13, 13),
+      L.VICTORY.words(0, 13),
+    ];
+    for (const s of tally) expect(s, s).not.toMatch(/Score|%|\d\s*\/\s*\d|\b0 sur\b/);
+    expect(L.VICTORY.caught(0, 2, 'dictation')).toBe('Ses pièges se sont bien cachés cette fois');
+    expect(L.VICTORY.caught(0, 3, 'grimoire')).toBe('Ses dés-accords se sont bien cachés cette fois');
+    expect(L.VICTORY.score(94)).toBe('Gloire gagnée : 94');
+    expect(L.VICTORY.words(12, 13)).toBe('12 mots sur 13 tiennent bon');
+    expect(L.VICTORY.words(1, 13)).toBe('1 mot sur 13 tient bon');
+    expect(L.VICTORY.words(13, 13)).toBe('Pas un mot de travers !');
+  });
+
+  it('walks the Bouclier in text order, naming the directions on the page', () => {
+    expect([L.PROOF.prevSentence, L.PROOF.nextSentence, L.PROOF.sentencePos(24, 24)]).toEqual(['Plus haut', 'Plus bas', 'Phrase 24 sur 24']);
   });
 });

@@ -16,6 +16,7 @@
     mode,
     reduced,
     showActions,
+    quietActions = false,
     crown,
     nudge,
     status,
@@ -31,6 +32,9 @@
     reduced: boolean;
     /** False only while the Muses count: no flow waits on the spoils or the dialogue. */
     showActions: boolean;
+    /** UI4 playability #21: while the spoils and the dialogue play, their « Continuer » leads and the
+     *  three actions stay quiet; « Revoir » turns primary once the dragon has pointed to it. */
+    quietActions?: boolean;
     /** Above the title; the laurel wreath by default. */
     crown?: Snippet;
     /** The dragon's break nudge, at the top of the sheet's scrolling body. */
@@ -45,7 +49,6 @@
 
   const draft = $derived(result.draftErrors.length);
   const caught = $derived(result.caught.length);
-  const rate = $derived(draft > 0 ? caught / draft : null);
   const introduced = $derived(result.introduced.length);
 </script>
 
@@ -57,7 +60,7 @@
       <h2 class="victory-title" data-testid="victory-title">{title}</h2>
     </header>
     <div class="tally">
-      <p class="tally-line" data-testid="results-catch-rate">{draft === 0 ? VICTORY.perfect : VICTORY.caught(caught, draft, rate, mode)}</p>
+      <p class="tally-line" data-testid="results-catch-rate">{draft === 0 ? VICTORY.perfect : VICTORY.caught(caught, draft, mode)}</p>
       <p class="tally-small" data-testid="results-score">{VICTORY.score(result.score)}</p>
       <p class="tally-small">{VICTORY.words(result.correctWords, result.totalWords)}</p>
       {#if result.tools && result.tools.threadsDrawn > 0}<p class="tally-small" data-testid="results-threads">{VICTORY.threads(result.tools.threadsCorrect, result.tools.threadsDrawn)}</p>{/if}
@@ -69,7 +72,7 @@
   </div>
   {#if showActions}
     <footer class="actions" data-testid="victory-actions">
-      <button type="button" class="kit-bronze" data-testid="battle-revoir" onclick={onReview}>{VICTORY.review}</button>
+      <button type="button" class="kit-bronze" class:is-quiet={quietActions} data-testid="battle-revoir" onclick={onReview}>{VICTORY.review}</button>
       <button type="button" class="kit-bronze is-quiet" onclick={onReplay}>{VICTORY.replay}</button>
       <button type="button" class="kit-bronze is-quiet" data-testid="btn-back-camp" onclick={onCamp}>{VICTORY.camp}</button>
     </footer>

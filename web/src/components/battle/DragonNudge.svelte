@@ -1,8 +1,9 @@
 <script lang="ts">
   // Dragon-voiced break suggestion after ~25 minutes of active play (spec §3.6, decision 16), spoken
-  // by the dragon on the victory sheet (UI4 Ruling C7). Never blocking: "Pause" leaves for the camp,
+  // by the dragon on the victory sheet (UI4 Ruling C7). Never blocking: « On rentre souffler » leaves for the camp,
   // "Encore un texte" just resets the clock and lets the player carry on.
   import OverlayVoice from '../scene/OverlayVoice.svelte';
+  import { VICTORY } from '../../lib/battle/lines';
   import { dragonSays } from '../../lib/world/scenes/speakers';
   import type { DragonOut } from '../../lib/world/types';
 
@@ -11,21 +12,17 @@
     $props();
 
   const speaker = $derived(dragon ?? ({ name: null, stage: 'egg', tint: 'bronze' } as DragonOut));
-  const dragonName = $derived(speaker.name ?? 'Ton dragon');
 
-  // M6: the dragon can't yawn before it has hatched - the egg stirs instead (spec §3.6).
-  const message = $derived(
-    speaker.stage === 'egg'
-      ? "L'œuf frémit : ça fait vingt-cinq minutes qu'on chasse les pièges. On souffle un peu ?"
-      : `${dragonName} bâille : ça fait vingt-cinq minutes qu'on chasse les pièges. On souffle un peu ?`,
-  );
+  // M6: the dragon can't yawn before it has hatched - the egg stirs instead (spec §3.6). UI4
+  // playability #16: the plate names the speaker, so the line is the dragon's own, in the first person.
+  const message = $derived(speaker.stage === 'egg' ? VICTORY.nudgeEgg : VICTORY.nudgeDragon);
 </script>
 
 <div class="dragon-nudge" data-testid="break-nudge">
   <OverlayVoice line={dragonSays(speaker, message)} testId="break-voice" />
   <div class="nudge-actions">
-    <button type="button" class="kit-bronze" data-testid="break-pause" onclick={onPause}>Pause</button>
-    <button type="button" class="kit-bronze is-quiet" data-testid="break-continue" onclick={onContinue}>Encore un texte</button>
+    <button type="button" class="kit-bronze" data-testid="break-pause" onclick={onPause}>{VICTORY.nudgeHome}</button>
+    <button type="button" class="kit-bronze is-quiet" data-testid="break-continue" onclick={onContinue}>{VICTORY.nudgeMore}</button>
   </div>
 </div>
 

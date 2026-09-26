@@ -166,7 +166,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await ta.fill('Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.');
     await page.getByTestId('btn-finish-writing').click();
 
-    await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
+    await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-phase', 'proofreading');
     const danse = page.locator('[data-testid^="tok-"]', { hasText: /^danse$/ });
     await danse.click();
     await page.getByTestId('word-editor').fill('dansent');
@@ -308,7 +308,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.getByRole('button', { name: 'Commencer la dictée' }).click();
     await dictate(page, bossBody);
     await page.getByTestId('btn-finish-writing').click();
-    await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
+    await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-phase', 'proofreading');
     await page.getByTestId('btn-done-proofreading').click();
     const perfectConfirm = page.getByRole('button', { name: 'Oui, valider' });
     await expect(perfectConfirm.or(page.getByTestId('victory-title'))).toBeVisible();
@@ -402,12 +402,15 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
     await ta.fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
     await page.getByTestId('btn-finish-writing').click();
-    await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
+    await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-phase', 'proofreading');
     await page.getByTestId('btn-done-proofreading').click();
     await expect(page.getByRole('button', { name: 'Oui, valider' })).toHaveCount(0);
 
     await expect(page.getByTestId('break-nudge')).toBeVisible();
-    await expect(page.getByTestId('break-nudge')).toContainText('Braise bâille');
+    // UI4 playability #16: the plate names Braise, who yawns in the first person.
+    await expect(page.getByTestId('break-nudge')).toContainText('Braise');
+    await expect(page.getByTestId('break-nudge')).toContainText('(Il bâille.)');
+    await expect(page.getByTestId('break-pause')).toHaveText('On rentre souffler');
     await page.getByTestId('break-continue').click();
     await expect(page.getByTestId('break-nudge')).toHaveCount(0);
   });

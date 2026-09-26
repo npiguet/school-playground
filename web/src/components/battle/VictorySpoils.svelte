@@ -46,6 +46,16 @@
     weekly: 'Objectif de la semaine',
   };
 
+  // Boss card: the treasure Éris leaves behind, shown once, in her defeat's block.
+  const bossReward = $derived(progression.boss?.won ? (progression.rewards.find((r) => r.kind === 'gear') ?? null) : null);
+
+  /** Brings the boss's block into view as it is revealed (UI4 playability #4): the climax of the game
+   *  never waits below the fold. */
+  function revealInView(node: HTMLElement, delay: number) {
+    const id = setTimeout(() => node.scrollIntoView({ block: 'nearest', behavior: quick ? 'auto' : 'smooth' }), delay + 200);
+    return { destroy: () => clearTimeout(id) };
+  }
+
   // XP card ------------------------------------------------------------------------------------
   // A rank-up (`rank_after > rank_before`) must animate the OLD rank's scale to its own max first,
   // then switch the gauge to the NEW rank's floor/next thresholds (P1-2): otherwise the bar reads
@@ -89,6 +99,11 @@
     }
   });
   const bonusChips = $derived([{ reason: 'session', amount: progression.xp.session }, ...progression.xp.bonuses]);
+  // UI4 playability #2: the headline is all she earned (the laurel's own move), the tags its breakdown.
+  const xpEarned = $derived(
+    Math.max(0, progression.xp.total_after - progression.xp.total_before) ||
+      progression.xp.session + progression.xp.bonuses.reduce((sum, b) => sum + b.amount, 0),
+  );
 
   // Quest cards ----------------------------------------------------------------------------------
   // Mirrors `questTitle()` in `./quests.ts` (the board/quest board/Oracle screens) - this reveal's
@@ -103,7 +118,8 @@
 
   function questBonus(q: Progression['quests'][number]): { xp: number | null; rewardName: string | null } {
     const bonus = progression.xp.bonuses.find((b) => b.reason === q.kind);
-    const reward = q.reward_id ? progression.rewards.find((r) => r.id === q.reward_id) : undefined;
+    // The boss's treasure is shown once, with Éris's defeat (UI4 playability #4).
+    const reward = q.reward_id && q.reward_id !== bossReward?.id ? progression.rewards.find((r) => r.id === q.reward_id) : undefined;
     return { xp: bonus?.amount ?? null, rewardName: reward?.name ?? null };
   }
 
@@ -115,12 +131,15 @@
     return campStore.catalog?.rewards[id]?.name ?? `Relique de ${names[key] ?? key}`;
   }
 
-  // Rewards not already shown by the quest cards (their own `reward_id`) or the neutralised cards
-  // (every relic-kind reward always comes from a neutralisation this session).
+  // Rewards not already shown by the quest cards (their own `reward_id`), the neutralised cards
+  // (every relic-kind reward always comes from a neutralisation this session) or the boss block (its
+  // treasure, shown once with Éris's defeat: UI4 playability #4).
   const shownRewardIds = $derived(
     new Set(progression.quests.filter((q) => q.completed && q.reward_id).map((q) => q.reward_id as string)),
   );
-  const extraRewards = $derived(progression.rewards.filter((r) => r.kind !== 'relic' && !shownRewardIds.has(r.id)));
+  const extraRewards = $derived(
+    progression.rewards.filter((r) => r.kind !== 'relic' && !shownRewardIds.has(r.id) && r.id !== bossReward?.id),
+  );
 
   // Dragon card ------------------------------------------------------------------------------------
   const dragonGrew = $derived(progression.dragon.stage_before !== progression.dragon.stage_after);
@@ -151,9 +170,6 @@
       savingDragonName = false;
     }
   }
-
-  // Boss card ------------------------------------------------------------------------------------
-  const bossReward = $derived(progression.boss?.won ? (progression.rewards.find((r) => r.kind === 'gear') ?? null) : null);
 
   // Sound & particles: fire once, staggered to roughly track the cards' own Reveal delays. Sound
   // always plays (mute is the only gate, inside `playSfx`); particles render nothing under
@@ -253,9 +269,16 @@
 <div class="spoils">
   <Reveal delay={nextDelay()}>
     <div class="spoil xp" data-testid="reveal-xp">
-      <p class="xp-gain">+{progression.xp.session} XP</p>
+      <p class="xp-gain" data-testid="reveal-xp-gain">{VICTORY.xpGain(xpEarned)}</p>
       <div class="xp-laurel">
-        <LaurelBar value={xpValue} max={gaugeMax} label={gaugeTitle} testId="victory-xp" />
+        <LaurelBar
+          value={xpValue}
+          max={gaugeMax}
+          label={gaugeTitle}
+          testId="victory-xp"
+          surface="parchment"
+          note={rankedUp && showingAfterRank ? VICTORY.rankFresh : undefined}
+        />
         {#if rankedUp}<Particles trigger={xpBurstTrigger} kind="burst" />{/if}
       </div>
       <div class="bonuses">
@@ -309,9 +332,9 @@
 
   {#each extraRewards as r (r.id)}
     <Reveal delay={nextDelay()}>
-      <div class="kit-cubby reward" data-testid="reveal-reward-{r.id}">
-        <Medallion rewardId={r.id} />
-        <span class="reward-name">{r.name}</span>
+      <div class="kit-sheet spoil treasure" data-testid="reveal-reward-{r.id}">
+        <Medallion rewardId={r.id} size={64} />
+        <p class="spoil-title">{VICTORY.treasure(r.name)}</p>
       </div>
     </Reveal>
   {/each}
@@ -334,10 +357,15 @@
         <Particles trigger={dragonSparkleTrigger} kind="sparkle" />
 
         {#if progression.dragon.needs_name && !dragonNameSaved}
-          <div class="kit-form name-form">
+          <!-- UI4 playability #9: a question, and her answer inked on the parchment's line. -->
+          <p class="name-ask" id="reveal-name-ask">{VICTORY.nameAsk}</p>
+          <!-- Not a kit-form field: her dragon's name is written on the parchment's line. -->
+          <div class="name-form">
             <input
               data-testid="reveal-name-input"
               aria-label={VICTORY.dragonName}
+              aria-describedby="reveal-name-ask"
+              placeholder={VICTORY.namePlaceholder}
               maxlength="20"
               lang="fr"
               autocapitalize="words"
@@ -346,7 +374,7 @@
               bind:value={dragonNameInput}
             />
             <button type="button" class="kit-bronze" data-testid="reveal-name-save" disabled={savingDragonName} onclick={saveDragonName}>
-              C'est son nom
+              {VICTORY.nameSave}
             </button>
           </div>
           {#if dragonNameError}<p class="kit-note" data-tone="eris" role="alert">{dragonNameError}</p>{/if}
@@ -370,21 +398,24 @@
   {/if}
 
   {#if progression.boss}
-    <Reveal delay={nextDelay()}>
+    {@const bossDelay = nextDelay()}
+    <Reveal delay={bossDelay}>
       {#if progression.boss.won}
-        <div class="boss-won" data-testid="reveal-boss">
+        <!-- UI4 playability #4: Éris's defeat line, then her treasure, once, on a sheet of its own. -->
+        <div class="kit-sheet spoil boss-won" data-testid="reveal-boss" use:revealInView={bossDelay}>
           <OverlayVoice line={erisSays(VICTORY.bossWon)} testId="boss-voice" />
           {#if bossReward}
-            <p class="reward-line">
-              <Medallion rewardId={bossReward.id} size={48} />
-              <span>{bossReward.name}</span>
-            </p>
+            <Medallion rewardId={bossReward.id} size={72} />
+            <p class="spoil-title boss-reward" data-testid="reveal-boss-reward">{VICTORY.bossReward(bossReward.name)}</p>
           {/if}
         </div>
       {:else if progression.boss.too_easy}
         <p class="kit-note" data-testid="reveal-boss-too-easy">{VICTORY.bossTooEasy}</p>
       {:else}
-        <p class="kit-note" data-tone="eris" data-testid="reveal-boss">{VICTORY.bossLost}</p>
+        <!-- Her exit is her own voice (UI4 playability #10), not a note. -->
+        <div class="boss-lost" data-testid="reveal-boss" use:revealInView={bossDelay}>
+          <OverlayVoice line={erisSays(VICTORY.bossLost)} testId="boss-voice" />
+        </div>
       {/if}
     </Reveal>
   {/if}
@@ -478,26 +509,56 @@
     flex-shrink: 0;
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
   }
-  /* The extra rewards lie in a cubby of the camp's shelves: dark wood, light ink. */
-  .reward {
-    min-height: 0;
-    flex-direction: row;
-    align-items: center;
-    cursor: default;
-    color: var(--bronze-ink);
+  /* A treasure (UI4 playability #4): a sheet of the scroll with its medallion, never the shelves'
+     dark cubby. */
+  .treasure .spoil-title,
+  .boss-reward {
+    color: var(--reward-ink);
+    font-size: 20px;
   }
-  .reward-name {
+  .boss-won :global(.overlay-voice) {
+    align-self: stretch;
+    margin: 0;
+    text-align: left;
+  }
+  .boss-lost :global(.overlay-voice) {
+    margin: 0;
+  }
+  .name-ask {
     font-family: var(--font-display);
+    font-size: 20px;
     font-weight: 700;
+    color: var(--ink);
   }
   .name-form {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
   }
+  /* Her dragon's name, inked on the parchment's line (UI4 playability #9). */
   .name-form input {
-    width: 14em;
+    width: 12em;
+    min-height: 48px;
+    padding: 4px 8px;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid var(--bronze);
+    border-radius: 0;
+    box-shadow: none;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 22px;
+    text-align: center;
+  }
+  .name-form input::placeholder {
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .name-form input:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
   }
   .laurels {
     display: inline-flex;
@@ -513,9 +574,6 @@
     border: 1px solid var(--bronze-dark);
     transform: rotate(-30deg);
     background: linear-gradient(135deg, var(--gold-light), var(--gold));
-  }
-  .boss-won :global(.overlay-voice) {
-    margin: 0 0 8px;
   }
   .continue {
     display: flex;
