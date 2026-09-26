@@ -10,6 +10,8 @@ export default defineConfig({
   timeout: 600_000,
   retries: 0,
   reporter: [['list']],
+  // The same stall budget as playwright.config.ts (its `expect` comment says why).
+  expect: { timeout: 15_000 },
   workers: 1,
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:8080',

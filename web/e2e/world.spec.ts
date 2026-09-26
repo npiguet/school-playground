@@ -29,12 +29,12 @@ async function dictate(page: Page, draft: string, maxSteps = 120) {
   const ta = page.getByTestId('dictation-textarea');
   const next = page.getByTestId('btn-next');
   const finish = page.getByTestId('btn-finish-writing');
-  await expect(ta).toBeVisible({ timeout: 10_000 });
+  await expect(ta).toBeVisible();
   await page.evaluate(() => ((window as any).__fastTimers = true));
   for (let i = 0; i < maxSteps; i++) {
     if (await finish.isVisible()) break;
     if ((await next.count()) === 0) break;
-    await expect(next).toBeEnabled({ timeout: 10_000 });
+    await expect(next).toBeEnabled();
     const before = await spokenCount(page);
     await next.click();
     // Final review M11 (same class as the camp spec's sleeps): wait until the tap has taken effect

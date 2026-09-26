@@ -132,7 +132,9 @@ test('an overlay brought back during its fade-out still takes taps and Escape', 
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     location.hash = `#/p/${pid}/parchemins`;
   }, id);
-  await shelves.getByTestId('overlay-close').click({ timeout: 5_000 });
+  // Bounded, so a seal that never takes the tap fails here rather than at the test timeout; as long
+  // as the assertions' stall budget (playwright.config.ts `expect`).
+  await shelves.getByTestId('overlay-close').click({ timeout: 15_000 });
   await expect(shelves).toHaveCount(0);
 });
 
