@@ -212,3 +212,80 @@ def test_the_cabin_walls_hold_four_pieces_of_decor(client, settings):
     # Putting one away frees its spot.
     assert patch("decor:tapis", False).json()["equipped"] is False
     assert patch("decor:fresque", True).json()["equipped"] is True
+
+
+def test_a_lieutenant_asleep_at_the_heros_class_cannot_be_challenged(client):
+    # Final review I1: the war tent's sheet, the dossier and the quest wall all show Protée asleep for
+    # a 7H hero; a stale client (or a deep link to its portrait) must not start a quest against it.
+    pid = make_profile(client, level="7H")
+    r = client.post(f"/api/profiles/{pid}/quests", json={"target": "protee"})
+    assert r.status_code == 409
+    assert r.json()["detail"] == "Protée dort encore. Ses ruses viendront dans une classe plus grande."
+    assert client.get(f"/api/profiles/{pid}/quests?status=active").json() == []
+    # Awake from 8H on.
+    older = make_profile(client, level="8H")
+    assert client.post(f"/api/profiles/{older}/quests", json={"target": "protee"}).status_code == 201
+
+
+def test_a_reward_that_left_the_catalog_is_skipped_not_a_500(client, settings):
+    # Final review M18: a reward id still in the DB but gone from REWARDS.
+    pid = make_profile(client)
+    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
+    for rid, on in [("decor:retired", 1), ("decor:lanterne", 0)]:
+        conn.execute("INSERT INTO reward(profile_id, reward_id, source, granted_at, equipped) VALUES (?,?,?,?,?)",
+                     (pid, rid, "test", "2026-09-21T12:00:00+00:00", on))
+    conn.commit(); conn.close()
+    listed = client.get(f"/api/profiles/{pid}/rewards")
+    assert listed.status_code == 200 and [r["id"] for r in listed.json()] == ["decor:lanterne"]
+    assert client.patch(f"/api/profiles/{pid}/rewards/decor:lanterne", json={"equipped": True}).json()["equipped"] is True
+    assert client.patch(f"/api/profiles/{pid}/rewards/decor:retired", json={"equipped": False}).status_code == 404
+
+
+def test_two_pieces_hung_at_once_cannot_both_take_the_last_spot(client, settings, monkeypatch):
+    # Final review M18: the count and the update were two steps; two PATCHes at once could both
+    # count three pieces and both hang theirs. Each request here pauses right after its count until
+    # the other has counted too (or a second has passed): without the write lock both would count
+    # three; with it, the second only counts once the first has committed.
+    import threading
+    from app.db import connect
+    from app.routers import world
+    from app.schemas import RewardPatch
+
+    pid = make_profile(client)
+    decor = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee", "decor:fresque"]
+    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
+    for i, rid in enumerate(decor):
+        conn.execute("INSERT INTO reward(profile_id, reward_id, source, granted_at, equipped) VALUES (?,?,?,?,?)",
+                     (pid, rid, "test", "2026-09-21T12:00:00+00:00", int(i < 3)))
+    conn.commit(); conn.close()
+
+    counted = threading.Barrier(2)
+    real = world._displayed_decor
+
+    def count_then_wait(c, profile_id):
+        n = real(c, profile_id)
+        try:
+            counted.wait(timeout=1)
+        except threading.BrokenBarrierError:
+            pass
+        return n
+
+    monkeypatch.setattr(world, "_displayed_decor", count_then_wait)
+    results: dict[str, int] = {}
+
+    def hang(rid: str) -> None:
+        c = connect(settings.data_dir / DB_FILENAME)
+        try:
+            world.patch_reward(pid, rid, RewardPatch(equipped=True), db=c)
+            results[rid] = 200
+        except world.HTTPException as e:
+            results[rid] = e.status_code
+        finally:
+            c.close()
+
+    threads = [threading.Thread(target=hang, args=(rid,)) for rid in decor[3:]]
+    for t in threads: t.start()
+    for t in threads: t.join(timeout=60)
+    assert sorted(results.values()) == [200, 409]
+    on_walls = [r["id"] for r in client.get(f"/api/profiles/{pid}/rewards").json() if r["equipped"]]
+    assert len(on_walls) == 4

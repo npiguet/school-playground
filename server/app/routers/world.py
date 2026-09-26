@@ -9,7 +9,7 @@ import sqlite3
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Response
 from app.clock import iso_week, local_day, now_utc
-from app.db import get_db
+from app.db import begin_write, get_db
 from app.levels import LEVELS, level_index
 from app.routers.profiles import fetch_profile, to_out
 from app.schemas import DragonPatch, OracleChoice, QuestCreate, RewardPatch
@@ -35,6 +35,15 @@ TINT_LOCKED_MESSAGE = "Cette teinte n'est pas encore débloquée."
 MAX_DISPLAYED_DECOR = 4
 WALLS_FULL_MESSAGE = "Les murs sont pleins : range d'abord une pièce."
 ORACLE_ALREADY_CONSULTED = "L'Oracle a déjà parlé cette semaine. Reviens lundi."
+
+
+def sleeping_line(key: str) -> str:
+    """A lieutenant asleep at the hero's class (UI3 Ruling B11): the same words as the client's
+    `sleepingLine` (web/src/lib/world/eris.ts), for a quest asked of it anyway (a stale client)."""
+    name = LIEUTENANTS[key]["name"]
+    if LIEUTENANTS[key]["gender"] == "fp":
+        return f"{name} dorment encore. Leurs ruses viendront dans une classe plus grande."
+    return f"{name} dort encore. Ses ruses viendront dans une classe plus grande."
 
 
 def _week_today() -> tuple[str, str]:
@@ -144,6 +153,8 @@ def create_quest(conn: sqlite3.Connection, profile: sqlite3.Row, kind: str, targ
 def create_board_quest(conn: sqlite3.Connection, profile: sqlite3.Row, target: str, now: str) -> dict:
     if target not in LIEUTENANTS:
         raise HTTPException(422, "unknown lieutenant")
+    if target not in lieutenants_for_level(profile["level"]):
+        raise HTTPException(409, sleeping_line(target))
     pid = profile["id"]
     active = conn.execute("SELECT target FROM quest WHERE profile_id = ? AND kind = 'board' AND status = 'active'", (pid,)).fetchall()
     if any(r["target"] == target for r in active):
@@ -398,19 +409,36 @@ def post_boss(profile_id: int, response: Response, db: sqlite3.Connection = Depe
 def get_rewards(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
     fetch_profile(db, profile_id)
     rows = db.execute("SELECT reward_id, granted_at, equipped FROM reward WHERE profile_id = ? ORDER BY granted_at", (profile_id,)).fetchall()
-    return [{**REWARDS[r["reward_id"]], "granted_at": r["granted_at"], "equipped": bool(r["equipped"])} for r in rows]
+    # A reward id that has left the catalog is skipped, never a 500 (final review M18).
+    return [{**REWARDS[r["reward_id"]], "granted_at": r["granted_at"], "equipped": bool(r["equipped"])}
+            for r in rows if r["reward_id"] in REWARDS]
+
+
+def _kind(reward_id: str) -> str | None:
+    return REWARDS.get(reward_id, {}).get("kind")
+
+
+def _displayed_decor(conn: sqlite3.Connection, profile_id: int) -> int:
+    """How many pieces of decor hang on the cabin's walls (a stale catalog id counts as none)."""
+    rows = conn.execute("SELECT reward_id FROM reward WHERE profile_id = ? AND equipped = 1", (profile_id,)).fetchall()
+    return sum(1 for r in rows if _kind(r["reward_id"]) == "decor")
 
 
 @router.patch("/profiles/{profile_id}/rewards/{reward_id}")
 def patch_reward(profile_id: int, reward_id: str, body: RewardPatch, db: sqlite3.Connection = Depends(get_db)):
     fetch_profile(db, profile_id)
+    if reward_id not in REWARDS:
+        raise HTTPException(404, "Reward not found")
+    # The count and the update are one transaction under the write lock (final review M18): two
+    # PATCHes at once cannot both see three pieces on the walls and hang a fifth.
+    begin_write(db)
     row = db.execute("SELECT * FROM reward WHERE profile_id = ? AND reward_id = ?", (profile_id, reward_id)).fetchone()
     if row is None:
+        db.rollback()
         raise HTTPException(404, "Reward not found")
-    if body.equipped and not row["equipped"] and REWARDS[reward_id]["kind"] == "decor":
-        displayed = [r["reward_id"] for r in db.execute(
-            "SELECT reward_id FROM reward WHERE profile_id = ? AND equipped = 1", (profile_id,)).fetchall()]
-        if sum(1 for rid in displayed if REWARDS[rid]["kind"] == "decor") >= MAX_DISPLAYED_DECOR:
+    if body.equipped and not row["equipped"] and _kind(reward_id) == "decor":
+        if _displayed_decor(db, profile_id) >= MAX_DISPLAYED_DECOR:
+            db.rollback()
             raise HTTPException(409, WALLS_FULL_MESSAGE)
     db.execute("UPDATE reward SET equipped = ? WHERE profile_id = ? AND reward_id = ?", (int(body.equipped), profile_id, reward_id))
     db.commit()

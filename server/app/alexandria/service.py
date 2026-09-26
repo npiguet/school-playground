@@ -16,6 +16,7 @@ from app.alexandria.clean import gutenberg_text_to_paragraphs, wikisource_html_t
 from app.alexandria.fetch import FetchError
 from app.alexandria.filters import chunk_verdict
 from app.alexandria.score import chunk_features, level_for, score_for
+from app.db import begin_write
 from app.routers.texts import TEXT_SELECT
 
 
@@ -29,14 +30,6 @@ def _upsert_online_work(conn: sqlite3.Connection, work_id: str, status: str, err
            ON CONFLICT(id) DO UPDATE SET status = excluded.status, error = excluded.error,
                fetched_at = excluded.fetched_at, stats_json = excluded.stats_json""",
         (work_id, status, error, now(), json.dumps(stats, ensure_ascii=False)))
-
-
-def _begin_write(conn: sqlite3.Connection) -> None:
-    """Take SQLite's write lock now, so the reads that follow and the writes they decide cannot be
-    interleaved with another request's writes (the default deferred transaction only locks at the
-    first write, after the reads). Joins a transaction already open on this connection instead."""
-    if not conn.in_transaction:
-        conn.execute("BEGIN IMMEDIATE")
 
 
 # Accepted chunks annotated and cached per refresh (final review I-6): bounds the synchronous
@@ -129,7 +122,7 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
     # another request between this snapshot and the rewrite below was silently undone (the link
     # reset to NULL, the passage offered again) or wrote back a deleted text's id (foreign key
     # failure, a 500 on refresh).
-    _begin_write(conn)
+    begin_write(conn)
     linked = {r["body"]: r["text_id"] for r in conn.execute(
         "SELECT body, text_id FROM online_chunk WHERE work_id = ? AND text_id IS NOT NULL", (work.id,))}
     # online_chunk.work_id is a foreign key: the online_work row must exist first.
@@ -200,7 +193,7 @@ def adopt_chunk(conn: sqlite3.Connection, chunk_id: int, profile_id: int, works:
     # Check-then-create under the write lock (fix round 4): two players adopting the same scroll at
     # once used to both read text_id NULL, both create a text and both get 201 - the passage adopted
     # twice, one copy unlinked from its scroll. Now exactly one creates it; the other gets it back.
-    _begin_write(conn)
+    begin_write(conn)
     chunk = conn.execute("SELECT * FROM online_chunk WHERE id = ?", (chunk_id,)).fetchone()
     if chunk is None:
         conn.rollback()

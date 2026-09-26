@@ -42,21 +42,21 @@ def test_migration_004_creates_world_tables(tmp_path):
 
 def test_connect_pins_legacy_transaction_control_so_begin_immediate_takes_the_write_lock(tmp_path):
     # Fix round 5: the code base commits by hand on the legacy implicit-BEGIN model, and
-    # alexandria.service._begin_write issues BEGIN IMMEDIATE only while no transaction is open.
+    # app.db.begin_write issues BEGIN IMMEDIATE only while no transaction is open.
     # Pinned in connect() so a changed sqlite3 default cannot silently turn that into a no-op.
-    from app.alexandria.service import _begin_write
+    from app.db import begin_write
     path = tmp_path / "tx.sqlite3"
     conn = connect(path)
     migrate(conn)
     assert conn.autocommit == sqlite3.LEGACY_TRANSACTION_CONTROL
     assert conn.isolation_level == "DEFERRED"
     assert not conn.in_transaction  # nothing open between requests' statements
-    _begin_write(conn)
+    begin_write(conn)
     assert conn.in_transaction
     other = sqlite3.connect(path, timeout=0)
     try:
         other.execute("BEGIN IMMEDIATE")
-        raise AssertionError("a second writer got the lock _begin_write should hold")
+        raise AssertionError("a second writer got the lock begin_write should hold")
     except sqlite3.OperationalError as e:
         assert "locked" in str(e)
     finally:
