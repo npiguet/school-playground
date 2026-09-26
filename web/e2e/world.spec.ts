@@ -118,8 +118,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
   });
 
   test('3. quest board shows it, lieutenant page gauges', async ({ page }) => {
-    await page.goto(`/#/p/${profileId}/dossier`);
-    await page.getByTestId('topbar-camp').click();
+    await page.goto(`/#/p/${profileId}/camp`);
     await expectCamp(page);
     await page.getByTestId('camp-quests').click();
 

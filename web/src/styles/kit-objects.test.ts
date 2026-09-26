@@ -150,4 +150,13 @@ describe('object kit', () => {
       expect(worstOf(fg, bg), `${name}: ${fg} on ${bg.join(', ')}`).toBeGreaterThanOrEqual(4.5);
     }
   });
+
+  // UI3b lane W fix round 1: an empty gauge track (rgba 0.18 on parchment) was nearly invisible.
+  // Its rim is a graphic, so 3:1 (WCAG 1.4.11) against every colour of the sheet it sits on.
+  it("draws the gauge track's rim at least 3:1 on the parchment sheet", () => {
+    const rim = /border:\s*1px solid ([^;]+);/.exec(ruleBodyOf(css, '.kit-gauge-track'));
+    expect(rim, '.kit-gauge-track has a 1px rim').not.toBeNull();
+    const sheetBg = backgroundColoursOf(ruleBodyOf(css, '.kit-sheet'));
+    expect(worstOf(resolveColor(rim![1]), sheetBg)).toBeGreaterThanOrEqual(3);
+  });
 });

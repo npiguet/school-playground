@@ -525,6 +525,8 @@ label.kit-medallion::before,
   position: relative;
   height: 10px;
   border-radius: 5px;
+  /* A bronze rim keeps an empty track visible on parchment (>= 3:1, a graphic; kit-objects.test). */
+  border: 1px solid var(--bronze);
   background: rgba(92, 64, 24, 0.18);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
   overflow: hidden;

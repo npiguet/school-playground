@@ -13,10 +13,7 @@
   import Play from './screens/Play.svelte';
   import Boss from './screens/Boss.svelte';
   // --- UI3b lane W (Tasks 2-3) replaces this block with WarTent ---
-  import Dossier from './screens/Dossier.svelte';
-  import Bestiaire from './screens/Bestiaire.svelte';
-  import BestiaireEntry from './screens/BestiaireEntry.svelte';
-  import Lieutenant from './screens/Lieutenant.svelte';
+  import WarTent from './screens/WarTent.svelte';
   // --- UI3b Task 4 replaces this block with Nest ---
   import DragonScreen from './screens/DragonScreen.svelte';
   // --- UI3b Tasks 5-6 replace this block with CabinRoom ---
@@ -104,14 +101,11 @@
              the Pythia's or the tablets' overlay never remounts Delphi and replays its entry zoom. -->
         <Delphi profile={gateProfile} panel={view.panel} />
       <!-- UI3b lane W (Tasks 2-3) replaces this block with the war place branch. -->
-      {:else if route.name === 'dossier'}
-        <Dossier profile={gateProfile} />
-      {:else if route.name === 'bestiaire'}
-        <Bestiaire profile={gateProfile} />
-      {:else if route.name === 'bestiaire-entry'}
-        <BestiaireEntry profile={gateProfile} entryKey={route.params.key} />
-      {:else if route.name === 'lieutenant'}
-        <Lieutenant profile={gateProfile} lieutenantKey={route.params.key} />
+      {:else if view?.place === 'war'}
+        <!-- UI3b Tasks 2-3, same reasoning as the library branch: the tent and its overlays
+             (`war-tent`, `lieutenant`, `dossier`, `bestiaire`, `bestiaire-entry`) share one place
+             branch, so opening or closing a sheet, the file or the codex never remounts WarTent. -->
+        <WarTent profile={gateProfile} panel={view.panel} params={route.params} />
       <!-- UI3b Task 4 replaces this block with the nest place branch. -->
       {:else if route.name === 'dragon'}
         <DragonScreen profile={gateProfile} />
