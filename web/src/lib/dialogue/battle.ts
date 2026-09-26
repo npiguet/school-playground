@@ -8,6 +8,8 @@ import type { OpponentId } from '../battle/battle';
 import type { DragonOut } from '../world/types';
 import type { DialogueLine } from '../scene/types';
 import type { PlayMode } from '../types';
+import { statKey } from '../grading/grade';
+import type { TokenError } from '../grading/types';
 import { sayKey } from './select';
 import type { DialogueKey } from './types';
 
@@ -33,4 +35,24 @@ export function musterLine(o: { opponent: OpponentId; band: Band | null; mode: P
 
 export function explainIntro(word: string, dragon: DragonOut | null): DialogueLine {
   return sayKey('battle.explain', { vars: { word }, dragon });
+}
+
+/** Where a trap sits in the text: its reference word, or (a word in excess, which has none) just
+ *  after the word it follows. */
+const textOrder = (e: TokenError) => e.refIndex ?? e.anchor + 0.5;
+
+/** The traps the dragon explains after the tally (Ruling E14): among `finalErrors` (the traps still
+ *  standing in the final text, the words « Revoir » marks orange), the first of each category (the
+ *  « Revoir » groups, statKey) in text order, at most `max`. */
+export function stillStanding(finalErrors: TokenError[], max: number): TokenError[] {
+  const seen = new Set<string>();
+  const out: TokenError[] = [];
+  for (const e of [...finalErrors].sort((a, b) => textOrder(a) - textOrder(b))) {
+    if (out.length >= max) break;
+    const k = statKey(e);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(e);
+  }
+  return out;
 }

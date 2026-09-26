@@ -6,6 +6,7 @@ import {
   createText,
   expectBattle,
   expectCamp,
+  expectLineOf,
   expectOverlayTapTargets,
   installKeyboardSim,
   LEGACY_UI,
@@ -156,10 +157,50 @@ test('the grimoire muster: Éris guards it, and a text too short for her says so
   await expectBattle(page, 'muster');
   const sheet = page.getByTestId('battle-parchment');
   await expect(sheet.getByRole('heading', { name: 'Grimoire corrompu' })).toBeVisible();
-  await expect(sheet.getByTestId('battle-voice')).toContainText("J'ai recopié ce parchemin à ma façon");
+  // UI5 Ruling E14: one of her battle.start lines, a grimoire one.
+  await expectLineOf(sheet.getByTestId('battle-voice'), 'battle.start');
   await tap(sheet.getByTestId('btn-open-grimoire'), testInfo);
   await expect(sheet.locator('.kit-note[data-tone="eris"]')).toBeVisible();
   await expect(sheet.getByTestId('btn-back-library')).toHaveText('Retour aux parchemins');
+});
+
+test('Éris opens the muster from her lines, and a replay from her retry lines', async ({ page, request }, testInfo) => {
+  // A grimoire muster: battle.start in its grimoire variants (Ruling E14).
+  const id = await createProfileApi(request, uniqueName(`Mus5-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Rejouer'), body: BODY, level: '10H' });
+  // The same text's free battle, already won (seeded at the first load: the next hop is a hash change).
+  const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'results', draft: DRAFT, current: BODY, opponent: 'hydre' });
+  await page.goto(`/#/p/${id}/grimoire/${text.id}`);
+  await expectBattle(page, 'muster');
+  await expectLineOf(page.getByTestId('battle-voice'), 'battle.start');
+  // That battle's « Rejouer ce texte »: her retry line at the next muster.
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'victory');
+  await tap(page.getByTestId('victory-actions').getByRole('button', { name: 'Rejouer ce texte' }), testInfo);
+  await expectBattle(page, 'muster');
+  await expectLineOf(page.getByTestId('battle-voice'), 'battle.retry');
+  await expect(page.getByTestId('battle-voice')).toHaveAttribute('data-speaker', 'eris');
+});
+
+test('the muster says when the voice is muted, and gives it back (Ruling E7)', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Mus6-${testInfo.project.name}`));
+  await request.patch(`/api/profiles/${id}`, {
+    data: { settings: { audio: { music: { volume: 0.5, muted: false }, sfx: { volume: 0.7, muted: false }, voice: { volume: 1, muted: true } } } },
+  });
+  const text = await createText(request, { title: uniqueName('Sourdine'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  const note = page.getByTestId('battle-voice-muted');
+  await expect(note).toContainText('La voix de la dictée est en sourdine.');
+  const saved = page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().endsWith(`/api/profiles/${id}`));
+  await tap(page.getByTestId('battle-voice-unmute'), testInfo);
+  await expect(note).toHaveCount(0);
+  // Saved on the hero, like the lyre's toggle. (The engine's own snapshot, audioState, arrives with
+  // lane A's mixer, UI5 Task 4; the store and the server are this lane's contract.)
+  await saved;
+  const hero = await (await request.get(`/api/profiles/${id}`)).json();
+  expect(hero.settings.audio.voice).toMatchObject({ muted: false, volume: 1 });
 });
 
 // ===== Task 4: the dictation =====

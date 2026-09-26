@@ -7,10 +7,10 @@
 import { numberWord as chainNumberWord, featureWords, explainChain, groupText } from './chains';
 import { statKey as statKeyOf } from './grading/grade';
 import { homophoneHint } from './grading/homophones';
-import { reverseAnnotationMap } from './grading/annotationMap';
+import { mapAnnotation, reverseAnnotationMap } from './grading/annotationMap';
+import { tokenize } from './grading/tokenize';
 import type { Annotation, AnnotToken, Chain, StatKey, Token, TokenError } from './grading/types';
 import { levelIndex } from './levels';
-import type { PlayMode } from './types';
 
 export type { StatKey } from './grading/types'; // single source of truth; do not redeclare here
 export { statKey as statKeyOf } from './grading/grade'; // re-export, one implementation
@@ -39,6 +39,12 @@ export interface ExplainContext {
    *  skipped rather than reconstructed from `refTokens` (fix round 1: a naive `join(' ')`
    *  reconstruction loses the original punctuation/spacing and could misquote the group). */
   body?: string;
+}
+
+/** The context every explanation of one text reads (« Revoir », the dragon at the victory). */
+export function explainContext(body: string, annotation: Annotation | null, level: string): ExplainContext {
+  const refTokens = tokenize(body);
+  return { refTokens, annots: mapAnnotation(refTokens, annotation), annotation, level, body };
 }
 
 /** The part of `expected` after its longest common prefix with `typed` (the changed suffix,
@@ -298,43 +304,4 @@ export function caughtText(caught: TokenError): string {
     return `Tu avais écrit « ${caught.typed} », tu as corrigé en « ${expected} ». Bravo !`;
   }
   return `Tu avais oublié « ${expected} » : tu as bien fait de l'ajouter en te relisant. Bravo !`;
-}
-
-/** Éris's line for the results screen (spec §1.6): always taunts about her own tricks, never
- *  about the player. `draftErrors` / `introduced` are counts (result.draftErrors.length /
- *  result.introduced.length). `mode` (SP2 Task 9) picks the grimoire-flavoured wording — a
- *  grimoire session has no dictation step, so its lines never mention one, and there's no
- *  "draftErrors === 0" case (Éris always plants at least 3 traps). */
-export function erisLine(
-  catchRate: number | null,
-  draftErrors: number,
-  introduced: number,
-  mode: PlayMode = 'dictation',
-): string {
-  let line: string;
-  if (mode === 'grimoire') {
-    if (catchRate !== null && catchRate >= 0.8) {
-      line = 'Quoi ?! Tu as trouvé tous mes dés-accords dans ce grimoire. Je le corromprai mieux la prochaine fois.';
-    } else if (catchRate !== null && catchRate >= 0.5) {
-      line = 'Hmpf. La moitié de mes dés-accords retrouvés. Le grimoire garde encore quelques secrets…';
-    } else if (catchRate !== null && catchRate > 0) {
-      line = 'Ha ! Quelques dés-accords retrouvés. Le grimoire commence à se réparer.';
-    } else {
-      line = 'Mes dés-accords sont restés bien cachés dans ce grimoire. Cette fois.';
-    }
-  } else if (draftErrors === 0) {
-    line = "Pfff. Tu n'as rien laissé passer pendant la dictée. Je reviendrai.";
-  } else if (catchRate !== null && catchRate >= 0.8) {
-    line = 'Impossible ! Tu as déjoué presque tous mes pièges. Ça ne se reproduira pas.';
-  } else if (catchRate !== null && catchRate >= 0.5) {
-    line = "Hmpf. La moitié de mes pièges, déjoués. J'en cacherai mieux la prochaine fois.";
-  } else if (catchRate !== null && catchRate > 0) {
-    line = 'Ha ! Mes pièges tiennent encore. Mais tu commences à voir clair…';
-  } else {
-    line = 'Mes pièges sont restés bien cachés. Cette fois.';
-  }
-  if (introduced > 0) {
-    line += ` (Et j'en ai glissé ${introduced} pendant ta relecture. Sournois, je sais.)`;
-  }
-  return line;
 }

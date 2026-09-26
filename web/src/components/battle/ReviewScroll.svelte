@@ -4,9 +4,9 @@
   // text, tap for the correct form and why; then what Éris tried, by category. Orange for
   // still-wrong words, the laurel's green for words she caught and fixed herself - never red. The
   // tally, Éris's line, the help message and the actions live on the victory sheet.
-  import { errorKey, gradeText, mapAnnotation } from '../../lib/grading';
+  import { errorKey, gradeText } from '../../lib/grading';
   import type { Annotation, SessionResult, StatKey, TokenError } from '../../lib/grading/types';
-  import { CATEGORY_LABELS, caughtText, explain, statKeyOf } from '../../lib/explain';
+  import { CATEGORY_LABELS, caughtText, explain, explainContext, statKeyOf } from '../../lib/explain';
   import type { TextFull } from '../../lib/types';
   import Overlay from '../scene/Overlay.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -35,8 +35,8 @@
   // reference<->final alignment this scroll needs to place caught/missing markers, independent
   // of what Play.svelte already computed in `result`.
   const grade = $derived(gradeText(reference.body, finalText, annotation));
-  const annots = $derived(mapAnnotation(grade.refTokens, annotation));
-  const ctx = $derived({ refTokens: grade.refTokens, annots, annotation, level, body: reference.body });
+  // The same context the dragon's explanations read on the victory sheet (explainContext).
+  const ctx = $derived(explainContext(reference.body, annotation, level));
 
   // Maps a reference token index to its aligned position in the FINAL text's tokens, so a caught
   // draft error (whose own typedIndex points into the draft, not the final) and a missing-word
