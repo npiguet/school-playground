@@ -20,7 +20,7 @@
   // --- UI3b Task 4 replaces this block with Nest ---
   import Nest from './screens/Nest.svelte';
   // --- UI3b Tasks 5-6 replace this block with CabinRoom ---
-  import Cabin from './screens/Cabin.svelte';
+  import CabinRoom from './screens/CabinRoom.svelte';
   import Stats from './screens/Stats.svelte';
   import Settings from './screens/Settings.svelte';
   // --- end of the UI3b blocks ---
@@ -116,8 +116,8 @@
       {:else if view?.place === 'nest'}
         <Nest profile={gateProfile} panel={view.panel} />
       <!-- UI3b Tasks 5-6 replace this block with the cabin place branch. -->
-      {:else if route.name === 'cabin'}
-        <Cabin profile={gateProfile} />
+      {:else if view?.place === 'cabin' && route.name === 'cabin'}
+        <CabinRoom profile={gateProfile} panel={view.panel} />
       {:else if route.name === 'stats'}
         <Stats profile={gateProfile} />
       {:else if route.name === 'settings'}

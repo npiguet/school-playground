@@ -1,6 +1,6 @@
 import { test, expect } from './crashGuard';
 import type { Page } from '@playwright/test';
-import { chooseLevel, enterTitle, expectCamp, expectScene, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
+import { chooseLevel, closeOverlay, enterTitle, expectCamp, expectScene, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -205,7 +205,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.getByTestId('dragon-tint-ecume').click();
     await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('style', /hue-rotate\(190deg\)/);
 
-    await page.goto(`/#/p/${profileId}/cabane`);
+    await page.goto(`/#/p/${profileId}/cabane?panel=tresors`);
     await expect(page.getByTestId('cabin-reward-tint:ecume')).toHaveAttribute('data-owned', 'true');
   });
 
@@ -348,11 +348,15 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     expect(won.progression.boss.won).toBe(true);
     expect(won.progression.rewards.some((r: { id: string }) => r.id === 'sandales_hermes')).toBe(true);
 
-    await page.goto(`/#/p/${profileId}/cabane`);
+    await page.goto(`/#/p/${profileId}/cabane?panel=tresors`);
     await expect(page.getByTestId('cabin-reward-sandales_hermes')).toHaveAttribute('data-owned', 'true');
     await expect(page.getByTestId('cabin-reward-sandales_hermes').locator('img[src="/art/icons/sandales_hermes.webp"]')).toBeVisible();
     await page.getByTestId('cabin-equip-sandales_hermes').click();
     await expect(page.getByTestId('cabin-equip-sandales_hermes')).toContainText('Ranger');
+    await closeOverlay(page);
+    await expectScene(page, 'cabin');
+    // Gear is worn, not hung: it never shows on the cabin's walls.
+    await expect(page.getByTestId('cabin-decor-sandales_hermes')).toHaveCount(0);
   });
 
   test('8. weekly goal and break nudge', async ({ page }) => {
