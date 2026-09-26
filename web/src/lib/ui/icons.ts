@@ -19,7 +19,13 @@ export type IconName =
   | 'gap'
   | 'plus'
   | 'laurel'
-  | 'chevron';
+  | 'chevron'
+  | 'music'
+  | 'music-muted'
+  | 'bell'
+  | 'bell-muted'
+  | 'voice'
+  | 'voice-muted';
 
 export interface IconPath {
   d: string;
@@ -39,9 +45,36 @@ const LYRE: IconPath[] = [
   { d: 'M13 10v17M16 10v17M19 10v17', width: 1.3 },
 ];
 
+// The sound plate's three channels (UI5 Ruling E8): a kithara (square-armed, a sound box at its
+// foot, so it is not mistaken for the HUD's lyre) for the music, a hand bell for the effects, a
+// speaking scroll for the dictation's voice.
+const KITHARA: IconPath[] = [
+  { d: 'M8 21h16v6H8zM10 21L8 6M22 21l2-15', width: 2.2 },
+  { d: 'M6 8h20', width: 2.2 },
+  { d: 'M13 8v13M16 8v13M19 8v13', width: 1.3 },
+];
+const BELL: IconPath[] = [
+  { d: 'M16 4v4', width: 2.6 },
+  { d: 'M7 23c1.5-2 2-4 2-8 0-4 3-7 7-7s7 3 7 7c0 4 .5 6 2 8z', width: 2.2 },
+  { d: 'M14 26.5a2 2 0 0 0 4 0', width: 2.2 },
+];
+const SCROLL_VOICE: IconPath[] = [
+  { d: 'M5 8h12M5 24h12M6 8v16M16 8v16', width: 2.2 },
+  { d: 'M9 13h4M9 16.5h4M9 20h4', width: 1.5 },
+  { d: 'M20.5 13c1.5 1.8 1.5 4.2 0 6M24 10c3 3.5 3 8.5 0 12', width: 2 },
+];
+/** An icon struck through (the mute): the halo keeps the slash legible over the drawing. */
+const struck = (paths: IconPath[]): IconPath[] => [...paths, { d: 'M5 27L27 5', width: 5, halo: true }, { d: 'M5 27L27 5' }];
+
 export const ICONS: Record<IconName, IconPath[]> = {
   lyre: LYRE,
-  'lyre-muted': [...LYRE, { d: 'M5 27L27 5', width: 5, halo: true }, { d: 'M5 27L27 5' }],
+  'lyre-muted': struck(LYRE),
+  music: KITHARA,
+  'music-muted': struck(KITHARA),
+  bell: BELL,
+  'bell-muted': struck(BELL),
+  voice: SCROLL_VOICE,
+  'voice-muted': struck(SCROLL_VOICE),
   close: [{ d: 'M9 9L23 23M23 9L9 23', width: 3 }],
   journal: [
     { d: 'M7 6h8c1 0 1 1 1 2v18c0-1-1-2-2-2H7z M25 6h-8c-1 0-1 1-1 2v18c0-1 1-2 2-2h7z', width: 2.2 },

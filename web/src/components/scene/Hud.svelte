@@ -2,19 +2,17 @@
   // The slim scene HUD (scenes UI spec §4): hero chip (opens the hero panel), XP laurel, dragon
   // mini-portrait, sound toggle. Anchored to the on-screen part of the art box (SceneStage's
   // .stage-hud, final review M13), inside the safe-area insets.
-  // Audio channels and their sliders arrive in UI5; UI1 keeps the existing single mute.
+  // UI5 Ruling E8: the lyre opens the sound plate (three channels).
   // Task 10b round 1 #3: the dragon's ambient status (what it's up to) lives on the camp-dragon
   // hotspot's caption instead of a `title` here (see camp.ts) - a `title` tooltip never shows on
   // iPad, the target device, since there's no mouse hover to trigger it.
   import type { Snippet } from 'svelte';
   import Avatar from '../Avatar.svelte';
   import LaurelBar from '../ui/LaurelBar.svelte';
-  import Icon from '../ui/Icon.svelte';
+  import SoundPlate from './SoundPlate.svelte';
   import { ART } from '../../lib/world/art';
   import { TINT_FILTERS } from '../../lib/world/dragon';
   import { hudXp } from '../../lib/scene/hud';
-  import { setMuted, soundStore } from '../../lib/juice/soundStore.svelte';
-  import { unlockAudio } from '../../lib/juice/sfx';
   import { href } from '../../lib/routes';
   import type { CampResponse } from '../../lib/world/types';
   import type { Profile } from '../../lib/types';
@@ -37,11 +35,6 @@
   } = $props();
 
   const xp = $derived(camp ? hudXp(camp.xp) : null);
-
-  function toggleMute() {
-    unlockAudio();
-    void setMuted(profile.id, !soundStore.muted);
-  }
 </script>
 
 {#snippet hero()}
@@ -73,10 +66,8 @@
         <img src={ART.dragon[camp.dragon.stage]} alt="" style="filter:{TINT_FILTERS[camp.dragon.tint]}" />
       </a>
     {/if}
-    <button type="button" class="hud-round" data-testid="hud-mute" aria-pressed={soundStore.muted} aria-label="Son" onclick={toggleMute}>
-      <!-- Playability #9: a bronze lyre (struck through when muted), not an emoji. -->
-      <Icon name={soundStore.muted ? 'lyre-muted' : 'lyre'} size={28} />
-    </button>
+    <!-- Playability #9: a bronze lyre (struck through when music and effects are muted), not an emoji. -->
+    <SoundPlate profileId={profile.id} {band} />
   </div>
 </header>
 
@@ -130,7 +121,8 @@
     display: flex;
     gap: 10px;
   }
-  .hud-round {
+  /* Global under the HUD: SoundPlate's opener wears it too. */
+  .hud :global(.hud-round) {
     display: inline-flex;
     align-items: center;
     justify-content: center;

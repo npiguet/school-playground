@@ -3,6 +3,7 @@
 // speech must be unlocked from a user gesture) and Edge/Chrome on Windows.
 // `speechSynthesis` is always read from `globalThis` at call time (never
 // cached at import) so tests (and Playwright) can stub it.
+import { voiceGain, voiceSpeaking } from '../audio/voice';
 
 const NATURAL_RE = /natural|premium|enhanced|amélior/i;
 
@@ -92,8 +93,14 @@ export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesi
     utterance.rate = opts.rate;
     utterance.pitch = 1;
     if (opts.voice) utterance.voice = opts.voice;
+    // UI5 Ruling E7: the voice channel's gain; muted, the line plays at 0 and keeps its pace.
+    utterance.volume = voiceGain();
     const finish = () => {
-      activeUtterance = null;
+      // A cancelled line whose end event arrives late must not let the music up under a newer one.
+      if (activeUtterance === utterance) {
+        activeUtterance = null;
+        voiceSpeaking(false);
+      }
       resolve();
     };
     utterance.onend = finish;
@@ -101,6 +108,8 @@ export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesi
 
     const startSpeaking = () => {
       activeUtterance = utterance;
+      // UI5 Ruling E5: the music is down before the first word.
+      voiceSpeaking(true);
       synth.speak(utterance);
     };
 
@@ -119,6 +128,9 @@ export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesi
 export function cancelSpeech(): void {
   const synth = (globalThis as any).speechSynthesis as SpeechSynthesis | undefined;
   synth?.cancel();
+  // iOS may never send the cancelled line's end event: the music comes back up here.
+  activeUtterance = null;
+  voiceSpeaking(false);
 }
 
 /**

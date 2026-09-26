@@ -1,7 +1,9 @@
 // The one mixer of the page (Ruling E1) and what keeps it in step with the page: the hero's channels,
-// a hidden page (suspend), a shown page or a tap (resume, the iPad's `interrupted` state). In a
+// a hidden page (suspend), a shown page or a tap (resume, the iPad's `interrupted` state), the
+// battle's events (battleAudio.ts). In a
 // browser it plays through Howler, unless an e2e page set __discordeAudioStub (Ruling E10): then it
 // records, and publishes its state as window.__discordeAudio.
+import { listenToBattle } from './battleAudio';
 import { createEngine, type AudioEngine } from './engine';
 import { howlerBackend } from './howlerBackend';
 import { recordingBackend } from './recordingBackend';
@@ -27,6 +29,7 @@ export function installAudio(): () => void {
   const stopSync = $effect.root(() => {
     $effect(() => e.setSettings(snapshotAudio()));
   });
+  const stopBattle = listenToBattle(e);
   const onVisibility = () => e.visibility(document.hidden);
   const onPoke = () => e.poke();
   document.addEventListener('visibilitychange', onVisibility);
@@ -34,6 +37,7 @@ export function installAudio(): () => void {
   window.addEventListener('pointerdown', onPoke, { capture: true, passive: true });
   return () => {
     stopSync();
+    stopBattle();
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pageshow', onVisibility);
     window.removeEventListener('pointerdown', onPoke, { capture: true });

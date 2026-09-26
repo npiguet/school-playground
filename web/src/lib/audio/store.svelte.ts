@@ -66,10 +66,12 @@ export const bothMuted = (): boolean => audioSettings.music.muted && audioSettin
 let chain: Promise<unknown> = Promise.resolve();
 let liveTimer: ReturnType<typeof setTimeout> | undefined;
 
+/** The device copy and the server's, together: a toggle at once, a slider once it rests. */
 function save(profileId: number): void {
   clearTimeout(liveTimer);
   liveTimer = undefined;
   const audio = snapshotAudio();
+  writeDevice(audio);
   chain = chain
     .then(() => api.profiles.patch(profileId, { settings: { audio } }))
     .catch(() => {
@@ -95,7 +97,6 @@ export function setChannels(
   // UI3 final review I3: a screen that re-seeds from the in-session hero must see the change.
   const current = profileStore.current;
   if (current && current.id === profileId) current.settings = { ...current.settings, audio: s };
-  writeDevice(s);
   if (opts.live) {
     clearTimeout(liveTimer);
     liveTimer = setTimeout(() => save(profileId), LIVE_SAVE_MS);

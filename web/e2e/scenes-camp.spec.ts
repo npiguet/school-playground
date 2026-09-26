@@ -315,20 +315,36 @@ test('HUD: laurel, dragon, sound toggle that survives leaving the camp', async (
   await expect(page.getByTestId('hud-xp')).toContainText('Recrue du camp');
   await expect(page.getByTestId('hud-hero').locator('img[src="/art/icons/avatar-chouette.webp"]')).toBeVisible();
 
-  const mute = page.getByTestId('hud-mute');
-  await expect(mute).toHaveAttribute('aria-pressed', 'false');
-  await mute.click();
-  await expect(mute).toHaveAttribute('aria-pressed', 'true');
+  // UI5 Ruling E8: the lyre opens the sound plate; music and effects off strike the lyre through.
+  const opener = page.getByTestId('hud-mute');
+  await expect(opener.locator('[data-icon="lyre"]')).toBeVisible();
+  await opener.click();
+  const music = page.getByTestId('hud-sound-music');
+  const sfx = page.getByTestId('hud-sound-sfx');
+  await music.click();
+  await sfx.click();
+  await expect(music).toHaveAttribute('aria-pressed', 'false');
+  await expect(sfx).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('hud-sound')).toHaveCount(0);
+  await expect(opener.locator('[data-icon="lyre-muted"]')).toBeVisible();
   // Final review I3: leave the camp and come back - the camp remounts and re-seeds the sound
-  // store from the in-session profile, which must know about the toggle.
+  // store from the in-session profile, which must know about the toggles.
   await page.getByTestId('camp-parchemins').click();
   await expect(page).toHaveURL(/\/tente-parchemins$/);
   await page.goBack();
   await expectCamp(page);
   await expect(page.getByTestId('hud-xp')).toBeVisible();
-  await expect(mute).toHaveAttribute('aria-pressed', 'true');
-  await mute.click();
-  await expect(mute).toHaveAttribute('aria-pressed', 'false');
+  await expect(opener.locator('[data-icon="lyre-muted"]')).toBeVisible();
+  await opener.click();
+  await expect(music).toHaveAttribute('aria-pressed', 'false');
+  await expect(sfx).toHaveAttribute('aria-pressed', 'false');
+  await music.click();
+  await sfx.click();
+  await expect(music).toHaveAttribute('aria-pressed', 'true');
+  await expect(sfx).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Escape');
+  await expect(opener.locator('[data-icon="lyre"]')).toBeVisible();
 
   // UI3 Ruling B3: what the dragon is up to now lives in the nest; the hub seats its cut-out.
   await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');

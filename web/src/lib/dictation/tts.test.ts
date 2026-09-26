@@ -103,3 +103,50 @@ describe('cancelSpeech', () => {
     expect(() => cancelSpeech()).not.toThrow();
   });
 });
+
+describe('the voice channel (Rulings E5, E7)', () => {
+  beforeEach(() => {
+    class FakeUtterance { text: string; rate = 1; volume = 1; lang = ''; voice: unknown = null; pitch = 1; onend: null | (() => void) = null; onerror: null | (() => void) = null; constructor(t: string) { this.text = t; } }
+    (globalThis as any).SpeechSynthesisUtterance = FakeUtterance;
+    (globalThis as any).speechSynthesis = { speak: () => undefined, cancel: vi.fn(), getVoices: () => [], addEventListener: () => {}, removeEventListener: () => {} };
+  });
+  afterEach(() => { delete (globalThis as any).speechSynthesis; delete (globalThis as any).SpeechSynthesisUtterance; });
+
+  it('speaks at the voice channel\'s gain and ducks the music while it speaks', async () => {
+    const { audioSettings } = await import('../audio/store.svelte');
+    const { audio } = await import('../audio/audio.svelte');
+    audioSettings.voice = { volume: 0.4, muted: false };
+    const volumes: number[] = [];
+    (globalThis as any).speechSynthesis.speak = (u: any) => {
+      volumes.push(u.volume);
+      expect(audio().snapshot().voiceSpeaking).toBe(true);
+      setTimeout(() => u.onend?.(), 5);
+    };
+    await speak('Un.', { rate: 1 });
+    audioSettings.voice = { volume: 0.4, muted: true };
+    await speak('Deux.', { rate: 1 });
+    expect(volumes).toEqual([0.4, 0]);
+    expect(audio().snapshot().voiceSpeaking).toBe(false);
+  });
+
+  it('lets the music back up when a speech is cancelled without its end event (iOS)', async () => {
+    const { audio } = await import('../audio/audio.svelte');
+    (globalThis as any).speechSynthesis.speak = () => undefined; // never ends
+    void speak('Trois.', { rate: 1 });
+    expect(audio().snapshot().voiceSpeaking).toBe(true);
+    cancelSpeech();
+    expect(audio().snapshot().voiceSpeaking).toBe(false);
+  });
+
+  it('keeps the music down when a cancelled line ends late, under the next one', async () => {
+    const { audio } = await import('../audio/audio.svelte');
+    const said: any[] = [];
+    (globalThis as any).speechSynthesis.speak = (u: any) => void said.push(u);
+    void speak('Quatre.', { rate: 1 });
+    void speak('Cinq.', { rate: 1 });
+    said[0].onend?.();
+    expect(audio().snapshot().voiceSpeaking).toBe(true);
+    said[1].onend?.();
+    expect(audio().snapshot().voiceSpeaking).toBe(false);
+  });
+});
