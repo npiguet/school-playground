@@ -1,0 +1,19 @@
+{
+  "lines": {
+    "delphi.enter.sealed": [
+      { "speaker": "pythia", "text": "Approche. Trois rouleaux scellés t'attendent cette semaine." },
+      { "speaker": "pythia", "text": "Les rouleaux de la semaine sont scellés. Un seul s'ouvrira pour toi." },
+      { "speaker": "pythia", "text": "Approche. Les vapeurs m'ont montré trois chemins pour ta semaine." }
+    ],
+    "delphi.enter.chosen": [
+      { "speaker": "pythia", "text": "La quête de la semaine est choisie. L'Oracle parlera de nouveau lundi." },
+      { "speaker": "pythia", "text": "Ton rouleau est ouvert. Je lirai de nouveaux signes lundi." },
+      { "speaker": "pythia", "text": "La semaine suit son chemin. Reviens lundi : les vapeurs auront changé." }
+    ]
+  },
+  "tour": [
+    { "speaker": "pythia", "target": "pythia", "text": "Je suis la Pythie. Chaque semaine, trois rouleaux scellés t'attendent ici : tu en ouvres un, et sa quête commence." },
+    { "speaker": "pythia", "target": "tablets", "text": "Sur ce mur, les tablettes votives gardent tes quêtes et les monstres que tu as défiés." },
+    { "speaker": "pythia", "target": null, "text": "Et quand ta classe prépare une dictée, pose son texte sur les étagères : j'en ferai une prophétie." }
+  ]
+}

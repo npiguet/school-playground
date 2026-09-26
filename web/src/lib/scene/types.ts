@@ -1,6 +1,7 @@
 // Scene data types (scenes UI spec §4). Coordinates are "art %": 0-100 of the 16:9 art frame,
 // x left to right, y top to bottom, so scene data survives any art swap of the same framing.
 import type { TrackId } from '../audio/catalog';
+import type { DialogueKey, TourId } from '../dialogue/types';
 import type { RouteName } from '../routes';
 import type { CampResponse, WorldCatalog } from '../world/types';
 
@@ -119,8 +120,8 @@ export interface SceneDef {
   layers: SceneLayerDef[];
   hotspots: HotspotDef[];
   ambience: { particles: FxPreset; music: TrackId | null };
-  /** Dialogue event keys for UI5 (content/dialogue/*.json); unused in UI1. */
-  narrator: { enter: string | null; firstVisit: string | null };
+  /** The place's greeting key and its first-visit tour (content/dialogue/*.json, UI5). */
+  narrator: { enter: DialogueKey | null; tour: TourId | null };
   /** Backgrounds the player is likely to open next (spec §4 performance). */
   preload: string[];
 }
@@ -133,4 +134,6 @@ export interface DialogueLine {
   portrait: string;
   portraitFilter?: string;
   text: string;
+  /** The content key it came from (spec §8): the dialogue box's data-key, for e2e. */
+  key?: string;
 }

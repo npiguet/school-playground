@@ -9,6 +9,13 @@ export function rateText(rate: number | null): string {
   return rate === null ? '—' : `${Math.round(100 * rate)} %`;
 }
 
+/** French typography (Ruling E15): a narrow no-break space (U+202F) before « : ; ! ? » and inside
+ *  « guillemets », replacing a plain or no-break space already there, so a line never wraps a lone
+ *  « ! » onto the next line. Never adds a space where there was none. Idempotent. */
+export function frenchSpacing(text: string): string {
+  return text.replace(/[ \u00a0]+([:;!?»])/g, '\u202f$1').replace(/«[ \u00a0]+/g, '«\u202f');
+}
+
 /** « 2 quêtes », « 1 quête », « 0 quête » (in French, fewer than two is singular). */
 export function plural(n: number, one: string, many: string): string {
   return `${n} ${Math.abs(n) < 2 ? one : many}`;

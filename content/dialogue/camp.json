@@ -1,0 +1,55 @@
+{
+  "lines": {
+    "camp.enter": [
+      { "speaker": "dragon", "text": "Bienvenue au camp, {hero}." },
+      { "speaker": "dragon", "text": "Te revoilà, {hero} ! Le feu t'attendait." },
+      { "speaker": "dragon", "text": "{hero} ! Les Muses ont gardé ta place près du feu." },
+      { "speaker": "dragon", "text": "Salut, {hero}. Le camp est plus calme quand tu es là." }
+    ],
+    "camp.weekly": [
+      { "speaker": "dragon", "text": "Ton objectif de la semaine est atteint. Le camp te remercie !" },
+      { "speaker": "dragon", "text": "Tous les textes promis cette semaine sont défendus. Tu peux souffler, ou continuer si le cœur t'en dit." },
+      { "speaker": "dragon", "text": "Objectif de la semaine atteint ! Même Éris l'a remarqué, et ça l'agace." }
+    ],
+    "camp.next.prophecy": [
+      { "speaker": "dragon", "text": "La Pythie a vu ta prochaine épreuve, {when}. Viens t'y préparer !" },
+      { "speaker": "dragon", "text": "Une prophétie t'attend à Delphes : ta prochaine dictée, {when}. On s'y prépare ensemble ?" },
+      { "speaker": "dragon", "text": "La Pythie a parlé : une dictée arrive {when}. Allons voir son parchemin." }
+    ],
+    "camp.next.battle": [
+      { "speaker": "dragon", "text": "Le sentier de la bataille est ouvert : Éris t'attend." },
+      { "speaker": "dragon", "text": "Éris s'est montrée au bout du sentier de la bataille. On y va quand tu veux." },
+      { "speaker": "dragon", "text": "Le sentier de la bataille est ouvert. Éris fanfaronne déjà, là-bas." }
+    ],
+    "camp.next.first-text": [
+      { "speaker": "dragon", "text": "Les parchemins t'attendent, sous la tente." },
+      { "speaker": "dragon", "text": "Ton premier parchemin t'attend sous la tente. Éris y a déjà glissé ses pièges !" },
+      { "speaker": "dragon", "text": "Sous la tente des parchemins, un premier texte attend d'être défendu." }
+    ],
+    "camp.next.scrolls": [
+      { "speaker": "dragon", "text": "La Pythie t'attend à Delphes : trois rouleaux à ouvrir." },
+      { "speaker": "dragon", "text": "Une nouvelle semaine, trois nouveaux rouleaux : la Pythie t'attend à Delphes." },
+      { "speaker": "dragon", "text": "Les rouleaux de la semaine sont scellés à Delphes. Lequel t'appellera ?" }
+    ],
+    "camp.next.none": [
+      { "speaker": "dragon", "text": "Les parchemins t'attendent, sous la tente." },
+      { "speaker": "dragon", "text": "La tente des parchemins a toujours un texte à défendre." },
+      { "speaker": "dragon", "text": "Où allons-nous ? Les parchemins, Delphes, la tente de guerre : à toi de choisir." }
+    ]
+  },
+  "tour": [
+    { "speaker": "dragon", "target": null, "when": { "stage": ["egg"] }, "text": "Toc, toc ! C'est moi, l'œuf que les Muses t'ont confié. Je vais te montrer le camp." },
+    { "speaker": "dragon", "target": null, "when": { "stage": ["hatchling", "young", "adult"] }, "text": "On refait le tour du camp ? Suis-moi." },
+    { "speaker": "dragon", "target": null, "text": "Les Muses comptent sur toi pour défendre les textes du camp contre Éris, la déesse de la Discorde." },
+    { "speaker": "dragon", "target": null, "text": "Éris sème des dés-accords : un -s oublié, un a pour un à… Chacun de ses lieutenants est une ruse." },
+    { "speaker": "dragon", "target": null, "text": "Relis une chose à la fois, et ses ruses tombent une à une." },
+    { "speaker": "dragon", "target": "parchemins", "text": "La tente des parchemins : tes textes t'y attendent, et on peut en apporter de nouveaux." },
+    { "speaker": "dragon", "target": "oracle", "text": "Le chemin de Delphes : la Pythie y ouvre les rouleaux de la semaine et annonce tes prochaines dictées." },
+    { "speaker": "dragon", "target": "dossier", "text": "La tente de guerre : le dossier d'Éris et le bestiaire de ses monstres." },
+    { "speaker": "dragon", "target": "dragon", "when": { "stage": ["egg"] }, "text": "Mon nid. J'éclorai quand la première ruse d'Éris sera neutralisée, et tu me donneras un nom." },
+    { "speaker": "dragon", "target": "dragon", "when": { "stage": ["hatchling", "young", "adult"] }, "text": "Mon nid. Viens m'y voir quand tu veux." },
+    { "speaker": "dragon", "target": "cabin", "text": "Ta cabane : tes trésors, ton journal, et la lyre pour régler la voix et les sons." },
+    { "speaker": "dragon", "target": "boss", "text": "Le sentier de la bataille. Quand Éris se montrera, c'est là qu'on l'affrontera." },
+    { "speaker": "dragon", "target": null, "text": "À toi de choisir où aller : touche un lieu du camp !" }
+  ]
+}

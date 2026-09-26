@@ -63,7 +63,7 @@ export const DELPHI_SCENE: SceneDef = {
   layers: [PYTHIA_LAYER],
   hotspots: DELPHI_HOTSPOTS,
   ambience: { particles: 'dust', music: SCENE_MUSIC.delphi },
-  narrator: { enter: 'delphi.enter', firstVisit: 'delphi.first' },
+  narrator: { enter: 'delphi.enter.sealed', tour: 'delphi' },
   // The only way out is the camp: warm it for a deep link or a reload into the temple (final review M8).
   preload: [ART.scenes.hubCamp],
 };

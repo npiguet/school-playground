@@ -45,7 +45,7 @@ describe('validateScene', () => {
       layers: [{ id: 'l', src: '/x.webp', alt: '', x: 120, y: 50, scale: 10, depth: 1, idle: 'none' }],
       hotspots: [def('a', e(30, 50)), def('a', e(60, 50))],
       ambience: { particles: 'none', music: null },
-      narrator: { enter: null, firstVisit: null },
+      narrator: { enter: null, tour: null },
       preload: [],
     };
     expect(validateScene(scene)).toEqual(['duplicate hotspot id: a', 'layer l: position/scale out of range']);
@@ -58,7 +58,7 @@ describe('validateScene', () => {
       layers: [],
       hotspots: [{ ...def('owl', e(30, 50)), label: '' }, { ...def('cat', e(60, 50)), label: '', ariaLabel: 'Le chat' }],
       ambience: { particles: 'none', music: null },
-      narrator: { enter: null, firstVisit: null },
+      narrator: { enter: null, tour: null },
       preload: [],
     };
     expect(validateScene(scene)).toEqual(['owl: a hotspot without a label needs an ariaLabel']);

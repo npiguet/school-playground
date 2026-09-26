@@ -35,7 +35,7 @@ export const NEST_SCENE: SceneDef = {
   layers: [],
   hotspots: NEST_HOTSPOTS,
   ambience: { particles: 'embers', music: SCENE_MUSIC.nest },
-  narrator: { enter: 'nest.enter', firstVisit: 'nest.first' },
+  narrator: { enter: 'nest.enter', tour: 'nest' },
   preload: [ART.scenes.hubCamp],
 };
 

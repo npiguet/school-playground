@@ -1,0 +1,22 @@
+{
+  "lines": {
+    "library.enter": [
+      { "speaker": "owl", "text": "Hou ! Tes parchemins dorment sur les étagères. Le pupitre, la lentille et le portail en apportent de nouveaux." },
+      { "speaker": "owl", "text": "Hou ! Bienvenue sous la tente. Quel parchemin défendons-nous aujourd'hui ?" },
+      { "speaker": "owl", "text": "Hou ! Les étagères t'attendent. Si tu hésites, touche-moi." }
+    ],
+    "library.owl": [
+      { "speaker": "owl", "text": "Hou ! Tes parchemins dorment sur les étagères. Choisis-en un et défends-le contre Éris." },
+      { "speaker": "owl", "text": "Hou ! Au pupitre, tu peux écrire ou coller un texte à toi." },
+      { "speaker": "owl", "text": "Hou ! La lentille de bronze déchiffre les feuilles imprimées de ta classe." },
+      { "speaker": "owl", "text": "Hou ! Derrière le portail, les scribes d'Alexandrie recopient de vieux livres pour toi." }
+    ]
+  },
+  "tour": [
+    { "speaker": "owl", "target": "shelves", "text": "Hou ! Sur les étagères dorment tes parchemins. Choisis-en un pour le défendre contre Éris." },
+    { "speaker": "owl", "target": "desk", "text": "Au pupitre, tu peux écrire ou coller un texte à toi. Entre 80 et 200 mots, c'est l'idéal." },
+    { "speaker": "owl", "target": "lens", "text": "La lentille de bronze déchiffre les feuilles imprimées de ta classe." },
+    { "speaker": "owl", "target": "portal", "text": "Derrière le portail, les scribes d'Alexandrie recopient de vieux livres pour tes étagères." },
+    { "speaker": "owl", "target": "owl", "text": "Et si tu oublies, touche-moi : je te redirai tout. Hou !" }
+  ]
+}

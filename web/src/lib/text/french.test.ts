@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { de, longDate, plural, weekdayOf } from './french';
+import { de, frenchSpacing, longDate, plural, weekdayOf } from './french';
 
 describe('French wording helpers', () => {
   it('counts without a form plural (playability #10)', () => {
@@ -49,5 +49,19 @@ describe('weekdayOf', () => {
     expect(weekdayOf('2099-01-01')).toBe('jeudi');
     expect(weekdayOf('2026-10-04T00:00:00')).toBe('dimanche');
     for (const bad of ['', 'demain', '2026-02-30', '2026-13-01']) expect(weekdayOf(bad)).toBeNull();
+  });
+});
+
+describe('frenchSpacing (Ruling E15)', () => {
+  it('puts a narrow no-break space before « : ; ! ? » and inside guillemets', () => {
+    expect(frenchSpacing('Hou ! Quoi ?! Voilà : « mot » ; fin')).toBe('Hou\u202f! Quoi\u202f?! Voilà\u202f: «\u202fmot\u202f»\u202f; fin');
+  });
+  it('replaces a no-break space too, and is idempotent', () => {
+    const once = frenchSpacing('Vite\u00a0!');
+    expect(once).toBe('Vite\u202f!');
+    expect(frenchSpacing(once)).toBe(once);
+  });
+  it('leaves an unspaced colon alone (never invents a space)', () => {
+    expect(frenchSpacing('l’idéal:80')).toBe('l’idéal:80');
   });
 });

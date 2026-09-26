@@ -1,0 +1,60 @@
+{
+  "lines": {
+    "battle.start": [
+      { "speaker": "eris", "text": "Un parchemin de plus pour mes dés-accords. Les héros du camp n'y verront que du feu." },
+      { "speaker": "eris", "text": "Ce texte-là, je l'ai choisi moi-même. Mes pièges y sont bien au chaud." },
+      { "speaker": "eris", "text": "Le camp envoie encore quelqu'un défendre ce parchemin ? Mes pièges sont prêts, eux." },
+      { "speaker": "eris", "text": "Écoute bien la voix… Moi, j'écoute surtout les accords qui s'égarent." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "J'ai recopié ce parchemin à ma façon, en y semant mes dés-accords. Aucun héros du camp ne les retrouvera tous." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Mon grimoire, ma plume, mes dés-accords. Bonne chance pour tout réparer !" },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Chaque page de ce grimoire porte ma marque. Cherche bien : elle est discrète." }
+    ],
+    "battle.retry": [
+      { "speaker": "eris", "text": "Revoilà ce parchemin ? J'ai changé mes pièges de cachette." },
+      { "speaker": "eris", "text": "Deuxième manche ! Les héros du camp ne lâchent jamais rien, hein ?" },
+      { "speaker": "eris", "text": "Encore ce texte ? Soit. Mes dés-accords adorent qu'on les cherche." }
+    ],
+    "battle.perfect": [
+      { "speaker": "eris", "text": "Pfff. Tu n'as rien laissé passer pendant la dictée. Je reviendrai." },
+      { "speaker": "eris", "text": "Pas un seul piège ? Mes lieutenants vont m'entendre." },
+      { "speaker": "eris", "text": "Rien. Pas un dés-accord. Le camp a de la chance, cette fois." }
+    ],
+    "battle.victory": [
+      { "speaker": "eris", "text": "Impossible ! Tu as déjoué presque tous mes pièges. Ça ne se reproduira pas." },
+      { "speaker": "eris", "text": "Mes pièges, débusqués un par un… Les héros du camp deviennent agaçants." },
+      { "speaker": "eris", "text": "Je retourne à mes plans. Et la prochaine fois, je cache mieux mes pièges !" },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Quoi ?! Tu as trouvé tous mes dés-accords dans ce grimoire. Je le corromprai mieux la prochaine fois." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Mon beau grimoire, réparé page après page… Quel gâchis." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Le grimoire respire à nouveau. Profitez-en, au camp : ça ne durera pas." }
+    ],
+    "battle.retreat": [
+      { "speaker": "eris", "text": "Hmpf. La moitié de mes pièges, déjoués. J'en cacherai mieux la prochaine fois." },
+      { "speaker": "eris", "text": "Je recule… d'un pas. Un tout petit pas." },
+      { "speaker": "eris", "text": "Quelques-uns de mes pièges tiennent encore. Je m'accroche à ceux-là." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Hmpf. La moitié de mes dés-accords retrouvés. Le grimoire garde encore quelques secrets…" },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Le grimoire se répare à moitié. L'autre moitié reste à moi." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Tu trouves mes dés-accords plus vite que je ne les sème. Presque." }
+    ],
+    "battle.caught": [
+      { "speaker": "eris", "text": "Ha ! Mes pièges tiennent encore. Mais tu commences à voir clair…" },
+      { "speaker": "eris", "text": "Quelques pièges débusqués. Les autres rient encore dans leur cachette." },
+      { "speaker": "eris", "text": "Tu en as trouvé quelques-uns ? Garde-les. J'en ai plein d'autres." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Ha ! Quelques dés-accords retrouvés. Le grimoire commence à se réparer." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Quelques pages réparées… Mon grimoire garde le reste de ses secrets." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Tu as débusqué quelques dés-accords. Les autres dorment encore entre les lignes." }
+    ],
+    "battle.missed": [
+      { "speaker": "eris", "text": "Mes pièges sont restés bien cachés. Cette fois." },
+      { "speaker": "eris", "text": "Pas un piège débusqué ! Mes lieutenants sont fiers d'eux… pour aujourd'hui." },
+      { "speaker": "eris", "text": "Ils se sont bien cachés, mes petits pièges. Le dragon va vouloir les chercher avec toi, je parie." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Mes dés-accords sont restés bien cachés dans ce grimoire. Cette fois." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Mon grimoire garde tous ses secrets… pour l'instant." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Pas une page réparée ! Mon encre tient bon, aujourd'hui." }
+    ],
+    "battle.explain": [
+      { "speaker": "dragon", "text": "Regarde « {word} » avec moi." },
+      { "speaker": "dragon", "text": "Un piège que je veux te montrer : « {word} »." },
+      { "speaker": "dragon", "text": "Celui-ci, je te l'explique : « {word} »." }
+    ]
+  }
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FORBIDDEN } from '../world/eris';
+import { GENDERED } from '../../testing/copyRules';
 import { outcomeOf } from './hp';
 import * as L from './lines';
 
@@ -24,8 +25,7 @@ function allLines(): string[] {
 
 describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   it('never addresses the player by an agreeing adjective or « héros »', () => {
-    const bad = /\b(prête|sûre|arrêtée|piégée)\b|(^|[,!?«]\s*)(cher |jeune |petite? )?héro(s|ïne)\s*[,!]/iu;
-    for (const s of allLines()) expect(bad.test(s), s).toBe(false);
+    for (const s of allLines()) expect(GENDERED.test(s), s).toBe(false);
   });
 
   it('keeps Éris on her own tricks', () => {

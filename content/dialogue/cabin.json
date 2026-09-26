@@ -1,0 +1,14 @@
+{
+  "lines": {
+    "cabin.enter": [
+      { "speaker": "dragon", "text": "Ta cabane. Tout ce que tu as gagné est rangé ici." },
+      { "speaker": "dragon", "text": "Ta cabane sent le bois et la cire. Tes trésors t'attendent." },
+      { "speaker": "dragon", "text": "On est bien, ici. Tes trésors, ton journal, ta lyre : tout est à sa place." }
+    ]
+  },
+  "tour": [
+    { "speaker": "dragon", "target": "trophies", "text": "L'étagère garde tes trésors. Chaque récompense est annoncée à l'avance : rien n'est tiré au sort." },
+    { "speaker": "dragon", "target": "journal", "text": "Ton journal se souvient de chaque texte défendu et de chaque piège déjoué." },
+    { "speaker": "dragon", "target": "lyre", "text": "La lyre règle la voix qui lit la dictée, la musique et les bruitages du camp." }
+  ]
+}

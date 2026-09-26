@@ -3,7 +3,9 @@
 // is > 0. Lives outside the stage's context because modals are rendered next to the stage.
 import { tick, untrack } from 'svelte';
 
-export const overlayState = $state({ open: 0 });
+// UI5: `tour` - a first-visit tour is open (TourLayer): the stage is inert as under any modal, but
+// keeps its labels, which the tour points at.
+export const overlayState = $state({ open: 0, tour: false });
 
 /** Registers an open modal; returns its unregister function. Untracked: a caller's effect must
  *  never depend on the count it changes (that re-ran Overlay's effect in a loop, fix wave 2). */

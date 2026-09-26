@@ -2,6 +2,7 @@
 // UI4 emits and nobody listens yet. A listener never breaks the battle.
 import type { BackdropId, BattleMode, BattlePhase, OpponentId } from './battle';
 import type { Outcome } from './hp';
+import type { DialogueKey } from '../dialogue/types';
 
 export type BattleEvent =
   | { kind: 'start'; opponent: OpponentId; mode: BattleMode; backdrop: BackdropId }
@@ -29,7 +30,7 @@ export function emitBattle(e: BattleEvent): void {
   }
 }
 
-/** The dialogue event keys of spec §8 for the battle (content/dialogue/*.json, UI5). */
+/** The dialogue event keys of spec §8 for the battle (content/dialogue/battle.json, UI5). */
 export const BATTLE_NARRATOR = {
   start: 'battle.start',
   caught: 'battle.caught',
@@ -37,4 +38,6 @@ export const BATTLE_NARRATOR = {
   victory: 'battle.victory',
   retreat: 'battle.retreat',
   retry: 'battle.retry',
-} as const;
+  perfect: 'battle.perfect',
+  explain: 'battle.explain',
+} as const satisfies Record<string, DialogueKey>;

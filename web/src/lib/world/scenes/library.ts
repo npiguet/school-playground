@@ -87,7 +87,7 @@ export const LIBRARY_SCENE: SceneDef = {
   layers: [OWL_LAYER],
   hotspots: LIBRARY_HOTSPOTS,
   ambience: { particles: 'dust', music: SCENE_MUSIC.library },
-  narrator: { enter: 'library.enter', firstVisit: 'library.first' },
+  narrator: { enter: 'library.enter', tour: 'library' },
   // The only way out is the camp: warm it for a deep link or a reload into the tent (final review M8).
   preload: [ART.scenes.hubCamp],
 };

@@ -1,0 +1,28 @@
+{
+  "lines": {
+    "nest.enter": [
+      { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille." },
+      { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "Il fait chaud dans ce nid. Encore un peu, et je sors !" },
+      { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "Tu entends ? C'est moi qui tapote la coquille." },
+      { "speaker": "dragon", "when": { "stage": ["hatchling"] }, "text": "Te revoilà ! Chaque ruse d'Éris neutralisée me fait grandir." },
+      { "speaker": "dragon", "when": { "stage": ["hatchling"] }, "text": "Regarde mes écailles : elles brillent un peu plus chaque jour." },
+      { "speaker": "dragon", "when": { "stage": ["hatchling"] }, "text": "J'ai essayé de cracher du feu. Juste de la fumée, pour l'instant." },
+      { "speaker": "dragon", "when": { "stage": ["young"] }, "text": "Je bats des ailes ! Bientôt, je volerai au-dessus du camp." },
+      { "speaker": "dragon", "when": { "stage": ["young"] }, "text": "Je me suis entraîné à voler toute la matinée." },
+      { "speaker": "dragon", "when": { "stage": ["young"] }, "text": "Mes ailes me portent déjà jusqu'au feu du camp." },
+      { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "Je veille sur le camp. Éris n'a qu'à bien se tenir." },
+      { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "Du haut du nid, je vois tout le camp. Rien ne m'échappe." },
+      { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "Les lieutenants d'Éris évitent mon ombre, maintenant." }
+    ],
+    "nest.name": [
+      { "speaker": "dragon", "text": "Te revoilà ! Tu me donnes un nom ?" },
+      { "speaker": "dragon", "text": "Je n'ai toujours pas de nom… Tu m'en choisis un ?" },
+      { "speaker": "dragon", "text": "Un dragon sans nom, c'est un peu triste. Tu m'aides ?" }
+    ]
+  },
+  "tour": [
+    { "speaker": "dragon", "target": "dragon", "when": { "stage": ["egg"] }, "text": "Mon nid. Quand j'aurai éclos, tu me donneras un nom et tu choisiras ma teinte." },
+    { "speaker": "dragon", "target": "dragon", "when": { "stage": ["hatchling", "young", "adult"] }, "text": "Mon nid. Ici, tu choisis ma teinte, et mon nom si je n'en ai pas encore." },
+    { "speaker": "dragon", "target": null, "text": "Chaque ruse d'Éris neutralisée me fait grandir : œuf, petit dragon, jeune dragon, puis gardien du camp." }
+  ]
+}

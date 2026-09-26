@@ -33,6 +33,8 @@ describe('battle events, the hooks UI5 listens to (Ruling C9)', () => {
       victory: 'battle.victory',
       retreat: 'battle.retreat',
       retry: 'battle.retry',
+      perfect: 'battle.perfect',
+      explain: 'battle.explain',
     });
   });
 });

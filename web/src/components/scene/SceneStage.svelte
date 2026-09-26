@@ -160,7 +160,7 @@
 
 <main
   class="scene-stage"
-  class:has-overlay={covered}
+  class:has-overlay={covered && !overlayState.tour}
   class:has-hud={!!hud}
   data-testid="scene-{scene.id}"
   data-reduced-motion={runtime.reduced ? 'true' : 'false'}

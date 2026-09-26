@@ -40,7 +40,7 @@ export const MUSTER = {
   showSheet: 'Voir la feuille',
   hideSheet: 'Cacher la feuille',
   sheetAlt: (n: number) => `Page ${n} de la feuille`,
-  noVoice: 'Cet appareil ne sait pas lire à voix haute. La dictée avancera toute seule, sans voix.',
+  noVoice: "Cet appareil ne sait pas lire à voix haute. La dictée avancera d'elle-même, sans voix.",
   paceHeading: 'Choisis ton rythme',
   paceLocked: 'Pas pendant un combat',
   paceGlory: 'Plus le rythme est vif, plus la gloire est grande.',
@@ -186,6 +186,8 @@ export const VICTORY = {
   nudgeEgg: "(L'œuf frémit.) Vingt-cinq minutes qu'on chasse les pièges… On souffle un peu ?",
   nudgeHome: 'On rentre souffler',
   nudgeMore: 'Encore un texte',
+  /** UI5 (Ruling E14): Éris's own aside after her victory line, for the traps she slipped in. */
+  erisIntroduced: (n: number) => `(Et j'en ai glissé ${n} pendant ta relecture. Sournois, je sais.)`,
   introduced: (n: number) =>
     `Éris a profité de la relecture pour glisser ${plural(n, 'nouveau piège', 'nouveaux pièges')}. Ça arrive : « Revoir » te les montre.`,
   continue: 'Continuer',

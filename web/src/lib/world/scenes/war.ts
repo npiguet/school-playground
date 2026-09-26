@@ -53,7 +53,7 @@ export const WAR_SCENE: SceneDef = {
   layers: [],
   hotspots: WAR_HOTSPOTS,
   ambience: { particles: 'dust', music: SCENE_MUSIC.war },
-  narrator: { enter: 'war.enter', firstVisit: 'war.first' },
+  narrator: { enter: 'war.enter', tour: 'war' },
   // The only way out is the camp (final review M8).
   preload: [ART.scenes.hubCamp],
 };

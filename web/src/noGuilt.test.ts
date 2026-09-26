@@ -6,14 +6,15 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { GUILT } from './testing/copyRules';
 
-const GUILT = /(?<![\p{L}])(manquée?s?|ratée?s?|perdue?s?)(?![\p{L}])/giu;
-
+// src/testing holds test support, never on screen (copyRules.ts spells the guilt words to ban them).
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p, out);
-    else if ((name.endsWith('.ts') || name.endsWith('.svelte')) && !name.endsWith('.test.ts')) out.push(p);
+    if (statSync(p).isDirectory()) {
+      if (p.replaceAll('\\', '/') !== 'src/testing') walk(p, out);
+    } else if ((name.endsWith('.ts') || name.endsWith('.svelte')) && !name.endsWith('.test.ts')) out.push(p);
   }
   return out;
 }

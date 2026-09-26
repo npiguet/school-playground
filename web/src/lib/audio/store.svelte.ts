@@ -9,11 +9,25 @@ import type { Profile } from '../types';
 import { CHANNELS, DEFAULT_AUDIO, audioFrom, clampVolume, type AudioSettings, type ChannelId, type ChannelSetting } from './settings';
 
 const DEVICE_KEY = 'discorde.audio';
+/** Before UI5 the device kept one switch for the music and the effects ('1' muted). */
+const LEGACY_MUTE_KEY = 'discorde.mute';
 const LIVE_SAVE_MS = 400;
 
+/** The device mirror. An old `discorde.mute` is read once: it seeds the music and the effects of a
+ *  new mirror (never one already there, which is newer), then is removed. */
 function readDevice(): unknown {
   try {
     const raw = localStorage.getItem(DEVICE_KEY);
+    const legacy = localStorage.getItem(LEGACY_MUTE_KEY);
+    if (legacy !== null) {
+      localStorage.removeItem(LEGACY_MUTE_KEY);
+      if (!raw) {
+        const muted = legacy === '1';
+        const seeded: AudioSettings = { ...DEFAULT_AUDIO, music: { ...DEFAULT_AUDIO.music, muted }, sfx: { ...DEFAULT_AUDIO.sfx, muted } };
+        writeDevice(seeded);
+        return seeded;
+      }
+    }
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;

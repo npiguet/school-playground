@@ -69,3 +69,42 @@ describe('the channel store (Ruling E2)', () => {
     expect(audioSettings.sfx.muted).toBe(true);
   });
 });
+
+// Task 1 carry: before UI5 the device kept one switch, `discorde.mute` ('1' muted). The store reads it
+// once at load, into the music and the effects of the new mirror, then removes it.
+describe('the old device mute', () => {
+  function storage(entries: [string, string][]) {
+    const m = new Map(entries);
+    return { m, getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) };
+  }
+  async function loadWith(s: ReturnType<typeof storage>) {
+    vi.stubGlobal('localStorage', s);
+    vi.resetModules();
+    return import('./store.svelte');
+  }
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('seeds the music and the effects of the device mirror, once, then is removed', async () => {
+    const s = storage([['discorde.mute', '1']]);
+    const { audioSettings: a } = await loadWith(s);
+    expect([a.music.muted, a.sfx.muted, a.voice.muted]).toEqual([true, true, false]);
+    expect(s.m.has('discorde.mute')).toBe(false);
+    expect(JSON.parse(s.m.get('discorde.audio')!)).toEqual({ ...DEFAULT_AUDIO, music: { volume: 0.5, muted: true }, sfx: { volume: 0.7, muted: true } });
+    const again = await loadWith(s);
+    expect(again.audioSettings.music.muted).toBe(true);
+  });
+
+  it('never overrides the newer mirror, and goes all the same', async () => {
+    const s = storage([['discorde.mute', '1'], ['discorde.audio', JSON.stringify(DEFAULT_AUDIO)]]);
+    const { audioSettings: a } = await loadWith(s);
+    expect([a.music.muted, a.sfx.muted]).toEqual([false, false]);
+    expect(s.m.has('discorde.mute')).toBe(false);
+  });
+
+  it("seeds nothing muted from an old '0'", async () => {
+    const s = storage([['discorde.mute', '0']]);
+    const { audioSettings: a } = await loadWith(s);
+    expect([a.music.muted, a.sfx.muted]).toEqual([false, false]);
+    expect(s.m.has('discorde.mute')).toBe(false);
+  });
+});

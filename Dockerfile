@@ -2,6 +2,8 @@
 FROM node:22 AS web
 WORKDIR /work
 COPY content/*.json content/
+# UI5 (Ruling E16): the dialogue content the web bundle imports (lib/dialogue/content.ts).
+COPY content/dialogue content/dialogue
 COPY web/package.json web/package-lock.json web/
 RUN cd web && npm ci --ignore-scripts
 COPY web web

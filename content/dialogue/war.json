@@ -1,0 +1,16 @@
+{
+  "lines": {
+    "war.enter": [
+      { "speaker": "eris", "text": "Tiens, de la visite. Fouillez mon dossier : mes meilleures ruses n'y sont pas écrites." },
+      { "speaker": "eris", "text": "Les héros du camp épinglent mes lieutenants sur leur toile. Comme c'est touchant." },
+      { "speaker": "eris", "text": "Mon dossier, ma collection de monstres… Le camp croit tout savoir. Il se trompe." },
+      { "speaker": "eris", "text": "Encore un conseil de guerre ? Mes lieutenants tremblent. Un peu. Pas beaucoup." }
+    ]
+  },
+  "tour": [
+    { "speaker": "dragon", "target": "dossier", "text": "La tente de guerre. Sur la table, le dossier d'Éris : tout ce qu'on sait de ses ruses." },
+    { "speaker": "dragon", "target": null, "text": "Ses lieutenants sont épinglés sur la toile. Chacun cache une ruse dans les textes." },
+    { "speaker": "dragon", "target": "bestiary", "text": "Le bestiaire raconte le vrai mythe de chaque monstre, puis ce qu'Éris en a fait." },
+    { "speaker": "eris", "target": null, "text": "Fouillez mon dossier tant que vous voudrez, au camp. Mes meilleures ruses n'y sont pas écrites." }
+  ]
+}

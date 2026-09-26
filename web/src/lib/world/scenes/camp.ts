@@ -131,7 +131,7 @@ export const CAMP_SCENE: SceneDef = {
   layers: [],
   hotspots: CAMP_HOTSPOTS,
   ambience: { particles: 'embers', music: SCENE_MUSIC.camp },
-  narrator: { enter: 'camp.enter', firstVisit: 'camp.first' },
+  narrator: { enter: 'camp.enter', tour: 'camp' },
   // Carry rec. 9, final review M14: every place the hub leads to, so none loads cold on its first
   // tap (the next step's place first: the tent and the temple, then the others and the battle).
   // UI4: the path to battle leads to Éris's lair (the boss's battle stage).

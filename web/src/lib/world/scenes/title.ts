@@ -17,7 +17,7 @@ export const TITLE_SCENE: SceneDef = {
   layers: [],
   hotspots: TITLE_HOTSPOTS,
   ambience: { particles: 'embers', music: SCENE_MUSIC.title },
-  narrator: { enter: 'title.enter', firstVisit: null },
+  narrator: { enter: null, tour: null },
   preload: [ART.scenes.hubCamp],
 };
 

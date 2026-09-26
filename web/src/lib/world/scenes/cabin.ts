@@ -31,7 +31,7 @@ export const CABIN_SCENE: SceneDef = {
   layers: [],
   hotspots: CABIN_HOTSPOTS,
   ambience: { particles: 'dust', music: SCENE_MUSIC.cabin },
-  narrator: { enter: 'cabin.enter', firstVisit: 'cabin.first' },
+  narrator: { enter: 'cabin.enter', tour: 'cabin' },
   preload: [ART.scenes.hubCamp],
 };
 
