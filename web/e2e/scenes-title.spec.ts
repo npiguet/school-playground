@@ -404,6 +404,9 @@ test("the seal speaks French with a long accented name: « Le sceau d'Élise-M..
   await page.goto(`/#/p/${(await res.json()).id}/camp`);
   const title = page.locator('.pin-title');
   await expect(title).toContainText("Le sceau d'Élise-M");
+  // UI3b playability #22: the name never breaks at its hyphen; the seal is a sheet between rods.
+  await expect(page.locator('.pin-name')).toHaveCSS('white-space', 'nowrap');
+  await expect(page.locator('.pin-seal')).toHaveClass(/kit-sheet/);
   const [t, seal] = await Promise.all([title.boundingBox(), page.locator('.pin-seal').boundingBox()]);
   expect(t!.x).toBeGreaterThanOrEqual(seal!.x);
   expect(t!.x + t!.width).toBeLessThanOrEqual(seal!.x + seal!.width);

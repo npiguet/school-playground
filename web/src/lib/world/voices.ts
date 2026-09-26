@@ -19,7 +19,7 @@ export const VOICES = {
   lens: owl("Hou ! Pose la feuille imprimée bien à plat, en pleine lumière : une photo par page. L'écriture à la main, je ne sais pas la lire."),
   portal: owl('Hou ! Choisis une œuvre, puis un rouleau à poser sur tes étagères.'),
   // Re-review N11: the empty right page of a work never copied (PortalWorkPanel).
-  scribesEmpty: owl("Hou ! Les scribes n'ont encore rien recopié de ce livre. Demande-leur, à gauche."),
+  scribesEmpty: owl("Hou ! Les scribes n'ont encore rien recopié de ce livre. Demande-leur !"),
   // Once the week's scroll is open, her line no longer asks for a choice (re-review walk a15b).
   pythiaChosen: pythia("Le rouleau de la semaine est ouvert, et sa quête t'attend. Défends aussi mes prophéties avant leur jour."),
   pythia: pythia("Un seul rouleau s'ouvre chaque semaine, et les trois promettent la même récompense. Choisis celui qui t'appelle."),

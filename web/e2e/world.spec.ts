@@ -139,7 +139,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await expect(page.getByRole('alert')).toContainText('Deux quêtes à la fois');
 
     await page.goto(`/#/p/${profileId}/monstres/hydre`);
-    await expect(page.getByTestId('lieutenant-gauge-days')).toContainText('0/3');
+    await expect(page.getByTestId('lieutenant-gauge-days')).toContainText('0 sur 3');
     await expect(page.getByTestId('lieutenant-quest')).toBeDisabled();
     await expect(page.getByTestId('lieutenant-quest')).toContainText('Quête en cours');
   });

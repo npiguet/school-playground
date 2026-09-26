@@ -8,6 +8,8 @@
   // screen; « Toutes les œuvres » steps back to the portal overlay.
   // Immersion wave Task 10 (playability #7): an open codex - the work and its scribes on the left
   // page, its scrolls on the right; a never-copied work points at the button that asks for a copy.
+  // UI3b playability #19: the owl speaks on the left page, between the title and that button (the
+  // voice sits under the title on every spread), and the right page shows the view through the portal.
   import { onDestroy, untrack } from 'svelte';
   import { api, ApiError, isTimeout } from '../../../lib/api';
   import { LEVELS } from '../../../lib/levels';
@@ -56,6 +58,10 @@
   let levelFilter = $state('Tous');
   // Playability #7: the filter filters something - hidden while there is nothing to filter.
   const showFilter = $derived(chunks.length > 0 || levelFilter !== 'Tous');
+  // A work the scribes never copied: the owl asks her to ask them.
+  const neverCopied = $derived(
+    work !== null && work.status !== 'ok' && !chunksLoading && !chunksError && chunks.length === 0 && levelFilter === 'Tous',
+  );
 
   // Final review M17: two quick level taps start two requests that can settle out of order; only
   // the latest one may fill the list (same generation token as refreshCamp).
@@ -188,6 +194,9 @@
       <!-- Fix round 1 #5: an h3, not an h2 - this sits under the Overlay's own h2 title. -->
       <h3 class="work-title">{work.title}</h3>
       <p class="work-by">{workByline(work)}</p>
+      {#if neverCopied}
+        <OverlayVoice line={VOICES.scribesEmpty} testId="scribes-empty" />
+      {/if}
       <button type="button" class="kit-bronze" data-testid="btn-refresh-work" disabled={refreshing} onclick={refresh}>
         {work.status === 'ok' ? 'Demander une nouvelle copie' : 'Demander aux scribes'}
       </button>
@@ -227,9 +236,8 @@
             français…).
           </p>
         {:else}
-          <!-- Playability #7, re-review N11: the owl points at the button on the left page (no chevron:
-               that is the back button's glyph), over the view through the portal, so the page isn't bare. -->
-          <OverlayVoice line={VOICES.scribesEmpty} testId="scribes-empty" />
+          <!-- Playability #7, re-review N11: the view through the portal, so the page isn't bare (the
+               owl speaks on the left page, by the button, UI3b playability #19). -->
           <figure class="plate"><img src={ART.scenes.alexandrie} alt="" /></figure>
         {/if}
       {:else}

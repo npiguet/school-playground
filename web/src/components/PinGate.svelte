@@ -1,6 +1,8 @@
 <script lang="ts">
   // The hero's code (legacy logic unchanged), staged as a sealed parchment over the blurred camp
-  // gates (UI3 Ruling A4; the painted padlock is icon inventory row 20).
+  // gates (UI3 Ruling A4; the painted padlock is icon inventory row 20). UI3b playability #22: a
+  // sheet between two rods like the other in-world papers, and the hero's name never breaks at its
+  // hyphen (« Le sceau d' » may wrap before it, the name itself stays whole).
   import { api, ApiError } from '../lib/api';
   import { markUnlocked } from '../lib/profileStore.svelte';
   import { href } from '../lib/routes';
@@ -12,6 +14,12 @@
   let { profile, onUnlocked }: { profile: Profile; onUnlocked: () => void } = $props();
 
   let pin = $state('');
+  // « d'Élise-Marguerite » -> « d' » + « Élise-Marguerite », « de Yann » -> « de » + « Yann ».
+  const owner = $derived.by(() => {
+    const full = de(profile.name);
+    const name = profile.name.trim();
+    return { prefix: full.slice(0, full.length - name.length).trimEnd(), name };
+  });
   let error = $state('');
   let checking = $state(false);
 
@@ -44,9 +52,9 @@
 
 <div class="pin-gate" data-testid="pin-gate">
   <img class="pin-backdrop" src={ART.scenes.titleGates} alt="" aria-hidden="true" />
-  <div class="pin-seal kit-parchment kit-form">
+  <div class="pin-seal kit-sheet kit-form">
     <img class="pin-lock" src={MARK_ICONS.lock} alt="" />
-    <h1 class="kit-plaque pin-title">Le sceau {de(profile.name)}</h1>
+    <h1 class="kit-plaque pin-title">Le sceau {owner.prefix}{owner.prefix.endsWith("'") ? '' : ' '}<span class="pin-name">{owner.name}</span></h1>
     <!-- Playability #14: four wax slots fill as digits arrive (SealSlots, shared with the ritual). -->
     <SealSlots id="pin-input" value={pin} oninput={onInput} disabled={checking} testId="pin-slots" />
     <label class="pin-caption" for="pin-input">Tes quatre chiffres</label>
@@ -97,6 +105,10 @@
     font-size: 18px;
     white-space: normal;
     text-wrap: balance;
+  }
+  .pin-name {
+    white-space: nowrap;
+    font-size: clamp(16px, 2.2vw, 20px);
   }
   .pin-caption {
     font-family: var(--font-body);

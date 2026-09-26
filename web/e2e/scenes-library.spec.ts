@@ -408,8 +408,10 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   // Playability #7: a never-copied work points at the scribes, with no filter to filter nothing. The
   // shared database may already hold copies of this work (alexandria.spec.ts covers that branch).
   if (firstStatus === 'never') {
-    await expect(work.getByTestId('scribes-empty')).toContainText("Les scribes n'ont encore rien recopié de ce livre. Demande-leur, à gauche.");
+    await expect(work.getByTestId('scribes-empty')).toContainText("Les scribes n'ont encore rien recopié de ce livre. Demande-leur !");
     await expect(work.getByTestId('scribes-empty')).toHaveAttribute('data-speaker', 'owl');
+    // UI3b playability #19: the owl speaks on the left page, by the button she points at.
+    await expect(work.locator('.page-left').getByTestId('scribes-empty')).toBeVisible();
     await expect(work.getByTestId('work-levels')).toHaveCount(0);
     await expect(work.getByTestId('btn-refresh-work')).toHaveText('Demander aux scribes');
   }
