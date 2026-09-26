@@ -18,7 +18,7 @@
   import { go } from '../lib/scene/panelNav';
   import { href } from '../lib/routes';
   import { withDerivedCategories } from '../lib/world/derived';
-  import { campStore, refreshCamp } from '../lib/world/campStore.svelte';
+  import { campFor, refreshCamp } from '../lib/world/campStore.svelte';
   import { clockReset, clockStart, clockStop, clockTick, playClock } from '../lib/world/playClock.svelte';
   import type { PlayMode, Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
 
@@ -30,6 +30,8 @@
   }: { profile: Profile; textId: string; mode?: PlayMode; query?: Record<string, string> } = $props();
 
   const id = $derived(Number(textId));
+  // This hero's camp snapshot only (final review I2): the store is shared across heroes.
+  const camp = $derived(campFor(profile.id));
   // Quest-aware Play (SP3 Task 7): `quest`/`encounter` come from a QuestCard/lieutenant/boss link
   // (`?quest=...&encounter=...`); `help` overrides the profile's adaptive help stage for a single
   // session (boss fights force it a stage down, never up the aids).
@@ -293,7 +295,7 @@
   // 'eris' is added for the boss quest title, which the camp's lieutenant list doesn't carry.
   const progressionNames = $derived.by(() => {
     const out: Record<string, string> = { eris: 'Éris' };
-    for (const l of campStore.data?.lieutenants ?? []) out[l.key] = l.name;
+    for (const l of camp?.lieutenants ?? []) out[l.key] = l.name;
     return out;
   });
 
@@ -432,7 +434,7 @@
   {:else if result}
     {#if playClock.needsBreak}
       <BreakNudge
-        dragonName={campStore.data?.dragon.name ?? 'Ton dragon'}
+        dragon={camp?.dragon ?? null}
         onPause={toLibraryCamp}
         onContinue={() => clockReset()}
       />
@@ -441,7 +443,7 @@
       <ProgressionReveal
         progression={playState.progression}
         {profile}
-        dragon={campStore.data?.dragon ?? null}
+        dragon={camp?.dragon ?? null}
         names={progressionNames}
         onDone={() => (revealDone = true)}
       />

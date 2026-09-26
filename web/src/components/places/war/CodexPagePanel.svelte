@@ -4,7 +4,7 @@
   // confuses the two (plan Decision 13). Monster pages stay teaser-only until the world API says
   // the full myth is unlocked; tool/place/boss/companion pages are always open.
   import { entry } from '../../../lib/world/bestiary';
-  import { campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
+  import { campFor } from '../../../lib/world/campStore.svelte';
   import { pronounFor } from '../../../lib/world/eris';
   import type { LieutenantKey } from '../../../lib/world/types';
   import { href } from '../../../lib/routes';
@@ -16,14 +16,13 @@
   const profileId = $derived(String(profile.id));
   const item = $derived(entry(entryKey));
 
-  $effect(() => {
-    if (item?.kind === 'monster') void refreshCamp(profile.id);
-  });
+  // The war tent's PlaceScene loads /camp (final review M15); this hero's snapshot only (I2).
+  const camp = $derived(campFor(profile.id));
 
   const unlocked = $derived.by(() => {
     if (!item) return false;
     if (item.kind !== 'monster') return true;
-    return campStore.data?.lieutenants.find((l) => l.key === item.key)?.bestiary_unlocked ?? false;
+    return camp?.lieutenants.find((l) => l.key === item.key)?.bestiary_unlocked ?? false;
   });
 
   // The portrait opens over the page: its seal steps back here (UI3 Ruling A1).

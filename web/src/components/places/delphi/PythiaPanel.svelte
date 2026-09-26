@@ -14,7 +14,7 @@
   import Medallion from '../../juice/Medallion.svelte';
   import LieutenantBadge from '../../LieutenantBadge.svelte';
   import { worldApi } from '../../../lib/world/api';
-  import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
+  import { campFor, campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type OracleOut, type ScrollKey } from '../../../lib/world/types';
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
   import { confirmChoiceLabel, sleepingCaption } from '../../../lib/world/eris';
@@ -49,8 +49,8 @@
     loading = true;
     loadError = '';
     try {
-      const [o] = await Promise.all([worldApi.oracle(profile.id), loadCatalog(), refreshCamp(profile.id)]);
-      oracle = o;
+      // Delphi's PlaceScene loads /camp and the catalog (final review M15).
+      oracle = await worldApi.oracle(profile.id);
     } catch (e) {
       loadError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
@@ -76,7 +76,8 @@
   });
 
   function isAvailable(key: LieutenantKey): boolean {
-    return campStore.data?.lieutenants.find((l) => l.key === key)?.available ?? true;
+    // This hero's snapshot only (final review I2).
+    return campFor(profile.id)?.lieutenants.find((l) => l.key === key)?.available ?? true;
   }
 
   function nameFor(key: string): string {

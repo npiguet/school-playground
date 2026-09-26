@@ -30,6 +30,13 @@ export function campFor(profileId: number): CampResponse | null {
   return campStore.data && campStore.data.profile.id === profileId ? campStore.data : null;
 }
 
+/** An optimistic local change to this hero's snapshot (the care panel's tint): written only while
+ *  the snapshot on show is this hero's, never over another hero's (final review I2). Readers go
+ *  through `campFor`; this and `refreshCamp` are the only writers. */
+export function replaceCamp(profileId: number, next: CampResponse): void {
+  if (campFor(profileId) && next.profile.id === profileId) campStore.data = next;
+}
+
 export async function refreshCamp(profileId: number): Promise<void> {
   const token = ++refreshToken;
   campStore.loading = true;

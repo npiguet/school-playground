@@ -10,7 +10,7 @@
   import CarePanel from '../components/places/nest/CarePanel.svelte';
   import { NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from '../lib/world/scenes/nest';
   import { ART } from '../lib/world/art';
-  import { TINT_FILTERS, stageActivity, stageLabel } from '../lib/world/dragon';
+  import { TINT_FILTERS, dragonCaption, stageActivity, stageLabel } from '../lib/world/dragon';
   import { campFor } from '../lib/world/campStore.svelte';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
@@ -34,7 +34,7 @@
       {@const d = ctx.camp.dragon}
       {@const g = growth(d)}
       <SceneLayer
-        layer={{ id: 'dragon', src: ART.dragon[d.stage], alt: d.name ?? 'Ton dragon', ...nestDragonLayer(d.stage) }}
+        layer={{ id: 'dragon', src: ART.dragon[d.stage], alt: dragonCaption(d), ...nestDragonLayer(d.stage) }}
         filter={TINT_FILTERS[d.tint]}
         testId="nest-dragon-layer"
       />

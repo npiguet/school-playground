@@ -8,10 +8,11 @@
   import Medallion from '../../juice/Medallion.svelte';
   import LieutenantBadge from '../../LieutenantBadge.svelte';
   import { worldApi } from '../../../lib/world/api';
-  import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
+  import { campFor, campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../../../lib/world/types';
   import { agree, sleepingLine } from '../../../lib/world/eris';
   import { romanTier, tricksBeforeEris } from '../../../lib/world/quests';
+  import { bossRewardId, bossRewardName } from '../../../lib/world/rewards';
   import { ApiError } from '../../../lib/api';
   import { href } from '../../../lib/routes';
   import { plural } from '../../../lib/text/french';
@@ -40,13 +41,15 @@
     }
   }
 
+  // Delphi's PlaceScene loads /camp and the catalog (final review M15): the wall only reloads the
+  // camp after it has changed something.
   $effect(() => {
-    void refreshCamp(profile.id);
-    void loadCatalog();
     void loadQuests();
   });
 
-  const activeQuests = $derived(campStore.data?.quests.filter((q) => q.status === 'active') ?? []);
+  // This hero's snapshot only (final review I2): the store is shared across heroes.
+  const camp = $derived(campFor(profile.id));
+  const activeQuests = $derived(camp?.quests.filter((q) => q.status === 'active') ?? []);
   const doneQuests = $derived(allQuests.filter((q) => q.status === 'done').slice(0, 10));
 
   const names = $derived.by(() => {
@@ -60,7 +63,7 @@
   }
 
   function lieutenantState(key: LieutenantKey) {
-    return campStore.data?.lieutenants.find((l) => l.key === key) ?? null;
+    return camp?.lieutenants.find((l) => l.key === key) ?? null;
   }
 
   function nextDecor(): { n: number; name: string } | null {
@@ -95,16 +98,6 @@
 
   const boardXp = $derived(campStore.catalog?.quest_bonus.board ?? 60);
 
-  function bossRewardName(tier: number | null): string {
-    if (tier === null) return 'une récompense';
-    const rewardId = campStore.catalog?.boss_rewards[String(tier)];
-    return (rewardId ? campStore.catalog?.rewards[rewardId]?.name : undefined) ?? 'une récompense';
-  }
-
-  function bossRewardId(tier: number | null): string | null {
-    if (tier === null) return null;
-    return campStore.catalog?.boss_rewards[String(tier)] ?? null;
-  }
 </script>
 
 <div class="panel-tablets board">
@@ -168,27 +161,28 @@
     </ul>
   </section>
 
-  {#if campStore.data}
+  {#if camp}
     <section>
       <h3 class="kit-section">Éris</h3>
       <div class="kit-sheet eris-panel" data-testid="board-boss">
-        {#if campStore.data.boss.tier_available !== null || campStore.data.boss.active_quest_id !== null}
-          {@const rewardId = bossRewardId(campStore.data.boss.tier_available)}
+        {#if camp.boss.tier_available !== null || camp.boss.active_quest_id !== null}
+          {@const rewardId = bossRewardId(camp.boss.tier_available, campStore.catalog)}
           <div class="boss-reward-line">
             {#if rewardId}<Medallion {rewardId} size={40} />{/if}
             <span>
-              Combat {romanTier(campStore.data.boss.tier_available ?? 1)} — récompense : {bossRewardName(
-                campStore.data.boss.tier_available,
+              Combat {romanTier(camp.boss.tier_available ?? 1)} — récompense : {bossRewardName(
+                camp.boss.tier_available,
+                campStore.catalog,
               )}
             </span>
           </div>
           <button type="button" class="kit-bronze" onclick={() => go(href('boss', { profileId: String(profile.id) }))}>
             Se rendre au bord du camp
           </button>
-        {:else if campStore.data.boss.tiers_won.length >= 3}
+        {:else if camp.boss.tiers_won.length >= 3}
           <p>Éris est vaincue trois fois. Elle boude.</p>
         {:else}
-          {@const left = tricksBeforeEris(campStore.data)}
+          {@const left = tricksBeforeEris(camp)}
           <p>Éris se cache. Neutralise encore {plural(left, 'ruse', 'ruses')} pour la faire sortir.</p>
         {/if}
       </div>

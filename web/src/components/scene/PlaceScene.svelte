@@ -25,6 +25,7 @@
     debug = $bindable(false),
     showExit = true,
     greet,
+    onHero,
     children,
   }: {
     profile: Profile;
@@ -35,6 +36,9 @@
     /** The place's greeting: its lines, or null while it is not ready to greet yet (e.g. the camp
      *  data has not arrived). Called inside an effect, so what it reads is tracked. */
     greet?: (camp: CampResponse | null) => DialogueLine[] | null;
+    /** Opens the hero panel from the HUD chip; by default at once. The camp routes it through its
+     *  night fade, like its other ways out (final review M13). */
+    onHero?: (path: string) => void;
     children: Snippet<[SceneContext]>;
   } = $props();
 
@@ -92,7 +96,7 @@
     (document.querySelector(back) as HTMLElement | null)?.focus();
   }
 
-  const openHero = () => go(heroPanelHref(profile.id), 'panel');
+  const openHero = () => (onHero ? onHero(heroPanelHref(profile.id)) : go(heroPanelHref(profile.id), 'panel'));
 </script>
 
 <SceneStage {scene} {ctx} bind:debug>

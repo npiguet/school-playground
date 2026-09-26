@@ -5,7 +5,8 @@
   // and the totals, loaded from the server.
   import { api, ApiError } from '../../../lib/api';
   import { CATEGORY_LABELS } from '../../../lib/explain';
-  import { HELP_STAGES, defenceMeta, helpStageLine, rateText } from '../../../lib/world/journal';
+  import { HELP_STAGES, defenceMeta, helpStageLine } from '../../../lib/world/journal';
+  import { rateText } from '../../../lib/text/french';
   import { plural } from '../../../lib/text/french';
   import type { StatKey } from '../../../lib/grading/types';
   import type { CategoryRow, Profile, StatsResponse } from '../../../lib/types';
@@ -46,9 +47,13 @@
     {:else if stats}
       <h3 class="kit-section">L'aide des Muses</h3>
       <div class="help" data-testid="journal-help">
-        <ol class="help-stages">
+        <!-- Final review M16: a screen reader hears « L'aide des Muses, étape 3 sur 4, étape actuelle »,
+             not four bare numbers. -->
+        <ol class="help-stages" aria-label="L'aide des Muses" data-testid="journal-help-stages">
           {#each HELP_STAGES as s (s)}
-            <li class="kit-medallion is-small" aria-current={s === stats.profile.help_stage ? 'step' : undefined}>{s}</li>
+            <li class="kit-medallion is-small" aria-current={s === stats.profile.help_stage ? 'step' : undefined}
+              ><span aria-hidden="true">{s}</span><span class="sr-only">étape {s} sur {HELP_STAGES.length}</span></li
+            >
           {/each}
         </ol>
         <p class="help-line">{helpStageLine(stats.profile.help_stage)}</p>

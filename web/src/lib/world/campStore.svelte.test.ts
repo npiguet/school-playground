@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('./api', () => ({ worldApi: { camp: vi.fn() } }));
 
 import { worldApi } from './api';
-import { campStore, refreshCamp } from './campStore.svelte';
+import { campFor, campStore, refreshCamp, replaceCamp } from './campStore.svelte';
 import type { CampResponse } from './types';
 
 // A promise this test controls the resolution/rejection timing of, so an "older" call can be made
@@ -80,5 +80,22 @@ describe('refreshCamp (UI3a Task 9 review round 2): a generation token guards th
     expect(campStore.data).toEqual(only);
     expect(campStore.error).toBe('');
     expect(campStore.loading).toBe(false);
+  });
+});
+
+describe('replaceCamp (final review I2): an optimistic write never lands on another hero', () => {
+  const heroCamp = (id: number, tint: string) => ({ profile: { id }, dragon: { tint } }) as unknown as CampResponse;
+
+  it("writes over this hero's own snapshot only", () => {
+    campStore.data = heroCamp(1, 'bronze');
+    replaceCamp(2, heroCamp(2, 'jade'));
+    expect(campStore.data?.profile.id).toBe(1);
+    replaceCamp(1, heroCamp(2, 'jade'));
+    expect(campFor(1)?.dragon.tint).toBe('bronze');
+    replaceCamp(1, heroCamp(1, 'ecume'));
+    expect(campFor(1)?.dragon.tint).toBe('ecume');
+    campStore.data = null;
+    replaceCamp(1, heroCamp(1, 'jade'));
+    expect(campStore.data).toBeNull();
   });
 });

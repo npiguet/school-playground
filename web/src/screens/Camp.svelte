@@ -14,14 +14,14 @@
   import { CAMP_SCENE, bossLockLine, campDragonLayer, campGreeting, weeklyCaption } from '../lib/world/scenes/camp';
   import { dragonSays } from '../lib/world/scenes/speakers';
   import { campFor } from '../lib/world/campStore.svelte';
-  import { TINT_FILTERS } from '../lib/world/dragon';
+  import { TINT_FILTERS, dragonCaption } from '../lib/world/dragon';
   import { ART } from '../lib/world/art';
   import type { CampResponse } from '../lib/world/types';
   import type { HotspotDef, SceneLayerDef } from '../lib/scene/types';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
   import { reducedMotion } from '../lib/juice/motion';
   import { navigate } from '../lib/router.svelte';
-  import { heroPanelHref, hotspotHref, replacePanel } from '../lib/scene/panelNav';
+  import { heroPanelHref, hotspotHref, openPanel, replacePanel } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
   import type { PanelId } from '../lib/world/places';
   import type { Profile } from '../lib/types';
@@ -38,7 +38,7 @@
     camp && profile.settings.onboarded ? campGreeting(profile.name, camp) : null;
 
   function dragonLayer(camp: CampResponse): SceneLayerDef {
-    return { id: 'dragon', src: ART.dragon[camp.dragon.stage], alt: camp.dragon.name ?? 'Ton dragon', ...campDragonLayer(camp.dragon.stage) };
+    return { id: 'dragon', src: ART.dragon[camp.dragon.stage], alt: dragonCaption(camp.dragon), ...campDragonLayer(camp.dragon.stage) };
   }
 
   // Playability #12: leaving the hub fades through the night before the next screen appears
@@ -48,10 +48,18 @@
   let leaving = $state(false);
   let leaveTimer: ReturnType<typeof setTimeout> | undefined;
   $effect(() => () => clearTimeout(leaveTimer));
-  function leaveTo(path: string) {
+  // `panel`: an overlay of another place (the hero panel from the HUD chip) opens as a tagged
+  // push, so its seal steps back to the camp (the cross-place overlay rule, panelNav.ts `go`).
+  function leaveTo(path: string, mode: 'push' | 'panel' = 'push') {
     if (leaving) return;
     leaving = true;
-    leaveTimer = setTimeout(() => navigate(path), reducedMotion() ? 60 : 180);
+    leaveTimer = setTimeout(() => (mode === 'panel' ? openPanel(path) : navigate(path)), reducedMotion() ? 60 : 180);
+  }
+
+  function openHero(path: string) {
+    unlockAudio();
+    playSfx('tap');
+    leaveTo(path, 'panel');
   }
 
   // The tap sounds at once; the navigation waits for the fade (so not `go()`, which navigates now).
@@ -84,7 +92,7 @@
   <Onboarding {profile} />
 {/if}
 
-<PlaceScene bind:this={place} {profile} scene={CAMP_SCENE} bind:debug showExit={false} {greet}>
+<PlaceScene bind:this={place} {profile} scene={CAMP_SCENE} bind:debug showExit={false} {greet} onHero={openHero}>
   {#snippet children(ctx)}
     {#if ctx.camp}
       <SceneLayer layer={dragonLayer(ctx.camp)} filter={TINT_FILTERS[ctx.camp.dragon.tint]} testId="camp-dragon-layer" />

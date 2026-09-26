@@ -3,36 +3,25 @@
   // in its cubby before it's earned (decision 12, ethics - no gamble, nothing hidden). Owned gear
   // and decor can be put on display or away; relics and tints are keepsakes with no toggle of their
   // own (a tint is applied from the dragon's care, in the nest). Displayed decor hangs on the
-  // cabin's walls: `onChange` tells the cabin to re-hang them.
+  // cabin's walls: the cabin owns the list of rewards (it hangs them) and hands it down; a piece
+  // put on display or away goes back up through `onUpdated` (final review M15: one /rewards fetch).
   import Medallion from '../../juice/Medallion.svelte';
   import { ART } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
-  import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
+  import { campStore } from '../../../lib/world/campStore.svelte';
   import { eggFilter } from '../../../lib/world/dragon';
   import { MAX_DISPLAYED_DECOR, WALLS_FULL_LINE } from '../../../lib/world/scenes/cabin';
   import type { RewardKind, RewardOut, Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import type { Profile } from '../../../lib/types';
 
-  let { profile, onChange }: { profile: Profile; onChange?: () => void } = $props();
-
-  let owned = $state<RewardOut[] | null>(null);
-  let loadError = $state('');
-
-  async function loadOwned() {
-    loadError = '';
-    try {
-      owned = await worldApi.rewards(profile.id);
-    } catch (e) {
-      loadError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
-    }
-  }
-
-  $effect(() => {
-    void refreshCamp(profile.id);
-    void loadCatalog();
-    void loadOwned();
-  });
+  // `owned`: null while the cabin's /rewards has not answered; `loadError` when it could not.
+  let {
+    profile,
+    owned,
+    loadError = '',
+    onUpdated,
+  }: { profile: Profile; owned: RewardOut[] | null; loadError?: string; onUpdated: (reward: RewardOut) => void } = $props();
 
   const ownedById = $derived.by(() => {
     const m = new Map<string, RewardOut>();
@@ -75,8 +64,7 @@
     equippingId = id;
     try {
       const updated = await worldApi.patchReward(profile.id, id, !current.equipped);
-      owned = (owned ?? []).map((r) => (r.id === id ? updated : r));
-      onChange?.();
+      onUpdated(updated);
     } catch (e) {
       if (e instanceof ApiError && e.status === 409 && current.kind === 'decor') wallsFull = true;
       else equipError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
@@ -85,7 +73,7 @@
     }
   }
 
-  const isEmpty = $derived(owned !== null && owned.length === 0);
+  const isEmpty = $derived(owned !== null && owned.length === 0 && !loadError);
 </script>
 
 <div class="panel-trophies">

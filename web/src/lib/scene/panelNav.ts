@@ -88,9 +88,14 @@ export function leavePanel(path: string, h: HistoryLike = history): void {
 export type GoMode = 'push' | 'panel' | 'replace';
 
 /** Every control that navigates goes through here (final review M5): the same tap feedback
- *  (unlocks the audio on the first gesture, plays `tap`) whatever it leads to. `push` leaves the
- *  place (a new screen), `panel` opens an overlay of this place (`openPanel`), `replace` swaps
- *  the current overlay for another (`replacePanel`). */
+ *  (unlocks the audio on the first gesture, plays `tap`) whatever it leads to. `push` leaves for a
+ *  place or a screen, `panel` opens an overlay (`openPanel`), `replace` swaps the current overlay
+ *  for another (`replacePanel`).
+ *
+ *  The one rule for an overlay (final review M13): whatever place it belongs to, it opens with
+ *  `panel`, so its seal steps back to wherever it was opened from - this place, another place (the
+ *  HUD's hero chip, the dossier's « Lire ton journal »), or a screen (the TopBar's journal and
+ *  lyre). Only a move to a bare place or screen is a plain `push`. */
 export function go(path: string, mode: GoMode = 'push', h: HistoryLike = history): void {
   unlockAudio();
   playSfx('tap');

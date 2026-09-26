@@ -5,7 +5,9 @@
   // swatches say how to win them, ethics: nothing is a gamble) and changing one is instant/optimistic.
   import { ART, MARK_ICONS } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
-  import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
+  import { untrack } from 'svelte';
+  import { campFor, campStore, refreshCamp, replaceCamp } from '../../../lib/world/campStore.svelte';
+  import { useToast } from '../../../lib/ui/toast.svelte';
   import { TINT_NAMES, eggFilter, validName } from '../../../lib/world/dragon';
   import type { Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
@@ -14,30 +16,31 @@
 
   let { profile }: { profile: Profile } = $props();
 
-  $effect(() => {
-    void refreshCamp(profile.id);
-    void loadCatalog();
-  });
-
-  const dragon = $derived(campStore.data?.dragon ?? null);
+  // The nest's PlaceScene loads /camp (final review M15); this hero's snapshot only (I2): the store
+  // is shared across heroes.
+  const camp = $derived(campFor(profile.id));
+  const dragon = $derived(camp?.dragon ?? null);
 
   const TINTS_ALL: Tint[] = ['bronze', 'ecume', 'olivier', 'braise', 'jade', 'argent'];
 
   let nameInput = $state('');
   let nameError = $state('');
   let savingName = $state(false);
-  let toast = $state('');
+  const toast = useToast();
 
+  // Final review I5: the input follows the saved name only. A new camp snapshot (a tint tapped, a
+  // late /camp) carries the same name and must never wipe what the player is typing; the field is
+  // seeded when the saved name changes (it arrives, or a save lands), and only while the player has
+  // not typed anything else.
+  let savedName: string | null = null;
   $effect(() => {
-    nameInput = dragon?.name ?? '';
+    const name = dragon?.name ?? null;
+    untrack(() => {
+      if (name === savedName) return;
+      if (nameInput === (savedName ?? '')) nameInput = name ?? '';
+      savedName = name;
+    });
   });
-
-  function showToast(message: string) {
-    toast = message;
-    setTimeout(() => {
-      if (toast === message) toast = '';
-    }, 2500);
-  }
 
   async function saveName() {
     nameError = '';
@@ -50,7 +53,7 @@
       await worldApi.patchDragon(profile.id, { name: nameInput });
       unlockAudio();
       playSfx('chime');
-      showToast("C'est noté.");
+      toast.show("C'est noté.");
       await refreshCamp(profile.id);
     } catch (e) {
       nameError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
@@ -68,18 +71,18 @@
 
   async function pickTint(t: Tint) {
     if (!dragon || !isUnlocked(t) || t === dragon.tint) return;
-    const previous = campStore.data;
+    const previous = camp;
     tintError = '';
     savingTint = t;
     // Optimistic: the picker feels instant; a 422 (tint locked after all - stale camp data)
-    // reverts to the server's own state.
-    if (campStore.data) campStore.data = { ...campStore.data, dragon: { ...campStore.data.dragon, tint: t } };
+    // reverts to the server's own state. Only over this hero's own snapshot (final review I2).
+    if (previous) replaceCamp(profile.id, { ...previous, dragon: { ...previous.dragon, tint: t } });
     try {
       await worldApi.patchDragon(profile.id, { tint: t });
       unlockAudio();
       playSfx('chime');
     } catch (e) {
-      campStore.data = previous;
+      if (previous) replaceCamp(profile.id, previous);
       tintError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
       savingTint = null;
@@ -88,8 +91,8 @@
 </script>
 
 <div class="panel-care">
-  {#if !campStore.data}
-    {#if campStore.error}
+  {#if !camp}
+    {#if campStore.error && !campStore.loading}
       <p class="kit-note" data-tone="eris">Impossible de rejoindre ton dragon : {campStore.error}</p>
     {:else}
       <p class="muted">Les Muses cherchent ton dragon…</p>
@@ -114,7 +117,7 @@
           </button>
         </div>
         {#if nameError}<p class="kit-note" data-tone="eris" role="alert">{nameError}</p>{/if}
-        {#if toast}<p class="kit-note" role="status">{toast}</p>{/if}
+        {#if toast.message}<p class="kit-note" role="status">{toast.message}</p>{/if}
       {/if}
     </section>
 

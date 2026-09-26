@@ -15,6 +15,7 @@
   import { VOICES } from '../lib/world/voices';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
+  import { openedFrom } from '../lib/scene/openedFrom.svelte';
   import { href } from '../lib/routes';
   import { OVERLAY_TITLES, sceneHref, type PanelId } from '../lib/world/places';
   import type { HotspotDef } from '../lib/scene/types';
@@ -50,18 +51,15 @@
   // reactively at close time (same staleness risk `PortalWorkPanel` guards against for its own
   // `workId`, fix round 1 #2).
   let lastWorkId = $state('');
-  // Fix round 2 finding 4: PortalPanel needs to know it is specifically returning *from that work*
-  // (not just reopened fresh via the hotspot, which must not steal focus onto a card the player
-  // never asked for). Only the exact 'oeuvre' -> 'portail' transition sets it; any other way into
-  // 'portail' clears it.
-  let previousPanel: PanelId | null = null;
-  let returningFromWorkId = $state('');
   $effect(() => {
     if (params.workId) lastWorkId = params.workId;
-    const from = previousPanel;
-    previousPanel = panel;
-    if (panel === 'portail') returningFromWorkId = from === 'oeuvre' ? lastWorkId : '';
   });
+  // Fix round 2 finding 4: PortalPanel needs to know it is specifically returning *from that work*
+  // (not just reopened fresh via the hotspot, which must not steal focus onto a card the player
+  // never asked for). Only the exact 'oeuvre' -> 'portail' move sets it (openedFrom); any other way
+  // into 'portail' clears it.
+  const from = openedFrom(() => panel, ['portail']);
+  const returningFromWorkId = $derived(from.of('portail') === 'oeuvre' ? lastWorkId : '');
 </script>
 
 <PlaceScene bind:this={place} {profile} scene={LIBRARY_SCENE} bind:debug {greet}>

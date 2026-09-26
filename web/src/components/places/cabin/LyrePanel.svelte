@@ -7,6 +7,7 @@
   import { api, ApiError } from '../../../lib/api';
   import { listFrenchVoices, pickVoice, speak, waitForVoices } from '../../../lib/dictation/tts';
   import { profileStore } from '../../../lib/profileStore.svelte';
+  import { useToast } from '../../../lib/ui/toast.svelte';
   import { soundStore, setMuted } from '../../../lib/juice/soundStore.svelte';
   import type { Profile } from '../../../lib/types';
 
@@ -21,7 +22,7 @@
   let weeklyGoal = $state(String(untrack(() => profile.settings.weekly_goal ?? 3)));
   let newPin = $state('');
   let error = $state('');
-  let toast = $state('');
+  const toast = useToast();
   let saving = $state(false);
   let removingPin = $state(false);
 
@@ -36,13 +37,6 @@
   }
 
   loadVoices();
-
-  function showToast(message: string) {
-    toast = message;
-    setTimeout(() => {
-      if (toast === message) toast = '';
-    }, 2500);
-  }
 
   async function tryVoice() {
     const voice = pickVoice(voices, voiceName || null);
@@ -71,7 +65,7 @@
       const updated = await api.profiles.patch(profile.id, body);
       profileStore.current = updated;
       newPin = '';
-      showToast("C'est noté.");
+      toast.show("C'est noté.");
     } catch (e) {
       error = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
@@ -86,7 +80,7 @@
     try {
       const updated = await api.profiles.patch(profile.id, { pin: '' });
       profileStore.current = updated;
-      showToast("C'est noté.");
+      toast.show("C'est noté.");
     } catch (e) {
       error = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
@@ -153,8 +147,8 @@
     {#if error}
       <p class="kit-note" data-tone="eris" role="alert">{error}</p>
     {/if}
-    {#if toast}
-      <p class="kit-note" role="status">{toast}</p>
+    {#if toast.message}
+      <p class="kit-note" role="status">{toast.message}</p>
     {/if}
 
     <button type="submit" class="kit-bronze" disabled={saving}>Enregistrer</button>

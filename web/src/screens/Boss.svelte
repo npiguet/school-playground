@@ -7,8 +7,9 @@
   import Medallion from '../components/juice/Medallion.svelte';
   import { ART } from '../lib/world/art';
   import { worldApi } from '../lib/world/api';
-  import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
+  import { campFor, campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { romanTier } from '../lib/world/quests';
+  import { bossRewardId as rewardIdFor, bossRewardName } from '../lib/world/rewards';
   import { ApiError } from '../lib/api';
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
@@ -21,10 +22,12 @@
     void loadCatalog();
   });
 
-  const activeBossQuest = $derived(campStore.data?.quests.find((q) => q.kind === 'boss' && q.status === 'active') ?? null);
-  const tier = $derived(campStore.data?.boss.tier_available ?? activeBossQuest?.goal.tier ?? 1);
-  const dragonStage = $derived(campStore.data?.dragon.stage ?? 'egg');
-  const dragonTint = $derived(campStore.data?.dragon.tint ?? 'bronze');
+  // This hero's camp snapshot only (final review I2): the store is shared across heroes.
+  const camp = $derived(campFor(profile.id));
+  const activeBossQuest = $derived(camp?.quests.find((q) => q.kind === 'boss' && q.status === 'active') ?? null);
+  const tier = $derived(camp?.boss.tier_available ?? activeBossQuest?.goal.tier ?? 1);
+  const dragonStage = $derived(camp?.dragon.stage ?? 'egg');
+  const dragonTint = $derived(camp?.dragon.tint ?? 'bronze');
   // P1-5 follow-up (controller ruling): after a too_easy draw the active boss quest is flagged
   // 'grimoire' server-side - the retry has to run as a Grimoire corrompu session on the same
   // (already-longest) text instead of plain dictation, since "reviens avec un texte plus long"
@@ -37,12 +40,7 @@
     3: "« Le Grand Désaccord. Toutes mes ruses, un seul texte, et la pomme d'or en jeu. Après ça, je ne reviendrai pas. (Si.) »",
   };
 
-  function bossRewardName(): string {
-    const rewardId = campStore.catalog?.boss_rewards[String(tier)];
-    return (rewardId ? campStore.catalog?.rewards[rewardId]?.name : undefined) ?? 'une récompense';
-  }
-
-  const bossRewardId = $derived(campStore.catalog?.boss_rewards[String(tier)] ?? null);
+  const bossRewardId = $derived(rewardIdFor(tier, campStore.catalog));
 
   let starting = $state(false);
   let startError = $state('');
@@ -84,7 +82,7 @@
     <p class="tier" data-testid="boss-tier">Combat {romanTier(tier)}</p>
     <div class="reward" data-testid="boss-reward">
       {#if bossRewardId}<Medallion rewardId={bossRewardId} size={40} />{/if}
-      <span>Récompense si tu gagnes : {campStore.catalog?.quest_bonus.boss ?? 300} XP · {bossRewardName()}</span>
+      <span>Récompense si tu gagnes : {campStore.catalog?.quest_bonus.boss ?? 300} XP · {bossRewardName(tier, campStore.catalog)}</span>
     </div>
     <p class="rules muted">
       Un long texte · les Yeux d'Argus restent éteints · chaque piège trouvé reste acquis, même si Éris s'enfuit : tu

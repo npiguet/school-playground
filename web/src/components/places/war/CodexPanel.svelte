@@ -6,7 +6,7 @@
   // status stamp, from the world API's per-lieutenant state; when that API can't be reached the
   // codex still renders (every monster shown as still to discover rather than crashing).
   import { BESTIARY, type BestiaryEntry } from '../../../lib/world/bestiary';
-  import { campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
+  import { campFor } from '../../../lib/world/campStore.svelte';
   import { agree, pronounFor } from '../../../lib/world/eris';
   import type { LieutenantKey } from '../../../lib/world/types';
   import { href } from '../../../lib/routes';
@@ -20,12 +20,11 @@
   const ERIS_SIDE = BESTIARY.filter((e) => e.kind === 'monster' || e.kind === 'boss');
   const CAMP_SIDE = BESTIARY.filter((e) => e.kind !== 'monster' && e.kind !== 'boss');
 
-  $effect(() => {
-    void refreshCamp(profile.id);
-  });
+  // The war tent's PlaceScene loads /camp (final review M15); this hero's snapshot only (I2).
+  const camp = $derived(campFor(profile.id));
 
   function lieutenantState(key: string) {
-    return campStore.data?.lieutenants.find((l) => l.key === key) ?? null;
+    return camp?.lieutenants.find((l) => l.key === key) ?? null;
   }
 
   function isUnlocked(e: BestiaryEntry): boolean {

@@ -23,6 +23,7 @@
   import { shapeBox } from '../lib/scene/geometry';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
+  import { openedFrom } from '../lib/scene/openedFrom.svelte';
   import { unlockAudio } from '../lib/juice/sfx';
   import { OVERLAY_TITLES, sceneHref, type PanelId } from '../lib/world/places';
   import { LIEUTENANT_ORDER } from '../lib/world/types';
@@ -44,29 +45,26 @@
   const portraitVoice = $derived.by(() => {
     if (!isLieutenantKey(key)) return null;
     const l = camp?.lieutenants.find((x) => x.key === key);
+    // Final review I1: a lieutenant asleep at the hero's class, however its portrait was reached
+    // (a codex page, a deep link), is explained by the dragon, as on its locked sheet.
+    if (camp && l && !l.available) return dragonSays(camp.dragon, sleepingLine(key));
     return erisSays(l ? dossierLine(key, bandFor(l)) : 'Éris feuillette son dossier…');
   });
 
   const pageTitle = $derived(entry(key)?.name ?? OVERLAY_TITLES.page);
-  // Where the portrait and the page were each opened from, captured on the transition (like
-  // LibraryTent's work focus): each seal steps back there, and focus follows. Tracked apart and
-  // only when a panel opens from its parent, so the chain codex → page → portrait → close → close
-  // still knows the page came from the codex (review fix round 1: one shared `openedFrom` became
-  // 'portrait' when the portrait closed).
-  let previousPanel: PanelId | null = null;
-  let portraitFrom = $state<PanelId | null>(null);
-  let pageFrom = $state<PanelId | null>(null);
-  $effect(() => {
-    const from = previousPanel;
-    previousPanel = panel;
-    if (panel === from) return;
-    if (panel === 'portrait') portraitFrom = from;
-    if (panel === 'page' && from !== 'portrait') pageFrom = from;
-  });
+  // Where the portrait and the page were each opened from (openedFrom, like every place): each seal
+  // steps back there, and focus follows. The page keeps its origin when the portrait it opened
+  // closes onto it, so the chain codex → page → portrait → close → close still knows the page came
+  // from the codex (review fix round 1).
+  const from = openedFrom(() => panel, ['portrait', 'page'], { page: ['portrait'] });
   const portraitFocus = $derived(
-    portraitFrom === 'dossier' ? `[data-testid="dossier-row-${key}"]` : portraitFrom === 'page' ? '[data-testid="codex-page-lieutenant"]' : hotspotSelector('war', key),
+    from.of('portrait') === 'dossier'
+      ? `[data-testid="dossier-row-${key}"]`
+      : from.of('portrait') === 'page'
+        ? '[data-testid="codex-page-lieutenant"]'
+        : hotspotSelector('war', key),
   );
-  const pageFocus = $derived(pageFrom === 'codex' ? `[data-testid="bestiary-card-${key}"]` : hotspotSelector('war', 'bestiary'));
+  const pageFocus = $derived(from.of('page') === 'codex' ? `[data-testid="bestiary-card-${key}"]` : hotspotSelector('war', 'bestiary'));
 
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
 

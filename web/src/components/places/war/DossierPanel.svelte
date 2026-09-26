@@ -8,7 +8,8 @@
   import Reveal from '../../juice/Reveal.svelte';
   import LieutenantBadge from '../../LieutenantBadge.svelte';
   import OverlayVoice from '../../scene/OverlayVoice.svelte';
-  import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
+  import { campFor, campStore } from '../../../lib/world/campStore.svelte';
+  import { rateText } from '../../../lib/text/french';
   import { LIEUTENANT_ORDER, type LieutenantKey } from '../../../lib/world/types';
   import { agree, bandFor, dossierLine, dossierIntro, sleepingLine, smallTricksLine } from '../../../lib/world/eris';
   import { erisSays } from '../../../lib/world/voices';
@@ -28,9 +29,11 @@
   let statsLoading = $state(true);
   let statsError = $state('');
 
+  // The war tent's PlaceScene loads /camp and the catalog (final review M15); this hero's snapshot
+  // only (I2): the store is shared across heroes.
+  const camp = $derived(campFor(profile.id));
+
   $effect(() => {
-    void refreshCamp(profile.id);
-    void loadCatalog();
     statsLoading = true;
     statsError = '';
     api.profiles
@@ -45,12 +48,8 @@
   });
 
   function nameFor(key: LieutenantKey): string {
-    const l = campStore.data?.lieutenants.find((x) => x.key === key);
+    const l = camp?.lieutenants.find((x) => x.key === key);
     return l?.name ?? campStore.catalog?.lieutenants.find((x) => x.key === key)?.name ?? bestiaryEntry(key)?.name ?? key;
-  }
-
-  function pct(rate: number | null): string {
-    return rate === null ? '—' : `${Math.round(rate * 100)} %`;
   }
 
   const smallTricks = $derived.by(() => {
@@ -87,14 +86,14 @@
   {#if !statsLoading}
     <section>
       <h3 class="kit-section">Ses points faibles</h3>
-      {#if campStore.error}
+      {#if !camp && campStore.error && !campStore.loading}
         <p class="kit-note" data-tone="eris">Les ruses d'Éris n'ont pas pu être lues : {campStore.error}</p>
-      {:else if !campStore.data}
+      {:else if !camp}
         <p class="muted">Éris étale ses notes sur la table…</p>
       {:else}
         <ul class="papers">
           {#each LIEUTENANT_ORDER as key (key)}
-            {@const l = campStore.data.lieutenants.find((x) => x.key === key)}
+            {@const l = camp.lieutenants.find((x) => x.key === key)}
             <li>
               {#if !l || !l.available}
                 <div class="kit-sheet paper is-asleep" data-testid="dossier-row-{key}" data-lieutenant={key}>
@@ -120,9 +119,9 @@
                     {#if l.neutralised}<span class="kit-stamp">{agree('Neutralisé', key)}</span>{/if}
                   </span>
                   <span class="kit-note" data-tone="eris" id="dossier-{key}-line" data-testid="dossier-line-{key}">{dossierLine(key, band)}</span>
-                  <span class="numbers" id="dossier-{key}-numbers">Pièges tendus : {l.all_time.traps} · déjoués : {l.all_time.caught} · {pct(l.all_time.rate)}</span>
+                  <span class="numbers" id="dossier-{key}-numbers">Pièges tendus : {l.all_time.traps} · déjoués : {l.all_time.caught} · {rateText(l.all_time.rate)}</span>
                   <span class="kit-gauge" data-testid="dossier-window-{key}" data-state={l.window.days >= 3 ? 'ok' : 'short'} style:--fill="{Math.min(100, (l.window.days / 3) * 100)}%">
-                    <span class="kit-gauge-label window-label" id="dossier-{key}-window">{l.window.days}/3 jours · {l.window.traps}/10 pièges · {pct(l.window.rate)}</span>
+                    <span class="kit-gauge-label window-label" id="dossier-{key}-window">{l.window.days}/3 jours · {l.window.traps}/10 pièges · {rateText(l.window.rate)}</span>
                     <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
                   </span>
                 </button>
@@ -142,8 +141,9 @@
           {#each topTrapWords as w (w.word)}<li>{w.word}</li>{/each}
         </ul>
       {/if}
-      <!-- The journal is another place (the cabin): a plain link, not an overlay on this table. -->
-      <a class="kit-link" href={href('stats', { profileId })}>Lire ton journal</a>
+      <!-- The journal is an overlay of another place (the cabin): a tagged push, so its seal steps
+           back to this file (the cross-place overlay rule, panelNav.ts `go`, final review M13). -->
+      <a class="kit-link" data-testid="dossier-journal" href={href('stats', { profileId })} onclick={(e) => { e.preventDefault(); go(href('stats', { profileId }), 'panel'); }}>Lire ton journal</a>
     </section>
 
     {#if stats}
@@ -151,10 +151,10 @@
         <section class="kit-sheet taire">
           <h3 class="kit-section">Ce qu'elle préfère taire</h3>
           <ul>
-            <li>Ton meilleur taux de réussite : {bestCatchRate === null ? '—' : pct(bestCatchRate)}</li>
+            <li>Ton meilleur taux de réussite : {rateText(bestCatchRate)}</li>
             <li>Dés-accords déjoués en tout : {stats.totals.caught}</li>
-            {#if campStore.data}
-              <li>Ton rang actuel : {campStore.data.xp.title}</li>
+            {#if camp}
+              <li>Ton rang actuel : {camp.xp.title}</li>
             {/if}
           </ul>
         </section>

@@ -2,7 +2,7 @@
   // Rounded progress bar (XP toward the next rank, weekly goal, mastery windows, ...).
   // Olive fill always - orange is Éris's sabotage colour and never used for the
   // player's own progress (spec §2 "orange rather than red"). Spans only, so it can sit inside a
-  // button (the dossier's lieutenant sheets).
+  // button or a phrasing context (the nest's growth sheet, QuestCard, ProgressionReveal).
   let { value, max, label }: { value: number; max: number; label: string } = $props();
 
   let pct = $derived(max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0);

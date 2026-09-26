@@ -3,12 +3,14 @@
   // Never blocking: "Pause" leaves for the camp, "Encore un texte" just resets the clock and
   // lets the player carry on.
   import { ART } from '../lib/world/art';
-  import { campStore } from '../lib/world/campStore.svelte';
+  import type { DragonOut } from '../lib/world/types';
 
-  let { dragonName, onPause, onContinue }: { dragonName: string; onPause: () => void; onContinue: () => void } =
+  // `dragon`: this hero's (campFor), never the shared store's snapshot (final review I2).
+  let { dragon, onPause, onContinue }: { dragon: DragonOut | null; onPause: () => void; onContinue: () => void } =
     $props();
 
-  const stage = $derived(campStore.data?.dragon.stage ?? 'egg');
+  const stage = $derived(dragon?.stage ?? 'egg');
+  const dragonName = $derived(dragon?.name ?? 'Ton dragon');
 
   // M6: the dragon can't yawn before it has hatched - the egg stirs instead (spec §3.6).
   const message = $derived(

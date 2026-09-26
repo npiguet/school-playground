@@ -2,17 +2,21 @@
   // A lieutenant's portrait sheet (UI3 Ruling B4), handed over by the war tent's scroll overlay
   // (WarTent.svelte): the mastery gauges (Decision 3's 3-day / 10-trap / 80% window) and the actions
   // that launch a quest or a focused Grimoire corrompu (Decision 21). Éris's line for the current
-  // band is the overlay's voice plate (Ruling B10), not part of this panel. Degrades gracefully when
-  // the world API isn't reachable: the technique/state sections just stay empty rather than crash.
+  // band is the overlay's voice plate (Ruling B10), not part of this panel. A lieutenant asleep at
+  // the hero's class (final review I1) shows its grey portrait only: no gauges, no quest to launch
+  // (the dragon says why from the voice plate, WarTent.svelte; the server refuses it too). Degrades
+  // gracefully when the world API isn't reachable: the technique/state sections just stay empty
+  // rather than crash.
   import Medallion from '../../juice/Medallion.svelte';
   import { ART, RELIC_OF } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
-  import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
+  import { campFor, campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../../../lib/world/types';
   import { agree, stirringCaption } from '../../../lib/world/eris';
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
   import { lengthOf } from '../../../lib/library/shelf';
-  import { longDate } from '../../../lib/text/french';
+  import { longDate, rateText } from '../../../lib/text/french';
+  import { useToast } from '../../../lib/ui/toast.svelte';
   import { ApiError } from '../../../lib/api';
   import type { Profile } from '../../../lib/types';
   import { href } from '../../../lib/routes';
@@ -23,12 +27,17 @@
   const profileId = $derived(String(profile.id));
   const isKnownKey = $derived(LIEUTENANT_ORDER.includes(lieutenantKey as LieutenantKey));
 
-  $effect(() => {
-    void refreshCamp(profile.id);
-    void loadCatalog();
+  // The war tent's PlaceScene loads /camp and the catalog (final review M15); this hero's snapshot
+  // only (I2): the store is shared across heroes.
+  const camp = $derived(campFor(profile.id));
+  const lieutenantState = $derived(camp?.lieutenants.find((l) => l.key === lieutenantKey) ?? null);
+  const asleep = $derived(lieutenantState !== null && !lieutenantState.available);
+  // Final review M22: « Neutralisé » alone when the server has no date for it.
+  const neutralisedLine = $derived.by(() => {
+    const word = agree('Neutralisé', lieutenantKey as LieutenantKey);
+    const at = lieutenantState?.neutralised_at;
+    return at ? `${word} le ${longDate(at.slice(0, 10))}` : word;
   });
-
-  const lieutenantState = $derived(campStore.data?.lieutenants.find((l) => l.key === lieutenantKey) ?? null);
   const catalogEntry = $derived(campStore.catalog?.lieutenants.find((l) => l.key === lieutenantKey) ?? null);
   const name = $derived(
     lieutenantState?.name ?? catalogEntry?.name ?? bestiaryEntry(lieutenantKey)?.name ?? lieutenantKey,
@@ -45,37 +54,26 @@
   let createdQuest = $state<QuestOut | null>(null);
   let creating = $state(false);
   let questError = $state('');
-  let toast = $state('');
+  const toast = useToast();
 
   const activeQuestId = $derived(lieutenantState?.active_quest_id ?? createdQuest?.id ?? null);
   const activeQuest = $derived(
-    (activeQuestId && campStore.data?.quests.find((q) => q.id === activeQuestId)) || createdQuest,
+    (activeQuestId && camp?.quests.find((q) => q.id === activeQuestId)) || createdQuest,
   );
   const recommendedTexts = $derived(activeQuest?.texts ?? null);
-
-  function showToast(message: string) {
-    toast = message;
-    setTimeout(() => {
-      if (toast === message) toast = '';
-    }, 2500);
-  }
 
   async function launchQuest() {
     questError = '';
     creating = true;
     try {
       createdQuest = await worldApi.createQuest(profile.id, lieutenantKey);
-      showToast('Quête affichée au mur.');
+      toast.show('Quête affichée au mur.');
       await refreshCamp(profile.id);
     } catch (e) {
       questError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
       creating = false;
     }
-  }
-
-  function pct(rate: number | null): string {
-    return rate === null ? '—' : `${Math.round(rate * 100)} %`;
   }
 
   function playHref(t: { id: number }): string {
@@ -93,7 +91,7 @@
   {#if !isKnownKey}
     <p class="muted">Ce lieutenant n'existe pas… encore.</p>
   {:else}
-    <figure class="portrait-plate" style="background-image:url({ART.scenes.battle})">
+    <figure class="portrait-plate" class:asleep style="background-image:url({ART.scenes.battle})" data-testid="lieutenant-portrait">
       <img src={art} alt={name} class="portrait" />
     </figure>
 
@@ -101,11 +99,14 @@
       <p class="technique">{catalogEntry.technique}</p>
     {/if}
 
-    {#if lieutenantState}
+    {#if lieutenantState && asleep}
+      <!-- Asleep at this class: nothing to measure or launch yet (I1). -->
+    {:else if lieutenantState}
       {#if lieutenantState.neutralised}
         <div class="kit-sheet neutralised-banner" data-testid="lieutenant-neutralised">
           <Medallion rewardId={relicId} size={64} label={relicName} />
-          <p>{agree('Neutralisé', lieutenantKey as LieutenantKey)} le {longDate((lieutenantState.neutralised_at ?? '').slice(0, 10))}</p>
+          <!-- Final review M22: no « le … » without a date. -->
+          <p>{neutralisedLine}</p>
         </div>
       {/if}
 
@@ -123,7 +124,7 @@
           <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
         </div>
         <div class="kit-gauge" data-testid="lieutenant-rate" data-state={(rate ?? 0) >= 0.8 ? 'ok' : 'short'} style:--fill="{Math.min(100, Math.round((rate ?? 0) * 100))}%">
-          <span class="kit-gauge-label">Pièges déjoués : {pct(rate)}, il en faut 80 %</span>
+          <span class="kit-gauge-label">Pièges déjoués : {rateText(rate)}, il en faut {rateText(0.8)}</span>
           <span class="kit-gauge-track"><span class="kit-gauge-fill"></span><span class="target-mark" style="left:80%" aria-hidden="true"></span></span>
         </div>
       </div>
@@ -131,8 +132,8 @@
       {#if questError}
         <p class="kit-note" data-tone="eris" role="alert">{questError}</p>
       {/if}
-      {#if toast}
-        <p class="kit-note" role="status">{toast}</p>
+      {#if toast.message}
+        <p class="kit-note" role="status">{toast.message}</p>
       {/if}
 
       <div class="actions">
@@ -202,6 +203,11 @@
     background-size: cover;
     background-position: center bottom;
     box-shadow: inset 0 0 0 2px rgba(92, 64, 24, 0.35);
+  }
+  /* Asleep at this class: the same grey as its sheet in the tent (WarTent.svelte). */
+  .portrait-plate.asleep .portrait {
+    filter: grayscale(1);
+    opacity: 0.45;
   }
   .portrait {
     position: relative;

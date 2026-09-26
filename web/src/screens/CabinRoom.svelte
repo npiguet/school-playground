@@ -4,7 +4,6 @@
   // (#/p/:id/settings). Displayed decor hangs on the walls; it reloads when the cabin opens and
   // whenever the shelf puts something on display or away. The hero panel lives here too
   // (#/p/:id/cabane?panel=heros, Ruling B2): the HUD's hero chip is its shortcut from every place.
-  import { untrack } from 'svelte';
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
@@ -15,8 +14,10 @@
   import HeroPanel from '../components/places/cabin/HeroPanel.svelte';
   import { CABIN_SCENE, DECOR_SLOTS } from '../lib/world/scenes/cabin';
   import { worldApi } from '../lib/world/api';
+  import { ApiError } from '../lib/api';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
+  import { openedFrom } from '../lib/scene/openedFrom.svelte';
   import { OVERLAY_TITLES, sceneHref, type PanelId } from '../lib/world/places';
   import type { HotspotDef } from '../lib/scene/types';
   import type { RewardOut } from '../lib/world/types';
@@ -25,41 +26,40 @@
   let { profile, panel }: { profile: Profile; panel: PanelId | null } = $props();
 
   let debug = $state(false);
-  let owned = $state<RewardOut[]>([]);
+  // The hero's rewards, fetched once here for both the walls and the shelf (final review M15).
+  let owned = $state<RewardOut[] | null>(null);
+  let rewardsError = $state('');
   // One piece per wall slot (the walls hold four, server-enforced); a fifth left on display from
   // before the limit stays on the shelf rather than hanging over the first.
-  const displayed = $derived(owned.filter((r) => r.kind === 'decor' && r.equipped).slice(0, DECOR_SLOTS.length));
+  const displayed = $derived((owned ?? []).filter((r) => r.kind === 'decor' && r.equipped).slice(0, DECOR_SLOTS.length));
 
-  // Only the hero id is tracked: the walls reload for a new hero, and on demand (onChange).
+  // Only the hero id is tracked: the rewards reload for a new hero; a piece the shelf puts on
+  // display or away comes back as the server answered it (onUpdated), with no second fetch.
   let generation = 0;
-  function loadWalls(id: number) {
+  function loadRewards(id: number) {
     const mine = ++generation;
+    owned = null;
+    rewardsError = '';
     worldApi
       .rewards(id)
       .then((list) => {
         if (mine === generation) owned = list;
       })
-      .catch(() => {
-        if (mine === generation) owned = [];
+      .catch((e) => {
+        if (mine !== generation) return;
+        owned = [];
+        rewardsError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
       });
   }
-  $effect(() => loadWalls(profile.id));
+  $effect(() => loadRewards(profile.id));
+  const updated = (r: RewardOut) => (owned = (owned ?? []).map((x) => (x.id === r.id ? r : x)));
 
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
   const close = () => closePanel(sceneHref('cabin', profile.id));
 
   // The journal and the lyre opened from the hero panel give focus back to its medallion when
-  // their seal steps back there; opened from the room, to their own hotspot. Only a move INTO one
-  // of them records where it came from, so a leaving overlay keeps its target during its fade.
-  let openedFrom = $state<PanelId | null>(null);
-  let lastPanel = untrack(() => panel);
-  $effect(() => {
-    const p = panel;
-    if (p === lastPanel) return;
-    if (p === 'journal' || p === 'lyre') openedFrom = lastPanel;
-    lastPanel = p;
-  });
-  const fromHero = $derived(openedFrom === 'heros');
+  // their seal steps back there; opened from the room, to their own hotspot (openedFrom).
+  const from = openedFrom(() => panel, ['journal', 'lyre']);
 </script>
 
 <PlaceScene {profile} scene={CABIN_SCENE} bind:debug>
@@ -78,14 +78,14 @@
 
 {#if panel === 'tresors'}
   <Overlay variant="table" size="wide" title={OVERLAY_TITLES.tresors} testId="overlay-trophies" onClose={close} returnFocus={hotspotSelector('cabin', 'trophies')}>
-    <TrophiesPanel {profile} onChange={() => loadWalls(profile.id)} />
+    <TrophiesPanel {profile} {owned} loadError={rewardsError} onUpdated={updated} />
   </Overlay>
 {:else if panel === 'journal'}
-  <Overlay variant="codex" title={OVERLAY_TITLES.journal} testId="overlay-journal" onClose={close} returnFocus={fromHero ? '[data-testid="hero-journal"]' : hotspotSelector('cabin', 'journal')}>
+  <Overlay variant="codex" title={OVERLAY_TITLES.journal} testId="overlay-journal" onClose={close} returnFocus={from.of('journal') === 'heros' ? '[data-testid="hero-journal"]' : hotspotSelector('cabin', 'journal')}>
     <JournalPanel {profile} />
   </Overlay>
 {:else if panel === 'lyre'}
-  <Overlay variant="scroll" title={OVERLAY_TITLES.lyre} testId="overlay-lyre" onClose={close} returnFocus={fromHero ? '[data-testid="hero-settings"]' : hotspotSelector('cabin', 'lyre')}>
+  <Overlay variant="scroll" title={OVERLAY_TITLES.lyre} testId="overlay-lyre" onClose={close} returnFocus={from.of('lyre') === 'heros' ? '[data-testid="hero-settings"]' : hotspotSelector('cabin', 'lyre')}>
     <LyrePanel {profile} />
   </Overlay>
 {:else if panel === 'heros'}

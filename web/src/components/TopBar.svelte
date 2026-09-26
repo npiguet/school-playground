@@ -5,6 +5,7 @@
   import { href } from '../lib/routes';
   import { soundStore, setMuted } from '../lib/juice/soundStore.svelte';
   import { unlockAudio } from '../lib/juice/sfx';
+  import { go } from '../lib/scene/panelNav';
   import type { Profile } from '../lib/types';
 
   let { profile, title = '' }: { profile: Profile; title?: string } = $props();
@@ -13,6 +14,13 @@
 
   function onChangeHero() {
     clearProfile();
+  }
+
+  // The journal and the lyre are overlays of the cabin: opened as a tagged push, their seal steps
+  // back to this screen (the cross-place overlay rule, panelNav.ts `go`).
+  function toCabin(e: MouseEvent, path: string) {
+    e.preventDefault();
+    go(path, 'panel');
   }
 
   function toggleMute() {
@@ -31,11 +39,12 @@
     <a class="link" data-testid="topbar-camp" aria-label="Retour au camp" href={href('camp', { profileId })}
       ><span class="icon"><Icon name="arrow-left" size={20} /></span><span class="label">Retour au camp</span></a
     >
-    <a class="link" data-testid="topbar-journal" aria-label="Lire ton journal" href={href('stats', { profileId })}
+    <a class="link" data-testid="topbar-journal" aria-label="Lire ton journal" href={href('stats', { profileId })} onclick={(e) => toCabin(e, href('stats', { profileId }))}
       ><span class="icon"><Icon name="journal" size={22} /></span><span class="label">Lire ton journal</span></a
     >
-    <a class="link" aria-label="Réglages" href={href('settings', { profileId })}
-      ><span class="icon"><Icon name="lamp" size={22} /></span><span class="label">Réglages</span></a
+    <!-- Final review M9: the overlay, the hero panel's medallion and the cabin's plaque all say « La lyre ». -->
+    <a class="link" data-testid="topbar-lyre" aria-label="La lyre" href={href('settings', { profileId })} onclick={(e) => toCabin(e, href('settings', { profileId }))}
+      ><span class="icon"><Icon name="lamp" size={22} /></span><span class="label">La lyre</span></a
     >
     <button
       type="button"
