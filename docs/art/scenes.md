@@ -144,6 +144,9 @@ No interactive landmarks. They all share the same layout for the battle stage:
 | Wood board (table overlay) | `assets/art/textures/wood_board.png` | `web/public/art/textures/wood_board.webp` (50 KB) | 1344×768 → 1280×731 |
 | Rolled scroll (cut-out) | `assets/art/ui/scroll_rolled.png` + `_cut.png` | `web/public/art/ui/scroll_rolled.webp` (20 KB) | 1344×768 → 640×366 |
 | Portal-arch icon (cut-out) | `assets/art/icons/portal-arch.png` + `_cut.png` | `web/public/art/icons/portal-arch.webp` (10 KB) | 1024² → 256² |
+| Treasure chest, closed (cut-out, UI4 Task A) | `assets/art/battle/chest_closed.png` + `_cut.png` | `web/public/art/battle/chest_closed.webp` (45 KB) | 1024² |
+| Treasure chest, open (cut-out, UI4 Task A, same seed 706) | `assets/art/battle/chest_open.png` + `_cut.png` | `web/public/art/battle/chest_open.webp` (57 KB) | 1024² |
+| Éris, flustered/routed pose (cut-out, UI4 Task A) | `assets/art/characters/eris_flustered.png` + `_cut.png` | `web/public/art/characters/eris_flustered_cut.webp` (71 KB) | 768×1344 |
 
 The marble tile is "seamless-ish": soft veins with no hard border, which is fine behind a plaque. No
 bronze texture is shipped: it came out as a honeycomb pattern, so CSS gradients or noise do better.

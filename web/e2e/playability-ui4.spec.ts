@@ -318,6 +318,12 @@ async function bossSection(w: Walk) {
     await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-backdrop', 'lair');
     await expect(page.getByTestId('reveal-boss')).toBeVisible();
     await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', pose);
+    // UI4 Task A: her defeat swaps in the flustered pose (a sore loser caught off guard); a retreat
+    // (she escapes with her apple) keeps her standing card.
+    await expect(page.getByTestId('battle-opponent').locator('img')).toHaveAttribute(
+      'src',
+      pose === 'defeat' ? '/art/characters/eris_flustered_cut.webp' : '/art/characters/eris_cut.webp',
+    );
     await combatantsSettled(page);
     await sheetSettled(page);
     // UI4 playability #4: the boss's block scrolls itself into the sheet's view as it is revealed.

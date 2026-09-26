@@ -374,6 +374,8 @@ test('beating Éris: her defeat line and her treasure, once, in the parchment st
     }),
     true,
   );
+  // UI4 Task A: the painted chest crowns the sheet in place of the laurel wreath once a reward waits.
+  await expect(sheet.getByTestId('victory-chest')).toBeVisible();
   const boss = sheet.getByTestId('reveal-boss');
   await expect(boss).toBeVisible();
   await expect(boss.getByTestId('boss-voice')).toContainText('Impossible ! Garde ta pomme');

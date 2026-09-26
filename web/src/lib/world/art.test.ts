@@ -127,6 +127,16 @@ describe('art map', () => {
     expect(ART.scenes.battleTemple).toBe('/art/scenes/battle_temple.webp');
     expect(ART.scenes.erisLair).toBe('/art/scenes/eris_lair.webp');
   });
+
+  it('ships the painted chest and Éris\'s flustered pose within their own budgets (UI4 Task A)', () => {
+    expect(ART.battle).toEqual({
+      chestClosed: '/art/battle/chest_closed.webp',
+      chestOpen: '/art/battle/chest_open.webp',
+    });
+    expect(ART.erisFlustered).toBe('/art/characters/eris_flustered_cut.webp');
+    for (const p of flat(ART.battle)) expect(statSync('public' + p).size, p).toBeLessThanOrEqual(60 * 1024);
+    expect(statSync('public' + ART.erisFlustered).size, ART.erisFlustered).toBeLessThanOrEqual(120 * 1024);
+  });
 });
 
 describe('reward kinds before the catalog has loaded (final review M6)', () => {

@@ -85,6 +85,8 @@ export const RELIC_OF: Record<LieutenantKey, string> = {
 export const ART = {
   eris: '/art/characters/eris_cut.webp',
   erisSmug: '/art/characters/eris_smug_cut.webp',
+  // UI4 Task A: Éris routed (the boss's `defeat` reaction), a sore loser caught off guard.
+  erisFlustered: '/art/characters/eris_flustered_cut.webp',
   dragon: {
     egg: '/art/dragon/dragon_egg_cut.webp',
     hatchling: '/art/dragon/dragon_hatchling_cut.webp',
@@ -117,6 +119,12 @@ export const ART = {
     votiveTablets: '/art/props/votive_tablets_cut.webp',
     codexLectern: '/art/props/codex_lectern_cut.webp',
     trophyShelf: '/art/props/trophy_shelf_cut.webp',
+  },
+  // UI4 Task A: the victory sheet's painted chest (VictoryChest.svelte, the `crown` snippet's
+  // painted alternative to the laurel wreath when the spoils hold a reward).
+  battle: {
+    chestClosed: '/art/battle/chest_closed.webp',
+    chestOpen: '/art/battle/chest_open.webp',
   },
   icons: {
     rewards: REWARD_ICONS,

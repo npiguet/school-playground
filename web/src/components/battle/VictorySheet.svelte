@@ -2,8 +2,9 @@
   // The victory sheet (UI4 Ruling C6): a scroll unrolled over the dimmed battlefield, crowned by the
   // laurel wreath, with the outcome's title and the tally at once (never gated on an animation),
   // then what VictoryPhase slots in (the Muses' status, the spoils, the dialogue), and the three
-  // actions pinned at its foot as soon as the Muses have counted. The crown is a prop: a painted
-  // chest (Task A, on hold) would replace the CSS/SVG wreath there and nowhere else.
+  // actions pinned at its foot as soon as the Muses have counted. The crown is a prop: VictoryPhase
+  // swaps in the painted chest (Task A, VictoryChest.svelte) once the spoils hold a reward; the
+  // CSS/SVG wreath below is the fallback everywhere else.
   import type { Snippet } from 'svelte';
   import LaurelWreath from './LaurelWreath.svelte';
   import { VICTORY } from '../../lib/battle/lines';
@@ -107,11 +108,16 @@
     flex-direction: column;
     align-items: center;
   }
-  /* A short screen (1280x720, the break nudge on top): a smaller wreath leaves the spoils room. */
+  /* A short screen (1280x720, the break nudge on top): a smaller wreath (or chest) leaves the spoils
+     room. */
   @media (max-height: 760px) {
     .crown :global(.wreath) {
       width: 112px;
       height: 84px;
+    }
+    .crown :global(.chest) {
+      width: 100px;
+      height: 100px;
     }
   }
   .victory-title {

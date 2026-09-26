@@ -1,0 +1,35 @@
+{
+  "prompt": "full-body portrait card, character centered, soft even lighting, whole figure visible with room around it. subject: Éris, the Greek goddess of discord, a tall vain theatrical villainess, a sore loser caught off guard: one hand pressed to her forehead in theatrical dismay, crown knocked slightly askew, eyes squeezed half shut, mouth in an offended pout, clutching the golden apple to her chest, long wild black hair with violet streaks, her hair drawn as a few thick solid locks with clean inked edges, a flowing dark purple and black chiton dress with gold embroidered trim, a spiky golden crown, gold arm bracelets, the whole figure visible from the top of the crown down to the sandals with room above and below, (sweet friendly kind smile:-3) (crying:-2) (tears:-3) (shadow:-2) (cast shadow on the ground:-3) (wispy hair:-2) (glow:-2) (rim light:-2), isolated on a flat plain white background\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with confident dark inked lines, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Inked look: a clean confident dark ink outline runs around the whole silhouette, every edge is crisp and well defined, hair is drawn as a few thick defined locks with inked edges, wing membranes are opaque with inked edges, all shapes are solid and closed with nothing glowing, misting or smoking into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (wispy hair:-2) (soft glow:-2) (mist:-2) (shadow:-2).",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 768,
+  "height": 1344,
+  "seed": 120,
+  "tiling": false,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-inked"
+}

@@ -81,6 +81,11 @@
   // disappear); in full they keep their places.
   const bandTools = $derived(compact && (hud || exit));
   const dragonStage = $derived(dragon?.stage ?? 'egg');
+  // UI4 Task A: Éris's routed pose - a sore loser caught off guard - replaces her standing card once
+  // her `defeat` reaction plays, on top of the boss card the muster already showed.
+  const opponentArt = $derived(
+    battle?.opponent.id === 'eris' && battleStage.opponent.reaction === 'defeat' ? ART.erisFlustered : (battle?.opponent.art ?? ''),
+  );
 
   $effect(() => {
     if (battle) emitBattle({ kind: 'start', opponent: battle.opponent.id, mode });
@@ -133,7 +138,7 @@
             />
           {/if}
           <Combatant
-            src={battle.opponent.art}
+            src={opponentArt}
             alt={battle.opponent.alt}
             side="right"
             mirror={FACES[battle.opponent.id] !== 'left'}

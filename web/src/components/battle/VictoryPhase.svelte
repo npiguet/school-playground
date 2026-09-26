@@ -7,6 +7,8 @@
   import { untrack } from 'svelte';
   import VictorySheet from './VictorySheet.svelte';
   import VictorySpoils from './VictorySpoils.svelte';
+  import VictoryChest from './VictoryChest.svelte';
+  import LaurelWreath from './LaurelWreath.svelte';
   import DragonNudge from './DragonNudge.svelte';
   import DialogueBox from '../scene/DialogueBox.svelte';
   import { DRAGON_REVIEW_HINT, dragonTally, opponentName, VICTORY, victoryTitle } from '../../lib/battle/lines';
@@ -114,6 +116,9 @@
   const title = $derived(struck && verdict ? victoryTitle(verdict, opponent) : opponentName(opponent));
   const pending = $derived(submitting || (!playState.submitted && !submitError));
   const showSpoils = $derived(!!playState.progression && !revealDone);
+  // UI4 Task A: the painted chest replaces the laurel wreath above the tally once the spoils hold a
+  // reward; the wreath stays the crown everywhere else (no reward, or the progression hasn't loaded).
+  const showChest = $derived((playState.progression?.rewards.length ?? 0) > 0);
   // Once the dialogue has started it stays through a « Réessayer » in flight (fix round 1 #1).
   let dialogueStarted = $state(false);
   const showDialogue = $derived(!showSpoils && (dialogueStarted || !pending));
@@ -166,6 +171,9 @@
     {onReplay}
     {onCamp}
   >
+    {#snippet crown()}
+      {#if showChest}<VictoryChest {reduced} />{:else}<LaurelWreath {reduced} />{/if}
+    {/snippet}
     {#snippet nudge()}
       {#if playClock.needsBreak}
         <DragonNudge dragon={camp?.dragon ?? null} onPause={onCamp} onContinue={() => clockReset()} />
