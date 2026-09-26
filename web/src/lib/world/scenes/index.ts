@@ -6,7 +6,8 @@ import { LIBRARY_SCENE } from './library';
 import { TITLE_SCENE } from './title';
 // --- lane W (Task 2): import { WAR_SCENE } from './war';
 
-// --- lane H (Task 4): import { NEST_SCENE } from './nest';
+// --- lane H (Task 4):
+import { NEST_SCENE } from './nest';
 
 // --- lane H (Task 5): import { CABIN_SCENE } from './cabin';
 
@@ -20,7 +21,8 @@ export const SCENES: SceneDef[] = [
   DELPHI_SCENE,
   // --- lane W (Task 2): WAR_SCENE,
 
-  // --- lane H (Task 4): NEST_SCENE,
+  // --- lane H (Task 4):
+  NEST_SCENE,
 
   // --- lane H (Task 5): CABIN_SCENE,
 ];

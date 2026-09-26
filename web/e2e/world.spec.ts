@@ -200,10 +200,10 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     expect(oracleProgress?.completed).toBe(true);
     expect(res2.progression.rewards.some((r: { id: string }) => r.id === 'tint:ecume')).toBe(true);
 
-    await page.goto(`/#/p/${profileId}/dragon`);
+    await page.goto(`/#/p/${profileId}/dragon?panel=soin`);
     await expect(page.getByTestId('dragon-tint-ecume')).toBeEnabled();
     await page.getByTestId('dragon-tint-ecume').click();
-    await expect(page.locator('img.dragon')).toHaveAttribute('style', /hue-rotate\(190deg\)/);
+    await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('style', /hue-rotate\(190deg\)/);
 
     await page.goto(`/#/p/${profileId}/cabane`);
     await expect(page.getByTestId('cabin-reward-tint:ecume')).toHaveAttribute('data-owned', 'true');
@@ -233,6 +233,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
 
     await page.goto(`/#/p/${profileId}/dragon`);
     await expect(page.getByTestId('dragon-stage')).toContainText('Dragonnet');
+    await page.goto(`/#/p/${profileId}/dragon?panel=soin`);
     await page.getByTestId('dragon-name-input').fill('Braise');
     await page.getByTestId('dragon-name-save').click();
     await page.reload();

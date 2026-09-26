@@ -1,6 +1,6 @@
 // The dragon companion: tints (CSS filters on the same cut image, decision 11 - never a new
 // generation), stage labels/camp speech lines and name validation. Pure functions/data only, no
-// DOM/store access, so `Dragon.svelte`, `DragonScreen.svelte`, `Cabin.svelte` and
+// DOM/store access, so `Dragon.svelte`, the nest and its care panel, the trophy shelf and
 // `ProgressionReveal.svelte` all share the same wording and this file stays trivially testable.
 import type { DragonStage, Tint } from './types';
 

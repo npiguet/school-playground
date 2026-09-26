@@ -1,19 +1,16 @@
 <script lang="ts">
-  // The dragon's own page: naming it once it hatches, picking an unlocked tint, and watching it
-  // grow (spec §2, §3.6; plan Decision 11). Tints are known in advance (locked swatches show how
-  // to unlock them, ethics: nothing is a gamble) and changing one is instant/optimistic.
-  import TopBar from '../components/TopBar.svelte';
-  import Dragon from '../components/Dragon.svelte';
-  import Gauge from '../components/juice/Gauge.svelte';
-  import { ART, MARK_ICONS } from '../lib/world/art';
-  import { worldApi } from '../lib/world/api';
-  import { campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
-  import { stageLabel, TINT_FILTERS, TINT_NAMES, validName } from '../lib/world/dragon';
-  import type { Tint } from '../lib/world/types';
-  import { ApiError } from '../lib/api';
-  import { plural } from '../lib/text/french';
-  import { playSfx, unlockAudio } from '../lib/juice/sfx';
-  import type { Profile } from '../lib/types';
+  // The dragon's care (UI3 Ruling B5, was DragonScreen): naming it once it hatches and picking an
+  // unlocked tint (spec §2, §3.6; plan Decision 11). The nest itself shows the dragon, its stage and
+  // its growth; the dragon speaks from the overlay's voice plate. Tints are known in advance (locked
+  // swatches say how to win them, ethics: nothing is a gamble) and changing one is instant/optimistic.
+  import { ART, MARK_ICONS } from '../../../lib/world/art';
+  import { worldApi } from '../../../lib/world/api';
+  import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
+  import { TINT_FILTERS, TINT_NAMES, validName } from '../../../lib/world/dragon';
+  import type { Tint } from '../../../lib/world/types';
+  import { ApiError } from '../../../lib/api';
+  import { playSfx, unlockAudio } from '../../../lib/juice/sfx';
+  import type { Profile } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
 
@@ -23,18 +20,6 @@
   });
 
   const dragon = $derived(campStore.data?.dragon ?? null);
-
-  // `min(420, 55vw)` per the plan - computed here (`Dragon`'s `size` is a plain pixel number)
-  // rather than passed as a CSS expression.
-  let viewportWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 800);
-  $effect(() => {
-    function onResize() {
-      viewportWidth = window.innerWidth;
-    }
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  });
-  const dragonSize = $derived(Math.min(420, viewportWidth * 0.55));
 
   const TINTS_ALL: Tint[] = ['bronze', 'ecume', 'olivier', 'braise', 'jade', 'argent'];
 
@@ -65,7 +50,7 @@
       await worldApi.patchDragon(profile.id, { name: nameInput });
       unlockAudio();
       playSfx('chime');
-      showToast('C’est noté.');
+      showToast("C'est noté.");
       await refreshCamp(profile.id);
     } catch (e) {
       nameError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
@@ -100,63 +85,42 @@
       savingTint = null;
     }
   }
-
-  const gaugeMax = $derived(dragon ? (dragon.next_stage_at ?? Math.max(1, dragon.available)) : 1);
-  const gaugeLabel = $derived(
-    dragon?.next_stage_at !== null && dragon?.next_stage_at !== undefined
-      ? `Prochaine étape : ${plural(dragon.next_stage_at, 'technique neutralisée', 'techniques neutralisées')}`
-      : 'Étape finale atteinte',
-  );
 </script>
 
-<TopBar {profile} title={dragon?.name ?? 'Ton dragon'} />
-
-<div class="screen dragon-screen">
-  <div class="scene" style="background-image:url({ART.scenes.camp})">
-    {#if dragon}
-      <div class="portrait">
-        <Dragon stage={dragon.stage} tint={dragon.tint} size={dragonSize} mood="idle" name={dragon.name} />
-      </div>
-    {/if}
-  </div>
-
+<div class="panel-care">
   {#if !campStore.data}
     {#if campStore.error}
-      <p class="orange">Impossible de rejoindre ton dragon : {campStore.error}</p>
+      <p class="kit-note" data-tone="eris">Impossible de rejoindre ton dragon : {campStore.error}</p>
     {:else}
       <p class="muted">Les Muses cherchent ton dragon…</p>
     {/if}
   {:else if dragon}
-    <div class="stage-block">
-      <span class="chip" data-testid="dragon-stage">{stageLabel(dragon.stage)}</span>
-      <Gauge value={dragon.neutralised} max={gaugeMax} label={gaugeLabel} />
-    </div>
-
     <section class="name-section">
-      <h2>Nom</h2>
+      <h3 class="kit-section">Son nom</h3>
       {#if dragon.stage === 'egg'}
         <p class="muted">Tu lui donneras un nom quand il éclora.</p>
       {:else}
         <div class="name-form">
           <input
             data-testid="dragon-name-input"
+            aria-label="Le nom de ton dragon"
             maxlength="20"
             lang="fr"
             autocapitalize="words"
             bind:value={nameInput}
           />
-          <button type="button" class="btn btn-primary" data-testid="dragon-name-save" disabled={savingName} onclick={saveName}>
+          <button type="button" class="kit-bronze" data-testid="dragon-name-save" disabled={savingName} onclick={saveName}>
             Garder ce nom
           </button>
         </div>
-        {#if nameError}<p class="orange" role="alert">{nameError}</p>{/if}
-        {#if toast}<p class="toast" role="status">{toast}</p>{/if}
+        {#if nameError}<p class="kit-note" data-tone="eris" role="alert">{nameError}</p>{/if}
+        {#if toast}<p class="kit-note" role="status">{toast}</p>{/if}
       {/if}
     </section>
 
     <section class="tint-section">
-      <h2>Teinte</h2>
-      {#if tintError}<p class="orange" role="alert">{tintError}</p>{/if}
+      <h3 class="kit-section">Sa teinte</h3>
+      {#if tintError}<p class="kit-note" data-tone="eris" role="alert">{tintError}</p>{/if}
       <div class="tints">
         {#each TINTS_ALL as t (t)}
           {@const unlocked = isUnlocked(t)}
@@ -165,7 +129,6 @@
             class="tint-swatch"
             data-testid="dragon-tint-{t}"
             disabled={!unlocked || savingTint !== null}
-            title={unlocked ? undefined : 'À gagner : quête de l’Oracle'}
             class:selected={dragon.tint === t}
             class:locked={!unlocked}
             onclick={() => pickTint(t)}
@@ -175,6 +138,7 @@
               {#if !unlocked}<span class="lock" aria-hidden="true"><img src={MARK_ICONS.lock} alt="" /></span>{/if}
             </span>
             <span class="swatch-name">{TINT_NAMES[t]}</span>
+            {#if !unlocked}<span class="swatch-how">À gagner : quête de l'Oracle</span>{/if}
           </button>
         {/each}
       </div>
@@ -183,31 +147,10 @@
 </div>
 
 <style>
-  .dragon-screen {
+  .panel-care {
     display: flex;
     flex-direction: column;
-    gap: 24px;
-  }
-  .scene {
-    height: 34vh;
-    min-height: 220px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .portrait {
-    position: relative;
-    z-index: 1;
-  }
-  .stage-block {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-  }
-  .chip {
-    font-family: var(--font-display);
-    font-weight: 600;
+    gap: 20px;
   }
   .name-section,
   .tint-section {
@@ -219,19 +162,6 @@
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-  }
-  .name-form input {
-    flex: 1;
-    min-width: 180px;
-    min-height: 48px;
-    padding: 0 12px;
-    border-radius: var(--radius);
-    border: 1px solid var(--marble-dark);
-    font-size: 16px;
-  }
-  .toast {
-    color: var(--olive);
-    font-weight: 600;
   }
   .tints {
     display: flex;
@@ -294,5 +224,12 @@
   }
   .swatch-name {
     font-size: 13px;
+  }
+  .swatch-how {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--reward-ink);
+    max-width: 96px;
+    text-align: center;
   }
 </style>

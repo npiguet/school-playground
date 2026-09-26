@@ -18,7 +18,7 @@
   import BestiaireEntry from './screens/BestiaireEntry.svelte';
   import Lieutenant from './screens/Lieutenant.svelte';
   // --- UI3b Task 4 replaces this block with Nest ---
-  import DragonScreen from './screens/DragonScreen.svelte';
+  import Nest from './screens/Nest.svelte';
   // --- UI3b Tasks 5-6 replace this block with CabinRoom ---
   import Cabin from './screens/Cabin.svelte';
   import Stats from './screens/Stats.svelte';
@@ -113,8 +113,8 @@
       {:else if route.name === 'lieutenant'}
         <Lieutenant profile={gateProfile} lieutenantKey={route.params.key} />
       <!-- UI3b Task 4 replaces this block with the nest place branch. -->
-      {:else if route.name === 'dragon'}
-        <DragonScreen profile={gateProfile} />
+      {:else if view?.place === 'nest'}
+        <Nest profile={gateProfile} panel={view.panel} />
       <!-- UI3b Tasks 5-6 replace this block with the cabin place branch. -->
       {:else if route.name === 'cabin'}
         <Cabin profile={gateProfile} />
