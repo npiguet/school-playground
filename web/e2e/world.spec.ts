@@ -172,7 +172,9 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.getByTestId('word-editor').fill('dansent');
     await page.getByTestId('word-editor').press('Enter');
     await page.getByTestId('btn-done-proofreading').click();
+    // Wait for whichever comes, the confirm or the victory, never sample it once (final review M16).
     const confirm = page.getByRole('button', { name: 'Oui, valider' });
+    await expect(confirm.or(page.getByTestId('victory-title'))).toBeVisible();
     if (await confirm.isVisible()) await confirm.click();
 
     await expect(page.getByTestId('reveal-xp')).toBeVisible();
@@ -309,6 +311,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await expect(page.getByRole('heading', { name: 'Relecture', exact: true })).toBeVisible();
     await page.getByTestId('btn-done-proofreading').click();
     const perfectConfirm = page.getByRole('button', { name: 'Oui, valider' });
+    await expect(perfectConfirm.or(page.getByTestId('victory-title'))).toBeVisible();
     if (await perfectConfirm.isVisible()) await perfectConfirm.click();
     await expect(page.getByTestId('reveal-boss-too-easy')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId('reveal-boss-too-easy')).toContainText(

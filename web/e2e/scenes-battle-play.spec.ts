@@ -16,6 +16,7 @@ import {
   stubSpeech,
   tap,
   uniqueName,
+  visibleBand,
 } from './helpers';
 
 // UI4 lane P (spec §5): the muster, the dictation and the proofreading on the battle stage, their
@@ -68,6 +69,41 @@ test('a seeded dictation comes back behind the resume ribbon', async ({ page, re
   await resumeSeeded(page);
   await expectBattle(page, 'dictation');
   await expect(page.getByTestId('dictation-textarea')).toHaveValue('Les fées');
+});
+
+// Final review M1: the break clock counts the dictation and the proofreading only; a saved one
+// waiting behind the resume ribbon is on the muster, and the clock rests.
+test('the break clock rests behind the resume ribbon and runs once the dictation is back', async ({ page, request }, testInfo) => {
+  await page.clock.install();
+  const id = await createProfileApi(request, uniqueName(`Mus6-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Horloge'), body: BODY, level: '10H' });
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'dictation', draft: 'Les fées' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('battle-resume')).toBeVisible();
+  const activeMs = () =>
+    page.evaluate(() => {
+      const raw = sessionStorage.getItem('discorde.playClock');
+      return raw ? (JSON.parse(raw) as { activeMs: number }).activeMs : 0;
+    });
+  for (let i = 0; i < 3; i++) await page.clock.fastForward(20_000);
+  expect(await activeMs(), 'no play time behind the ribbon').toBe(0);
+  await resumeSeeded(page);
+  await expectBattle(page, 'dictation');
+  for (let i = 0; i < 3; i++) await page.clock.fastForward(20_000);
+  await expect.poll(activeMs, 'the dictation counts').toBeGreaterThan(0);
+});
+
+// Final review M3: « Revoir » lives in the victory; a link to it anywhere else drops the panel
+// (keeping the rest of the query), so it never pops open over a later reckoning.
+test('a « Revoir » link outside the victory drops its panel', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Mus7-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Revoir trop tôt'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}?encounter=hydre&panel=revoir`);
+  await expectBattle(page, 'muster');
+  await expect(page).not.toHaveURL(/panel=revoir/);
+  await expect(page).toHaveURL(/encounter=hydre/);
+  await expect(page.getByTestId('overlay-revoir')).toHaveCount(0);
 });
 
 // Task 2 fix round 1 #3: a free text's opponent comes from this visit's own /camp answer, never from
@@ -157,6 +193,11 @@ test('the dictation writes on the parchment, in Literata, with bronze controls',
   await expectOverlayTapTargets(page, 'battle-parchment');
   await expect(page.locator('[data-testid="scene-battle"] [data-testid="stage-hud"] *')).toHaveCount(0);
   expect(await redScan(page)).toEqual([]);
+  // Final review M14: while she writes, nothing moves behind the text: no particles, no breathing.
+  await expect(page.locator('[data-testid="scene-battle"] [data-testid="fx-canvas"]')).toHaveCount(0);
+  for (const c of ['battle-dragon', 'battle-opponent']) {
+    await expect.poll(() => page.getByTestId(c).evaluate((el) => el.getAnimations({ subtree: true }).length), c).toBe(0);
+  }
 });
 
 // Parity: « Réécouter » counts down at pace 2; « Pause » and « Reprendre » drive a flowing pace.
@@ -196,48 +237,57 @@ test('replay counts down at pace 2; pause and resume a flowing pace', async ({ p
 });
 
 // Spec §10: the compact layout with a simulated keyboard. The stage becomes a band above the
-// parchment and stays visible; the textarea and every control stay above the keyboard.
-test('the keyboard folds the dictation: band above, textarea and controls above the keyboard', async ({ page, request }, testInfo) => {
-  await installKeyboardSim(page);
-  const id = await createProfileApi(request, uniqueName(`Dic2-${testInfo.project.name}`));
-  const text = await createText(request, { title: uniqueName('Dictée clavier'), body: LONG, level: '10H' });
-  await page.goto(`/#/p/${id}/play/${text.id}?encounter=hydre`);
-  await expectBattle(page, 'muster');
-  await startDictation(page, testInfo);
-  const ta = page.getByTestId('dictation-textarea');
-  await tap(ta, testInfo);
-  const inner = await page.evaluate(() => window.innerHeight);
-  await setKeyboard(page, inner - 420);
-  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
-  await expect.poll(async () => (await battleRects(page)).scene?.height ?? 0).toBeLessThanOrEqual(104);
-  const r = await battleRects(page);
-  const bandBottom = r.scene!.y + r.scene!.height;
-  for (const part of ['dragon', 'opponent', 'hp'] as const) {
-    const b = r[part]!;
-    expect(b.height, `${part} still visible in the band`).toBeGreaterThan(20);
-    expect(b.y + b.height, `${part} inside the band`).toBeLessThanOrEqual(bandBottom + 1);
-  }
-  const box = (await ta.boundingBox())!;
-  expect(box.y).toBeGreaterThanOrEqual(bandBottom - 1);
-  expect(box.y + box.height).toBeLessThanOrEqual(421);
-  expect(box.height).toBeGreaterThanOrEqual(150);
-  const buttons = await page.getByTestId('battle-parchment').getByRole('button').all();
-  expect(buttons.length, 'Quitter, Réécouter, Suivant').toBeGreaterThanOrEqual(3);
-  for (const b of buttons) {
-    const bb = (await b.boundingBox())!;
-    expect(bb.height).toBeGreaterThanOrEqual(48);
-    expect(bb.width).toBeGreaterThanOrEqual(48);
-    expect(bb.y).toBeGreaterThanOrEqual(bandBottom - 1);
-    expect(bb.y + bb.height).toBeLessThanOrEqual(421);
-  }
-  await ta.fill(LONG + ' ' + LONG);
-  await expect(ta).toBeFocused();
-  // The caret line (at the end) stays in view: the textarea scrolled to its bottom.
-  expect(await ta.evaluate((el) => el.scrollTop + el.clientHeight >= el.scrollHeight - 2)).toBe(true);
-  await setKeyboard(page, 0);
-  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'full');
-  await expect.poll(async () => (await battleRects(page)).opponent?.height ?? 0).toBeGreaterThan(150);
-});
+// parchment and stays visible; the textarea and every control stay above the keyboard. Final review
+// I3: once more with the visual viewport panned down (iOS scrolling a low field into view), where
+// the stage must follow it (`top: var(--vv-top)`); every check is against the band really visible.
+for (const pan of [0, 120]) {
+  test(`the keyboard folds the dictation: band above, textarea and controls above the keyboard (pan ${pan})`, async ({ page, request }, testInfo) => {
+    await installKeyboardSim(page);
+    const id = await createProfileApi(request, uniqueName(`Dic2-${testInfo.project.name}`));
+    const text = await createText(request, { title: uniqueName('Dictée clavier'), body: LONG, level: '10H' });
+    await page.goto(`/#/p/${id}/play/${text.id}?encounter=hydre`);
+    await expectBattle(page, 'muster');
+    await startDictation(page, testInfo);
+    const ta = page.getByTestId('dictation-textarea');
+    await tap(ta, testInfo);
+    const inner = await page.evaluate(() => window.innerHeight);
+    const view = await setKeyboard(page, inner - 420, pan);
+    expect(view).toEqual({ top: pan, bottom: pan + 420 });
+    await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+    await expect.poll(async () => (await battleRects(page)).scene?.height ?? 0).toBeLessThanOrEqual(104);
+    // The stage follows the pan: its band starts at the top of what is visible.
+    await expect.poll(async () => Math.round((await battleRects(page)).scene?.y ?? -1)).toBe(pan);
+    const r = await battleRects(page);
+    const bandBottom = r.scene!.y + r.scene!.height;
+    for (const part of ['dragon', 'opponent', 'hp'] as const) {
+      const b = r[part]!;
+      expect(b.height, `${part} still visible in the band`).toBeGreaterThan(20);
+      expect(b.y, `${part} inside the band`).toBeGreaterThanOrEqual(view.top - 1);
+      expect(b.y + b.height, `${part} inside the band`).toBeLessThanOrEqual(bandBottom + 1);
+    }
+    const box = (await ta.boundingBox())!;
+    expect(box.y).toBeGreaterThanOrEqual(bandBottom - 1);
+    expect(box.y + box.height).toBeLessThanOrEqual(view.bottom);
+    expect(box.height).toBeGreaterThanOrEqual(150);
+    const buttons = await page.getByTestId('battle-parchment').getByRole('button').all();
+    expect(buttons.length, 'Quitter, Réécouter, Suivant').toBeGreaterThanOrEqual(3);
+    for (const b of buttons) {
+      const bb = (await b.boundingBox())!;
+      expect(bb.height).toBeGreaterThanOrEqual(48);
+      expect(bb.width).toBeGreaterThanOrEqual(48);
+      expect(bb.y).toBeGreaterThanOrEqual(bandBottom - 1);
+      expect(bb.y + bb.height).toBeLessThanOrEqual(view.bottom);
+    }
+    await ta.fill(LONG + ' ' + LONG);
+    await expect(ta).toBeFocused();
+    // The caret line (at the end) stays in view: the textarea scrolled to its bottom.
+    expect(await ta.evaluate((el) => el.scrollTop + el.clientHeight >= el.scrollHeight - 2)).toBe(true);
+    await setKeyboard(page, 0);
+    await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'full');
+    await expect.poll(async () => (await battleRects(page)).opponent?.height ?? 0).toBeGreaterThan(150);
+    await expect.poll(async () => Math.round((await battleRects(page)).scene?.y ?? -1)).toBe(0);
+  });
+}
 
 test('a short window folds the dictation too (spec §10: reduced viewport height)', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Dic3-${testInfo.project.name}`));
@@ -249,7 +299,7 @@ test('a short window folds the dictation too (spec §10: reduced viewport height
   await page.setViewportSize({ width: size.width, height: 440 });
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
   const box = (await page.getByTestId('dictation-textarea').boundingBox())!;
-  expect(box.y + box.height).toBeLessThanOrEqual(441);
+  expect(box.y + box.height).toBeLessThanOrEqual((await visibleBand(page)).bottom + 1);
   await page.setViewportSize(size);
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'full');
 });
@@ -263,6 +313,8 @@ test('Quitter asks first, then shows the resume ribbon with the draft kept', asy
   await page.getByTestId('dictation-textarea').fill('Les fées');
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
   await expect(page.getByText('Ton brouillon est gardé. Veux-tu vraiment quitter la dictée ?')).toBeVisible();
+  // Final review M9: the confirm takes the focus, on its first answer.
+  await expect(page.getByTestId('btn-quit-confirm')).toBeFocused();
   await tap(page.getByTestId('btn-quit-confirm'), testInfo);
   await expect(page.getByTestId('battle-resume')).toBeVisible();
   await resumeSeeded(page);
@@ -326,7 +378,7 @@ async function visibleLines(page: Page): Promise<number> {
     const column = (el.closest('.proof') as HTMLElement).getBoundingClientRect();
     const vv = window.visualViewport;
     const keyboardTop = vv ? vv.offsetTop + vv.height : window.innerHeight;
-    const top = Math.max(contentTop, column.top);
+    const top = Math.max(contentTop, column.top, vv?.offsetTop ?? 0);
     const bottom = Math.min(contentBottom, column.bottom, keyboardTop);
     return Math.max(0, bottom - top) / parseFloat(getComputedStyle(p).lineHeight);
   });
@@ -363,6 +415,17 @@ test('a long proofreading text reads comfortably: size, measure, height, an opaq
   });
   expect(rows.pitch, 'row pitch in font sizes').toBeLessThanOrEqual(2);
   expect(rows.tap, 'a word is still a ~44 px tap row').toBeGreaterThanOrEqual(41);
+  // Final review M7: its tap area is 44 px all the same (an invisible band a little taller than the
+  // row): a finger just above the first word still lands on it.
+  const hit = await zone.evaluate((el) => {
+    const first = el.querySelector<HTMLElement>('.tok')!;
+    const r = first.getBoundingClientRect();
+    const band = parseFloat(getComputedStyle(first, '::after').height);
+    const above = document.elementFromPoint(r.left + r.width / 2, r.top - 0.8);
+    return { band, above: above === first };
+  });
+  expect(hit.band, 'the tap band of a word (px)').toBeGreaterThanOrEqual(44);
+  expect(hit.above, 'a tap just above the first word lands on it').toBe(true);
   const alpha = Number(/rgba?\([^)]*?,\s*([\d.]+)\)$/.exec(m.bg)?.[1] ?? '1');
   expect(alpha).toBeGreaterThanOrEqual(0.94);
   await expect(page.locator('.battle-backdrop')).toHaveCSS('filter', /brightness\(0\.7\)/);
@@ -458,7 +521,7 @@ test('all three notes open under the keyboard still leave four lines of text', a
   await tap(page.getByTestId('btn-fil'), testInfo);
   await expect(page.getByTestId('fil-message')).toBeVisible();
   const inner = await page.evaluate(() => window.innerHeight);
-  await setKeyboard(page, inner - 420);
+  const view = await setKeyboard(page, inner - 420);
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
   const r = await battleRects(page);
   const bandBottom = r.scene!.y + r.scene!.height;
@@ -469,11 +532,11 @@ test('all three notes open under the keyboard still leave four lines of text', a
   for (const b of await page.getByTestId('battle-parchment').getByRole('button').all()) {
     if (!(await b.isVisible())) continue;
     const bb = (await b.boundingBox())!;
-    if (bb.y > 421) continue; // a token of the text below the fold scrolls, it is not a control
+    if (bb.y > view.bottom) continue; // a token of the text below the fold scrolls, it is not a control
     if ((await b.getAttribute('data-testid'))?.startsWith('tok-')) continue;
     expect(Math.min(bb.width, bb.height)).toBeGreaterThanOrEqual(48);
     expect(bb.y).toBeGreaterThanOrEqual(bandBottom - 1);
-    expect(bb.y + bb.height).toBeLessThanOrEqual(421);
+    expect(bb.y + bb.height).toBeLessThanOrEqual(view.bottom);
   }
   // Compact icons carry a hover title; the owl's count reads large and dark on its disc.
   await expect(page.getByTestId('btn-fil')).toHaveAttribute('title', "Fil d'Ariane");
@@ -487,48 +550,61 @@ test('all three notes open under the keyboard still leave four lines of text', a
   await expect(page.getByTestId('bar-pass')).not.toHaveText('Verbes');
   await tap(page.getByTestId('btn-prev-pass'), testInfo);
   await expect(page.getByTestId('bar-pass')).toHaveText('Verbes');
+  // Final review M11: once a thread is drawn (the Bouclier's last sentence: « Les enfants
+  // sortent… »), the Fil's follow-up hint stays in the one-line note, as in the full layout.
+  const words = page.getByTestId('proof-text');
+  await tap(words.locator('[data-testid^="tok-"]', { hasText: /^sortent$/ }), testInfo);
+  await tap(words.locator('[data-testid^="tok-"]', { hasText: /^enfants$/ }), testInfo);
+  await expect(page.getByTestId('fil-next')).toHaveCount(1);
+  await expect(page.getByTestId('fil-next')).toContainText('sortent');
 });
 
-// Spec §10: editing a word near the end of a long text with the keyboard open.
-test('the keyboard folds the proofreading: the word editor stays above it, the band stays visible', async ({ page, request }, testInfo) => {
-  await installKeyboardSim(page);
-  await seededProof(page, request, testInfo, 1);
-  // The owl's note stays in compact: a note and the bar and four lines must all fit.
-  await tap(page.getByTestId('btn-chouette'), testInfo);
-  await expect(page.getByTestId('chouette-note')).toBeVisible();
-  const tokens = page.locator('[data-testid^="tok-"]');
-  const last = tokens.nth((await tokens.count()) - 4);
-  await last.scrollIntoViewIfNeeded();
-  await tap(last, testInfo);
-  const editor = page.getByTestId('word-editor');
-  await expect(editor).toBeFocused();
-  const inner = await page.evaluate(() => window.innerHeight);
-  await setKeyboard(page, inner - 420);
-  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
-  const r = await battleRects(page);
-  const bandBottom = r.scene!.y + r.scene!.height;
-  expect(r.opponent!.height).toBeGreaterThan(20);
-  await expect
-    .poll(async () => {
-      const b = (await editor.boundingBox())!;
-      return b.y >= bandBottom - 1 && b.y + b.height <= 421;
-    })
-    .toBe(true);
-  // The Task 2 review: the compact proofreading must keep the text readable, not one line of it.
-  expect(await visibleLines(page), 'lines of text in view above the keyboard').toBeGreaterThanOrEqual(4);
-  // Every control moved into the one bar, at 48 px, above the keyboard (the parity map).
-  for (const id of ['btn-quit-proof', 'btn-next-pass', 'btn-bouclier', 'btn-chouette', 'btn-fil', 'btn-whole', 'btn-done-proofreading']) {
-    const b = (await page.getByTestId(id).boundingBox())!;
-    expect(Math.min(b.width, b.height), id).toBeGreaterThanOrEqual(48);
-    expect(b.y, `${id} below the band, not scrolled away`).toBeGreaterThanOrEqual(bandBottom - 1);
-    expect(b.y + b.height, id).toBeLessThanOrEqual(421);
-  }
-  await editor.fill('arbres');
-  await editor.press('Enter');
-  await expect(editor).toHaveCount(0);
-  await setKeyboard(page, 0);
-  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'full');
-});
+// Spec §10: editing a word near the end of a long text with the keyboard open; once more with the
+// visual viewport panned down, as iOS does for a word low on the page (final review I3).
+for (const pan of [0, 120]) {
+  test(`the keyboard folds the proofreading: the word editor stays above it, the band stays visible (pan ${pan})`, async ({ page, request }, testInfo) => {
+    await installKeyboardSim(page);
+    await seededProof(page, request, testInfo, 1);
+    // The owl's note stays in compact: a note and the bar and four lines must all fit.
+    await tap(page.getByTestId('btn-chouette'), testInfo);
+    await expect(page.getByTestId('chouette-note')).toBeVisible();
+    const tokens = page.locator('[data-testid^="tok-"]');
+    const last = tokens.nth((await tokens.count()) - 4);
+    await last.scrollIntoViewIfNeeded();
+    await tap(last, testInfo);
+    const editor = page.getByTestId('word-editor');
+    await expect(editor).toBeFocused();
+    const inner = await page.evaluate(() => window.innerHeight);
+    const view = await setKeyboard(page, inner - 420, pan);
+    await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+    // The stage follows the pan: its band starts at the top of what is visible.
+    await expect.poll(async () => Math.round((await battleRects(page)).scene?.y ?? -1)).toBe(pan);
+    const r = await battleRects(page);
+    const bandBottom = r.scene!.y + r.scene!.height;
+    expect(r.opponent!.height).toBeGreaterThan(20);
+    expect(r.opponent!.y).toBeGreaterThanOrEqual(view.top - 1);
+    await expect
+      .poll(async () => {
+        const b = (await editor.boundingBox())!;
+        return b.y >= bandBottom - 1 && b.y + b.height <= view.bottom;
+      })
+      .toBe(true);
+    // The Task 2 review: the compact proofreading must keep the text readable, not one line of it.
+    expect(await visibleLines(page), 'lines of text in view above the keyboard').toBeGreaterThanOrEqual(4);
+    // Every control moved into the one bar, at 48 px, above the keyboard (the parity map).
+    for (const id of ['btn-quit-proof', 'btn-next-pass', 'btn-bouclier', 'btn-chouette', 'btn-fil', 'btn-whole', 'btn-done-proofreading']) {
+      const b = (await page.getByTestId(id).boundingBox())!;
+      expect(Math.min(b.width, b.height), id).toBeGreaterThanOrEqual(48);
+      expect(b.y, `${id} below the band, not scrolled away`).toBeGreaterThanOrEqual(bandBottom - 1);
+      expect(b.y + b.height, id).toBeLessThanOrEqual(view.bottom);
+    }
+    await editor.fill('arbres');
+    await editor.press('Enter');
+    await expect(editor).toHaveCount(0);
+    await setKeyboard(page, 0);
+    await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'full');
+  });
+}
 
 test('« Modifier tout le texte » folds under the keyboard too', async ({ page, request }, testInfo) => {
   await installKeyboardSim(page);
@@ -537,10 +613,10 @@ test('« Modifier tout le texte » folds under the keyboard too', async ({ page,
   const ta = page.getByLabel('Tout le texte');
   await tap(ta, testInfo);
   const inner = await page.evaluate(() => window.innerHeight);
-  await setKeyboard(page, inner - 420);
+  const view = await setKeyboard(page, inner - 420);
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
   const b = (await ta.boundingBox())!;
-  expect(b.y + b.height).toBeLessThanOrEqual(421);
+  expect(b.y + b.height).toBeLessThanOrEqual(view.bottom);
   expect(b.height).toBeGreaterThanOrEqual(150);
   expect(await visibleLines(page)).toBeGreaterThanOrEqual(4);
 });
@@ -549,6 +625,7 @@ test('the proofreading has a way out: Quitter asks, then the resume ribbon keeps
   await seededProof(page, request, testInfo, 4);
   await tap(page.getByTestId('btn-quit-proof'), testInfo);
   await expect(page.getByText('Ta relecture est gardée. Veux-tu vraiment quitter ?')).toBeVisible();
+  await expect(page.getByTestId('btn-quit-proof-confirm')).toBeFocused();
   await tap(page.getByTestId('btn-quit-proof-confirm'), testInfo);
   await expect(page.getByTestId('battle-resume')).toBeVisible();
   await resumeSeeded(page);

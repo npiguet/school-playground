@@ -7,6 +7,7 @@ import {
   expectCamp,
   installKeyboardSim,
   redScan,
+  resumeSeeded,
   seedPlay,
   setKeyboard,
   stubSpeech,
@@ -83,7 +84,7 @@ test('a saved battle resumes under its own encounter, another encounter starts a
   const id = await createProfileApi(request, uniqueName(`Bat9-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Reprise'), body: BODY, level: '10H' });
   const stage = page.getByTestId('scene-battle');
-  await seedPlay(page, { profileId: id, textId: text.id, phase: 'dictation', draft: 'Les fées', opponent: 'echo' });
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'dictation', draft: 'Les fées', opponent: 'echo', encounter: 'echo' });
   await page.goto(`/#/p/${id}/play/${text.id}?encounter=hydre`);
   await expectBattle(page, 'muster');
   await expect(stage).toHaveAttribute('data-opponent', 'hydre');
@@ -95,6 +96,71 @@ test('a saved battle resumes under its own encounter, another encounter starts a
     await expect(page.getByTestId('battle-resume'), hash).toBeVisible();
     await expect(stage, hash).toHaveAttribute('data-opponent', 'echo');
   }
+});
+
+// Ruling C2c (final review I1): a battle is told apart by the encounter it was started under, never
+// by its opponent. Éris faces the boss fight, every grimoire and a free text alike.
+test('a free save against Éris never passes for the boss fight: the boss link starts a fresh one', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Bat11-${testInfo.project.name}`), '10H');
+  const stage = page.getByTestId('scene-battle');
+  const sheet = page.getByTestId('battle-parchment');
+  for (const phase of ['proofreading', 'results'] as const) {
+    const text = await createText(request, { title: uniqueName(`Libre ${phase}`), body: BODY, level: '10H' });
+    await seedPlay(page, { profileId: id, textId: text.id, phase, draft: BODY, pace: 1, opponent: 'eris', encounter: null });
+    await page.goto(`/#/p/${id}/play/${text.id}?encounter=eris&quest=1`);
+    await expectBattle(page, 'muster');
+    await expect(page.getByTestId('battle-resume'), phase).toHaveCount(0);
+    await expect(page.getByTestId('victory-title'), phase).toHaveCount(0);
+    await expect(stage, phase).toHaveAttribute('data-backdrop', 'lair');
+    await expect(sheet.getByTestId('play-boss-banner'), phase).toBeVisible();
+    // The boss's pace floor holds: the slow paces are locked, and none of them is the one chosen.
+    await expect(sheet.getByTestId('pace-option-1'), phase).toHaveClass(/\bdisabled\b/);
+    await expect(sheet.getByTestId('pace-option-1').locator('input'), phase).not.toBeChecked();
+  }
+});
+
+test('a boss battle reopened from the shelves is still the boss fight, and is sent as one', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Bat12-${testInfo.project.name}`), '10H');
+  const text = await createText(request, { title: uniqueName('Combat repris'), body: BODY, level: '10H' });
+  const draft = BODY.replace('dansent', 'danse');
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft, pace: 3, opponent: 'eris', encounter: 'eris', quest: 4242 });
+  // The submission is caught and answered here: only what the battle sends matters.
+  let sent: Record<string, unknown> | null = null;
+  await page.route('**/api/sessions', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    sent = route.request().postDataJSON();
+    await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'Muses absentes' }) });
+  });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-backdrop', 'lair');
+  await resumeSeeded(page);
+  await expectBattle(page, 'proofreading');
+  await tap(page.getByTestId('btn-done-proofreading'), testInfo);
+  const confirm = page.getByRole('button', { name: 'Oui, valider' });
+  await expect(confirm.or(page.getByTestId('victory-title'))).toBeVisible();
+  if (await confirm.isVisible()) await tap(confirm, testInfo);
+  await expectBattle(page, 'victory');
+  await expect.poll(() => sent).not.toBeNull();
+  expect(sent).toMatchObject({ encounter: 'eris', quest_id: 4242, pace_level: 3 });
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+});
+
+test('a grimoire against Éris never passes for the boss fight, and the shelves still reopen it', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Bat13-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Grimoire repris'), body: BODY, level: '10H' });
+  const stage = page.getByTestId('scene-battle');
+  await seedPlay(page, { profileId: id, textId: text.id, mode: 'grimoire', phase: 'proofreading', draft: BODY, opponent: 'eris' });
+  await page.goto(`/#/p/${id}/grimoire/${text.id}?encounter=eris&quest=1`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('battle-resume')).toHaveCount(0);
+  await expect(page.getByTestId('battle-parchment').getByTestId('btn-open-grimoire')).toBeVisible();
+  await expect(stage).toHaveAttribute('data-backdrop', 'lair');
+  // The grimoire saved from the shelves is untouched: the shelves reopen it, in the temple.
+  await page.goto(`/#/p/${id}/grimoire/${text.id}`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('battle-resume')).toBeVisible();
+  await expect(stage).toHaveAttribute('data-backdrop', 'temple');
 });
 
 // Task 2 fix round 1 #2: play/A -> play/B inside the app (a link, Back, Forward) is another battle.
@@ -139,6 +205,38 @@ test('the exit sign leads back to the camp', async ({ page, request }, testInfo)
   await expectCamp(page);
 });
 
+// Final review I4: a window under 560 px tall folds the stage (Ruling C4) with no keyboard at all.
+// « Le camp » and the HUD move into the band beside the hold; they never disappear.
+test('a short window keeps « Le camp » and the HUD at the muster, folded into the band', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Bat14-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Fenêtre basse'), body: BODY, level: '10H' });
+  await page.setViewportSize({ width: 1280, height: 520 });
+  for (const hash of [`/#/p/${id}/eris`, `/#/p/${id}/play/${text.id}?encounter=hydre`]) {
+    await page.goto(hash);
+    await expectBattle(page, 'muster');
+    await expect(page.getByTestId('scene-battle'), hash).toHaveAttribute('data-layout', 'compact');
+    const band = page.getByTestId('band-hud');
+    for (const control of ['scene-exit', 'hud-hero', 'hud-dragon', 'hud-mute']) {
+      await expect(band.getByTestId(control), `${hash} ${control}`).toBeVisible();
+    }
+    await expect.poll(async () => (await battleRects(page)).scene?.height ?? 0).toBeLessThanOrEqual(104);
+    const r = await battleRects(page);
+    const boxes = await Promise.all(['scene-exit', 'hud-hero', 'hud-dragon', 'hud-mute'].map(async (c) => [c, (await band.getByTestId(c).boundingBox())!] as const));
+    const overlaps = (a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) =>
+      a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+    for (const [c, b] of boxes) {
+      expect(Math.min(b.width, b.height), `${hash} ${c}: a 48 px target`).toBeGreaterThanOrEqual(48);
+      expect(b.y, `${hash} ${c} inside the band`).toBeGreaterThanOrEqual(r.scene!.y - 1);
+      expect(b.y + b.height, `${hash} ${c} inside the band`).toBeLessThanOrEqual(r.scene!.y + r.scene!.height + 1);
+      for (const part of ['dragon', 'opponent', 'hp'] as const) {
+        expect(overlaps(b, r[part]!), `${hash} ${c} clear of the ${part}`).toBe(false);
+      }
+    }
+  }
+  await tap(page.getByTestId('scene-exit'), testInfo);
+  await expectCamp(page);
+});
+
 test('portrait turns the battle into the rotate screen, with its backdrop', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Bat4-${testInfo.project.name}`));
   await page.setViewportSize({ width: 820, height: 1180 });
@@ -165,7 +263,7 @@ test('the simulated keyboard folds the stage into a band above the parchment, an
   await page.goto(`/#/p/${id}/eris`);
   await expectBattle(page, 'muster');
   const inner = await page.evaluate(() => window.innerHeight);
-  await setKeyboard(page, inner - 420);
+  const view = await setKeyboard(page, inner - 420);
   const stage = page.getByTestId('scene-battle');
   await expect(stage).toHaveAttribute('data-layout', 'compact');
   await expect.poll(async () => (await battleRects(page)).scene?.height ?? 0).toBeLessThanOrEqual(104);
@@ -176,7 +274,7 @@ test('the simulated keyboard folds the stage into a band above the parchment, an
     expect(b.y + b.height, `${part} inside the band`).toBeLessThanOrEqual(r.scene!.y + r.scene!.height + 1);
   }
   expect(r.parchment!.y).toBeGreaterThanOrEqual(r.scene!.y + r.scene!.height - 1);
-  expect(r.parchment!.y + r.parchment!.height).toBeLessThanOrEqual(421);
+  expect(r.parchment!.y + r.parchment!.height).toBeLessThanOrEqual(view.bottom);
   await setKeyboard(page, 0);
   await expect(stage).toHaveAttribute('data-layout', 'full');
 });

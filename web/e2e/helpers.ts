@@ -647,10 +647,14 @@ export async function expectInWorldOverlay(page: Page, testId: string, scene: st
 // stubSpeech's speechSynthesis, `window.visualViewport` (a [Replaceable], configurable attribute of
 // the window) is replaced before the app runs by a stand-in whose height is innerHeight minus the
 // keyboard. lib/battle/viewport.svelte.ts reads window.visualViewport at every event.
+// Final review I3: iOS also pans the visual viewport when it scrolls a focused field low on the page
+// into view above the keyboard: `offsetTop` grows (the visible band is offsetTop .. offsetTop +
+// height of the layout viewport) and the viewport fires `scroll`. `top` stands in for that pan.
 export async function installKeyboardSim(page: Page) {
   await page.addInitScript(() => {
     const target = new EventTarget();
     let keyboard = 0;
+    let top = 0;
     const fake = {
       get height() {
         return Math.max(0, window.innerHeight - keyboard);
@@ -658,7 +662,9 @@ export async function installKeyboardSim(page: Page) {
       get width() {
         return window.innerWidth;
       },
-      offsetTop: 0,
+      get offsetTop() {
+        return top;
+      },
       offsetLeft: 0,
       get pageTop() {
         return window.scrollY;
@@ -675,20 +681,38 @@ export async function installKeyboardSim(page: Page) {
     };
     Object.defineProperty(window, 'visualViewport', { configurable: true, get: () => fake });
     window.addEventListener('resize', () => target.dispatchEvent(new Event('resize')));
-    (window as unknown as { __setKeyboard: (px: number) => void }).__setKeyboard = (px: number) => {
+    (window as unknown as { __setKeyboard: (px: number, pan: number) => void }).__setKeyboard = (px: number, pan: number) => {
       keyboard = px;
+      // The pan never shows what lies below the layout viewport.
+      top = Math.max(0, Math.min(pan, keyboard));
       target.dispatchEvent(new Event('resize'));
+      target.dispatchEvent(new Event('scroll'));
     };
   });
 }
 
-/** Opens (px > 0) or closes (0) the simulated keyboard, and checks the page sees it. */
-export async function setKeyboard(page: Page, px: number) {
-  const { vv, inner } = await page.evaluate((k) => {
-    (window as unknown as { __setKeyboard: (px: number) => void }).__setKeyboard(k);
-    return { vv: window.visualViewport!.height, inner: window.innerHeight };
-  }, px);
+/** What the visual viewport shows, in the layout viewport's px (client coordinates): the band a
+ *  control must lie in to be seen above the keyboard. Read from the page, never assumed. */
+export async function visibleBand(page: Page): Promise<{ top: number; bottom: number }> {
+  return page.evaluate(() => {
+    const vv = window.visualViewport;
+    return vv ? { top: vv.offsetTop, bottom: vv.offsetTop + vv.height } : { top: 0, bottom: window.innerHeight };
+  });
+}
+
+/** Opens (px > 0) or closes (0) the simulated keyboard, panned down by `top` px as iOS does for a
+ *  field low on the page, checks the page sees it, and returns the visible band. */
+export async function setKeyboard(page: Page, px: number, top = 0) {
+  const { vv, inner, offsetTop } = await page.evaluate(
+    ([k, t]) => {
+      (window as unknown as { __setKeyboard: (px: number, pan: number) => void }).__setKeyboard(k, t);
+      return { vv: window.visualViewport!.height, inner: window.innerHeight, offsetTop: window.visualViewport!.offsetTop };
+    },
+    [px, top] as const,
+  );
   expect(vv, 'the simulated keyboard shrinks the visual viewport').toBe(Math.max(0, inner - px));
+  expect(offsetTop, 'the simulated pan moves the visual viewport').toBe(Math.max(0, Math.min(top, px)));
+  return visibleBand(page);
 }
 
 export interface PlaySeed {
@@ -700,6 +724,9 @@ export interface PlaySeed {
   current?: string;
   pace?: 1 | 2 | 3 | 4;
   opponent?: string;
+  /** Ruling C2c: the encounter and quest the battle was started under (absent: an older save). */
+  encounter?: string | null;
+  quest?: number | null;
 }
 
 // Seeds a play state (lib/playState.ts, version 1) before the app starts, once per tab: a reload
@@ -729,6 +756,8 @@ export async function seedPlay(page: Page, s: PlaySeed) {
         submitted: false,
         sessionId: null,
         ...(seed.opponent ? { opponent: seed.opponent } : {}),
+        ...(seed.encounter !== undefined ? { encounter: seed.encounter } : {}),
+        ...(seed.quest !== undefined ? { quest: seed.quest } : {}),
       }),
     );
   }, s);
@@ -752,7 +781,8 @@ export async function battleRects(page: Page) {
     scene: '[data-testid="battle-scene"]',
     dragon: '[data-testid="battle-dragon"]',
     opponent: '[data-testid="battle-opponent"]',
-    hp: '[data-testid="battle-hp"]',
+    // The hold: its plaque (the battle's h1) and its meter (`battle-hp`).
+    hp: '[data-testid="battle-hold"]',
     parchment: '[data-testid="battle-parchment"]',
   });
 }

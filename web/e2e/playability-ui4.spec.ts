@@ -17,7 +17,7 @@ import {
 } from './helpers';
 
 // UI4 battle walk (scenes spec §10): iPad-size screenshots of the battle stage in every phase and
-// layout, <project>-<id>-<name>.png, for the Opus playability review ("does anything still look like
+// layout, <project>-<id>-<name>.jpg, for the Opus playability review ("does anything still look like
 // a school form?") and the legibility check of a long proofreading text. It also shows the dragon at
 // each of its stages facing its opponent (FACES, Ruling C10) and Éris's two boss poses.
 //
@@ -25,7 +25,8 @@ import {
 // - unset: web/test-results/walk-ui4, a scratch dir (git-ignored), so a walk run to look at the
 //   battle never dirties the tracked review baseline:
 //     scripts/playwright.sh --config playwright.playability.config.ts playability-ui4
-// - docs/reviews/ui4: deliberately refreshes the review baseline (tracked PNGs), for a re-review:
+// - docs/reviews/ui4: deliberately refreshes the review baseline (tracked JPEGs; the Task 8 PNGs are
+//   the first baseline's, `git rm` them when the baseline is refreshed), for a re-review:
 //     WALK_OUT=docs/reviews/ui4 scripts/playwright.sh --config playwright.playability.config.ts playability-ui4
 // compose.e2e.yaml passes WALK_OUT into the Playwright container.
 const OUT = posix.resolve('/work', process.env.WALK_OUT || 'web/test-results/walk-ui4');
@@ -97,7 +98,9 @@ async function shot(w: Walk, name: string) {
   if (size) await w.page.mouse.move(size.width / 2, size.height - 1);
   await waitForImagesAndFonts(w.page);
   await w.page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-  await w.page.screenshot({ path: `${OUT}/${w.project}-${name}.png` });
+  // JPEG at 85 (final review M23): a walk's ~30 shots weighed ~24 MB as PNG in git; the review reads
+  // them by eye, where 85 loses nothing it looks for.
+  await w.page.screenshot({ path: `${OUT}/${w.project}-${name}.jpg`, type: 'jpeg', quality: 85 });
 }
 
 // Overlay.svelte's fly-in registers as Web Animations on the panel itself: drained, it has landed.
@@ -201,8 +204,10 @@ async function proofSection(w: Walk) {
     [3, 'c07-proof-stage3-notched-hold'],
   ] as const) {
     await page.goto(`/#/p/${w.profileId}/play/${w.texts.long}?help=${help}&encounter=chimere`);
-    await expectBattle(page);
-    if (await page.getByTestId('battle-resume').count()) await resumeSeeded(page);
+    await expectBattle(page, 'muster');
+    // The seeded proofreading waits behind the resume ribbon each time (it saves itself as it goes);
+    // never sampled once (final review M16).
+    await resumeSeeded(page);
     await expectBattle(page, 'proofreading');
     await shot(w, name);
     await noRed(w, name);
@@ -244,7 +249,9 @@ async function victorySection(w: Walk) {
   await page.getByTestId('word-editor').fill('dansent');
   await page.getByTestId('word-editor').press('Enter');
   await page.getByTestId('btn-done-proofreading').click();
+  // Wait for whichever comes, the confirm or the victory, never sample it once (final review M16).
   const confirm = page.getByRole('button', { name: 'Oui, valider' });
+  await expect(confirm.or(page.getByTestId('victory-title'))).toBeVisible();
   if (await confirm.isVisible()) await confirm.click();
   await expectBattle(page, 'victory');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', /retreat|defeat/);
@@ -265,7 +272,7 @@ async function victorySection(w: Walk) {
   await shot(w, 'c14-victory-dragon-speaks');
   await page.getByTestId('battle-revoir').click();
   await waitForOverlaySettled(page, 'overlay-revoir');
-  await page.getByTestId('overlay-revoir').getByRole('button', { name: 'chante', exact: true }).click();
+  await page.getByTestId('overlay-revoir').getByRole('button', { name: 'chante : piège, touche pour voir' }).click();
   await shot(w, 'c15-revoir-scroll');
   await noRed(w, 'revoir');
   await closeOverlay(page);
@@ -370,8 +377,10 @@ async function wideSection(w: Walk) {
   ] as const) {
     await page.setViewportSize(size);
     await page.goto(`/#/p/${w.profileId}/play/${w.texts.long}?help=4`);
-    await expectBattle(page);
-    if (await page.getByTestId('battle-resume').count()) await resumeSeeded(page);
+    await expectBattle(page, 'muster');
+    // The seeded proofreading waits behind the resume ribbon each time (it saves itself as it goes);
+    // never sampled once (final review M16).
+    await resumeSeeded(page);
     await expectBattle(page, 'proofreading');
     await shot(w, name);
   }
@@ -432,11 +441,13 @@ test('UI4 battle walk', async ({ page }, testInfo) => {
       w.texts[key] = (await createText(page.request, { title, body: text, level: '10H' })).id;
     }
     const pid = w.profileId;
-    await seedPlay(page, { profileId: pid, textId: w.texts.long, phase: 'proofreading', draft: LONG_DRAFT, opponent: 'chimere' });
+    // Ruling C2c: a battle resumes only under the encounter it was started with (the walk's links carry
+    // theirs: `encounter=chimere` for the long text, `encounter=eris` for the boss verdicts).
+    await seedPlay(page, { profileId: pid, textId: w.texts.long, phase: 'proofreading', draft: LONG_DRAFT, opponent: 'chimere', encounter: 'chimere' });
     await seedPlay(page, { profileId: pid, textId: w.texts.rout, phase: 'results', draft: SHORT_DRAFT, current: SHORT, opponent: 'protee' });
     await seedPlay(page, { profileId: pid, textId: w.texts.standoff, phase: 'results', draft: SHORT_DRAFT, current: SHORT_DRAFT, opponent: 'echo' });
-    await seedPlay(page, { profileId: pid, textId: w.texts.bossWon, phase: 'results', draft: SHORT_DRAFT, current: SHORT, opponent: 'eris' });
-    await seedPlay(page, { profileId: pid, textId: w.texts.bossLost, phase: 'results', draft: SHORT_DRAFT, current: SHORT_HALF, opponent: 'eris' });
+    await seedPlay(page, { profileId: pid, textId: w.texts.bossWon, phase: 'results', draft: SHORT_DRAFT, current: SHORT, opponent: 'eris', encounter: 'eris' });
+    await seedPlay(page, { profileId: pid, textId: w.texts.bossLost, phase: 'results', draft: SHORT_DRAFT, current: SHORT_HALF, opponent: 'eris', encounter: 'eris' });
     for (const day of [isoDay(2), isoDay(1)]) {
       await postSession(page.request, { profileId: pid, textId: w.texts.rout, day, result: makeResult({ draft: 5, caught: 5, category: 'agreement:verb' }) });
     }

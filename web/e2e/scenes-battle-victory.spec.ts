@@ -47,6 +47,8 @@ test('the reckoning strikes once per trap caught, then the lieutenant falls back
   await expect(page.getByTestId('battle-dragon')).toHaveAttribute('data-reaction', 'cheer');
   await expect(page.getByTestId('victory-title')).toHaveText("L'Hydre recule !");
   await expect(page.getByTestId('victory-laurel')).toBeVisible();
+  // Final review M8: the stage's plaque, the opponent's name, is the battle's one h1.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText("L'Hydre");
   // Ruling C6: the sheet unrolls over the dimmed battlefield; the combatants stay lit.
   await expect(page.locator('.battle-backdrop')).toHaveCSS('filter', /brightness\(0\.6\)/);
   await expect(page.getByTestId('battle-opponent').locator('img')).toHaveCSS('filter', 'none');
@@ -91,7 +93,14 @@ test('« Revoir » opens the review scroll: each trap explained on tap; Back and
     els.filter((t) => !t.previousElementSibling || getComputedStyle(t.parentElement!).whiteSpace !== 'nowrap').map((t) => t.textContent),
   );
   expect(loose).toEqual([]);
-  await tap(scroll.getByRole('button', { name: 'chante', exact: true }), testInfo);
+  // Final review M10: a trap says what it is in words, and whether its explanation is open; the
+  // other words are text, not buttons that do nothing.
+  const trap = scroll.getByRole('button', { name: 'chante : piège, touche pour voir' });
+  await expect(trap).toHaveAttribute('aria-expanded', 'false');
+  await expect(scroll.getByRole('button', { name: 'fées', exact: true })).toHaveCount(0);
+  await expect(scroll.locator('.tokens')).toContainText('Les fées dansent');
+  await tap(trap, testInfo);
+  await expect(trap).toHaveAttribute('aria-expanded', 'true');
   await expect(scroll.getByTestId('revoir-popover')).toContainText('Attendu : « chantent »');
   await page.reload();
   await expect(page.getByTestId('overlay-revoir')).toBeVisible();
@@ -99,6 +108,8 @@ test('« Revoir » opens the review scroll: each trap explained on tap; Back and
   await expect(page.getByTestId('overlay-revoir')).toHaveCount(0);
   await expect(page).not.toHaveURL(/panel=revoir/);
   await tap(page.getByTestId('battle-revoir'), testInfo);
+  // The scroll opens on the route change, after the tap: wait for it (closeOverlay samples once).
+  await expect(page.getByTestId('overlay-revoir')).toBeVisible();
   await closeOverlay(page);
   await expect(page.getByTestId('battle-revoir')).toBeFocused();
 });
@@ -132,6 +143,59 @@ test('« Revoir » is a real modal: focus inside, Tab trapped, Escape closes, no
   await expect(page.locator('.overlay-panel')).toHaveCount(0);
   await expect(page.locator('.overlay-backdrop')).toHaveCount(0);
   await expect(page.getByTestId('scene-camp')).not.toHaveAttribute('inert', '');
+});
+
+// Final review I2: « Rejouer ce texte » is the same battle again: the same opponent, fresh combatants
+// (no held end pose, no hit burst left over) and a full hold.
+test('« Rejouer ce texte » replays the same battle: the same opponent, fresh combatants, a full hold', async ({ page, request }, testInfo) => {
+  await victory(page, request, `Vic9-${testInfo.project.name}`, REF, 'sirenes');
+  const stage = page.getByTestId('scene-battle');
+  const opponent = page.getByTestId('battle-opponent');
+  await expect(opponent).toHaveAttribute('data-reaction', 'defeat');
+  await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '0');
+  await expect(opponent).toHaveAttribute('data-hits', '2');
+  await tap(page.getByTestId('victory-actions').getByRole('button', { name: 'Rejouer ce texte' }), testInfo);
+  await expectBattle(page, 'muster');
+  await expect(stage).toHaveAttribute('data-opponent', 'sirenes');
+  await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '100');
+  await expect(opponent).toHaveAttribute('data-reaction', 'taunt');
+  await expect(opponent).toHaveAttribute('data-hits', '0');
+  await expect(page.locator('.hit-burst')).toHaveCount(0);
+  await expect(page.getByTestId('battle-resume')).toHaveCount(0);
+  await expect(page.getByTestId('battle-parchment').getByTestId('pace-option-1')).toBeVisible();
+});
+
+test('« Recommencer » on the resume ribbon starts the same battle afresh, the draft gone', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Vic10-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Recommencer'), body: REF, level: '10H' });
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft: DRAFT, opponent: 'protee' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  const opponent = page.getByTestId('battle-opponent');
+  await tap(page.getByTestId('battle-resume-restart'), testInfo);
+  await expect(page.getByTestId('battle-resume')).toHaveCount(0);
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-opponent', 'protee');
+  await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '100');
+  await expect(opponent).toHaveAttribute('data-reaction', 'taunt');
+  await expect(opponent).toHaveAttribute('data-hits', '0');
+  const sheet = page.getByTestId('battle-parchment');
+  await tap(sheet.getByTestId('pace-option-1'), testInfo);
+  await tap(sheet.getByRole('button', { name: 'Commencer la dictée' }), testInfo);
+  await expectBattle(page, 'dictation');
+  await expect(page.getByTestId('dictation-textarea')).toHaveValue('');
+});
+
+// Final review M2: both ways home from the victory leave the battle behind; opening the text again
+// never lands on the old sheet.
+test('« Le camp » from the victory leaves the battle behind, as « Retour au camp » does', async ({ page, request }, testInfo) => {
+  const { id, text } = await victory(page, request, `Vic11-${testInfo.project.name}`, HALF);
+  await expect(page.getByTestId('btn-back-camp')).toBeVisible();
+  await tap(page.getByTestId('scene-exit'), testInfo);
+  await expectCamp(page);
+  await page.evaluate(([pid, tid]) => (location.hash = `#/p/${pid}/play/${tid}`), [id, text.id] as const);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('victory-title')).toHaveCount(0);
+  await expect(page.getByTestId('battle-parchment').getByTestId('pace-option-1')).toBeVisible();
 });
 
 test('every trap caught routs the lieutenant', async ({ page, request }, testInfo) => {

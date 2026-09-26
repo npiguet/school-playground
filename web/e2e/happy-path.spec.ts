@@ -45,7 +45,10 @@ test('create profile → add text → dictation → proofreading → results →
   await page.getByTestId('word-editor').press('Enter');
   await expect(page.locator('[data-testid^="tok-"]', { hasText: /^dansent$/ })).toBeVisible();
   await page.getByTestId('btn-done-proofreading').click();
+  // « Valider quand même ? » only shows while passes remain: wait for whichever comes, never sample
+  // it once (final review M16, as grimoire.spec.ts does).
   const confirm = page.getByRole('button', { name: 'Oui, valider' });
+  await expect(confirm.or(page.getByTestId('victory-title'))).toBeVisible();
   if (await confirm.isVisible()) await confirm.click();
 
   // Results
