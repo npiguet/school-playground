@@ -57,20 +57,6 @@ export async function stubSpeech(page: Page) {
   });
 }
 
-// Dismisses the first-visit onboarding modal (spec's decision 22) if it's showing - tolerant so
-// it's safe to call after any camp arrival, whether or not this is the profile's first visit.
-// The Muses' card mounts with the camp, in the same render (Camp.svelte): it waits for a place to be
-// drawn first (the camp, or where a link sends an onboarded hero), so the look at the card is never
-// taken before the page has drawn it (UI4 wave B).
-export async function skipOnboarding(page: Page) {
-  await expect(page.locator('[data-testid^="scene-"]:not([data-testid="scene-exit"])').first()).toBeVisible();
-  const btn = page.getByTestId('onboarding-skip');
-  if (await btn.isVisible()) {
-    await btn.click();
-    await expect(page.getByTestId('onboarding')).toHaveCount(0);
-  }
-}
-
 // Taps (iPad) or clicks (desktop) a locator - a finger on the iPad project, a mouse on the desktop
 // one (final review M9): there is no touch device to tap with on `desktop`, and WebKit's mouse
 // click doesn't fire the touch-only events some flows depend on.
@@ -169,11 +155,10 @@ export async function createProfileApi(request: APIRequestContext, name: string,
 }
 
 // UI profile creation (mirrors profiles.spec.ts): starts from the title's naming ritual, lands on
-// the camp (SP3: the new home), skips onboarding and heads straight into the library so callers
-// can chain straight into it.
+// the camp (SP3: the new home) and heads straight into the library so callers can chain straight
+// into it. The camp tour stays away (tours are off in e2e unless a spec asks, crashGuard.ts).
 export async function createProfile(page: Page, name: string, level: string) {
   await newHero(page, name, level);
-  await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
   await openShelves(page);
 }
@@ -847,10 +832,18 @@ export async function spokenVolumes(page: Page): Promise<number[]> {
   return page.evaluate(() => (window as unknown as { __spokenVolumes?: number[] }).__spokenVolumes ?? []);
 }
 
-/** Taps the dialogue box to its next line: once to finish the typing, once to go on. */
+/** Taps the dialogue box to its next line (or closes it after its last): once to finish the typing,
+ *  once to go on. Exactly one line on: the first tap may land just as the typing ends, and then it
+ *  has already moved on (the box's `data-line` says which line is on show). */
 export async function nextLine(page: Page) {
   const adv = page.getByTestId('dialogue-advance');
-  if ((await adv.getAttribute('aria-label')) !== 'Suite') await adv.click();
+  const lineOnShow = () =>
+    page.evaluate(() => document.querySelector('[data-testid="dialogue-box"]')?.getAttribute('data-line') ?? null);
+  const at = await lineOnShow();
+  if ((await adv.getAttribute('aria-label')) !== 'Suite') {
+    await adv.click();
+    if ((await lineOnShow()) !== at) return;
+  }
   await expect(adv).toHaveAttribute('aria-label', 'Suite');
   await adv.click();
 }

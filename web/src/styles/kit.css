@@ -59,13 +59,13 @@
   --icon-halo: var(--night);
 
   /* Stacking (plan Ruling P6): RotateScreen must paint above every overlay and modal, including
-     Onboarding (z-index: 50, see Onboarding.svelte) and Task 6's Overlay component. RotateScreen
+     a first-visit tour (TourLayer.svelte, z-index: 40) and the Overlay component. RotateScreen
      is portalled to <body> (outside `.scene-stage`'s own stacking context, itself unavoidable
      since `position: fixed` always creates one) and uses this token; any future overlay/modal
      z-index must stay below it. */
   --z-rotate-screen: 1000;
-  /* In-world overlays (Overlay.svelte): the dimmed backdrop, then the panel above it. Below the
-     onboarding card (50) and far below the rotate screen. */
+  /* In-world overlays (Overlay.svelte): the dimmed backdrop, then the panel above it. Far below
+     the rotate screen. */
   --z-overlay-backdrop: 39;
   --z-overlay: 40;
 }

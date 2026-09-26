@@ -1,8 +1,9 @@
 // Every French line of the battle stage (UI4), in one module: the register, plural, guilt, emoji and
 // Éris guards read it, and the two B3 lanes consume it without editing the same copy (Ruling C13).
-// Static lines (UI3 Ruling A9's precedent); the dialogue content files are UI5 (spec §8). Each
-// section is fenced by the task that renders it; a lane edits only its own fence.
-import { dossierLine, genderFor, lieutenantName, type Band } from '../world/eris';
+// UI copy (UI5 Ruling E11): the characters' event lines (Éris at the muster and after the reckoning,
+// the dragon's explanation intros) live in content/dialogue since UI5 (spec §8). Each section is
+// fenced by the task that renders it; a lane edits only its own fence.
+import { genderFor, lieutenantName } from '../world/eris';
 import { plural } from '../text/french';
 import type { PlayMode } from '../types';
 import type { OpponentId } from './battle';
@@ -51,17 +52,10 @@ export const MUSTER = {
   openGrimoire: 'Ouvrir le grimoire',
   corrupting: 'Éris corrompt le grimoire…',
   backToShelves: 'Retour aux parchemins',
+  // UI5 Ruling E7: a muted voice keeps the dictation's pace but reads nothing aloud.
+  voiceMuted: 'La voix de la dictée est en sourdine.',
+  voiceBack: 'Rendre la voix',
 } as const;
-export const ERIS_MUSTER = {
-  free: "Un parchemin de plus pour mes dés-accords. Les héros du camp n'y verront que du feu.",
-  grimoire: "J'ai recopié ce parchemin à ma façon, en y semant mes dés-accords. Aucun héros du camp ne les retrouvera tous.",
-} as const;
-/** Éris's line at the muster (Ruling C7): her dossier line for the lieutenant on stage (its band from
- *  the camp), else her own. The boss uses CHALLENGE_LINES. */
-export function musterTaunt(o: { opponent: OpponentId; band: Band | null; mode: PlayMode }): string {
-  if (o.opponent !== 'eris') return dossierLine(o.opponent, o.band ?? 'none');
-  return o.mode === 'grimoire' ? ERIS_MUSTER.grimoire : ERIS_MUSTER.free;
-}
 
 // ===== Dictation (Task 4) =====
 export const DICTATION = {

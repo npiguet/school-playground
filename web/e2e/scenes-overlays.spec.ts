@@ -4,6 +4,7 @@ import {
   createProfileApi,
   expectFocusRingInsideBody,
   expectInWorldOverlay,
+  expectLineOf,
   expectOverlayClearsScene,
   expectScene,
   tap,
@@ -58,7 +59,7 @@ test('the desk is a scroll: two rods, torn sides, below the HUD; the owl waits b
   await desk.getByTestId('overlay-close').click();
   await expect(desk).toHaveCount(0);
   await expect.poll(() => dialogue.evaluate((e) => getComputedStyle(e).opacity)).toBe('1');
-  await expect(page.getByTestId('scene-library').getByTestId('dialogue-text')).toContainText('Hou !');
+  await expectLineOf(dialogue, 'library.enter');
 });
 
 // Review fix round 1 #2: on the narrowest landscape iPads the scroll's knobs stay on screen, and a

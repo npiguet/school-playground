@@ -14,7 +14,10 @@
   import { battleFor, isOpponentId, opponentFor, type BattlePhase, type OpponentId } from '../lib/battle/battle';
   import { emitBattle } from '../lib/battle/events';
   import { hpDuringPlay } from '../lib/battle/hp';
-  import { musterTaunt, STAGE } from '../lib/battle/lines';
+  import { STAGE } from '../lib/battle/lines';
+  import { musterLine } from '../lib/dialogue/battle';
+  import { explainContext } from '../lib/explain';
+  import type { DialogueLine } from '../lib/scene/types';
   import { resetBattleStage, setHp } from '../lib/battle/stage.svelte';
   import { debounce } from '../lib/debounce';
   import { buildPlan, defaultPace, type DictationPlan } from '../lib/dictation/script';
@@ -39,7 +42,6 @@
   import { bandFor } from '../lib/world/eris';
   import { campFor, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
   import { clockStart, clockStop, clockTick } from '../lib/world/playClock.svelte';
-  import { erisSays } from '../lib/world/voices';
   import type { PlayMode, Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
 
   let {
@@ -102,6 +104,8 @@
   // on failure (422 "not enough grip on this text" - spec §5, plan decision #8).
   let corrupting = $state(false);
   let corruptError = $state<string | null>(null);
+  // « Rejouer ce texte » was tapped: the muster says Éris's retry line.
+  let retried = $state(false);
 
   async function load() {
     loading = true;
@@ -167,6 +171,9 @@
     if (opponent) playState.opponent = opponent;
     resetBattleStage();
     emitBattle({ kind: 'retry' });
+    // Her retry line at the next muster (Ruling E14). A different battle is a new Play (App keys it
+    // on the battle), so this starts false for each one.
+    retried = true;
     showResumeBanner = false;
     result = null;
     helpMessage = null;
@@ -411,12 +418,27 @@
     }
   });
 
-  // Ruling C7: Éris's line at the muster.
-  const taunt = $derived.by(() => {
-    if (!battle) return null;
-    const lt = camp?.lieutenants.find((l) => l.key === battle.opponent.id);
-    return erisSays(musterTaunt({ opponent: battle.opponent.id, band: lt ? bandFor(lt) : null, mode }));
+  // UI5 Ruling E14: Éris's muster line, from her lines (battle.start / battle.retry) or her dossier line
+  // for a lieutenant. A line from her lines is picked once when the muster shows (a pick is
+  // remembered: no immediate repeat), never in a $derived; the dossier line is no pick, and follows
+  // the camp (its band) as it arrives.
+  let taunt = $state<DialogueLine | null>(null);
+  $effect(() => {
+    if (phase !== 'muster' || !battle) {
+      if (phase !== 'muster') taunt = null;
+      return;
+    }
+    const opponent = battle.opponent.id;
+    const picked = retried || opponent === 'eris';
+    if (picked && untrack(() => taunt)) return;
+    const lt = camp?.lieutenants.find((l) => l.key === opponent);
+    untrack(() => {
+      taunt = musterLine({ opponent, band: lt ? bandFor(lt) : null, mode, retry: retried });
+    });
   });
+
+  // UI5 Ruling E14: what the dragon's explanations read at the victory (« Revoir » reads the same).
+  const explainCtx = $derived(text ? explainContext(text.body, text.annotation as Annotation, profile.level) : null);
 
   // Ruling C1: « Revoir » is ?panel=revoir on this very URL.
   const routeName = $derived(mode === 'grimoire' ? 'grimoire' : 'play');
@@ -516,6 +538,7 @@
           {submitting}
           bind:revealDone
           names={progressionNames}
+          {explainCtx}
           {reduced}
           onReplay={restart}
           onCamp={toLibraryCamp}

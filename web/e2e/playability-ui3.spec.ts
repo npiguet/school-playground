@@ -11,7 +11,6 @@ import {
   makeResult,
   postSession,
   redScan,
-  skipOnboarding,
   stubSpeech,
   waitForSceneSettled,
 } from './helpers';
@@ -177,7 +176,6 @@ async function titleSection(w: Walk) {
   await expectCamp(page);
   w.profileId = Number(page.url().match(/#\/p\/(\d+)\//)?.[1]);
   expect(w.profileId).toBeGreaterThan(0);
-  await skipOnboarding(page);
   await skipGreeting(w, 'camp');
 
   // A protected hero's wax seal, two digits in: the elision « Le sceau d'Élise-Marguerite ».

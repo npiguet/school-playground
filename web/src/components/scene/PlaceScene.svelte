@@ -3,15 +3,20 @@
   // M2): the stage, the slim HUD and its hero chip, the exit sign (not at the camp, which is where
   // it leads), the /camp data the HUD and the hotspot states read, what the scene shows while that
   // data loads or cannot be reached (M4), and the place's greeting, once per hero per page load
-  // (A9). The screen renders its hotspots, layers and in-scene objects through `children(ctx)`,
-  // inside the art box; its overlays are rendered next to this component (they are
-  // fixed-position).
+  // (A9), or its first-visit tour instead (UI5). The screen renders its hotspots, layers and
+  // in-scene objects through `children(ctx)`, inside the art box; its overlays are rendered next to
+  // this component (they are fixed-position), and so is the tour.
   import { tick, untrack, type Snippet } from 'svelte';
   import { fade } from 'svelte/transition';
   import SceneStage from './SceneStage.svelte';
   import Hud from './Hud.svelte';
   import SceneExit from './SceneExit.svelte';
   import DialogueBox from './DialogueBox.svelte';
+  import TourLayer from './TourLayer.svelte';
+  import { giveUpTour, markTourSeen, shouldTour } from '../../lib/tours/seen.svelte';
+  import { tourSteps } from '../../lib/tours/tours';
+  import { overlayState } from '../../lib/scene/overlayState.svelte';
+  import type { TourId } from '../../lib/dialogue/types';
   import { campFor, campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
   import { initAudioSettings } from '../../lib/audio/store.svelte';
   import { go, heroPanelHref } from '../../lib/scene/panelNav';
@@ -65,9 +70,46 @@
   const camp = $derived(campFor(profile.id));
   const ctx = $derived<SceneContext>({ camp, catalog: campStore.catalog });
 
+  // UI5 (spec §8, Ruling E13): a place's first visit is its tour. It waits for the camp data (the
+  // dragon's stage picks its lines), takes the greeting's turn (the place counts as greeted), and is
+  // seen once it ends or is skipped. One modal at a time: it waits for an open overlay (a deep link
+  // to a panel) to close. It starts a tick later, once the screen's overlay (rendered next to this
+  // component, so mounted after it) has had its turn to register.
+  let tour = $state<{ id: TourId; lines: DialogueLine[]; targets: (string | null)[] } | null>(null);
+  const tourId = $derived(scene.narrator.tour);
+  const touring = $derived(!!tourId && shouldTour(profile, tourId));
+  $effect(() => {
+    if (debug || tour || !tourId || !camp || !touring || overlayState.open > 0) return;
+    const id = tourId;
+    const dragon = camp.dragon;
+    let live = true;
+    void tick().then(() => {
+      if (!live || tour || overlayState.open > 0) return;
+      markGreeted(greetKey(scene.id, profile.id));
+      tour = { id, ...tourSteps(id, dragon) };
+    });
+    return () => {
+      live = false;
+    };
+  });
+  // /camp out of reach (the place says so, with « Réessayer »): the tour gives up for this page load
+  // rather than wait for ever, so the place greets as usual and the camp's deep-linked hero panel
+  // opens. It comes back on the next visit.
+  $effect(() => {
+    if (tour || !tourId || camp || !touring || campStore.loading || !campStore.error) return;
+    const id = tourId;
+    untrack(() => giveUpTour(profile, id));
+  });
+  function tourDone() {
+    const t = tour;
+    tour = null;
+    if (t) void markTourSeen(profile, t.id);
+  }
+
   // No greeting while ?debug is on (final review M11 of UI1: the stage owns the flag).
   let greeting = $state<DialogueLine[] | null>(null);
   $effect(() => {
+    if (touring) return;
     if (!greet || debug) return;
     const key = greetKey(scene.id, profile.id);
     if (!shouldGreet(key)) return;
@@ -144,6 +186,10 @@
     <SceneExit profileId={profile.id} />
   {/if}
 </SceneStage>
+
+{#if tour}
+  <TourLayer {scene} lines={tour.lines} targets={tour.targets} onDone={tourDone} />
+{/if}
 
 {#if toHero}
   <div class="hero-veil" data-testid="hero-veil" aria-hidden="true" in:fade={{ duration: 180 }}></div>

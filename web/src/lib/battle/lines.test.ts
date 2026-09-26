@@ -29,13 +29,14 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   });
 
   it('keeps Éris on her own tricks', () => {
-    for (const s of [...Object.values(L.CHALLENGE_LINES), L.ERIS_MUSTER.free, L.ERIS_MUSTER.grimoire, L.VICTORY.bossWon, L.VICTORY.bossLost]) {
+    // Her muster and reckoning lines live in content/dialogue (UI5): content.test.ts checks them.
+    for (const s of [...Object.values(L.CHALLENGE_LINES), L.VICTORY.bossWon, L.VICTORY.bossLost, L.VICTORY.erisIntroduced(2)]) {
       for (const f of FORBIDDEN) expect(s.toLowerCase().includes(f), `${f} in ${s}`).toBe(false);
     }
   });
 
   it('keeps every static voice line short enough for its plate', () => {
-    for (const s of [...Object.values(L.CHALLENGE_LINES), L.ERIS_MUSTER.free, L.ERIS_MUSTER.grimoire, L.DRAGON_REVIEW_HINT]) {
+    for (const s of [...Object.values(L.CHALLENGE_LINES), L.DRAGON_REVIEW_HINT, L.MUSTER.voiceMuted]) {
       expect(s.length, s).toBeLessThanOrEqual(160);
     }
   });

@@ -5,7 +5,7 @@ vi.mock('../api', () => ({ api: { profiles: { patch: (id: number, b: { settings:
 
 import { profileStore } from '../profileStore.svelte';
 import type { Profile } from '../types';
-import { markTourSeen, resetSeenForTests, resetTours, shouldTour } from './seen.svelte';
+import { giveUpTour, markTourSeen, resetSeenForTests, resetTours, shouldTour } from './seen.svelte';
 
 const hero = (settings: object) => ({ id: 9, name: 'Io', avatar: 'chouette', level: '10H', has_pin: false, help_stage: 1, created_at: '', settings }) as unknown as Profile;
 
@@ -23,6 +23,43 @@ describe('seen tours (Ruling E13)', () => {
     await markTourSeen(p, 'library');
     expect(shouldTour(p, 'library')).toBe(false);
     expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: ['nest', 'library'] } });
+  });
+
+  it('never drops a seen tour: saves run one at a time, each with every tour seen so far', async () => {
+    const p = hero({ tours: ['nest'] });
+    profileStore.current = p;
+    // The first save is slow: the second must wait for it, not race it (the server keeps the last list).
+    let release!: () => void;
+    const slow = new Promise<void>((r) => (release = r));
+    patch.mockImplementationOnce(async (id, body) => {
+      await slow;
+      return { id, settings: body.settings };
+    });
+    const first = markTourSeen(p, 'library');
+    const second = markTourSeen(p, 'war');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(patch).toHaveBeenCalledTimes(1);
+    release();
+    await Promise.all([first, second]);
+    expect(patch).toHaveBeenCalledTimes(2);
+    expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: ['nest', 'library', 'war'] } });
+  });
+
+  it('makes good a failed save with the next one', async () => {
+    const p = hero({});
+    profileStore.current = p;
+    patch.mockRejectedValueOnce(new Error('offline'));
+    await markTourSeen(p, 'camp');
+    await markTourSeen(p, 'cabin');
+    expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: ['camp', 'cabin'], onboarded: true } });
+  });
+
+  it('gives a tour up for this page load without saving it (no /camp to read the dragon from)', () => {
+    const p = hero({});
+    giveUpTour(p, 'library');
+    expect(shouldTour(p, 'library')).toBe(false);
+    expect(shouldTour(p, 'war')).toBe(true);
+    expect(patch).not.toHaveBeenCalled();
   });
 
   it('writes onboarded with the camp tour, and the lyre clears everything', async () => {

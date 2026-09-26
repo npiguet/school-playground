@@ -10,7 +10,6 @@
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import SceneLayer from '../components/scene/SceneLayer.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
-  import Onboarding from '../components/Onboarding.svelte';
   import { CAMP_SCENE, bossLockLine, campDragonLayer, campGreeting, weeklyCaption } from '../lib/world/scenes/camp';
   import { dragonSays } from '../lib/world/scenes/speakers';
   import { campFor } from '../lib/world/campStore.svelte';
@@ -23,6 +22,7 @@
   import { navigate } from '../lib/router.svelte';
   import { heroPanelHref, hotspotHref, openPanel, replacePanel } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
+  import { shouldTour } from '../lib/tours/seen.svelte';
   import type { PanelId } from '../lib/world/places';
   import type { Profile } from '../lib/types';
 
@@ -33,9 +33,9 @@
   let debug = $state(false);
   let place: PlaceScene | undefined = $state();
 
-  // The dragon waits for the Muses' welcome card (Onboarding) before it speaks.
-  const greet = (camp: CampResponse | null) =>
-    camp && profile.settings.onboarded ? campGreeting(profile.name, camp) : null;
+  // The dragon greets once the camp data is there; a new hero's first visit is the camp tour instead
+  // (PlaceScene holds the greeting while it runs, UI5 Ruling E13).
+  const greet = (camp: CampResponse | null) => (camp ? campGreeting(profile.name, camp) : null);
 
   function dragonLayer(camp: CampResponse): SceneLayerDef {
     return { id: 'dragon', src: ART.dragon[camp.dragon.stage], alt: dragonCaption(camp.dragon), ...campDragonLayer(camp.dragon.stage) };
@@ -80,17 +80,14 @@
     place?.say([dragonSays(camp.dragon, bossLockLine(camp))], hotspotSelector('camp', 'boss'));
   }
 
-  // UI3 Ruling B2: `?panel=heros` stays a route; once the Muses' welcome is over (fix wave 3: the
-  // onboarding takes precedence) it hands over to the hero panel in the cabin. replacePanel keeps a
-  // tagged entry tagged, so the panel's seal still steps back to where it was opened.
+  // UI3 Ruling B2: `?panel=heros` stays a route; once the camp tour is over (fix wave 3: one modal
+  // at a time, the tour first) it hands over to the hero panel in the cabin. shouldTour reads a
+  // SvelteSet, so this runs again as soon as the tour ends. replacePanel keeps a tagged entry
+  // tagged, so the panel's seal still steps back to where it was opened.
   $effect(() => {
-    if (panel === 'heros' && profile.settings.onboarded) replacePanel(heroPanelHref(profile.id));
+    if (panel === 'heros' && !shouldTour(profile, 'camp')) replacePanel(heroPanelHref(profile.id));
   });
 </script>
-
-{#if !profile.settings.onboarded}
-  <Onboarding {profile} />
-{/if}
 
 <PlaceScene bind:this={place} {profile} scene={CAMP_SCENE} bind:debug showExit={false} {greet} onHero={openHero}>
   {#snippet children(ctx)}

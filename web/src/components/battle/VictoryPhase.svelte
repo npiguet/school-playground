@@ -16,13 +16,15 @@
   import { reckoningSteps, reckoningVerdict } from '../../lib/battle/hp';
   import { react, strike } from '../../lib/battle/stage.svelte';
   import { emitBattle } from '../../lib/battle/events';
-  import { erisLine } from '../../lib/explain';
+  import { explain, type ExplainContext } from '../../lib/explain';
+  import { erisVictoryLine, explainIntro, stillStanding } from '../../lib/dialogue/battle';
+  import { EGG } from '../../lib/dialogue/speakers';
+  import { frenchSpacing } from '../../lib/text/french';
   import type { SessionResult } from '../../lib/grading/types';
   import type { PlayState } from '../../lib/playState';
   import { clockReset, playClock } from '../../lib/world/playClock.svelte';
   import { dragonSays } from '../../lib/world/scenes/speakers';
-  import type { CampResponse, DragonOut } from '../../lib/world/types';
-  import { erisSays } from '../../lib/world/voices';
+  import type { CampResponse } from '../../lib/world/types';
   import type { DialogueLine } from '../../lib/scene/types';
   import type { PlayMode, Profile } from '../../lib/types';
 
@@ -39,6 +41,7 @@
     submitting,
     revealDone = $bindable(),
     names,
+    explainCtx,
     reduced,
     onReplay,
     onCamp,
@@ -62,6 +65,8 @@
     revealDone: boolean;
     /** Lieutenant key -> French name, for the spoils' quest and neutralised titles. */
     names: Record<string, string>;
+    /** What the dragon's explanations of the traps still standing read (null: no text, none). */
+    explainCtx: ExplainContext | null;
     /** Reduced motion, from the stage's one watcher (M15). */
     reduced: boolean;
     onReplay: () => void;
@@ -123,27 +128,42 @@
   let dialogueStarted = $state(false);
   const showDialogue = $derived(!showSpoils && (dialogueStarted || !pending));
 
-  // Ruling C7: Éris speaks first (her line, unchanged), then the dragon: the tally, the help-stage
-  // message, the « Revoir » hint. Snapshotted when it first shows, so nothing restarts the
-  // typewriter mid-line; the help message is the one exception (fix round 1 #1): it arrives with a
-  // successful submission, which after a failed one comes later, so the lines are taken again then
-  // and the dialogue plays again, help included. Once read, the box closes and the actions stay.
-  const speaker = $derived(camp?.dragon ?? ({ name: null, stage: 'egg', tint: 'bronze' } as DragonOut));
-  const victoryLines = $derived.by(() => {
+  // Ruling C7, UI5 Ruling E14: Éris answers the reckoning from her lines, then the dragon: the tally, up
+  // to two traps still standing (the word, then its explanation), the help-stage message, the « Revoir »
+  // hint. Built when the dialogue starts (a pick is remembered), never in a $derived. Snapshotted
+  // when it first shows, so nothing restarts the typewriter mid-line; the help message is the one
+  // exception (fix round 1 #1): it arrives with a successful submission, which after a failed one
+  // comes later, so the lines are taken again then and the dialogue plays again, help included.
+  // Once read, the box closes and the actions stay. "Caught" and "missed" are said here, at the
+  // reckoning, never live (Ruling C3).
+  const speaker = $derived(camp?.dragon ?? EGG);
+  // Éris's answer, the tally and the explanations, picked once: the help message's second take
+  // keeps them word for word.
+  let picked: DialogueLine[] | null = null;
+  function victoryLines(): DialogueLine[] {
     if (!result) return [];
     const introduced = result.introduced.length;
-    const lines = [erisSays(erisLine(result.catchRate, draft, introduced, mode)), dragonSays(speaker, dragonTally({ draft, caught, mode }))];
+    if (!picked) {
+      picked = [erisVictoryLine({ draft, catchRate: result.catchRate, introduced, mode }), dragonSays(speaker, dragonTally({ draft, caught, mode }))];
+      if (explainCtx) {
+        for (const e of stillStanding(result.finalErrors, 2)) {
+          // Spaced like its intro (a « guillemet » never ends a line alone).
+          picked.push(explainIntro(e.expected ?? e.typed ?? '', speaker), dragonSays(speaker, frenchSpacing(explain(e, explainCtx).text)));
+        }
+      }
+    }
+    const lines = [...picked];
     if (helpMessage) lines.push(dragonSays(speaker, helpMessage));
     if (draft + introduced > 0) lines.push(dragonSays(speaker, DRAGON_REVIEW_HINT));
     return lines;
-  });
+  }
   let spoken = $state<DialogueLine[] | null>(null);
   let spokenHelp: string | null = null;
   let talked = $state(false);
   $effect(() => {
     if (!showDialogue || spoken) return;
     untrack(() => {
-      spoken = victoryLines;
+      spoken = victoryLines();
       spokenHelp = helpMessage;
       dialogueStarted = true;
     });
@@ -152,7 +172,7 @@
     const help = helpMessage;
     if (!spoken || help === spokenHelp) return;
     untrack(() => {
-      spoken = victoryLines;
+      spoken = victoryLines();
       spokenHelp = help;
       talked = false;
     });

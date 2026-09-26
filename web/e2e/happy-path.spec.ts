@@ -1,5 +1,5 @@
 import { test, expect } from './crashGuard';
-import { closeOverlay, expectCamp, newHero, openShelves, stubSpeech, skipOnboarding, uniqueName } from './helpers';
+import { closeOverlay, expectCamp, newHero, openShelves, stubSpeech, uniqueName } from './helpers';
 
 const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
@@ -10,7 +10,6 @@ test('create profile → add text → dictation → proofreading → results →
 
   // Profile
   await newHero(page, name, '10H');
-  await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
   await openShelves(page);
 

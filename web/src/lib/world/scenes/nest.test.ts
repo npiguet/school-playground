@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { validateScene } from '../../scene/validate';
+import { LINES } from '../../dialogue/content';
+import { frenchSpacing } from '../../text/french';
+import { variantsOf } from '../../../testing/dialogue';
 import type { CampResponse, DragonOut } from '../types';
 import { NEST_HOTSPOTS, NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from './nest';
 
@@ -33,8 +36,13 @@ describe("dragon's nest (UI3 Ruling B5)", () => {
     expect(growth({ ...egg, stage: 'adult', neutralised: 6, next_stage_at: null })).toEqual({ value: 6, max: 6, label: 'Il a fini de grandir.' });
   });
 
-  it('greets with its stage line and speaks in its care (immersion #23)', () => {
-    expect(nestGreeting(egg).map((l) => l.text)).toEqual(["Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille."]);
+  it('greets by its stage, asks an unnamed hatchling\'s name (Ruling E12), and speaks in its care (immersion #23)', () => {
+    const [hello] = nestGreeting(egg);
+    expect(hello).toMatchObject({ key: 'nest.enter', speaker: 'dragon', name: "L'œuf" });
+    expect(LINES['nest.enter'].filter((l) => l.when?.stage?.includes('egg')).map((l) => frenchSpacing(l.text))).toContain(hello.text);
+    expect(nestGreeting({ ...egg, stage: 'hatchling' })[0]).toMatchObject({ key: 'nest.name' });
+    expect(variantsOf('nest.name')).toContain(nestGreeting({ ...egg, stage: 'hatchling' })[0].text);
+    expect(nestGreeting({ ...egg, stage: 'hatchling', name: 'Braise' })[0]).toMatchObject({ key: 'nest.enter', name: 'Braise' });
     expect(careLine(egg)).toMatchObject({ speaker: 'dragon', text: "Je frémis dans la paille. J'éclorai quand une ruse d'Éris sera neutralisée." });
     expect(careLine({ ...egg, stage: 'hatchling' }).text).toBe('Te revoilà ! Tu me donnes un nom ?');
     expect(careLine({ ...egg, stage: 'young', name: 'Braise' }).text).toBe('Admire-moi ! Tu peux changer ma teinte quand tu veux.');

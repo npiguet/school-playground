@@ -56,7 +56,7 @@
   let closing = $state(false);
 
   // Focus, the Tab trap, the inert stage and focus return: the shared `modal` action
-  // (overlayState.svelte.ts), also used by Onboarding.
+  // (overlayState.svelte.ts), also used by TourLayer.
   function onKey(e: KeyboardEvent) {
     if (closing) return;
     if (e.key === 'Escape') onClose();

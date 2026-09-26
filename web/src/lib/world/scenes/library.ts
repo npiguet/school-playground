@@ -7,6 +7,7 @@ import { ADD_ICONS, ART, PLACE_ICONS } from '../art';
 import { st, type DialogueLine, type HotspotDef, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { LIBRARY_SHAPES } from './library.shapes';
 import { nextStep } from '../nextStep';
+import { sayKey } from '../../dialogue/select';
 
 export const LIBRARY_HOTSPOTS: HotspotDef[] = [
   {
@@ -92,28 +93,12 @@ export const LIBRARY_SCENE: SceneDef = {
   preload: [ART.scenes.hubCamp],
 };
 
-const OWL_HINTS = [
-  'Hou ! Tes parchemins dorment sur les étagères. Choisis-en un et défends-le contre Éris.',
-  'Hou ! Au pupitre, tu peux écrire ou coller un texte à toi.',
-  'Hou ! La lentille de bronze déchiffre les feuilles imprimées de ta classe.',
-  "Hou ! Derrière le portail, les scribes d'Alexandrie recopient de vieux livres pour toi.",
-];
-
-/** A random owl hint, never the one she just said (spec §8: no immediate repeat). */
-export function owlHint(previous: number, rnd: () => number = Math.random): { line: DialogueLine; index: number } {
-  let index = Math.floor(rnd() * OWL_HINTS.length);
-  if (index === previous) index = (index + 1) % OWL_HINTS.length;
-  return { index, line: { speaker: 'owl', name: "La chouette d'Athéna", portrait: ART.characters.owl, text: OWL_HINTS[index] } };
+/** A random owl hint, never the one she just said (spec §8: the selector remembers the last). */
+export function owlHint(): DialogueLine {
+  return sayKey('library.owl');
 }
 
-/** UI3 Ruling A9: the owl's static line (dialogue content files are UI5). */
+/** The owl's greeting (UI3 Ruling A9, UI5 Ruling E12). */
 export function owlGreeting(): DialogueLine[] {
-  return [
-    {
-      speaker: 'owl',
-      name: "La chouette d'Athéna",
-      portrait: ART.characters.owl,
-      text: 'Hou ! Tes parchemins dorment sur les étagères. Le pupitre, la lentille et le portail en apportent de nouveaux.',
-    },
-  ];
+  return [sayKey('library.enter')];
 }

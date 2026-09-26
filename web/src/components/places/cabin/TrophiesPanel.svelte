@@ -82,7 +82,8 @@
   {#if equipError}<p class="kit-note" data-tone="eris" role="alert">{equipError}</p>{/if}
 
   {#if isEmpty}
-    <p class="kit-note">Ta cabane attend ses premiers trésors. Chaque récompense est annoncée à l'avance : rien n'est tiré au sort.</p>
+    <!-- The rest (each reward announced ahead, nothing drawn by lot) is the cabin tour's step 1 (UI5 Ruling E13). -->
+    <p class="kit-note">Ta cabane attend ses premiers trésors.</p>
   {/if}
 
   {#each SECTIONS as section (section.kind)}

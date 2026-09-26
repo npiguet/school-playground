@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateScene } from '../../scene/validate';
+import { variantsOf } from '../../../testing/dialogue';
 import type { CampResponse, QuestOut } from '../types';
 import { DELPHI_HOTSPOTS, DELPHI_SCENE, PYTHIA_LAYER, pythiaGreeting, scrollTitle } from './delphi';
 import { campNews } from './camp';
@@ -63,12 +64,14 @@ describe('Delphi (UI3 Ruling A1, A10)', () => {
     expect(state('pythia', camp({ oracle: chosen, prophecies: later })).caption).toBe('Quête en cours');
   });
 
-  it('lets the Pythia greet with one static line', () => {
-    expect(pythiaGreeting(camp()).map((l) => l.text)).toEqual(["Approche. Trois rouleaux scellés t'attendent cette semaine."]);
-    expect(pythiaGreeting(camp({ oracle: { week: 'w', status: 'chosen', reward_id: null } })).map((l) => l.text)).toEqual([
-      "La quête de la semaine est choisie. L'Oracle parlera de nouveau lundi.",
-    ]);
-    expect(pythiaGreeting(camp())[0]).toMatchObject({ speaker: 'pythia', name: 'La Pythie', portrait: '/art/characters/pythia_cut.webp' });
+  it('lets the Pythia greet with one line, by this week\'s scrolls (Ruling E12)', () => {
+    const sealed = pythiaGreeting(camp());
+    expect(sealed).toHaveLength(1);
+    expect(sealed[0]).toMatchObject({ key: 'delphi.enter.sealed', speaker: 'pythia', name: 'La Pythie', portrait: '/art/characters/pythia_cut.webp' });
+    expect(variantsOf('delphi.enter.sealed')).toContain(sealed[0].text);
+    const open = pythiaGreeting(camp({ oracle: { week: 'w', status: 'chosen', reward_id: null } }));
+    expect(open[0].key).toBe('delphi.enter.chosen');
+    expect(variantsOf('delphi.enter.chosen')).toContain(open[0].text);
   });
 
   it('hangs the tablets plaque on the wall, not on the altar (playability #16)', () => {

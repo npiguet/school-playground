@@ -10,6 +10,7 @@ import {
   expectCamp,
   expectInSafeZone,
   expectInWorldOverlay,
+  expectLineOf,
   expectScene,
   labelOverlaps,
   redScan,
@@ -228,7 +229,7 @@ test('the dragon greets in the cabin, once per page load', async ({ page, reques
   await openCabin(page, id);
   const box = page.getByTestId('dialogue-box');
   await expect(box).toBeVisible();
-  await expect(page.getByTestId('dialogue-text')).toContainText('Ta cabane. Tout ce que tu as gagné est rangé ici.');
+  await expectLineOf(box, 'cabin.enter');
   await page.getByTestId('dialogue-skip').click();
   await expect(box).toHaveCount(0);
   await tap(page.getByTestId('cabin-lyre'), testInfo);

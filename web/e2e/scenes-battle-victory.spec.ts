@@ -5,9 +5,11 @@ import {
   createText,
   expectBattle,
   expectCamp,
+  expectLineOf,
   expectOverlayClearsScene,
   expectOverlayTapTargets,
   LEGACY_UI,
+  nextLine,
   redScan,
   seedPlay,
   stubSpeech,
@@ -461,4 +463,27 @@ test('a fight Éris refuses says why, in her colour, and nothing is lost', async
   // A fresh hero has no tier open: the server's 409 (routers/world.py BOSS_MESSAGE), word for word.
   await expect(refusal).toHaveText("Éris ne se montre pas encore. Neutralise d'abord ses lieutenants.");
   await expect(page).toHaveURL(/\/eris$/);
+});
+
+// UI5 Ruling E14: four traps in the draft, one caught (the plural of « fées »): 25 %, so Éris answers
+// with battle.caught. Then the tally, then the first trap still standing in text order, « dansent ».
+const FOUR = 'Les fée danse dans la clairiere. Elles chante et les oiseaux les écoutent.';
+const ONE_CAUGHT = 'Les fées danse dans la clairiere. Elles chante et les oiseaux les écoutent.';
+
+test("Éris answers the reckoning from her lines, then the dragon explains a trap still standing (Ruling E14)", async ({ page, request }, testInfo) => {
+  await victory(page, request, `Vic14-${testInfo.project.name}`, ONE_CAUGHT, 'hydre', FOUR);
+  await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués : 1 sur 4');
+  await tap(page.getByTestId('reveal-continue'), testInfo);
+  const dialogue = page.getByTestId('victory-dialogue');
+  await expectLineOf(dialogue.getByTestId('dialogue-box'), 'battle.caught');
+  await expect(dialogue.getByTestId('dialogue-box')).toHaveAttribute('data-speaker', 'eris');
+  await nextLine(page); // the tally
+  await expect(dialogue.getByTestId('dialogue-text')).toContainText('Tu as déjoué 1 piège sur 4.');
+  await nextLine(page);
+  await expectLineOf(dialogue.getByTestId('dialogue-box'), 'battle.explain', { word: 'dansent' });
+  await expect(dialogue.getByTestId('dialogue-box')).toHaveAttribute('data-speaker', 'dragon');
+  await nextLine(page);
+  // explain()'s own words for that trap, the ones « Revoir » shows on tap.
+  await expect(dialogue.getByTestId('dialogue-text')).toContainText('dansent');
+  await expect(dialogue.getByTestId('dialogue-box')).not.toHaveAttribute('data-key', /./);
 });

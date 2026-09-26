@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gradeText, tokenize, mapAnnotation } from '$lib/grading';
-import { caughtText, explain, erisLine, statKeyOf, CATEGORY_LABELS } from './explain';
+import { caughtText, explain, statKeyOf, CATEGORY_LABELS } from './explain';
 import type { Annotation, AnnotToken, Chain, TokenError } from '$lib/grading/types';
 
 const REF = 'Les fées dansent dans la clairière.';
@@ -582,41 +582,6 @@ describe('explain (SP2 playability P1-3 participle with avoir and a clitic COD)'
     const text = explain(err, ctx).text;
     expect(text).not.toMatch(/accompagne/);
     expect(text).toMatch(/^Participe passé « choisie »/);
-  });
-});
-
-describe('erisLine', () => {
-  it('never blames the player', () => {
-    expect(erisLine(null, 0, 0)).toMatch(/reviendrai/);
-    expect(erisLine(1, 4, 0)).toMatch(/Impossible/);
-    expect(erisLine(0.5, 4, 1)).toMatch(/Sournois/);
-    expect(erisLine(0, 4, 0)).toMatch(/bien cachés/);
-  });
-
-  it('leaves the dictation strings unchanged when mode is omitted or "dictation"', () => {
-    expect(erisLine(null, 0, 0, 'dictation')).toBe(erisLine(null, 0, 0));
-    expect(erisLine(1, 4, 0, 'dictation')).toBe(erisLine(1, 4, 0));
-  });
-
-  it('uses grimoire-flavoured wording, keyed on the catch rate, never mentioning a dictation', () => {
-    expect(erisLine(1, 5, 0, 'grimoire')).toBe(
-      'Quoi ?! Tu as trouvé tous mes dés-accords dans ce grimoire. Je le corromprai mieux la prochaine fois.',
-    );
-    expect(erisLine(0.5, 4, 0, 'grimoire')).toBe(
-      'Hmpf. La moitié de mes dés-accords retrouvés. Le grimoire garde encore quelques secrets…',
-    );
-    expect(erisLine(0, 4, 0, 'grimoire')).toBe(
-      'Mes dés-accords sont restés bien cachés dans ce grimoire. Cette fois.',
-    );
-    expect(erisLine(0.3, 4, 0, 'grimoire')).toBe(
-      'Ha ! Quelques dés-accords retrouvés. Le grimoire commence à se réparer.',
-    );
-  });
-
-  it('still mentions plants Éris slipped in during a grimoire proofreading', () => {
-    expect(erisLine(0.9, 10, 2, 'grimoire')).toMatch(
-      / \(Et j'en ai glissé 2 pendant ta relecture\. Sournois, je sais\.\)$/,
-    );
   });
 });
 

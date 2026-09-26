@@ -8,6 +8,7 @@
   import OverlayVoice from '../scene/OverlayVoice.svelte';
   import PaceMedallions from './PaceMedallions.svelte';
   import { api } from '../../lib/api';
+  import { audioSettings, setChannel } from '../../lib/audio/store.svelte';
   import { MUSTER } from '../../lib/battle/lines';
   import { battleStage, react } from '../../lib/battle/stage.svelte';
   import { isProphecy } from '../../lib/dates';
@@ -119,6 +120,15 @@
 
     {#if taunt}<OverlayVoice line={taunt} testId="battle-voice" />{/if}
 
+    <!-- UI5 Ruling E7: a muted voice is never a trap - the dictation keeps its pace but reads nothing
+         aloud, so the muster says so and gives the voice back in one tap. -->
+    {#if mode !== 'grimoire' && audioSettings.voice.muted}
+      <p class="kit-note voice-muted" data-testid="battle-voice-muted">
+        {MUSTER.voiceMuted}
+        <button type="button" class="kit-link" data-testid="battle-voice-unmute" onclick={() => setChannel(profileId, 'voice', { muted: false })}>{MUSTER.voiceBack}</button>
+      </p>
+    {/if}
+
     {#if text.photo_count > 0}
       <div class="sheet-fold">
         <button type="button" class="kit-link" aria-expanded={showPhotos} onclick={() => (showPhotos = !showPhotos)}>
@@ -199,6 +209,13 @@
   }
   .muster :global(.overlay-voice) {
     margin: 0;
+  }
+  .voice-muted {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 8px;
   }
   .muster-title {
     margin: 0;

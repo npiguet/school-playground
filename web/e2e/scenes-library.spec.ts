@@ -8,6 +8,7 @@ import {
   expectCamp,
   expectExitClearOfDialogueDock,
   expectInSafeZone,
+  expectLineOf,
   expectOverlayTapTargets,
   expectScene,
   labelOverlaps,
@@ -38,7 +39,7 @@ test('the hub leads into the tent; its plaque echoes the hub label; the exit sig
   await expect(page).toHaveURL(/\/tente-parchemins$/);
   await expectScene(page, 'library');
   await expect(page.locator('.stage-plaque')).toHaveText('La tente des parchemins');
-  await expect(page.getByTestId('dialogue-text')).toContainText('Hou !');
+  await expectLineOf(page.getByTestId('dialogue-box'), 'library.enter');
   await page.getByTestId('dialogue-skip').click();
   for (const p of PLACES) await expect(page.getByTestId(p)).toBeVisible();
   await expect(page.getByTestId('library-desk')).toContainText('Écrire un nouveau parchemin');
@@ -199,14 +200,14 @@ test('the owl is a speaker you can tap: she replays one of her hints', async ({ 
   await expect(owl).toHaveAccessibleName("La chouette d'Athéna");
   await expect(owl.locator('.hotspot-label')).toHaveCount(0);
   await tap(owl, testInfo);
-  await expect(page.getByTestId('dialogue-text')).toContainText('Hou !');
+  await expectLineOf(page.getByTestId('dialogue-box'), 'library.owl');
   // Dismissing her line hands focus back to the owl, not to <body> (UI3b Task 7 review).
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
   await expect(owl).toBeFocused();
   // The same from the keyboard: Enter on the owl, then « Tout passer » pressed with Enter.
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('dialogue-text')).toContainText('Hou !');
+  await expectLineOf(page.getByTestId('dialogue-box'), 'library.owl');
   await page.getByTestId('dialogue-skip').focus();
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);

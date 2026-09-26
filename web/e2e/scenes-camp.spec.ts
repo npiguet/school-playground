@@ -5,6 +5,8 @@ import {
   createText,
   expectCamp,
   expectInSafeZone,
+  expectLineOf,
+  nextLine,
   labelOverlaps,
   makeResult,
   measureBoxes,
@@ -171,38 +173,6 @@ test('two places tapped at once lead to the first one only', async ({ page, requ
   expect(await hashChanges(page)).toEqual([`#/p/${id}/tente-parchemins`]);
 });
 
-test('a deep link to the hero panel waits for the onboarding card: one modal at a time', async ({ page, request }, testInfo) => {
-  // Fix wave 3: onboarding takes precedence; the panel opens only once the Muses' card has closed,
-  // so there is never more than one focus trap.
-  const res = await request.post('/api/profiles', { data: { name: heroName(testInfo.project.name), avatar: 'chouette', level: '10H' } });
-  expect(res.ok()).toBeTruthy();
-  const id = (await res.json()).id as number;
-  await page.goto(`/#/p/${id}/camp?panel=heros`);
-  await expectCamp(page);
-  const card = page.getByTestId('onboarding');
-  const panel = page.getByTestId('overlay-heros');
-  await expect(card).toBeVisible();
-  await expect(panel).toHaveCount(0);
-  for (let i = 0; i < 3; i++) {
-    await page.keyboard.press('Tab');
-    expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="onboarding"]')), `card Tab ${i + 1}`).toBe(true);
-  }
-  await page.getByTestId('onboarding-skip').click();
-  await expect(card).toHaveCount(0);
-  // UI3 Ruling B2: once the welcome is over, the camp hands the route over to the cabin's panel.
-  await expect(page).toHaveURL(/\/cabane\?panel=heros$/);
-  await expect(panel).toBeVisible();
-  await expect(page.getByTestId('scene-cabin')).toHaveAttribute('inert', '');
-  for (let i = 0; i < 4; i++) {
-    await page.keyboard.press('Tab');
-    expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="overlay-heros"]')), `panel Tab ${i + 1}`).toBe(true);
-  }
-  await panel.getByTestId('overlay-close').click();
-  await expect(panel).toHaveCount(0);
-  await expect(page.getByTestId('scene-cabin')).toBeVisible();
-  await expect(page.getByTestId('scene-cabin')).not.toHaveAttribute('inert', '');
-});
-
 test('Back during the fade out of the camp is not overridden by the pending navigation', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.goto(`/#/p/${id}/parchemins`);
@@ -222,25 +192,6 @@ test('Back during the fade out of the camp is not overridden by the pending navi
   const hashes = await hashChanges(page);
   expect(hashes.at(-1)).toBe(`#/p/${id}/parchemins`);
   expect(hashes.filter((h) => h === `#/p/${id}/parchemins`)).toHaveLength(1);
-});
-
-test('the onboarding card is a real modal: the camp is inert, Tab stays on the card', async ({ page, request }, testInfo) => {
-  // Fix wave 2: same `modal` action as the hero panel. A hero straight from the API, not onboarded.
-  const res = await request.post('/api/profiles', { data: { name: heroName(testInfo.project.name), avatar: 'chouette', level: '10H' } });
-  expect(res.ok()).toBeTruthy();
-  const id = (await res.json()).id as number;
-  await page.goto(`/#/p/${id}/camp`);
-  await expectCamp(page);
-  const card = page.getByTestId('onboarding');
-  await expect(card).toBeVisible();
-  await expect(page.getByTestId('scene-camp')).toHaveAttribute('inert', '');
-  for (let i = 0; i < 4; i++) {
-    await page.keyboard.press('Tab');
-    expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="onboarding"]')), `Tab ${i + 1}`).toBe(true);
-  }
-  await page.getByTestId('onboarding-skip').click();
-  await expect(card).toHaveCount(0);
-  await expect(page.getByTestId('scene-camp')).not.toHaveAttribute('inert', '');
 });
 
 test('places and their labels sit inside the visible safe zone, never overlap, and work from the keyboard', async ({ page, request }, testInfo) => {
@@ -469,15 +420,17 @@ test('the dragon greets once per visit; a tap advances, « Tout passer » closes
   const name = heroName(testInfo.project.name);
   const id = await createProfileApi(request, name);
   await openCamp(page, id);
+  const box = page.getByTestId('dialogue-box');
   const text = page.getByTestId('dialogue-text');
-  await expect(text).toHaveText(`Bienvenue au camp, ${name}.`);
+  // UI5 Ruling E12: one of camp.enter's variants, with her name.
+  await expectLineOf(box, 'camp.enter', { hero: name });
   // Final review M6: the live region starts empty and is filled after insertion.
-  await expect(page.getByTestId('dialogue-live')).toHaveText(`Bienvenue au camp, ${name}.`);
+  await expect(page.getByTestId('dialogue-live')).toHaveText((await text.textContent())!);
   await page.getByTestId('dialogue-advance').click();
   await expect(text).toHaveText("Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
   // Playability #2: the last line points at where the texts are defended.
-  await page.getByTestId('dialogue-advance').click();
-  await expect(text).toHaveText("Les parchemins t'attendent, sous la tente.");
+  await nextLine(page);
+  await expectLineOf(box, 'camp.next.first-text');
   await expect(page.getByTestId('camp-parchemins')).toContainText('Choisis un texte à défendre');
   await expect(page.getByTestId('camp-parchemins')).toHaveClass(/is-new/);
   // Ruling B9: one next-step glow on the hub, the same step the greeting names.

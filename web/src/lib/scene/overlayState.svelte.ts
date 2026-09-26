@@ -1,4 +1,4 @@
-// How many in-world modals are open (final review I5, M4): Overlay and Onboarding register through
+// How many in-world modals are open (final review I5, M4): Overlay and TourLayer register through
 // the `modal` action below. SceneStage makes the scene behind `inert` and FxCanvas pauses while this
 // is > 0. Lives outside the stage's context because modals are rendered next to the stage.
 import { tick, untrack } from 'svelte';
@@ -22,6 +22,11 @@ export function registerOverlay(): () => void {
 // Open modals, oldest first. Only the topmost one traps Tab (fix wave 3: two modals open at once
 // used to both trap, and whichever registered last won by accident).
 const stack: HTMLElement[] = [];
+
+/** Whether `node` is the topmost open modal: the one Tab and Escape belong to. */
+export function isTopModal(node: HTMLElement): boolean {
+  return stack[stack.length - 1] === node;
+}
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 

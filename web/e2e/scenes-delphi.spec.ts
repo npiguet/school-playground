@@ -7,6 +7,7 @@ import {
   expectCamp,
   expectExitClearOfDialogueDock,
   expectInSafeZone,
+  expectLineOf,
   expectOverlayTapTargets,
   expectScene,
   labelOverlaps,
@@ -41,7 +42,7 @@ test('the hub path leads to the temple; the Pythia greets; the exit sign leads b
   await expect(page).toHaveURL(/\/temple$/);
   await expectScene(page, 'delphi');
   await expect(page.locator('.stage-plaque')).toHaveText('Le temple de Delphes');
-  await expect(page.getByTestId('dialogue-text')).toHaveText("Approche. Trois rouleaux scellés t'attendent cette semaine.");
+  await expectLineOf(page.getByTestId('dialogue-box'), 'delphi.enter.sealed');
   await page.getByTestId('dialogue-skip').click();
   // Ruling B9: a new hero's next step is the tent, so the Pythia keeps her caption but not the glow
   // (the caption first: it proves the camp has loaded before the glow is checked).

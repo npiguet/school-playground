@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateScene } from '../../scene/validate';
+import { variantsOf } from '../../../testing/dialogue';
 import type { CampResponse } from '../types';
 import { LIBRARY_HOTSPOTS, LIBRARY_SCENE, OWL_LAYER, owlGreeting, owlHint } from './library';
 
@@ -47,19 +48,15 @@ describe('library tent (UI3 Ruling A1, A16)', () => {
     expect(owl.leader).toBeUndefined();
   });
 
-  it('gives the owl a hint that never repeats the one she just said', () => {
-    const seen = new Set<string>();
-    for (const r of [0, 0.3, 0.6, 0.99]) {
-      for (let previous = -1; previous < 4; previous++) {
-        const { line, index } = owlHint(previous, () => r);
-        expect(index, `r ${r}, previous ${previous}`).not.toBe(previous);
-        expect(line).toMatchObject({ speaker: 'owl', name: "La chouette d'Athéna", portrait: '/art/characters/owl_cut.webp' });
-        expect(line.text.startsWith('Hou !')).toBe(true);
-        expect(line.text.length).toBeLessThanOrEqual(160);
-        seen.add(line.text);
-      }
+  it('gives the owl a hint from her lines that never repeats the one she just said', () => {
+    let last = '';
+    for (let i = 0; i < 12; i++) {
+      const line = owlHint();
+      expect(line).toMatchObject({ key: 'library.owl', speaker: 'owl', name: "La chouette d'Athéna", portrait: '/art/characters/owl_cut.webp' });
+      expect(variantsOf('library.owl')).toContain(line.text);
+      expect(line.text).not.toBe(last);
+      last = line.text;
     }
-    expect(seen.size).toBe(4);
   });
 
   it('points a new hero at the shelves, unless a prophecy within a week comes first (Ruling B9)', () => {
@@ -71,10 +68,12 @@ describe('library tent (UI3 Ruling A1, A16)', () => {
     expect(state('shelves', at({ xp: { total: 0 }, prophecies: soon }))).toMatchObject({ isNew: false, caption: 'Choisis un texte à défendre' });
   });
 
-  it('seats the owl on the side table and lets it greet with one static line', () => {
+  it('seats the owl on the side table and lets it greet with one line of library.enter', () => {
     expect(OWL_LAYER).toMatchObject({ src: '/art/characters/owl_cut.webp', x: 80, y: 58, depth: 1 });
-    expect(owlGreeting()).toEqual([
-      expect.objectContaining({ speaker: 'owl', name: "La chouette d'Athéna", portrait: '/art/characters/owl_cut.webp' }),
+    const lines = owlGreeting();
+    expect(lines).toEqual([
+      expect.objectContaining({ key: 'library.enter', speaker: 'owl', name: "La chouette d'Athéna", portrait: '/art/characters/owl_cut.webp' }),
     ]);
+    expect(variantsOf('library.enter')).toContain(lines[0].text);
   });
 });
