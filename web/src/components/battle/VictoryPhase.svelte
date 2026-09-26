@@ -11,7 +11,7 @@
   import DialogueBox from '../scene/DialogueBox.svelte';
   import { DRAGON_REVIEW_HINT, dragonTally, opponentName, STAGE, VICTORY, victoryTitle } from '../../lib/battle/lines';
   import type { OpponentId } from '../../lib/battle/battle';
-  import { outcomeOf, reckoningSteps } from '../../lib/battle/hp';
+  import { reckoningSteps, reckoningVerdict } from '../../lib/battle/hp';
   import { react, strike } from '../../lib/battle/stage.svelte';
   import { emitBattle } from '../../lib/battle/events';
   import { erisLine } from '../../lib/explain';
@@ -78,13 +78,16 @@
 
   // UI4 Ruling C3: the reckoning. The hold drops one strike per trap caught (client-side result, so
   // it never waits for the server), then the opponent is routed, pushed back or still standing.
-  // For a boss fight the final pose waits for the server's verdict (progression.boss).
+  // For a boss fight the final pose waits for the server's verdict (progression.boss): a failed
+  // submission leaves it pending, never provisional (reckoningVerdict).
   const draft = $derived(result?.draftErrors.length ?? 0);
   const caught = $derived(result?.caught.length ?? 0);
-  const bossFight = $derived(encounter === 'eris');
-  const verdictReady = $derived(!bossFight || !!playState.progression || !!submitError);
-  const outcome = $derived(outcomeOf({ draft, caught }, playState.progression?.boss ?? null));
+  const verdict = $derived(
+    reckoningVerdict({ draft, caught }, { bossFight: encounter === 'eris', progression: playState.progression ?? null }),
+  );
   let struck = $state(false);
+  // The outcome is announced once per mounted victory (a replay remounts it).
+  let announced = false;
 
   $effect(() => {
     if (!result) return;
@@ -103,8 +106,9 @@
   });
 
   $effect(() => {
-    if (!struck || !verdictReady) return;
-    const o = outcome;
+    const o = verdict;
+    if (!struck || !o || announced) return;
+    announced = true;
     untrack(() => {
       react('opponent', o === 'rout' ? 'defeat' : o === 'push' ? 'retreat' : 'taunt');
       react('dragon', o === 'standoff' ? 'brace' : 'cheer');
@@ -113,14 +117,18 @@
   });
 
   // Before the reckoning ends the title is the opponent's name alone, so nothing jumps.
-  const title = $derived(struck && verdictReady ? victoryTitle(outcome, opponent) : opponentName(opponent));
+  const title = $derived(struck && verdict ? victoryTitle(verdict, opponent) : opponentName(opponent));
   const pending = $derived(submitting || (!playState.submitted && !submitError));
   const showSpoils = $derived(!!playState.progression && !revealDone);
-  const showDialogue = $derived(!pending && !showSpoils);
+  // Once the dialogue has started it stays through a « Réessayer » in flight (fix round 1 #1).
+  let dialogueStarted = $state(false);
+  const showDialogue = $derived(!showSpoils && (dialogueStarted || !pending));
 
   // Ruling C7: Éris speaks first (her line, unchanged), then the dragon: the tally, the help-stage
-  // message, the « Revoir » hint. Built once per victory (snapshotted when it first shows), so a
-  // late help message never restarts the typewriter; once read, the box closes and the actions stay.
+  // message, the « Revoir » hint. Snapshotted when it first shows, so nothing restarts the
+  // typewriter mid-line; the help message is the one exception (fix round 1 #1): it arrives with a
+  // successful submission, which after a failed one comes later, so the lines are taken again then
+  // and the dialogue plays again, help included. Once read, the box closes and the actions stay.
   const speaker = $derived(camp?.dragon ?? ({ name: null, stage: 'egg', tint: 'bronze' } as DragonOut));
   const victoryLines = $derived.by(() => {
     if (!result) return [];
@@ -131,17 +139,34 @@
     return lines;
   });
   let spoken = $state<DialogueLine[] | null>(null);
+  let spokenHelp: string | null = null;
   let talked = $state(false);
   $effect(() => {
-    if (showDialogue && !spoken) spoken = untrack(() => victoryLines);
+    if (!showDialogue || spoken) return;
+    untrack(() => {
+      spoken = victoryLines;
+      spokenHelp = helpMessage;
+      dialogueStarted = true;
+    });
+  });
+  $effect(() => {
+    const help = helpMessage;
+    if (!spoken || help === spokenHelp) return;
+    untrack(() => {
+      spoken = victoryLines;
+      spokenHelp = help;
+      talked = false;
+    });
   });
 </script>
 
-{#if playClock.needsBreak && result}
-  <DragonNudge dragon={camp?.dragon ?? null} onPause={onCamp} onContinue={() => clockReset()} />
-{/if}
 {#if result}
   <VictorySheet {title} {result} {mode} {reduced} showActions={!pending} {onReview} {onReplay} {onCamp}>
+    {#snippet nudge()}
+      {#if playClock.needsBreak}
+        <DragonNudge dragon={camp?.dragon ?? null} onPause={onCamp} onContinue={() => clockReset()} />
+      {/if}
+    {/snippet}
     {#snippet status()}
       {#if pending}
         <p class="kit-ribbon counting" data-testid="battle-status">{VICTORY.counting}</p>
@@ -169,7 +194,7 @@
     {#snippet dialogue()}
       {#if showDialogue && spoken && !talked}
         <div class="victory-dialogue" data-testid="victory-dialogue">
-          <DialogueBox dock="fill" lines={spoken} onDone={() => (talked = true)} />
+          {#key spoken}<DialogueBox dock="fill" lines={spoken} onDone={() => (talked = true)} />{/key}
         </div>
       {/if}
     {/snippet}

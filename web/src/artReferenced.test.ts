@@ -1,5 +1,7 @@
 // UI4 Ruling C14: every scene background shipped under public/art/scenes is used by the game (an
 // unused one is dead weight in the PWA cache and misleads the art inventory).
+// The scan reads the raw sources: a path inside a comment counts as a reference too. It is a guard
+// against forgotten files, not proof of use: a file named only in a comment would pass it.
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';

@@ -23,10 +23,17 @@ const HALF = 'Les fées dansent dans la clairière. Elles chante et les oiseaux 
 
 test.beforeEach(async ({ page }) => stubSpeech(page));
 
-async function victory(page: import('@playwright/test').Page, request: import('@playwright/test').APIRequestContext, name: string, current: string, opponent = 'hydre') {
+async function victory(
+  page: import('@playwright/test').Page,
+  request: import('@playwright/test').APIRequestContext,
+  name: string,
+  current: string,
+  opponent = 'hydre',
+  draft = DRAFT,
+) {
   const id = await createProfileApi(request, uniqueName(name));
   const text = await createText(request, { title: uniqueName('Victoire'), body: REF, level: '10H' });
-  await seedPlay(page, { profileId: id, textId: text.id, phase: 'results', draft: DRAFT, current, opponent });
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'results', draft, current, opponent });
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'victory');
   return { id, text };
@@ -88,10 +95,20 @@ test('« Revoir » opens the review scroll: each trap explained on tap; Back and
   await expect(page.getByTestId('battle-revoir')).toBeFocused();
 });
 
-test('every trap caught routs the lieutenant; a perfect dictation too', async ({ page, request }, testInfo) => {
+test('every trap caught routs the lieutenant', async ({ page, request }, testInfo) => {
   await victory(page, request, `Vic4-${testInfo.project.name}`, REF);
   await expect(page.getByTestId('victory-title')).toHaveText('Victoire !');
   await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'defeat');
+  await expect(page.getByTestId('results-catch-rate')).toContainText('2 sur 2');
+});
+
+test('a perfect dictation routs the lieutenant too: nothing to catch, one strike', async ({ page, request }, testInfo) => {
+  await victory(page, request, `Vic4b-${testInfo.project.name}`, REF, 'hydre', REF);
+  await expect(page.getByTestId('results-catch-rate')).toHaveText('Texte parfait dès la dictée !');
+  await expect(page.getByTestId('victory-title')).toHaveText('Victoire !');
+  await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-hits', '1');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'defeat');
 });
 
@@ -111,18 +128,37 @@ test('reduced motion: the hold and the laurels land at once', async ({ page, req
   await expect.poll(() => page.getByTestId('victory-laurel').evaluate((el) => el.getAnimations({ subtree: true }).filter((a) => a.playState === 'running').length)).toBe(0);
 });
 
-test('a failed submission can be sent again from the sheet', async ({ page, request }, testInfo) => {
+test('a failed submission can be sent again from the sheet; the dialogue survives the retry and speaks again after it', async ({ page, request }, testInfo) => {
   let failed = false;
+  // The retry is held until the test lets it through, to see the sheet while it is in flight.
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
   await page.route('**/api/sessions', async (route) => {
-    if (!failed && route.request().method() === 'POST') {
+    if (route.request().method() !== 'POST') return route.continue();
+    if (!failed) {
       failed = true;
       await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ detail: 'Serveur fatigué' }) });
-    } else await route.continue();
+      return;
+    }
+    await held;
+    await route.continue();
   });
   await victory(page, request, `Vic7-${testInfo.project.name}`, HALF);
   await expect(page.getByTestId('victory')).toContainText("Les Muses n'ont pas pu noter cette partie (Serveur fatigué).");
+  // Nothing is pending once the submission failed: Éris and the dragon already speak.
+  await expect(page.getByTestId('dialogue-box')).toContainText('Éris');
   await tap(page.getByRole('button', { name: 'Réessayer' }), testInfo);
+  // In flight: the Muses count again, and the dialogue stays where it was.
+  await expect(page.getByTestId('battle-status')).toBeVisible();
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  release();
   await expect(page.getByTestId('reveal-xp')).toBeVisible();
+  await tap(page.getByTestId('reveal-continue'), testInfo);
+  // After the spoils the dialogue plays again from Éris's line, with the tally after it.
+  await expect(page.getByTestId('dialogue-box')).toContainText('Éris');
+  await page.getByTestId('dialogue-advance').click(); // finish typing
+  await page.getByTestId('dialogue-advance').click(); // next line
+  await expect(page.getByTestId('dialogue-text')).toContainText('Tu as déjoué 1 piège sur 2.');
   await page.unrouteAll({ behavior: 'ignoreErrors' });
 });
 

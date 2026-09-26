@@ -17,6 +17,7 @@
     reduced,
     showActions,
     crown,
+    nudge,
     status,
     spoils,
     dialogue,
@@ -32,6 +33,8 @@
     showActions: boolean;
     /** Above the title; the laurel wreath by default. */
     crown?: Snippet;
+    /** The dragon's break nudge, at the top of the sheet's scrolling body. */
+    nudge?: Snippet;
     status?: Snippet;
     spoils?: Snippet;
     dialogue?: Snippet;
@@ -48,6 +51,7 @@
 
 <article class="victory kit-scroll" data-testid="victory">
   <div class="sheet-body">
+    {@render nudge?.()}
     <header class="crown">
       {#if crown}{@render crown()}{:else}<LaurelWreath {reduced} />{/if}
       <h2 class="victory-title" data-testid="victory-title">{title}</h2>
@@ -99,6 +103,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+  }
+  /* A short screen (1280x720, the break nudge on top): a smaller wreath leaves the spoils room. */
+  @media (max-height: 760px) {
+    .crown :global(.wreath) {
+      width: 112px;
+      height: 84px;
+    }
   }
   .victory-title {
     position: relative;

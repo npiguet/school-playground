@@ -1,5 +1,6 @@
 // `npx playwright test <args>`, plus Ruling F3(b)'s crash-only retry: when every failure of the run
-// is « browser crashed (upstream WebKit) » (e2e/crashGuard.ts), those tests - and the rest of a
+// is a crash - « browser crashed (upstream WebKit) » (e2e/crashGuard.ts), or a Playwright worker or
+// browser segfault (Ruling U4-b, e2e/crashClassify.ts) - those tests - and the rest of a
 // serial group that holds one - run once more, with the same arguments. Any other failure, or an
 // error outside the tests, ends the run red at once: it never retries. Playwright's own `retries`
 // stays 0. The run's crash summary comes from e2e/crashReporter.ts (only playwright.config.ts
@@ -25,11 +26,11 @@ if (status === 0 || !existsSync(SUMMARY)) process.exit(status);
 const summary = JSON.parse(readFileSync(SUMMARY, 'utf8'));
 if (summary.status !== 'failed' || summary.crashed.length === 0) process.exit(status);
 if (summary.otherFailures.length || summary.runErrors.length) {
-  console.log(`\n== crash-only retry: not retrying, the run has failures other than a browser crash`);
+  console.log(`\n== crash-only retry: not retrying, the run has failures other than a crash`);
   process.exit(status);
 }
 
-console.log(`\n== crash-only retry: the browser crashed (upstream WebKit) in ${summary.crashed.length} test(s):`);
+console.log(`\n== crash-only retry: the browser or a worker crashed in ${summary.crashed.length} test(s):`);
 for (const t of summary.crashed) console.log(`   ${t}`);
 console.log(`== running ${summary.rerun.failedTests.length} test(s) once more (the crashed ones and their serial groups)\n`);
 const list = join(tmpdir(), `crash-rerun-${process.pid}.json`);

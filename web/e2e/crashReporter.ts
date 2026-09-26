@@ -1,19 +1,18 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { FullConfig, FullResult, Reporter, Suite, TestCase, TestError } from '@playwright/test/reporter';
-import { BROWSER_CRASHED } from './crashGuard';
+import { crashedWith } from './crashClassify';
 
-// Ruling F3(b): sorts a run's failures into "the browser crashed" (crashGuard.ts's named error) and
-// everything else, for scripts/playwright-crash-retry.mjs. It writes CRASH_SUMMARY:
-// - `crashed`: tests that failed with the named error;
+// Ruling F3(b): sorts a run's failures into "crashed" (crashGuard.ts's named error, or a worker or
+// browser segfault, Ruling U4-b: crashClassify.ts) and everything else, for
+// scripts/playwright-crash-retry.mjs. It writes CRASH_SUMMARY:
+// - `crashed`: tests that failed with a crash;
 // - `rerun`: the tests to run once more, as a Playwright last-run file (`failedTests`) - the
 //   crashed tests, plus every test of a serial group that holds one (a serial group's tests share
 //   state, e.g. world.spec.ts's profile, and the ones after the crash never ran);
 // - `otherFailures`: every other failed or timed-out test, and `runErrors` (errors outside any
 //   test). Either one means no retry at all.
 export const CRASH_SUMMARY = 'test-results/crash-summary.json';
-
-const crashedWith = (errors: TestError[]) => errors.some((e) => (e.message ?? '').includes(BROWSER_CRASHED));
 
 // The outermost serial describe around a test, if any (Playwright retries a serial group whole).
 function serialGroup(test: TestCase): Suite | undefined {

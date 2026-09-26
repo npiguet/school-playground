@@ -30,20 +30,23 @@
 </div>
 
 <style>
+  /* Compact (fix round 1 #4): the plate and its two buttons side by side, at the top of the sheet's
+     scrolling body, so the sheet below keeps its room at 1280x720. */
   .dragon-nudge {
     flex: none;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin: 16px 22px 0;
+    align-items: center;
+    gap: 12px;
   }
   .dragon-nudge :global(.overlay-voice) {
+    flex: 1;
+    min-width: 0;
     margin: 0;
   }
   .nudge-actions {
+    flex: none;
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
   }
 </style>

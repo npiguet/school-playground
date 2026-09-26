@@ -244,9 +244,13 @@
     color: inherit;
     cursor: default;
   }
+  /* French typography (fix round 1 #5): « . » and « , » sit against their word, no gap before. */
   .tok.punct {
-    padding-left: 1px;
+    padding-left: 0;
     padding-right: 1px;
+  }
+  .tok:has(+ .tok.punct) {
+    padding-right: 0;
   }
   .tok.err,
   .tok.caught {

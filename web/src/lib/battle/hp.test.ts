@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FULL_HP, hpDuringPlay, hpPercent, outcomeOf, reckoningSteps } from './hp';
+import { FULL_HP, hpDuringPlay, hpPercent, outcomeOf, reckoningSteps, reckoningVerdict } from './hp';
 
 describe("the opponent's hold on the text (Ruling C3)", () => {
   it('stays full while she plays, notched only by the count stage 3 already shows', () => {
@@ -37,5 +37,16 @@ describe("the opponent's hold on the text (Ruling C3)", () => {
     expect(outcomeOf({ draft: 5, caught: 5 }, { won: false, too_easy: false })).toBe('push');
     expect(outcomeOf({ draft: 0, caught: 0 }, { won: false, too_easy: true })).toBe('standoff');
     expect(hpPercent({ value: 0.504, segments: null })).toBe(50);
+  });
+
+  it("gives a boss fight's verdict only with the server's, so UI5 hears one outcome (lane V fix round 1)", () => {
+    const r = { draft: 4, caught: 2 };
+    // A failed submission leaves the boss with no verdict (no outcome yet), never a provisional one.
+    expect(reckoningVerdict(r, { bossFight: true, progression: null })).toBeNull();
+    expect(reckoningVerdict(r, { bossFight: true, progression: { boss: { won: true, too_easy: false } } })).toBe('rout');
+    expect(reckoningVerdict(r, { bossFight: true, progression: { boss: { won: false, too_easy: false } } })).toBe('push');
+    // Any other fight is the client's own result, with or without the server.
+    expect(reckoningVerdict(r, { bossFight: false, progression: null })).toBe('push');
+    expect(reckoningVerdict({ draft: 0, caught: 0 }, { bossFight: false, progression: null })).toBe('rout');
   });
 });
