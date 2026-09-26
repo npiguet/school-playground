@@ -447,21 +447,38 @@ export async function expectInSafeZone(page: Page, sceneId: string, testIds: str
   }
 }
 
-// Every hotspot label that covers another hotspot or another label of the same scene.
+// Every hotspot label that covers another hotspot or another label of the same scene. A plaque's
+// box includes its badge (UI3b Task 7 review): the badge overhangs the plaque's corner, so a badge
+// covering another place or plaque counts as an overlap too.
 export async function labelOverlaps(page: Page, sceneId: string): Promise<string[]> {
   return page.evaluate((sid) => {
-    const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    type Box = { left: number; top: number; right: number; bottom: number };
+    const hit = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    const plaque = (spot: Element): Box | null => {
+      const label = spot.querySelector('.hotspot-label');
+      if (!label) return null;
+      const r = label.getBoundingClientRect();
+      const box = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+      const badge = label.querySelector('.hotspot-badge');
+      if (badge) {
+        const b = badge.getBoundingClientRect();
+        box.left = Math.min(box.left, b.left);
+        box.top = Math.min(box.top, b.top);
+        box.right = Math.max(box.right, b.right);
+        box.bottom = Math.max(box.bottom, b.bottom);
+      }
+      return box;
+    };
     const spots = Array.from(document.querySelectorAll(`[data-testid="scene-${sid}"] button.hotspot`));
     const out: string[] = [];
     for (const s of spots) {
-      const label = s.querySelector('.hotspot-label');
-      if (!label) continue;
-      const lr = label.getBoundingClientRect();
+      const lr = plaque(s);
+      if (!lr) continue;
       for (const o of spots) {
         if (o === s) continue;
         if (hit(lr, o.getBoundingClientRect())) out.push(`${s.getAttribute('data-testid')} label over ${o.getAttribute('data-testid')}`);
-        const ol = o.querySelector('.hotspot-label');
-        if (ol && hit(lr, ol.getBoundingClientRect())) out.push(`${s.getAttribute('data-testid')} label over ${o.getAttribute('data-testid')} label`);
+        const ol = plaque(o);
+        if (ol && hit(lr, ol)) out.push(`${s.getAttribute('data-testid')} label over ${o.getAttribute('data-testid')} label`);
       }
     }
     return out;

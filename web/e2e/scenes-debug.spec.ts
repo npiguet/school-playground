@@ -26,7 +26,8 @@ test('?debug shows one outline per visible camp hotspot and hotspots stay clicka
   const visibleHotspots = page.locator('button.hotspot');
   const outlines = overlay.locator('svg.outline');
   await expect(outlines).toHaveCount(await visibleHotspots.count());
-  expect(await visibleHotspots.count()).toBeGreaterThan(0);
+  // UI3 Ruling B3: the six places of hub_camp.webp, the locked path to battle included.
+  expect(await visibleHotspots.count()).toBe(6);
 
   // A hotspot is still a real, clickable button through the overlay (pointer-events: none).
   const parchemins = page.getByTestId('camp-parchemins');

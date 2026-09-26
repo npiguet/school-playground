@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { validateScene } from '../../scene/validate';
 import type { CampResponse, LieutenantState, QuestOut, WorldCatalog } from '../types';
+import { nextStep, HUB_PLACE } from '../nextStep';
+import { prophecyWhen } from '../prophecy';
 import {
-  CAMP_DRAGON_LAYER,
   CAMP_HOTSPOTS,
   CAMP_SCENE,
-  bestiaryCaption,
+  bossLockLine,
+  campDragonLayer,
   campGreeting,
-  campNextStep,
+  campNews,
   dragonCaption,
-  nextStepLine,
   treasureCaption,
   weeklyCaption,
 } from './camp';
-import { nearestProphecy, prophecyWhen } from '../prophecy';
 
 function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {
@@ -35,79 +35,76 @@ const catalog = {
   boss_rewards: { '1': 'sandales' },
   rewards: { sandales: { id: 'sandales', kind: 'gear', name: "Sandales d'Hermès", desc: '', source: '' } },
 } as unknown as WorldCatalog;
-const state = (id: string, c: CampResponse | null, cat: WorldCatalog | null = null) =>
-  CAMP_HOTSPOTS.find((h) => h.id === id)!.state({ camp: c, catalog: cat });
+const state = (id: string, c: CampResponse | null, cat: WorldCatalog | null = null) => CAMP_HOTSPOTS.find((h) => h.id === id)!.state({ camp: c, catalog: cat });
+const ready = (over: Partial<CampResponse> = {}) => camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null }, ...over });
+const seasoned = { total: 40, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 };
+const chosen = { week: 'w', status: 'chosen' as const, reward_id: null };
+const hatchling = { ...camp().dragon, stage: 'hatchling' as const };
+const echoStirs = [{ key: 'echo', name: 'Écho', stirring: true, neutralised: false, available: true }] as LieutenantState[];
+const prophecy = (days: number) => [{ text_id: 1, title: 'La mer', due_date: '2026-09-27', days_left: days }];
 
-describe('camp hub scene', () => {
-  it('is a valid scene: safe zone, HUD band, dialogue dock, no overlaps', () => {
+describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
+  it('is a valid scene with the six places of the painted camp, each pinned to its landmark', () => {
     expect(validateScene(CAMP_SCENE)).toEqual([]);
-  });
-
-  it('routes every place to its existing screen', () => {
+    expect(CAMP_SCENE).toMatchObject({ title: 'Le camp', background: '/art/scenes/hub_camp.webp' });
     expect(Object.fromEntries(CAMP_HOTSPOTS.map((h) => [h.id, h.target]))).toEqual({
       dragon: 'dragon',
       oracle: 'delphi',
-      quests: 'quests',
       parchemins: 'library-tent',
-      dossier: 'dossier',
-      bestiary: 'bestiaire',
+      dossier: 'war-tent',
       cabin: 'cabin',
       boss: 'boss',
     });
+    for (const h of CAMP_HOTSPOTS) expect(h.leader === true || h.labelPos === 'on', h.id).toBe(true);
+    expect(CAMP_HOTSPOTS.find((h) => h.id === 'cabin')!.labelPos).toBe('on');
   });
 
-  it('shows every place but the battle path before /camp has loaded', () => {
-    for (const h of CAMP_HOTSPOTS) expect(h.state({ camp: null, catalog: null }).visible, h.id).toBe(h.id !== 'boss');
+  it('always shows the path to battle, locked until Éris can be fought', () => {
+    for (const h of CAMP_HOTSPOTS) expect(h.state({ camp: null, catalog: null }).visible, h.id).toBe(true);
+    expect(state('boss', null).locked).toBe(true);
+    expect(state('boss', camp())).toMatchObject({ locked: true, caption: null, isNew: false });
+    expect(state('boss', ready(), catalog)).toMatchObject({ locked: false, isNew: true, caption: "Combat 1 : Sandales d'Hermès" });
+    expect(state('boss', ready(), null).caption).toBe('Combat 1 : une récompense');
   });
 
-  it('captions the dragon with its name, or its stage before it is named, plus its short ambient activity', () => {
-    expect(dragonCaption(camp().dragon)).toBe('Un œuf de dragon');
-    expect(dragonCaption({ ...camp().dragon, stage: 'hatchling' })).toBe('Dragonnet');
-    expect(state('dragon', camp()).caption).toBe('Un œuf de dragon · Frémit');
-    expect(state('dragon', camp({ dragon: { ...camp().dragon, stage: 'hatchling', name: 'Braise' } })).caption).toBe(
-      'Braise · Curieux',
-    );
+  it("explains the locked path in the dragon's words", () => {
+    expect(bossLockLine(camp())).toBe('Éris se cache encore. Neutralise encore 2 ruses et elle sortira.');
+    expect(bossLockLine(camp({ dragon: { ...camp().dragon, neutralised: 1 } }))).toBe('Éris se cache encore. Neutralise encore une ruse et elle sortira.');
+    expect(bossLockLine(camp({ boss: { tier_available: null, tiers_won: [1, 2, 3], active_quest_id: null } }))).toBe('Éris est vaincue trois fois. Elle boude, loin du camp.');
   });
 
-  it('marks the sealed Oracle as new, counts active quests, counts neutralised tricks', () => {
-    expect(state('oracle', camp({ xp: { total: 90, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 } }))).toMatchObject({
-      isNew: true,
-      caption: 'Trois rouleaux à ouvrir',
+  it('captions only the places with news, three at most, in priority order', () => {
+    expect(campNews(camp({ xp: seasoned, oracle: chosen }), null)).toEqual({});
+    const busy = ready({ xp: seasoned, prophecies: prophecy(2), dragon: hatchling, lieutenants: echoStirs });
+    expect(campNews(busy, catalog)).toEqual({ boss: "Combat 1 : Sandales d'Hermès", oracle: `Une prophétie, ${prophecyWhen(2)}`, dragon: 'Il attend un nom' });
+    expect(state('dossier', busy, catalog).caption).toBeNull();
+    expect(campNews(camp({ xp: seasoned, dragon: hatchling, lieutenants: echoStirs }), null)).toEqual({
+      oracle: 'Trois rouleaux à ouvrir',
+      dragon: 'Il attend un nom',
+      dossier: "Écho s'agite",
     });
-    expect(CAMP_HOTSPOTS.find((h) => h.id === 'quests')!.label).toBe('Le mur des quêtes');
-    expect(state('oracle', camp({ oracle: { week: 'w', status: 'chosen', reward_id: null } }))).toMatchObject({
-      isNew: false,
-      caption: 'Quête en cours',
-    });
-    const quests = [
-      { id: 1, kind: 'board', status: 'active' },
-      { id: 2, kind: 'oracle', status: 'active' },
-      { id: 3, kind: 'board', status: 'done' },
-    ] as QuestOut[];
-    expect(state('quests', camp({ quests })).badge).toBe(2);
-    expect(state('quests', camp()).badge).toBeNull();
-    const lieutenants = [
-      { neutralised: true, available: true },
-      { neutralised: false, available: true },
-      { neutralised: false, available: false },
-    ] as LieutenantState[];
-    expect(state('bestiary', camp({ lieutenants })).caption).toBe("1 ruse d'Éris déjouée");
-    expect(state('cabin', camp({ rewards_count: 3 })).caption).toBe('3 trésors');
+    expect(campNews(camp(), null)).toEqual({ oracle: 'Trois rouleaux à ouvrir', parchemins: 'Choisis un texte à défendre' });
   });
 
-  it('opens the battle path only when Éris can be fought, naming the reward known in advance', () => {
-    expect(state('boss', camp()).visible).toBe(false);
-    const ready = camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null } });
-    expect(state('boss', ready, catalog)).toMatchObject({ visible: true, isNew: true, caption: "Combat 1 : Sandales d'Hermès" });
-    expect(state('boss', ready, null).caption).toBe('Combat 1 : une récompense');
-    const engaged = camp({
-      boss: { tier_available: 1, tiers_won: [], active_quest_id: 9 },
-      quests: [{ id: 9, kind: 'boss', status: 'active' }] as QuestOut[],
-    });
-    expect(state('boss', engaged, catalog)).toMatchObject({ visible: true, isNew: false, caption: 'Un combat est déjà engagé contre Éris.' });
+  it('glows on at most one place: the one the shared next step names (Ruling B9)', () => {
+    const cases = [camp(), ready(), camp({ xp: seasoned, prophecies: prophecy(3), oracle: chosen }), camp({ xp: seasoned }), camp({ xp: seasoned, oracle: chosen })];
+    for (const c of cases) {
+      const glowing = CAMP_HOTSPOTS.filter((h) => h.state({ camp: c, catalog }).isNew).map((h) => h.id);
+      const step = nextStep(c);
+      expect(glowing).toEqual(step ? [HUB_PLACE[step]] : []);
+    }
   });
 
-  it('greets with three static dragon lines, the last one pointing at the next step', () => {
+  it('carries the quest count on the Delphi plaque and the foiled tricks on the war-tent plaque', () => {
+    const quests = [{ status: 'active' }, { status: 'active' }, { status: 'done' }] as QuestOut[];
+    expect(state('oracle', camp({ quests })).badge).toBe(2);
+    expect(state('oracle', camp()).badge).toBeNull();
+    const lieutenants = [{ key: 'hydre', neutralised: true }, { key: 'echo', neutralised: false }] as LieutenantState[];
+    expect(state('dossier', camp({ lieutenants })).badge).toBe(1);
+    expect(state('dossier', camp()).badge).toBeNull();
+  });
+
+  it('greets with three static dragon lines, the last one naming the next step', () => {
     const lines = campGreeting('Ariane', camp());
     expect(lines.map((l) => l.text)).toEqual([
       'Bienvenue au camp, Ariane.',
@@ -116,68 +113,17 @@ describe('camp hub scene', () => {
     ]);
     expect(lines[0]).toMatchObject({ speaker: 'dragon', name: "L'œuf", portrait: '/art/dragon/dragon_egg_cut.webp', portraitFilter: 'none' });
   });
-});
 
-describe('camp hub wording (playability #2, #6, #16)', () => {
-  it('pluralises the treasures and the foiled tricks properly', () => {
+  it('seats the dragon in the painted nest, on a shallow plane; preloads the tent and the temple', () => {
+    expect(campDragonLayer('egg')).toMatchObject({ x: 17, y: 55, depth: 1 });
+    expect(campDragonLayer('adult').scale).toBeGreaterThan(campDragonLayer('egg').scale);
+    expect(CAMP_SCENE.preload).toEqual(['/art/scenes/library_tent.webp', '/art/scenes/delphi.webp']);
+  });
+
+  it('keeps the words the other places use', () => {
+    expect(dragonCaption(camp().dragon)).toBe('Un œuf de dragon');
     expect([0, 1, 2].map(treasureCaption)).toEqual(['Aucun trésor encore', '1 trésor', '2 trésors']);
-    expect([0, 1, 2].map(bestiaryCaption)).toEqual(["Les ruses d'Éris t'attendent", "1 ruse d'Éris déjouée", "2 ruses d'Éris déjouées"]);
-  });
-
-  it('says when a prophecy falls due in words', () => {
-    expect([0, 1, 3].map(prophecyWhen)).toEqual(["aujourd'hui", 'demain', 'dans 3 jours']);
-  });
-
-  it('shows the weekly goal as parchments defended', () => {
     expect(weeklyCaption({ week: 'w', target: 3, done: 1, reached: false })).toBe('Cette semaine : 1 / 3 parchemins défendus');
     expect(weeklyCaption({ week: 'w', target: 3, done: 3, reached: true })).toBe('Objectif atteint ! Les Muses sont fières.');
-  });
-
-  it('lights one next step: a prophecy within a week, else the open battle, else the tent for a new hero, else the sealed Oracle (Rulings W14, B9)', () => {
-    const mid = { total: 90, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 };
-    const open = { tier_available: 1, tiers_won: [], active_quest_id: null };
-    const chosen = { week: 'w', status: 'chosen' as const, reward_id: null };
-    const soon = [{ text_id: 1, title: 'x', due_date: '2026-09-29', days_left: 2 }];
-    expect(campNextStep(null)).toBeNull();
-    expect(campNextStep(camp({ xp: mid, prophecies: soon, oracle: chosen }))).toBe('oracle');
-    // The real-school dictation outranks even an open battle and a new hero's first text.
-    expect(campNextStep(camp({ boss: open, prophecies: soon }))).toBe('oracle');
-    expect(state('boss', camp({ boss: open, prophecies: soon })).isNew).toBe(false);
-    expect(state('parchemins', camp({ prophecies: soon })).isNew).toBe(false);
-    expect(state('oracle', camp({ boss: open, prophecies: soon }))).toMatchObject({ isNew: true, caption: 'Trois rouleaux à ouvrir' });
-    expect(campNextStep(camp())).toBe('parchemins');
-    expect(campNextStep(camp({ boss: open }))).toBe('boss');
-    expect(campNextStep(camp({ xp: mid }))).toBe('oracle');
-    expect(campNextStep(camp({ xp: mid, oracle: { week: 'w', status: 'chosen', reward_id: null } }))).toBeNull();
-    const engaged = camp({ xp: mid, boss: { ...open, active_quest_id: 9 }, quests: [{ id: 9, kind: 'boss', status: 'active' }] as QuestOut[] });
-    expect(campNextStep(engaged)).toBe('oracle');
-    // The captions stay whichever place glows.
-    expect(state('oracle', camp())).toMatchObject({ isNew: false, caption: 'Trois rouleaux à ouvrir' });
-    expect(state('parchemins', camp({ boss: open }))).toMatchObject({ isNew: false, caption: 'Choisis un texte à défendre' });
-  });
-
-  it('points the new hero at the parchments tent, with a caption and the new glow', () => {
-    expect(state('parchemins', camp())).toMatchObject({ caption: 'Choisis un texte à défendre', isNew: true });
-    expect(state('parchemins', camp({ xp: { total: 40, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 } })).isNew).toBe(false);
-  });
-
-  it('ends the greeting on the next step: a near prophecy, else a ready battle, else the tent, else the sealed scrolls', () => {
-    const prophecies = [
-      { text_id: 2, title: 'Les fées', due_date: '2026-10-01', days_left: 7 },
-      { text_id: 1, title: 'La mer', due_date: '2026-09-27', days_left: 3 },
-    ];
-    expect(nearestProphecy(camp({ prophecies }))?.title).toBe('La mer');
-    expect(nextStepLine(camp({ prophecies }))).toBe("La Pythie a vu ta prochaine épreuve, dans 3 jours. Viens t'y préparer !");
-    const ready = camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null } });
-    expect(nextStepLine(camp({ ...ready, prophecies }))).toBe(`La Pythie a vu ta prochaine épreuve, ${prophecyWhen(3)}. Viens t'y préparer !`);
-    expect(nextStepLine(ready)).toBe("Le sentier de la bataille est ouvert : Éris t'attend.");
-    expect(nextStepLine(camp())).toBe("Les parchemins t'attendent, sous la tente.");
-    const played = { total: 40, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 };
-    expect(nextStepLine(camp({ xp: played }))).toBe("La Pythie t'attend à Delphes : trois rouleaux à ouvrir.");
-  });
-
-  it('keeps the dragon cut-out on a shallow parallax plane and preloads the likely next scenes', () => {
-    expect(CAMP_DRAGON_LAYER.depth).toBeLessThanOrEqual(1);
-    expect(CAMP_SCENE.preload).toEqual(['/art/scenes/library_tent.webp', '/art/scenes/delphi.webp']);
   });
 });

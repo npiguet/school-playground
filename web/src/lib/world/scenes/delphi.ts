@@ -63,7 +63,7 @@ export const DELPHI_SCENE: SceneDef = {
   ambience: { particles: 'dust', music: null },
   narrator: { enter: 'delphi.enter', firstVisit: 'delphi.first' },
   // The only way out is the camp: warm it for a deep link or a reload into the temple (final review M8).
-  preload: [ART.scenes.camp],
+  preload: [ART.scenes.hubCamp],
 };
 
 export function pythiaGreeting(camp: CampResponse): DialogueLine[] {

@@ -74,7 +74,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.getByRole('button', { name: 'Entrer au camp' }).click();
 
     await expect(page.getByTestId('hud-xp')).toContainText('Recrue du camp');
-    await expect(page.getByTestId('camp-dragon')).toContainText('Un œuf de dragon');
+    await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
     await expect(page.getByTestId('camp-weekly')).toContainText('0 / 3');
 
     const match = page.url().match(/\/p\/(\d+)\//);
@@ -120,7 +120,10 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
   test('3. quest board shows it, lieutenant page gauges', async ({ page }) => {
     await page.goto(`/#/p/${profileId}/camp`);
     await expectCamp(page);
-    await page.getByTestId('camp-quests').click();
+    // UI3 Ruling B3: the quest wall lives in Delphi now; the hub's oracle path leads there.
+    await page.getByTestId('camp-oracle').click();
+    await expectScene(page, 'delphi');
+    await page.getByTestId('delphi-tablets').click();
 
     await expect(page.getByTestId(`quest-card-${oracleQuestId}`)).toContainText('Récompense connue : 150 XP · Teinte Écume');
 
@@ -239,7 +242,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await expect(page.getByTestId('dragon-name-input')).toHaveValue('Braise');
 
     await page.goto(`/#/p/${profileId}/camp`);
-    await expect(page.getByTestId('camp-dragon')).toContainText('Braise');
+    await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('alt', 'Braise');
 
     await page.goto(`/#/p/${profileId}/dossier`);
     await expect(page.getByTestId('dossier-line-hydre')).toContainText("L'Hydre est neutralisée");

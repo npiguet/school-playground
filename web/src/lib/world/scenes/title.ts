@@ -19,7 +19,7 @@ export const TITLE_SCENE: SceneDef = {
   hotspots: TITLE_HOTSPOTS,
   ambience: { particles: 'embers', music: null },
   narrator: { enter: 'title.enter', firstVisit: null },
-  preload: [ART.scenes.camp],
+  preload: [ART.scenes.hubCamp],
 };
 
 /** A shield's width, art % (80 px wide at 1180x820, 70 px at 1280x720 - both >= the 64 px touch

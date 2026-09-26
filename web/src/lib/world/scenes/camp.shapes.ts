@@ -1,23 +1,20 @@
-// Hotspot geometry of the camp scene, in art % (0-100) of the 16:9 art frame.
-// Authored by hand from docs/art/scenes.md; checked visually with the `?debug` overlay.
+// Hotspot geometry of the hub (hub_camp.webp), art % of the 16:9 frame, authored by hand from
+// docs/art/scenes.md and checked with `?debug` (UI3 Ruling B3). The nest and the cabin overhang the
+// 4:3 safe zone in the art and are clipped at 12.5 / 87.5. The library tent's box starts at its eaves
+// (y 42) and the oracle's ends at the upper stairs (y 31), so the oracle's plaque fits between them;
+// the war tent's box starts under the spear tips (y 43), so the battle path's plaque fits above it.
+// The battle arch's box starts at its top beam (y 22), under the weekly ribbon (Camp.svelte).
+// The two overlaps UI3a left open (oracle/parchemins, dossier/cabin labels) are what these bounds and
+// the label positions in camp.ts solve; scenes-camp.spec.ts proves labelOverlaps() is empty.
 import type { ShapeMap } from '../../scene/types';
 
 export const CAMP_SHAPES = {
-  // Task 9 review round 2: round 1 shrank dragon/cabin's `ry` to keep a "below" label clear of the
-  // dialogue dock, but that also shrinks the *hotspot*, and `CAMP_DRAGON_LAYER` (camp.ts) still
-  // draws the sprite at its full, unshrunk y 64-80 (bottom-anchored at 80, scale 9, square art) -
-  // the lower ~60 % of the dragon, feet included, stopped being tappable. Both shapes are back to
-  // their full, sprite/landmark-matching size; camp.ts moves their labels `on` the landmark
-  // instead (ink on the egg / the cabin door) so the dock problem is solved on the label's side,
-  // not the hotspot's. `above` was tried instead and rejected: it makes dragon's plaque overlap
-  // the parchemins tent's own hotspot and label (checked with `labelOverlaps()`), and dragon has no
-  // room to move sideways away from it (already flush with the safe zone's left edge).
-  dragon: { kind: 'ellipse', cx: 18, cy: 71, rx: 5, ry: 8.5 },
-  oracle: { kind: 'ellipse', cx: 17, cy: 22, rx: 4.5, ry: 7 },
-  quests: { kind: 'ellipse', cx: 64, cy: 38, rx: 5, ry: 7 },
-  parchemins: { kind: 'ellipse', cx: 30, cy: 53, rx: 7.5, ry: 8 },
-  dossier: { kind: 'ellipse', cx: 68.5, cy: 59, rx: 7, ry: 8.5 },
-  bestiary: { kind: 'ellipse', cx: 50, cy: 50, rx: 7, ry: 6 },
-  cabin: { kind: 'ellipse', cx: 81.5, cy: 64, rx: 6, ry: 10 },
-  boss: { kind: 'ellipse', cx: 78, cy: 29, rx: 6, ry: 6 },
+  dragon: { kind: 'polygon', points: [[12.5, 44], [23, 42], [25, 50], [24, 66], [12.5, 66]] },
+  oracle: { kind: 'polygon', points: [[22.5, 14], [36, 14], [36, 22], [33, 31], [27, 31], [22.5, 22]] },
+  parchemins: { kind: 'polygon', points: [[33, 42], [51, 42], [51, 61], [33, 61]] },
+  dossier: { kind: 'polygon', points: [[54, 43], [74, 43], [74, 70], [54, 70]] },
+  boss: { kind: 'polygon', points: [[65, 22], [75, 22], [75, 33], [65, 33]] },
+  // The roof line: the left eave at y 61, rising to the ridge (x 86, y 54.5); its plaque is inked on
+  // the wall (camp.ts), so nothing of the cabin hangs on the olive tree above it (Task 7 review).
+  cabin: { kind: 'polygon', points: [[76, 61], [86, 54.5], [87.5, 55], [87.5, 78], [76, 78]] },
 } satisfies ShapeMap;

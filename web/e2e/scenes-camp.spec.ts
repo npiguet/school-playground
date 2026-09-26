@@ -5,9 +5,9 @@ import {
   createText,
   expectCamp,
   expectInSafeZone,
+  labelOverlaps,
   makeResult,
   measureBoxes,
-  onlyOwnProphecy,
   postSession,
   redScan,
   tap,
@@ -16,19 +16,19 @@ import {
 } from './helpers';
 
 // UI1 (scenes spec §9, §10): the camp as a hub scene, in both WebKit projects (desktop 1280x720
-// and iPad landscape 1180x820). Every place is a real button that routes to its (unchanged)
-// screen, Back returns to the hub, the hero panel has its own route, portrait shows the rotate
-// screen, reduced motion removes parallax, bob and particles.
+// and iPad landscape 1180x820). Every place is a real button that routes to its place, Back
+// returns to the hub, the hero panel has its own route, portrait shows the rotate screen, reduced
+// motion removes parallax, bob and particles. UI3 Ruling B3: six places on hub_camp.webp, the path
+// to battle always shown and locked until Éris can be fought.
 
 const PLACES: { id: string; path: RegExp; name: RegExp }[] = [
   { id: 'dragon', path: /\/dragon$/, name: /Le nid du dragon/ },
   { id: 'oracle', path: /\/temple$/, name: /Le chemin de Delphes/ },
-  { id: 'quests', path: /\/quetes$/, name: /Le mur des quêtes/ },
   { id: 'parchemins', path: /\/tente-parchemins$/, name: /La tente des parchemins/ },
-  { id: 'dossier', path: /\/dossier$/, name: /La tente de guerre/ },
-  { id: 'bestiary', path: /\/bestiaire$/, name: /Le bestiaire/ },
+  { id: 'dossier', path: /\/tente-de-guerre$/, name: /La tente de guerre/ },
   { id: 'cabin', path: /\/cabane$/, name: /Ta cabane/ },
 ];
+const ALL = [...PLACES.map((p) => `camp-${p.id}`), 'camp-boss'];
 
 const BODY = 'Les héros reviennent au camp. Ils racontent leurs voyages et les Muses les écoutent.';
 
@@ -72,9 +72,45 @@ test('every place routes to its screen and Back returns to the hub', async ({ pa
     await expectCamp(page);
     await waitForSceneSettled(page, 'camp');
   }
-  // No boss quest has been unlocked for this fresh profile (no lieutenant neutralised yet): the
-  // boss path stays absent from the hub rather than showing an empty/placeholder hotspot.
-  await expect(page.getByTestId('camp-boss')).toHaveCount(0);
+  // UI3 Ruling B3: the path to battle is always there, locked until Éris can be fought. Ruling
+  // B-a: it still answers a tap (the dragon explains), so it is not aria-disabled; its lock is
+  // painted on the plaque and said in its name.
+  const boss = page.getByTestId('camp-boss');
+  await expect(boss).toBeVisible();
+  await expect(boss).not.toHaveAttribute('aria-disabled', 'true');
+  await expect(boss).toHaveAccessibleName(/Le sentier de la bataille.*fermé pour l'instant/);
+  await expect(boss.locator('img.hotspot-lock')).toHaveAttribute('src', '/art/icons/lock.webp');
+});
+
+test('the locked path to battle: the dragon says how many tricks remain', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await openCamp(page, id);
+  await page.getByTestId('dialogue-skip').click();
+  await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
+  const boss = page.getByTestId('camp-boss');
+  const line = 'Éris se cache encore. Neutralise encore 2 ruses et elle sortira.';
+  await tap(boss, testInfo);
+  await expect(page).toHaveURL(/\/camp$/);
+  await expect(page.getByTestId('dialogue-text')).toHaveText(line);
+  await page.getByTestId('dialogue-skip').click();
+  await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
+  // Dismissing the line hands focus back to the path, not to <body> (UI3b Task 7 review).
+  await expect(boss).toBeFocused();
+  // The keyboard reaches the same words: Enter, then Space, on the focused path; « Tout passer »
+  // pressed from the keyboard hands focus back each time.
+  for (const key of ['Enter', 'Space']) {
+    await boss.focus();
+    await page.keyboard.press(key);
+    await expect(page.getByTestId('dialogue-text'), key).toHaveText(line);
+    await expect(page, key).toHaveURL(/\/camp$/);
+    await page.getByTestId('dialogue-skip').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByTestId('dialogue-box'), key).toHaveCount(0);
+    await expect(boss, key).toBeFocused();
+  }
+  await expect(page).toHaveURL(/\/camp$/);
+  await tap(page.getByTestId('camp-parchemins'), testInfo); // the one-tap guard was never taken
+  await expect(page).toHaveURL(/\/tente-parchemins$/);
 });
 
 // Final review M11: "only one navigation" is proved by counting every hash change from before the
@@ -206,18 +242,44 @@ test('the onboarding card is a real modal: the camp is inert, Tab stays on the c
   await expect(page.getByTestId('scene-camp')).not.toHaveAttribute('inert', '');
 });
 
-test('places and their labels sit inside the visible safe zone and work from the keyboard', async ({ page, request }, testInfo) => {
-  const id = await createProfileApi(request, heroName(testInfo.project.name));
-  await openCamp(page, id);
+test('places and their labels sit inside the visible safe zone, never overlap, and work from the keyboard', async ({ page, request }, testInfo) => {
+  // Two heroes, so every plaque is measured at its widest: a fresh one (the locked path's painted
+  // lock; captions on the oracle and the tent) and one who can fight Éris with a board quest up
+  // (the battle's reward caption, the oracle's quest badge, the war tent's foiled-tricks badge).
+  const fresh = await createProfileApi(request, heroName(testInfo.project.name));
+  const ready = await createProfileApi(request, heroName(testInfo.project.name));
+  await readyTheBattle(request, ready, testInfo.project.name);
+  expect((await request.post(`/api/profiles/${ready}/quests`, { data: { target: 'chimere' } })).ok()).toBeTruthy();
   // The real art safe zone (mirrors web/src/lib/scene/geometry.ts's SAFE_ZONE x 12.5-87.5% and
   // HUD_BAND y >= 14%), not just "somewhere inside the viewport": the art box is cropped by the
   // viewport on iPad (stageBox() can size it wider/taller than the screen), so a hotspot could
   // pass a viewport-bounds check while still sitting outside the zone the spec actually guarantees
-  // is visible. `expectInSafeZone` also checks each label vertically now (Task 9 review round 1):
-  // below the HUD band and clear of the dialogue dock - this fresh hero has captions on (oracle,
-  // parchemins), so their taller labels are exercised too. Runs on both projects (1280x720 and
-  // 1180x820, the two sizes the review asked for).
-  await expectInSafeZone(page, 'camp', PLACES.map((p) => `camp-${p.id}`));
+  // is visible. `expectInSafeZone` also checks each label vertically: below the HUD band and clear
+  // of the dialogue dock. The hub has no exit sign (it is where the others lead).
+  // The ledger's ruling and UI3a final review M19: no plaque covers another place or plaque, every
+  // pair, at the two project sizes, the smallest iPad landscape and the 13" iPad.
+  for (const id of [fresh, ready]) {
+    for (const size of [
+      { width: 1024, height: 768 },
+      { width: 1180, height: 820 },
+      { width: 1280, height: 720 },
+      { width: 1366, height: 1024 },
+    ]) {
+      const at = `${id === fresh ? 'fresh' : 'ready'} ${size.width}x${size.height}`;
+      await page.setViewportSize(size);
+      await openCamp(page, id);
+      await expect(page.getByTestId('scene-exit'), at).toHaveCount(0);
+      if (id === ready) {
+        await expect(page.getByTestId('camp-boss'), at).toContainText("Combat 1 : Sandales d'Hermès");
+        await expect(page.getByTestId('camp-oracle-badge'), at).toBeVisible();
+        await expect(page.getByTestId('camp-dossier-badge'), at).toBeVisible();
+      } else {
+        await expect(page.getByTestId('camp-boss').locator('img.hotspot-lock'), at).toBeVisible();
+      }
+      await expectInSafeZone(page, 'camp', ALL);
+      expect(await labelOverlaps(page, 'camp'), at).toEqual([]);
+    }
+  }
   // The stage and its art box clip rather than scroll: nothing (focus, a click scrolling a target
   // into view, a script) can pan the cropped painting sideways under the HUD.
   const scrolled = await page.evaluate(() =>
@@ -254,9 +316,8 @@ test('HUD: laurel, dragon, sound toggle that survives leaving the camp', async (
   await mute.click();
   await expect(mute).toHaveAttribute('aria-pressed', 'false');
 
-  // Round 1 review #3: a `title` tooltip never shows on iPad (the target device has no mouse
-  // hover), so the dragon's ambient status is a short, visible part of the camp-dragon caption.
-  await expect(page.getByTestId('camp-dragon')).toContainText('Un œuf de dragon · Frémit');
+  // UI3 Ruling B3: what the dragon is up to now lives in the nest; the hub seats its cut-out.
+  await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
 
   await page.getByTestId('hud-dragon').click();
   await expect(page).toHaveURL(/\/dragon$/);
@@ -389,6 +450,8 @@ test('the dragon greets once per visit; a tap advances, « Tout passer » closes
   await expect(text).toHaveText("Les parchemins t'attendent, sous la tente.");
   await expect(page.getByTestId('camp-parchemins')).toContainText('Choisis un texte à défendre');
   await expect(page.getByTestId('camp-parchemins')).toHaveClass(/is-new/);
+  // Ruling B9: one next-step glow on the hub, the same step the greeting names.
+  await expect(page.locator('[data-testid="scene-camp"] button.hotspot.is-new')).toHaveCount(1);
   await expect(page.getByTestId('dialogue-skip')).toHaveText('Tout passer');
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
@@ -491,130 +554,91 @@ test('reduced motion: no parallax, no idle bob, no particles', async ({ page, re
   }
 });
 
-test('the path to battle appears once Éris can be fought; badges sit on their plaque', async ({ page, request }, testInfo) => {
+test('the path to battle opens once Éris can be fought; badges sit on their plaque', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await readyTheBattle(request, id, testInfo.project.name);
   expect((await request.post(`/api/profiles/${id}/quests`, { data: { target: 'chimere' } })).ok()).toBeTruthy();
   await openCamp(page, id);
   const boss = page.getByTestId('camp-boss');
   await expect(boss).toBeVisible();
+  await expect(boss).not.toHaveAttribute('aria-disabled', 'true');
+  await expect(boss.locator('img.hotspot-lock')).toHaveCount(0);
   // Controller ruling P8c: assert the actual reward name (tier 1 -> BOSS_REWARDS[1] ==
   // "sandales_hermes" -> "Sandales d'Hermès" per server/app/world/catalog.py), not just the
   // tier number.
   await expect(boss).toContainText("Combat 1 : Sandales d'Hermès");
-  await expect(page.getByTestId('camp-dragon')).not.toContainText('Un œuf de dragon');
+  await expect(page.getByTestId('camp-dragon-layer').locator('img')).not.toHaveAttribute('src', /dragon_egg/);
 
-  // Playability #5: the quest count is pinned to the top-right corner of « Le mur des
-  // quêtes », not floating on the colonnade between two places.
-  const badge = page.getByTestId('camp-quests-badge');
-  await expect(badge).toHaveText('1');
-  const b = await measureBoxes(page, {
-    badge: '[data-testid="camp-quests-badge"]',
-    label: '[data-testid="camp-quests"] .hotspot-label',
-  });
-  if (!b.badge || !b.label) throw new Error('quests badge or label did not render');
-  const cx = b.badge.x + b.badge.width / 2;
-  const cy = b.badge.y + b.badge.height / 2;
-  expect(Math.abs(cx - (b.label.x + b.label.width)), 'badge centre on the plaque right edge').toBeLessThanOrEqual(16);
-  expect(Math.abs(cy - b.label.y), 'badge centre on the plaque top edge').toBeLessThanOrEqual(16);
+  // Playability #5, UI3 Ruling B3: the quest count is pinned to the top-right corner of the Delphi
+  // plaque (the chimère board quest), the foiled tricks to the war tent's (two lieutenants).
+  await expect(page.getByTestId('camp-oracle-badge')).toHaveText('1');
+  await expect(page.getByTestId('camp-dossier-badge')).toHaveText('2');
+  for (const place of ['oracle', 'dossier']) {
+    const b = await measureBoxes(page, {
+      badge: `[data-testid="camp-${place}-badge"]`,
+      label: `[data-testid="camp-${place}"] .hotspot-label`,
+    });
+    if (!b.badge || !b.label) throw new Error(`${place} badge or label did not render`);
+    const cx = b.badge.x + b.badge.width / 2;
+    const cy = b.badge.y + b.badge.height / 2;
+    expect(Math.abs(cx - (b.label.x + b.label.width)), `${place} badge centre on the plaque right edge`).toBeLessThanOrEqual(16);
+    expect(Math.abs(cy - b.label.y), `${place} badge centre on the plaque top edge`).toBeLessThanOrEqual(16);
+  }
 
   await boss.click();
   await expect(page).toHaveURL(/\/eris$/);
 });
 
-function boxesIntersect(a: { x: number; y: number; width: number; height: number }, b: typeof a): boolean {
-  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+// The clear gap between two boxes, in px: how far apart they are along the axis that separates
+// them (negative when they overlap).
+function boxGap(a: { x: number; y: number; width: number; height: number }, b: typeof a): number {
+  const dx = Math.max(b.x - (a.x + a.width), a.x - (b.x + b.width));
+  const dy = Math.max(b.y - (a.y + a.height), a.y - (b.y + b.height));
+  return Math.max(dx, dy);
 }
 
-test('the weekly ribbon and the prophecy never overlap a hotspot or its label', async ({ page, request }, testInfo) => {
+test('the weekly ribbon hangs in the open sky, at least 4 px clear of every place and plaque', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  // A prophecy makes .camp-column at its tallest, the worst case for overlapping a place below it.
-  const title = uniqueName(`Prophétie ${testInfo.project.name}`);
-  const text = await createText(request, { title, body: BODY, level: '10H', due_date: '2099-01-01' });
-  await onlyOwnProphecy(page, text.id);
+  await readyTheBattle(request, id, testInfo.project.name); // the battle path's caption is the widest plaque near the sky
+  // The widest ribbon: five leaves (the lyre's goal goes up to 5).
+  expect((await request.patch(`/api/profiles/${id}`, { data: { settings: { weekly_goal: 5 } } })).ok()).toBeTruthy();
   for (const size of [
-    { width: 1280, height: 720 }, // the desktop project's default viewport
-    { width: 1180, height: 820 }, // scenes spec §10: the ipad project's default iPad landscape
-    { width: 1366, height: 1024 }, // 13" iPad landscape
+    { width: 1024, height: 768 },
+    { width: 1180, height: 820 },
+    { width: 1280, height: 720 },
+    { width: 1366, height: 1024 },
   ]) {
     await page.setViewportSize(size);
     await page.goto(`/#/p/${id}/camp?debug`);
     await expectCamp(page);
     await waitForSceneSettled(page, 'camp');
-    await expect(page.getByTestId('camp-prophecy')).toContainText(title);
-    await expect(page.getByTestId('camp-weekly')).toBeVisible();
-    // One evaluate() for the column, the ribbon and every hotspot + its label (round 1 review #2).
-    const { column, weekly, hotspots } = await page.evaluate(() => {
+    await expect(page.getByTestId('camp-weekly')).toContainText('0 / 5');
+    await expect(page.getByTestId('camp-boss')).toContainText("Combat 1 : Sandales d'Hermès");
+    const { art, weekly, hotspots } = await page.evaluate(() => {
       const rect = (el: Element) => {
         const r = el.getBoundingClientRect();
         return { x: r.x, y: r.y, width: r.width, height: r.height };
       };
-      const columnEl = document.querySelector('[data-testid="camp-column"]');
-      const weeklyEl = document.querySelector('[data-testid="camp-weekly"]');
-      const hotspotEls = Array.from(document.querySelectorAll('button.hotspot[data-testid^="camp-"]'));
       return {
-        column: columnEl ? rect(columnEl) : null,
-        weekly: weeklyEl ? rect(weeklyEl) : null,
-        hotspots: hotspotEls.map((el) => {
-          const label = el.querySelector('.hotspot-label');
-          return { testId: el.getAttribute('data-testid'), box: rect(el), labelBox: label ? rect(label) : null };
-        }),
+        art: rect(document.querySelector('[data-testid="scene-camp"] .art')!),
+        weekly: rect(document.querySelector('[data-testid="camp-weekly"]')!),
+        hotspots: Array.from(document.querySelectorAll('button.hotspot[data-testid^="camp-"]')).map((el) => ({
+          testId: el.getAttribute('data-testid'),
+          box: rect(el),
+          labelBox: rect(el.querySelector('.hotspot-label')!),
+        })),
       };
     });
-    if (!column || !weekly) throw new Error('camp-column or camp-weekly did not render');
     const at = `${size.width}x${size.height}`;
-    expect(boxesIntersect(column, weekly), `camp-column vs camp-weekly at ${at}`).toBe(false);
+    expect(hotspots, `six places at ${at}`).toHaveLength(6);
+    expect((weekly.x - art.x) / art.width, `ribbon left at ${at}`).toBeGreaterThanOrEqual(0.3);
+    expect((weekly.x + weekly.width - art.x) / art.width, `ribbon right at ${at}`).toBeLessThanOrEqual(0.7);
+    expect((weekly.y + weekly.height - art.y) / art.height, `ribbon bottom at ${at}`).toBeLessThanOrEqual(0.22);
     for (const h of hotspots) {
-      if (!h.labelBox) throw new Error(`${h.testId}'s label has no bounding box: it did not render`);
-      for (const [name, box] of [
-        ['camp-column', column],
-        ['camp-weekly', weekly],
-      ] as const) {
-        expect(boxesIntersect(box, h.box), `${name} vs ${h.testId} at ${at}`).toBe(false);
-        expect(boxesIntersect(box, h.labelBox), `${name} vs ${h.testId}'s label at ${at}`).toBe(false);
-      }
+      // Task 7 review: a visible margin, not a 1 px graze.
+      expect(boxGap(weekly, h.box), `ribbon gap to ${h.testId} at ${at}`).toBeGreaterThanOrEqual(4);
+      expect(boxGap(weekly, h.labelBox), `ribbon gap to ${h.testId}'s label at ${at}`).toBeGreaterThanOrEqual(4);
     }
-  }
-});
-
-test('a long prophecy title never pushes « Te préparer » out of view', async ({ page, request }, testInfo) => {
-  const id = await createProfileApi(request, heroName(testInfo.project.name));
-  // Exactly the server's own max title length (server/app/schemas.py: max_length=120) - round 1
-  // review #1 found an 80-char title already pushed the button 17px below a scrolling fold.
-  const longTitle = `${testInfo.project.name} ${'Prophétie ancienne des mers et des montagnes lointaines '.repeat(3)}`.slice(0, 120);
-  expect(longTitle).toHaveLength(120);
-  const text = await createText(request, { title: longTitle, body: BODY, level: '10H', due_date: '2099-01-01' });
-  await onlyOwnProphecy(page, text.id);
-  for (const size of [
-    { width: 1280, height: 720 }, // the desktop project's own default viewport
-    { width: 1180, height: 820 }, // the ipad project's default iPad landscape
-  ]) {
-    await page.setViewportSize(size);
-    await page.goto(`/#/p/${id}/camp`);
-    await expectCamp(page);
-    await waitForSceneSettled(page, 'camp');
-    // Final review I6: the card shows this test's own 120-character title (clamped visually,
-    // complete in the DOM), not another spec's prophecy.
-    await expect(page.getByTestId('camp-prophecy')).toContainText(longTitle);
-    await expect(page.getByTestId('camp-prophecy').getByRole('button', { name: 'Te préparer' })).toBeVisible();
-    const { column, button } = await page.evaluate(() => {
-      const rect = (el: Element) => {
-        const r = el.getBoundingClientRect();
-        return { x: r.x, y: r.y, width: r.width, height: r.height };
-      };
-      const columnEl = document.querySelector('[data-testid="camp-column"]');
-      const buttonEl = document.querySelector('[data-testid="camp-prophecy"] button');
-      return { column: columnEl ? rect(columnEl) : null, button: buttonEl ? rect(buttonEl) : null };
-    });
-    if (!column) throw new Error('camp-column has no bounding box: it did not render');
-    if (!button) throw new Error('the Te préparer button has no bounding box: it did not render');
-    const label = `${size.width}x${size.height}`;
-    expect(button.y, `Te préparer top inside camp-column at ${label}`).toBeGreaterThanOrEqual(column.y);
-    expect(button.y + button.height, `Te préparer bottom inside camp-column at ${label}`).toBeLessThanOrEqual(
-      column.y + column.height + 0.5,
-    );
-    expect(button.y, `Te préparer top inside the viewport at ${label}`).toBeGreaterThanOrEqual(0);
-    expect(button.y + button.height, `Te préparer bottom inside the viewport at ${label}`).toBeLessThanOrEqual(size.height);
   }
 });
 

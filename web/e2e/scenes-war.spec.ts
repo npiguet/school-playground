@@ -82,6 +82,8 @@ test("a lieutenant asleep at the hero's class is a locked place: the dragon says
   await expect(page.getByTestId('dialogue-text')).toHaveText(line);
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('dialogue-text')).toHaveCount(0);
+  // Focus comes back to the sheet that asked, not to <body> (UI3b Task 7 review).
+  await expect(protee).toBeFocused();
   // The keyboard reaches the same word: Enter on the focused sheet.
   await protee.focus();
   await page.keyboard.press('Enter');

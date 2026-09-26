@@ -11,7 +11,7 @@
   import { campStore, refreshCamp, loadCatalog } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../../../lib/world/types';
   import { agree, sleepingLine } from '../../../lib/world/eris';
-  import { romanTier } from '../../../lib/world/quests';
+  import { romanTier, tricksBeforeEris } from '../../../lib/world/quests';
   import { ApiError } from '../../../lib/api';
   import { href } from '../../../lib/routes';
   import { plural } from '../../../lib/text/french';
@@ -188,11 +188,8 @@
         {:else if campStore.data.boss.tiers_won.length >= 3}
           <p>Éris est vaincue trois fois. Elle boude.</p>
         {:else}
-          {@const available = campStore.data.dragon.available}
-          {@const neutralised = campStore.data.dragon.neutralised}
-          {@const won = campStore.data.boss.tiers_won.length}
-          {@const need = Math.ceil((available * (won + 1)) / 3)}
-          <p>Éris se cache. Neutralise encore {plural(Math.max(0, need - neutralised), 'ruse', 'ruses')} pour la faire sortir.</p>
+          {@const left = tricksBeforeEris(campStore.data)}
+          <p>Éris se cache. Neutralise encore {plural(left, 'ruse', 'ruses')} pour la faire sortir.</p>
         {/if}
       </div>
     </section>
