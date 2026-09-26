@@ -7,7 +7,27 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { legacyUses } from './testing/legacyClasses';
+import { LEGACY_TONES, legacyUses } from './testing/legacyClasses';
+
+const TONE_USERS = [
+  'src/components/PinGate.svelte',
+  'src/components/juice/Gauge.svelte',
+  'src/components/places/cabin/JournalPanel.svelte',
+  'src/components/places/delphi/PythiaPanel.svelte',
+  'src/components/places/delphi/TabletsPanel.svelte',
+  'src/components/places/library/DeskPanel.svelte',
+  'src/components/places/library/LensPanel.svelte',
+  'src/components/places/library/PortalPanel.svelte',
+  'src/components/places/library/PortalWorkPanel.svelte',
+  'src/components/places/library/ShelvesPanel.svelte',
+  'src/components/places/nest/CarePanel.svelte',
+  'src/components/places/title/HeroForm.svelte',
+  'src/components/places/war/CodexPagePanel.svelte',
+  'src/components/places/war/DossierPanel.svelte',
+  'src/components/places/war/PortraitPanel.svelte',
+  // Not a user: it re-inks the panels' `.muted` lines on a table overlay (:global).
+  'src/components/scene/Overlay.svelte',
+];
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -33,6 +53,14 @@ describe('the app uses the kit, never the legacy UI classes (Rulings W4, C14)', 
       for (const hit of legacyUses(readFileSync(f, 'utf-8'))) report.push(`${f}:${hit}`);
     }
     expect(report).toEqual([]);
+  });
+
+  // Final review M17: `.muted` and `.orange` stay in app.css as plain text tones for the panels
+  // below (a recorded deviation from Ruling C14). The list only shrinks: no other file may use them.
+  it('keeps the two legacy text tones to the panels that still use them', () => {
+    const users = files.filter((f) => legacyUses(readFileSync(f, 'utf-8'), LEGACY_TONES).length > 0).sort();
+    for (const f of users) expect(TONE_USERS, `${f} starts using .muted/.orange: use the kit's tones`).toContain(f);
+    for (const f of TONE_USERS) expect(users, `${f} no longer uses them: drop it from TONE_USERS`).toContain(f);
   });
 
   it('catches every legacy form (self-test)', () => {

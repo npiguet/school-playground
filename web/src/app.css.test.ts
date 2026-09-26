@@ -24,6 +24,11 @@ describe('the legacy kit', () => {
       expect(css, `.${c}`).not.toMatch(new RegExp(`^\\.${c}\\b`, 'm'));
     }
   });
+
+  it('keeps no token or keyframes that lost their last user (final review M17)', () => {
+    expect(css).not.toMatch(/--terracotta/);
+    expect(css).not.toMatch(/@keyframes shimmer/);
+  });
 });
 
 describe('reduced motion', () => {

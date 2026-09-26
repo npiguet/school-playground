@@ -18,7 +18,11 @@ export const LEGACY_CLASSES = [
   'banner-error',
 ];
 
-export function legacyUses(source: string): string[] {
+// The two legacy text tones app.css still defines (Ruling C14's deviation, final review M17): the
+// place panels listed in placesKit.test.ts's TONE_USERS use them; no other file may start to.
+export const LEGACY_TONES = ['muted', 'orange'];
+
+export function legacyUses(source: string, classes: readonly string[] = LEGACY_CLASSES): string[] {
   const hits: string[] = [];
   const lineOf = (i: number) => source.slice(0, i).split('\n').length;
   // Markup: drop <script> and HTML comments; keep <style> for the :global() check below.
@@ -31,12 +35,12 @@ export function legacyUses(source: string): string[] {
   // by whitespace, `>` or `/`), so a template literal's own `${x}` does not cut it short.
   for (const m of body.matchAll(/\bclass=(?:"([^"]*)"|\{([^\n]*?)\}(?=[\s>/]))/g)) {
     const raw = (m[1] ?? '') + ' ' + [...(m[2] ?? '').matchAll(/['"`]([^'"`]*)['"`]/g)].map((s) => s[1]).join(' ');
-    for (const token of raw.split(/[\s{}$]+/)) if (LEGACY_CLASSES.includes(token)) hits.push(`${lineOf(m.index!)}: class ${token}`);
+    for (const token of raw.split(/[\s{}$]+/)) if (classes.includes(token)) hits.push(`${lineOf(m.index!)}: class ${token}`);
   }
-  for (const m of body.matchAll(/\bclass:([\w-]+)/g)) if (LEGACY_CLASSES.includes(m[1])) hits.push(`${lineOf(m.index!)}: class:${m[1]}`);
+  for (const m of body.matchAll(/\bclass:([\w-]+)/g)) if (classes.includes(m[1])) hits.push(`${lineOf(m.index!)}: class:${m[1]}`);
   if (style) {
     for (const m of style[0].matchAll(/:global\(\s*\.([\w-]+)/g)) {
-      if (LEGACY_CLASSES.includes(m[1])) hits.push(`${lineOf(style.index + m.index!)}: :global(.${m[1]})`);
+      if (classes.includes(m[1])) hits.push(`${lineOf(style.index + m.index!)}: :global(.${m[1]})`);
     }
   }
   return hits;

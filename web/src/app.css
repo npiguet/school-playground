@@ -6,8 +6,6 @@
   --marble-dark: #e8e0d2;
   --ink: #2b2a28;
   --ink-soft: #5c5854;
-  --terracotta: #c0623b;
-  --terracotta-dark: #9a4b2c;
   --olive: #6b7a3a;
   --aegean: #2c6e8f;
   --aegean-light: #d8e8ef;
@@ -62,7 +60,8 @@ textarea {
 
 /* UI4 Ruling C14: the legacy kit (.screen, .btn*, .card, .chip*, .parchment, .scene, .eris-panel)
    is gone; the places and the battle are built from the kit (styles/kit*.css). `.muted` and
-   `.orange` stay: a few panels still use them as plain text tones. */
+   `.orange` stay: a few panels still use them as plain text tones, and placesKit.test.ts keeps
+   any other file from starting to (final review M17). */
 .muted {
   color: var(--ink-soft);
 }
@@ -139,15 +138,6 @@ label {
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
   }
 }
 

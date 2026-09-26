@@ -16,4 +16,13 @@ export function isCrash(message: string): boolean {
   return SEGFAULT.test(message) && CRASHED_PROCESS.test(message);
 }
 
-export const crashedWith = (errors: { message?: string }[]): boolean => errors.some((e) => isCrash(e.message ?? ''));
+// What a crash does to the test body next to it (crashGuard.ts: the body fails on whatever it was
+// doing, "Target crashed", a closed page or browser, a timeout). Nothing else rides along with one.
+const AFTERMATH = /Target crashed|Page crashed|(?:Target page, context or browser|Browser) has been closed|browser has disconnected|Test timeout of \d+ms exceeded/i;
+
+/** A test crashed when one of its errors is a crash and every other one is only what the crash did
+ *  to the body (final review M21): a real assertion failure followed by a teardown segfault stays a
+ *  failure, never retried into a green. */
+export const crashedWith = (errors: { message?: string }[]): boolean =>
+  errors.some((e) => isCrash(e.message ?? '')) &&
+  errors.every((e) => isCrash(e.message ?? '') || AFTERMATH.test(e.message ?? ''));

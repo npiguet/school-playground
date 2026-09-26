@@ -23,9 +23,18 @@ describe('the crash-only retry classifier', () => {
     expect(isCrash('expect(received).toContain(expected): SIGSEGV')).toBe(false);
   });
 
-  it('classifies a test by any of its errors', () => {
+  it('classifies a test as crashed when a crash and only its aftermath failed it', () => {
+    const crash = { message: `${BROWSER_CRASHED}: page crashed at http://app/#/camp` };
     expect(crashedWith([{ message: 'Test timeout of 60000ms exceeded.' }, { message: `${BROWSER_CRASHED}: browser disconnected` }])).toBe(true);
+    expect(crashedWith([{ message: 'locator.click: Target crashed' }, crash])).toBe(true);
+    expect(crashedWith([{ message: 'page.goto: Target page, context or browser has been closed' }, crash])).toBe(true);
     expect(crashedWith([{ message: 'Test timeout of 60000ms exceeded.' }, {}])).toBe(false);
     expect(crashedWith([])).toBe(false);
+  });
+
+  it('never retries a real failure that a crash happened to follow (final review M21)', () => {
+    const segfault = { message: 'Error: worker process exited unexpectedly (code=null, signal=SIGSEGV)' };
+    expect(crashedWith([{ message: 'expect(locator).toHaveText(expected) failed' }, segfault])).toBe(false);
+    expect(crashedWith([{ message: 'expect(received).toEqual(expected)' }, { message: `${BROWSER_CRASHED}: browser disconnected` }])).toBe(false);
   });
 });
