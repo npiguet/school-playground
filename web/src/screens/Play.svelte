@@ -12,6 +12,7 @@
   import ReviewScroll from '../components/battle/ReviewScroll.svelte';
   import { api, ApiError } from '../lib/api';
   import { battleFor, isOpponentId, opponentFor, type BattlePhase, type OpponentId } from '../lib/battle/battle';
+  import { emitBattle } from '../lib/battle/events';
   import { hpDuringPlay } from '../lib/battle/hp';
   import { musterTaunt, STAGE } from '../lib/battle/lines';
   import { resetBattleStage, setHp } from '../lib/battle/stage.svelte';
@@ -21,9 +22,18 @@
   import { gradeSession } from '../lib/grading/grade';
   import type { Annotation, SessionResult } from '../lib/grading/types';
   import { initSound } from '../lib/juice/soundStore.svelte';
-  import { clearPlayState, loadPlayState, newPlayState, savePlayState, type PlayState } from '../lib/playState';
+  import {
+    battleContext,
+    clearPlayState,
+    loadPlayState,
+    newPlayState,
+    resumesUnder,
+    savePlayState,
+    type PlayState,
+  } from '../lib/playState';
   import { loadProfile } from '../lib/profileStore.svelte';
-  import { closePanel, go, openPanel } from '../lib/scene/panelNav';
+  import { closePanel, go } from '../lib/scene/panelNav';
+  import { replaceRoute } from '../lib/router.svelte';
   import { href } from '../lib/routes';
   import { withDerivedCategories } from '../lib/world/derived';
   import { bandFor } from '../lib/world/eris';
@@ -45,8 +55,14 @@
   // Quest-aware Play (SP3 Task 7): `quest`/`encounter` come from a QuestCard/lieutenant/boss link
   // (`?quest=...&encounter=...`); `help` overrides the profile's adaptive help stage for a single
   // session (boss fights force it a stage down, never up the aids).
-  const questId = $derived(query.quest ? Number(query.quest) : null);
-  const encounter = $derived(query.encounter ?? null);
+  const urlUnder = $derived({ encounter: query.encounter ?? null, quest: query.quest ? Number(query.quest) : null });
+  let playState = $state<PlayState | null>(null);
+  // Ruling C2c: the battle runs under the encounter and quest it was started with (saved in its play
+  // state), not the URL's: a boss fight reopened from the shelves is still the boss fight, and a free
+  // save never becomes one. Before the state exists, the URL's.
+  const under = $derived(battleContext(playState, urlUnder));
+  const questId = $derived(under.quest);
+  const encounter = $derived(under.encounter);
   // An encounter that names an opponent decides the battle, whatever was saved (fix round 1 #1).
   const pinned = $derived<OpponentId | null>(encounter && isOpponentId(encounter) ? encounter : null);
   const helpOverride = $derived(query.help ? Number(query.help) : null);
@@ -62,7 +78,6 @@
   let stats = $state<StatsResponse | null>(null);
   let plan = $state<DictationPlan | null>(null);
   let voice = $state<SpeechSynthesisVoice | null>(null);
-  let playState = $state<PlayState | null>(null);
   let showResumeBanner = $state(false);
   let loading = $state(true);
   let error = $state('');
@@ -98,18 +113,20 @@
       stats = st;
       plan = buildPlan(t.body);
 
-      // The saved state's key ignores the encounter (fix round 1 #1): an intro keeps nothing (not even
-      // an opponent), and a battle saved against another opponent than this encounter's is not this
-      // battle, so a fresh one starts. Under its own encounter, or none, a saved battle resumes.
+      // The saved state's key ignores the encounter (Ruling C2c): an intro keeps nothing (not even an
+      // opponent), and a battle started under another encounter than this link's is not this battle,
+      // so a fresh one starts for the link's. A link with no encounter reopens the saved battle, under
+      // its own encounter and quest.
       const saved = loadPlayState(profile.id, id, mode);
-      const otherBattle = !!saved && pinned !== null && saved.opponent !== undefined && saved.opponent !== pinned;
-      if (saved && saved.phase !== 'intro' && !otherBattle) {
+      if (saved && resumesUnder(saved, urlUnder.encounter)) {
         playState = saved;
         showResumeBanner = saved.phase !== 'results';
       } else {
-        playState = newPlayState(profile.id, id, initialPace, mode);
+        playState = newPlayState(profile.id, id, initialPace, mode, urlUnder);
       }
       if (playState.phase === 'results') void ensureResults();
+      // M3: « Revoir » lives in the victory only; a deep link to it elsewhere drops the panel.
+      if (reviewOpen && playState.phase !== 'results') replaceRoute(baseHref);
 
       const voices = await waitForVoices();
       voice = pickVoice(voices, profile.settings.voice ?? null) ?? null;
@@ -139,10 +156,11 @@
   function restart() {
     const opponent = playState?.opponent;
     clearPlayState(profile.id, id, mode);
-    playState = newPlayState(profile.id, id, initialPace, mode);
-    // A replay is the same battle: the same opponent, fresh combatants and a full hold.
+    // A replay is the same battle: the same opponent and encounter, fresh combatants, a full hold.
+    playState = newPlayState(profile.id, id, initialPace, mode, under);
     if (opponent) playState.opponent = opponent;
     resetBattleStage();
+    emitBattle({ kind: 'retry' });
     showResumeBanner = false;
     result = null;
     helpMessage = null;
@@ -152,24 +170,39 @@
     left = false;
   }
 
-  function toLibrary() {
+  /** The player leaves this battle for good: nothing of it is kept (a victory's saved results would
+   *  otherwise greet her the next time she opens the text), and a submission still in flight must not
+   *  save it again (`left`). */
+  function leaveBattle() {
     left = true;
     clearPlayState(profile.id, id, mode);
+    emitBattle({ kind: 'leave' });
+  }
+
+  function toLibrary() {
+    leaveBattle();
     go(href('library', { profileId: String(profile.id) }));
   }
 
   // "Pause" on the break nudge (spec §3.6, decision 16): back to the camp rather than the library,
   // since the camp is home now.
   function toLibraryCamp() {
-    left = true;
-    clearPlayState(profile.id, id, mode);
+    leaveBattle();
     go(href('camp', { profileId: String(profile.id) }));
+  }
+
+  // The scene exit « Le camp » (M2): from the victory it leaves the battle as « Retour au camp »
+  // does; from the muster a saved dictation or proofreading stays behind its resume ribbon.
+  function onExit() {
+    if (phase === 'victory') leaveBattle();
+    else emitBattle({ kind: 'leave' });
   }
 
   // Active play time (dictation + proofreading only) drives the ~25-minute break nudge. Ticking
   // every 15s is frequent enough to notice 25 minutes promptly without hammering sessionStorage.
+  // Keyed on the battle's phase, not the saved one (M1): behind the resume ribbon a saved dictation
+  // is on the muster, and the clock rests.
   $effect(() => {
-    const phase = playState?.phase;
     if (phase === 'dictation' || phase === 'proofreading') {
       clockStart();
       const intervalId = setInterval(() => clockTick(), 15_000);
@@ -206,13 +239,15 @@
   function quitDictation() {
     save();
     showResumeBanner = true;
+    emitBattle({ kind: 'leave' });
   }
 
   // UI4 Ruling C15: « Quitter » on the proofreading, quitDictation's twin (the play state is saved
-  // on every edit already). Wired now; Task 5 renders the button.
+  // on every edit already).
   function quitProofreading() {
     save();
     showResumeBanner = true;
+    emitBattle({ kind: 'leave' });
   }
 
   // Grimoire intro's "Ouvrir le grimoire" button: Éris has already corrupted the text server-side
@@ -324,15 +359,16 @@
   });
 
   // UI4 Task 2: the stage needs the camp (the dragon, the HUD, a free text's lieutenant) and the
-  // hero's mute setting, like every place (PlaceScene does the same, final review I2: the profile id
-  // is the one dependency).
+  // hero's mute setting, like every place. The profile id is the one dependency (M6): a derived id,
+  // so a new profile object for the same hero (submitSession's loadProfile) fetches nothing again.
   let campTried = $state(false);
+  const pid = $derived(profile.id);
   $effect(() => {
-    const pid = profile.id;
+    const heroId = pid;
     untrack(() => {
       initSound(profile);
       void loadCatalog();
-      void refreshCamp(pid).finally(() => (campTried = true));
+      void refreshCamp(heroId).finally(() => (campTried = true));
     });
   });
 
@@ -381,11 +417,13 @@
   const params = $derived({ profileId: String(profile.id), textId: String(id) });
   const baseQuery = $derived(Object.fromEntries(Object.entries(query).filter(([k]) => k !== 'panel')));
   const reviewOpen = $derived(query.panel === 'revoir');
+  const baseHref = $derived(href(routeName, params, Object.keys(baseQuery).length ? baseQuery : undefined));
+  // Through `go` like every control that navigates (M4): the same tap feedback.
   function openReview() {
-    openPanel(href(routeName, params, { ...baseQuery, panel: 'revoir' }));
+    go(href(routeName, params, { ...baseQuery, panel: 'revoir' }), 'panel');
   }
   function closeReview() {
-    closePanel(href(routeName, params, Object.keys(baseQuery).length ? baseQuery : undefined));
+    closePanel(baseHref);
   }
 </script>
 
@@ -398,10 +436,11 @@
   dragon={camp?.dragon ?? null}
   hud={phase === 'muster' || phase === 'victory'}
   exit={phase === 'muster' || phase === 'victory'}
+  {onExit}
 >
-  {#snippet children(layout)}
+  {#snippet children(layout, reduced)}
     {#if loading}
-      <p class="kit-ribbon battle-status" data-testid="battle-status">{STAGE.loading}</p>
+      <p class="kit-ribbon battle-status" data-testid="battle-status" role="status">{STAGE.loading}</p>
     {:else if error}
       <p class="kit-ribbon battle-status" data-testid="battle-status" role="alert">{STAGE.loadError(error)}</p>
     {:else if text && plan && playState}
@@ -461,6 +500,7 @@
           {submitting}
           bind:revealDone
           names={progressionNames}
+          {reduced}
           onReplay={restart}
           onCamp={toLibraryCamp}
           onRetry={submitSession}

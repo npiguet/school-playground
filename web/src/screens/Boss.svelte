@@ -22,9 +22,12 @@
 
   // The stage's HUD needs the hero's mute setting, like every place. As in PlaceScene (final review
   // I2), this depends on the profile id only: loadCatalog() reads campStore.catalog and initSound()
-  // reads profile.settings, and tracking either would fetch /camp again when they change.
+  // reads profile.settings, and tracking either would fetch /camp again when they change. A derived
+  // id (UI4 M6): reading `profile.id` in the effect would track the whole `profile` prop, and a new
+  // profile object for the same hero (loadProfile) would fetch again.
+  const heroId = $derived(profile.id);
   $effect(() => {
-    const id = profile.id;
+    const id = heroId;
     untrack(() => {
       initSound(profile);
       void refreshCamp(id);

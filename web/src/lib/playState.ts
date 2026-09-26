@@ -45,6 +45,35 @@ export interface PlayState {
   /** UI4 Ruling C2: the opponent chosen for this session (presentation only), kept so a reload or a
    *  resume faces the same one. No version bump: an optional field, absent until chosen. */
   opponent?: OpponentId;
+  /** UI4 Ruling C2c: the encounter (`?encounter=`) this battle was started under, `null` for none.
+   *  It decides the battle once saved: a boss fight reopened from the shelves stays the boss fight
+   *  (its pace floor, its verdict, its submission). No version bump: absent in older saved states,
+   *  which count as started under no encounter. */
+  encounter?: string | null;
+  /** UI4 Ruling C2c: the quest (`?quest=`) this battle was started under, `null` for none; submitted
+   *  with the session. No version bump: an optional field. */
+  quest?: number | null;
+}
+
+/** UI4 Ruling C2c: whether a saved battle is the one this URL opens. An intro keeps nothing. A link
+ *  with no encounter (the shelves, a reload of a plain link) reopens whatever was saved, under the
+ *  encounter it was started with; a link with an encounter reopens only a battle started under that
+ *  same encounter, so a free or grimoire save never passes for the boss fight (or a lieutenant's
+ *  quest), and the other way round. The opponent never decides: Éris is the opponent of the boss
+ *  fight, of every grimoire and of a free text once no lieutenant is left. */
+export function resumesUnder(saved: PlayState, encounter: string | null): boolean {
+  if (saved.phase === 'intro') return false;
+  return encounter === null || (saved.encounter ?? null) === encounter;
+}
+
+/** The encounter and quest a battle runs under: the saved battle's own once it has one, else the
+ *  URL's (a fresh battle records them, `newPlayState`'s `under`). */
+export function battleContext(
+  state: PlayState | null,
+  url: { encounter: string | null; quest: number | null },
+): { encounter: string | null; quest: number | null } {
+  if (!state) return url;
+  return { encounter: state.encounter ?? null, quest: state.quest ?? null };
 }
 
 /** The localStorage key for a play session: distinct per mode so a dictation session and a
@@ -83,8 +112,16 @@ export function clearPlayState(profileId: number, textId: number, mode: PlayMode
   }
 }
 
-export function newPlayState(profileId: number, textId: number, pace: Pace, mode: PlayMode = 'dictation'): PlayState {
+export function newPlayState(
+  profileId: number,
+  textId: number,
+  pace: Pace,
+  mode: PlayMode = 'dictation',
+  under: { encounter: string | null; quest: number | null } = { encounter: null, quest: null },
+): PlayState {
   return {
+    encounter: under.encounter,
+    quest: under.quest,
     version: VERSION,
     profileId,
     textId,

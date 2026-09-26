@@ -37,6 +37,7 @@
     mode = 'dictation',
     hud = false,
     exit = false,
+    onExit,
     children,
     overlay,
   }: {
@@ -48,7 +49,11 @@
     dragon: DragonOut | null;
     hud?: boolean;
     exit?: boolean;
-    children: Snippet<[BattleLayout]>;
+    /** Runs as « Le camp » is tapped, before it leaves (the victory drops its saved results, M2). */
+    onExit?: () => void;
+    /** The phase on the parchment, given the layout and the stage's reduced-motion setting (one
+     *  watcher for the whole battle, M15). */
+    children: Snippet<[BattleLayout, boolean]>;
     /** The stage's overlays (the « Revoir » scroll): rendered next to the stage, outside the `<main>`
      *  that turns `inert` while they are open, as the places render theirs next to SceneStage. */
     overlay?: Snippet;
@@ -59,11 +64,18 @@
   $effect(() => watchReducedMotion((r) => (reduced = r)));
   onMount(() => watchViewport());
 
-  const layout = $derived<BattleLayout>(viewport.height > 0 ? battleLayout(viewport.height, viewport.inner) : 'full');
+  const layout = $derived<BattleLayout>(
+    viewport.height > 0 ? battleLayout(viewport.height, viewport.inner, viewport.scale) : 'full',
+  );
+  const compact = $derived(layout === 'compact');
   const band = $derived(bandHeight(viewport.height || 820));
   const covered = $derived(overlayState.open > 0);
-  // Ruling C12: during proofreading nothing moves behind the text.
-  const idle = $derived(phase !== 'proofreading');
+  // Ruling C12: nothing moves behind the text. The combatants breathe and the particles drift only
+  // while no text is read or written: the muster and the victory (M14, the TTS runs on an iPad).
+  const idle = $derived(phase === 'muster' || phase === 'victory');
+  // Ruling C4 / I4: in compact the HUD and « Le camp » fold into the band (a control may move, never
+  // disappear); in full they keep their places.
+  const bandTools = $derived(compact && (hud || exit));
   const dragonStage = $derived(dragon?.stage ?? 'egg');
 
   $effect(() => {
@@ -74,11 +86,14 @@
   const onHero = () => go(heroPanelHref(profile.id), 'panel');
 </script>
 
+<!-- The visual viewport's height and offset are written on the stage, and only in compact, where
+     they place it (M13): a pan never restyles the whole document. -->
 <main
   class="battle-stage"
   class:has-overlay={covered}
-  class:has-hud={hud && layout === 'full'}
-  class:has-exit={exit && layout === 'full'}
+  class:has-hud={hud && !compact}
+  class:has-exit={exit && !compact}
+  class:band-tools={bandTools}
   data-testid="scene-battle"
   data-phase={phase}
   data-layout={layout}
@@ -87,6 +102,8 @@
   data-reduced-motion={reduced ? 'true' : 'false'}
   inert={covered}
   style:--band="{band}px"
+  style:--vvh={compact ? `${viewport.height}px` : undefined}
+  style:--vv-top={compact ? `${viewport.top}px` : undefined}
 >
   <SceneTransition kind="fade">
     <div class="battle-scene" data-testid="battle-scene">
@@ -130,14 +147,26 @@
         {/key}
         <div class="hp-slot"><HpBar name={battle.opponent.name} label={EMPRISE[battle.opponent.id]} hp={battleStage.hp} /></div>
       {/if}
+      {#if bandTools}
+        <div class="band-hud" data-testid="band-hud">
+          {#if hud}
+            <Hud {profile} {camp} {onHero} band>
+              {#snippet lead()}{#if exit}<SceneExit profileId={profile.id} {onExit} />{/if}{/snippet}
+            </Hud>
+          {:else}
+            <SceneExit profileId={profile.id} {onExit} />
+          {/if}
+        </div>
+      {/if}
     </div>
-    <section class="battle-parchment" data-testid="battle-parchment" aria-label={battle?.opponent.name ?? ''}>
-      {@render children(layout)}
+    <!-- No name of its own (M22): the phase's heading says what the parchment holds. -->
+    <section class="battle-parchment" data-testid="battle-parchment">
+      {@render children(layout, reduced)}
     </section>
-    {#if exit && layout === 'full'}<SceneExit profileId={profile.id} />{/if}
+    {#if exit && !compact}<SceneExit profileId={profile.id} {onExit} />{/if}
   </SceneTransition>
   <div class="stage-hud" data-testid="stage-hud">
-    {#if hud && layout === 'full'}<Hud {profile} {camp} {onHero} />{/if}
+    {#if hud && !compact}<Hud {profile} {camp} {onHero} />{/if}
   </div>
   <RotateScreen background={battle?.backdrop.src ?? null} />
 </main>
@@ -271,12 +300,46 @@
   .battle-stage[data-layout='compact'] .battle-scene :global(.combatant.right) {
     --right-x: 12px;
   }
+  .battle-stage[data-layout='compact'] {
+    --hp-w: min(40vw, 320px);
+  }
+  /* With the HUD and « Le camp » in the band (I4) the hold bar narrows to leave them room. */
+  .battle-stage[data-layout='compact'].band-tools {
+    --hp-w: min(28vw, 300px);
+  }
   .battle-stage[data-layout='compact'] .hp-slot {
     top: 50%;
     left: 50%;
     right: auto;
     transform: translate(-50%, -50%);
-    width: min(40vw, 320px);
+    width: var(--hp-w);
+  }
+  .band-hud {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+  }
+  .band-hud > :global(.scene-exit) {
+    position: absolute;
+    top: 50%;
+    left: 25%;
+    transform: translate(-50%, -50%);
+  }
+  .band-hud :global(.hud-left .scene-exit) {
+    position: static;
+  }
+  /* « Le camp » as its arrow alone in the band; the words stay its accessible name. */
+  .band-hud :global(.scene-exit) {
+    min-width: 48px;
+    padding-inline: 12px;
+  }
+  .band-hud :global(.scene-exit span) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .battle-stage[data-layout='compact'] .hit-burst {
     display: none;

@@ -9,7 +9,7 @@
   import VictorySpoils from './VictorySpoils.svelte';
   import DragonNudge from './DragonNudge.svelte';
   import DialogueBox from '../scene/DialogueBox.svelte';
-  import { DRAGON_REVIEW_HINT, dragonTally, opponentName, STAGE, VICTORY, victoryTitle } from '../../lib/battle/lines';
+  import { DRAGON_REVIEW_HINT, dragonTally, opponentName, VICTORY, victoryTitle } from '../../lib/battle/lines';
   import type { OpponentId } from '../../lib/battle/battle';
   import { reckoningSteps, reckoningVerdict } from '../../lib/battle/hp';
   import { react, strike } from '../../lib/battle/stage.svelte';
@@ -17,7 +17,6 @@
   import { erisLine } from '../../lib/explain';
   import type { SessionResult } from '../../lib/grading/types';
   import type { PlayState } from '../../lib/playState';
-  import { reducedMotion, watchReducedMotion } from '../../lib/juice/motion';
   import { clockReset, playClock } from '../../lib/world/playClock.svelte';
   import { dragonSays } from '../../lib/world/scenes/speakers';
   import type { CampResponse, DragonOut } from '../../lib/world/types';
@@ -38,6 +37,7 @@
     submitting,
     revealDone = $bindable(),
     names,
+    reduced,
     onReplay,
     onCamp,
     onRetry,
@@ -60,6 +60,8 @@
     revealDone: boolean;
     /** Lieutenant key -> French name, for the spoils' quest and neutralised titles. */
     names: Record<string, string>;
+    /** Reduced motion, from the stage's one watcher (M15). */
+    reduced: boolean;
     onReplay: () => void;
     onCamp: () => void;
     onRetry: () => void;
@@ -67,8 +69,6 @@
     onReview: () => void;
   } = $props();
 
-  let reduced = $state(reducedMotion());
-  $effect(() => watchReducedMotion((r) => (reduced = r)));
 
   // UI4 Ruling C3: the reckoning. The hold drops one strike per trap caught (client-side result, so
   // it never waits for the server), then the opponent is routed, pushed back or still standing.
@@ -87,7 +87,7 @@
     if (!result) return;
     return untrack(() => {
       const steps = reckoningSteps(draft, caught);
-      if (reducedMotion()) {
+      if (reduced) {
         // Reduced motion: the final state, without the strike-by-strike animation.
         if (steps.length) strike(steps.at(-1)!);
         struck = true;
@@ -163,7 +163,7 @@
     {/snippet}
     {#snippet status()}
       {#if pending}
-        <p class="kit-ribbon counting" data-testid="battle-status">{VICTORY.counting}</p>
+        <p class="kit-ribbon counting" data-testid="battle-status" role="status">{VICTORY.counting}</p>
       {/if}
       {#if submitError}
         <div class="kit-note submit-error" data-tone="eris" role="alert">
@@ -194,7 +194,7 @@
     {/snippet}
   </VictorySheet>
 {:else}
-  <p class="kit-ribbon counting" data-testid="battle-status">{STAGE.counting}</p>
+  <p class="kit-ribbon counting" data-testid="battle-status" role="status">{VICTORY.counting}</p>
 {/if}
 
 <style>

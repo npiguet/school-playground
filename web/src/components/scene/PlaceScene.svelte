@@ -48,9 +48,12 @@
 
   // Final review I2: depends on the profile id only. loadCatalog() reads campStore.catalog and
   // initSound() reads profile.settings; tracked, either would re-run this (a second /camp fetch,
-  // a second initSound) as soon as the catalog arrived or a setting changed.
+  // a second initSound) as soon as the catalog arrived or a setting changed. A derived id (UI4 M6):
+  // `profile.id` read in the effect would track the whole `profile` prop, so a new profile object
+  // for the same hero (loadProfile after a session) would fetch again.
+  const heroId = $derived(profile.id);
   $effect(() => {
-    const id = profile.id;
+    const id = heroId;
     untrack(() => {
       initSound(profile);
       void refreshCamp(id);

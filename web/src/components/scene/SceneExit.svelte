@@ -5,9 +5,13 @@
   import { go } from '../../lib/scene/panelNav';
   import Icon from '../ui/Icon.svelte';
 
-  let { profileId }: { profileId: number } = $props();
+  /** `onExit` runs first, before the way home (the battle's victory drops its saved results). */
+  let { profileId, onExit }: { profileId: number; onExit?: () => void } = $props();
 
-  const toCamp = () => go(href('camp', { profileId: String(profileId) }));
+  const toCamp = () => {
+    onExit?.();
+    go(href('camp', { profileId: String(profileId) }));
+  };
 </script>
 
 <button type="button" class="scene-exit kit-bronze" data-testid="scene-exit" onclick={toCamp}>

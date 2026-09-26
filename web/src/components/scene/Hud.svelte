@@ -6,6 +6,7 @@
   // Task 10b round 1 #3: the dragon's ambient status (what it's up to) lives on the camp-dragon
   // hotspot's caption instead of a `title` here (see camp.ts) - a `title` tooltip never shows on
   // iPad, the target device, since there's no mouse hover to trigger it.
+  import type { Snippet } from 'svelte';
   import Avatar from '../Avatar.svelte';
   import LaurelBar from '../ui/LaurelBar.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -18,7 +19,22 @@
   import type { CampResponse } from '../../lib/world/types';
   import type { Profile } from '../../lib/types';
 
-  let { profile, camp, onHero }: { profile: Profile; camp: CampResponse | null; onHero: () => void } = $props();
+  let {
+    profile,
+    camp,
+    onHero,
+    band = false,
+    lead,
+  }: {
+    profile: Profile;
+    camp: CampResponse | null;
+    onHero: () => void;
+    /** The battle's compact band (UI4 I4): the controls sit either side of the hold bar, which takes
+     *  the centre (the XP laurel steps aside), and the hero chip shows its avatar only. */
+    band?: boolean;
+    /** Rendered before the hero chip in the band (the battle's « Le camp »). */
+    lead?: Snippet;
+  } = $props();
 
   const xp = $derived(camp ? hudXp(camp.xp) : null);
 
@@ -28,13 +44,21 @@
   }
 </script>
 
-<header class="hud">
+{#snippet hero()}
   <button type="button" class="hud-hero" data-testid="hud-hero" aria-label="Ton héros : {profile.name}" onclick={onHero}>
     <Avatar avatar={profile.avatar} size={40} ring />
     <span class="hud-name">{profile.name}</span>
   </button>
+{/snippet}
+
+<header class="hud" class:band>
+  {#if band}
+    <div class="hud-left">{@render lead?.()}{@render hero()}</div>
+  {:else}
+    {@render hero()}
+  {/if}
   <div class="hud-center">
-    {#if xp}
+    {#if xp && !band}
       <LaurelBar value={xp.value} max={xp.max} label={xp.label} testId="hud-xp" />
     {/if}
   </div>
@@ -123,5 +147,33 @@
     width: 44px;
     height: 44px;
     object-fit: contain;
+  }
+  /* The battle's compact band (I4): the band's own height, no gradient, the centre column as wide
+     as the hold bar (the stage's --hp-w), each side's controls centred in its column. */
+  .hud.band {
+    inset: 0;
+    padding: 0 calc(12px + env(safe-area-inset-right)) 0 calc(12px + env(safe-area-inset-left));
+    grid-template-columns: 1fr calc(var(--hp-w, 30vw) + 24px) 1fr;
+    background: none;
+  }
+  .hud.band .hud-left {
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hud.band .hud-right {
+    justify-self: center;
+  }
+  .hud.band .hud-hero {
+    padding: 4px;
+  }
+  .hud.band .hud-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 </style>

@@ -50,4 +50,4 @@ export function reckoningVerdict(
   return outcomeOf(r, o.progression?.boss ?? null);
 }
 
-export const hpPercent =(hp: HpView) => Math.round(hp.value * 100);
+export const hpPercent = (hp: HpView) => Math.round(hp.value * 100);

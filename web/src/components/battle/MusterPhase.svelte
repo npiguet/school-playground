@@ -4,12 +4,12 @@
   // words (no grade code, no « ≈ », Ruling C8), the quest, boss and prophecy ribbons, Éris's taunt
   // on her voice plate (Ruling C7), the sheet fold, then the pace medallions and « Commencer la
   // dictée » - or, for the grimoire, Éris's rule and « Ouvrir le grimoire ».
-  import { onMount } from 'svelte';
+  import { untrack } from 'svelte';
   import OverlayVoice from '../scene/OverlayVoice.svelte';
   import PaceMedallions from './PaceMedallions.svelte';
   import { api } from '../../lib/api';
   import { MUSTER } from '../../lib/battle/lines';
-  import { react } from '../../lib/battle/stage.svelte';
+  import { battleStage, react } from '../../lib/battle/stage.svelte';
   import { isProphecy } from '../../lib/dates';
   import { ttsAvailable } from '../../lib/dictation/tts';
   import type { Pace } from '../../lib/dictation/script';
@@ -70,10 +70,14 @@
     return '';
   }
 
-  // The two sides square up: the opponent taunts, the dragon braces (Ruling C10).
-  onMount(() => {
-    react('opponent', 'taunt');
-    react('dragon', 'brace');
+  // The two sides square up: the opponent taunts, the dragon braces (Ruling C10). Again for each new
+  // battle on this muster (« Recommencer » resets the stage under it, final review I2).
+  $effect(() => {
+    void battleStage.generation;
+    untrack(() => {
+      react('opponent', 'taunt');
+      react('dragon', 'brace');
+    });
   });
 </script>
 

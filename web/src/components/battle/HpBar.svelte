@@ -7,21 +7,23 @@
   const ticks = $derived(hp.segments && hp.segments > 1 ? Array.from({ length: hp.segments - 1 }, (_, i) => (i + 1) / hp.segments!) : []);
 </script>
 
-<div
-  class="hp-bar stage-text"
-  data-testid="battle-hp"
-  role="meter"
-  aria-label={label}
-  aria-valuemin={0}
-  aria-valuemax={100}
-  aria-valuenow={hpPercent(hp)}
-  data-segments={hp.segments ?? ''}
->
-  <span class="hp-name kit-plaque" data-testid="battle-plaque">{name}</span>
-  <span class="hp-track" aria-hidden="true">
+<!-- The plaque names the opponent and is the battle's h1 (M8), as a place's plaque is; it sits
+     outside the meter, whose children assistive tech flattens. -->
+<div class="hp-bar stage-text" data-testid="battle-hold">
+  <h1 class="hp-name kit-plaque" data-testid="battle-plaque">{name}</h1>
+  <div
+    class="hp-track"
+    data-testid="battle-hp"
+    role="meter"
+    aria-label={label}
+    aria-valuemin={0}
+    aria-valuemax={100}
+    aria-valuenow={hpPercent(hp)}
+    data-segments={hp.segments ?? ''}
+  >
     <span class="hp-fill" style:transform="scaleX({hp.value})"></span>
     {#each ticks as t (t)}<span class="hp-tick" style:left="{t * 100}%"></span>{/each}
-  </span>
+  </div>
 </div>
 
 <style>
@@ -33,7 +35,9 @@
   }
   .hp-name {
     align-self: center;
+    margin: 0;
     font-size: 15px;
+    line-height: 1.3;
     padding: 2px 12px;
   }
   .hp-track {

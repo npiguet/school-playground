@@ -1,5 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { clearPlayState, loadPlayState, newPlayState, playKey, savePlayState } from './playState';
+import {
+  battleContext,
+  clearPlayState,
+  loadPlayState,
+  newPlayState,
+  playKey,
+  resumesUnder,
+  savePlayState,
+  type PlayState,
+} from './playState';
 
 class MemoryStorage {
   private store = new Map<string, string>();
@@ -115,5 +124,65 @@ describe('clearPlayState', () => {
 
     expect(loadPlayState(1, 2)).toEqual(dictationState);
     expect(loadPlayState(1, 2, 'grimoire')).toBeNull();
+  });
+});
+
+// UI4 Ruling C2c: a saved battle records the encounter and quest it was started under; resuming
+// compares encounters, never opponents (Éris fights the boss, every grimoire and a free text alike).
+describe('the battle a save belongs to (Ruling C2c)', () => {
+  function saved(phase: PlayState['phase'], under: { encounter: string | null; quest: number | null }): PlayState {
+    const s = newPlayState(1, 2, 1, 'dictation', under);
+    s.phase = phase;
+    s.opponent = 'eris';
+    return s;
+  }
+  const free = { encounter: null, quest: null };
+  const boss = { encounter: 'eris', quest: 7 };
+
+  it('records the encounter and quest it was started under, and keeps them through storage', () => {
+    const s = newPlayState(1, 2, 3, 'dictation', boss);
+    expect(s.encounter).toBe('eris');
+    expect(s.quest).toBe(7);
+    s.phase = 'dictation';
+    savePlayState(s);
+    expect(loadPlayState(1, 2)).toMatchObject({ encounter: 'eris', quest: 7 });
+    expect(newPlayState(1, 2, 1)).toMatchObject({ encounter: null, quest: null });
+  });
+
+  it('an intro never resumes', () => {
+    expect(resumesUnder(saved('intro', boss), 'eris')).toBe(false);
+    expect(resumesUnder(saved('intro', free), null)).toBe(false);
+  });
+
+  it('a free save (Éris as the opponent) never passes for the boss fight', () => {
+    for (const phase of ['dictation', 'proofreading', 'results'] as const) {
+      expect(resumesUnder(saved(phase, free), 'eris'), phase).toBe(false);
+    }
+  });
+
+  it('a boss save never passes for a lieutenant, nor a lieutenant save for the boss', () => {
+    expect(resumesUnder(saved('proofreading', boss), 'hydre')).toBe(false);
+    expect(resumesUnder(saved('proofreading', { encounter: 'hydre', quest: 3 }), 'eris')).toBe(false);
+  });
+
+  it('resumes under its own encounter, and from a link with none (the shelves)', () => {
+    expect(resumesUnder(saved('proofreading', boss), 'eris')).toBe(true);
+    expect(resumesUnder(saved('proofreading', boss), null)).toBe(true);
+    expect(resumesUnder(saved('results', free), null)).toBe(true);
+  });
+
+  it('an older save without the field counts as started under no encounter', () => {
+    const old = saved('dictation', free);
+    delete old.encounter;
+    delete old.quest;
+    expect(resumesUnder(old, null)).toBe(true);
+    expect(resumesUnder(old, 'eris')).toBe(false);
+    expect(battleContext(old, boss)).toEqual(free);
+  });
+
+  it("a battle runs under its own encounter and quest once it has a state, the URL's before", () => {
+    expect(battleContext(null, boss)).toEqual(boss);
+    expect(battleContext(saved('proofreading', boss), free)).toEqual(boss);
+    expect(battleContext(saved('proofreading', free), boss)).toEqual(free);
   });
 });

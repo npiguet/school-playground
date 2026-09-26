@@ -25,7 +25,6 @@ export const EMPRISE: Record<OpponentId, string> = {
 export const STAGE = {
   loading: 'Les Muses préparent le parchemin…',
   loadError: (e: string) => `Impossible de charger ce parchemin : ${e}`,
-  counting: 'Les Muses comptent les pièges déjoués…',
   dragonAlt: 'Ton dragon',
 } as const;
 
@@ -166,6 +165,9 @@ export const VICTORY = {
   reviewTried: "Ce qu'Éris a tenté",
   foiled: 'déjoué',
   missingWord: 'Mot oublié',
+  dragonName: 'Nom du dragon',
+  tokTrap: (w: string) => `${w} : piège, touche pour voir`,
+  tokFoiled: (w: string) => `${w} : déjoué, touche pour voir`,
   expected: (w: string) => `Attendu : « ${w} »`,
   forgotten: (w: string) => `Mot oublié : « ${w} »`,
   neutralised: 'Sa ruse ne te piège plus : trois jours de garde et 8 pièges sur 10 déjoués.',
