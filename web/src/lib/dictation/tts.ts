@@ -3,6 +3,7 @@
 // speech must be unlocked from a user gesture) and Edge/Chrome on Windows.
 // `speechSynthesis` is always read from `globalThis` at call time (never
 // cached at import) so tests (and Playwright) can stub it.
+import { voiceGain, voiceMuted, voiceSpeaking } from '../audio/voice';
 
 const NATURAL_RE = /natural|premium|enhanced|amélior/i;
 
@@ -16,6 +17,9 @@ const CANCEL_SETTLE_MS = 30;
 // mid-speech if nothing keeps it alive outside the closure passed to
 // speechSynthesis.speak(); holding a reference here prevents that.
 let activeUtterance: SpeechSynthesisUtterance | null = null;
+// Bumped by every speak() and cancelSpeech(): a line deferred by the settle tick starts only if
+// nothing came after it.
+let speechToken = 0;
 
 export function ttsAvailable(): boolean {
   return typeof (globalThis as any).speechSynthesis !== 'undefined';
@@ -75,16 +79,29 @@ export function pickVoice(
   return listFrenchVoices(voices)[0];
 }
 
+/** A line said by nobody (no speech engine, or the voice muted) still takes about its time. */
+const silentLine = (text: string): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, Math.max(300, text.length * 30)));
+
+/** How long a line may run before its missing end event is given up on (lane A review #3). */
+const watchdogMs = (text: string, rate: number): number => (text.length * 150) / rate + 3000;
+
 export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesisVoice | null }): Promise<void> {
   const synth = (globalThis as any).speechSynthesis as SpeechSynthesis | undefined;
-  if (!synth) {
-    const delay = Math.max(300, text.length * 30);
-    return new Promise((resolve) => setTimeout(resolve, delay));
-  }
+  if (!synth) return silentLine(text);
 
   // Capture this before cancel(), which clears speaking/pending immediately.
   const wasActive = Boolean(synth.speaking || synth.pending);
   synth.cancel();
+  const token = ++speechToken;
+
+  // UI5 Ruling E7b (lane A review #2): iOS ignores an utterance's volume, so a muted voice is not
+  // spoken at all; the line still takes its time, so the dictation keeps its pace everywhere.
+  if (voiceMuted()) {
+    activeUtterance = null;
+    voiceSpeaking(false);
+    return silentLine(text);
+  }
 
   return new Promise((resolve) => {
     const utterance = new SpeechSynthesisUtterance(text);
@@ -92,15 +109,34 @@ export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesi
     utterance.rate = opts.rate;
     utterance.pitch = 1;
     if (opts.voice) utterance.voice = opts.voice;
+    // UI5 Ruling E7: the voice channel's gain (where the browser honours it).
+    utterance.volume = voiceGain();
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
     const finish = () => {
-      activeUtterance = null;
+      clearTimeout(watchdog);
+      // A cancelled line whose end event arrives late must not let the music up under a newer one.
+      if (activeUtterance === utterance) {
+        activeUtterance = null;
+        voiceSpeaking(false);
+      }
       resolve();
     };
     utterance.onend = finish;
     utterance.onerror = finish;
 
     const startSpeaking = () => {
+      // Lane A review #10: a cancel (or a newer line) during the settle tick wins: never start.
+      if (token !== speechToken) {
+        resolve();
+        return;
+      }
       activeUtterance = utterance;
+      // UI5 Ruling E5: the music is down before the first word.
+      voiceSpeaking(true);
+      // An end event that never comes (iOS) must not keep the music down: un-duck, the line is long gone.
+      watchdog = setTimeout(() => {
+        if (activeUtterance === utterance) voiceSpeaking(false);
+      }, watchdogMs(text, opts.rate));
       synth.speak(utterance);
     };
 
@@ -119,6 +155,10 @@ export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesi
 export function cancelSpeech(): void {
   const synth = (globalThis as any).speechSynthesis as SpeechSynthesis | undefined;
   synth?.cancel();
+  speechToken++;
+  // iOS may never send the cancelled line's end event: the music comes back up here.
+  activeUtterance = null;
+  voiceSpeaking(false);
 }
 
 /**

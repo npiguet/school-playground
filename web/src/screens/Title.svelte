@@ -45,6 +45,7 @@
   const byName = $derived([...profiles].sort((a, b) => a.name.localeCompare(b.name, 'fr')));
 
   // Inside the tap itself (iOS grants audio and the tilt permission only in a user gesture).
+  // UI5 Ruling E3: the unlock comes first, inside the tap; the gate's chime is the first sound of the game.
   function gesture() {
     unlockAudio();
     void requestTilt();

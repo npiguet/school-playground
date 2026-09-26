@@ -8,6 +8,7 @@
 
 <svg
   class="icon-svg"
+  data-icon={name}
   viewBox="0 0 32 32"
   width={size}
   height={size}

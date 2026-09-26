@@ -101,6 +101,29 @@ describe('the old device mute', () => {
     expect(s.m.has('discorde.mute')).toBe(false);
   });
 
+  // Task 1 review carry: a dragged slider writes the device copy once it rests, not on every step.
+  it('writes the device copy when a slider comes to rest or is released, and at once for a toggle', async () => {
+    const s = storage([]);
+    const writes: string[] = [];
+    const setItem = s.setItem;
+    s.setItem = (k: string, v: string) => {
+      const a = JSON.parse(v) as typeof DEFAULT_AUDIO;
+      if (k === 'discorde.audio') writes.push(`${a.voice.volume}${a.music.muted ? ' music off' : ''}`);
+      setItem(k, v);
+    };
+    const store = await loadWith(s);
+    store.setChannel(4, 'voice', { volume: 0.9 }, { live: true });
+    store.setChannel(4, 'voice', { volume: 0.8 }, { live: true });
+    expect(writes).toEqual([]);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(writes).toEqual(['0.8']);
+    store.setChannel(4, 'voice', { volume: 0.7 }, { live: true });
+    store.setChannel(4, 'voice', { volume: 0.6 });
+    store.setChannel(4, 'music', { muted: true });
+    await vi.runAllTimersAsync();
+    expect(writes).toEqual(['0.8', '0.6', '0.6 music off']);
+  });
+
   it("seeds nothing muted from an old '0'", async () => {
     const s = storage([['discorde.mute', '0']]);
     const { audioSettings: a } = await loadWith(s);

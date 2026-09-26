@@ -147,7 +147,7 @@ test("the journal tells Éris's tricks by their monster, and each text once", as
   expect(await redScan(page)).toEqual([]);
 });
 
-test('the lyre holds the settings, one mute with the HUD, the goal as medallions, the credits', async ({ page, request }, testInfo) => {
+test('the lyre holds the settings, the three sound channels, the goal as medallions, the credits', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await stubSpeech(page);
   await openCabin(page, id);
@@ -157,17 +157,20 @@ test('the lyre holds the settings, one mute with the HUD, the goal as medallions
   await expect(lyre.getByRole('heading', { name: 'La lyre', level: 2 })).toBeVisible();
   await expect(lyre.getByRole('group', { name: 'Ta classe' })).toBeVisible();
   await expect(lyre.getByLabel('Tes quatre chiffres')).toBeVisible();
-  // The settings' mute and the HUD's are one switch (UI3a Ruling A17: the sliders are UI5), a pair
-  // of medallions like every other choice (UI3b playability #6), never a bare checkbox.
+  // The camp's sounds are three channels (UI5, spec §7): a slider and a « Sourdine » toggle each,
+  // never a bare checkbox, and no longer a radio pair.
   await expect(lyre.locator('input[type="checkbox"]')).toHaveCount(0);
   // The voice's select: named for a screen reader, no label printed over it (playability #6).
   await expect(lyre.getByLabel('Voix de la dictée')).toBeVisible();
   await expect(lyre.locator('label[for="voice"]')).toHaveCount(0);
-  const sounds = lyre.getByRole('group', { name: 'Les sons du camp' });
-  await expect(sounds.getByRole('radio', { name: 'Joués' })).toBeChecked();
-  await sounds.getByRole('radio', { name: 'Coupés' }).check();
-  await expect(page.getByTestId('hud-mute')).toHaveAttribute('aria-pressed', 'true');
-  await expect(lyre).toContainText('La dictée est toujours lue.');
+  for (const ch of ['music', 'sfx', 'voice']) await expect(lyre.getByTestId(`lyre-channel-${ch}`)).toBeVisible();
+  await expect(lyre.getByRole('radiogroup', { name: 'Les sons du camp' })).toHaveCount(0);
+  await expect(lyre.getByRole('group', { name: 'Les sons du camp' })).toHaveCount(0);
+  const muteMusic = lyre.getByTestId('lyre-mute-music');
+  await expect(muteMusic).toHaveAttribute('aria-pressed', 'false');
+  await muteMusic.click();
+  await expect(muteMusic).toHaveAttribute('aria-pressed', 'true');
+  await expect(lyre).toContainText("Sur iPad, le volume de la voix suit aussi les boutons de l'appareil.");
   await expect(lyre.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'dragon');
   await lyre.getByRole('group', { name: 'Textes par semaine' }).getByRole('radio', { name: '4' }).check();
   await lyre.getByRole('button', { name: 'Enregistrer' }).click();

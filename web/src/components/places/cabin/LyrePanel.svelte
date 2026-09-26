@@ -1,17 +1,20 @@
 <script lang="ts">
   // The lyre (UI3 Ruling B6, was the Settings screen): the dictation voice, the hero's class, the
-  // game's single mute (shared with the HUD, UI3a Ruling A17), the weekly goal as medallions, the
-  // seal (PIN) and the credits (immersion Deferred #7), on a scroll in the cabin. UI3b playability
-  // #6: every choice is a medallion (the mute too: « Joués » / « Coupés », real radios), the voice's
-  // select wears the parchment look with no label over it, and the dragon says what the lyre is for
-  // from the overlay's voice plate (CabinRoom.svelte), so the headings stay short.
+  // camp's sounds, the weekly goal as medallions, the seal (PIN), the camp's tours and the credits
+  // (immersion Deferred #7), on a scroll in the cabin. The mute (A17) became three channels (UI5,
+  // spec §7). UI3b playability #6: every choice is a medallion, the voice's select wears the
+  // parchment look with no label over it, and the dragon says what the lyre is for from the
+  // overlay's voice plate (CabinRoom.svelte), so the headings stay short.
   import { untrack } from 'svelte';
   import LevelMedallions from '../../ui/LevelMedallions.svelte';
+  import ChannelRow from './ChannelRow.svelte';
   import { api, ApiError } from '../../../lib/api';
   import { listFrenchVoices, pickVoice, speak, waitForVoices } from '../../../lib/dictation/tts';
   import { profileStore } from '../../../lib/profileStore.svelte';
   import { useToast } from '../../../lib/ui/toast.svelte';
-  import { soundStore, setMuted } from '../../../lib/juice/soundStore.svelte';
+  import { audioSettings } from '../../../lib/audio/store.svelte';
+  import { resetTours } from '../../../lib/tours/seen.svelte';
+  import { frenchSpacing } from '../../../lib/text/french';
   import type { Profile } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -28,17 +31,7 @@
   const toast = useToast();
   let saving = $state(false);
   let removingPin = $state(false);
-
-  // The mute as a medallion pair; it applies at once (not with « Enregistrer »), like the HUD's.
-  const SOUNDS_ON = 'Joués';
-  const SOUNDS_OFF = 'Coupés';
-  let sounds = $state(untrack(() => (soundStore.muted ? SOUNDS_OFF : SOUNDS_ON)));
-  $effect(() => {
-    sounds = soundStore.muted ? SOUNDS_OFF : SOUNDS_ON;
-  });
-  function onSoundsChange(value: string) {
-    void setMuted(profile.id, value === SOUNDS_OFF);
-  }
+  let replaying = $state(false);
 
   async function loadVoices() {
     const all = await waitForVoices();
@@ -97,6 +90,20 @@
       removingPin = false;
     }
   }
+
+  // UI5 Ruling E13: every tour can be replayed, so nothing a tour says is lost.
+  async function replayTours() {
+    replaying = true;
+    error = '';
+    try {
+      await resetTours(profile.id);
+      toast.show('Les visites reprendront à ton prochain passage dans chaque lieu.');
+    } catch (e) {
+      error = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
+    } finally {
+      replaying = false;
+    }
+  }
 </script>
 
 <div class="panel-lyre">
@@ -118,12 +125,18 @@
     </section>
 
     <section>
-      <LevelMedallions legend="Ta classe" name="settings-level" bind:value={level} />
+      <h3 class="kit-section">Les sons du camp</h3>
+      <ChannelRow profileId={profile.id} channel="music" label="La musique" name="Musique" volumeLabel="Volume de la musique" />
+      <ChannelRow profileId={profile.id} channel="sfx" label="Les bruitages" name="Bruitages" volumeLabel="Volume des bruitages" />
+      <ChannelRow profileId={profile.id} channel="voice" label="La voix" name="Voix" volumeLabel="Volume de la voix" />
+      {#if audioSettings.voice.muted}
+        <p class="kit-note" data-testid="lyre-voice-muted">{frenchSpacing("En sourdine, la dictée n'est plus lue à voix haute : il faudra quelqu'un pour te la lire.")}</p>
+      {/if}
+      <p class="note">{frenchSpacing("Sur iPad, le volume de la voix suit aussi les boutons de l'appareil.")}</p>
     </section>
 
     <section>
-      <LevelMedallions legend="Les sons du camp" name="camp-sounds" options={[SOUNDS_ON, SOUNDS_OFF]} bind:value={sounds} onchange={onSoundsChange} testId="lyre-sounds" />
-      <p class="note">La dictée est toujours lue.</p>
+      <LevelMedallions legend="Ta classe" name="settings-level" bind:value={level} />
     </section>
 
     <section>
@@ -150,6 +163,11 @@
       {/if}
     </section>
 
+    <section>
+      <h3 class="kit-section">Les visites du camp</h3>
+      <button type="button" class="kit-link" data-testid="lyre-tours" onclick={replayTours} disabled={replaying}>Refaire les visites du camp</button>
+    </section>
+
     {#if error}
       <p class="kit-note" data-tone="eris" role="alert">{error}</p>
     {/if}
@@ -163,6 +181,7 @@
   <details class="lyre-credits" data-testid="lyre-credits">
     <summary class="kit-link">Merci à ceux qui ont aidé le camp</summary>
     <p>Les lettres du camp : Cinzel, Alegreya et Literata, offertes par leurs auteurs sous la licence SIL Open Font.</p>
+    <p>Les musiques et les bruitages du camp ont été offerts à tous par leurs auteurs, sous la licence Creative Commons Zéro.</p>
     <p>Les livres d'Alexandrie viennent de Wikisource et du Projet Gutenberg. Chaque œuvre garde le nom de son auteur et de son traducteur.</p>
     <p>Les peintures du camp ont été faites pour lui.</p>
   </details>

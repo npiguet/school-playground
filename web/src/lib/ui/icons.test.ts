@@ -16,4 +16,11 @@ describe('SVG icon family (UI3 Ruling A13)', () => {
     expect(ICONS['lyre-muted'].slice(0, ICONS.lyre.length)).toEqual(ICONS.lyre);
     expect(ICONS['lyre-muted'].some((p) => p.halo)).toBe(true);
   });
+
+  it('strikes the sound plate\'s channels through the same way (UI5 Ruling E8)', () => {
+    for (const name of ['music', 'bell', 'voice'] as const) {
+      expect(ICONS[`${name}-muted`].slice(0, ICONS[name].length), name).toEqual(ICONS[name]);
+      expect(ICONS[`${name}-muted`].slice(ICONS[name].length), name).toEqual(ICONS['lyre-muted'].slice(ICONS.lyre.length));
+    }
+  });
 });
