@@ -1,8 +1,8 @@
 <script lang="ts">
   // The camp as a hub scene (scenes UI spec §3 "Hub scene", §9 UI1): the painted camp with its
   // places (CAMP_SCENE hotspots, each routing to its screen), the slim HUD, the weekly goal banner,
-  // the Oracle's prophecy, the dragon's greeting and the hero panel overlay on its own route
-  // (`?panel=heros`, plan Ruling 6). Built on PlaceScene like every other place (final review M2):
+  // the Oracle's prophecy and the dragon's greeting; `?panel=heros` (plan Ruling 6) hands over to
+  // the hero panel in the cabin (UI3 Ruling B2). Built on PlaceScene like every other place (final review M2):
   // the data load, the HUD, the greeting and the "camp unreachable" state are shared; what is the
   // camp's own is the dragon, the ribbon, the prophecy column, the fade out to the next scene and
   // having no exit sign (it is where the others lead).
@@ -10,11 +10,8 @@
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import SceneLayer from '../components/scene/SceneLayer.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
-  import Overlay from '../components/scene/Overlay.svelte';
   import ProphecyCard from '../components/places/ProphecyCard.svelte';
   import Onboarding from '../components/Onboarding.svelte';
-  import Avatar from '../components/Avatar.svelte';
-  import Icon from '../components/ui/Icon.svelte';
   import { CAMP_DRAGON_LAYER, CAMP_SCENE, campGreeting, weeklyCaption } from '../lib/world/scenes/camp';
   import { nearestProphecy } from '../lib/world/prophecy';
   import { TINT_FILTERS } from '../lib/world/dragon';
@@ -23,11 +20,10 @@
   import type { HotspotDef, SceneLayerDef } from '../lib/scene/types';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
   import { reducedMotion } from '../lib/juice/motion';
-  import { clearProfile } from '../lib/profileStore.svelte';
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
-  import { closePanel, go, hotspotHref } from '../lib/scene/panelNav';
-  import { OVERLAY_TITLES, sceneHref, type PanelId } from '../lib/world/places';
+  import { go, heroPanelHref, hotspotHref, replacePanel } from '../lib/scene/panelNav';
+  import type { PanelId } from '../lib/world/places';
   import type { Profile } from '../lib/types';
 
   // `panel` comes from placeFor, like every other place (final review M2).
@@ -67,7 +63,12 @@
     leaveTo(to);
   }
 
-  const closeHeroPanel = () => closePanel(sceneHref('camp', profile.id));
+  // UI3 Ruling B2: `?panel=heros` stays a route; once the Muses' welcome is over (fix wave 3: the
+  // onboarding takes precedence) it hands over to the hero panel in the cabin. replacePanel keeps a
+  // tagged entry tagged, so the panel's seal still steps back to where it was opened.
+  $effect(() => {
+    if (panel === 'heros' && profile.settings.onboarded) replacePanel(heroPanelHref(profile.id));
+  });
   const review = (textId: number) => go(href('play', { profileId, textId: String(textId) }));
 </script>
 
@@ -109,38 +110,6 @@
     </div>
   {/snippet}
 </PlaceScene>
-
-<!-- Onboarding takes precedence (fix wave 3): a deep link to ?panel=heros for a hero who hasn't
-     been welcomed yet opens the panel only once the Muses' card has closed. -->
-{#if panel === 'heros' && profile.settings.onboarded}
-  <Overlay variant="scroll" title={OVERLAY_TITLES.heros} testId="overlay-heros" onClose={closeHeroPanel} returnFocus={'[data-testid="hud-hero"]'}>
-    <div class="hero-panel">
-      <Avatar avatar={profile.avatar} size={72} ring />
-      <p class="hero-name">{profile.name}</p>
-      <!-- Playability #4: three bronze medallions, not a stack of settings buttons. -->
-      <nav class="medallions" aria-label="Ton héros">
-        <a class="medallion" data-testid="hero-settings" href={href('settings', { profileId })}>
-          <span class="medallion-disc" aria-hidden="true">
-            <Icon name="lyre" size={34} />
-          </span>
-          <span class="medallion-caption">Réglages</span>
-        </a>
-        <a class="medallion" data-testid="hero-journal" href={href('dossier', { profileId })}>
-          <span class="medallion-disc" aria-hidden="true">
-            <Icon name="journal" size={34} />
-          </span>
-          <span class="medallion-caption">Ton journal</span>
-        </a>
-        <a class="medallion" data-testid="hero-switch" href={href('profiles')} onclick={() => clearProfile()}>
-          <span class="medallion-disc" aria-hidden="true">
-            <Icon name="shield" size={34} />
-          </span>
-          <span class="medallion-caption">Changer de héros</span>
-        </a>
-      </nav>
-    </div>
-  </Overlay>
-{/if}
 
 {#if leaving}
   <div class="exit-veil" data-testid="exit-veil" aria-hidden="true" in:fade={{ duration: 180 }}></div>
@@ -210,63 +179,6 @@
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
-  }
-  .hero-panel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-  }
-  .hero-name {
-    margin: 0;
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 20px;
-  }
-  .medallions {
-    display: flex;
-    justify-content: center;
-    gap: 28px;
-    margin-top: 4px;
-  }
-  .medallion {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    min-width: 96px;
-    color: var(--ink);
-    text-decoration: none;
-  }
-  .medallion-disc {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 68px;
-    height: 68px;
-    border-radius: 50%;
-    border: 2px solid var(--bronze-dark);
-    background: radial-gradient(circle at 35% 30%, var(--bronze-light), var(--bronze) 55%, var(--bronze-dark));
-    color: var(--bronze-ink);
-    box-shadow:
-      inset 0 0 0 4px rgba(255, 240, 200, 0.2),
-      0 4px 10px rgba(0, 0, 0, 0.3);
-    transition: transform 0.1s ease;
-  }
-  .medallion:active .medallion-disc {
-    transform: translateY(1px);
-  }
-  .medallion:focus-visible {
-    outline: none;
-  }
-  .medallion:focus-visible .medallion-disc {
-    outline: 3px solid var(--gold-light);
-    outline-offset: 3px;
-  }
-  .medallion-caption {
-    font-family: var(--font-body);
-    font-weight: 700;
-    font-size: 16px;
   }
   .exit-veil {
     position: fixed;

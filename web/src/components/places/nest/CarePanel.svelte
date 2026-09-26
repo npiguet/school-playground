@@ -158,6 +158,11 @@
     flex-direction: column;
     gap: 10px;
   }
+  /* The section's flex gap spaces its lines; a paragraph's own margins would double it. */
+  .name-section > p,
+  .tint-section > p {
+    margin: 0;
+  }
   .name-form {
     display: flex;
     gap: 10px;

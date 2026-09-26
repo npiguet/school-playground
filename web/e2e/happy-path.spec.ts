@@ -64,6 +64,6 @@ test('create profile → add text → dictation → proofreading → results →
   await page.getByTestId('btn-back-camp').click();
   await expectCamp(page);
   await page.goto(`/#/p/${profileId}/stats`);
-  await expect(page.getByText(/1 parties?/).first()).toBeVisible();
+  await expect(page.getByTestId('journal-totals')).toContainText('1 texte défendu');
   await expect(page.getByText("Accord du verbe avec son sujet (L'Hydre)").first()).toBeVisible();
 });

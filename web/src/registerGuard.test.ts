@@ -29,7 +29,7 @@ const BANNED: [RegExp, string][] = [
 
 // The legacy screens UI3b is moving into the places still use the old words; each task deletes its
 // line when the screen moves (the list may only shrink; a path that no longer exists fails below).
-const PENDING = new Set<string>(['src/screens/Stats.svelte']);
+const PENDING = new Set<string>([]);
 const BATTLE = new Set(['src/screens/Play.svelte', 'src/screens/Boss.svelte']); // UI4
 
 const FILES = [

@@ -2,12 +2,17 @@
   // The hero's cabin (scenes UI spec §3, UI3 Ruling B6): the trophy shelf opens the rewards
   // (#/p/:id/cabane?panel=tresors), the journal the stats (#/p/:id/stats), the lyre the settings
   // (#/p/:id/settings). Displayed decor hangs on the walls; it reloads when the cabin opens and
-  // whenever the shelf puts something on display or away.
+  // whenever the shelf puts something on display or away. The hero panel lives here too
+  // (#/p/:id/cabane?panel=heros, Ruling B2): the HUD's hero chip is its shortcut from every place.
+  import { untrack } from 'svelte';
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
   import Medallion from '../components/juice/Medallion.svelte';
   import TrophiesPanel from '../components/places/cabin/TrophiesPanel.svelte';
+  import JournalPanel from '../components/places/cabin/JournalPanel.svelte';
+  import LyrePanel from '../components/places/cabin/LyrePanel.svelte';
+  import HeroPanel from '../components/places/cabin/HeroPanel.svelte';
   import { CABIN_SCENE, DECOR_SLOTS } from '../lib/world/scenes/cabin';
   import { worldApi } from '../lib/world/api';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
@@ -40,6 +45,19 @@
 
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
   const close = () => closePanel(sceneHref('cabin', profile.id));
+
+  // The journal and the lyre opened from the hero panel give focus back to its medallion when
+  // their seal steps back there; opened from the room, to their own hotspot. Only a move INTO one
+  // of them records where it came from, so a leaving overlay keeps its target during its fade.
+  let openedFrom = $state<PanelId | null>(null);
+  let lastPanel = untrack(() => panel);
+  $effect(() => {
+    const p = panel;
+    if (p === lastPanel) return;
+    if (p === 'journal' || p === 'lyre') openedFrom = lastPanel;
+    lastPanel = p;
+  });
+  const fromHero = $derived(openedFrom === 'heros');
 </script>
 
 <PlaceScene {profile} scene={CABIN_SCENE} bind:debug>
@@ -59,6 +77,18 @@
 {#if panel === 'tresors'}
   <Overlay variant="table" size="wide" title={OVERLAY_TITLES.tresors} testId="overlay-trophies" onClose={close} returnFocus={hotspotSelector('cabin', 'trophies')}>
     <TrophiesPanel {profile} onChange={() => loadWalls(profile.id)} />
+  </Overlay>
+{:else if panel === 'journal'}
+  <Overlay variant="codex" title={OVERLAY_TITLES.journal} testId="overlay-journal" onClose={close} returnFocus={fromHero ? '[data-testid="hero-journal"]' : hotspotSelector('cabin', 'journal')}>
+    <JournalPanel {profile} />
+  </Overlay>
+{:else if panel === 'lyre'}
+  <Overlay variant="scroll" title={OVERLAY_TITLES.lyre} testId="overlay-lyre" onClose={close} returnFocus={fromHero ? '[data-testid="hero-settings"]' : hotspotSelector('cabin', 'lyre')}>
+    <LyrePanel {profile} />
+  </Overlay>
+{:else if panel === 'heros'}
+  <Overlay variant="scroll" title={OVERLAY_TITLES.heros} testId="overlay-heros" onClose={close} returnFocus={'[data-testid="hud-hero"]'}>
+    <HeroPanel {profile} />
   </Overlay>
 {/if}
 

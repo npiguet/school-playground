@@ -63,6 +63,6 @@ test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', asyn
   await page.getByTestId('btn-back-camp').click();
   await expectCamp(page);
   await page.goto(`/#/p/${profileId}/stats`);
-  await expect(page.getByText('Grimoire').first()).toBeVisible();
+  await expect(page.getByTestId('overlay-journal').getByText('Grimoire').first()).toBeVisible();
   expect(t.id).toBeGreaterThan(0);
 });

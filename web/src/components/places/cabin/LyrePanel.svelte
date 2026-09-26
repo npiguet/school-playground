@@ -1,12 +1,14 @@
 <script lang="ts">
+  // The lyre (UI3 Ruling B6, was the Settings screen): the dictation voice, the hero's class, the
+  // game's single mute (shared with the HUD, UI3a Ruling A17), the weekly goal as medallions, the
+  // seal (PIN) and the credits (immersion Deferred #7), on a scroll in the cabin.
   import { untrack } from 'svelte';
-  import TopBar from '../components/TopBar.svelte';
-  import LevelMedallions from '../components/ui/LevelMedallions.svelte';
-  import { api, ApiError } from '../lib/api';
-  import { listFrenchVoices, pickVoice, speak, waitForVoices } from '../lib/dictation/tts';
-  import { profileStore } from '../lib/profileStore.svelte';
-  import { soundStore, setMuted } from '../lib/juice/soundStore.svelte';
-  import type { Profile } from '../lib/types';
+  import LevelMedallions from '../../ui/LevelMedallions.svelte';
+  import { api, ApiError } from '../../../lib/api';
+  import { listFrenchVoices, pickVoice, speak, waitForVoices } from '../../../lib/dictation/tts';
+  import { profileStore } from '../../../lib/profileStore.svelte';
+  import { soundStore, setMuted } from '../../../lib/juice/soundStore.svelte';
+  import type { Profile } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
 
@@ -15,7 +17,8 @@
   // and then owned by its own form control, so they must not track `profile` afterwards.
   let voiceName = $state(untrack(() => profile.settings.voice ?? ''));
   let level = $state(untrack(() => profile.level));
-  let weeklyGoal = $state(untrack(() => profile.settings.weekly_goal ?? 3));
+  // A string for the medallions (radio values); sent back as a number.
+  let weeklyGoal = $state(String(untrack(() => profile.settings.weekly_goal ?? 3)));
   let newPin = $state('');
   let error = $state('');
   let toast = $state('');
@@ -61,7 +64,7 @@
     error = '';
     try {
       const body: { settings: { voice?: string; weekly_goal?: number }; level: string; pin?: string } = {
-        settings: { voice: voiceName || undefined, weekly_goal: weeklyGoal },
+        settings: { voice: voiceName || undefined, weekly_goal: Number(weeklyGoal) },
         level,
       };
       if (newPin) body.pin = newPin;
@@ -92,17 +95,12 @@
   }
 </script>
 
-<TopBar {profile} title="Réglages" />
-
-<div class="screen">
+<div class="panel-lyre">
   <form onsubmit={save}>
     <section>
-      <h2>Voix de la dictée</h2>
+      <h3 class="kit-section">La voix de la dictée</h3>
       {#if voices.length === 0}
-        <p class="orange">
-          Aucune voix française trouvée sur cet appareil. Sur iPad : ouvre Réglages, puis
-          Accessibilité, puis Contenu énoncé, puis Voix, puis Français.
-        </p>
+        <p class="kit-note">Aucune voix française sur cet appareil. Sur iPad : ouvre Réglages, puis Accessibilité, puis Contenu énoncé, puis Voix, puis Français.</p>
       {:else}
         <div class="field">
           <label for="voice">Voix</label>
@@ -112,16 +110,16 @@
             {/each}
           </select>
         </div>
-        <button type="button" class="btn" onclick={tryVoice}>Écouter un essai</button>
+        <button type="button" class="kit-bronze is-quiet" onclick={tryVoice}>Écouter un essai</button>
       {/if}
     </section>
 
-    <section class="class-section">
+    <section>
       <LevelMedallions legend="Ta classe" name="settings-level" bind:value={level} />
     </section>
 
     <section>
-      <h2>Son</h2>
+      <h3 class="kit-section">Les sons</h3>
       <label class="checkbox-field">
         <input type="checkbox" checked={soundStore.muted} onchange={onMuteChange} />
         Couper les sons du jeu (la dictée reste lue)
@@ -129,19 +127,12 @@
     </section>
 
     <section>
-      <h2>Objectif de la semaine</h2>
-      <div class="field">
-        <label for="weekly-goal">Textes par semaine</label>
-        <select id="weekly-goal" bind:value={weeklyGoal}>
-          {#each [2, 3, 4, 5] as n (n)}
-            <option value={n}>{n}</option>
-          {/each}
-        </select>
-      </div>
+      <h3 class="kit-section">Ton objectif</h3>
+      <LevelMedallions legend="Textes par semaine" name="weekly-goal" options={['2', '3', '4', '5']} bind:value={weeklyGoal} />
     </section>
 
     <section>
-      <h2>Code</h2>
+      <h3 class="kit-section">Ton sceau</h3>
       <div class="field">
         <label for="new-pin">Nouveau code (quatre chiffres)</label>
         <input
@@ -155,33 +146,37 @@
         />
       </div>
       {#if profile.has_pin}
-        <button type="button" class="btn" onclick={removePin} disabled={removingPin}>
-          Retirer le code
-        </button>
+        <button type="button" class="kit-link" onclick={removePin} disabled={removingPin}>Retirer le sceau</button>
       {/if}
     </section>
 
     {#if error}
-      <p class="orange" role="alert">{error}</p>
+      <p class="kit-note" data-tone="eris" role="alert">{error}</p>
     {/if}
     {#if toast}
-      <p class="toast" role="status">{toast}</p>
+      <p class="kit-note" role="status">{toast}</p>
     {/if}
 
-    <button type="submit" class="btn btn-primary" disabled={saving}>Enregistrer</button>
+    <button type="submit" class="kit-bronze" disabled={saving}>Enregistrer</button>
   </form>
+
+  <details class="lyre-credits" data-testid="lyre-credits">
+    <summary class="kit-link">Merci à ceux qui ont aidé le camp</summary>
+    <p>Les lettres du camp : Cinzel, Alegreya et Literata, offertes par leurs auteurs sous la licence SIL Open Font.</p>
+    <p>Les livres d'Alexandrie viennent de Wikisource et du Projet Gutenberg. Chaque œuvre garde le nom de son auteur et de son traducteur.</p>
+    <p>Les peintures du camp ont été faites pour lui.</p>
+  </details>
 </div>
 
 <style>
-  section {
-    margin-bottom: 28px;
+  .panel-lyre form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
   }
-  /* « Ta classe » is this section's heading: its medallions' legend reads as the other sections' h2. */
-  .class-section :global(legend) {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 1.5em;
-    margin-bottom: 0.4em;
+  .panel-lyre section {
+    align-self: stretch;
   }
   .field {
     margin-bottom: 12px;
@@ -198,12 +193,11 @@
     width: 22px;
     height: 22px;
   }
-  select {
-    width: 100%;
-    max-width: 360px;
+  .lyre-credits {
+    margin-top: 22px;
   }
-  .toast {
-    color: var(--olive);
-    font-weight: 600;
+  .lyre-credits p {
+    margin: 8px 0 0;
+    font-size: 15px;
   }
 </style>

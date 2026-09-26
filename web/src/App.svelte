@@ -21,8 +21,6 @@
   import Nest from './screens/Nest.svelte';
   // --- UI3b Tasks 5-6 replace this block with CabinRoom ---
   import CabinRoom from './screens/CabinRoom.svelte';
-  import Stats from './screens/Stats.svelte';
-  import Settings from './screens/Settings.svelte';
   // --- end of the UI3b blocks ---
 
   const route = $derived(router.route);
@@ -116,12 +114,8 @@
       {:else if view?.place === 'nest'}
         <Nest profile={gateProfile} panel={view.panel} />
       <!-- UI3b Tasks 5-6 replace this block with the cabin place branch. -->
-      {:else if view?.place === 'cabin' && route.name === 'cabin'}
+      {:else if view?.place === 'cabin'}
         <CabinRoom profile={gateProfile} panel={view.panel} />
-      {:else if route.name === 'stats'}
-        <Stats profile={gateProfile} />
-      {:else if route.name === 'settings'}
-        <Settings profile={gateProfile} />
       <!-- End of the UI3b blocks: the battle screens below stay until UI4. -->
       {:else if route.name === 'play'}
         <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
