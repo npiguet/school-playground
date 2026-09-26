@@ -3,15 +3,21 @@
   // parchment sheet (tap → the lieutenant's page, #/p/:id/monstres/:key), the map table holds
   // Éris's file (#/p/:id/dossier), the codex on its lectern the bestiary (#/p/:id/bestiaire). A
   // lieutenant asleep at the hero's class is a locked place: the dragon says why (carry #16/M9).
+  // A portrait opens from a sheet, from the file or from a codex page, and a codex page from the
+  // codex: each seal steps back to where it was opened, and focus follows.
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
   import PortraitPanel from '../components/places/war/PortraitPanel.svelte';
+  import DossierPanel from '../components/places/war/DossierPanel.svelte';
+  import CodexPanel from '../components/places/war/CodexPanel.svelte';
+  import CodexPagePanel from '../components/places/war/CodexPagePanel.svelte';
   import { LIEUTENANT_NAMES, WAR_SCENE, isLieutenantKey } from '../lib/world/scenes/war';
   import { WAR_SHAPES } from '../lib/world/scenes/war.shapes';
   import { dragonSays } from '../lib/world/scenes/speakers';
   import { bandFor, dossierLine, sleepingLine } from '../lib/world/eris';
-  import { erisSays } from '../lib/world/voices';
+  import { VOICES, erisSays } from '../lib/world/voices';
+  import { entry } from '../lib/world/bestiary';
   import { ART } from '../lib/world/art';
   import { campFor } from '../lib/world/campStore.svelte';
   import { shapeBox } from '../lib/scene/geometry';
@@ -38,6 +44,21 @@
     const l = camp?.lieutenants.find((x) => x.key === key);
     return l ? erisSays(dossierLine(key, bandFor(l))) : null;
   });
+
+  const pageTitle = $derived(entry(key)?.name ?? OVERLAY_TITLES.page);
+  // Where the portrait / page was opened from, captured on the transition (like LibraryTent's work
+  // focus): its seal steps back there, and focus follows.
+  let previousPanel: PanelId | null = null;
+  let openedFrom = $state<PanelId | null>(null);
+  $effect(() => {
+    const from = previousPanel;
+    previousPanel = panel;
+    if (panel === 'portrait' || panel === 'page') openedFrom = from;
+  });
+  const portraitFocus = $derived(
+    openedFrom === 'dossier' ? `[data-testid="dossier-row-${key}"]` : openedFrom === 'page' ? '[data-testid="codex-page-lieutenant"]' : hotspotSelector('war', key),
+  );
+  const pageFocus = $derived(openedFrom === 'codex' ? `[data-testid="bestiary-card-${key}"]` : hotspotSelector('war', 'bestiary'));
 
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
 
@@ -74,9 +95,23 @@
 </PlaceScene>
 
 {#if panel === 'portrait'}
-  <Overlay variant="scroll" size="wide" title={portraitTitle} testId="overlay-portrait" voice={portraitVoice} onClose={close} returnFocus={hotspotSelector('war', key)}>
+  <Overlay variant="scroll" size="wide" title={portraitTitle} testId="overlay-portrait" voice={portraitVoice} onClose={close} returnFocus={portraitFocus}>
     {#key key}
       <PortraitPanel {profile} lieutenantKey={key} />
+    {/key}
+  </Overlay>
+{:else if panel === 'dossier'}
+  <Overlay variant="table" size="wide" title={OVERLAY_TITLES.dossier} testId="overlay-dossier" onClose={close} returnFocus={hotspotSelector('war', 'dossier')}>
+    <DossierPanel {profile} />
+  </Overlay>
+{:else if panel === 'codex'}
+  <Overlay variant="codex" title={OVERLAY_TITLES.codex} testId="overlay-codex" voice={VOICES.bestiary} onClose={close} returnFocus={hotspotSelector('war', 'bestiary')}>
+    <CodexPanel {profile} />
+  </Overlay>
+{:else if panel === 'page'}
+  <Overlay variant="codex" title={pageTitle} testId="overlay-codex-page" onClose={close} returnFocus={pageFocus}>
+    {#key key}
+      <CodexPagePanel {profile} entryKey={key} />
     {/key}
   </Overlay>
 {/if}

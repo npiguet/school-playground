@@ -430,15 +430,14 @@ test('portrait shows the rotate screen instead of the scene', async ({ page, req
 });
 
 test('legacy screens stay usable in portrait', async ({ page, request }, testInfo) => {
-  // Final review M12 / plan Ruling 8: only scene screens show the rotate screen in UI1. UI3a
-  // Task 9: /parchemins is now the library scene's shelves overlay, so this proves the point on
-  // the dossier instead - still a legacy screen in UI3a (UI3b Task 6 turns it into a place).
+  // Final review M12 / plan Ruling 8: only scene screens show the rotate screen. UI3b Task 3: the
+  // dossier is now the war tent's table overlay, so this proves the point on the battle screen
+  // (Boss keeps its legacy layout and TopBar until UI4).
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.setViewportSize({ width: 820, height: 1180 });
-  await page.goto(`/#/p/${id}/dossier`);
-  await expect(page.getByRole('heading', { name: "Le dossier d'Éris" })).toBeVisible();
-  await expect(page.getByTestId('rotate-screen')).toHaveCount(0);
+  await page.goto(`/#/p/${id}/eris`);
   await expect(page.getByTestId('topbar-camp')).toBeVisible();
+  await expect(page.getByTestId('rotate-screen')).toHaveCount(0);
 });
 
 test('reduced motion: no parallax, no idle bob, no particles', async ({ page, request }, testInfo) => {

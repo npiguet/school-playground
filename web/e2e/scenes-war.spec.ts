@@ -112,3 +112,61 @@ test('war tent: ?debug outlines eight places; no red; rotate screen', async ({ p
   await page.setViewportSize({ width: 820, height: 1180 });
   await expect(page.getByTestId('rotate-screen')).toBeVisible();
 });
+
+test("the map table opens Éris's file; a sheet opens its lieutenant; the seals step back", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await openTent(page, id);
+  await tap(page.getByTestId('war-dossier'), testInfo);
+  await expect(page).toHaveURL(/\/dossier$/);
+  const file = page.getByTestId('overlay-dossier');
+  await expect(file.getByRole('heading', { name: "Le dossier d'Éris", level: 2 })).toBeVisible();
+  await expect(file.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'eris');
+  await expect(file.getByRole('heading', { name: 'Ses points faibles' })).toBeVisible();
+  await expect(file.getByTestId('dossier-line-hydre')).toBeVisible();
+  await expect(file.getByTestId('dossier-row-hydre').locator('img[src="/art/icons/lt-hydre.webp"]')).toBeVisible();
+  await expect(file.getByTestId('dossier-small-tricks').getByRole('link', { name: 'Lire ton journal' })).toBeVisible();
+  await file.getByTestId('dossier-row-hydre').click();
+  await expect(page).toHaveURL(/\/monstres\/hydre$/);
+  await expect(page.getByTestId('overlay-portrait')).toBeVisible();
+  await closeOverlay(page);
+  await expect(page).toHaveURL(/\/dossier$/);
+  await expect(file.getByTestId('dossier-row-hydre')).toBeFocused();
+  await closeOverlay(page);
+  await expect(page).toHaveURL(/\/tente-de-guerre$/);
+});
+
+test("the lectern opens the bestiary codex; a page keeps the myth apart from the camp's fiction", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await openTent(page, id);
+  await tap(page.getByTestId('war-bestiary'), testInfo);
+  await expect(page).toHaveURL(/\/bestiaire$/);
+  const codex = page.getByTestId('overlay-codex');
+  await expect(codex.getByRole('heading', { name: 'Le bestiaire', level: 2 })).toBeVisible();
+  await expect(codex.getByRole('heading', { name: "Les ruses d'Éris" })).toBeVisible();
+  await expect(codex.getByRole('heading', { name: 'Les amis du camp' })).toBeVisible();
+  await expect(codex.getByTestId('bestiary-card-hydre').getByTestId('bestiary-locked')).toBeVisible();
+  await codex.getByTestId('bestiary-card-argus').click();
+  await expect(page).toHaveURL(/\/bestiaire\/argus$/);
+  const leaf = page.getByTestId('overlay-codex-page');
+  await expect(leaf.getByRole('heading', { name: 'Argus aux cent yeux', level: 2 })).toBeVisible();
+  await expect(leaf.getByRole('heading', { name: 'Le mythe' })).toBeVisible();
+  await expect(leaf.getByRole('heading', { name: 'Au camp' })).toBeVisible();
+  await closeOverlay(page);
+  await expect(page).toHaveURL(/\/bestiaire$/);
+  await codex.getByTestId('bestiary-card-hydre').click();
+  await leaf.getByTestId('codex-page-lieutenant').click();
+  await expect(page).toHaveURL(/\/monstres\/hydre$/);
+  expect(await redScan(page)).toEqual([]);
+});
+
+for (const o of [
+  { hash: (id: number) => `/p/${id}/dossier`, testId: 'overlay-dossier', variant: 'table', voice: 'eris' },
+  { hash: (id: number) => `/p/${id}/bestiaire`, testId: 'overlay-codex', variant: 'codex', voice: 'owl' },
+  { hash: (id: number) => `/p/${id}/bestiaire/hydre`, testId: 'overlay-codex-page', variant: 'codex', voice: null },
+] as const) {
+  test(`${o.testId}: an in-world ${o.variant}, clear of the HUD, 48 px targets, kit classes only`, async ({ page, request }, testInfo) => {
+    const id = await createProfileApi(request, heroName(testInfo.project.name));
+    await page.goto(`/#${o.hash(id)}`);
+    await expectInWorldOverlay(page, o.testId, 'war', true, o.variant, o.voice);
+  });
+}
