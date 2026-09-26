@@ -37,13 +37,20 @@ WALLS_FULL_MESSAGE = "Les murs sont pleins : range d'abord une pièce."
 ORACLE_ALREADY_CONSULTED = "L'Oracle a déjà parlé cette semaine. Reviens lundi."
 
 
-def sleeping_line(key: str) -> str:
-    """A lieutenant asleep at the hero's class (UI3 Ruling B11): the same words as the client's
+_YEARS = {1: "dans un an", 2: "dans deux ans", 3: "dans trois ans"}
+
+
+def sleeping_line(key: str, level: str | None = None) -> str:
+    """A lieutenant asleep at the hero's class (UI3 Ruling B11, UI3b playability #20: when it wakes,
+    in the story's words, not « une classe plus grande »): the same words as the client's
     `sleepingLine` (web/src/lib/world/eris.ts), for a quest asked of it anyway (a stale client)."""
     name = LIEUTENANTS[key]["name"]
-    if LIEUTENANTS[key]["gender"] == "fp":
-        return f"{name} dorment encore. Leurs ruses viendront dans une classe plus grande."
-    return f"{name} dort encore. Ses ruses viendront dans une classe plus grande."
+    gender = LIEUTENANTS[key]["gender"]
+    years = level_index(LIEUTENANTS[key]["min_level"]) - level_index(level) if level in LEVELS else 0
+    when = _YEARS.get(years, "dans quelques années")
+    if gender == "fp":
+        return f"{name} dorment encore. Elles se réveilleront {when}."
+    return f"{name} dort encore. {'Elle' if gender == 'f' else 'Il'} se réveillera {when}."
 
 
 def _week_today() -> tuple[str, str]:
@@ -154,7 +161,7 @@ def create_board_quest(conn: sqlite3.Connection, profile: sqlite3.Row, target: s
     if target not in LIEUTENANTS:
         raise HTTPException(422, "unknown lieutenant")
     if target not in lieutenants_for_level(profile["level"]):
-        raise HTTPException(409, sleeping_line(target))
+        raise HTTPException(409, sleeping_line(target, profile["level"]))
     pid = profile["id"]
     active = conn.execute("SELECT target FROM quest WHERE profile_id = ? AND kind = 'board' AND status = 'active'", (pid,)).fetchall()
     if any(r["target"] == target for r in active):

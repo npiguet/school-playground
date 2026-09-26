@@ -220,11 +220,20 @@ def test_a_lieutenant_asleep_at_the_heros_class_cannot_be_challenged(client):
     pid = make_profile(client, level="7H")
     r = client.post(f"/api/profiles/{pid}/quests", json={"target": "protee"})
     assert r.status_code == 409
-    assert r.json()["detail"] == "Protée dort encore. Ses ruses viendront dans une classe plus grande."
+    assert r.json()["detail"] == "Protée dort encore. Il se réveillera dans un an."
     assert client.get(f"/api/profiles/{pid}/quests?status=active").json() == []
     # Awake from 8H on.
     older = make_profile(client, level="8H")
     assert client.post(f"/api/profiles/{older}/quests", json={"target": "protee"}).status_code == 201
+
+
+def test_a_sleeping_lieutenant_says_when_it_wakes_in_the_clients_words():
+    # UI3b playability #20: the same sentences as eris.ts `sleepingLine` (eris.test.ts).
+    from app.routers.world import sleeping_line
+    assert sleeping_line("protee", "5H") == "Protée dort encore. Il se réveillera dans trois ans."
+    assert sleeping_line("protee", "6H") == "Protée dort encore. Il se réveillera dans deux ans."
+    assert sleeping_line("sirenes", "5H") == "Les Sirènes dorment encore. Elles se réveilleront dans quelques années."
+    assert sleeping_line("hydre") == "L'Hydre dort encore. Elle se réveillera dans quelques années."
 
 
 def test_a_reward_that_left_the_catalog_is_skipped_not_a_500(client, settings):

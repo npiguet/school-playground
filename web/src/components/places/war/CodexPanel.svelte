@@ -18,7 +18,10 @@
   const profileId = $derived(String(profile.id));
 
   const ERIS_SIDE = BESTIARY.filter((e) => e.kind === 'monster' || e.kind === 'boss');
-  const CAMP_SIDE = BESTIARY.filter((e) => e.kind !== 'monster' && e.kind !== 'boss');
+  // UI3b playability #21: the camp's friends, then its sacred places (Delphi is a place, not a friend).
+  const SACRED_PLACES = ['delphes'];
+  const CAMP_SIDE = BESTIARY.filter((e) => e.kind !== 'monster' && e.kind !== 'boss' && !SACRED_PLACES.includes(e.key));
+  const PLACES_SIDE = BESTIARY.filter((e) => SACRED_PLACES.includes(e.key));
 
   // The war tent's PlaceScene loads /camp (final review M15); this hero's snapshot only (I2).
   const camp = $derived(campFor(profile.id));
@@ -54,6 +57,8 @@
   <section class="codex-page page-right">
     <h3 class="kit-section">Les amis du camp</h3>
     <ol class="contents">{#each CAMP_SIDE as e (e.key)}{@render item(e)}{/each}</ol>
+    <h3 class="kit-section places">Les lieux sacrés</h3>
+    <ol class="contents">{#each PLACES_SIDE as e (e.key)}{@render item(e)}{/each}</ol>
   </section>
 </div>
 
@@ -78,6 +83,9 @@
 <style>
   .codex-page h3 {
     margin: 0 0 8px;
+  }
+  .codex-page h3.places {
+    margin-top: 18px;
   }
   .contents {
     list-style: none;

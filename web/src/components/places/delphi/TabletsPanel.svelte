@@ -138,7 +138,7 @@
           <h4 class="tablet-name">{names[key] ?? key}</h4>
           <p class="tablet-technique">{technique(key)}</p>
           {#if asleep}
-            <p class="tablet-note">{sleepingLine(key)}</p>
+            <p class="tablet-note">{sleepingLine(key, profile.level)}</p>
           {:else}
             {#if l.neutralised}<span class="kit-tablet-stamp">{agree('Neutralisé', key)}</span>{/if}
             {#if l.active_quest_id}
@@ -148,7 +148,7 @@
                    one word pressed into it. -->
               <button
                 type="button"
-                class="tablet-defy"
+                class="kit-bronze tablet-defy"
                 aria-label="Défier {names[key] ?? key}"
                 disabled={creating === key}
                 onclick={() => challenge(key)}>Défier</button
@@ -219,24 +219,20 @@
   }
   /* « Défier » pressed into the clay: a recessed word, not a bronze slab. Its ::after spans the
      whole tablet (the tablet is the positioned box), so a tap anywhere on the clay challenges. */
+  /* UI3b playability #23: the game's bronze button (.kit-bronze), the clay stays the tablet's; the
+     recessed tan word looked disabled. No transform on press and no filter on hover: either would
+     make the button the containing block of its ::after, the tablet's hit area, and shrink it. */
   .tablet-defy {
     margin-top: auto;
-    min-height: 48px;
-    padding: 4px 22px;
-    border: 0;
-    border-radius: 8px;
-    background: radial-gradient(ellipse at 50% 40%, rgba(92, 40, 20, 0.12), rgba(92, 40, 20, 0.32));
-    box-shadow:
-      inset 0 3px 6px rgba(92, 40, 20, 0.55),
-      0 1px 0 rgba(255, 230, 200, 0.5);
-    color: var(--ink);
-    font-family: var(--font-display);
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    padding: 6px 24px;
+    font-size: 17px;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    text-shadow: 0 1px 0 rgba(255, 230, 200, 0.55);
-    cursor: pointer;
+  }
+  .tablet-defy:active,
+  .tablet-defy:hover {
+    transform: none;
+    filter: none;
   }
   .tablet-defy::after {
     content: '';

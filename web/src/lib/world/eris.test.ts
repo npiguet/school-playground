@@ -4,12 +4,16 @@ import {
   agree,
   bandFor,
   confirmChoiceLabel,
+  dossierIntro,
   dossierLine,
+  erisProgressLine,
   genderFor,
+  neutraliseRule,
   lieutenantName,
   pronounFor,
   sleepingCaption,
   sleepingLine,
+  smallTricksLine,
   stirringCaption,
 } from './eris';
 import { LIEUTENANT_ORDER } from './types';
@@ -43,13 +47,47 @@ describe("Éris's dossier lines", () => {
   });
 
   // The line names whichever lieutenant sleeps, never a fixed one (review round 1 #1), and says
-  // it wakes with a bigger class. Only Protée (min_level 8H) can be reached asleep through the
-  // running app today, so the plural is covered here at the unit level.
+  // when it wakes in years, from the hero's class (UI3b playability #20: no « classe plus grande »).
+  // Only Protée (min_level 8H) can be reached asleep through the running app today, so the other
+  // genders are covered here at the unit level (the server says the same, test_world_api.py).
   it('says why a lieutenant sleeps and when it wakes, in the right number (Ruling B11)', () => {
-    expect(sleepingLine('protee')).toBe('Protée dort encore. Ses ruses viendront dans une classe plus grande.');
-    expect(sleepingLine('sirenes')).toBe('Les Sirènes dorment encore. Leurs ruses viendront dans une classe plus grande.');
+    expect(sleepingLine('protee', '7H')).toBe('Protée dort encore. Il se réveillera dans un an.');
+    expect(sleepingLine('protee', '6H')).toBe('Protée dort encore. Il se réveillera dans deux ans.');
+    expect(sleepingLine('protee', '5H')).toBe('Protée dort encore. Il se réveillera dans trois ans.');
+    expect(sleepingLine('protee')).toBe('Protée dort encore. Il se réveillera dans quelques années.');
+    expect(sleepingLine('sirenes')).toBe('Les Sirènes dorment encore. Elles se réveilleront dans quelques années.');
+    expect(sleepingLine('hydre')).toBe("L'Hydre dort encore. Elle se réveillera dans quelques années.");
+    for (const k of LIEUTENANT_ORDER) expect(sleepingLine(k, '5H')).not.toMatch(/classe|école/);
     expect([sleepingCaption('protee'), sleepingCaption('sirenes')]).toEqual(['Dort encore', 'Dorment encore']);
     expect([stirringCaption('echo'), stirringCaption('sirenes')]).toEqual(["S'agite", "S'agitent"]);
+  });
+
+  // UI3b playability #3, #12: Éris's file says what stands between the hero and a lieutenant in one
+  // sentence (no « 3/3 jours · 12/10 pièges · 92 % »), and the portrait says the rule once.
+  it('says in one sentence what is left before a lieutenant falls', () => {
+    const l = (days: number, traps: number, rate: number | null, allTraps = traps, neutralised = false) =>
+      ({ neutralised, all_time: { traps: allTraps, caught: 0, missed: 0, rate }, window: { days, traps, rate } }) as never;
+    expect(erisProgressLine('hydre', l(2, 6, 0.8))).toBe("Encore 1 jour de garde et 4 pièges à croiser avant qu'elle tombe.");
+    expect(erisProgressLine('protee', l(3, 4, 0.9))).toBe("Encore 6 pièges à croiser avant qu'il tombe.");
+    expect(erisProgressLine('sirenes', l(0, 0, null, 3))).toBe("Encore 3 jours de garde et 10 pièges à croiser avant qu'elles tombent.");
+    expect(erisProgressLine('echo', l(3, 12, 0.7))).toBe("Il ne te reste qu'à déjouer 8 pièges sur 10 avant qu'elle tombe.");
+    expect(erisProgressLine('chimere', l(0, 0, null, 0))).toBe('Pas encore croisée.');
+    expect(erisProgressLine('sirenes', l(0, 0, null, 0))).toBe('Pas encore croisées.');
+    expect(erisProgressLine('hydre', l(3, 12, 0.9, 16, true))).toBe('');
+    expect(neutraliseRule('hydre')).toBe('Pour la neutraliser : 3 jours de garde, 10 pièges croisés, et 8 sur 10 déjoués.');
+    expect(neutraliseRule('protee')).toMatch(/^Pour le neutraliser/);
+    expect(neutraliseRule('sirenes')).toMatch(/^Pour les neutraliser/);
+  });
+
+  it("speaks of her small tricks and of the file in words, never a trap count, and never at the player", () => {
+    const lines = [smallTricksLine(0, 0), smallTricksLine(10, 1), smallTricksLine(10, 5), smallTricksLine(10, 9)];
+    expect(new Set(lines).size).toBe(4);
+    for (const line of lines) {
+      expect(line).not.toMatch(/\d/);
+      for (const w of FORBIDDEN) expect(line.toLowerCase()).not.toContain(w);
+    }
+    expect(dossierIntro('Ana', 1)).toBe('Dossier « Ana ». 1 texte surveillé de près. Voici où mes ruses passent encore.');
+    expect(dossierIntro('Ana', 7)).toContain('7 textes surveillés');
   });
 
   it('names every lieutenant as the camp does', () => {

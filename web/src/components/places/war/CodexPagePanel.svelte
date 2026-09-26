@@ -1,9 +1,13 @@
 <script lang="ts">
-  // One page of the bestiary codex (UI3 Ruling B4): the left page holds « Le mythe » (real facts,
-  // sourced), the right page « Au camp » (the game's fiction), kept clearly apart so the child never
-  // confuses the two (plan Decision 13). Monster pages stay teaser-only until the world API says
-  // the full myth is unlocked; tool/place/boss/companion pages are always open.
+  // One page of the bestiary codex (UI3 Ruling B4): the left page holds « Le mythe » (real facts),
+  // the right page « Au camp » (the game's fiction) with its sources at the foot, kept clearly apart
+  // so the child never confuses the two (plan Decision 13): the pages and their headings keep them
+  // apart, with the camp's own painting by « Au camp » (UI3b playability #11: no « Fiction du jeu »
+  // stamp stepping out of the world, no bulleted textbook list, no lopsided spread). Monster pages
+  // stay teaser-only until the world API says the full myth is unlocked; tool/place/boss/companion
+  // pages are always open.
   import { entry } from '../../../lib/world/bestiary';
+  import { ART } from '../../../lib/world/art';
   import { campFor } from '../../../lib/world/campStore.svelte';
   import { pronounFor } from '../../../lib/world/eris';
   import type { LieutenantKey } from '../../../lib/world/types';
@@ -42,21 +46,19 @@
       <figure class="plate" class:is-scene={item.kind === 'place'}><img src={item.art} alt="" /></figure>
       <h3 class="kit-section">Le mythe</h3>
       {#if unlocked}
-        <ul>{#each item.facts as fact (fact)}<li>{fact}</li>{/each}</ul>
+        <div class="myth" data-testid="codex-myth">{#each item.facts as fact (fact)}<p>{fact}</p>{/each}</div>
       {:else}
         <p>{item.teaser}</p>
         <p class="kit-note" data-tone="eris">Mythe à débloquer : termine une quête contre {pronounFor(item.key as LieutenantKey)}.</p>
       {/if}
-      <h3 class="kit-section">Sources</h3>
-      <p class="muted sources">{item.sources}</p>
     </section>
     <section class="codex-page page-right">
-      <span class="kit-stamp">Fiction du jeu</span>
-      <h3 class="kit-section">Au camp</h3>
+      <h3 class="kit-section at-camp"><img class="camp-emblem" src={ART.scenes.hubCamp} alt="" />Au camp</h3>
       <p>{item.inGame}</p>
       {#if item.kind === 'monster'}
         <button type="button" class="kit-bronze" data-testid="codex-page-lieutenant" onclick={openLieutenant}>Voir la ruse et la quête</button>
       {/if}
+      <p class="sources" data-testid="codex-sources">D'après : {item.sources}</p>
     </section>
   </div>
 {/if}
@@ -71,11 +73,12 @@
       0 4px 10px rgba(92, 64, 24, 0.3);
     background: rgba(255, 250, 238, 0.6);
   }
+  /* Capped so the myth starts on the page, not below the fold (playability #11). */
   .plate img {
     display: block;
     margin: 0 auto;
     max-width: 100%;
-    max-height: 220px;
+    max-height: 170px;
     object-fit: contain;
   }
   .plate.is-scene img {
@@ -85,17 +88,52 @@
   .codex-page h3 {
     margin: 14px 0 8px;
   }
-  .codex-page ul {
-    margin: 0;
-    padding-left: 20px;
-  }
   .codex-page p {
     margin: 0 0 8px;
   }
-  .sources {
-    font-size: 15px;
+  /* The myth as running paragraphs, a drop cap on its first letter (a book, not a textbook list). */
+  .myth p {
+    text-indent: 1.2em;
   }
-  .page-right .kit-stamp {
-    display: inline-block;
+  .myth p:first-child {
+    text-indent: 0;
+  }
+  .myth p:first-child::first-letter {
+    float: left;
+    margin: 4px 6px 0 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 3.1em;
+    line-height: 0.8;
+    color: var(--bronze-dark);
+  }
+  /* « Au camp » with a small round of the camp's own painting: the game's side of the book. */
+  .at-camp {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .camp-emblem {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 45% 60%;
+    box-shadow:
+      0 0 0 2px var(--bronze-light),
+      0 1px 3px rgba(0, 0, 0, 0.35);
+  }
+  /* The sources at the foot of the page, one small italic line. */
+  .page-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .sources {
+    margin-top: auto;
+    padding-top: 18px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--form-ink-soft);
   }
 </style>

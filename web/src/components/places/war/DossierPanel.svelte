@@ -1,17 +1,17 @@
 <script lang="ts">
   // Éris's dossier on the player (spec §2, §3.6), laid on the war tent's map table (UI3 Ruling B4,
-  // WarTent.svelte): « Ses points faibles » as one pinned sheet per lieutenant. Her voice (eris.ts)
-  // sits *above* the real numbers, never replaces them - every taunt is followed by the actual
-  // catch rate so the player can always check her bragging against the facts. Degrades
-  // gracefully: when the world API can't be reached the per-lieutenant sheets are skipped but the
-  // raw stats (which always exist) still render.
+  // WarTent.svelte): « Ses points faibles » as one pinned sheet per lieutenant. UI3b playability #3:
+  // her file is her sentences and one gauge per sheet (what still stands between the hero and that
+  // lieutenant); the counts themselves live in one place, the journal (« Lire ton journal »), so the
+  // same numbers never show three ways. Degrades gracefully: when the world API can't be reached the
+  // per-lieutenant sheets are skipped but the rest of her file still renders.
   import Reveal from '../../juice/Reveal.svelte';
   import LieutenantBadge from '../../LieutenantBadge.svelte';
   import OverlayVoice from '../../scene/OverlayVoice.svelte';
   import { campFor, campStore } from '../../../lib/world/campStore.svelte';
   import { rateText } from '../../../lib/text/french';
   import { LIEUTENANT_ORDER, type LieutenantKey } from '../../../lib/world/types';
-  import { agree, bandFor, dossierLine, dossierIntro, sleepingLine, smallTricksLine } from '../../../lib/world/eris';
+  import { agree, bandFor, dossierLine, dossierIntro, erisProgressLine, sleepingLine, smallTricksLine } from '../../../lib/world/eris';
   import { erisSays } from '../../../lib/world/voices';
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
   import { api, ApiError } from '../../../lib/api';
@@ -70,6 +70,12 @@
     return rates.length > 0 ? Math.max(...rates) : null;
   });
 
+  // One gauge per sheet: how far the 3-day / 10-trap / 80 % window has come, all three together.
+  function windowFill(w: { days: number; traps: number; rate: number | null }): number {
+    const part = (v: number) => Math.min(1, Math.max(0, v));
+    return Math.round(((part(w.days / 3) + part(w.traps / 10) + part((w.rate ?? 0) / 0.8)) / 3) * 100);
+  }
+
   // The portrait opens over the file: its seal steps back here (UI3 Ruling A1).
   function goLieutenant(key: LieutenantKey) {
     go(href('lieutenant', { profileId, key }), 'panel');
@@ -98,7 +104,7 @@
               {#if !l || !l.available}
                 <div class="kit-sheet paper is-asleep" data-testid="dossier-row-{key}" data-lieutenant={key}>
                   <span class="paper-head"><LieutenantBadge lieutenantKey={key} size={40} dim /><span class="paper-name">{nameFor(key)}</span></span>
-                  <p class="muted">{sleepingLine(key)}</p>
+                  <p class="muted">{sleepingLine(key, profile.level)}</p>
                 </div>
               {:else}
                 {@const band = bandFor(l)}
@@ -110,7 +116,7 @@
                   data-testid="dossier-row-{key}"
                   data-lieutenant={key}
                   aria-label="{nameFor(key)} : voir la ruse et la quête"
-                  aria-describedby="dossier-{key}-line dossier-{key}-numbers dossier-{key}-window"
+                  aria-describedby="dossier-{key}-line{l.neutralised ? '' : ` dossier-${key}-progress`}"
                   onclick={() => goLieutenant(key)}
                 >
                   <span class="paper-head">
@@ -119,11 +125,12 @@
                     {#if l.neutralised}<span class="kit-stamp">{agree('Neutralisé', key)}</span>{/if}
                   </span>
                   <span class="kit-note" data-tone="eris" id="dossier-{key}-line" data-testid="dossier-line-{key}">{dossierLine(key, band)}</span>
-                  <span class="numbers" id="dossier-{key}-numbers">Pièges tendus : {l.all_time.traps} · déjoués : {l.all_time.caught} · {rateText(l.all_time.rate)}</span>
-                  <span class="kit-gauge" data-testid="dossier-window-{key}" data-state={l.window.days >= 3 ? 'ok' : 'short'} style:--fill="{Math.min(100, (l.window.days / 3) * 100)}%">
-                    <span class="kit-gauge-label window-label" id="dossier-{key}-window">{l.window.days}/3 jours · {l.window.traps}/10 pièges · {rateText(l.window.rate)}</span>
-                    <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
-                  </span>
+                  {#if !l.neutralised}
+                    <span class="progress" id="dossier-{key}-progress" data-testid="dossier-progress-{key}">{erisProgressLine(key, l)}</span>
+                    <span class="kit-gauge" data-testid="dossier-window-{key}" aria-hidden="true" data-state={l.window.days >= 3 && l.window.traps >= 10 && (l.window.rate ?? 0) >= 0.8 ? 'ok' : 'short'} style:--fill="{windowFill(l.window)}%">
+                      <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
+                    </span>
+                  {/if}
                 </button>
               {/if}
             </li>
@@ -148,15 +155,16 @@
 
     {#if stats}
       <Reveal>
-        <section class="kit-sheet taire">
+        <section class="kit-sheet taire" data-testid="dossier-taire">
           <h3 class="kit-section">Ce qu'elle préfère taire</h3>
-          <ul>
-            <li>Ton meilleur taux de réussite : {rateText(bestCatchRate)}</li>
-            <li>Dés-accords déjoués en tout : {stats.totals.caught}</li>
-            {#if camp}
-              <li>Ton rang actuel : {camp.xp.title}</li>
-            {/if}
-          </ul>
+          {#if bestCatchRate !== null}
+            <p>Ton meilleur texte : {rateText(bestCatchRate)} de mes pièges déjoués. Je n'en dirai pas plus.</p>
+          {:else}
+            <p>Aucun de mes pièges déjoué pour l'instant. Profitons-en.</p>
+          {/if}
+          {#if camp}
+            <p>Ton rang : {camp.xp.title}. Je fais semblant de ne pas l'avoir vu.</p>
+          {/if}
         </section>
       </Reveal>
     {/if}
@@ -220,15 +228,12 @@
   .paper .kit-gauge {
     margin-top: auto;
   }
-  .window-label {
-    font-size: 15px;
-    font-weight: 400;
-  }
   .paper p {
     margin: 0;
   }
-  .numbers {
+  .progress {
     font-size: 15px;
+    font-style: italic;
   }
   .small-tricks {
     display: flex;
@@ -252,8 +257,8 @@
     font-style: italic;
     color: var(--orange-ink);
   }
-  .taire ul {
-    margin: 0;
-    padding-left: 20px;
+  .taire p {
+    margin: 0 0 6px;
+    font-style: italic;
   }
 </style>

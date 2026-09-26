@@ -47,7 +47,7 @@
     const l = camp?.lieutenants.find((x) => x.key === key);
     // Final review I1: a lieutenant asleep at the hero's class, however its portrait was reached
     // (a codex page, a deep link), is explained by the dragon, as on its locked sheet.
-    if (camp && l && !l.available) return dragonSays(camp.dragon, sleepingLine(key));
+    if (camp && l && !l.available) return dragonSays(camp.dragon, sleepingLine(key, profile.level));
     return erisSays(l ? dossierLine(key, bandFor(l)) : 'Éris feuillette son dossier…');
   });
 
@@ -73,7 +73,7 @@
   function explainLocked(def: HotspotDef) {
     if (!camp || !isLieutenantKey(def.id)) return;
     unlockAudio();
-    place?.say([dragonSays(camp.dragon, sleepingLine(def.id))], hotspotSelector('war', def.id));
+    place?.say([dragonSays(camp.dragon, sleepingLine(def.id, profile.level))], hotspotSelector('war', def.id));
   }
 
   const close = () => closePanel(sceneHref('war', profile.id));

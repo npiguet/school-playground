@@ -49,7 +49,7 @@ test('a sheet opens its lieutenant: Éris speaks, a quest, the seal and Back clo
   const sheet = page.getByTestId('overlay-portrait');
   await expect(sheet.getByRole('heading', { name: "L'Hydre", level: 2 })).toBeVisible();
   await expect(sheet.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'eris');
-  await expect(sheet.getByTestId('lieutenant-gauge-days')).toContainText('0/3');
+  await expect(sheet.getByTestId('lieutenant-gauge-days')).toContainText('0 sur 3');
   await sheet.getByTestId('lieutenant-quest').click();
   await expect(sheet.getByRole('status')).toHaveText('Quête affichée au mur.');
   await expect(sheet.getByTestId('lieutenant-quest')).toContainText('Quête en cours');
@@ -76,7 +76,8 @@ test("a lieutenant asleep at the hero's class is a locked place: the dragon says
   await expect(protee).not.toHaveAttribute('aria-disabled');
   await expect(protee).toHaveAccessibleName(/Protée.*Dort encore.*fermé pour l'instant/);
   await expect(protee.locator('img.hotspot-lock')).toHaveAttribute('src', '/art/icons/lock.webp');
-  const line = 'Protée dort encore. Ses ruses viendront dans une classe plus grande.';
+  // UI3b playability #20: when it wakes, in years from the hero's class (7H: one year to 8H).
+  const line = 'Protée dort encore. Il se réveillera dans un an.';
   await tap(protee, testInfo);
   await expect(page).toHaveURL(/\/tente-de-guerre$/);
   await expect(page.getByTestId('dialogue-text')).toHaveText(line);
@@ -99,7 +100,7 @@ test("a sleeping lieutenant's portrait, however it is reached, has no quest: the
   // Final review I1: the sheet was locked, but the codex page and a deep link reached a portrait
   // with « Lancer une quête », and the server started the quest.
   const id = await createProfileApi(request, heroName(testInfo.project.name), '7H');
-  const line = 'Protée dort encore. Ses ruses viendront dans une classe plus grande.';
+  const line = 'Protée dort encore. Il se réveillera dans un an.';
   const sheet = page.getByTestId('overlay-portrait');
   const expectAsleep = async (how: string) => {
     await expect(sheet, how).toBeVisible();
@@ -186,10 +187,14 @@ test("the map table opens Éris's file; a sheet opens its lieutenant; the seals 
   await expect(file.getByTestId('dossier-line-hydre')).toBeVisible();
   await expect(file.getByTestId('dossier-row-hydre').locator('img[src="/art/icons/lt-hydre.webp"]')).toBeVisible();
   await expect(file.getByTestId('dossier-small-tricks').getByRole('link', { name: 'Lire ton journal' })).toBeVisible();
-  // A short button name, the sheet's words as its description, the day count said once.
+  // A short button name, the sheet's words as its description. UI3b playability #3: Éris's sentence
+  // and one gauge, no counts (the journal keeps those).
   await expect(file.getByTestId('dossier-row-hydre')).toHaveAccessibleName("L'Hydre : voir la ruse et la quête");
-  await expect(file.getByTestId('dossier-row-hydre')).toHaveAccessibleDescription(/Pièges tendus : 0/);
-  await expect(file.getByTestId('dossier-window-hydre').locator('.kit-gauge-label')).toHaveText(/^0\/3 jours · 0\/10 pièges · —$/);
+  await expect(file.getByTestId('dossier-progress-hydre')).toHaveText('Pas encore croisée.');
+  await expect(file.getByTestId('dossier-row-hydre')).toHaveAccessibleDescription(/Pas encore croisée\./);
+  await expect(file.getByTestId('dossier-window-hydre')).toBeAttached();
+  await expect(file.getByTestId('dossier-window-hydre').locator('.kit-gauge-label')).toHaveCount(0);
+  await expect(file.locator('.papers')).not.toContainText(/Pièges tendus|%|\/3|\/10/);
   await expect(file.getByRole('heading', { level: 4 })).toHaveCount(0);
   // The sheets of a row are the same height, so their rods line up.
   const heights = await file.locator('[data-testid^="dossier-row-"]').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
@@ -221,6 +226,10 @@ test("the lectern opens the bestiary codex; a page keeps the myth apart from the
   await expect(codex.getByRole('heading', { name: 'Le bestiaire', level: 2 })).toBeVisible();
   await expect(codex.getByRole('heading', { name: "Les ruses d'Éris" })).toBeVisible();
   await expect(codex.getByRole('heading', { name: 'Les amis du camp' })).toBeVisible();
+  // UI3b playability #21: Delphi is a sacred place, not a friend.
+  await expect(codex.getByRole('heading', { name: 'Les lieux sacrés' })).toBeVisible();
+  await expect(codex.locator('.page-right ol').last().getByTestId('bestiary-card-delphes')).toBeVisible();
+  await expect(codex.locator('.page-right ol').first().getByTestId('bestiary-card-delphes')).toHaveCount(0);
   await expect(codex.getByTestId('bestiary-card-hydre').getByTestId('bestiary-locked')).toBeVisible();
   await codex.getByTestId('bestiary-card-argus').click();
   await expect(page).toHaveURL(/\/bestiaire\/argus$/);
@@ -228,6 +237,13 @@ test("the lectern opens the bestiary codex; a page keeps the myth apart from the
   await expect(leaf.getByRole('heading', { name: 'Argus aux cent yeux', level: 2 })).toBeVisible();
   await expect(leaf.getByRole('heading', { name: 'Le mythe' })).toBeVisible();
   await expect(leaf.getByRole('heading', { name: 'Au camp' })).toBeVisible();
+  // UI3b playability #11: the myth in paragraphs, the sources a line at the foot of the camp's page,
+  // no « Fiction du jeu » stamp.
+  await expect(leaf.getByTestId('codex-myth').locator('p').first()).toBeVisible();
+  await expect(leaf.locator('ul')).toHaveCount(0);
+  await expect(leaf).not.toContainText('Fiction du jeu');
+  await expect(leaf.getByRole('heading', { name: 'Sources' })).toHaveCount(0);
+  await expect(leaf.locator('.page-right').getByTestId('codex-sources')).toContainText(/^D'après : /);
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/bestiaire$/);
   await codex.getByTestId('bestiary-card-hydre').click();
@@ -284,6 +300,11 @@ test('a foiled lieutenant: the gold seal on the sheet, the relic on the portrait
   });
   await openTent(page, id);
   await expect(page.getByTestId('war-hydre')).toContainText('Neutralisée');
+  // UI3b playability #8: the names and captions inked on the sheets are read at arm's length.
+  for (const sel of ['.hotspot-name', '.hotspot-caption']) {
+    const px = await page.getByTestId('war-hydre').locator(sel).evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+    expect(px, sel).toBeGreaterThanOrEqual(14);
+  }
   await expect(page.getByTestId('war-sheet-hydre').locator('.war-seal')).toBeVisible();
   await expect(page.getByTestId('war-sheet-echo').locator('.war-seal')).toHaveCount(0);
   await tap(page.getByTestId('war-hydre'), testInfo);
@@ -292,10 +313,15 @@ test('a foiled lieutenant: the gold seal on the sheet, the relic on the portrait
   await expect(banner).toContainText(/Neutralisée le dimanche 20 septembre/);
   await expect(banner.locator('[data-reward="ecaille_hydre"]')).toBeVisible();
   await expect(sheet.getByTestId('overlay-voice')).toContainText('neutralisée');
+  // UI3b playability #12: once neutralised, Éris's line and the relic are the page: no gauges.
+  await expect(sheet.getByTestId('lieutenant-gauges')).toHaveCount(0);
   await closeOverlay(page);
   await tap(page.getByTestId('war-dossier'), testInfo);
   await expect(page.getByTestId('dossier-row-hydre').locator('.kit-stamp')).toHaveText('Neutralisée');
-  await expect(page.getByTestId('dossier-row-hydre')).toContainText('92');
+  // The stamp alone: no progress sentence, no gauge, no numbers (UI3b playability #3).
+  await expect(page.getByTestId('dossier-progress-hydre')).toHaveCount(0);
+  await expect(page.getByTestId('dossier-window-hydre')).toHaveCount(0);
+  await expect(page.getByTestId('dossier-row-hydre')).not.toContainText(/\d/);
   await closeOverlay(page);
   await tap(page.getByTestId('war-bestiary'), testInfo);
   const card = page.getByTestId('overlay-codex').getByTestId('bestiary-card-hydre');

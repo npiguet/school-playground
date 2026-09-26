@@ -3,6 +3,8 @@
 // unit test (eris.test.ts) are the guardrail. Pure functions/data only, no DOM/store access, so
 // this lane's screens (Dossier, Lieutenant) can stay thin.
 import type { LieutenantKey, LieutenantState } from './types';
+import { levelIndex } from '../levels';
+import { plural } from '../text/french';
 
 export type Band = 'none' | 'strong' | 'contested' | 'weak' | 'neutralised';
 
@@ -141,22 +143,63 @@ export function dossierLine(key: LieutenantKey, band: Band): string {
 
 export function dossierIntro(name: string, sessions: number): string {
   if (sessions === 0) return `Dossier « ${name} ». Rien à signaler pour l'instant. Ça ne durera pas.`;
-  return `Dossier « ${name} ». ${sessions} texte${sessions > 1 ? 's' : ''} surveillé${sessions > 1 ? 's' : ''} de près. Voici où mes ruses passent encore.`;
+  return `Dossier « ${name} ». ${plural(sessions, 'texte surveillé', 'textes surveillés')} de près. Voici où mes ruses passent encore.`;
 }
 
+/** Éris on her small tricks (accents, letters, capitals), in words, never a count (UI3b playability
+ *  #3: the journal is the one place for the totals). */
 export function smallTricksLine(traps: number, caught: number): string {
   if (traps === 0) return "Mes petites ruses (accents, lettres, majuscules) n'ont pas encore servi.";
-  return `Mes petites ruses (accents, lettres, majuscules) : ${traps} tentative${traps > 1 ? 's' : ''}, ${caught} déjouée${caught > 1 ? 's' : ''}. Je note.`;
+  const rate = caught / traps;
+  if (rate < 0.4) return 'Mes petites ruses (accents, lettres, majuscules) passent encore presque toutes. Je note.';
+  if (rate < 0.8) return 'Mes petites ruses (accents, lettres, majuscules) : une sur deux se fait prendre. Je note.';
+  return 'Mes petites ruses (accents, lettres, majuscules) se font presque toutes prendre. Je note, vexée.';
 }
 
-/** Why a lieutenant still sleeps and when it wakes (UI3 Ruling B11): the server wakes each one at
- *  its `min_level` (catalog.py), so the child learns it comes with a bigger class. One source for
- *  the war tent's locked sheets, the dossier's sleeping rows and the quest wall's asleep tablets. */
-export function sleepingLine(key: LieutenantKey): string {
+/** The object pronoun of a lieutenant (« la neutraliser », « le neutraliser », « les neutraliser »). */
+export function objectPronounFor(key: LieutenantKey): string {
+  const g = GENDER[key];
+  return g === 'fp' ? 'les' : g === 'f' ? 'la' : 'le';
+}
+
+/** The neutralisation rule as a sentence (UI3b playability #12): the portrait's gauges measure it. */
+export function neutraliseRule(key: LieutenantKey): string {
+  return `Pour ${objectPronounFor(key)} neutraliser : 3 jours de garde, 10 pièges croisés, et 8 sur 10 déjoués.`;
+}
+
+/** What still stands between the hero and a lieutenant, in Éris's words, for its sheet in her file
+ *  (UI3b playability #3: one sentence and one gauge, no numbers repeated three ways). Empty once it
+ *  is neutralised (the stamp says it). The window is the server's 3-day / 10-trap / 80 % rule. */
+export function erisProgressLine(key: LieutenantKey, l: Pick<LieutenantState, 'neutralised' | 'all_time' | 'window'>): string {
+  if (l.neutralised) return '';
+  if (l.all_time.traps === 0 && l.window.traps === 0) return `Pas encore ${agree('croisé', key)}.`;
+  const falls = GENDER[key] === 'fp' ? "qu'elles tombent" : GENDER[key] === 'f' ? "qu'elle tombe" : "qu'il tombe";
+  const days = Math.max(0, 3 - l.window.days);
+  const traps = Math.max(0, 10 - l.window.traps);
+  const parts = [
+    days > 0 ? `${plural(days, 'jour', 'jours')} de garde` : null,
+    traps > 0 ? `${plural(traps, 'piège', 'pièges')} à croiser` : null,
+  ].filter((p): p is string => p !== null);
+  if (parts.length > 0) return `Encore ${parts.join(' et ')} avant ${falls}.`;
+  return `Il ne te reste qu'à déjouer 8 pièges sur 10 avant ${falls}.`;
+}
+
+// The class each lieutenant wakes at (catalog.py `LIEUTENANTS[*].min_level`), static like GENDER.
+const WAKES_AT: Record<LieutenantKey, string> = { hydre: '5H', echo: '5H', chimere: '5H', protee: '8H', sirenes: '5H', lethe: '5H' };
+const YEARS: Record<number, string> = { 1: 'dans un an', 2: 'dans deux ans', 3: 'dans trois ans' };
+
+/** Why a lieutenant still sleeps and when it wakes (UI3 Ruling B11; UI3b playability #20: in the
+ *  story's words, not « une classe plus grande »): the server wakes each one at its `min_level`, so
+ *  with the hero's class the dragon says how many years that is. One source for the war tent's
+ *  locked sheets, the dossier's sleeping rows and the quest wall's asleep tablets; the server's
+ *  409 says the same (world.py `sleeping_line`). */
+export function sleepingLine(key: LieutenantKey, level?: string): string {
+  const years = level && levelIndex(level) >= 0 ? levelIndex(WAKES_AT[key]) - levelIndex(level) : 0;
+  const when = YEARS[years] ?? 'dans quelques années';
   const name = NAMES[key];
-  return GENDER[key] === 'fp'
-    ? `${name} dorment encore. Leurs ruses viendront dans une classe plus grande.`
-    : `${name} dort encore. Ses ruses viendront dans une classe plus grande.`;
+  const g = GENDER[key];
+  if (g === 'fp') return `${name} dorment encore. Elles se réveilleront ${when}.`;
+  return `${name} dort encore. ${g === 'f' ? 'Elle' : 'Il'} se réveillera ${when}.`;
 }
 
 /** The short caption on a locked sheet or tablet. */

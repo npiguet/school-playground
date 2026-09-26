@@ -4,6 +4,8 @@
   // that launch a quest or a focused Grimoire corrompu (Decision 21). Éris's line for the current
   // band is the overlay's voice plate (Ruling B10), not part of this panel. A lieutenant asleep at
   // the hero's class (final review I1) shows its grey portrait only: no gauges, no quest to launch
+  // (UI3b playability #12: once neutralised, the gauges go too - Éris's line and the relic are the
+  // page; before, they count toward the goal, capped, under the rule said once as a sentence)
   // (the dragon says why from the voice plate, WarTent.svelte; the server refuses it too). Degrades
   // gracefully when the world API isn't reachable: the technique/state sections just stay empty
   // rather than crash.
@@ -12,7 +14,7 @@
   import { worldApi } from '../../../lib/world/api';
   import { campFor, campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../../../lib/world/types';
-  import { agree, stirringCaption } from '../../../lib/world/eris';
+  import { agree, neutraliseRule, stirringCaption } from '../../../lib/world/eris';
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
   import { lengthOf } from '../../../lib/library/shelf';
   import { longDate, rateText } from '../../../lib/text/french';
@@ -114,20 +116,23 @@
         <p class="kit-note" data-tone="eris">{name} {stirringCaption(lieutenantKey as LieutenantKey).toLowerCase()} à nouveau. Une quête de revanche ?</p>
       {/if}
 
-      <div class="gauges">
-        <div class="kit-gauge" data-testid="lieutenant-gauge-days" data-state={days >= 3 ? 'ok' : 'short'} style:--fill="{Math.min(100, (days / 3) * 100)}%">
-          <span class="kit-gauge-label">Jours de défense : {days}/3</span>
-          <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
+      {#if !lieutenantState.neutralised}
+        <div class="gauges" data-testid="lieutenant-gauges">
+          <p class="rule">{neutraliseRule(lieutenantKey as LieutenantKey)}</p>
+          <div class="kit-gauge" data-testid="lieutenant-gauge-days" data-state={days >= 3 ? 'ok' : 'short'} style:--fill="{Math.min(100, (days / 3) * 100)}%">
+            <span class="kit-gauge-label">Jours de garde : {Math.min(days, 3)} sur 3</span>
+            <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
+          </div>
+          <div class="kit-gauge" data-testid="lieutenant-gauge-traps" data-state={traps >= 10 ? 'ok' : 'short'} style:--fill="{Math.min(100, (traps / 10) * 100)}%">
+            <span class="kit-gauge-label">Pièges croisés : {Math.min(traps, 10)} sur 10</span>
+            <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
+          </div>
+          <div class="kit-gauge" data-testid="lieutenant-rate" data-state={(rate ?? 0) >= 0.8 ? 'ok' : 'short'} style:--fill="{Math.min(100, Math.round((rate ?? 0) * 100))}%">
+            <span class="kit-gauge-label">Pièges déjoués : {rateText(rate)}, il en faut {rateText(0.8)}</span>
+            <span class="kit-gauge-track"><span class="kit-gauge-fill"></span><span class="target-mark" style="left:80%" aria-hidden="true"></span></span>
+          </div>
         </div>
-        <div class="kit-gauge" data-testid="lieutenant-gauge-traps" data-state={traps >= 10 ? 'ok' : 'short'} style:--fill="{Math.min(100, (traps / 10) * 100)}%">
-          <span class="kit-gauge-label">Pièges rencontrés : {traps}/10</span>
-          <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
-        </div>
-        <div class="kit-gauge" data-testid="lieutenant-rate" data-state={(rate ?? 0) >= 0.8 ? 'ok' : 'short'} style:--fill="{Math.min(100, Math.round((rate ?? 0) * 100))}%">
-          <span class="kit-gauge-label">Pièges déjoués : {rateText(rate)}, il en faut {rateText(0.8)}</span>
-          <span class="kit-gauge-track"><span class="kit-gauge-fill"></span><span class="target-mark" style="left:80%" aria-hidden="true"></span></span>
-        </div>
-      </div>
+      {/if}
 
       {#if questError}
         <p class="kit-note" data-tone="eris" role="alert">{questError}</p>
@@ -233,6 +238,10 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+  }
+  .rule {
+    margin: 0;
+    font-style: italic;
   }
   .gauges .kit-gauge-track {
     overflow: visible;
