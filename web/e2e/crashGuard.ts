@@ -11,7 +11,10 @@ import { BROWSER_CRASHED } from './crashClassify';
 
 export { BROWSER_CRASHED };
 
-export const test = base.extend({
+export const test = base.extend<{ tours: boolean }>({
+  // UI5 Ruling E10: the first-visit tours stay away unless a spec asks for them with
+  // test.use({ tours: true }).
+  tours: [false, { option: true }],
   // Watches every page of the test's context (the default page and any popup) for a renderer
   // crash, and the browser for a disconnect. Checked after the test body, whether it passed or not:
   // a crash makes the body fail on whatever it was doing ("Target crashed", a closed page, a
@@ -38,16 +41,21 @@ export const test = base.extend({
   // `expect` timeout in playwright.config.ts says more). A 100 ms heartbeat notes every gap of a
   // second or more; a failed test lists them, so a stall overlapping a failure is named as such
   // instead of passing for an app bug (it was taken for a Svelte double intro once).
-  page: async ({ page }, use, testInfo) => {
-    await page.addInitScript(() => {
-      const w = window as unknown as { __pageStalls?: string[] };
+  page: async ({ page, tours }, use, testInfo) => {
+    await page.addInitScript((toursOn: boolean) => {
+      // UI5 Ruling E10: no e2e ever plays real sound (the engine records instead and publishes its
+      // state as window.__discordeAudio), and the first-visit tours stay away unless a spec asks
+      // for them with test.use({ tours: true }).
+      const w = window as unknown as { __discordeAudioStub?: boolean; __discordeTours?: string; __pageStalls?: string[] };
+      w.__discordeAudioStub = true;
+      if (!toursOn) w.__discordeTours = 'off';
       let last = performance.now();
       setInterval(() => {
         const now = performance.now();
         if (now - last >= 1000) (w.__pageStalls ??= []).push(`${Math.round(now - last)} ms at t=${Math.round(last)}`);
         last = now;
       }, 100);
-    });
+    }, tours);
     await use(page);
     if (testInfo.status !== testInfo.expectedStatus && !page.isClosed()) {
       let timer: ReturnType<typeof setTimeout> | undefined;

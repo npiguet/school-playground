@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderSfx, playSfx, type Sfx } from './sfx';
-import { soundStore } from './soundStore.svelte';
+import { audioSettings } from '../audio/store.svelte';
 
 const SFX_NAMES: Sfx[] = ['tap', 'seal', 'unroll', 'chime', 'growth', 'hmpf', 'laurel'];
 
@@ -64,7 +64,7 @@ function makeStubContext() {
 }
 
 beforeEach(() => {
-  soundStore.muted = false;
+  audioSettings.sfx.muted = false;
 });
 
 describe('renderSfx', () => {
@@ -93,7 +93,7 @@ describe('renderSfx', () => {
 
 describe('playSfx', () => {
   it('is a no-op when muted, without needing a context', () => {
-    soundStore.muted = true;
+    audioSettings.sfx.muted = true;
     expect(() => playSfx('tap')).not.toThrow();
   });
 });

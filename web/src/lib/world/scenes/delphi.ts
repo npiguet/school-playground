@@ -1,6 +1,7 @@
 // Delphi (scenes UI spec §3 "Delphi scene"): the Pythia on her tripod (the weekly scrolls and the
 // prophecies) and the votive-tablet wall (the quests). Each opens its legacy route as an overlay
 // (UI3 Ruling A1). The Pythia greets with a static line (A9).
+import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
 import type { CampResponse, ScrollKey } from '../types';
 import { st, type DialogueLine, type HotspotDef, type SceneDef, type SceneLayerDef } from '../../scene/types';
@@ -61,7 +62,7 @@ export const DELPHI_SCENE: SceneDef = {
   background: ART.scenes.delphi,
   layers: [PYTHIA_LAYER],
   hotspots: DELPHI_HOTSPOTS,
-  ambience: { particles: 'dust', music: null },
+  ambience: { particles: 'dust', music: SCENE_MUSIC.delphi },
   narrator: { enter: 'delphi.enter', firstVisit: 'delphi.first' },
   // The only way out is the camp: warm it for a deep link or a reload into the temple (final review M8).
   preload: [ART.scenes.hubCamp],

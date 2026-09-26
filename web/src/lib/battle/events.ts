@@ -1,10 +1,10 @@
 // events.ts — the battle's hooks for UI5 (Ruling C9): audio cues and dialogue lines will listen here.
 // UI4 emits and nobody listens yet. A listener never breaks the battle.
-import type { BattleMode, BattlePhase, OpponentId } from './battle';
+import type { BackdropId, BattleMode, BattlePhase, OpponentId } from './battle';
 import type { Outcome } from './hp';
 
 export type BattleEvent =
-  | { kind: 'start'; opponent: OpponentId; mode: BattleMode }
+  | { kind: 'start'; opponent: OpponentId; mode: BattleMode; backdrop: BackdropId }
   | { kind: 'phase'; phase: BattlePhase }
   | { kind: 'tool'; tool: 'argus' | 'bouclier' | 'chouette' | 'fil' | 'whole' }
   | { kind: 'strike'; value: number }

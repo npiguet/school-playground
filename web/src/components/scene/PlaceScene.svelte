@@ -13,7 +13,7 @@
   import SceneExit from './SceneExit.svelte';
   import DialogueBox from './DialogueBox.svelte';
   import { campFor, campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
-  import { initSound } from '../../lib/juice/soundStore.svelte';
+  import { initAudioSettings } from '../../lib/audio/store.svelte';
   import { go, heroPanelHref } from '../../lib/scene/panelNav';
   import { reducedMotion } from '../../lib/juice/motion';
   import { greetKey, markGreeted, shouldGreet } from '../../lib/scene/greeting';
@@ -47,15 +47,15 @@
   } = $props();
 
   // Final review I2: depends on the profile id only. loadCatalog() reads campStore.catalog and
-  // initSound() reads profile.settings; tracked, either would re-run this (a second /camp fetch,
-  // a second initSound) as soon as the catalog arrived or a setting changed. A derived id (UI4 M6):
+  // initAudioSettings() reads profile.settings; tracked, either would re-run this (a second /camp fetch,
+  // a second initAudioSettings) as soon as the catalog arrived or a setting changed. A derived id (UI4 M6):
   // `profile.id` read in the effect would track the whole `profile` prop, so a new profile object
   // for the same hero (loadProfile after a session) would fetch again.
   const heroId = $derived(profile.id);
   $effect(() => {
     const id = heroId;
     untrack(() => {
-      initSound(profile);
+      initAudioSettings(profile);
       void refreshCamp(id);
       void loadCatalog();
     });

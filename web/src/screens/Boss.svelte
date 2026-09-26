@@ -8,7 +8,7 @@
   import BossMuster from '../components/battle/BossMuster.svelte';
   import { battleFor } from '../lib/battle/battle';
   import { CHALLENGE_LINES } from '../lib/battle/lines';
-  import { initSound } from '../lib/juice/soundStore.svelte';
+  import { initAudioSettings } from '../lib/audio/store.svelte';
   import { worldApi } from '../lib/world/api';
   import { campFor, campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
   import { bossRewardId as rewardIdFor, bossRewardName } from '../lib/world/rewards';
@@ -21,7 +21,7 @@
   let { profile }: { profile: Profile } = $props();
 
   // The stage's HUD needs the hero's mute setting, like every place. As in PlaceScene (final review
-  // I2), this depends on the profile id only: loadCatalog() reads campStore.catalog and initSound()
+  // I2), this depends on the profile id only: loadCatalog() reads campStore.catalog and initAudioSettings()
   // reads profile.settings, and tracking either would fetch /camp again when they change. A derived
   // id (UI4 M6): reading `profile.id` in the effect would track the whole `profile` prop, and a new
   // profile object for the same hero (loadProfile) would fetch again.
@@ -29,7 +29,7 @@
   $effect(() => {
     const id = heroId;
     untrack(() => {
-      initSound(profile);
+      initAudioSettings(profile);
       void refreshCamp(id);
       void loadCatalog();
     });

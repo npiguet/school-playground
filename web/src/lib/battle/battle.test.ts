@@ -48,10 +48,11 @@ describe('who fights where (Ruling C2)', () => {
     expect(battleFor('hydre', { mode: 'dictation', encounter: null })).toMatchObject({
       opponent: { id: 'hydre', name: "L'Hydre", art: '/art/lieutenants/hydre_cut.webp' },
       backdrop: { id: 'river', src: '/art/scenes/battle_river.webp' },
-      ambience: { music: null },
+      ambience: { music: 'battle' },
       narrator: { start: 'battle.start', victory: 'battle.victory' },
     });
     expect(battleFor('eris', { mode: 'boss', encounter: 'eris' }).opponent.art).toBe('/art/characters/eris_cut.webp');
+    expect(battleFor('eris', { mode: 'boss', encounter: 'eris' }).ambience.music).toBe('lair');
     expect(Object.keys(BACKDROPS).sort()).toEqual(['coast', 'lair', 'river', 'temple']);
     expect(Object.keys(FACES).sort()).toEqual(['chimere', 'dragon', 'echo', 'eris', 'hydre', 'lethe', 'protee', 'sirenes']);
     expect(isOpponentId('lethe') && isOpponentId('eris') && !isOpponentId('argus')).toBe(true);

@@ -11,6 +11,7 @@ export async function stubSpeech(page: Page) {
       lang = '';
       voice: unknown = null;
       pitch = 1;
+      volume = 1;
       onend: null | ((e: unknown) => void) = null;
       onerror: null | ((e: unknown) => void) = null;
       constructor(t: string) {
@@ -19,6 +20,8 @@ export async function stubSpeech(page: Page) {
     }
     const spoken: string[] = [];
     (window as any).__spoken = spoken;
+    const spokenVolumes: number[] = [];
+    (window as any).__spokenVolumes = spokenVolumes;
     (window as any).SpeechSynthesisUtterance = U;
     const stub = {
       speaking: false,
@@ -26,6 +29,7 @@ export async function stubSpeech(page: Page) {
       paused: false,
       speak(u: U) {
         spoken.push(u.text);
+        spokenVolumes.push(u.volume);
         setTimeout(() => u.onend?.({}), 20);
       },
       cancel() {},
@@ -806,4 +810,51 @@ export async function battleRects(page: Page) {
     hp: '[data-testid="battle-hold"]',
     parchment: '[data-testid="battle-parchment"]',
   });
+}
+
+// ===== UI5 (Task 1) =====
+
+/** The audio engine's state (Ruling E10), or null before the app has created it. */
+export interface AudioSnap {
+  unlocked: boolean;
+  settings: Record<'music' | 'sfx' | 'voice', { volume: number; muted: boolean }>;
+  wanted: string | null;
+  playing: string | null;
+  musicGain: number;
+  ducks: string[];
+  voiceSpeaking: boolean;
+  sfx: string[];
+}
+
+export async function audioState(page: Page): Promise<AudioSnap | null> {
+  return page.evaluate(() => {
+    const w = window as unknown as { __discordeAudio?: { snapshot(): unknown } };
+    return (w.__discordeAudio?.snapshot() ?? null) as never;
+  });
+}
+
+/** Waits until the loop playing is `track` (null: none), and optionally for its ducking. */
+export async function expectMusic(page: Page, track: string | null, opts: { ducks?: string[] } = {}) {
+  await expect.poll(async () => (await audioState(page))?.playing ?? null).toBe(track);
+  if (opts.ducks) await expect.poll(async () => (await audioState(page))?.ducks ?? null).toEqual(opts.ducks);
+}
+
+/** The volumes the stubbed speechSynthesis was asked to speak at, oldest first. */
+export async function spokenVolumes(page: Page): Promise<number[]> {
+  return page.evaluate(() => (window as unknown as { __spokenVolumes?: number[] }).__spokenVolumes ?? []);
+}
+
+/** Taps the dialogue box to its next line: once to finish the typing, once to go on. */
+export async function nextLine(page: Page) {
+  const adv = page.getByTestId('dialogue-advance');
+  if ((await adv.getAttribute('aria-label')) !== 'Suite') await adv.click();
+  await expect(adv).toHaveAttribute('aria-label', 'Suite');
+  await adv.click();
+}
+
+/** A hero whose camp tour is still to come (createProfileApi marks it seen, as `onboarded`). */
+export async function createFreshHeroApi(request: APIRequestContext, name: string, level = '10H'): Promise<number> {
+  const res = await request.post('/api/profiles', { data: { name, avatar: 'chouette', level } });
+  expect(res.ok()).toBeTruthy();
+  return (await res.json()).id as number;
 }

@@ -88,7 +88,7 @@
   );
 
   $effect(() => {
-    if (battle) emitBattle({ kind: 'start', opponent: battle.opponent.id, mode });
+    if (battle) emitBattle({ kind: 'start', opponent: battle.opponent.id, mode, backdrop: battle.backdrop.id });
   });
   $effect(() => emitBattle({ kind: 'phase', phase }));
 

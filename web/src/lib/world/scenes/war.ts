@@ -1,6 +1,7 @@
 // The war tent (scenes UI spec §3 "War tent scene", UI3 Ruling B4): the lieutenants' portraits
 // pinned to the canvas (a sheet opens the lieutenant's page), the map table (Éris's file) and the
 // bestiary codex on its lectern. A lieutenant still asleep at the hero's class is a locked place.
+import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
 import { agree, lieutenantName, sleepingCaption, stirringCaption } from '../eris';
 import { LIEUTENANT_ORDER, type LieutenantKey } from '../types';
@@ -51,7 +52,7 @@ export const WAR_SCENE: SceneDef = {
   background: ART.scenes.warTent,
   layers: [],
   hotspots: WAR_HOTSPOTS,
-  ambience: { particles: 'dust', music: null },
+  ambience: { particles: 'dust', music: SCENE_MUSIC.war },
   narrator: { enter: 'war.enter', firstVisit: 'war.first' },
   // The only way out is the camp (final review M8).
   preload: [ART.scenes.hubCamp],

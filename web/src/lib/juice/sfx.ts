@@ -2,7 +2,7 @@
 // requests. Short (<= 600ms), quiet (peak gain 0.25). `unlockAudio` must run from
 // a user gesture (iOS Safari requirement); `renderSfx` is the pure scheduling
 // function, testable against any `BaseAudioContext` (including a plain stub).
-import { soundStore } from './soundStore.svelte';
+import { audioSettings } from '../audio/store.svelte';
 
 export type Sfx = 'tap' | 'seal' | 'unroll' | 'chime' | 'growth' | 'hmpf' | 'laurel';
 
@@ -93,7 +93,7 @@ export function renderSfx(name: Sfx, ctx: Ctx, at: number): void {
 }
 
 export function playSfx(name: Sfx): void {
-  if (soundStore.muted || !ctx) return;
+  if (audioSettings.sfx.muted || !ctx) return;
   try {
     renderSfx(name, ctx, ctx.currentTime);
   } catch {

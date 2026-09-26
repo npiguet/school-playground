@@ -1,6 +1,7 @@
 // The camp as a hub scene on hub_camp.webp (scenes UI spec §3 "Hub scene", UI3 Ruling B3): six
 // places pinned to their painted landmarks, captions only where there is news (three at most), one
 // next-step glow (Ruling B9), the path to battle locked until Éris can be fought.
+import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
 import { stageLine } from '../dragon';
 import { stirringCaption } from '../eris';
@@ -129,7 +130,7 @@ export const CAMP_SCENE: SceneDef = {
   background: ART.scenes.hubCamp,
   layers: [],
   hotspots: CAMP_HOTSPOTS,
-  ambience: { particles: 'embers', music: null },
+  ambience: { particles: 'embers', music: SCENE_MUSIC.camp },
   narrator: { enter: 'camp.enter', firstVisit: 'camp.first' },
   // Carry rec. 9, final review M14: every place the hub leads to, so none loads cold on its first
   // tap (the next step's place first: the tent and the temple, then the others and the battle).

@@ -1,5 +1,6 @@
 // The title scene (scenes UI spec §3 "Title scene", UI3 Ruling A4): the camp gates at dusk with
 // Éris's shadow in the sky. « Entrer » opens the gate onto the heroes' painted shields.
+import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
 import type { Profile } from '../../types';
 import { st, type HotspotDef, type SceneDef } from '../../scene/types';
@@ -15,7 +16,7 @@ export const TITLE_SCENE: SceneDef = {
   background: ART.scenes.titleGates,
   layers: [],
   hotspots: TITLE_HOTSPOTS,
-  ambience: { particles: 'embers', music: null },
+  ambience: { particles: 'embers', music: SCENE_MUSIC.title },
   narrator: { enter: 'title.enter', firstVisit: null },
   preload: [ART.scenes.hubCamp],
 };

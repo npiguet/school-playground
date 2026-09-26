@@ -7,9 +7,12 @@ export type { ArgusPass, Annotation } from './grading/types';
 
 export interface ProfileSettings {
   voice?: string;
-  /** Mirrors instantly to `localStorage` (SP3 Task 4/decision 17) so muting takes effect before
-   *  the PATCH round-trip completes. */
+  /** Before UI5: one switch for the music and the effects. Read once to seed `audio` (Ruling E2); no longer written. */
   mute?: boolean;
+  /** UI5 (spec §7): the three channels, always saved whole. */
+  audio?: import('./audio/settings').AudioSettings;
+  /** UI5 (spec §8): the places whose first-visit tour was seen or skipped. */
+  tours?: string[];
   /** Sessions per ISO week (decision 15), adjustable 2-5 on the cabin lyre (settings); defaults to 3 client-side. */
   weekly_goal?: number;
   /** First-visit onboarding cards on the camp (decision 22); skippable, never re-shown once true. */

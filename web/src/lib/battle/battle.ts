@@ -1,5 +1,6 @@
 // Who fights where (UI4 Ruling C2): the opponent on the right of the battle stage and the ground it
 // fights on, from the art that exists (docs/art/scenes.md "Battle backdrops"). Pure.
+import { battleTrack, type TrackId } from '../audio/catalog';
 import { ART } from '../world/art';
 import { lieutenantName } from '../world/eris';
 import type { FxPreset } from '../scene/types';
@@ -55,7 +56,8 @@ export const FACES: Record<OpponentId, Facing> & { dragon: Record<DragonStage, F
 export interface BattleDef {
   opponent: { id: OpponentId; name: string; art: string; alt: string };
   backdrop: { id: BackdropId; src: string; feetY: number };
-  ambience: { particles: FxPreset; music: string | null };
+  /** `music`: UI5: the loop of this ground (Ruling E4). */
+  ambience: { particles: FxPreset; music: TrackId };
   /** Dialogue event keys for UI5 (spec §8); nothing reads them in UI4. */
   narrator: { start: string; victory: string; retreat: string; retry: string };
 }
@@ -86,7 +88,7 @@ export function battleFor(opponent: OpponentId, ctx: { mode: BattleMode; encount
   return {
     opponent: { id: opponent, name, art: opponent === 'eris' ? ART.eris : ART.lieutenants[opponent], alt: name },
     backdrop: { id: backdropId, src: backdrop.src, feetY: backdrop.feetY },
-    ambience: { particles: backdrop.particles, music: null },
+    ambience: { particles: backdrop.particles, music: battleTrack(backdropId) },
     narrator: { start: 'battle.start', victory: 'battle.victory', retreat: 'battle.retreat', retry: 'battle.retry' },
   };
 }

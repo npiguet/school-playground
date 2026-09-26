@@ -1,7 +1,16 @@
-import { describe, expect, it, vi } from 'vitest';
-import { BATTLE_NARRATOR, emitBattle, onBattleEvent } from './events';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { BATTLE_NARRATOR, emitBattle, onBattleEvent, type BattleEvent } from './events';
 
 describe('battle events, the hooks UI5 listens to (Ruling C9)', () => {
+  it('names the ground in the start event, for the loop that goes with it (UI5 Ruling E4)', () => {
+    expectTypeOf<Extract<BattleEvent, { kind: 'start' }>>().toHaveProperty('backdrop');
+    const seen = vi.fn();
+    const off = onBattleEvent(seen);
+    emitBattle({ kind: 'start', opponent: 'hydre', mode: 'dictation', backdrop: 'river' });
+    off();
+    expect(seen).toHaveBeenCalledWith({ kind: 'start', opponent: 'hydre', mode: 'dictation', backdrop: 'river' });
+  });
+
   it('delivers events until unsubscribed, and survives a throwing listener', () => {
     const seen = vi.fn();
     const off = onBattleEvent(seen);

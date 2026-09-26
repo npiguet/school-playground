@@ -18,6 +18,9 @@ VERSION = "0.1.0"
 mimetypes.add_type("image/webp", ".webp")
 # Same story for the self-hosted UI fonts (scenes UI spec §2.7, web/public/fonts/*.woff2).
 mimetypes.add_type("font/woff2", ".woff2")
+# UI5 (scenes UI spec §7, Ruling E16): the camp's sounds (web/public/audio/**/*.m4a, AAC). Without it
+# the slim image served them as application/octet-stream.
+mimetypes.add_type("audio/mp4", ".m4a")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

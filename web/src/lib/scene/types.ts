@@ -1,5 +1,6 @@
 // Scene data types (scenes UI spec §4). Coordinates are "art %": 0-100 of the 16:9 art frame,
 // x left to right, y top to bottom, so scene data survives any art swap of the same framing.
+import type { TrackId } from '../audio/catalog';
 import type { RouteName } from '../routes';
 import type { CampResponse, WorldCatalog } from '../world/types';
 
@@ -117,7 +118,7 @@ export interface SceneDef {
   background: string;
   layers: SceneLayerDef[];
   hotspots: HotspotDef[];
-  ambience: { particles: FxPreset; music: string | null };
+  ambience: { particles: FxPreset; music: TrackId | null };
   /** Dialogue event keys for UI5 (content/dialogue/*.json); unused in UI1. */
   narrator: { enter: string | null; firstVisit: string | null };
   /** Backgrounds the player is likely to open next (spec §4 performance). */

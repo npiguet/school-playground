@@ -21,7 +21,7 @@
   import { pickVoice, unlockSpeech, waitForVoices } from '../lib/dictation/tts';
   import { gradeSession } from '../lib/grading/grade';
   import type { Annotation, SessionResult } from '../lib/grading/types';
-  import { initSound } from '../lib/juice/soundStore.svelte';
+  import { initAudioSettings } from '../lib/audio/store.svelte';
   import {
     battleContext,
     clearPlayState,
@@ -372,7 +372,7 @@
   $effect(() => {
     const heroId = pid;
     untrack(() => {
-      initSound(profile);
+      initAudioSettings(profile);
       void loadCatalog();
       void refreshCamp(heroId).finally(() => (campTried = true));
     });
