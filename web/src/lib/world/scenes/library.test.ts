@@ -12,8 +12,8 @@ describe('library tent (UI3 Ruling A1, A16)', () => {
     expect(LIBRARY_SCENE).toMatchObject({ id: 'library', title: 'La tente des parchemins', background: '/art/scenes/library_tent.webp' });
   });
 
-  it('preloads the camp, its only way out (final review M8)', () => {
-    expect(LIBRARY_SCENE.preload).toEqual(['/art/scenes/camp.webp']);
+  it('preloads the hub, its only way out (final review M8)', () => {
+    expect(LIBRARY_SCENE.preload).toEqual(['/art/scenes/hub_camp.webp']);
   });
 
   it('routes its four objects to the legacy routes, pinned to their landmarks; the owl handles her own tap', () => {

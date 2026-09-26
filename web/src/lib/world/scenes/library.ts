@@ -90,7 +90,7 @@ export const LIBRARY_SCENE: SceneDef = {
   ambience: { particles: 'dust', music: null },
   narrator: { enter: 'library.enter', firstVisit: 'library.first' },
   // The only way out is the camp: warm it for a deep link or a reload into the tent (final review M8).
-  preload: [ART.scenes.camp],
+  preload: [ART.scenes.hubCamp],
 };
 
 const OWL_HINTS = [

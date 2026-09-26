@@ -1,7 +1,7 @@
 // Pure quest label helpers (Task 7): the title/progress/reward strings shown on QuestCard, the
 // Delphes Oracle screen and the quest board. Kept free of DOM/store access so they stay trivially
 // unit-testable (brief step 1) and reusable across the three screens that render a quest.
-import type { QuestOut, WorldCatalog } from './types';
+import type { CampResponse, QuestOut, WorldCatalog } from './types';
 
 // A leading French article on a monster's name ("L'Hydre", "Les Sirènes") reads oddly capitalised
 // mid-sentence ("Tenir L'Hydre en échec") - lower-case it, same rule for every article.
@@ -50,4 +50,11 @@ export function rewardLabel(q: QuestOut, catalog: WorldCatalog): string {
   }
   if (q.reward.bestiary) parts.push('page du bestiaire');
   return parts.join(' · ');
+}
+
+/** How many tricks are still to foil before Éris comes out of hiding (the boss rule, SP3 decision
+ *  8): one tier per third of the available lieutenants. One source for the quest wall and the hub. */
+export function tricksBeforeEris(camp: CampResponse): number {
+  const need = Math.ceil((camp.dragon.available * (camp.boss.tiers_won.length + 1)) / 3);
+  return Math.max(0, need - camp.dragon.neutralised);
 }

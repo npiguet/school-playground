@@ -3,6 +3,7 @@ import { matchRoute } from '../routes';
 import { OVERLAY_TITLES, placeFor, sceneHref } from './places';
 import { SCENES } from './scenes';
 import { CAMP_HOTSPOTS } from './scenes/camp';
+import { DELPHI_HOTSPOTS } from './scenes/delphi';
 
 const at = (hash: string) => placeFor(matchRoute(hash));
 
@@ -102,7 +103,8 @@ describe('places (UI3 Ruling A1: every legacy route is its place plus an overlay
     }
   });
 
-  it('calls the quest wall the same on the hub (Ruling W13)', () => {
-    expect(CAMP_HOTSPOTS.find((h) => h.id === 'quests')!.label).toBe(OVERLAY_TITLES.tablettes);
+  it("the hub's Delphi plaque carries the quest count now that the wall lives in the temple (Ruling B3)", () => {
+    expect(CAMP_HOTSPOTS.map((h) => h.id)).not.toContain('quests');
+    expect(DELPHI_HOTSPOTS.find((h) => h.id === 'tablets')!.label).toBe(OVERLAY_TITLES.tablettes);
   });
 });

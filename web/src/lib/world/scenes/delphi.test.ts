@@ -27,8 +27,8 @@ describe('Delphi (UI3 Ruling A1, A10)', () => {
     ]);
   });
 
-  it('preloads the camp, its only way out (final review M8)', () => {
-    expect(DELPHI_SCENE.preload).toEqual(['/art/scenes/camp.webp']);
+  it('preloads the hub, its only way out (final review M8)', () => {
+    expect(DELPHI_SCENE.preload).toEqual(['/art/scenes/hub_camp.webp']);
   });
 
   it('seats the Pythia on the painted tripod', () => {
