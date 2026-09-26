@@ -117,8 +117,9 @@ async function waitForOverlaySettled(page: Page, testId: string) {
 // line without moving to the next one (typewriter.ts's advance()); its accessible name flips from
 // « Tout afficher » to « Suite » only once the full line is showing, which is what this waits on.
 async function settleDialogue(page: Page) {
+  // Every caller has just opened a dialogue: wait for it, never sample the page once (UI4 wave B).
   const box = page.getByTestId('dialogue-box');
-  if ((await box.count()) === 0) return;
+  await expect(box).toBeVisible();
   const advanceBtn = box.getByTestId('dialogue-advance');
   if ((await advanceBtn.getAttribute('aria-label')) === 'Tout afficher') await advanceBtn.click();
   await expect(advanceBtn).toHaveAccessibleName('Suite');
@@ -292,6 +293,8 @@ async function librarySection(w: Walk) {
   // A never-copied work shows the scribes' next step; the shared database may hold copies of all.
   const portal = page.getByTestId('overlay-portal');
   const never = portal.locator('[data-testid="work-card"][data-status="never"]');
+  // The works load after the portal opens: wait for them before choosing (UI4 wave B, no one-shot).
+  await expect(portal.getByTestId('work-card').first()).toBeVisible();
   await ((await never.count()) > 0 ? never : portal.getByTestId('work-card')).first().click();
   await waitForOverlaySettled(page, 'overlay-portal-work');
   await shot(w, 'a11-library-portal-work');

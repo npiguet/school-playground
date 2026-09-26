@@ -52,9 +52,16 @@ export async function stubSpeech(page: Page) {
 
 // Dismisses the first-visit onboarding modal (spec's decision 22) if it's showing - tolerant so
 // it's safe to call after any camp arrival, whether or not this is the profile's first visit.
+// The Muses' card mounts with the camp, in the same render (Camp.svelte): it waits for a place to be
+// drawn first (the camp, or where a link sends an onboarded hero), so the look at the card is never
+// taken before the page has drawn it (UI4 wave B).
 export async function skipOnboarding(page: Page) {
+  await expect(page.locator('[data-testid^="scene-"]:not([data-testid="scene-exit"])').first()).toBeVisible();
   const btn = page.getByTestId('onboarding-skip');
-  if (await btn.isVisible()) await btn.click();
+  if (await btn.isVisible()) {
+    await btn.click();
+    await expect(page.getByTestId('onboarding')).toHaveCount(0);
+  }
 }
 
 // Taps (iPad) or clicks (desktop) a locator - a finger on the iPad project, a mouse on the desktop
@@ -365,10 +372,12 @@ export async function openShelves(page: Page) {
 
 // Closes the topmost overlay (wax seal) and waits until only it has left: closing a work overlay
 // steps back to the portal overlay underneath it rather than waiting for every overlay to close
-// (controller ruling U2 - a deep overlay stack must be closed one level at a time).
+// (controller ruling U2 - a deep overlay stack must be closed one level at a time). Every caller has
+// just opened one: it waits for it (an overlay opens on the route change, after the tap), never
+// sampling the page once (UI4 wave B: « Revoir » opened after a one-shot count on WebKit).
 export async function closeOverlay(page: Page) {
   const top = page.locator('.overlay-panel').last();
-  if ((await top.count()) === 0) return;
+  await expect(top, 'an overlay to close').toBeVisible();
   const id = await top.getAttribute('data-testid');
   await top.getByTestId('overlay-close').click();
   await expect(page.getByTestId(id!)).toHaveCount(0);
@@ -727,6 +736,12 @@ export interface PlaySeed {
   /** Ruling C2c: the encounter and quest the battle was started under (absent: an older save). */
   encounter?: string | null;
   quest?: number | null;
+  /** Ruling C2d: the help stage the battle's link imposed (absent: an older save). */
+  help?: number | null;
+  /** Ruling M20: the script step a saved dictation resumes from. */
+  dictationStep?: number;
+  /** A victory already counted by the Muses: its progression, shown without a submission. */
+  progression?: object;
 }
 
 // Seeds a play state (lib/playState.ts, version 1) before the app starts, once per tab: a reload
@@ -753,11 +768,14 @@ export async function seedPlay(page: Page, s: PlaySeed) {
         revealedKeys: [],
         passIndex: 0,
         bouclier: false,
-        submitted: false,
-        sessionId: null,
+        submitted: !!seed.progression,
+        sessionId: seed.progression ? 1 : null,
         ...(seed.opponent ? { opponent: seed.opponent } : {}),
         ...(seed.encounter !== undefined ? { encounter: seed.encounter } : {}),
         ...(seed.quest !== undefined ? { quest: seed.quest } : {}),
+        ...(seed.help !== undefined ? { help: seed.help } : {}),
+        ...(seed.dictationStep !== undefined ? { dictationStep: seed.dictationStep } : {}),
+        ...(seed.progression ? { progression: seed.progression } : {}),
       }),
     );
   }, s);

@@ -41,7 +41,9 @@ const T_ROUT = 'Le chant des fées (II)';
 const T_STANDOFF = 'Le chant des fées (III)';
 const T_BOSS_WON = 'Le chant des fées (IV)';
 const T_BOSS_LOST = 'Le chant des fées (V)';
-const TITLES = [T_SHORT, T_LONG, T_GRIMOIRE, T_ROUT, T_STANDOFF, T_BOSS_WON, T_BOSS_LOST];
+// The faces' musters are dictations: a dictation's own title (the playability review's open item 6).
+const T_FACES = 'La ronde des fées';
+const TITLES = [T_SHORT, T_LONG, T_GRIMOIRE, T_ROUT, T_STANDOFF, T_BOSS_WON, T_BOSS_LOST, T_FACES];
 const SHORT = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const SHORT_HALF = 'Les fées dansent dans la clairière. Elles chante et les oiseaux les écoutent.';
 const SHORT_DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
@@ -56,7 +58,7 @@ const SENTENCES = [
 const LONG_REF = Array.from({ length: 24 }, (_, i) => SENTENCES[i % SENTENCES.length]).join(' ');
 const LONG_DRAFT = LONG_REF.replace('Les fées dansent', 'Les fées danse').replace(/La nuit est douce(?![\s\S]*La nuit est douce)/, 'La nuit et douce');
 
-type TextKey = 'short' | 'long' | 'grimoire' | 'rout' | 'standoff' | 'bossWon' | 'bossLost';
+type TextKey = 'short' | 'long' | 'grimoire' | 'rout' | 'standoff' | 'bossWon' | 'bossLost' | 'faces';
 
 async function deleteHeroes(request: APIRequestContext, names: string[]) {
   const profiles = (await (await request.get('/api/profiles')).json()) as { id: number; name: string }[];
@@ -112,8 +114,9 @@ async function waitForOverlaySettled(page: Page, testId: string) {
 
 // One tap on `.advance` completes the current line; its name flips to « Suite » once it shows whole.
 async function settleDialogue(page: Page) {
+  // Every caller has just opened a dialogue: wait for it, never sample the page once (UI4 wave B).
   const box = page.getByTestId('dialogue-box');
-  if ((await box.count()) === 0) return;
+  await expect(box).toBeVisible();
   const advanceBtn = box.getByTestId('dialogue-advance');
   if ((await advanceBtn.getAttribute('aria-label')) === 'Tout afficher') await advanceBtn.click();
   await expect(advanceBtn).toHaveAccessibleName('Suite');
@@ -317,6 +320,16 @@ async function bossSection(w: Walk) {
     await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', pose);
     await combatantsSettled(page);
     await sheetSettled(page);
+    // UI4 playability #4: the boss's block scrolls itself into the sheet's view as it is revealed.
+    await expect
+      .poll(() =>
+        page.getByTestId('reveal-boss').evaluate((el) => {
+          const body = el.closest('.sheet-body')!.getBoundingClientRect();
+          const r = el.getBoundingClientRect();
+          return r.top >= body.top - 1 && r.bottom <= body.bottom + 1;
+        }),
+      )
+      .toBe(true);
     await shot(w, name);
     await noRed(w, name);
     await page.unrouteAll({ behavior: 'wait' });
@@ -339,7 +352,7 @@ async function facesSection(w: Walk) {
       json.dragon = { ...json.dragon, stage };
       await route.fulfill({ response: res, json });
     });
-    await page.goto(`/#/p/${w.profileId}/play/${w.texts.grimoire}?encounter=${encounter}`);
+    await page.goto(`/#/p/${w.profileId}/play/${w.texts.faces}?encounter=${encounter}`);
     await page.reload();
     await expectBattle(page, 'muster');
     await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-opponent', encounter);
@@ -436,6 +449,7 @@ test('UI4 battle walk', async ({ page }, testInfo) => {
       standoff: [T_STANDOFF, SHORT],
       bossWon: [T_BOSS_WON, SHORT],
       bossLost: [T_BOSS_LOST, SHORT],
+      faces: [T_FACES, SHORT],
     };
     for (const [key, [title, text]] of Object.entries(body) as [TextKey, [string, string]][]) {
       w.texts[key] = (await createText(page.request, { title, body: text, level: '10H' })).id;
