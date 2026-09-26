@@ -5,7 +5,6 @@
   // catch rate so the player can always check her bragging against the facts. Degrades
   // gracefully: when the world API can't be reached the per-lieutenant sheets are skipped but the
   // raw stats (which always exist) still render.
-  import Gauge from '../../juice/Gauge.svelte';
   import Reveal from '../../juice/Reveal.svelte';
   import LieutenantBadge from '../../LieutenantBadge.svelte';
   import OverlayVoice from '../../scene/OverlayVoice.svelte';
@@ -99,20 +98,33 @@
             <li>
               {#if !l || !l.available}
                 <div class="kit-sheet paper is-asleep" data-testid="dossier-row-{key}" data-lieutenant={key}>
-                  <span class="paper-head"><LieutenantBadge lieutenantKey={key} size={40} dim /><h4>{nameFor(key)}</h4></span>
+                  <span class="paper-head"><LieutenantBadge lieutenantKey={key} size={40} dim /><span class="paper-name">{nameFor(key)}</span></span>
                   <p class="muted">{sleepingLine(key)}</p>
                 </div>
               {:else}
                 {@const band = bandFor(l)}
-                <button type="button" class="kit-sheet paper" data-testid="dossier-row-{key}" data-lieutenant={key} onclick={() => goLieutenant(key)}>
+                <!-- A button holds no heading (review fix round 1): the name is a styled span, the
+                     button's name is short, and the sheet's content is its description. -->
+                <button
+                  type="button"
+                  class="kit-sheet paper"
+                  data-testid="dossier-row-{key}"
+                  data-lieutenant={key}
+                  aria-label="{nameFor(key)} : voir la ruse et la quête"
+                  aria-describedby="dossier-{key}-line dossier-{key}-numbers dossier-{key}-window"
+                  onclick={() => goLieutenant(key)}
+                >
                   <span class="paper-head">
                     <LieutenantBadge lieutenantKey={key} size={40} />
-                    <h4>{nameFor(key)}</h4>
+                    <span class="paper-name">{nameFor(key)}</span>
                     {#if l.neutralised}<span class="kit-stamp">{agree('Neutralisé', key)}</span>{/if}
                   </span>
-                  <span class="kit-note" data-tone="eris" data-testid="dossier-line-{key}">{dossierLine(key, band)}</span>
-                  <span class="numbers">Pièges tendus : {l.all_time.traps} · déjoués : {l.all_time.caught} · {pct(l.all_time.rate)}</span>
-                  <Gauge value={l.window.days} max={3} label={`${l.window.days}/3 jours · ${l.window.traps}/10 pièges · ${pct(l.window.rate)}`} />
+                  <span class="kit-note" data-tone="eris" id="dossier-{key}-line" data-testid="dossier-line-{key}">{dossierLine(key, band)}</span>
+                  <span class="numbers" id="dossier-{key}-numbers">Pièges tendus : {l.all_time.traps} · déjoués : {l.all_time.caught} · {pct(l.all_time.rate)}</span>
+                  <span class="kit-gauge" data-testid="dossier-window-{key}" data-state={l.window.days >= 3 ? 'ok' : 'short'} style:--fill="{Math.min(100, (l.window.days / 3) * 100)}%">
+                    <span class="kit-gauge-label window-label" id="dossier-{key}-window">{l.window.days}/3 jours · {l.window.traps}/10 pièges · {pct(l.window.rate)}</span>
+                    <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
+                  </span>
                 </button>
               {/if}
             </li>
@@ -159,14 +171,21 @@
   }
   .papers {
     display: grid;
+    align-items: stretch;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 18px;
     list-style: none;
     margin: 0;
     padding: 0;
   }
+  /* Every sheet of a row as tall as the row, so the bottom rods line up. */
+  .papers > li {
+    display: flex;
+  }
   /* A sheet pinned on the table: .kit-sheet's own margin leaves room for its rods. */
   .paper {
+    flex: 1;
+    justify-content: flex-start;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -192,8 +211,18 @@
     align-items: center;
     gap: 10px;
   }
-  .paper-head h4 {
-    margin: 0;
+  .paper-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 18px;
+  }
+  /* The window gauge sits at the foot of every sheet, level from one sheet to the next. */
+  .paper .kit-gauge {
+    margin-top: auto;
+  }
+  .window-label {
+    font-size: 15px;
+    font-weight: 400;
   }
   .paper p {
     margin: 0;

@@ -4,7 +4,9 @@
   // flash on tap. Test id `<sceneId>-<hotspot id>` (UI1 Ruling 4). UI3: `labelPos: 'on'` writes
   // the label in ink on the landmark itself; `leader` pins the plaque to its landmark with a
   // short bronze line (carry #17); `icon` draws a painted icon on the plaque; a locked place wears
-  // the painted lock on its plaque and explains itself through `onLocked`; `onPress` runs inside the tap itself (user-gesture work
+  // the painted lock on its plaque and explains itself through `onLocked` (a tap, Enter or Space:
+  // it is not aria-disabled, since it still answers - UI3b ruling B-a; its state is said by the
+  // caption and the sr-only note in its name); `onPress` runs inside the tap itself (user-gesture work
   // such as the audio unlock and the tilt permission, UI3 Ruling A5).
   import { clipPath, labelShift, shapeBox } from '../../lib/scene/geometry';
   import { useSceneRuntime } from '../../lib/scene/runtime.svelte';
@@ -98,7 +100,6 @@
     class:pinned
     class:grand={def.grand === true}
     data-testid={hotspotTestId(sceneId, def.id)}
-    aria-disabled={status.locked ? 'true' : undefined}
     aria-label={def.ariaLabel}
     style="left:{box.x + box.w / 2}%;top:{box.y + box.h / 2}%;width:{box.w}%;height:{box.h}%"
     {onclick}

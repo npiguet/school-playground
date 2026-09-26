@@ -39,26 +39,34 @@
   const key = $derived(params.key ?? '');
   const portraitTitle = $derived(isLieutenantKey(key) ? LIEUTENANT_NAMES[key] : OVERLAY_TITLES.portrait);
   // Ruling B10: Éris speaks her line for this lieutenant from the sheet's voice plate.
+  // Before /camp answers (a cold deep link) she is already there, leafing through her notes, so
+  // the plate never pops in late (review fix round 1).
   const portraitVoice = $derived.by(() => {
     if (!isLieutenantKey(key)) return null;
     const l = camp?.lieutenants.find((x) => x.key === key);
-    return l ? erisSays(dossierLine(key, bandFor(l))) : null;
+    return erisSays(l ? dossierLine(key, bandFor(l)) : 'Éris feuillette son dossier…');
   });
 
   const pageTitle = $derived(entry(key)?.name ?? OVERLAY_TITLES.page);
-  // Where the portrait / page was opened from, captured on the transition (like LibraryTent's work
-  // focus): its seal steps back there, and focus follows.
+  // Where the portrait and the page were each opened from, captured on the transition (like
+  // LibraryTent's work focus): each seal steps back there, and focus follows. Tracked apart and
+  // only when a panel opens from its parent, so the chain codex → page → portrait → close → close
+  // still knows the page came from the codex (review fix round 1: one shared `openedFrom` became
+  // 'portrait' when the portrait closed).
   let previousPanel: PanelId | null = null;
-  let openedFrom = $state<PanelId | null>(null);
+  let portraitFrom = $state<PanelId | null>(null);
+  let pageFrom = $state<PanelId | null>(null);
   $effect(() => {
     const from = previousPanel;
     previousPanel = panel;
-    if (panel === 'portrait' || panel === 'page') openedFrom = from;
+    if (panel === from) return;
+    if (panel === 'portrait') portraitFrom = from;
+    if (panel === 'page' && from !== 'portrait') pageFrom = from;
   });
   const portraitFocus = $derived(
-    openedFrom === 'dossier' ? `[data-testid="dossier-row-${key}"]` : openedFrom === 'page' ? '[data-testid="codex-page-lieutenant"]' : hotspotSelector('war', key),
+    portraitFrom === 'dossier' ? `[data-testid="dossier-row-${key}"]` : portraitFrom === 'page' ? '[data-testid="codex-page-lieutenant"]' : hotspotSelector('war', key),
   );
-  const pageFocus = $derived(openedFrom === 'codex' ? `[data-testid="bestiary-card-${key}"]` : hotspotSelector('war', 'bestiary'));
+  const pageFocus = $derived(pageFrom === 'codex' ? `[data-testid="bestiary-card-${key}"]` : hotspotSelector('war', 'bestiary'));
 
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
 
