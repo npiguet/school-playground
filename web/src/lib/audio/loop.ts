@@ -7,11 +7,14 @@ export interface LoopMeta {
   priming: number;
 }
 
-/** [start, length] of the loop in the decoded buffer, in seconds. */
+/** [start, length] of the loop in the decoded buffer, in seconds. The priming was kept exactly when
+ *  the buffer holds at least priming + audio: a buffer that kept only the tail padding (up to ~900
+ *  samples in Task 3's files) still starts at 0 (lane A review #4). */
 export function loopRegion(bufferSeconds: number, meta: LoopMeta | undefined): [number, number] {
   if (!meta) return [0, bufferSeconds];
   const length = meta.samples / meta.rate;
-  if (bufferSeconds <= length + 0.005) return [0, Math.min(length, bufferSeconds)];
+  const primingKept = bufferSeconds >= (meta.samples + meta.priming) / meta.rate - 1e-4;
+  if (!primingKept) return [0, Math.min(length, bufferSeconds)];
   const priming = meta.priming / meta.rate;
   return [priming, Math.min(length, bufferSeconds - priming)];
 }

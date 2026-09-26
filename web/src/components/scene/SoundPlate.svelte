@@ -62,9 +62,16 @@
       window.removeEventListener('keydown', onKey);
     };
   });
+
+  // Lane A review #8: Tab (or any move of focus) out of the plate closes it. Only a focus that lands
+  // somewhere else counts: Safari moves focus to nothing on a tap, which the outside tap above covers.
+  function onFocusOut(e: FocusEvent) {
+    const to = e.relatedTarget as Node | null;
+    if (open && to && root && !root.contains(to)) close(false);
+  }
 </script>
 
-<div class="sound" bind:this={root}>
+<div class="sound" bind:this={root} onfocusout={onFocusOut}>
   <button
     bind:this={opener}
     type="button"
@@ -143,8 +150,11 @@
     text-align: start;
     cursor: pointer;
   }
-  .toggle:hover {
-    border-color: rgba(201, 171, 116, 0.45);
+  /* A finger leaves a sticky :hover on iPad: the rim is for a mouse only. */
+  @media (hover: hover) {
+    .toggle:hover {
+      border-color: rgba(201, 171, 116, 0.45);
+    }
   }
   .toggle :global(.icon-svg) {
     color: var(--bronze-light);

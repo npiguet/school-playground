@@ -110,7 +110,13 @@ describe('the voice channel (Rulings E5, E7)', () => {
     (globalThis as any).SpeechSynthesisUtterance = FakeUtterance;
     (globalThis as any).speechSynthesis = { speak: () => undefined, cancel: vi.fn(), getVoices: () => [], addEventListener: () => {}, removeEventListener: () => {} };
   });
-  afterEach(() => { delete (globalThis as any).speechSynthesis; delete (globalThis as any).SpeechSynthesisUtterance; });
+  afterEach(async () => {
+    vi.useRealTimers();
+    const { audioSettings } = await import('../audio/store.svelte');
+    audioSettings.voice = { volume: 1, muted: false };
+    delete (globalThis as any).speechSynthesis;
+    delete (globalThis as any).SpeechSynthesisUtterance;
+  });
 
   it('speaks at the voice channel\'s gain and ducks the music while it speaks', async () => {
     const { audioSettings } = await import('../audio/store.svelte');
@@ -123,9 +129,57 @@ describe('the voice channel (Rulings E5, E7)', () => {
       setTimeout(() => u.onend?.(), 5);
     };
     await speak('Un.', { rate: 1 });
+    expect(volumes).toEqual([0.4]);
+    expect(audio().snapshot().voiceSpeaking).toBe(false);
+  });
+
+  // Ruling E7b (lane A review #2): iOS ignores an utterance's volume, so a muted voice is never
+  // handed to speechSynthesis; the line takes its time all the same, and the dictation keeps its pace.
+  it('says nothing when the voice is muted, and still takes the line\'s time', async () => {
+    vi.useFakeTimers();
+    const { audioSettings } = await import('../audio/store.svelte');
+    const { audio } = await import('../audio/audio.svelte');
     audioSettings.voice = { volume: 0.4, muted: true };
-    await speak('Deux.', { rate: 1 });
-    expect(volumes).toEqual([0.4, 0]);
+    const said: string[] = [];
+    (globalThis as any).speechSynthesis.speak = (u: any) => void said.push(u.text);
+    let done = false;
+    void speak('Deux mots.', { rate: 1 }).then(() => (done = true));
+    expect(audio().snapshot().voiceSpeaking).toBe(false);
+    await vi.advanceTimersByTimeAsync(299);
+    expect(done).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(done).toBe(true);
+    expect(said).toEqual([]);
+  });
+
+  // Lane A review #3: a line whose end event never comes (iOS) must not keep the music down forever.
+  it('lets the music back up once a line has run far past its length without an end event', async () => {
+    vi.useFakeTimers();
+    const { audio } = await import('../audio/audio.svelte');
+    (globalThis as any).speechSynthesis.speak = () => undefined; // never ends
+    const text = 'Une phrase.';
+    void speak(text, { rate: 0.5 });
+    expect(audio().snapshot().voiceSpeaking).toBe(true);
+    const max = (text.length * 150) / 0.5 + 3000;
+    await vi.advanceTimersByTimeAsync(max - 1);
+    expect(audio().snapshot().voiceSpeaking).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(audio().snapshot().voiceSpeaking).toBe(false);
+  });
+
+  // Lane A review #10: a cancel lands between speak() and its deferred start (iOS settle tick).
+  it('never starts a line cancelled during its settle tick, and lets its caller go on', async () => {
+    vi.useFakeTimers();
+    const { audio } = await import('../audio/audio.svelte');
+    const said: string[] = [];
+    (globalThis as any).speechSynthesis.speaking = true;
+    (globalThis as any).speechSynthesis.speak = (u: any) => void said.push(u.text);
+    let done = false;
+    void speak('Trop tard.', { rate: 1 }).then(() => (done = true));
+    cancelSpeech();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(said).toEqual([]);
+    expect(done).toBe(true);
     expect(audio().snapshot().voiceSpeaking).toBe(false);
   });
 

@@ -6,7 +6,7 @@
   // visible part of the art box (final review M13: on a viewport wider than 16:9 it stays on the
   // painting instead of drifting to the window corners over the blurred bands).
   import { onMount, untrack, type Snippet } from 'svelte';
-  import { audio } from '../../lib/audio/audio.svelte';
+  import { withAudio } from '../../lib/audio/audio.svelte';
   import SceneLayer from './SceneLayer.svelte';
   import SceneTransition from './SceneTransition.svelte';
   import FxCanvas from './FxCanvas.svelte';
@@ -81,7 +81,7 @@
   // speech (no leftover duck). Nothing sounds before the first tap (Ruling E3): the mixer waits.
   $effect(() => {
     const track = scene.ambience.music;
-    untrack(() => audio().scene(track));
+    untrack(() => withAudio((e) => e.scene(track)));
   });
 
   // UI3 Ruling A6: a place stays mounted under its overlays, so the one-tap-at-a-time guard is

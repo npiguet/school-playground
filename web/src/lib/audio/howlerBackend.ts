@@ -10,6 +10,8 @@ import { loopRegion, type LoopMeta } from './loop';
 import type { AudioBackend, ContextState } from './engine';
 
 const noted = new Set<string>();
+/** A gain change smaller than this is not faded (inaudible, and Howler never ends a no-op fade). */
+const FADE_EPSILON = 0.005;
 
 /** Sound is a convenience, never a blocker: a missing file is noted once per page, in dev only. */
 function missing(src: string): void {
@@ -65,22 +67,25 @@ export function howlerBackend(): AudioBackend {
         },
         fadeTo(gain, ms) {
           target = gain;
-          if (loop && sound !== null) loop.fade(loop.volume(sound) as number, gain, ms, sound);
+          if (!loop || sound === null) return;
+          const from = loop.volume(sound) as number;
+          // Howler never completes a fade to the volume a sound already has; nothing to do anyway.
+          if (Math.abs(from - gain) < FADE_EPSILON) return;
+          loop.fade(from, gain, ms, sound);
         },
         stop(ms) {
           gone = true;
           if (!loop || sound === null) return; // still loading: the load handler frees the probe
           const l = loop;
           const s = sound;
-          l.once(
-            'fade',
-            () => {
-              l.unload();
-              probe.unload();
-            },
-            s,
-          );
+          // Freed on a timer, not on Howler's 'fade' event (lane A review #1): Howler fires 'fade' at
+          // once when it interrupts a running fade (a hard cut) and never for a fade from 0 to 0 (a
+          // silent loop left decoded in memory).
           l.fade(l.volume(s) as number, 0, ms, s);
+          setTimeout(() => {
+            l.unload();
+            probe.unload();
+          }, ms + 50);
         },
       };
     },

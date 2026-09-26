@@ -126,9 +126,9 @@
 
     <section>
       <h3 class="kit-section">Les sons du camp</h3>
-      <ChannelRow profileId={profile.id} channel="music" label="La musique" volumeLabel="Volume de la musique" />
-      <ChannelRow profileId={profile.id} channel="sfx" label="Les bruitages" volumeLabel="Volume des bruitages" />
-      <ChannelRow profileId={profile.id} channel="voice" label="La voix" volumeLabel="Volume de la voix" />
+      <ChannelRow profileId={profile.id} channel="music" label="La musique" name="Musique" volumeLabel="Volume de la musique" />
+      <ChannelRow profileId={profile.id} channel="sfx" label="Les bruitages" name="Bruitages" volumeLabel="Volume des bruitages" />
+      <ChannelRow profileId={profile.id} channel="voice" label="La voix" name="Voix" volumeLabel="Volume de la voix" />
       {#if audioSettings.voice.muted}
         <p class="kit-note" data-testid="lyre-voice-muted">{frenchSpacing("En sourdine, la dictée n'est plus lue à voix haute : il faudra quelqu'un pour te la lire.")}</p>
       {/if}

@@ -65,6 +65,12 @@ export const bothMuted = (): boolean => audioSettings.music.muted && audioSettin
 
 let chain: Promise<unknown> = Promise.resolve();
 let liveTimer: ReturnType<typeof setTimeout> | undefined;
+let sink: ((s: AudioSettings) => void) | null = null;
+
+/** The mixer's ear (installAudio): told synchronously of every channel change made here. */
+export function setAudioSink(fn: ((s: AudioSettings) => void) | null): void {
+  sink = fn;
+}
 
 /** The device copy and the server's, together: a toggle at once, a slider once it rests. */
 function save(profileId: number): void {
@@ -94,6 +100,9 @@ export function setChannels(
     };
   }
   const s = snapshotAudio();
+  // Lane A review #5: the mixer hears the change inside the same tap (an effect confirming the
+  // effects' return plays), not a microtask later through installAudio's $effect.
+  sink?.(s);
   // UI3 final review I3: a screen that re-seeds from the in-session hero must see the change.
   const current = profileStore.current;
   if (current && current.id === profileId) current.settings = { ...current.settings, audio: s };
