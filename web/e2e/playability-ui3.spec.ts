@@ -8,6 +8,8 @@ import {
   enterTitle,
   expectCamp,
   expectScene,
+  makeResult,
+  postSession,
   redScan,
   skipOnboarding,
   stubSpeech,
@@ -36,16 +38,31 @@ const HERO = 'Anne-Charlotte';
 const LOCKED = 'Élise-Marguerite';
 const PROPHECY_TITLE = 'La dictée du jeudi';
 const DESK_TITLE = 'Les fées de la clairière';
+// Re-review N15: the states the first walk skipped. A defended scroll (broken seal, laurel), and
+// five more heroes so the gate shows « Tous les héros » (seven in all, with HERO and LOCKED).
+const DEFENDED_TITLE = 'Le chant des sirènes';
+const MORE_HEROES = ['Achille', 'Pénélope', 'Nausicaa', 'Télémaque', 'Hélène'];
+const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
+// 100 words: the desk's gauge at « parfait » (a08b).
+const BODY_100 = Array.from({ length: 10 }, () => 'La chouette veille sur les parchemins du camp quand la nuit tombe doucement.').join(' ').split(' ').slice(0, 100).join(' ');
 
-async function clearEarlierWalk(request: APIRequestContext) {
+async function deleteHeroes(request: APIRequestContext, names: string[]) {
   const profiles = (await (await request.get('/api/profiles')).json()) as { id: number; name: string }[];
-  for (const p of profiles.filter((x) => x.name === HERO || x.name === LOCKED)) {
+  for (const p of profiles.filter((x) => names.includes(x.name))) {
     expect((await request.delete(`/api/profiles/${p.id}`)).status()).toBe(204);
   }
+}
+
+async function deleteTexts(request: APIRequestContext, titles: string[]) {
   const texts = (await (await request.get('/api/texts')).json()) as { id: number; title: string }[];
-  for (const t of texts.filter((x) => x.title === PROPHECY_TITLE || x.title === DESK_TITLE)) {
+  for (const t of texts.filter((x) => titles.includes(x.title))) {
     expect((await request.delete(`/api/texts/${t.id}`)).status()).toBe(204);
   }
+}
+
+async function clearEarlierWalk(request: APIRequestContext) {
+  await deleteHeroes(request, [HERO, LOCKED, ...MORE_HEROES]);
+  await deleteTexts(request, [PROPHECY_TITLE, DESK_TITLE, DEFENDED_TITLE]);
 }
 
 interface Walk {
@@ -142,6 +159,8 @@ async function titleSection(w: Walk) {
   await sealToggle.click();
   await expect(sealToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(ritual.getByLabel('Ton sceau à quatre chiffres')).toBeVisible();
+  // The toggle's chevron has finished turning (a CSS transition, listed by getAnimations).
+  await expect.poll(() => ritual.evaluate((e) => e.getAnimations({ subtree: true }).filter((a) => a.playState === 'running').length)).toBe(0);
   await shot(w, 'a03b-title-ritual-seal-open');
   await sealToggle.click();
   await expect(sealToggle).toHaveAttribute('aria-expanded', 'false');
@@ -171,10 +190,39 @@ async function titleSection(w: Walk) {
   await expect(page.getByTestId(`title-hero-${locked}`)).toBeVisible();
   await waitForOverlaySettled(page, 'title-shields');
   await shot(w, 'a04b-title-shields-named');
+
+  // Re-review N15: seven heroes - the gate shows the newest, « Tous les héros » and « Nouveau
+  // héros »; « Tous les héros » opens the whole list. The five extra heroes leave afterwards (W12).
+  for (const [i, name] of MORE_HEROES.entries()) {
+    const r = await page.request.post('/api/profiles', { data: { name, avatar: ['chouette', 'dragon', 'laurier', 'foudre', 'lyre'][i], level: '10H' } });
+    expect(r.ok(), await r.text()).toBeTruthy();
+  }
+  await page.goto('/');
+  await enterTitle(page);
+  await expect(page.getByTestId('title-all')).toBeVisible();
+  await waitForOverlaySettled(page, 'title-shields');
+  await shot(w, 'a02b-title-all-shields');
+  await page.getByTestId('title-all').click();
+  await waitForOverlaySettled(page, 'overlay-heroes');
+  await shot(w, 'a02c-title-all-heroes');
+  await noRed(w, 'all heroes');
+  await closeOverlay(page);
+  await deleteHeroes(page.request, MORE_HEROES);
 }
 
 async function librarySection(w: Walk) {
   const { page } = w;
+  // Re-review N15: the prophecy exists before the shelves (a07 shows it on its own shelf), and a
+  // defended scroll - one finished defence posted through the API - shows its broken seal (a07c).
+  const due = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+  await createText(page.request, { title: PROPHECY_TITLE, body: BODY, level: '10H', due_date: due });
+  const defended = await createText(page.request, { title: DEFENDED_TITLE, body: BODY, level: '10H' });
+  await postSession(page.request, {
+    profileId: w.profileId,
+    textId: defended.id,
+    day: new Date().toISOString().slice(0, 10),
+    result: makeResult({ draft: 4, caught: 3 }),
+  });
   await page.goto(`/#/p/${w.profileId}/camp`);
   await expectCamp(page);
   await page.getByTestId('camp-parchemins').click();
@@ -197,7 +245,12 @@ async function librarySection(w: Walk) {
   await shot(w, 'a07-library-shelves');
   await noRed(w, 'shelves');
   const shelves = page.getByTestId('overlay-shelves');
-  await shelves.getByRole('button', { name: 'Autres niveaux' }).click();
+  const defendedCubby = shelves.locator('[data-testid="text-card"]', { hasText: DEFENDED_TITLE });
+  await expect(defendedCubby.locator('.kit-seal')).toHaveClass(/is-broken/);
+  await defendedCubby.scrollIntoViewIfNeeded();
+  await expect(defendedCubby).toBeInViewport({ ratio: 1 });
+  await shot(w, 'a07c-library-shelves-prophecy-defended');
+  await shelves.getByRole('button', { name: 'Autres classes' }).click();
   await chooseLevel(shelves, 'Tous');
   const others = shelves.getByRole('heading', { name: 'Autres parchemins' });
   await others.scrollIntoViewIfNeeded();
@@ -207,10 +260,13 @@ async function librarySection(w: Walk) {
   await page.getByTestId('library-desk').click();
   await waitForOverlaySettled(page, 'overlay-desk');
   await page.getByLabel('Titre').fill(DESK_TITLE);
-  // 13 words: the gauge asks for more (« il en faut au moins 80 »).
-  await page.getByLabel('Texte').fill('Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.');
+  // 13 words: the gauge says the ideal (« l'idéal : 80 à 200 »).
+  await page.getByLabel('Texte').fill(BODY);
   await shot(w, 'a08-library-desk');
   await noRed(w, 'desk');
+  await page.getByLabel('Texte').fill(BODY_100);
+  await expect(page.getByTestId('desk-gauge')).toContainText('100 mots · parfait');
+  await shot(w, 'a08b-library-desk-perfect');
   await closeOverlay(page);
   await page.getByTestId('library-lens').click();
   await waitForOverlaySettled(page, 'overlay-lens');
@@ -238,13 +294,6 @@ async function librarySection(w: Walk) {
 
 async function delphiSection(w: Walk) {
   const { page } = w;
-  const due = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
-  await createText(page.request, {
-    title: PROPHECY_TITLE,
-    body: 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.',
-    level: '10H',
-    due_date: due,
-  });
   await page.goto(`/#/p/${w.profileId}/camp`);
   await expectCamp(page);
   await page.getByTestId('camp-oracle').click();
@@ -271,6 +320,24 @@ async function delphiSection(w: Walk) {
   await waitForOverlaySettled(page, 'overlay-tablets');
   await shot(w, 'a16-delphi-tablets');
   await noRed(w, 'tablets');
+  await closeOverlay(page);
+  // Re-review N15: the week chosen - the prophecies lead, the opened scroll and its quest follow.
+  await page.getByTestId('delphi-pythia').click();
+  await waitForOverlaySettled(page, 'overlay-pythia');
+  await oracle.getByTestId('scroll-faible').getByTestId('scroll-open').click();
+  await expect(oracle.getByTestId('oracle-quest')).toBeVisible();
+  // As she finds it on her next visit: reopened, the prophecies lead.
+  await closeOverlay(page);
+  await page.getByTestId('delphi-pythia').click();
+  await waitForOverlaySettled(page, 'overlay-pythia');
+  await expect(oracle.getByTestId('overlay-voice')).toContainText('est ouvert');
+  // The monster's pop has played (it keeps its end state, fill: both, so it stays listed as
+  // finished) and the seal-break sparkles have gone; looping decorations aside.
+  await expect
+    .poll(() => oracle.evaluate((e) => e.getAnimations({ subtree: true }).filter((a) => a.playState === 'running' && a.effect?.getComputedTiming().iterations !== Infinity).length))
+    .toBe(0);
+  await shot(w, 'a15b-delphi-week-chosen');
+  await noRed(w, 'week chosen');
   await closeOverlay(page);
 }
 
@@ -322,6 +389,9 @@ test('UI3 playability walk', async ({ page }, testInfo) => {
       await expect(page.getByTestId('hotspot-debug')).toBeVisible();
       await shot(w, d.name);
     }
+    // Re-review N15: the walk's global fixtures leave with it (a prophecy due in 3 days would be
+    // every other hero's next step); the heroes stay for a look until the next walk clears them.
+    await deleteTexts(page.request, [PROPHECY_TITLE, DEFENDED_TITLE]);
   } finally {
     w.notes.push(`request origins: ${JSON.stringify([...origins])}`);
     console.log(`\n===== NOTES ${project} =====\n${w.notes.join('\n')}\n`);
