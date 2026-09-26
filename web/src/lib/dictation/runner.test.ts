@@ -110,6 +110,24 @@ describe('createRunner', () => {
     resumed.start(); await flush();
     expect(spoken).toEqual(['s1']);
   });
+  // Closing item 1: a resumed dictation must not get its « Réécouter » back.
+  it('a resumed runner keeps the replays already spent, instead of the pace\'s full allowance', async () => {
+    const steps: Step[] = [say(0), { kind: 'manual', index: 0 }, say(1), { kind: 'manual', index: 1 }, { kind: 'done' }];
+    const { runner } = harness(steps, 2);
+    runner.start(); await flush();
+    expect(runner.state().replaysLeft).toBe(3);
+    runner.replay(); await flush();
+    expect(runner.state().replaysLeft).toBe(2);
+
+    // Saved with 2 replays left, at the second unit: the resumed runner starts there, not refilled.
+    const resumed = createRunner(steps, { pace: 2, speak: async () => {}, sleep: async () => {}, cancel: () => {}, onChange: () => {} }, 2, 2);
+    expect(resumed.state()).toMatchObject({ index: 2, replaysLeft: 2 });
+
+    // No override (an older save, or never replayed): the pace's full allowance, as before.
+    const fresh = createRunner(steps, { pace: 2, speak: async () => {}, sleep: async () => {}, cancel: () => {}, onChange: () => {} }, 2);
+    expect(fresh.state().replaysLeft).toBe(3);
+  });
+
   it('stop() silences the in-flight utterance via cancel()', async () => {
     const { runner, cancel } = harness([say(0), { kind: 'manual', index: 0 }, { kind: 'done' }], 2);
     runner.start(); await flush();

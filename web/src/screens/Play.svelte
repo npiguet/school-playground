@@ -155,6 +155,7 @@
     if (playState?.phase !== 'dictation') return;
     void playState.draft; // tracked: reruns the debounce on every keystroke
     void playState.dictationStep; // and on every new unit read (Ruling M20)
+    void playState.dictationReplaysLeft; // and on every replay spent (closing item 1)
     saveDraftDebounced();
   });
 
@@ -477,11 +478,15 @@
           {layout}
           title={text.title}
           from={playState.dictationStep ?? 0}
+          replaysLeft={playState.dictationReplaysLeft}
           bind:text={playState.draft}
           onFinish={onDictationFinish}
           onQuit={quitDictation}
-          onProgress={(step) => {
-            if (playState) playState.dictationStep = step;
+          onProgress={(step, replaysLeft) => {
+            if (playState) {
+              playState.dictationStep = step;
+              playState.dictationReplaysLeft = replaysLeft;
+            }
           }}
         />
       {:else if playState.phase === 'proofreading'}

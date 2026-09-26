@@ -98,6 +98,18 @@ describe('savePlayState / loadPlayState', () => {
     expect(loadPlayState(1, 2, 'grimoire')).toEqual(grimoireState);
   });
 
+  // Closing item 1: a resumed dictation must not get its « Réécouter » back - the remaining count
+  // is saved next to `dictationStep` and survives a reload the same way.
+  it('keeps the remaining replay count next to the reading position across a reload', () => {
+    const s = newPlayState(1, 2, 2);
+    s.phase = 'dictation';
+    s.dictationStep = 4;
+    s.dictationReplaysLeft = 1;
+    savePlayState(s);
+    expect(loadPlayState(1, 2)).toMatchObject({ dictationStep: 4, dictationReplaysLeft: 1 });
+    expect(newPlayState(1, 2, 2).dictationReplaysLeft).toBeUndefined();
+  });
+
   it('keeps the opponent chosen for this session across a reload (UI4 Ruling C2)', () => {
     const s = newPlayState(1, 2, 1);
     s.opponent = 'lethe';

@@ -61,6 +61,10 @@ export interface PlayState {
   /** UI4 Ruling M20: where the dictation's reading resumes, the script step of the unit (a sentence
    *  or a chunk) that was being read when it was saved. No version bump: absent means the start. */
   dictationStep?: number;
+  /** UI4 closing item 1: the « Réécouter » count left when the dictation was saved, so a resume
+   *  never refills it. No version bump: absent means the pace's full allowance (an older save, or
+   *  a dictation never replayed). */
+  dictationReplaysLeft?: number;
 }
 
 /** What a battle runs under (Rulings C2c, C2d): the encounter, the quest and the imposed help stage. */

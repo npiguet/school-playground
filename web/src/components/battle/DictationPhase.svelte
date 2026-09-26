@@ -6,7 +6,7 @@
   // iPad turns to portrait (Ruling C11); « Reprendre » shows whenever the runner is paused.
   import { onDestroy, onMount, untrack } from 'svelte';
   import { createRunner, type RunnerState } from '../../lib/dictation/runner';
-  import { buildScript, type DictationPlan, type Pace } from '../../lib/dictation/script';
+  import { buildScript, replayLimit, type DictationPlan, type Pace } from '../../lib/dictation/script';
   import { cancelSpeech, speak } from '../../lib/dictation/tts';
   import Icon from '../ui/Icon.svelte';
   import { DICTATION } from '../../lib/battle/lines';
@@ -21,6 +21,7 @@
     text = $bindable(),
     title,
     from = 0,
+    replaysLeft: fromReplaysLeft,
     layout,
     onFinish,
     onQuit,
@@ -34,12 +35,15 @@
     title: string;
     /** Ruling M20: the saved step a resumed dictation starts from (its unit's first step). */
     from?: number;
+    /** Closing item 1: the saved « Réécouter » count a resumed dictation starts from - undefined
+     *  (a fresh dictation) still gets the pace's full allowance. */
+    replaysLeft?: number;
     /** The stage's layout (UI4 Ruling C4): `compact` folds the controls into one bar. */
     layout: BattleLayout;
     onFinish: () => void;
     onQuit: () => void;
-    /** Ruling M20: the step to resume from, each time the reading moves to a new unit. */
-    onProgress?: (step: number) => void;
+    /** Ruling M20 / closing item 1: the step and the replay count to save, each time either moves. */
+    onProgress?: (step: number, replaysLeft: number) => void;
   } = $props();
 
   let runnerState = $state<RunnerState>({
@@ -56,6 +60,7 @@
   // each run, per the caller), so `plan` and `pace` here are deliberately read only once, not
   // tracked - untrack() says so explicitly instead of looking like an accidental one-shot read.
   let reported = untrack(() => from);
+  let reportedReplays = untrack(() => fromReplaysLeft ?? replayLimit(pace));
   const runner = untrack(() =>
     createRunner(
       buildScript(plan, pace),
@@ -66,13 +71,20 @@
         cancel: cancelSpeech,
         onChange: (s) => {
           runnerState = s;
+          let moved = false;
           if (s.resumeAt !== reported) {
             reported = s.resumeAt;
-            onProgress?.(s.resumeAt);
+            moved = true;
           }
+          if (s.replaysLeft !== reportedReplays) {
+            reportedReplays = s.replaysLeft;
+            moved = true;
+          }
+          if (moved) onProgress?.(reported, reportedReplays);
         },
       },
       from,
+      fromReplaysLeft,
     ),
   );
   runnerState = untrack(() => runner.state());

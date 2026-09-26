@@ -41,8 +41,10 @@ export interface RunnerDeps {
   onChange: (s: RunnerState) => void;
 }
 
-/** `from` (M20): a resumed dictation starts at that step's unit, its earlier units counted done. */
-export function createRunner(steps: Step[], deps: RunnerDeps, from = 0) {
+/** `from` (M20): a resumed dictation starts at that step's unit, its earlier units counted done.
+ *  `fromReplaysLeft` (closing item 1): a resumed dictation keeps the replays it had spent, instead
+ *  of the pace's full allowance - undefined (a fresh dictation) still starts from `replayLimit`. */
+export function createRunner(steps: Step[], deps: RunnerDeps, from = 0, fromReplaysLeft?: number) {
   const counted = (s: Step): s is SayStep => s.kind === 'say' && s.repeat === 1 && s.unit === 'chunk';
   const total = steps.filter(counted).length;
 
@@ -50,7 +52,7 @@ export function createRunner(steps: Step[], deps: RunnerDeps, from = 0) {
   let resumeAt = index;
   let status: RunnerStatus = 'idle';
   let lastSay: SayStep | null = null;
-  let replaysLeft = replayLimit(deps.pace);
+  let replaysLeft = fromReplaysLeft ?? replayLimit(deps.pace);
   let done = steps.slice(0, index).filter(counted).length;
   let paused = false;
   let stopped = false;

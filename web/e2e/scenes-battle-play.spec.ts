@@ -359,6 +359,29 @@ test('a resumed dictation restarts at the sentence it had reached', async ({ pag
   await expect.poll(() => firstReadFrom(again)).toContain('Elles chantent');
 });
 
+// Closing item 1: a resumed dictation must not get its « Réécouter » back - M20 used to save only
+// the reading position, so a reload refilled the count.
+test('a resumed dictation keeps its reduced replay count', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Dic9-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Dictée réécoute'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await startDictation(page, testInfo, 2);
+  await expect(page.getByTestId('btn-replay')).toBeEnabled();
+  await expect(page.getByTestId('btn-replay')).toContainText('(3)');
+  await tap(page.getByTestId('btn-replay'), testInfo);
+  await expect(page.getByTestId('btn-replay')).toContainText('(2)');
+  const key = `discorde.play.${id}.${text.id}`;
+  await expect
+    .poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').dictationReplaysLeft, key))
+    .toBe(2);
+  await page.reload();
+  await expectBattle(page, 'muster');
+  await resumeSeeded(page);
+  await expectBattle(page, 'dictation');
+  await expect(page.getByTestId('btn-replay')).toContainText('(2)');
+});
+
 // Ruling C11: a flowing dictation (pace 3) pauses when the iPad turns to portrait, and waits.
 test('turning to portrait pauses a flowing dictation until « Reprendre »', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Dic5-${testInfo.project.name}`));

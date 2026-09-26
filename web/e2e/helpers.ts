@@ -740,6 +740,8 @@ export interface PlaySeed {
   help?: number | null;
   /** Ruling M20: the script step a saved dictation resumes from. */
   dictationStep?: number;
+  /** Closing item 1: the « Réécouter » count left, saved next to `dictationStep`. */
+  dictationReplaysLeft?: number;
   /** A victory already counted by the Muses: its progression, shown without a submission. */
   progression?: object;
 }
@@ -775,6 +777,7 @@ export async function seedPlay(page: Page, s: PlaySeed) {
         ...(seed.quest !== undefined ? { quest: seed.quest } : {}),
         ...(seed.help !== undefined ? { help: seed.help } : {}),
         ...(seed.dictationStep !== undefined ? { dictationStep: seed.dictationStep } : {}),
+        ...(seed.dictationReplaysLeft !== undefined ? { dictationReplaysLeft: seed.dictationReplaysLeft } : {}),
         ...(seed.progression ? { progression: seed.progression } : {}),
       }),
     );
