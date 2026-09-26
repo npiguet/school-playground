@@ -49,11 +49,11 @@
 
 <div class="codex-spread panel-codex">
   <section class="codex-page page-left">
-    <h3>Les ruses d'Éris</h3>
+    <h3 class="kit-section">Les ruses d'Éris</h3>
     <ol class="contents">{#each ERIS_SIDE as e (e.key)}{@render item(e)}{/each}</ol>
   </section>
   <section class="codex-page page-right">
-    <h3>Les amis du camp</h3>
+    <h3 class="kit-section">Les amis du camp</h3>
     <ol class="contents">{#each CAMP_SIDE as e (e.key)}{@render item(e)}{/each}</ol>
   </section>
 </div>

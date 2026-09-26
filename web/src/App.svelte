@@ -5,6 +5,7 @@
   import { loadProfile, isUnlocked, profileStore } from './lib/profileStore.svelte';
   import { placeFor } from './lib/world/places';
   import { ApiError } from './lib/api';
+  import { href } from './lib/routes';
   import PinGate from './components/PinGate.svelte';
   import Title from './screens/Title.svelte';
   import Camp from './screens/Camp.svelte';
@@ -12,13 +13,9 @@
   import Delphi from './screens/Delphi.svelte';
   import Play from './screens/Play.svelte';
   import Boss from './screens/Boss.svelte';
-  // --- UI3b lane W (Tasks 2-3) replaces this block with WarTent ---
   import WarTent from './screens/WarTent.svelte';
-  // --- UI3b Task 4 replaces this block with Nest ---
   import Nest from './screens/Nest.svelte';
-  // --- UI3b Tasks 5-6 replace this block with CabinRoom ---
   import CabinRoom from './screens/CabinRoom.svelte';
-  // --- end of the UI3b blocks ---
 
   const route = $derived(router.route);
   const view = $derived(placeFor(route));
@@ -75,9 +72,12 @@
 {:else if profileId !== null}
   {#key profileId}
     {#if gateLoading && !gateProfile}
-      <div class="screen"><p class="muted">Les Muses cherchent ce héros…</p></div>
+      <div class="gate-night"><p class="kit-ribbon" data-testid="gate-loading">Les Muses cherchent ce héros…</p></div>
     {:else if gateError}
-      <div class="screen"><p class="orange">Impossible de charger ce héros : {gateError}</p></div>
+      <div class="gate-night" role="alert">
+        <p class="kit-ribbon" data-testid="gate-error">Impossible de rejoindre ce héros : {gateError}</p>
+        <a class="kit-bronze" href={href('profiles')}>Changer de héros</a>
+      </div>
     {:else if gateProfile}
       {#if gateProfile.has_pin && !unlocked}
         <PinGate profile={gateProfile} {onUnlocked} />
@@ -98,19 +98,16 @@
              overlays (`delphi`, `oracle`, `quests`) share one place branch so opening or closing
              the Pythia's or the tablets' overlay never remounts Delphi and replays its entry zoom. -->
         <Delphi profile={gateProfile} panel={view.panel} />
-      <!-- UI3b lane W (Tasks 2-3) replaces this block with the war place branch. -->
       {:else if view?.place === 'war'}
         <!-- UI3b Tasks 2-3, same reasoning as the library branch: the tent and its overlays
              (`war-tent`, `lieutenant`, `dossier`, `bestiaire`, `bestiaire-entry`) share one place
              branch, so opening or closing a sheet, the file or the codex never remounts WarTent. -->
         <WarTent profile={gateProfile} panel={view.panel} params={route.params} />
-      <!-- UI3b Task 4 replaces this block with the nest place branch. -->
       {:else if view?.place === 'nest'}
         <Nest profile={gateProfile} panel={view.panel} />
-      <!-- UI3b Tasks 5-6 replace this block with the cabin place branch. -->
       {:else if view?.place === 'cabin'}
         <CabinRoom profile={gateProfile} panel={view.panel} />
-      <!-- End of the UI3b blocks: the battle screens below stay until UI4. -->
+      <!-- The battle screens below keep their legacy layout and TopBar until UI4. -->
       {:else if route.name === 'play'}
         <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
       {:else if route.name === 'grimoire'}
@@ -133,5 +130,19 @@
     z-index: 60;
     background: var(--night);
     pointer-events: none;
+  }
+
+  /* UI3 Ruling B7: the profile gate's states on the night stage colour, never a white page. */
+  .gate-night {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    background: var(--night);
+    text-align: center;
   }
 </style>
