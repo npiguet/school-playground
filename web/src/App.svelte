@@ -15,11 +15,9 @@
   // --- UI3b lane W (Tasks 2-3) replaces this block with WarTent ---
   import WarTent from './screens/WarTent.svelte';
   // --- UI3b Task 4 replaces this block with Nest ---
-  import DragonScreen from './screens/DragonScreen.svelte';
+  import Nest from './screens/Nest.svelte';
   // --- UI3b Tasks 5-6 replace this block with CabinRoom ---
-  import Cabin from './screens/Cabin.svelte';
-  import Stats from './screens/Stats.svelte';
-  import Settings from './screens/Settings.svelte';
+  import CabinRoom from './screens/CabinRoom.svelte';
   // --- end of the UI3b blocks ---
 
   const route = $derived(router.route);
@@ -107,15 +105,11 @@
              branch, so opening or closing a sheet, the file or the codex never remounts WarTent. -->
         <WarTent profile={gateProfile} panel={view.panel} params={route.params} />
       <!-- UI3b Task 4 replaces this block with the nest place branch. -->
-      {:else if route.name === 'dragon'}
-        <DragonScreen profile={gateProfile} />
+      {:else if view?.place === 'nest'}
+        <Nest profile={gateProfile} panel={view.panel} />
       <!-- UI3b Tasks 5-6 replace this block with the cabin place branch. -->
-      {:else if route.name === 'cabin'}
-        <Cabin profile={gateProfile} />
-      {:else if route.name === 'stats'}
-        <Stats profile={gateProfile} />
-      {:else if route.name === 'settings'}
-        <Settings profile={gateProfile} />
+      {:else if view?.place === 'cabin'}
+        <CabinRoom profile={gateProfile} panel={view.panel} />
       <!-- End of the UI3b blocks: the battle screens below stay until UI4. -->
       {:else if route.name === 'play'}
         <Play profile={gateProfile} textId={route.params.textId} query={route.query} />

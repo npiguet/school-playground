@@ -152,15 +152,18 @@ test('a deep link to the hero panel waits for the onboarding card: one modal at 
   }
   await page.getByTestId('onboarding-skip').click();
   await expect(card).toHaveCount(0);
+  // UI3 Ruling B2: once the welcome is over, the camp hands the route over to the cabin's panel.
+  await expect(page).toHaveURL(/\/cabane\?panel=heros$/);
   await expect(panel).toBeVisible();
-  await expect(page.getByTestId('scene-camp')).toHaveAttribute('inert', '');
+  await expect(page.getByTestId('scene-cabin')).toHaveAttribute('inert', '');
   for (let i = 0; i < 4; i++) {
     await page.keyboard.press('Tab');
     expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="overlay-heros"]')), `panel Tab ${i + 1}`).toBe(true);
   }
   await panel.getByTestId('overlay-close').click();
   await expect(panel).toHaveCount(0);
-  await expect(page.getByTestId('scene-camp')).not.toHaveAttribute('inert', '');
+  await expect(page.getByTestId('scene-cabin')).toBeVisible();
+  await expect(page.getByTestId('scene-cabin')).not.toHaveAttribute('inert', '');
 });
 
 test('Back during the fade out of the camp is not overridden by the pending navigation', async ({ page, request }, testInfo) => {
@@ -278,7 +281,7 @@ test('the camp loads its data once per visit', async ({ page, request }, testInf
   expect(campCalls).toHaveLength(1);
 });
 
-test('the hero panel: its own route, medallions, focus kept inside, closing never leaves a Back trap', async ({ page, request }, testInfo) => {
+test('the hero chip opens the hero panel in the cabin; closing steps back, a deep link hands over', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   // Fix wave 2: opening/closing the panel once re-ran its register effect in a loop (hundreds of
   // focus() calls, Svelte's effect-depth error): no console error or page error allowed.
@@ -301,18 +304,20 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   await page.goto(`/#/p/${id}/parchemins`);
   await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await openCamp(page, id);
-  const stage = page.getByTestId('scene-camp');
+  // UI3 Ruling B2: the panel lives in the cabin; its seal steps back to the camp it was opened from.
+  const stage = page.getByTestId('scene-cabin');
+  const camp = page.getByTestId('scene-camp');
   const panel = page.getByTestId('overlay-heros');
 
   await page.getByTestId('hud-hero').click();
-  await expect(page).toHaveURL(/\/camp\?panel=heros$/);
+  await expect(page).toHaveURL(/\/cabane\?panel=heros$/);
   await expect(panel).toBeVisible();
-  for (const name of ['Réglages', 'Ton journal', 'Changer de héros']) {
+  for (const name of ['La lyre', 'Ton journal', 'Changer de héros']) {
     await expect(panel.getByRole('link', { name })).toBeVisible();
   }
   // Final review I5: the scene behind is inert, Tab stays in the panel, particles pause (M4).
   await expect(stage).toHaveAttribute('inert', '');
-  await expect(page.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'true');
+  await expect(stage.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'true');
   for (let i = 0; i < 6; i++) {
     await page.keyboard.press('Tab');
     expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="overlay-heros"]')), `Tab ${i + 1}`).toBe(true);
@@ -320,9 +325,10 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   await page.keyboard.press('Escape');
   await expect(panel).toHaveCount(0);
   await expect(page).toHaveURL(/\/camp$/);
-  await expect(stage).not.toHaveAttribute('inert', '');
+  await expect(camp).toBeVisible();
+  await expect(camp).not.toHaveAttribute('inert', '');
   await expect(page.getByTestId('hud-hero')).toBeFocused();
-  await expect(page.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'false');
+  await expect(camp.getByTestId('fx-canvas')).toHaveAttribute('data-paused', 'false');
   // Final review M11: the overlay's outro has ended (the panel is gone, its modal destroyed and
   // focus handed back), so two more frames are enough for a stray second hand-back to show.
   await afterTwoFrames(page);
@@ -348,20 +354,23 @@ test('the hero panel: its own route, medallions, focus kept inside, closing neve
   await page.goBack();
   await expect(page).toHaveURL(/\/parchemins$/);
 
-  // A deep link closes by replacing its own entry: Back never lands on ?panel=heros again.
+  // The camp's own deep link stays a route and hands over to the cabin's panel; a deep link closes
+  // by replacing its own entry: Back never lands on ?panel=heros again.
   // Scoped to the panel (final review M12), like every seal in these specs: an overlay swap can
   // have two seals in the DOM for a moment, whatever the reason.
   await page.goto(`/#/p/${id}/camp?panel=heros`);
+  await expect(page).toHaveURL(/\/cabane\?panel=heros$/);
   await expect(panel).toBeVisible();
   await panel.getByTestId('overlay-close').click();
   await expect(panel).toHaveCount(0);
-  await expect(page).toHaveURL(/\/camp$/);
+  await expect(page).toHaveURL(/\/cabane$/);
   await page.goBack();
   await expect(page).not.toHaveURL(/panel=heros/);
 
   await page.goto(`/#/p/${id}/camp?panel=heros`);
+  await expect(page).toHaveURL(/\/cabane\?panel=heros$/);
   await expect(panel).toBeVisible();
-  await panel.getByRole('link', { name: 'Réglages' }).click();
+  await panel.getByRole('link', { name: 'La lyre' }).click();
   await expect(page).toHaveURL(/\/settings$/);
 });
 

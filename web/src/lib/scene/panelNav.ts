@@ -99,9 +99,9 @@ export function go(path: string, mode: GoMode = 'push', h: HistoryLike = history
   else navigate(path);
 }
 
-/** Where the HUD's hero chip leads (UI3b Task 6 moves the hero panel into the cabin). */
+/** Where the HUD's hero chip leads: the hero panel in the cabin (UI3 Ruling B2, carry #4). */
 export function heroPanelHref(profileId: number): string {
-  return href('camp', { profileId: String(profileId) }, { panel: 'heros' });
+  return href('cabin', { profileId: String(profileId) }, { panel: 'heros' });
 }
 
 /** The route a hotspot opens, or null when the scene handles the tap itself. */

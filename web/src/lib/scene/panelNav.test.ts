@@ -129,8 +129,8 @@ describe('overlay navigation (UI3 Ruling A2)', () => {
     expect(h.back).toHaveBeenCalledTimes(2);
   });
 
-  it('points the HUD hero chip at the hero panel', () => {
-    expect(heroPanelHref(3)).toBe('#/p/3/camp?panel=heros');
+  it('points the HUD hero chip at the hero panel in the cabin (UI3 Ruling B2)', () => {
+    expect(heroPanelHref(3)).toBe('#/p/3/cabane?panel=heros');
   });
 });
 

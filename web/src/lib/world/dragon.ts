@@ -1,7 +1,8 @@
 // The dragon companion: tints (CSS filters on the same cut image, decision 11 - never a new
 // generation), stage labels/camp speech lines and name validation. Pure functions/data only, no
-// DOM/store access, so `Dragon.svelte`, `DragonScreen.svelte`, `Cabin.svelte` and
+// DOM/store access, so `Dragon.svelte`, the nest and its care panel, the trophy shelf and
 // `ProgressionReveal.svelte` all share the same wording and this file stays trivially testable.
+import { plural } from '../text/french';
 import type { DragonStage, Tint } from './types';
 
 export type Mood = 'idle' | 'happy' | 'sleepy';
@@ -17,6 +18,15 @@ export const TINT_FILTERS: Record<Tint, string> = {
   jade: 'hue-rotate(120deg) saturate(.9)',
   argent: 'saturate(0) brightness(1.15)',
 };
+
+/** The filter of a tint's egg picture (the care panel's swatches, the trophy shelf's tint cubbies):
+ *  its tint once won, greyed while locked. Applied to the egg's `<img>` only, never to the swatch
+ *  around it: the gold ring and the painted lock keep their own colours (fix round 1: a filtered
+ *  ring turned violet, Éris's colour, and a tinted lock was barely readable). */
+export const LOCKED_EGG_FILTER = 'grayscale(1) opacity(0.55)';
+export function eggFilter(tint: Tint, unlocked: boolean): string {
+  return unlocked ? TINT_FILTERS[tint] : LOCKED_EGG_FILTER;
+}
 
 /** Flat colour swatches for the tint rewards (UI3 Ruling A12): a tint is a colour, not an object.
  *  Braise is an ember orange, never a red. */
@@ -57,9 +67,7 @@ export function stageLine(stage: DragonStage, name: string | null, remaining: nu
   if (stage === 'egg') return "L'œuf frémit chaque fois qu'un piège d'Éris est déjoué.";
   if (stage === 'hatchling') return `${label} te regarde avec de grands yeux ambre.`;
   if (stage === 'young') {
-    const n = Math.max(0, remaining ?? 0);
-    const word = n === 1 ? 'technique' : 'techniques';
-    return `${label} bat des ailes : encore ${n} ${word} à neutraliser.`;
+    return `${label} bat des ailes : encore ${plural(Math.max(0, remaining ?? 0), 'technique', 'techniques')} à neutraliser.`;
   }
   return `${label} veille sur le camp. Éris n'a qu'à bien se tenir.`;
 }
