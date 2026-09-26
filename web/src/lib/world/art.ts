@@ -144,6 +144,11 @@ export const ART = {
     alexandrie: '/art/scenes/alexandrie.webp',
     parchemins: '/art/scenes/parchemins.webp',
     battle: '/art/scenes/battle.webp',
+    // UI4 battle backdrops (docs/art/scenes.md "Battle backdrops"), one per ground (lib/battle/battle.ts HOME).
+    battleRiver: '/art/scenes/battle_river.webp',
+    battleCoast: '/art/scenes/battle_coast.webp',
+    battleTemple: '/art/scenes/battle_temple.webp',
+    erisLair: '/art/scenes/eris_lair.webp',
     // UI2 scenes (2048×1152), one per place (docs/art/scenes.md).
     titleGates: '/art/scenes/title_gates.webp',
     hubCamp: '/art/scenes/hub_camp.webp',

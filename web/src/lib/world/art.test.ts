@@ -120,6 +120,13 @@ describe('art map', () => {
     expect(rewardKindOf('egide', { rewards: {} } as unknown as WorldCatalog)).toBe('gear');
     expect(rewardKindOf('egide', null)).toBe('gear');
   });
+
+  it('names the four battle backdrops (UI4)', () => {
+    expect(ART.scenes.battleRiver).toBe('/art/scenes/battle_river.webp');
+    expect(ART.scenes.battleCoast).toBe('/art/scenes/battle_coast.webp');
+    expect(ART.scenes.battleTemple).toBe('/art/scenes/battle_temple.webp');
+    expect(ART.scenes.erisLair).toBe('/art/scenes/eris_lair.webp');
+  });
 });
 
 describe('reward kinds before the catalog has loaded (final review M6)', () => {

@@ -10,8 +10,8 @@ export const PACE_RATES: Record<Pace, number> = { 1: 0.75, 2: 0.85, 3: 0.9, 4: 1
 export const PACE_LABELS: Record<Pace, { title: string; description: string }> = {
   1: { title: 'Pas à pas', description: 'Une phrase à la fois, lentement. Tu réécoutes autant que tu veux.' },
   2: { title: 'Par groupes', description: 'Des groupes de mots, trois réécoutes pour tout le texte.' },
-  3: { title: 'Comme en classe', description: 'Chaque groupe est lu deux fois, puis on enchaîne.' },
-  4: { title: "Comme à l'examen", description: 'Lecture entière, dictée, relecture finale. Pas de réécoute.' },
+  3: { title: "D'un bon pas", description: 'Chaque groupe est lu deux fois, puis la voix enchaîne.' },
+  4: { title: "D'une traite", description: 'Le texte entier est lu, puis dicté, puis relu une dernière fois. Pas de réécoute.' },
 };
 
 export interface Chunk {

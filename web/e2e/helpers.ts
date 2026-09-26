@@ -442,7 +442,7 @@ export async function expectInSafeZone(page: Page, sceneId: string, testIds: str
     expect(h.y, `${id} top edge below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);
     expect(h.y + h.height, `${id} bottom edge in the art`).toBeLessThanOrEqual(zone.bottom + EPS);
     expect(Math.min(h.width, h.height), `${id} is a 48 px touch target`).toBeGreaterThanOrEqual(48);
-    if (!plaque) continue;
+    if (!plaque || !l) continue; // a plaque without its label threw above; `!l` narrows for tsc
     expect(l.x, `${id} label left edge in the safe zone`).toBeGreaterThanOrEqual(Math.max(0, zone.left - EPS));
     expect(l.x + l.width, `${id} label right edge in the safe zone`).toBeLessThanOrEqual(Math.min(vw, zone.right + EPS));
     expect(l.y, `${id} label below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);
@@ -640,4 +640,119 @@ export async function expectInWorldOverlay(page: Page, testId: string, scene: st
   if (voice) await expect(panel.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', voice);
   else await expect(panel.getByTestId('overlay-voice')).toHaveCount(0);
   expect(await redScan(page)).toEqual([]);
+}
+
+// UI4 (spec §10: the battle's compact layout "with a simulated keyboard"): the iPad's on-screen
+// keyboard shrinks the *visual* viewport, not the layout one, and Playwright cannot open it. Like
+// stubSpeech's speechSynthesis, `window.visualViewport` (a [Replaceable], configurable attribute of
+// the window) is replaced before the app runs by a stand-in whose height is innerHeight minus the
+// keyboard. lib/battle/viewport.svelte.ts reads window.visualViewport at every event.
+export async function installKeyboardSim(page: Page) {
+  await page.addInitScript(() => {
+    const target = new EventTarget();
+    let keyboard = 0;
+    const fake = {
+      get height() {
+        return Math.max(0, window.innerHeight - keyboard);
+      },
+      get width() {
+        return window.innerWidth;
+      },
+      offsetTop: 0,
+      offsetLeft: 0,
+      get pageTop() {
+        return window.scrollY;
+      },
+      get pageLeft() {
+        return window.scrollX;
+      },
+      scale: 1,
+      onresize: null,
+      onscroll: null,
+      addEventListener: target.addEventListener.bind(target),
+      removeEventListener: target.removeEventListener.bind(target),
+      dispatchEvent: target.dispatchEvent.bind(target),
+    };
+    Object.defineProperty(window, 'visualViewport', { configurable: true, get: () => fake });
+    window.addEventListener('resize', () => target.dispatchEvent(new Event('resize')));
+    (window as unknown as { __setKeyboard: (px: number) => void }).__setKeyboard = (px: number) => {
+      keyboard = px;
+      target.dispatchEvent(new Event('resize'));
+    };
+  });
+}
+
+/** Opens (px > 0) or closes (0) the simulated keyboard, and checks the page sees it. */
+export async function setKeyboard(page: Page, px: number) {
+  const { vv, inner } = await page.evaluate((k) => {
+    (window as unknown as { __setKeyboard: (px: number) => void }).__setKeyboard(k);
+    return { vv: window.visualViewport!.height, inner: window.innerHeight };
+  }, px);
+  expect(vv, 'the simulated keyboard shrinks the visual viewport').toBe(Math.max(0, inner - px));
+}
+
+export interface PlaySeed {
+  profileId: number;
+  textId: number;
+  mode?: 'dictation' | 'grimoire';
+  phase: 'intro' | 'dictation' | 'proofreading' | 'results';
+  draft?: string;
+  current?: string;
+  pace?: 1 | 2 | 3 | 4;
+  opponent?: string;
+}
+
+// Seeds a play state (lib/playState.ts, version 1) before the app starts, once per tab: a reload
+// then keeps what the app itself saved since. Each test has its own browser context, so its
+// localStorage is its own under 8 workers.
+export async function seedPlay(page: Page, s: PlaySeed) {
+  await page.addInitScript((seed) => {
+    const key = `discorde.play.${seed.profileId}.${seed.textId}${seed.mode === 'grimoire' ? '.grimoire' : ''}`;
+    if (sessionStorage.getItem(`seeded:${key}`)) return;
+    sessionStorage.setItem(`seeded:${key}`, '1');
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        version: 1,
+        profileId: seed.profileId,
+        textId: seed.textId,
+        phase: seed.phase,
+        pace: seed.pace ?? 1,
+        mode: seed.mode ?? 'dictation',
+        startedAt: new Date().toISOString(),
+        draft: seed.draft ?? '',
+        current: seed.current ?? seed.draft ?? '',
+        hintsUsed: 0,
+        revealedKeys: [],
+        passIndex: 0,
+        bouclier: false,
+        submitted: false,
+        sessionId: null,
+        ...(seed.opponent ? { opponent: seed.opponent } : {}),
+      }),
+    );
+  }, s);
+}
+
+/** A seeded dictation or proofreading comes back behind the resume ribbon: continue it. */
+export async function resumeSeeded(page: Page) {
+  await page.getByTestId('battle-resume-continue').click();
+  await expect(page.getByTestId('battle-resume')).toHaveCount(0);
+}
+
+/** The battle stage is on screen, settled, and (optionally) in this phase. */
+export async function expectBattle(page: Page, phase?: 'muster' | 'dictation' | 'proofreading' | 'victory') {
+  await expectScene(page, 'battle');
+  if (phase) await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-phase', phase);
+}
+
+/** The stage's parts in viewport px (null when absent). */
+export async function battleRects(page: Page) {
+  return measureBoxes(page, {
+    scene: '[data-testid="battle-scene"]',
+    dragon: '[data-testid="battle-dragon"]',
+    opponent: '[data-testid="battle-opponent"]',
+    hp: '[data-testid="battle-hp"]',
+    parchment: '[data-testid="battle-parchment"]',
+  });
 }

@@ -5,8 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { legacyUses } from './testing/legacyClasses';
 
-const LEGACY = ['btn', 'btn-primary', 'btn-ghost', 'card', 'chip', 'chip-active', 'parchment'];
 const SHARED = ['src/components/QuestCard.svelte'];
 // Files still waiting for their task. Tasks 6-12 each remove theirs; it may only shrink (a clean
 // file left here fails below), and Task 13 asserts it is empty.
@@ -19,30 +19,6 @@ function walk(dir: string, out: string[] = []): string[] {
     else if (name.endsWith('.svelte')) out.push(p);
   }
   return out;
-}
-
-export function legacyUses(source: string): string[] {
-  const hits: string[] = [];
-  const lineOf = (i: number) => source.slice(0, i).split('\n').length;
-  // Markup: drop <script> and HTML comments; keep <style> for the :global() check below.
-  const markup = source
-    .replace(/<script[\s\S]*?<\/script>/g, (m) => m.replace(/[^\n]/g, ' '))
-    .replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, ' '));
-  const style = /<style[\s\S]*?<\/style>/.exec(markup);
-  const body = style ? markup.slice(0, style.index) + markup.slice(style.index).replace(style[0], (m) => m.replace(/[^\n]/g, ' ')) : markup;
-  // class="a b" or class={expr}; an expression runs to the `}` that closes the attribute (followed
-  // by whitespace, `>` or `/`), so a template literal's own `${x}` does not cut it short.
-  for (const m of body.matchAll(/\bclass=(?:"([^"]*)"|\{([^\n]*?)\}(?=[\s>/]))/g)) {
-    const raw = (m[1] ?? '') + ' ' + [...(m[2] ?? '').matchAll(/['"`]([^'"`]*)['"`]/g)].map((s) => s[1]).join(' ');
-    for (const token of raw.split(/[\s{}$]+/)) if (LEGACY.includes(token)) hits.push(`${lineOf(m.index!)}: class ${token}`);
-  }
-  for (const m of body.matchAll(/\bclass:([\w-]+)/g)) if (LEGACY.includes(m[1])) hits.push(`${lineOf(m.index!)}: class:${m[1]}`);
-  if (style) {
-    for (const m of style[0].matchAll(/:global\(\s*\.([\w-]+)/g)) {
-      if (LEGACY.includes(m[1])) hits.push(`${lineOf(style.index + m.index!)}: :global(.${m[1]})`);
-    }
-  }
-  return hits;
 }
 
 const files = [...walk('src/components/places'), ...SHARED.filter((f) => existsSync(f))];

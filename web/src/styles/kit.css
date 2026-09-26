@@ -6,6 +6,10 @@
   --parchment-solid: #f3e6c8;
   --parchment-edge: #c9ab74;
   --parchment-shadow: rgba(92, 64, 24, 0.3);
+  /* UI4 Ruling C12: the battle parchment. Its text zone stays nearly opaque (7:1 over black,
+     lib/battle/legibility.test.ts); only its torn edges let the battlefield through. */
+  --battle-text-bg: rgba(250, 243, 226, 0.96);
+  --battle-parchment-edge: rgba(246, 236, 212, 0.72);
   --bronze: #8a5a28;
   --bronze-light: #c89450;
   --bronze-dark: #5a3a18;

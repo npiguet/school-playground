@@ -87,6 +87,14 @@ describe('savePlayState / loadPlayState', () => {
     expect(loadPlayState(1, 2)).toEqual(dictationState);
     expect(loadPlayState(1, 2, 'grimoire')).toEqual(grimoireState);
   });
+
+  it('keeps the opponent chosen for this session across a reload (UI4 Ruling C2)', () => {
+    const s = newPlayState(1, 2, 1);
+    s.opponent = 'lethe';
+    savePlayState(s);
+    expect(loadPlayState(1, 2)?.opponent).toBe('lethe');
+    expect(newPlayState(1, 2, 1).opponent).toBeUndefined();
+  });
 });
 
 describe('clearPlayState', () => {

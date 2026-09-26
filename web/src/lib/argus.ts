@@ -14,7 +14,7 @@ export const ARGUS_LABELS: Record<ArgusPass, { title: string; hint: string }> = 
   verbes: { title: 'Verbes', hint: 'Pour chaque verbe, cherche son sujet : singulier ou pluriel ?' },
   groupes_nominaux: { title: 'Groupes nominaux', hint: "Déterminant, nom, adjectif : ils s'accordent ensemble." },
   homophones: { title: 'Homophones', hint: 'a ou à ? et ou est ? Remplace par un autre mot pour vérifier.' },
-  mots_pieges: { title: 'Mots-pièges', hint: "Les mots qui t'ont déjà piégée. Regarde chaque lettre." },
+  mots_pieges: { title: 'Mots-pièges', hint: "Les mots qui t'ont déjà joué des tours. Regarde chaque lettre." },
 };
 
 /** Chouette d'Athéna hints per help stage (plan decision #6). */

@@ -68,6 +68,10 @@ describe('UI kit (scenes spec §6)', () => {
     }
   });
 
+  it('names the battle parchment tokens (UI4 Ruling C12)', () => {
+    for (const t of ['battle-text-bg', 'battle-parchment-edge']) expect(css, t).toMatch(new RegExp(`--${t}:\\s*rgba\\(`));
+  });
+
   it('declares the idle and tap keyframes the scene components use', () => {
     for (const k of ['kit-glow', 'kit-glow-strong', 'kit-label-bob', 'kit-flash', 'kit-sway', 'kit-breathe']) {
       expect(css).toContain(`@keyframes ${k}`);

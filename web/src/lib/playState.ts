@@ -3,6 +3,7 @@
 // her progress. Server-authoritative once submitted (Task 12); this is
 // purely a resume aid. All storage access wrapped in try/catch (private
 // mode, quota errors).
+import type { OpponentId } from './battle/battle';
 import type { Pace } from './dictation/script';
 import type { Plant, PlayMode } from './types';
 import type { Progression } from './world/types';
@@ -41,6 +42,9 @@ export interface PlayState {
    *  dragon stage, weekly goal, boss outcome) - stored so a reload can still render it (Task 8).
    *  No version bump: an optional field, absent until a session is actually submitted. */
   progression?: Progression;
+  /** UI4 Ruling C2: the opponent chosen for this session (presentation only), kept so a reload or a
+   *  resume faces the same one. No version bump: an optional field, absent until chosen. */
+  opponent?: OpponentId;
 }
 
 /** The localStorage key for a play session: distinct per mode so a dictation session and a

@@ -280,7 +280,7 @@ test('the nearest prophecy sits on the altar, clear of the places, the dialogue 
     });
     if (!b.art || !b.card) throw new Error('scene-delphi .art or delphi-prophecy did not render');
     const at = `${size.width}x${size.height}`;
-    const hit = (a: typeof b.card, c: typeof b.card) => !!a && !!c && a.x < c.x + c.width && c.x < a.x + a.width && a.y < c.y + c.height && c.y < a.y + a.height;
+    const hit = (a: (typeof b)[string], c: (typeof b)[string]) => !!a && !!c && a.x < c.x + c.width && c.x < a.x + a.width && a.y < c.y + c.height && c.y < a.y + a.height;
     for (const k of ['pythia', 'pythiaLabel', 'tablets', 'tabletsLabel'] as const) {
       expect(hit(b.card, b[k]), `prophecy vs ${k} at ${at}`).toBe(false);
     }

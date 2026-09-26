@@ -1,7 +1,8 @@
 // Immersion wave (spec §1 "not a school application", playability #2-#7, #19): the words on the
 // places' screens are the camp's, not the school's, the office's or the IT department's. Scans the
 // places' components, every screen but the battle ones (UI4) and the pending list below, the PIN
-// seal, the level medallions and the world data (scenes, voices, Éris, the bestiary) - markup text
+// seal, the level medallions, the world data (scenes, voices, Éris, the bestiary) and the battle's
+// lines (lib/battle, UI4) - markup text
 // and string literals only (comments and code are not on screen).
 import { describe, expect, it } from 'vitest';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -40,6 +41,7 @@ const FILES = [
   'src/components/ui/LevelMedallions.svelte',
   ...walk('src/screens').filter((f) => !BATTLE.has(f) && !PENDING.has(f)),
   ...walk('src/lib/world'),
+  ...walk('src/lib/battle'),
   'src/lib/library/shelf.ts',
 ];
 

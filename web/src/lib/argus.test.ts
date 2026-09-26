@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gradeText, tokenize } from '$lib/grading';
-import { typedPassSets, orderPasses, activePasses } from './argus';
+import { typedPassSets, orderPasses, activePasses, ARGUS_LABELS } from './argus';
 import type { Annotation, AnnotToken } from '$lib/grading/types';
 
 const REF = 'Les fées ont dansé. Il a chanté.';
@@ -48,5 +48,11 @@ describe('activePasses', () => {
   });
   it('keeps mots_pieges once the profile has at least one trap word', () => {
     expect(activePasses(undefined, ['attentive'])).toEqual(['verbes', 'groupes_nominaux', 'homophones', 'mots_pieges']);
+  });
+});
+
+describe('ARGUS_LABELS', () => {
+  it('speaks to the player without agreeing with her (UI4 Ruling C8)', () => {
+    expect(ARGUS_LABELS.mots_pieges.hint).toBe("Les mots qui t'ont déjà joué des tours. Regarde chaque lettre.");
   });
 });

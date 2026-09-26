@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildPlan, buildScript, replayLimit, pauseMs, defaultPace } from './script';
+import { buildPlan, buildScript, replayLimit, pauseMs, defaultPace, PACE_LABELS } from './script';
 
 const TEXT = 'Le loup, affamé, arriva près de la bergerie. Les brebis dormaient.';
 
@@ -65,5 +65,10 @@ describe('parameters', () => {
   });
   it('default pace by level', () => {
     expect(defaultPace('5H')).toBe(1); expect(defaultPace('8H')).toBe(2); expect(defaultPace('10H')).toBe(3);
+  });
+  it("names the paces in the camp's words (UI4 Ruling C8)", () => {
+    expect(PACE_LABELS[3]).toEqual({ title: "D'un bon pas", description: 'Chaque groupe est lu deux fois, puis la voix enchaîne.' });
+    expect(PACE_LABELS[4]).toEqual({ title: "D'une traite", description: 'Le texte entier est lu, puis dicté, puis relu une dernière fois. Pas de réécoute.' });
+    expect([PACE_LABELS[1].title, PACE_LABELS[2].title]).toEqual(['Pas à pas', 'Par groupes']);
   });
 });
