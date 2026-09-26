@@ -32,7 +32,6 @@ const BANNED: [RegExp, string][] = [
 // shrinks: a file listed here must exist and still hold a banned word. Lane P's files, then the
 // fence line, then lane V's (Ruling C13): each lane removes only its own lines.
 const PENDING = new Set<string>([
-  'src/components/battle/MusterPhase.svelte',
   // --- lane V (Tasks 6-7) below this line ---
 ]);
 
