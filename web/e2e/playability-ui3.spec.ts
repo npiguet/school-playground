@@ -44,8 +44,12 @@ const DEFENDED_TITLE = 'Le chant des sirènes';
 const MORE_HEROES = ['Achille', 'Pénélope', 'Nausicaa', 'Télémaque', 'Hélène'];
 // UI3b carry #16 / M9: a 7H hero, for whom Protée still sleeps (the war tent's locked sheet).
 const YOUNG = 'Ismène';
-// The hub's lived-in camp: two lieutenants foiled over three days on this text.
+// The hub's lived-in camp: two lieutenants foiled over three days, one text a day (UI3b playability
+// #25: three titles, so the journal groups its defences by text).
 const VEILLEE_TITLE = 'La veillée des héros';
+const BERGER_TITLE = 'Le chant du berger';
+const ULYSSE_TITLE = "La lettre d'Ulysse";
+const LIVED_IN_TITLES = [VEILLEE_TITLE, BERGER_TITLE, ULYSSE_TITLE];
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 // 100 words: the desk's gauge at « parfait » (a08b).
 const BODY_100 = Array.from({ length: 10 }, () => 'La chouette veille sur les parchemins du camp quand la nuit tombe doucement.').join(' ').split(' ').slice(0, 100).join(' ');
@@ -66,7 +70,7 @@ async function deleteTexts(request: APIRequestContext, titles: string[]) {
 
 async function clearEarlierWalk(request: APIRequestContext) {
   await deleteHeroes(request, [HERO, LOCKED, YOUNG, ...MORE_HEROES]);
-  await deleteTexts(request, [PROPHECY_TITLE, DESK_TITLE, DEFENDED_TITLE, VEILLEE_TITLE]);
+  await deleteTexts(request, [PROPHECY_TITLE, DESK_TITLE, DEFENDED_TITLE, ...LIVED_IN_TITLES]);
 }
 
 interface Walk {
@@ -217,7 +221,8 @@ async function titleSection(w: Walk) {
 async function librarySection(w: Walk) {
   const { page } = w;
   // Re-review N15: the prophecy exists before the shelves (a07 shows it on its own shelf), and a
-  // defended scroll - one finished defence posted through the API - shows its broken seal (a07c).
+  // defended scroll - one finished defence posted through the API - shows its broken seal (a07; UI3b
+  // playability #24: it is already in view there, so a07c, the same frame again, is gone).
   const due = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
   await createText(page.request, { title: PROPHECY_TITLE, body: BODY, level: '10H', due_date: due });
   const defended = await createText(page.request, { title: DEFENDED_TITLE, body: BODY, level: '10H' });
@@ -251,9 +256,7 @@ async function librarySection(w: Walk) {
   const shelves = page.getByTestId('overlay-shelves');
   const defendedCubby = shelves.locator('[data-testid="text-card"]', { hasText: DEFENDED_TITLE });
   await expect(defendedCubby.locator('.kit-seal')).toHaveClass(/is-broken/);
-  await defendedCubby.scrollIntoViewIfNeeded();
   await expect(defendedCubby).toBeInViewport({ ratio: 1 });
-  await shot(w, 'a07c-library-shelves-prophecy-defended');
   await shelves.getByRole('button', { name: 'Autres classes' }).click();
   await chooseLevel(shelves, 'Tous');
   const others = shelves.getByRole('heading', { name: 'Autres parchemins' });
@@ -270,6 +273,9 @@ async function librarySection(w: Walk) {
   await noRed(w, 'desk');
   await page.getByLabel('Texte').fill(BODY_100);
   await expect(page.getByTestId('desk-gauge')).toContainText('100 mots · parfait');
+  // UI3b playability #24: the fill's width transition (.kit-gauge-fill) has finished, so the shot
+  // shows where the gauge lands, not a frame on its way.
+  await expect.poll(() => page.getByTestId('desk-gauge').locator('.kit-gauge-fill').evaluate((e) => e.getAnimations().length)).toBe(0);
   await shot(w, 'a08b-library-desk-perfect');
   await closeOverlay(page);
   await page.getByTestId('library-lens').click();
@@ -365,8 +371,11 @@ async function hubSection(w: Walk) {
   await shot(w, 'b03-hub-locked-battle-path');
   await page.getByTestId('dialogue-skip').click();
   // A lived-in camp: two lieutenants foiled over three days, a quest on the wall, the battle open.
-  const text = await createText(page.request, { title: VEILLEE_TITLE, body: BODY, level: '10H' });
-  for (const day of ['2026-08-03', '2026-08-04', '2026-08-05']) {
+  // UI3b playability #25: the three days end before today's defence (the library's), so every date
+  // the walk shows follows the story: 5, 4 and 3 days ago, one text a day.
+  for (const [i, title] of LIVED_IN_TITLES.entries()) {
+    const text = await createText(page.request, { title, body: BODY, level: '10H' });
+    const day = new Date(Date.now() - (5 - i) * 86_400_000).toISOString().slice(0, 10);
     for (const category of ['agreement:verb', 'homophone']) {
       await postSession(page.request, { profileId: w.profileId, textId: text.id, day, result: makeResult({ draft: 4, caught: 4, category }) });
     }
@@ -456,6 +465,11 @@ async function cabinSection(w: Walk) {
   await expectCamp(page);
   await page.getByTestId('camp-cabin').click();
   await expectScene(page, 'cabin');
+  // UI3b playability #7: the dragon greets at home too (once per page load).
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await settleDialogue(page);
+  await shot(w, 'b14b-cabin-greeting');
+  await skipGreeting(w, 'cabin');
   await shot(w, 'b14-cabin');
   await noRed(w, 'cabin');
   for (const [spot, overlay, name] of [
@@ -560,7 +574,7 @@ test('UI3 playability walk', async ({ page }, testInfo) => {
     // run left. The heroes stay for a look until the next walk clears them. A failed delete is
     // noted, never allowed to hide the walk's own failure.
     try {
-      await deleteTexts(page.request, [PROPHECY_TITLE, DEFENDED_TITLE, VEILLEE_TITLE]);
+      await deleteTexts(page.request, [PROPHECY_TITLE, DEFENDED_TITLE, ...LIVED_IN_TITLES]);
     } catch (e) {
       w.notes.push(`cleanup failed: ${e instanceof Error ? e.message : String(e)}`);
     }
