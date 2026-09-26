@@ -13,7 +13,7 @@
   import SceneExit from './SceneExit.svelte';
   import DialogueBox from './DialogueBox.svelte';
   import TourLayer from './TourLayer.svelte';
-  import { markTourSeen, shouldTour } from '../../lib/tours/seen.svelte';
+  import { giveUpTour, markTourSeen, shouldTour } from '../../lib/tours/seen.svelte';
   import { tourSteps } from '../../lib/tours/tours';
   import { overlayState } from '../../lib/scene/overlayState.svelte';
   import type { TourId } from '../../lib/dialogue/types';
@@ -91,6 +91,14 @@
     return () => {
       live = false;
     };
+  });
+  // /camp out of reach (the place says so, with « Réessayer »): the tour gives up for this page load
+  // rather than wait for ever, so the place greets as usual and the camp's deep-linked hero panel
+  // opens. It comes back on the next visit.
+  $effect(() => {
+    if (tour || !tourId || camp || !touring || campStore.loading || !campStore.error) return;
+    const id = tourId;
+    untrack(() => giveUpTour(profile, id));
   });
   function tourDone() {
     const t = tour;

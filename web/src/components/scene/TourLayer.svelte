@@ -6,7 +6,8 @@
   // band stays clear of the dimming (visible, inert with the stage).
   import { onDestroy } from 'svelte';
   import DialogueBox from './DialogueBox.svelte';
-  import { modal, overlayState } from '../../lib/scene/overlayState.svelte';
+  import { isTopModal, modal, overlayState } from '../../lib/scene/overlayState.svelte';
+  import { hotspotSelector } from '../../lib/scene/hotspotId';
   import { HUD_BAND, shapeBox, stageBox } from '../../lib/scene/geometry';
   import { reducedMotion } from '../../lib/juice/motion';
   import type { DialogueLine, SceneDef } from '../../lib/scene/types';
@@ -23,9 +24,30 @@
     return h ? shapeBox(h.shape) : null;
   });
   const still = reducedMotion();
+  // Where focus goes when the tour ends (never <body>): the last hotspot it ringed, else the place's
+  // first one.
+  const returnFocus = $derived.by(() => {
+    const ringed = targets.slice(0, index + 1).filter((t): t is string => !!t).at(-1);
+    const id = ringed ?? scene.hotspots[0]?.id;
+    return id ? hotspotSelector(scene.id, id) : undefined;
+  });
 
   overlayState.tour = true;
   onDestroy(() => (overlayState.tour = false));
+
+  // Escape skips the tour, as « Passer la visite » does (a modal's way out, like an overlay's seal),
+  // when the tour is the topmost modal.
+  $effect(() => {
+    const node = root;
+    if (!node) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || !isTopModal(node)) return;
+      e.preventDefault();
+      onDone();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  });
 
   // Never a wall: a tap anywhere on the place (the ringed hotspot included) moves the tour on, as the
   // dialogue box's own « Suite » does. A listener, not an onclick on the dialog element: the box's
@@ -56,7 +78,7 @@
   data-step={index}
   data-target={target ?? ''}
   bind:this={root}
-  use:modal
+  use:modal={{ returnFocus }}
 >
   <div class="art" style="left:{art.left}px;top:{art.top}px;width:{art.width}px;height:{art.height}px">
     <div
@@ -92,14 +114,14 @@
   .dim {
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse var(--rx) var(--ry) at var(--x) var(--y), transparent 92%, rgba(21, 18, 26, 0.55) 100%);
+    background: radial-gradient(ellipse var(--rx) var(--ry) at var(--x) var(--y), transparent 92%, color-mix(in srgb, var(--night) 55%, transparent) 100%);
     transition: background 300ms ease;
     /* The HUD band (the plate, the hero chip) stays in daylight. */
     -webkit-mask-image: linear-gradient(to bottom, transparent calc(var(--hud) - 4%), #000 var(--hud));
     mask-image: linear-gradient(to bottom, transparent calc(var(--hud) - 4%), #000 var(--hud));
   }
   .dim.whole {
-    background: rgba(21, 18, 26, 0.35);
+    background: color-mix(in srgb, var(--night) 35%, transparent);
   }
   .dim.still {
     transition: none;
@@ -108,7 +130,7 @@
     position: absolute;
     border: 3px solid var(--gold-light);
     border-radius: 50%;
-    box-shadow: 0 0 18px rgba(241, 220, 154, 0.7);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--gold-light) 70%, transparent);
     animation: tour-ring 1.6s ease-in-out infinite;
     pointer-events: none;
   }

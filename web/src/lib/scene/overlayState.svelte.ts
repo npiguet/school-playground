@@ -23,6 +23,11 @@ export function registerOverlay(): () => void {
 // used to both trap, and whichever registered last won by accident).
 const stack: HTMLElement[] = [];
 
+/** Whether `node` is the topmost open modal: the one Tab and Escape belong to. */
+export function isTopModal(node: HTMLElement): boolean {
+  return stack[stack.length - 1] === node;
+}
+
 const FOCUSABLE = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /**

@@ -93,6 +93,45 @@ test('Tab stays in the tour, and focus comes back after it', async ({ page, requ
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('tour')).toHaveCount(0);
   await expect(page.getByTestId('scene-cabin')).not.toHaveAttribute('inert', '');
+  // Focus lands on the hotspot the tour last ringed (never <body>).
+  await expect(page.getByTestId('cabin-trophies')).toBeFocused();
+});
+
+test('Escape skips the tour, and it is seen', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/dragon`);
+  const tour = page.getByTestId('tour');
+  await expect(tour).toHaveAttribute('data-tour', 'nest');
+  const saved = page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().endsWith(`/api/profiles/${id}`));
+  await page.keyboard.press('Escape');
+  await expect(tour).toHaveCount(0);
+  await expect(page.getByTestId('nest-dragon')).toBeFocused();
+  await saved;
+  await page.reload();
+  await expectScene(page, 'nest');
+  await expectLineOf(page.getByTestId('dialogue-box'), 'nest.enter');
+  await expect(tour).toHaveCount(0);
+});
+
+test('/camp out of reach: the tour gives up, the place greets, the hero panel link still opens', async ({ page, request }, testInfo) => {
+  await page.route('**/api/profiles/*/camp', (route) =>
+    route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'Le camp dort' }) }),
+  );
+  const id = await createFreshHeroApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/tente-parchemins`);
+  await expectScene(page, 'library');
+  await expect(page.getByTestId('place-status')).toContainText('Le camp dort');
+  // The owl needs no camp data to greet; the tour, which does, has given up.
+  await expectLineOf(page.getByTestId('dialogue-box'), 'library.enter');
+  await expect(page.getByTestId('tour')).toHaveCount(0);
+  await page.goto(`/#/p/${id}/camp?panel=heros`);
+  await expect(page).toHaveURL(/\/cabane\?panel=heros$/);
+  await expect(page.getByTestId('overlay-heros')).toBeVisible();
+  await expect(page.getByTestId('tour')).toHaveCount(0);
+  // Given up, not seen: nothing was saved.
+  const hero = await (await request.get(`/api/profiles/${id}`)).json();
+  expect(hero.settings.tours ?? []).toEqual([]);
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
 });
 
 test('a deep link to the hero panel waits for the camp tour: one modal at a time', async ({ page, request }, testInfo) => {

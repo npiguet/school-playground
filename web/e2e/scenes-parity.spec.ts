@@ -1,5 +1,5 @@
 import { test, expect } from './crashGuard';
-import { closeOverlay, createProfileApi, expectScene, redScan, skipOnboarding, uniqueName, waitForSceneSettled } from './helpers';
+import { closeOverlay, createProfileApi, expectScene, redScan, uniqueName, waitForSceneSettled } from './helpers';
 
 // UI3 feature-parity gate (scenes spec §3 "feature parity is a review gate", §2.3 "every scene and
 // overlay has a route"): every route of the app, opened by a cold deep link (a fresh page per row,
@@ -15,7 +15,6 @@ interface Row {
   label?: string;
   heading?: string;
   url?: RegExp;
-  skipOnboarding?: boolean;
   /** `testId` names one of a list (the portal's work cards). */
   many?: boolean;
 }
@@ -25,7 +24,7 @@ const ROWS: Row[] = [
   { hash: '#/?panel=tous', scene: 'title', overlay: 'overlay-heroes' },
   { hash: '#/profiles/new', scene: 'title', overlay: 'overlay-hero-new', label: 'Ton prénom' },
   { hash: '#/p/{id}/camp', scene: 'camp', testId: 'camp-parchemins' },
-  { hash: '#/p/{id}/camp?panel=heros', scene: 'cabin', overlay: 'overlay-heros', testId: 'hero-switch', url: /\/cabane\?panel=heros$/, skipOnboarding: true },
+  { hash: '#/p/{id}/camp?panel=heros', scene: 'cabin', overlay: 'overlay-heros', testId: 'hero-switch', url: /\/cabane\?panel=heros$/ },
   { hash: '#/p/{id}/tente-parchemins', scene: 'library', testId: 'library-shelves' },
   { hash: '#/p/{id}/parchemins', scene: 'library', overlay: 'overlay-shelves' },
   { hash: '#/p/{id}/texts/new', scene: 'library', overlay: 'overlay-desk', label: 'Titre' },
@@ -60,7 +59,6 @@ test('every route opens its place, its overlay and its legacy feature', async ({
     const hash = row.hash.replace('{id}', String(id)).replace('{work}', work).replace('{text}', String(text));
     const page = await context.newPage();
     await page.goto(`/${hash}`);
-    if (row.skipOnboarding) await skipOnboarding(page);
     if (row.scene) {
       await expect(page.getByTestId(`scene-${row.scene}`), hash).toBeVisible();
       await waitForSceneSettled(page, row.scene);

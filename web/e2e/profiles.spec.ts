@@ -1,11 +1,10 @@
 import { test, expect } from './crashGuard';
-import { chooseLevel, expectCamp, newHero, openShelves, pickHero, skipOnboarding, uniqueName } from './helpers';
+import { chooseLevel, expectCamp, newHero, openShelves, pickHero, uniqueName } from './helpers';
 
 const unique = () => uniqueName('Héros');
 
 test('create a profile and reach the library with seed texts', async ({ page }) => {
   await newHero(page, unique(), '10H');
-  await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
   await openShelves(page);
   // The list loads asynchronously (a plain .count() can race the fetch, especially with the
@@ -28,7 +27,6 @@ test('a profile with a code asks for it', async ({ page }) => {
   await ritual.getByLabel('Ton sceau à quatre chiffres').fill('1234');
   await ritual.getByRole('button', { name: 'Accrocher mon bouclier' }).click();
   await expectCamp(page);
-  await skipOnboarding(page);
   await page.getByTestId('hud-hero').click();
   await page.getByRole('link', { name: 'Changer de héros' }).click();
   await pickHero(page, name);

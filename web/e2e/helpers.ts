@@ -57,21 +57,6 @@ export async function stubSpeech(page: Page) {
   });
 }
 
-// Skips the camp's first-visit tour (UI5 Ruling E13: it replaced the Muses' onboarding cards) if it
-// is showing - tolerant so it's safe to call after any camp arrival, whether or not this is the
-// profile's first visit. Tours are off in e2e unless a spec asks for them (crashGuard's `tours`
-// option), so this is a no-op in every spec that does not. It waits for a place to be drawn first
-// (the camp, or where a link sends the hero), so the look is never taken before the page has drawn
-// it (UI4 wave B); a spec with tours on waits for the tour itself (it follows the camp data).
-export async function skipOnboarding(page: Page) {
-  await expect(page.locator('[data-testid^="scene-"]:not([data-testid="scene-exit"])').first()).toBeVisible();
-  const tour = page.locator('[data-testid="tour"][data-tour="camp"]');
-  if (await tour.isVisible()) {
-    await tour.getByTestId('dialogue-skip').click();
-    await expect(tour).toHaveCount(0);
-  }
-}
-
 // Taps (iPad) or clicks (desktop) a locator - a finger on the iPad project, a mouse on the desktop
 // one (final review M9): there is no touch device to tap with on `desktop`, and WebKit's mouse
 // click doesn't fire the touch-only events some flows depend on.
@@ -170,11 +155,10 @@ export async function createProfileApi(request: APIRequestContext, name: string,
 }
 
 // UI profile creation (mirrors profiles.spec.ts): starts from the title's naming ritual, lands on
-// the camp (SP3: the new home), skips onboarding and heads straight into the library so callers
-// can chain straight into it.
+// the camp (SP3: the new home) and heads straight into the library so callers can chain straight
+// into it. The camp tour stays away (tours are off in e2e unless a spec asks, crashGuard.ts).
 export async function createProfile(page: Page, name: string, level: string) {
   await newHero(page, name, level);
-  await skipOnboarding(page);
   await page.getByTestId('camp-parchemins').click();
   await openShelves(page);
 }
