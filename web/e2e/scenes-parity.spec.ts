@@ -1,5 +1,5 @@
 import { test, expect } from './crashGuard';
-import { closeOverlay, createProfileApi, redScan, skipOnboarding, uniqueName, waitForSceneSettled } from './helpers';
+import { closeOverlay, createProfileApi, expectScene, redScan, skipOnboarding, uniqueName, waitForSceneSettled } from './helpers';
 
 // UI3 feature-parity gate (scenes spec §3 "feature parity is a review gate", §2.3 "every scene and
 // overlay has a route"): every route of the app, opened by a cold deep link (a fresh page per row,
@@ -47,8 +47,8 @@ const ROWS: Row[] = [
   { hash: '#/p/{id}/cabane?panel=heros', scene: 'cabin', overlay: 'overlay-heros', testId: 'hero-journal' },
   { hash: '#/p/{id}/stats', scene: 'cabin', overlay: 'overlay-journal', testId: 'journal-totals' },
   { hash: '#/p/{id}/settings', scene: 'cabin', overlay: 'overlay-lyre', label: 'Tes quatre chiffres' },
-  { hash: '#/p/{id}/eris', testId: 'topbar-camp' },
-  { hash: '#/p/{id}/play/{text}', testId: 'pace-option-1' },
+  { hash: '#/p/{id}/eris', scene: 'battle', testId: 'boss-start' },
+  { hash: '#/p/{id}/play/{text}', scene: 'battle', testId: 'pace-option-1' },
 ];
 
 test('every route opens its place, its overlay and its legacy feature', async ({ context, request }, testInfo) => {
@@ -81,34 +81,29 @@ test('every route opens its place, its overlay and its legacy feature', async ({
   }
 });
 
-// UI3 Ruling B7 / carry rec. 8: the legacy top nav survives only on Play and Boss, and its journal
-// link now leads to the cabin journal (`stats`, UI3 Ruling B2 "it pointed at the dossier before"),
-// worded like the dossier's own link to it (DossierPanel.svelte's "Lire ton journal"). Its lyre is
-// « La lyre » like everywhere else (final review M9). Both are cabin overlays opened as a tagged push
-// (the cross-place overlay rule, M13): their seal steps back to the screen they were opened from.
-test('the legacy TopBar reads its journal from the cabin, not the dossier', async ({ page, request }, testInfo) => {
-  const id = await createProfileApi(request, uniqueName(`ParTop-${testInfo.project.name}`));
+// UI4 Ruling C5: the top bar retired; from a battle's muster the HUD's hero chip opens the hero panel
+// in the cabin, whose medallions reach the journal and the lyre; its seal steps back to the battle.
+test('the battle muster reaches the journal and the lyre through the hero panel', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`ParBat-${testInfo.project.name}`));
   const text = ((await (await request.get('/api/texts')).json()) as { id: number }[])[0].id;
   for (const hash of [`#/p/${id}/eris`, `#/p/${id}/play/${text}`]) {
     await page.goto(`/${hash}`);
-    const link = page.getByTestId('topbar-journal');
-    await expect(link, hash).toBeVisible();
-    await expect(link, hash).toHaveAttribute('href', `#/p/${id}/stats`);
-    await expect(link, hash).toHaveAccessibleName('Lire ton journal');
-    await expect(page.getByTestId('topbar-lyre'), hash).toHaveAccessibleName('La lyre');
-    await expect(page.getByTestId('topbar-lyre'), hash).toHaveAttribute('href', `#/p/${id}/settings`);
-    expect(await redScan(page), hash).toEqual([]);
-  }
-  await page.goto(`/#/p/${id}/eris`);
-  for (const [testId, overlay, url] of [
-    ['topbar-journal', 'overlay-journal', /\/stats$/],
-    ['topbar-lyre', 'overlay-lyre', /\/settings$/],
-  ] as const) {
-    await page.getByTestId(testId).click();
-    await expect(page, testId).toHaveURL(url);
-    await expect(page.getByTestId(overlay), testId).toBeVisible();
+    await expectScene(page, 'battle');
+    await page.getByTestId('hud-hero').click();
+    await expect(page.getByTestId('overlay-heros'), hash).toBeVisible();
+    for (const [medallion, overlay, url] of [
+      ['hero-journal', 'overlay-journal', /\/stats$/],
+      ['hero-settings', 'overlay-lyre', /\/settings$/],
+    ] as const) {
+      await page.getByTestId(medallion).click();
+      await expect(page, medallion).toHaveURL(url);
+      await expect(page.getByTestId(overlay), medallion).toBeVisible();
+      await closeOverlay(page);
+      await expect(page.getByTestId('overlay-heros'), medallion).toBeVisible();
+    }
     await closeOverlay(page);
-    await expect(page, testId).toHaveURL(new RegExp(`/p/${id}/eris$`));
-    await expect(page.getByTestId('topbar-journal'), testId).toBeVisible();
+    await expect(page, hash).toHaveURL(new RegExp(hash.replace(/[?]/g, '\\?') + '$'));
+    await expectScene(page, 'battle');
+    expect(await redScan(page), hash).toEqual([]);
   }
 });

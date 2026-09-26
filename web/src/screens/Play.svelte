@@ -1,25 +1,34 @@
 <script lang="ts">
-  import TopBar from '../components/TopBar.svelte';
-  import PaceSelect from '../components/PaceSelect.svelte';
-  import Dictation from '../components/Dictation.svelte';
-  import Proofreading from '../components/Proofreading.svelte';
-  import Results from '../components/Results.svelte';
-  import BreakNudge from '../components/BreakNudge.svelte';
-  import ProgressionReveal from '../components/ProgressionReveal.svelte';
+  // The battle (UI4): one Play instance drives the muster, the dictation, the proofreading and the
+  // victory on one battle stage (Ruling C1: a phase change, or the « Revoir » panel, never remounts
+  // it). The phases are components of their own with full prop contracts, so the lanes restyling
+  // them never edit this controller (Ruling C13).
+  import { untrack } from 'svelte';
+  import BattleStage from '../components/battle/BattleStage.svelte';
+  import MusterPhase from '../components/battle/MusterPhase.svelte';
+  import DictationPhase from '../components/battle/DictationPhase.svelte';
+  import ProofPhase from '../components/battle/ProofPhase.svelte';
+  import VictoryPhase from '../components/battle/VictoryPhase.svelte';
   import { api, ApiError } from '../lib/api';
+  import { battleFor, opponentFor, type BattlePhase } from '../lib/battle/battle';
+  import { hpDuringPlay } from '../lib/battle/hp';
+  import { musterTaunt, STAGE } from '../lib/battle/lines';
+  import { resetBattleStage, setHp } from '../lib/battle/stage.svelte';
   import { debounce } from '../lib/debounce';
-  import { formatSwissDate, isProphecy } from '../lib/dates';
   import { buildPlan, defaultPace, type DictationPlan } from '../lib/dictation/script';
-  import { pickVoice, ttsAvailable, unlockSpeech, waitForVoices } from '../lib/dictation/tts';
+  import { pickVoice, unlockSpeech, waitForVoices } from '../lib/dictation/tts';
   import { gradeSession } from '../lib/grading/grade';
   import type { Annotation, SessionResult } from '../lib/grading/types';
+  import { initSound } from '../lib/juice/soundStore.svelte';
   import { clearPlayState, loadPlayState, newPlayState, savePlayState, type PlayState } from '../lib/playState';
   import { loadProfile } from '../lib/profileStore.svelte';
-  import { go } from '../lib/scene/panelNav';
+  import { closePanel, go, openPanel } from '../lib/scene/panelNav';
   import { href } from '../lib/routes';
   import { withDerivedCategories } from '../lib/world/derived';
-  import { campFor, refreshCamp } from '../lib/world/campStore.svelte';
-  import { clockReset, clockStart, clockStop, clockTick, playClock } from '../lib/world/playClock.svelte';
+  import { bandFor } from '../lib/world/eris';
+  import { campFor, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
+  import { clockStart, clockStop, clockTick } from '../lib/world/playClock.svelte';
+  import { erisSays } from '../lib/world/voices';
   import type { PlayMode, Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
 
   let {
@@ -67,9 +76,6 @@
   // already caught by the identity check below), toLibrary() clears storage but keeps the same
   // `playState` reference, so it needs its own flag.
   let left = false;
-  // Intro-only: never toggled during dictation/proofreading (the photo is the reference,
-  // spec §3.2 - it must stay hidden while the child is writing).
-  let showPhotos = $state(false);
   // Grimoire intro only: true while awaiting `api.texts.corrupt`; corruptError holds its detail
   // on failure (422 "not enough grip on this text" - spec §5, plan decision #8).
   let corrupting = $state(false);
@@ -92,7 +98,8 @@
       const saved = loadPlayState(profile.id, id, mode);
       if (saved) {
         playState = saved;
-        showResumeBanner = saved.phase !== 'results';
+        // An intro is saved too (its opponent, Ruling C2), but there is nothing to resume yet.
+        showResumeBanner = saved.phase === 'dictation' || saved.phase === 'proofreading';
       } else {
         playState = newPlayState(profile.id, id, initialPace, mode);
       }
@@ -124,8 +131,12 @@
   });
 
   function restart() {
+    const opponent = playState?.opponent;
     clearPlayState(profile.id, id, mode);
     playState = newPlayState(profile.id, id, initialPace, mode);
+    // A replay is the same battle: the same opponent, fresh combatants and a full hold.
+    if (opponent) playState.opponent = opponent;
+    resetBattleStage();
     showResumeBanner = false;
     result = null;
     helpMessage = null;
@@ -166,7 +177,7 @@
 
   // Tapped from the resume banner, which is itself a tap - a safe place to
   // unlock iOS speech even when we're resuming straight into the dictation
-  // phase (whose own Dictation.svelte onMount starts the runner with no
+  // phase (whose own DictationPhase.svelte onMount starts the runner with no
   // further user gesture available).
   function continueSession() {
     unlockSpeech();
@@ -187,6 +198,13 @@
   // this just makes leaving explicit and re-shows the resume banner, exactly as a fresh page
   // load with a saved 'dictation' state would.
   function quitDictation() {
+    save();
+    showResumeBanner = true;
+  }
+
+  // UI4 Ruling C15: « Quitter » on the proofreading, quitDictation's twin (the play state is saved
+  // on every edit already). Wired now; Task 5 renders the button.
+  function quitProofreading() {
     save();
     showResumeBanner = true;
   }
@@ -299,232 +317,159 @@
     return out;
   });
 
-  function credits(t: TextFull): string {
-    if (t.credits) return t.credits;
-    if (t.source === 'custom' && t.added_by_name) return `Ajouté par ${t.added_by_name}`;
-    return '';
+  // UI4 Task 2: the stage needs the camp (the dragon, the HUD, a free text's lieutenant) and the
+  // hero's mute setting, like every place (PlaceScene does the same, final review I2: the profile id
+  // is the one dependency).
+  let campTried = $state(false);
+  $effect(() => {
+    const pid = profile.id;
+    untrack(() => {
+      initSound(profile);
+      void loadCatalog();
+      void refreshCamp(pid).finally(() => (campTried = true));
+    });
+  });
+
+  // Ruling C2: the opponent is chosen once (the camp answered, or failed to), then kept in the play
+  // state so a reload or a resume faces the same one.
+  $effect(() => {
+    if (!playState || playState.opponent || (!camp && !campTried)) return;
+    playState.opponent = opponentFor({
+      mode,
+      encounter,
+      textId: id,
+      lieutenants: camp?.lieutenants ?? [],
+    });
+    save();
+  });
+  const battle = $derived(playState?.opponent ? battleFor(playState.opponent, { mode, encounter }) : null);
+
+  const phase = $derived<BattlePhase>(
+    !playState || loading || error || showResumeBanner || playState.phase === 'intro'
+      ? 'muster'
+      : playState.phase === 'results'
+        ? 'victory'
+        : playState.phase,
+  );
+
+  // Ruling C3 (the user's decision): the hold is full while she plays, notched by the stage-3
+  // count; it drops only at the reckoning (the victory phase, Task 6).
+  $effect(() => {
+    if (phase === 'dictation' || phase === 'proofreading' || phase === 'muster') {
+      setHp(hpDuringPlay(helpStage, playState?.initialErrors));
+    }
+  });
+
+  // Ruling C7: Éris's line at the muster.
+  const taunt = $derived.by(() => {
+    if (!battle) return null;
+    const lt = camp?.lieutenants.find((l) => l.key === battle.opponent.id);
+    return erisSays(musterTaunt({ opponent: battle.opponent.id, band: lt ? bandFor(lt) : null, mode }));
+  });
+
+  // Ruling C1: « Revoir » is ?panel=revoir on this very URL.
+  const routeName = $derived(mode === 'grimoire' ? 'grimoire' : 'play');
+  const params = $derived({ profileId: String(profile.id), textId: String(id) });
+  const baseQuery = $derived(Object.fromEntries(Object.entries(query).filter(([k]) => k !== 'panel')));
+  const reviewOpen = $derived(query.panel === 'revoir');
+  function openReview() {
+    openPanel(href(routeName, params, { ...baseQuery, panel: 'revoir' }));
+  }
+  function closeReview() {
+    closePanel(href(routeName, params, Object.keys(baseQuery).length ? baseQuery : undefined));
   }
 </script>
 
-{#if !playState || showResumeBanner || (playState.phase !== 'dictation' && playState.phase !== 'proofreading')}
-  <TopBar {profile} title={text?.title ?? ''} />
-{/if}
-
-{#if loading}
-  <div class="screen"><p class="muted">Les Muses préparent le parchemin…</p></div>
-{:else if error}
-  <div class="screen"><p class="orange">Impossible de charger ce parchemin : {error}</p></div>
-{:else if text && plan && playState}
-  {#if showResumeBanner}
-    <div class="screen">
-      <h1>{text.title}</h1>
-      <div class="banner">
-        <p>Tu reprends là où tu t’étais arrêtée.</p>
-        <div class="banner-actions">
-          <button type="button" class="btn btn-primary" onclick={continueSession}>Continuer</button>
-          <button type="button" class="btn" onclick={restart}>Recommencer</button>
-        </div>
-      </div>
-    </div>
-  {:else if playState.phase === 'intro'}
-    <div class="screen">
-      <h1>{mode === 'grimoire' ? 'Grimoire corrompu' : text.title}</h1>
-      {#if credits(text)}<p class="credits muted">{credits(text)}</p>{/if}
-      <div class="chips">
-        <span class="chip">{text.level}</span>
-        <span class="chip">≈ {text.word_count} mots</span>
-      </div>
-
-      {#if text.due_date && isProphecy(text.due_date)}
-        <p class="prophecy" data-testid="play-prophecy">
-          Dictée préparée pour le {formatSwissDate(text.due_date)} — la prophétie de l'Oracle.
-        </p>
-      {/if}
-
-      {#if questId}
-        <div class="parchment quest-banner" data-testid="play-quest-banner">
-          <p>Ce texte compte pour ta quête.</p>
-        </div>
-      {/if}
-
-      {#if encounter === 'eris'}
-        <div class="eris-panel boss-banner" data-testid="play-boss-banner">
-          <p>Combat contre Éris — les Yeux d'Argus restent éteints.</p>
-        </div>
-      {/if}
-
-      {#if text.photo_count > 0}
-        <button type="button" class="btn photos-toggle" onclick={() => (showPhotos = !showPhotos)}>
-          {showPhotos ? 'Cacher la feuille' : 'Voir la feuille'}
-        </button>
-        {#if showPhotos}
-          <div class="scan-photos">
-            {#each Array.from({ length: text.photo_count }, (_, i) => i + 1) as n (n)}
-              <img
-                src={api.scan.pageUrl(text.scan_id ?? '', n)}
-                alt={`Page ${n} de la feuille scannée`}
-                class="scan-photo"
-              />
-            {/each}
-          </div>
-        {/if}
-      {/if}
-
-      {#if mode === 'grimoire'}
-        <p>Éris a recopié ce parchemin en y semant ses dés-accords. Pas de dictée cette fois : retrouve-les et répare-les.</p>
-
-        {#if corruptError}
-          <p class="orange">{corruptError}</p>
-          <button type="button" class="btn" data-testid="btn-back-library" onclick={toLibrary}>Retour aux Parchemins</button>
-        {:else if corrupting}
-          <p class="muted">Éris corrompt le grimoire…</p>
-        {:else}
-          <button type="button" class="btn btn-primary" data-testid="btn-open-grimoire" onclick={openGrimoire}>
-            Ouvrir le grimoire
-          </button>
-        {/if}
+<BattleStage
+  {battle}
+  {phase}
+  {profile}
+  {camp}
+  {mode}
+  dragon={camp?.dragon ?? null}
+  hud={phase === 'muster' || phase === 'victory'}
+  exit={phase === 'muster' || phase === 'victory'}
+>
+  {#snippet children(layout)}
+    {#if loading}
+      <p class="kit-ribbon battle-status" data-testid="battle-status">{STAGE.loading}</p>
+    {:else if error}
+      <p class="kit-ribbon battle-status" data-testid="battle-status" role="alert">{STAGE.loadError(error)}</p>
+    {:else if text && plan && playState}
+      {#if showResumeBanner || playState.phase === 'intro'}
+        <MusterPhase
+          {text}
+          {mode}
+          bind:playState
+          {minPace}
+          {questId}
+          {encounter}
+          resume={showResumeBanner}
+          {corrupting}
+          {corruptError}
+          {taunt}
+          profileId={profile.id}
+          onContinue={continueSession}
+          onRestart={restart}
+          onStart={startDictation}
+          onOpenGrimoire={openGrimoire}
+          onToLibrary={toLibrary}
+        />
+      {:else if playState.phase === 'dictation'}
+        <DictationPhase
+          {plan}
+          pace={playState.pace}
+          {voice}
+          {layout}
+          bind:text={playState.draft}
+          onFinish={onDictationFinish}
+          onQuit={quitDictation}
+        />
+      {:else if playState.phase === 'proofreading'}
+        <ProofPhase
+          reference={text}
+          bind:state={playState}
+          {helpStage}
+          argusOrder={stats?.argus_order ?? []}
+          trapWords={trapWords.map((t) => t.word)}
+          level={profile.level}
+          {mode}
+          {layout}
+          onDone={onProofreadingDone}
+          onQuit={quitProofreading}
+        />
       {:else}
-        {#if !ttsAvailable()}
-          <p class="orange">
-            Cet appareil ne sait pas lire à voix haute. La dictée avancera toute seule, sans son.
-          </p>
-        {/if}
-
-        <h2>Choisis ton rythme</h2>
-        <PaceSelect bind:pace={playState.pace} {minPace} />
-        <p class="muted">Les récompenses augmentent avec le rythme.</p>
-
-        <button type="button" class="btn btn-primary" onclick={startDictation}>
-          Commencer la dictée
-        </button>
-
-        <button
-          type="button"
-          class="btn"
-          data-testid="btn-grimoire"
-          onclick={() => go(href('grimoire', { profileId: String(profile.id), textId: String(id) }))}
-        >
-          Grimoire corrompu
-        </button>
-        <p class="muted">
-          Éris a déjà recopié ce texte… avec ses dés-accords. Pas de dictée : relis et répare.
-        </p>
+        <VictoryPhase
+          {text}
+          {result}
+          {playState}
+          {profile}
+          {camp}
+          {mode}
+          opponent={playState.opponent ?? 'eris'}
+          {encounter}
+          {helpMessage}
+          {submitError}
+          {submitting}
+          bind:revealDone
+          {reviewOpen}
+          names={progressionNames}
+          onReplay={restart}
+          onCamp={toLibraryCamp}
+          onRetry={submitSession}
+          onReview={openReview}
+          onCloseReview={closeReview}
+        />
       {/if}
-    </div>
-  {:else if playState.phase === 'dictation'}
-    <Dictation
-      {plan}
-      pace={playState.pace}
-      {voice}
-      bind:text={playState.draft}
-      onFinish={onDictationFinish}
-      onQuit={quitDictation}
-    />
-  {:else if playState.phase === 'proofreading'}
-    <Proofreading
-      reference={text}
-      bind:state={playState}
-      {helpStage}
-      argusOrder={stats?.argus_order ?? []}
-      trapWords={trapWords.map((t) => t.word)}
-      level={profile.level}
-      {mode}
-      onDone={onProofreadingDone}
-    />
-  {:else if result}
-    {#if playClock.needsBreak}
-      <BreakNudge
-        dragon={camp?.dragon ?? null}
-        onPause={toLibraryCamp}
-        onContinue={() => clockReset()}
-      />
     {/if}
-    {#if playState.progression && !revealDone}
-      <ProgressionReveal
-        progression={playState.progression}
-        {profile}
-        dragon={camp?.dragon ?? null}
-        names={progressionNames}
-        onDone={() => (revealDone = true)}
-      />
-    {/if}
-    <Results
-      reference={text}
-      {result}
-      finalText={playState.current}
-      {helpMessage}
-      {submitError}
-      {submitting}
-      level={profile.level}
-      {mode}
-      onReplay={restart}
-      onCamp={toLibraryCamp}
-      onRetry={submitSession}
-    />
-  {:else}
-    <div class="screen"><p class="muted">Les Muses comptent les pièges déjoués…</p></div>
-  {/if}
-{/if}
+  {/snippet}
+</BattleStage>
 
 <style>
-  .chips {
-    display: flex;
-    gap: 8px;
-    margin: 12px 0 20px;
-  }
-  .prophecy {
-    color: var(--gold);
-    font-weight: 600;
-    margin: 0 0 16px;
-  }
-  .quest-banner,
-  .boss-banner {
-    padding: 12px 16px;
-    margin: 0 0 16px;
-  }
-  .quest-banner p,
-  .boss-banner p {
-    margin: 0;
-    font-weight: 600;
-  }
-  .photos-toggle {
-    margin-bottom: 16px;
-  }
-  .scan-photos {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .scan-photo {
-    width: 100%;
-    object-fit: contain;
-    max-height: 70vh;
-    border-radius: var(--radius);
-    border: 1px solid var(--marble-dark);
-    background: #fff;
-  }
-  .banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    background: var(--aegean-light);
-    border: 1px solid var(--aegean);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    margin-bottom: 20px;
-  }
-  .banner p {
-    margin: 0;
-  }
-  .banner-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  h2 {
-    margin-top: 24px;
+  .battle-status {
+    display: block;
+    width: fit-content;
+    margin: auto;
+    text-align: center;
   }
 </style>

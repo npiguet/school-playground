@@ -515,17 +515,6 @@ test('portrait shows the rotate screen instead of the scene', async ({ page, req
   await page.setViewportSize(landscape);
 });
 
-test('legacy screens stay usable in portrait', async ({ page, request }, testInfo) => {
-  // Final review M12 / plan Ruling 8: only scene screens show the rotate screen. UI3b Task 3: the
-  // dossier is now the war tent's table overlay, so this proves the point on the battle screen
-  // (Boss keeps its legacy layout and TopBar until UI4).
-  const id = await createProfileApi(request, heroName(testInfo.project.name));
-  await page.setViewportSize({ width: 820, height: 1180 });
-  await page.goto(`/#/p/${id}/eris`);
-  await expect(page.getByTestId('topbar-camp')).toBeVisible();
-  await expect(page.getByTestId('rotate-screen')).toHaveCount(0);
-});
-
 test('reduced motion: no parallax, no idle bob, no particles', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.emulateMedia({ reducedMotion: 'reduce' });

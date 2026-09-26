@@ -1,6 +1,6 @@
 // Immersion wave (spec §1 "not a school application", playability #2-#7, #19): the words on the
 // places' screens are the camp's, not the school's, the office's or the IT department's. Scans the
-// places' components, every screen but the battle ones (UI4) and the pending list below, the PIN
+// places' components, the battle's (UI4) but the pending list below, every screen, the PIN
 // seal, the level medallions, the world data (scenes, voices, Éris, the bestiary) and the battle's
 // lines (lib/battle, UI4) - markup text
 // and string literals only (comments and code are not on screen).
@@ -28,18 +28,21 @@ const BANNED: [RegExp, string][] = [
   [/\btableau des quêtes\b/i, 'one name: « Le mur des quêtes » (Ruling W13)'],
 ];
 
-// Screens exempted while they still used the old words. Empty since UI3b Task 6 moved the last one
-// (Stats) into the cabin's journal; it must stay empty (a path listed here that no longer exists
-// fails below).
-const PENDING = new Set<string>([]);
-const BATTLE = new Set(['src/screens/Play.svelte', 'src/screens/Boss.svelte']); // UI4
+// Files exempted while they still use the old words: the battle phases UI4 restyles. It only
+// shrinks: a file listed here must exist and still hold a banned word. Lane P's files, then the
+// fence line, then lane V's (Ruling C13): each lane removes only its own lines.
+const PENDING = new Set<string>([
+  'src/components/battle/MusterPhase.svelte',
+  // --- lane V (Tasks 6-7) below this line ---
+]);
 
 const FILES = [
   ...walk('src/components/places'),
+  ...walk('src/components/battle'),
   'src/components/PinGate.svelte',
   'src/components/QuestCard.svelte',
   'src/components/ui/LevelMedallions.svelte',
-  ...walk('src/screens').filter((f) => !BATTLE.has(f) && !PENDING.has(f)),
+  ...walk('src/screens'),
   ...walk('src/lib/world'),
   ...walk('src/lib/battle'),
   'src/lib/library/shelf.ts',
@@ -60,14 +63,19 @@ describe('the places speak the camp, not the school', () => {
   it('uses none of the banned words', () => {
     const report: string[] = [];
     for (const f of FILES) {
+      if (PENDING.has(f)) continue;
       const text = screenText(readFileSync(f, 'utf-8'), f.endsWith('.svelte') ? 'svelte' : 'ts');
       for (const hit of banned(text)) report.push(`${f}: ${hit}`);
     }
     expect(report).toEqual([]);
   });
 
-  it('keeps the pending list honest (UI3b)', () => {
-    for (const f of PENDING) expect(existsSync(f), `${f} moved: remove it from PENDING`).toBe(true);
+  it('keeps the pending list honest (UI3b): each file exists and still needs its task', () => {
+    for (const f of PENDING) {
+      expect(existsSync(f), `${f} moved: remove it from PENDING`).toBe(true);
+      const text = screenText(readFileSync(f, 'utf-8'), 'svelte');
+      expect(banned(text).length, `${f} is clean: remove it from PENDING`).toBeGreaterThan(0);
+    }
   });
 
   it('catches the planted words and ignores comments and code (self-test)', () => {

@@ -1,5 +1,5 @@
 // Fil d'Ariane (spec §3.4): "tap a verb, then its subject; checked against the dependency parse
-// only when the parse is high-confidence." A pure state machine — Proofreading.svelte owns the
+// only when the parse is high-confidence." A pure state machine — ProofPhase.svelte owns the
 // `$state<FilState>` and calls `filTap` on every token tap while the tool is active; nothing
 // here touches the DOM or the player's text. Only `explainChain(..., 'high')` chains are ever
 // used to judge a tap (spec §1.3): a verb whose only chain is medium/low confidence is refused
@@ -19,7 +19,7 @@ export type FilStep = 'idle' | 'pick-verb' | 'pick-subject' | 'done';
 
 /** Resolves an annotation token id to the text of the typed token currently aligned to it, or
  *  `undefined` when there is no typed counterpart (unaligned/deleted word). Built by the caller
- *  (Proofreading.svelte) from the live alignment — never from the reference text. */
+ *  (ProofPhase.svelte) from the live alignment — never from the reference text. */
 export type TypedTextLookup = (annotIndex: number) => string | undefined;
 
 export interface FilState {

@@ -1,6 +1,6 @@
 <script lang="ts">
   // The shelves overlay of the library tent (UI3a Task 9, Ruling A3, A16): what was the whole
-  // Library screen, minus its own TopBar/FAB (the tent's desk, lens and portal replace the old
+  // Library screen, minus its own top bar/FAB (the tent's desk, lens and portal replace the old
   // add menu now - LibraryTent.svelte opens this as `overlay-shelves`).
   // Immersion wave Task 8 (playability #1, #2): each text is a rolled scroll lying in a cubby of the
   // shelf unit, sealed with wax until it has been defended (then the seal is broken and a laurel lies

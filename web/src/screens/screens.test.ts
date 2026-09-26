@@ -1,8 +1,8 @@
 // UI3 end state (spec §3, carry rec. 8, UI3 Ruling B7): every screen is a place scene except the two
-// battle screens UI4 restages; the legacy top nav survives only there; no place uses the legacy
+// battle screens, which render the battle stage (UI4); the legacy top nav is gone (UI4 Ruling C5); no place uses the legacy
 // `.screen` page or `.scene` banner classes (the kit classes are placesKit.test.ts's job).
 import { describe, expect, it } from 'vitest';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -31,9 +31,10 @@ describe('UI3: the places replaced the screens', () => {
     ]);
   });
 
-  it('keeps the legacy top nav only on Play and Boss', () => {
+  it('retires the legacy top nav everywhere (UI4 Ruling C5)', () => {
+    expect(existsSync('src/components/TopBar.svelte')).toBe(false);
     const users = walk('src').filter((f) => /import TopBar from/.test(readFileSync(f, 'utf-8')));
-    expect(users.map((f) => basename(f)).sort()).toEqual(['Boss.svelte', 'Play.svelte']);
+    expect(users.map((f) => basename(f))).toEqual([]);
   });
 
   it('uses no legacy .screen / .scene class in a place', () => {

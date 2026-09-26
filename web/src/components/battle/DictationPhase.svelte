@@ -1,15 +1,17 @@
 <script lang="ts">
   import { onDestroy, onMount, untrack } from 'svelte';
-  import { createRunner, type RunnerState } from '../lib/dictation/runner';
-  import { buildScript, type DictationPlan, type Pace } from '../lib/dictation/script';
-  import { cancelSpeech, speak } from '../lib/dictation/tts';
-  import Icon from './ui/Icon.svelte';
+  import { createRunner, type RunnerState } from '../../lib/dictation/runner';
+  import { buildScript, type DictationPlan, type Pace } from '../../lib/dictation/script';
+  import { cancelSpeech, speak } from '../../lib/dictation/tts';
+  import Icon from '../ui/Icon.svelte';
+  import type { BattleLayout } from '../../lib/battle/layout';
 
   let {
     plan,
     pace,
     voice,
     text = $bindable(),
+    layout,
     onFinish,
     onQuit,
   }: {
@@ -17,6 +19,8 @@
     pace: Pace;
     voice: SpeechSynthesisVoice | null;
     text: string;
+    /** The stage's layout (UI4 Ruling C4); Task 4 reads it for the compact bar. */
+    layout: BattleLayout;
     onFinish: () => void;
     onQuit: () => void;
   } = $props();
@@ -109,27 +113,11 @@
     cancelSpeech();
     onQuit();
   }
-
-  // Keeps the current line above the iPad on-screen keyboard: the keyboard
-  // shrinks the visual viewport (not the layout viewport), so we size the
-  // column from `--vvh` rather than 100dvh/100vh.
-  $effect(() => {
-    const vv = window.visualViewport;
-    const update = () => {
-      document.documentElement.style.setProperty('--vvh', `${vv?.height ?? window.innerHeight}px`);
-    };
-    update();
-    vv?.addEventListener('resize', update);
-    vv?.addEventListener('scroll', update);
-    return () => {
-      vv?.removeEventListener('resize', update);
-      vv?.removeEventListener('scroll', update);
-      document.documentElement.style.removeProperty('--vvh');
-    };
-  });
+  // The current line stays above the iPad on-screen keyboard: the battle stage follows the visual
+  // viewport and sizes the parchment to it (UI4 Ruling C4), and this column fills the parchment.
 </script>
 
-<div class="dictation" style="height: var(--vvh)">
+<div class="dictation">
   <div class="header">
     <button type="button" class="btn btn-ghost quit" data-testid="btn-quit-dictation" onclick={requestQuit}>
       <Icon name="arrow-left" size={18} /> Quitter
@@ -214,6 +202,7 @@
   .dictation {
     display: flex;
     flex-direction: column;
+    height: 100%;
     gap: 10px;
     padding: 12px 16px;
     padding-top: calc(12px + env(safe-area-inset-top));

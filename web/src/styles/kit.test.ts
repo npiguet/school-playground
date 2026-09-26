@@ -52,7 +52,8 @@ describe('UI kit (scenes spec §6)', () => {
   });
 
   it('drops the HUD band on a stage without a HUD (fix round 1 #7)', () => {
-    expect(css).toMatch(/:root:not\(:has\(\.scene-stage\.has-hud\)\)\s*\{\s*--hud-band:/);
+    // The battle stage keeps the band while it shows its HUD (UI4 Ruling C5).
+    expect(css).toMatch(/:root:not\(:has\(\.scene-stage\.has-hud, \.battle-stage\.has-hud\)\)\s*\{\s*--hud-band:/);
   });
 
   it('reserves the HUD band for the HUD (Ruling W11)', () => {

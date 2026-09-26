@@ -1,0 +1,64 @@
+<script lang="ts">
+  // The opponent's hold on the text (UI4 Ruling C3): full while she plays, notched at help stage 3,
+  // dropping only at the reckoning. Éris's violet, never red; a meter for assistive tech.
+  import { hpPercent, type HpView } from '../../lib/battle/hp';
+
+  let { name, label, hp }: { name: string; label: string; hp: HpView } = $props();
+  const ticks = $derived(hp.segments && hp.segments > 1 ? Array.from({ length: hp.segments - 1 }, (_, i) => (i + 1) / hp.segments!) : []);
+</script>
+
+<div
+  class="hp-bar stage-text"
+  data-testid="battle-hp"
+  role="meter"
+  aria-label={label}
+  aria-valuemin={0}
+  aria-valuemax={100}
+  aria-valuenow={hpPercent(hp)}
+  data-segments={hp.segments ?? ''}
+>
+  <span class="hp-name kit-plaque" data-testid="battle-plaque">{name}</span>
+  <span class="hp-track" aria-hidden="true">
+    <span class="hp-fill" style:transform="scaleX({hp.value})"></span>
+    {#each ticks as t (t)}<span class="hp-tick" style:left="{t * 100}%"></span>{/each}
+  </span>
+</div>
+
+<style>
+  .hp-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .hp-name {
+    align-self: center;
+    font-size: 15px;
+    padding: 2px 12px;
+  }
+  .hp-track {
+    position: relative;
+    height: 14px;
+    border-radius: 7px;
+    background: rgba(21, 18, 26, 0.72);
+    border: 2px solid var(--bronze-light);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+  }
+  .hp-fill {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    background: linear-gradient(180deg, #8a4fb5, var(--violet) 60%, var(--violet-dark));
+    transition: transform 0.35s cubic-bezier(0.3, 0.7, 0.4, 1);
+  }
+  .hp-tick {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--bronze-ink);
+    opacity: 0.8;
+  }
+</style>

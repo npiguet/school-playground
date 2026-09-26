@@ -1,15 +1,18 @@
 <script lang="ts">
-  // The boss fight against Éris herself (spec §3.6, plan Decisions 8 & 19). A lost fight never
-  // costs anything - the button always reads "Affronter Éris" again, the quest stays active - so
-  // this screen never needs a "you lost" state of its own; Results.svelte handles that.
-  import TopBar from '../components/TopBar.svelte';
-  import Dragon from '../components/Dragon.svelte';
-  import Medallion from '../components/juice/Medallion.svelte';
-  import { ART } from '../lib/world/art';
+  // The boss fight against Éris herself (spec §3.6, plan Decisions 8 & 19), on the battle stage in
+  // her lair (UI4). A lost fight never costs anything - the button always reads "Affronter Éris"
+  // again, the quest stays active - so this screen never needs a "you lost" state of its own; the
+  // victory phase handles that.
+  import { untrack } from 'svelte';
+  import BattleStage from '../components/battle/BattleStage.svelte';
+  import BossMuster from '../components/battle/BossMuster.svelte';
+  import { battleFor } from '../lib/battle/battle';
+  import { CHALLENGE_LINES } from '../lib/battle/lines';
+  import { initSound } from '../lib/juice/soundStore.svelte';
   import { worldApi } from '../lib/world/api';
   import { campFor, campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
-  import { romanTier } from '../lib/world/quests';
   import { bossRewardId as rewardIdFor, bossRewardName } from '../lib/world/rewards';
+  import { erisSays } from '../lib/world/voices';
   import { ApiError } from '../lib/api';
   import { href } from '../lib/routes';
   import { navigate } from '../lib/router.svelte';
@@ -17,30 +20,30 @@
 
   let { profile }: { profile: Profile } = $props();
 
+  // The stage's HUD needs the hero's mute setting, like every place. As in PlaceScene (final review
+  // I2), this depends on the profile id only: loadCatalog() reads campStore.catalog and initSound()
+  // reads profile.settings, and tracking either would fetch /camp again when they change.
   $effect(() => {
-    void refreshCamp(profile.id);
-    void loadCatalog();
+    const id = profile.id;
+    untrack(() => {
+      initSound(profile);
+      void refreshCamp(id);
+      void loadCatalog();
+    });
   });
 
   // This hero's camp snapshot only (final review I2): the store is shared across heroes.
   const camp = $derived(campFor(profile.id));
   const activeBossQuest = $derived(camp?.quests.find((q) => q.kind === 'boss' && q.status === 'active') ?? null);
   const tier = $derived(camp?.boss.tier_available ?? activeBossQuest?.goal.tier ?? 1);
-  const dragonStage = $derived(camp?.dragon.stage ?? 'egg');
-  const dragonTint = $derived(camp?.dragon.tint ?? 'bronze');
   // P1-5 follow-up (controller ruling): after a too_easy draw the active boss quest is flagged
   // 'grimoire' server-side - the retry has to run as a Grimoire corrompu session on the same
   // (already-longest) text instead of plain dictation, since "reviens avec un texte plus long"
   // was never actually possible.
   const isGrimoireRetry = $derived(activeBossQuest?.goal.mode === 'grimoire');
 
-  const CHALLENGE_LINES: Record<number, string> = {
-    1: '« Deux de mes ruses réduites au silence ? Voyons si mes pièges tiennent quand ils jouent tous ensemble. »',
-    2: '« Encore toi. Cette fois mes pièges sont mieux cachés, et le texte est long. Très long. »',
-    3: "« Le Grand Désaccord. Toutes mes ruses, un seul texte, et la pomme d'or en jeu. Après ça, je ne reviendrai pas. (Si.) »",
-  };
-
   const bossRewardId = $derived(rewardIdFor(tier, campStore.catalog));
+  const battle = battleFor('eris', { mode: 'boss', encounter: 'eris' });
 
   let starting = $state(false);
   let startError = $state('');
@@ -64,94 +67,18 @@
   }
 </script>
 
-<TopBar {profile} title="Éris" />
-
-<div class="screen boss">
-  <div class="scene battlefield" style="background-image:url({ART.scenes.battle})">
-    <span class="combatant dragon">
-      <Dragon stage={dragonStage} tint={dragonTint} size={260} mood="idle" />
-    </span>
-    <img src={ART.erisSmug} alt="Éris" class="combatant eris" />
-  </div>
-
-  <div class="parchment eris-panel challenge">
-    <p class="challenge-line">{CHALLENGE_LINES[tier] ?? CHALLENGE_LINES[1]}</p>
-  </div>
-
-  <div class="card info-card">
-    <p class="tier" data-testid="boss-tier">Combat {romanTier(tier)}</p>
-    <div class="reward" data-testid="boss-reward">
-      {#if bossRewardId}<Medallion rewardId={bossRewardId} size={40} />{/if}
-      <span>Récompense si tu gagnes : {campStore.catalog?.quest_bonus.boss ?? 300} XP · {bossRewardName(tier, campStore.catalog)}</span>
-    </div>
-    <p class="rules muted">
-      Un long texte · les Yeux d'Argus restent éteints · chaque piège trouvé reste acquis, même si Éris s'enfuit : tu
-      pourras recommencer.
-    </p>
-
-    {#if startError}<p class="orange" role="alert">{startError}</p>{/if}
-
-    <button type="button" class="btn btn-primary" data-testid="boss-start" disabled={starting} onclick={start}>
-      {isGrimoireRetry ? 'Relancer le combat' : 'Affronter Éris'}
-    </button>
-  </div>
-</div>
-
-<style>
-  .boss {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  .battlefield {
-    height: 40vh;
-    min-height: 260px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    padding: 16px;
-  }
-  .combatant {
-    position: relative;
-    z-index: 1;
-    object-fit: contain;
-    display: flex;
-  }
-  .combatant.dragon {
-    max-height: 40vh;
-  }
-  .combatant.eris {
-    max-height: 100%;
-  }
-  .challenge {
-    padding: 18px 20px;
-  }
-  .challenge-line {
-    margin: 0;
-    font-style: italic;
-    font-size: 18px;
-  }
-  .info-card {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-  }
-  .tier {
-    margin: 0;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 20px;
-  }
-  .reward {
-    margin: 0;
-    font-weight: 600;
-    color: var(--gold);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .rules {
-    margin: 0;
-  }
-</style>
+<BattleStage {battle} phase="muster" {profile} {camp} mode="boss" dragon={camp?.dragon ?? null} hud exit>
+  {#snippet children()}
+    <BossMuster
+      {tier}
+      rewardId={bossRewardId}
+      rewardXp={campStore.catalog?.quest_bonus.boss ?? 300}
+      rewardName={bossRewardName(tier, campStore.catalog)}
+      retry={isGrimoireRetry}
+      {starting}
+      {startError}
+      taunt={erisSays(CHALLENGE_LINES[tier] ?? CHALLENGE_LINES[1])}
+      onStart={start}
+    />
+  {/snippet}
+</BattleStage>

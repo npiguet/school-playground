@@ -5,7 +5,7 @@
   import { flushSync, untrack } from 'svelte';
   import TokenText from './TokenText.svelte';
   import WordEditor from './WordEditor.svelte';
-  import Icon from './ui/Icon.svelte';
+  import Icon from '../ui/Icon.svelte';
   import { TOOL_ICONS } from '$lib/world/art';
   import { activePasses, ARGUS_LABELS, HINTS_PER_STAGE, typedPassSets } from '$lib/argus';
   import { mapAnnotation, reverseAnnotationMap } from '$lib/grading/annotationMap';
@@ -15,6 +15,7 @@
   import { savePlayState, type PlayState } from '$lib/playState';
   import { replaceSpan, sentenceSpans } from '$lib/textEdit';
   import type { PlayMode, TextFull } from '$lib/types';
+  import type { BattleLayout } from '$lib/battle/layout';
 
   let {
     reference,
@@ -24,7 +25,9 @@
     trapWords,
     level,
     mode = 'dictation',
+    layout,
     onDone,
+    onQuit,
   }: {
     reference: TextFull;
     state: PlayState;
@@ -36,7 +39,11 @@
      *  framing line; the stage-3 count itself is unchanged (always `gradeText`'s own count, never
      *  the plant count - see `freezeInitialErrors` below). */
     mode?: PlayMode;
+    /** The stage's layout (UI4 Ruling C4); Task 5 reads it for the compact tool bar. */
+    layout: BattleLayout;
     onDone: () => void;
+    /** « Quitter » (UI4 Ruling C15): wired by Play now, rendered by Task 5. */
+    onQuit: () => void;
   } = $props();
 
   const annotation = $derived(reference.annotation as Annotation);
@@ -143,13 +150,11 @@
     savePlayState(play);
   });
 
-  // Keep the column sized to the visual viewport so the inline editor stays above the
-  // on-screen keyboard (same trick as the dictation screen).
+  // Keep the edited word in view when the on-screen keyboard resizes the visual viewport. The
+  // battle stage sizes the parchment to it (its `watchViewport` owns `--vvh`, UI4 Ruling C4).
   $effect(() => {
     const vv = window.visualViewport;
-    const root = document.documentElement;
     const update = () => {
-      root.style.setProperty('--vvh', `${vv?.height ?? window.innerHeight}px`);
       if (editing !== null) document.activeElement?.scrollIntoView({ block: 'center', inline: 'nearest' });
     };
     untrack(update);
@@ -160,7 +165,6 @@
       vv?.removeEventListener('resize', update);
       vv?.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
-      root.style.removeProperty('--vvh');
     };
   });
 
@@ -487,7 +491,7 @@
   .proof {
     display: flex;
     flex-direction: column;
-    height: var(--vvh, 100dvh);
+    height: 100%;
     max-width: 1100px;
     margin: 0 auto;
     padding: 8px 16px;

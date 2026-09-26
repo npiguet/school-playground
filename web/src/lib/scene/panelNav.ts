@@ -94,8 +94,8 @@ export type GoMode = 'push' | 'panel' | 'replace';
  *
  *  The one rule for an overlay (final review M13): whatever place it belongs to, it opens with
  *  `panel`, so its seal steps back to wherever it was opened from - this place, another place (the
- *  HUD's hero chip, the dossier's « Lire ton journal »), or a screen (the TopBar's journal and
- *  lyre). Only a move to a bare place or screen is a plain `push`. */
+ *  HUD's hero chip, the dossier's « Lire ton journal »), or a battle's muster (its HUD's hero
+ *  chip, UI4 Ruling C5). Only a move to a bare place or screen is a plain `push`. */
 export function go(path: string, mode: GoMode = 'push', h: HistoryLike = history): void {
   unlockAudio();
   playSfx('tap');

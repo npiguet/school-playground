@@ -112,11 +112,11 @@ test('Alexandria: refresh from offline fixtures, graceful failure, adopt a scrol
     // (found stress-testing this spec with --repeat-each=20 --workers=8, 20/20 failing). A fixed
     // "count 0 within 100ms" window depends on load: `watchOverlap` instead watches every DOM
     // mutation from before the click, so it catches the coexistence no matter how briefly it
-    // lasted, on any machine (`topbar-camp` is Play's own TopBar, rendered from its first paint,
+    // lasted, on any machine (`scene-battle` is Play's stage, rendered from its first paint,
     // before its own text fetch resolves).
-    await watchOverlap(page, 'scene-library', 'topbar-camp');
+    await watchOverlap(page, 'scene-library', 'scene-battle');
     await target.getByTestId('btn-adopt-play').click();
-    await expect(page.getByTestId('topbar-camp')).toBeVisible();
+    await expect(page.getByTestId('scene-battle')).toBeVisible();
     await expect(page.getByTestId('scene-library')).toHaveCount(0);
     await expect(page.getByTestId('overlay-portal-work')).toHaveCount(0);
     await expectNoOverlap(page);

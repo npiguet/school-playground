@@ -111,7 +111,7 @@
         <Nest profile={gateProfile} panel={view.panel} />
       {:else if view?.place === 'cabin'}
         <CabinRoom profile={gateProfile} panel={view.panel} />
-      <!-- The battle screens below keep their legacy layout and TopBar until UI4. -->
+      <!-- The battle routes render the battle stage (UI4); Play stays mounted across its phases and its « Revoir » panel (Ruling C1). -->
       {:else if route.name === 'play'}
         <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
       {:else if route.name === 'grimoire'}

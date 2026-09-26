@@ -1,5 +1,5 @@
 // Mute state ($state): server-authoritative on `profile.settings.mute`, mirrored to
-// `localStorage` for instant effect (decision 17) so toggling the TopBar speaker
+// `localStorage` for instant effect (decision 17) so toggling the HUD's lyre
 // doesn't wait on a round-trip. Sound is a convenience, never blocking: API and
 // storage failures are swallowed.
 import { api } from '../api';

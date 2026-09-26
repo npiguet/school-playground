@@ -3,7 +3,9 @@
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 cd "$ROOT"
 echo "== server: pytest";        scripts/pytest.sh -q
-echo "== web: svelte-check";     scripts/npm.sh run check
+# `check` is svelte-check over src, then tsc over e2e/ and the Playwright configs (tsconfig.e2e.json:
+# the main tsconfig excludes e2e, and Playwright only transpiles, so nothing else type-checks them).
+echo "== web: svelte-check + e2e type-check"; scripts/npm.sh run check
 echo "== web: vitest";           scripts/npm.sh run test
 echo "== docker build";          docker build -t "$APP_IMAGE" .
 echo "== e2e: playwright";       scripts/playwright.sh

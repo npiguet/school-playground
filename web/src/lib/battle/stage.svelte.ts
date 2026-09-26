@@ -17,6 +17,9 @@ export const battleStage = $state({
   hits: 0,
   opponent: { reaction: 'idle', nonce: 0 } as Actor,
   dragon: { reaction: 'idle', nonce: 0 } as Actor,
+  /** Bumped by every reset: BattleStage keys the combatants on it, so a new battle (a replay
+   *  included) mounts fresh ones and a held end pose (defeat, retreat) never carries over. */
+  generation: 0,
 });
 
 export function react(side: Side, reaction: Reaction): void {
@@ -39,4 +42,5 @@ export function resetBattleStage(): void {
   battleStage.hits = 0;
   battleStage.opponent = { reaction: 'idle', nonce: 0 };
   battleStage.dragon = { reaction: 'idle', nonce: 0 };
+  battleStage.generation += 1;
 }

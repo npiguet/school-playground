@@ -32,7 +32,7 @@
     editor?: Snippet<[number]>;
     /** Fil d'Ariane (SP2 Task 7): the typed token index of the picked verb, and the typed token
      *  indexes of its subject once revealed — both in the *player's* token space, already
-     *  mapped from annotation indexes by Proofreading.svelte. */
+     *  mapped from annotation indexes by ProofPhase.svelte. */
     filVerb?: number | null;
     filSubjects?: Set<number>;
     /** Fix round 1 item 4: while the Fil is active, a tap picks a verb/subject rather than

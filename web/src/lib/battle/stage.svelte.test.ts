@@ -11,6 +11,14 @@ describe('the stage store the phases drive', () => {
     expect(battleStage.opponent.reaction).toBe('idle');
   });
 
+  it('counts its resets, so the stage can mount fresh combatants for a new battle', () => {
+    const before = battleStage.generation;
+    react('opponent', 'defeat');
+    resetBattleStage();
+    expect(battleStage.generation).toBe(before + 1);
+    expect(battleStage.opponent).toEqual({ reaction: 'idle', nonce: 0 });
+  });
+
   it('bumps a nonce on every reaction, even a repeated one', () => {
     react('dragon', 'cheer');
     react('dragon', 'cheer');

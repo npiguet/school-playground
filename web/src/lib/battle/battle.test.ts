@@ -36,6 +36,11 @@ describe('who fights where (Ruling C2)', () => {
     const calm = [lt('hydre', { neutralised: true }), lt('chimere'), lt('lethe')];
     expect(opponentFor({ mode: 'dictation', encounter: null, textId: 3, lieutenants: calm })).toBe('lethe'); // 3 % 2 = 1
     expect(opponentFor({ mode: 'dictation', encounter: null, textId: 3, lieutenants: [] })).toBe('eris');
+    // Every lieutenant asleep or neutralised (even a stirring one): as if there were none.
+    const spent = [lt('hydre', { neutralised: true }), lt('echo', { available: false }), lt('lethe', { neutralised: true, stirring: true })];
+    for (const textId of [0, 1, 2, 3]) {
+      expect(opponentFor({ mode: 'dictation', encounter: null, textId, lieutenants: spent })).toBe('eris');
+    }
     expect(opponentFor({ mode: 'dictation', encounter: 'nope', textId: 0, lieutenants: SIX })).toBe('hydre');
   });
 

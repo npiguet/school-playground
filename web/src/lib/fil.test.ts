@@ -82,7 +82,7 @@ const ANN = ann();
 
 // This fixture never introduces a typo, so the typed word and the reference word are always
 // identical — a lookup straight into the fixture's own annotation tokens is a faithful stand-in
-// for the real (typed-alignment-based) lookup Proofreading.svelte builds, for these tests only.
+// for the real (typed-alignment-based) lookup ProofPhase.svelte builds, for these tests only.
 const identityTypedTextOf: TypedTextLookup = (annotIndex) => ANN.tokens[annotIndex]?.text;
 
 describe('filTap', () => {
@@ -161,7 +161,7 @@ describe('filTap', () => {
   });
 
   // Fix round 1 (Fable review, critical): the Fil must never leak the reference spelling. Build
-  // the same annotIndex<->typedIndex lookup Proofreading.svelte builds, from a real typo'd
+  // the same annotIndex<->typedIndex lookup ProofPhase.svelte builds, from a real typo'd
   // alignment, and check the messages quote the typed words, never the reference ones.
   it("uses the player's typed words in its messages, never the reference spelling", () => {
     const typed = 'Les fée qui chantent danse.'; // "fées"->"fée", "dansent"->"danse"
