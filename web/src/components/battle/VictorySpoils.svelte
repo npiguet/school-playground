@@ -52,8 +52,25 @@
   /** Brings the boss's block into view as it is revealed (UI4 playability #4): the climax of the game
    *  never waits below the fold. */
   function revealInView(node: HTMLElement, delay: number) {
-    const id = setTimeout(() => node.scrollIntoView({ block: 'nearest', behavior: quick ? 'auto' : 'smooth' }), delay + 200);
-    return { destroy: () => clearTimeout(id) };
+    // Once its Reveal has landed (its fade-up moves it while it plays), or after its full time.
+    const reveal = node.closest('.reveal');
+    let done = false;
+    const bring = () => {
+      if (done) return;
+      done = true;
+      node.scrollIntoView({ block: 'nearest', behavior: quick ? 'auto' : 'smooth' });
+    };
+    const onEnd = (e: Event) => {
+      if (e.target === reveal) bring();
+    };
+    reveal?.addEventListener('animationend', onEnd);
+    const id = setTimeout(bring, delay + 700);
+    return {
+      destroy: () => {
+        clearTimeout(id);
+        reveal?.removeEventListener('animationend', onEnd);
+      },
+    };
   }
 
   // XP card ------------------------------------------------------------------------------------
