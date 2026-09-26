@@ -361,6 +361,14 @@ repo mounted at `/work`:
   Copy the `*_cut.webp` files (and scenes) to `web/public/art/` afterwards; the game only
   references those paths (`web/src/lib/world/art.ts`).
 
+`assets/art/web/` is intermediate staging output, never a source of truth: every run mirrors
+the *whole* `assets/art` tree into it (there is no `--src`/`--dst` narrowing in normal use), so
+it always holds far more than whatever a given task actually shipped. Nothing in the app, the
+tests or the scripts reads from it - the game, the tests and `scripts/*.sh` only ever read the
+copies under `web/public/art/`. It is listed in `.gitignore` and never committed; re-run
+`webify.py` to regenerate it locally whenever you need to eyeball a export before copying it to
+`web/public/art/`.
+
 Regenerate one asset: `python .claude/skills/krea2/generate.py --prompt "<prompt from the
 sidecar>" --style discorde-illustration --size 768x1344 --seed <seed> --vscale 1.0 --out
 assets/art/...`, look at it, then rerun the Docker tools.

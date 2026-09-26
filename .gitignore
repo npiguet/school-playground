@@ -14,3 +14,7 @@ server/.pytest_cache/
 # Core dumps (a crashed browser in the Playwright container writes core.<pid> into its working
 # directory, web/, several GB each): never committed.
 core.[0-9]*
+# tools/art/webify.py's intermediate staging output (docs/art/style-guide.md §6): every run mirrors
+# the *whole* assets/art tree here, whether or not the asset shipped. The game only ever reads the
+# WebPs copied by hand to web/public/art/, never this folder - never committed.
+assets/art/web/
