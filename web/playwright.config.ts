@@ -22,6 +22,16 @@ export default defineConfig({
   // side, e.g. `STACK=b PW_WORKERS=4 scripts/check.sh` (README §6).
   workers: Number(process.env.PW_WORKERS) || 8,
   reporter: [['list'], ['./e2e/crashReporter.ts']],
+  // Every web-first assertion (expect(locator)..., expect.poll) waits up to 15 s, not Playwright's
+  // 5 s. The browser pages sometimes stall for seconds as a whole: timers, rAF, animation events and
+  // fetch callbacks all stop together, in every worker at once, whenever the host itself is
+  // saturated (a heavy job outside Docker; a CPU/RAM load on the Windows host reproduces 1-3 s
+  // stalls, and 3-6 s ones were measured). A 5 s wait that spans such a stall fails although the
+  // page is right: an overlay's fly-in is left "finished" on the panel until its `finish` event
+  // runs, or a closed overlay's fade-out has not ended (overlay-flake-report.md, UI3b). 15 s
+  // absorbs those stalls; something that never settles still fails. crashGuard.ts names a stall
+  // next to any failure it overlaps.
+  expect: { timeout: 15_000 },
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:8080',
     locale: 'fr-CH',
