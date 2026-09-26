@@ -87,11 +87,28 @@ test('the locked path to battle: the dragon says how many tricks remain', async 
   await openCamp(page, id);
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
-  await tap(page.getByTestId('camp-boss'), testInfo);
+  const boss = page.getByTestId('camp-boss');
+  const line = 'Éris se cache encore. Neutralise encore 2 ruses et elle sortira.';
+  await tap(boss, testInfo);
   await expect(page).toHaveURL(/\/camp$/);
-  await expect(page.getByTestId('dialogue-text')).toHaveText('Éris se cache encore. Neutralise encore 2 ruses et elle sortira.');
+  await expect(page.getByTestId('dialogue-text')).toHaveText(line);
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
+  // Dismissing the line hands focus back to the path, not to <body> (UI3b Task 7 review).
+  await expect(boss).toBeFocused();
+  // The keyboard reaches the same words: Enter, then Space, on the focused path; « Tout passer »
+  // pressed from the keyboard hands focus back each time.
+  for (const key of ['Enter', 'Space']) {
+    await boss.focus();
+    await page.keyboard.press(key);
+    await expect(page.getByTestId('dialogue-text'), key).toHaveText(line);
+    await expect(page, key).toHaveURL(/\/camp$/);
+    await page.getByTestId('dialogue-skip').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByTestId('dialogue-box'), key).toHaveCount(0);
+    await expect(boss, key).toBeFocused();
+  }
+  await expect(page).toHaveURL(/\/camp$/);
   await tap(page.getByTestId('camp-parchemins'), testInfo); // the one-tap guard was never taken
   await expect(page).toHaveURL(/\/tente-parchemins$/);
 });
@@ -572,11 +589,15 @@ test('the path to battle opens once Éris can be fought; badges sit on their pla
   await expect(page).toHaveURL(/\/eris$/);
 });
 
-function boxesIntersect(a: { x: number; y: number; width: number; height: number }, b: typeof a): boolean {
-  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+// The clear gap between two boxes, in px: how far apart they are along the axis that separates
+// them (negative when they overlap).
+function boxGap(a: { x: number; y: number; width: number; height: number }, b: typeof a): number {
+  const dx = Math.max(b.x - (a.x + a.width), a.x - (b.x + b.width));
+  const dy = Math.max(b.y - (a.y + a.height), a.y - (b.y + b.height));
+  return Math.max(dx, dy);
 }
 
-test('the weekly ribbon hangs in the open sky, clear of every place and plaque', async ({ page, request }, testInfo) => {
+test('the weekly ribbon hangs in the open sky, at least 4 px clear of every place and plaque', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await readyTheBattle(request, id, testInfo.project.name); // the battle path's caption is the widest plaque near the sky
   // The widest ribbon: five leaves (the lyre's goal goes up to 5).
@@ -614,8 +635,9 @@ test('the weekly ribbon hangs in the open sky, clear of every place and plaque',
     expect((weekly.x + weekly.width - art.x) / art.width, `ribbon right at ${at}`).toBeLessThanOrEqual(0.7);
     expect((weekly.y + weekly.height - art.y) / art.height, `ribbon bottom at ${at}`).toBeLessThanOrEqual(0.22);
     for (const h of hotspots) {
-      expect(boxesIntersect(weekly, h.box), `ribbon vs ${h.testId} at ${at}`).toBe(false);
-      expect(boxesIntersect(weekly, h.labelBox), `ribbon vs ${h.testId}'s label at ${at}`).toBe(false);
+      // Task 7 review: a visible margin, not a 1 px graze.
+      expect(boxGap(weekly, h.box), `ribbon gap to ${h.testId} at ${at}`).toBeGreaterThanOrEqual(4);
+      expect(boxGap(weekly, h.labelBox), `ribbon gap to ${h.testId}'s label at ${at}`).toBeGreaterThanOrEqual(4);
     }
   }
 });

@@ -6,7 +6,7 @@
   // (A9). The screen renders its hotspots, layers and in-scene objects through `children(ctx)`,
   // inside the art box; its overlays are rendered next to this component (they are
   // fixed-position).
-  import { untrack, type Snippet } from 'svelte';
+  import { tick, untrack, type Snippet } from 'svelte';
   import SceneStage from './SceneStage.svelte';
   import Hud from './Hud.svelte';
   import SceneExit from './SceneExit.svelte';
@@ -66,10 +66,30 @@
     greeting = lines;
   });
 
-  /** A line the screen asks for on a tap (the library owl, playability #23): shown in the same box
-   *  as the greeting, replacing whatever it was saying. */
-  export function say(lines: DialogueLine[]) {
+  // The element whose tap asked for the lines on show (a selector, since the tap may not have
+  // focused it: WebKit never focuses a clicked button), or null for the greeting.
+  let saidFrom: string | null = null;
+
+  /** A line the screen asks for on a tap (the library owl, playability #23, a locked place): shown
+   *  in the same box as the greeting, replacing whatever it was saying. `returnFocus` is the
+   *  selector of what asked (its hotspot): once the line is dismissed, focus goes back there
+   *  instead of falling to <body> with the box (UI3b Task 7 review). */
+  export function say(lines: DialogueLine[], returnFocus?: string) {
+    saidFrom = returnFocus ?? null;
     greeting = lines;
+  }
+
+  async function dialogueDone() {
+    const back = saidFrom;
+    saidFrom = null;
+    greeting = null;
+    if (!back) return;
+    await tick();
+    // Only when focus was in the box (now gone) or nowhere: never pull it from where the player
+    // has since moved it.
+    const active = document.activeElement;
+    if (active && active !== document.body) return;
+    (document.querySelector(back) as HTMLElement | null)?.focus();
   }
 
   const openHero = () => go(heroPanelHref(profile.id), 'panel');
@@ -95,7 +115,7 @@
   {#if greeting}
     <!-- Keyed: a new line (the owl tapped again) restarts the box from its first line. -->
     {#key greeting}
-      <DialogueBox lines={greeting} onDone={() => (greeting = null)} />
+      <DialogueBox lines={greeting} onDone={dialogueDone} />
     {/key}
   {/if}
   {#if showExit}

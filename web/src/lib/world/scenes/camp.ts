@@ -113,7 +113,8 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
       return { badge: n > 0 ? n : null };
     }),
   },
-  { id: 'cabin', label: 'Ta cabane', target: 'cabin', shape: CAMP_SHAPES.cabin, labelPos: 'above', leader: true, state: place('cabin') },
+  // Inked on the cabin's white wall: a plaque above the roof hung on the olive tree (Task 7 review).
+  { id: 'cabin', label: 'Ta cabane', target: 'cabin', shape: CAMP_SHAPES.cabin, labelPos: 'on', state: place('cabin') },
   {
     id: 'boss',
     label: 'Le sentier de la bataille',

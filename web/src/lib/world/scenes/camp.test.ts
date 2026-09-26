@@ -56,6 +56,7 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
       boss: 'boss',
     });
     for (const h of CAMP_HOTSPOTS) expect(h.leader === true || h.labelPos === 'on', h.id).toBe(true);
+    expect(CAMP_HOTSPOTS.find((h) => h.id === 'cabin')!.labelPos).toBe('on');
   });
 
   it('always shows the path to battle, locked until Éris can be fought', () => {

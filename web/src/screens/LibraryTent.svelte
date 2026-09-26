@@ -34,7 +34,7 @@
   function speak() {
     const { line, index } = owlHint(lastHint);
     lastHint = index;
-    place?.say([line]);
+    place?.say([line], hotspotSelector('library', 'owl'));
   }
   const activate = (def: HotspotDef) => (def.id === 'owl' ? speak() : openHotspot(def, profile.id));
   const close = () => closePanel(sceneHref('library', profile.id));

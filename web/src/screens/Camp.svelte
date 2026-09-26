@@ -22,6 +22,7 @@
   import { reducedMotion } from '../lib/juice/motion';
   import { navigate } from '../lib/router.svelte';
   import { heroPanelHref, hotspotHref, replacePanel } from '../lib/scene/panelNav';
+  import { hotspotSelector } from '../lib/scene/hotspotId';
   import type { PanelId } from '../lib/world/places';
   import type { Profile } from '../lib/types';
 
@@ -68,7 +69,7 @@
     const camp = campFor(profile.id);
     if (!camp) return;
     unlockAudio();
-    place?.say([dragonSays(camp.dragon, bossLockLine(camp))]);
+    place?.say([dragonSays(camp.dragon, bossLockLine(camp))], hotspotSelector('camp', 'boss'));
   }
 
   // UI3 Ruling B2: `?panel=heros` stays a route; once the Muses' welcome is over (fix wave 3: the
@@ -118,8 +119,8 @@
      open sky of hub_camp.webp (docs/art/scenes.md: x 40-65, y 8-20), clear of every place and
      plaque (scenes-camp.spec.ts measures it). Centred at x 51.5 %, top 16 %, with slimmer notched
      ends: at 1280x720 (the widest ribbon in art %, five leaves) it clears the temple's box (right
-     edge x 36) and ends above the battle arch's (top y 21). Notched cloth ends, not the pill of a
-     toast notification. */
+     edge x 36) and ends above the battle arch's (top y 22), at least 4 px clear of both at every
+     size. Notched cloth ends, not the pill of a toast notification. */
   .weekly {
     position: absolute;
     left: 51.5%;
@@ -130,7 +131,7 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 6px 24px;
+    padding: 6px 20px;
     white-space: nowrap;
     font-family: var(--font-body);
     font-size: 15px;

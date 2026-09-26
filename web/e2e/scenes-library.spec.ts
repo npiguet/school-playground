@@ -199,8 +199,18 @@ test('the owl is a speaker you can tap: she replays one of her hints', async ({ 
   await expect(owl.locator('.hotspot-label')).toHaveCount(0);
   await tap(owl, testInfo);
   await expect(page.getByTestId('dialogue-text')).toContainText('Hou !');
-  // The other places still open (one-tap guard released for a null target).
+  // Dismissing her line hands focus back to the owl, not to <body> (UI3b Task 7 review).
   await page.getByTestId('dialogue-skip').click();
+  await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
+  await expect(owl).toBeFocused();
+  // The same from the keyboard: Enter on the owl, then « Tout passer » pressed with Enter.
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('dialogue-text')).toContainText('Hou !');
+  await page.getByTestId('dialogue-skip').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
+  await expect(owl).toBeFocused();
+  // The other places still open (one-tap guard released for a null target).
   await tap(page.getByTestId('library-shelves'), testInfo);
   await expect(page.getByTestId('overlay-shelves')).toBeVisible();
 });

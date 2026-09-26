@@ -75,7 +75,7 @@
   function explainLocked(def: HotspotDef) {
     if (!camp || !isLieutenantKey(def.id)) return;
     unlockAudio();
-    place?.say([dragonSays(camp.dragon, sleepingLine(def.id))]);
+    place?.say([dragonSays(camp.dragon, sleepingLine(def.id))], hotspotSelector('war', def.id));
   }
 
   const close = () => closePanel(sceneHref('war', profile.id));
