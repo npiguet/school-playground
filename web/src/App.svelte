@@ -16,7 +16,7 @@
   import Dossier from './screens/Dossier.svelte';
   import Bestiaire from './screens/Bestiaire.svelte';
   import BestiaireEntry from './screens/BestiaireEntry.svelte';
-  import Lieutenant from './screens/Lieutenant.svelte';
+  import WarTent from './screens/WarTent.svelte';
   // --- UI3b Task 4 replaces this block with Nest ---
   import DragonScreen from './screens/DragonScreen.svelte';
   // --- UI3b Tasks 5-6 replace this block with CabinRoom ---
@@ -104,14 +104,15 @@
              the Pythia's or the tablets' overlay never remounts Delphi and replays its entry zoom. -->
         <Delphi profile={gateProfile} panel={view.panel} />
       <!-- UI3b lane W (Tasks 2-3) replaces this block with the war place branch. -->
+      {:else if view?.place === 'war' && route.name !== 'dossier' && route.name !== 'bestiaire' && route.name !== 'bestiaire-entry'}
+        <!-- UI3b Task 2: the war tent and its portrait sheets (Task 3 opens the rest as overlays). -->
+        <WarTent profile={gateProfile} panel={view.panel} params={route.params} />
       {:else if route.name === 'dossier'}
         <Dossier profile={gateProfile} />
       {:else if route.name === 'bestiaire'}
         <Bestiaire profile={gateProfile} />
       {:else if route.name === 'bestiaire-entry'}
         <BestiaireEntry profile={gateProfile} entryKey={route.params.key} />
-      {:else if route.name === 'lieutenant'}
-        <Lieutenant profile={gateProfile} lieutenantKey={route.params.key} />
       <!-- UI3b Task 4 replaces this block with the nest place branch. -->
       {:else if route.name === 'dragon'}
         <DragonScreen profile={gateProfile} />

@@ -6,6 +6,7 @@ import { LIBRARY_SCENE } from './library';
 import { DELPHI_SCENE } from './delphi';
 import { TITLE_SCENE } from './title';
 import { CAMP_SCENE } from './camp';
+import { WAR_SCENE } from './war';
 
 const noBoss = { tier_available: null, tiers_won: [], active_quest_id: null };
 const base = { dragon: { name: null, stage: 'egg' }, lieutenants: [], rewards_count: 0, boss: noBoss, prophecies: [] };
@@ -24,10 +25,12 @@ const camps = [
   { ...base, xp: { total: 90 }, oracle: { status: 'chosen' }, quests: [], prophecies: prophecy(2) },
   // A battle open with a prophecy due tomorrow (and a new hero's scrolls sealed).
   { ...base, xp: { total: 0 }, oracle: { status: 'sealed' }, quests: [], prophecies: prophecy(1), boss: { tier_available: 1, tiers_won: [], active_quest_id: null } },
+  // Two lieutenants stirring at once (the war tent lights only the first).
+  { ...base, xp: { total: 300 }, oracle: { status: 'chosen' }, quests: [], lieutenants: [{ key: 'echo', stirring: true, available: true }, { key: 'lethe', stirring: true, available: true }] },
 ] as unknown as (CampResponse | null)[];
 
 describe('one glow per scene', () => {
-  it.each([LIBRARY_SCENE, DELPHI_SCENE, TITLE_SCENE, CAMP_SCENE])('$id', (scene) => {
+  it.each([LIBRARY_SCENE, DELPHI_SCENE, TITLE_SCENE, CAMP_SCENE, WAR_SCENE])('$id', (scene) => {
     for (const camp of camps) {
       const lit = scene.hotspots.filter((h) => h.state({ camp, catalog: null }).isNew).map((h) => h.id);
       expect(lit.length, `${scene.id} with ${JSON.stringify(camp?.xp ?? null)}: ${lit}`).toBeLessThanOrEqual(1);

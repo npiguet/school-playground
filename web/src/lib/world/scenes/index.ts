@@ -4,7 +4,7 @@ import { CAMP_SCENE } from './camp';
 import { DELPHI_SCENE } from './delphi';
 import { LIBRARY_SCENE } from './library';
 import { TITLE_SCENE } from './title';
-// --- lane W (Task 2): import { WAR_SCENE } from './war';
+import { WAR_SCENE } from './war'; // --- lane W (Task 2)
 
 // --- lane H (Task 4): import { NEST_SCENE } from './nest';
 
@@ -18,7 +18,7 @@ export const SCENES: SceneDef[] = [
   TITLE_SCENE,
   LIBRARY_SCENE,
   DELPHI_SCENE,
-  // --- lane W (Task 2): WAR_SCENE,
+  WAR_SCENE, // --- lane W (Task 2)
 
   // --- lane H (Task 4): NEST_SCENE,
 
