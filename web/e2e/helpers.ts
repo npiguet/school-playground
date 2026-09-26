@@ -214,7 +214,7 @@ export async function confirmScanVerified(page: Page) {
   const chips = page.getByTestId('scan-low-confidence').locator('button');
   for (let i = 0; i < (await chips.count()); i++) await chips.nth(i).click();
   await page.getByTestId('btn-scan-verified').click();
-  await expect(page.getByTestId('scan-confirm')).toContainText('As-tu comparé chaque ligne avec la feuille ?');
+  await expect(page.getByTestId('scan-confirm')).toContainText('As-tu comparé chaque ligne avec la feuille\u202f?');
   await page.getByTestId('btn-scan-confirm').click();
 }
 

@@ -20,8 +20,8 @@ export type CampHotspotId = keyof typeof CAMP_SHAPES;
 
 /** The weekly goal ribbon, in-world words. */
 export function weeklyCaption(w: CampResponse['weekly']): string {
-  if (w.reached) return 'Objectif atteint ! Les Muses sont fières.';
-  return `Cette semaine : ${w.done} / ${w.target} parchemins défendus`;
+  if (w.reached) return 'Objectif atteint\u202f! Les Muses sont fières.';
+  return `Cette semaine\u202f: ${w.done} / ${w.target} parchemins défendus`;
 }
 
 /** Éris hides until enough tricks are foiled (the quest wall's rule, SP3 decision 8). */
@@ -51,7 +51,7 @@ export function bossLockCaption(camp: CampResponse): string | null {
 function bossCaption(camp: CampResponse, catalog: WorldCatalog | null): string {
   if (bossEngaged(camp)) return 'Un combat est déjà engagé contre Éris.';
   const tier = camp.boss.tier_available;
-  return `Combat ${romanTier(tier ?? 1)} : ${bossRewardName(tier, catalog)}`;
+  return `Combat ${romanTier(tier ?? 1)}\u202f: ${bossRewardName(tier, catalog)}`;
 }
 
 /** The hub place the shared next step names (Ruling B9), or null. */

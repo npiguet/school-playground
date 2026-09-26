@@ -54,10 +54,10 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   });
 
   it('titles every outcome without a loss', () => {
-    expect(L.victoryTitle('rout', 'hydre')).toBe('Victoire !');
-    expect(L.victoryTitle('push', 'hydre')).toBe("L'Hydre recule !");
-    expect(L.victoryTitle('push', 'sirenes')).toBe('Les Sirènes reculent !');
-    expect(L.victoryTitle('push', 'eris')).toBe('Éris recule !');
+    expect(L.victoryTitle('rout', 'hydre')).toBe('Victoire\u202f!');
+    expect(L.victoryTitle('push', 'hydre')).toBe("L'Hydre recule\u202f!");
+    expect(L.victoryTitle('push', 'sirenes')).toBe('Les Sirènes reculent\u202f!');
+    expect(L.victoryTitle('push', 'eris')).toBe('Éris recule\u202f!');
     expect(L.victoryTitle('standoff', 'echo')).toBe('Le combat continue');
   });
 
@@ -67,7 +67,7 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   // pushed back, matching her own line about the fight staying open.
   it('gives each boss outcome a title and a line that agree with each other', () => {
     const won = outcomeOf({ draft: 5, caught: 5 }, { won: true, too_easy: false });
-    expect(L.victoryTitle(won, 'eris')).toBe('Victoire !');
+    expect(L.victoryTitle(won, 'eris')).toBe('Victoire\u202f!');
     expect(L.VICTORY.bossWon).not.toMatch(/recule|reculent/);
 
     const tooEasy = outcomeOf({ draft: 0, caught: 0 }, { won: false, too_easy: true });
@@ -85,21 +85,21 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   });
 
   it('lets the dragon tell the tally in words', () => {
-    expect(L.dragonTally({ draft: 0, caught: 0, mode: 'dictation' })).toBe("Pas un piège dans ta dictée : Éris n'a rien pu glisser !");
-    expect(L.dragonTally({ draft: 5, caught: 5, mode: 'dictation' })).toBe("Tu as déjoué 5 pièges sur 5. Ses lieutenants s'en souviendront !");
+    expect(L.dragonTally({ draft: 0, caught: 0, mode: 'dictation' })).toBe("Pas un piège dans ta dictée\u202f: Éris n'a rien pu glisser\u202f!");
+    expect(L.dragonTally({ draft: 5, caught: 5, mode: 'dictation' })).toBe("Tu as déjoué 5 pièges sur 5. Ses lieutenants s'en souviendront\u202f!");
     // UI4 playability #7: one trap left is « le dernier », never « les autres ».
-    expect(L.dragonTally({ draft: 2, caught: 1, mode: 'dictation' })).toBe('Tu as déjoué 1 piège sur 2. Le dernier se cache encore : on le débusquera ensemble.');
-    expect(L.dragonTally({ draft: 3, caught: 2, mode: 'grimoire' })).toBe('Tu as retrouvé 2 dés-accords sur 3. Le dernier se cache encore : on le débusquera ensemble.');
-    expect(L.dragonTally({ draft: 4, caught: 2, mode: 'dictation' })).toBe('Tu as déjoué 2 pièges sur 4. Les autres se cachent encore : on les débusquera ensemble.');
+    expect(L.dragonTally({ draft: 2, caught: 1, mode: 'dictation' })).toBe('Tu as déjoué 1 piège sur 2. Le dernier se cache encore\u202f: on le débusquera ensemble.');
+    expect(L.dragonTally({ draft: 3, caught: 2, mode: 'grimoire' })).toBe('Tu as retrouvé 2 dés-accords sur 3. Le dernier se cache encore\u202f: on le débusquera ensemble.');
+    expect(L.dragonTally({ draft: 4, caught: 2, mode: 'dictation' })).toBe('Tu as déjoué 2 pièges sur 4. Les autres se cachent encore\u202f: on les débusquera ensemble.');
     expect(L.dragonTally({ draft: 4, caught: 1, mode: 'grimoire' })).toBe(
       'Tu as retrouvé 1 dés-accord sur 4. Chaque dés-accord retrouvé en fait un de moins pour la prochaine fois.',
     );
-    expect(L.dragonTally({ draft: 3, caught: 0, mode: 'dictation' })).toBe('Ses pièges se sont bien cachés cette fois. Viens, on les regarde ensemble dans « Revoir ».');
+    expect(L.dragonTally({ draft: 3, caught: 0, mode: 'dictation' })).toBe('Ses pièges se sont bien cachés cette fois. Viens, on les regarde ensemble dans «\u202fRevoir\u202f».');
   });
 
   it('keeps the wordings the e2e reads', () => {
-    expect(L.VICTORY.caught(1, 2, 'dictation')).toBe('Pièges déjoués : 1 sur 2');
-    expect(L.VICTORY.caught(3, 4, 'grimoire')).toBe('Dés-accords retrouvés : 3 sur 4');
+    expect(L.VICTORY.caught(1, 2, 'dictation')).toBe('Pièges déjoués\u202f: 1 sur 2');
+    expect(L.VICTORY.caught(3, 4, 'grimoire')).toBe('Dés-accords retrouvés\u202f: 3 sur 4');
     expect([L.MUSTER.words(84), L.MUSTER.words(1)]).toEqual(['84 mots', '1 mot']);
   });
 
@@ -118,10 +118,10 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
     for (const s of tally) expect(s, s).not.toMatch(/Score|%|\d\s*\/\s*\d|\b0 sur\b/);
     expect(L.VICTORY.caught(0, 2, 'dictation')).toBe('Ses pièges se sont bien cachés cette fois');
     expect(L.VICTORY.caught(0, 3, 'grimoire')).toBe('Ses dés-accords se sont bien cachés cette fois');
-    expect(L.VICTORY.score(94)).toBe('Gloire gagnée : 94');
+    expect(L.VICTORY.score(94)).toBe('Gloire gagnée\u202f: 94');
     expect(L.VICTORY.words(12, 13)).toBe('12 mots sur 13 tiennent bon');
     expect(L.VICTORY.words(1, 13)).toBe('1 mot sur 13 tient bon');
-    expect(L.VICTORY.words(13, 13)).toBe('Pas un mot de travers !');
+    expect(L.VICTORY.words(13, 13)).toBe('Pas un mot de travers\u202f!');
   });
 
   it('walks the Bouclier in text order, naming the directions on the page', () => {

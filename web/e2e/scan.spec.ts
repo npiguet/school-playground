@@ -16,7 +16,7 @@ test('scan a printed handout, verify, save as a prophecy', async ({ page }) => {
   // SP2 playability P1-8: the verify step is not a formality — « Le texte est juste » asks for a
   // confirmation, and the details form is not reachable before it.
   await page.getByTestId('btn-scan-verified').click();
-  await expect(page.getByTestId('scan-confirm')).toContainText('As-tu comparé chaque ligne avec la feuille ?');
+  await expect(page.getByTestId('scan-confirm')).toContainText('As-tu comparé chaque ligne avec la feuille\u202f?');
   await page.getByRole('button', { name: 'Pas encore' }).click();
   await expect(page.getByTestId('scan-title')).toHaveCount(0);
   await confirmScanVerified(page);

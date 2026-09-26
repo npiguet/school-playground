@@ -51,7 +51,7 @@ class HttpFetcher:
         except httpx.HTTPError as e:
             raise FetchError(str(e)) from e
         if resp.status_code != 200:
-            raise FetchError(f"HTTP {resp.status_code} pour la page « {title} »")
+            raise FetchError(f"HTTP {resp.status_code} pour la page «\u202f{title}\u202f»")
         try:
             data = resp.json()
         except ValueError as e:
@@ -60,7 +60,7 @@ class HttpFetcher:
             raise FetchError(str(data["error"]))
         text = data.get("parse", {}).get("text")
         if text is None:
-            raise FetchError(f"page « {title} » introuvable sur Wikisource")
+            raise FetchError(f"page «\u202f{title}\u202f» introuvable sur Wikisource")
         return text
 
     def gutenberg_text(self, ebook_id: int) -> str:

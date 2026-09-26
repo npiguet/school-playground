@@ -106,7 +106,7 @@
   <OverlayVoice line={VOICES.wall}>
     <span data-testid="board-reward">Chaque monstre défié rapporte {boardXp} XP et une page du bestiaire.</span>
     {#if decor}
-      <span data-testid="board-decor">Encore {plural(decor.n, 'quête', 'quêtes')}, et ta cabane gagne un trésor : {decor.name}.</span>
+      <span data-testid="board-decor">Encore {plural(decor.n, 'quête', 'quêtes')}, et ta cabane gagne un trésor{'\u202f: '}{decor.name}.</span>
     {/if}
   </OverlayVoice>
 
@@ -170,7 +170,7 @@
           <div class="boss-reward-line">
             {#if rewardId}<Medallion {rewardId} size={40} />{/if}
             <span>
-              Combat {romanTier(camp.boss.tier_available ?? 1)} — récompense : {bossRewardName(
+              Combat {romanTier(camp.boss.tier_available ?? 1)} — récompense{'\u202f: '}{bossRewardName(
                 camp.boss.tier_available,
                 campStore.catalog,
               )}

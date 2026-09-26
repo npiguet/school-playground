@@ -42,7 +42,7 @@
     {#if loading}
       <p class="muted">Les Muses ouvrent ton journal…</p>
     {:else if error}
-      <p class="kit-note" data-tone="eris">Impossible d'ouvrir ton journal : {error}</p>
+      <p class="kit-note" data-tone="eris">Impossible d'ouvrir ton journal{'\u202f: '}{error}</p>
     {:else if stats}
       <h3 class="kit-section">L'aide des Muses</h3>
       <div class="help" data-testid="journal-help">
@@ -51,7 +51,7 @@
       </div>
       <h3 class="kit-section">Les ruses d'Éris, une à une</h3>
       {#if ruses.length === 0}
-        <p class="muted">Éris n'a encore rien noté. Défends un texte !</p>
+        <p class="muted">Éris n'a encore rien noté. Défends un texte{'\u202f!'}</p>
       {:else}
         <ul class="ruses">
           {#each ruses as r (r.key)}

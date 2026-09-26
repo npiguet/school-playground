@@ -77,7 +77,7 @@
     {#if loading}
       <p class="muted">Les Muses cherchent les scribes…</p>
     {:else if error}
-      <p class="kit-note" data-tone="eris">Impossible de joindre la Bibliothèque : {error}</p>
+      <p class="kit-note" data-tone="eris">Impossible de joindre la Bibliothèque{'\u202f: '}{error}</p>
     {:else}
       <ol class="contents">
         {#each works as w (w.id)}

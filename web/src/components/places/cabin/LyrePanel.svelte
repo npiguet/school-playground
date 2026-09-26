@@ -43,7 +43,7 @@
 
   async function tryVoice() {
     const voice = pickVoice(voices, voiceName || null);
-    await speak('Bonjour ! Je lirai tes dictées. Virgule, point.', { rate: 0.9, voice });
+    await speak('Bonjour\u202f! Je lirai tes dictées. Virgule, point.', { rate: 0.9, voice });
   }
 
   function onPinInput(event: Event) {
@@ -111,7 +111,7 @@
     <section>
       <h3 class="kit-section">La voix de la dictée</h3>
       {#if voices.length === 0}
-        <p class="kit-note">Aucune voix française sur cet appareil. Sur iPad : ouvre Réglages, puis Accessibilité, puis Contenu énoncé, puis Voix, puis Français.</p>
+        <p class="kit-note">Aucune voix française sur cet appareil. Sur iPad{'\u202f: '}ouvre Réglages, puis Accessibilité, puis Contenu énoncé, puis Voix, puis Français.</p>
       {:else}
         <div class="field">
           <select id="voice" aria-label="Voix de la dictée" data-testid="lyre-voice" bind:value={voiceName}>
@@ -130,7 +130,7 @@
       <ChannelRow profileId={profile.id} channel="sfx" label="Les bruitages" name="Bruitages" volumeLabel="Volume des bruitages" />
       <ChannelRow profileId={profile.id} channel="voice" label="La voix" name="Voix" volumeLabel="Volume de la voix" />
       {#if audioSettings.voice.muted}
-        <p class="kit-note" data-testid="lyre-voice-muted">{frenchSpacing("En sourdine, la dictée n'est plus lue à voix haute : il faudra quelqu'un pour te la lire.")}</p>
+        <p class="kit-note" data-testid="lyre-voice-muted">{frenchSpacing("En sourdine, la dictée n'est plus lue à voix haute\u202f: il faudra quelqu'un pour te la lire.")}</p>
       {/if}
       <p class="note">{frenchSpacing("Sur iPad, le volume de la voix suit aussi les boutons de l'appareil.")}</p>
     </section>
@@ -180,7 +180,7 @@
 
   <details class="lyre-credits" data-testid="lyre-credits">
     <summary class="kit-link">Merci à ceux qui ont aidé le camp</summary>
-    <p>Les lettres du camp : Cinzel, Alegreya et Literata, offertes par leurs auteurs sous la licence SIL Open Font.</p>
+    <p>Les lettres du camp{'\u202f: '}Cinzel, Alegreya et Literata, offertes par leurs auteurs sous la licence SIL Open Font.</p>
     <p>Les musiques et les bruitages du camp ont été offerts à tous par leurs auteurs, sous la licence Creative Commons Zéro.</p>
     <p>Les livres d'Alexandrie viennent de Wikisource et du Projet Gutenberg. Chaque œuvre garde le nom de son auteur et de son traducteur.</p>
     <p>Les peintures du camp ont été faites pour lui.</p>

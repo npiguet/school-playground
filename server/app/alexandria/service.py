@@ -110,9 +110,9 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
         notes.append("Les scribes n'ont pas pu lire une page." if failed == 1
                      else f"Les scribes n'ont pas pu lire {failed} pages.")
     if stopped_early:
-        notes.append("Le jour a baissé et les scribes ont posé leurs calames : la suite de l'œuvre attend d'être recopiée.")
+        notes.append("Le jour a baissé et les scribes ont posé leurs calames\u202f: la suite de l'œuvre attend d'être recopiée.")
     if truncated:
-        notes.append(f"Les scribes se sont arrêtés après {max_chunks} rouleaux : la suite de l'œuvre n'a pas été recopiée.")
+        notes.append(f"Les scribes se sont arrêtés après {max_chunks} rouleaux\u202f: la suite de l'œuvre n'a pas été recopiée.")
     note = " ".join(notes) or None
     stats = {"pages_ok": pages_ok, "failed": failed, "rejected": dict(rejected), "truncated": truncated,
              "stopped_early": stopped_early}

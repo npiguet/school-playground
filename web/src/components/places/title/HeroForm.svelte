@@ -48,7 +48,7 @@
       if (e instanceof ApiError && e.status === 409) {
         error = 'Ce nom est déjà pris.';
       } else if (e instanceof ApiError) {
-        error = `Les Muses n'ont pas pu créer ce héros : ${e.detail}`;
+        error = `Les Muses n'ont pas pu créer ce héros\u202f: ${e.detail}`;
       } else {
         error = "Les Muses n'ont pas pu créer ce héros.";
       }

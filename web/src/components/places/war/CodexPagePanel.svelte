@@ -49,7 +49,7 @@
         <div class="myth" data-testid="codex-myth">{#each item.facts as fact (fact)}<p>{fact}</p>{/each}</div>
       {:else}
         <p>{item.teaser}</p>
-        <p class="kit-note" data-tone="eris">Mythe à débloquer : termine une quête contre {pronounFor(item.key as LieutenantKey)}.</p>
+        <p class="kit-note" data-tone="eris">Mythe à débloquer{'\u202f: '}termine une quête contre {pronounFor(item.key as LieutenantKey)}.</p>
       {/if}
     </section>
     <section class="codex-page page-right">
@@ -58,7 +58,7 @@
       {#if item.kind === 'monster'}
         <button type="button" class="kit-bronze" data-testid="codex-page-lieutenant" onclick={openLieutenant}>Voir la ruse et la quête</button>
       {/if}
-      <p class="sources" data-testid="codex-sources">D'après : {item.sources}</p>
+      <p class="sources" data-testid="codex-sources">D'après{'\u202f: '}{item.sources}</p>
     </section>
   </div>
 {/if}

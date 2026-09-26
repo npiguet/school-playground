@@ -54,7 +54,7 @@
     type="button"
     class="kit-bronze is-quiet mute"
     aria-pressed={muted}
-    aria-label={frenchSpacing(`Sourdine : ${name}`)}
+    aria-label={frenchSpacing(`Sourdine\u202f: ${name}`)}
     data-testid="lyre-mute-{channel}"
     onclick={() => setChannel(profileId, channel, { muted: !muted })}>Sourdine</button
   >

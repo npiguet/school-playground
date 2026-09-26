@@ -65,7 +65,7 @@ export const DECOR_SLOTS: { x: number; y: number }[] = [
 /** The walls hold one piece per slot (UI3b ruling): a fifth piece would hang over the first. The
  *  server refuses it too (409, `MAX_DISPLAYED_DECOR` and the same line in server/app/routers/world.py). */
 export const MAX_DISPLAYED_DECOR = DECOR_SLOTS.length;
-export const WALLS_FULL_LINE = "Les murs sont pleins : range d'abord une pièce.";
+export const WALLS_FULL_LINE = "Les murs sont pleins\u202f: range d'abord une pièce.";
 
 // UI3b playability #7: the cabin is home, and the dragon (the narrator, spec §2.5) speaks here too:
 // a greeting once per page load, and a line on the voice plate of the shelf, the journal and the
@@ -81,9 +81,9 @@ const COUNT_WORDS = ['', 'une', 'deux', 'trois', 'quatre', 'cinq', 'six'];
 /** The shelf's line: how many relics are still to win (`missing` null while the rewards load). */
 export function trophiesLine(d: DragonOut, missing: number | null): DialogueLine {
   if (missing === null) return dragonSays(d, 'Chaque ruse neutralisée laisse une relique.');
-  if (missing <= 0) return dragonSays(d, 'Chaque ruse neutralisée a laissé sa relique : elles sont toutes là !');
+  if (missing <= 0) return dragonSays(d, 'Chaque ruse neutralisée a laissé sa relique\u202f: elles sont toutes là\u202f!');
   const n = COUNT_WORDS[missing] ?? String(missing);
-  return dragonSays(d, `Chaque ruse neutralisée laisse une relique. Il en manque encore ${n} !`);
+  return dragonSays(d, `Chaque ruse neutralisée laisse une relique. Il en manque encore ${n}\u202f!`);
 }
 
 export function journalLine(d: DragonOut): DialogueLine {

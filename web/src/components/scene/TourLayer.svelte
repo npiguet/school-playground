@@ -71,7 +71,7 @@
   class="tour"
   role="dialog"
   aria-modal="true"
-  aria-label="Visite : {scene.title}"
+  aria-label="Visite{'\u202f: '}{scene.title}"
   tabindex="-1"
   data-testid="tour"
   data-tour={scene.id}

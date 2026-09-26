@@ -141,7 +141,7 @@ test("a hero switch then a deep link never shows the previous hero's lieutenant 
     await route.continue();
   });
   await page.goto(`/#/p/${after}/monstres/hydre`);
-  await expect(page.getByTestId('hud-hero')).toHaveAccessibleName(`Ton héros : ${afterName}`);
+  await expect(page.getByTestId('hud-hero')).toHaveAccessibleName(`Ton héros\u202f: ${afterName}`);
   await expect(sheet).toContainText('Les Muses cherchent ce lieutenant');
   await expect(sheet.getByTestId('lieutenant-quest')).toHaveCount(0);
   await expect(sheet.getByTestId('overlay-voice')).toContainText('Éris feuillette son dossier');
@@ -189,7 +189,7 @@ test("the map table opens Éris's file; a sheet opens its lieutenant; the seals 
   await expect(file.getByTestId('dossier-small-tricks').getByRole('link', { name: 'Lire ton journal' })).toBeVisible();
   // A short button name, the sheet's words as its description. UI3b playability #3: Éris's sentence
   // and one gauge, no counts (the journal keeps those).
-  await expect(file.getByTestId('dossier-row-hydre')).toHaveAccessibleName("L'Hydre : voir la ruse et la quête");
+  await expect(file.getByTestId('dossier-row-hydre')).toHaveAccessibleName("L'Hydre\u202f: voir la ruse et la quête");
   await expect(file.getByTestId('dossier-progress-hydre')).toHaveText('Pas encore croisée.');
   await expect(file.getByTestId('dossier-row-hydre')).toHaveAccessibleDescription(/Pas encore croisée\./);
   await expect(file.getByTestId('dossier-window-hydre')).toBeAttached();
@@ -243,7 +243,7 @@ test("the lectern opens the bestiary codex; a page keeps the myth apart from the
   await expect(leaf.locator('ul')).toHaveCount(0);
   await expect(leaf).not.toContainText('Fiction du jeu');
   await expect(leaf.getByRole('heading', { name: 'Sources' })).toHaveCount(0);
-  await expect(leaf.locator('.page-right').getByTestId('codex-sources')).toContainText(/^D'après : /);
+  await expect(leaf.locator('.page-right').getByTestId('codex-sources')).toContainText(/^D'après\u202f: /);
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/bestiaire$/);
   await codex.getByTestId('bestiary-card-hydre').click();

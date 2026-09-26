@@ -91,7 +91,7 @@
   {#if loading}
     <p class="muted">Les Muses déroulent les parchemins…</p>
   {:else if error}
-    <p class="kit-note" data-tone="eris">Impossible de lire les parchemins : {error}</p>
+    <p class="kit-note" data-tone="eris">Impossible de lire les parchemins{'\u202f: '}{error}</p>
   {:else}
     {#if prophecies.length > 0}
       <!-- Polish: the same heading+rule-paragraph pattern the re-review's N1 removed from the
@@ -135,7 +135,7 @@
       {#if othersOpen}
         <div id="other-levels">
           <LevelMedallions
-            legend="Quelle classe ?"
+            legend="Quelle classe{'\u202f?'}"
             name="shelf-level"
             options={['Tous', ...LEVELS]}
             bind:value={levelFilter}
@@ -147,7 +147,7 @@
               {#each others as t (t.id)}{@render cubby(t)}{/each}
             </div>
           {:else if levelFilter === profile.level}
-            <p class="muted">Les parchemins de ta classe t'attendent plus haut, sous « Pour toi ».</p>
+            <p class="muted">Les parchemins de ta classe t'attendent plus haut, sous {'«\u202f'}Pour toi{'\u202f»'}.</p>
           {:else}
             <p class="muted">Aucun autre parchemin sur cette étagère.</p>
           {/if}

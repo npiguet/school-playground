@@ -113,22 +113,22 @@
       {/if}
 
       {#if lieutenantState.stirring}
-        <p class="kit-note" data-tone="eris">{name} {stirringCaption(lieutenantKey as LieutenantKey).toLowerCase()} à nouveau. Une quête de revanche ?</p>
+        <p class="kit-note" data-tone="eris">{name} {stirringCaption(lieutenantKey as LieutenantKey).toLowerCase()} à nouveau. Une quête de revanche{'\u202f?'}</p>
       {/if}
 
       {#if !lieutenantState.neutralised}
         <div class="gauges" data-testid="lieutenant-gauges">
           <p class="rule">{neutraliseRule(lieutenantKey as LieutenantKey)}</p>
           <div class="kit-gauge" data-testid="lieutenant-gauge-days" data-state={days >= 3 ? 'ok' : 'short'} style:--fill="{Math.min(100, (days / 3) * 100)}%">
-            <span class="kit-gauge-label">Jours de garde : {Math.min(days, 3)} sur 3</span>
+            <span class="kit-gauge-label">Jours de garde{'\u202f: '}{Math.min(days, 3)} sur 3</span>
             <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
           </div>
           <div class="kit-gauge" data-testid="lieutenant-gauge-traps" data-state={traps >= 10 ? 'ok' : 'short'} style:--fill="{Math.min(100, (traps / 10) * 100)}%">
-            <span class="kit-gauge-label">Pièges croisés : {Math.min(traps, 10)} sur 10</span>
+            <span class="kit-gauge-label">Pièges croisés{'\u202f: '}{Math.min(traps, 10)} sur 10</span>
             <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
           </div>
           <div class="kit-gauge" data-testid="lieutenant-rate" data-state={(rate ?? 0) >= 0.8 ? 'ok' : 'short'} style:--fill="{Math.min(100, Math.round((rate ?? 0) * 100))}%">
-            <span class="kit-gauge-label">Pièges déjoués : {rateText(rate)}, il en faut {rateText(0.8)}</span>
+            <span class="kit-gauge-label">Pièges déjoués{'\u202f: '}{rateText(rate)}, il en faut {rateText(0.8)}</span>
             <span class="kit-gauge-track"><span class="kit-gauge-fill"></span><span class="target-mark" style="left:80%" aria-hidden="true"></span></span>
           </div>
         </div>
@@ -151,7 +151,7 @@
         >
           {lieutenantState.active_quest_id ? 'Quête en cours' : 'Lancer une quête'}
         </button>
-        <p class="reward-line">Récompense : {questXp} XP et une page du bestiaire</p>
+        <p class="reward-line">Récompense{'\u202f: '}{questXp} XP et une page du bestiaire</p>
 
         {#if recommendedTexts && recommendedTexts.length > 0}
           <button
@@ -183,7 +183,7 @@
         {/if}
       </section>
     {:else if campStore.error}
-      <p class="muted">Impossible de charger ce lieutenant : {campStore.error}</p>
+      <p class="muted">Impossible de charger ce lieutenant{'\u202f: '}{campStore.error}</p>
     {:else}
       <p class="muted">Les Muses cherchent ce lieutenant…</p>
     {/if}

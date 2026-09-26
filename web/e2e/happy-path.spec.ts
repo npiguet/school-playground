@@ -55,12 +55,12 @@ test('create profile → add text → dictation → proofreading → results →
   // Results
   await expect(page.getByTestId('victory-title')).toBeVisible();
   // UI4 playability #1: the tally in the game's words - no percentage, no « Score », no « x / y ».
-  await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués : 1 sur 2');
+  await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués\u202f: 1 sur 2');
   await expect(page.getByTestId('victory')).not.toContainText(/Score|%/);
   // Nor the rate as it used to read (with its narrow no-break space): the journal keeps it.
-  await expect(page.getByTestId('results-catch-rate')).not.toContainText('50 %');
-  expect(await page.getByTestId('results-catch-rate').textContent()).not.toContain('50 %');
-  await expect(page.getByTestId('results-score')).toHaveText(/^Gloire gagnée : \d+$/);
+  await expect(page.getByTestId('results-catch-rate')).not.toContainText('50\u202f%');
+  expect(await page.getByTestId('results-catch-rate').textContent()).not.toContain('50\u202f%');
+  await expect(page.getByTestId('results-score')).toHaveText(/^Gloire gagnée\u202f: \d+$/);
   await page.getByTestId('battle-revoir').click();
   await expect(page.getByTestId('overlay-revoir').getByText(/chantent/).first()).toBeVisible();
   await closeOverlay(page);

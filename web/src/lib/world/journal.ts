@@ -32,7 +32,7 @@ const RUSES: Record<string, { owner: LieutenantKey | null; rule: string }> = {
   'agreement:number': { owner: 'hydre', rule: "l'accord en nombre" },
   'agreement:gender': { owner: 'chimere', rule: "l'accord en genre" },
   'agreement:participle': { owner: 'protee', rule: 'les participes passés' },
-  homophone: { owner: 'echo', rule: 'les mots qui sonnent pareil : a ou à, et ou est' },
+  homophone: { owner: 'echo', rule: 'les mots qui sonnent pareil\u202f: a ou à, et ou est' },
   'derived:sirenes': { owner: 'sirenes', rule: 'le sujet éloigné de son verbe' },
   'derived:lethe': { owner: 'lethe', rule: 'la fin du texte, quand on relit moins bien' },
   'agreement:other': { owner: null, rule: 'les autres accords' },
@@ -119,7 +119,7 @@ export function defenceGroups(
   const groups = new Map<string, { title: string; grimoire: boolean; count: number; last: string }>();
   for (const s of sessions) {
     const grimoire = s.mode === 'grimoire';
-    const key = `${s.text_id}:${grimoire ? 'g' : 'd'}`;
+    const key = `${s.text_id}-${grimoire ? 'g' : 'd'}`;
     const g = groups.get(key);
     if (g) g.count += 1;
     else groups.set(key, { title: s.title, grimoire, count: 1, last: longDate(localDay(s.finished_at), today) });

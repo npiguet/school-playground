@@ -99,22 +99,22 @@ function headNounText(ctx: ExplainContext, refIndex: number): string | null {
 }
 
 function agreementWith(head: string | null): string {
-  return head !== null ? `avec « ${head} »` : "avec le nom qu'il accompagne";
+  return head !== null ? `avec «\u202f${head}\u202f»` : "avec le nom qu'il accompagne";
 }
 
 function genericAgreement(expected: string): string {
-  return `« ${expected} » doit s'accorder. Regarde le mot avec lequel il va.`;
+  return `«\u202f${expected}\u202f» doit s'accorder. Regarde le mot avec lequel il va.`;
 }
 
 function genericVerb(expected: string): string {
-  return `Le verbe « ${expected} » s'accorde avec son sujet. Cherche qui fait l'action.`;
+  return `Le verbe «\u202f${expected}\u202f» s'accorde avec son sujet. Cherche qui fait l'action.`;
 }
 
 /** The SP1 participle sentence: the avoir/COD clause isn't taught before 9H (spec §3.4). */
 function genericParticiple(expected: string, level: string | undefined): string {
-  const withEtre = `Participe passé « ${expected} » : avec être, il s'accorde avec le sujet`;
+  const withEtre = `Participe passé «\u202f${expected}\u202f»\u202f: avec être, il s'accorde avec le sujet`;
   if (level !== undefined && levelIndex(level) < levelIndex('9H')) return `${withEtre}.`;
-  return `${withEtre} ; avec avoir, seulement si le complément est placé avant.`;
+  return `${withEtre}\u202f; avec avoir, seulement si le complément est placé avant.`;
 }
 
 // P1-3: a word with its own auxiliary (aux / aux:tense / aux:pass child) is a compound-tense or
@@ -130,7 +130,7 @@ function hasOwnAuxiliary(ctx: ExplainContext, annot: AnnotToken): boolean {
  *  "« NP »" — factors out the phrasing fix round 1 asked for on `attribute`/`participle_etre`
  *  (subject_verb already had its own distinct qui-phrasing and is left as-is). */
 function subjectPhrase(chain: Chain, NP: string): string {
-  return chain.via === 'qui' ? `« qui », qui reprend « ${NP} »` : `« ${NP} »`;
+  return chain.via === 'qui' ? `«\u202fqui\u202f», qui reprend «\u202f${NP}\u202f»` : `«\u202f${NP}\u202f»`;
 }
 
 /**
@@ -161,12 +161,12 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
     const num = chainNumberWord(chain.features) ?? 'singulier';
     const ending = verbEnding(expected, e.typed ?? '');
     if (chain.via === 'qui') {
-      return `« ${expected} » s'accorde avec « qui », qui reprend « ${NP} » → ${num} → terminaison « ${ending} »`;
+      return `«\u202f${expected}\u202f» s'accorde avec «\u202fqui\u202f», qui reprend «\u202f${NP}\u202f» → ${num} → terminaison «\u202f${ending}\u202f»`;
     }
     if (chain.via === 'conj') {
-      return `« ${expected} » a plusieurs sujets : « ${NP} » → pluriel → terminaison « ${ending} »`;
+      return `«\u202f${expected}\u202f» a plusieurs sujets\u202f: «\u202f${NP}\u202f» → pluriel → terminaison «\u202f${ending}\u202f»`;
     }
-    return `« ${expected} » s'accorde avec son sujet « ${NP} » → ${num} → terminaison « ${ending} »`;
+    return `«\u202f${expected}\u202f» s'accorde avec son sujet «\u202f${NP}\u202f» → ${num} → terminaison «\u202f${ending}\u202f»`;
   }
 
   if (NP === '') return null;
@@ -174,13 +174,13 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
   if (chain.kind === 'attribute') {
     const fw = featureWords(chain.features);
     if (fw === '') return null;
-    return `« ${expected} » est attribut du sujet ${subjectPhrase(chain, NP)} → ${fw}`;
+    return `«\u202f${expected}\u202f» est attribut du sujet ${subjectPhrase(chain, NP)} → ${fw}`;
   }
 
   if (chain.kind === 'participle_etre') {
     const fw = featureWords(chain.features);
     if (fw === '') return null;
-    return `Avec « être », le participe « ${expected} » s'accorde avec le sujet ${subjectPhrase(chain, NP)} → ${fw}`;
+    return `Avec «\u202fêtre\u202f», le participe «\u202f${expected}\u202f» s'accorde avec le sujet ${subjectPhrase(chain, NP)} → ${fw}`;
   }
 
   if (chain.kind === 'participle_avoir') {
@@ -188,7 +188,7 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
     // generic participle sentence rather than teach the avoir/COD rule early.
     if (ctx.level === undefined || levelIndex(ctx.level) < levelIndex('9H')) return null;
     if (chain.rule === 'no_agreement') {
-      return `Avec « avoir », le participe « ${expected} » ne s'accorde pas avec le sujet : aucun complément n'est placé avant → « ${expected} »`;
+      return `Avec «\u202favoir\u202f», le participe «\u202f${expected}\u202f» ne s'accorde pas avec le sujet\u202f: aucun complément n'est placé avant → «\u202f${expected}\u202f»`;
     }
     if (chain.rule === 'cod_before') {
       // A clitic COD (« l' », « les ») carries no gender in the parse: when the chain knows none
@@ -202,9 +202,9 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
       const covered =
         (genderSlip && chain.features.Gender !== undefined) || (numberSlip && chain.features.Number !== undefined);
       if (fw === '' || !covered) {
-        return `Avec « avoir », le participe « ${expected} » s'accorde avec le complément « ${NP} » placé avant. Regarde ce que « ${NP} » remplace.`;
+        return `Avec «\u202favoir\u202f», le participe «\u202f${expected}\u202f» s'accorde avec le complément «\u202f${NP}\u202f» placé avant. Regarde ce que «\u202f${NP}\u202f» remplace.`;
       }
-      return `Avec « avoir », le participe « ${expected} » s'accorde avec le complément « ${NP} » placé avant → ${fw}`;
+      return `Avec «\u202favoir\u202f», le participe «\u202f${expected}\u202f» s'accorde avec le complément «\u202f${NP}\u202f» placé avant → ${fw}`;
     }
     return null;
   }
@@ -214,7 +214,7 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
     if (!controller) return null;
     const fw = featureWords(chain.features);
     if (fw === '') return null;
-    return `« ${expected} » s'accorde avec le nom « ${controller.text} » → ${fw}`;
+    return `«\u202f${expected}\u202f» s'accorde avec le nom «\u202f${controller.text}\u202f» → ${fw}`;
   }
 
   return null;
@@ -234,7 +234,7 @@ function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string):
       const number = numberWord(ctx.annots[subjectRef]?.morph.Number);
       if (subject && number) {
         const ending = verbEnding(expected, e.typed ?? '');
-        return `« ${expected} » s'accorde avec son sujet « ${subject} » → ${number} → terminaison « ${ending} »`;
+        return `«\u202f${expected}\u202f» s'accorde avec son sujet «\u202f${subject}\u202f» → ${number} → terminaison «\u202f${ending}\u202f»`;
       }
     }
     return genericVerb(expected);
@@ -250,7 +250,7 @@ function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string):
     const value = e.sub === 'number' ? numberWord(annot?.morph.Number) : genderWord(annot?.morph.Gender);
     if (value && refIndex !== null) {
       const head = headNounText(ctx, refIndex);
-      return `« ${expected} » s'accorde ${agreementWith(head)} → ${value}`;
+      return `«\u202f${expected}\u202f» s'accorde ${agreementWith(head)} → ${value}`;
     }
   }
 
@@ -266,26 +266,26 @@ export function explain(e: TokenError, ctx: ExplainContext): { title: string; te
   if (e.category === 'homophone') {
     if (e.sub === 'verb_ending') {
       text =
-        `« ${typed} » ou « ${expected} » ? Après un mot comme « avoir » ou « être », c'est un participe (-é) ; ` +
-        `quand on peut remplacer par « vendre », c'est l'infinitif (-er). Ici : « ${expected} ».`;
+        `«\u202f${typed}\u202f» ou «\u202f${expected}\u202f»\u202f? Après un mot comme «\u202favoir\u202f» ou «\u202fêtre\u202f», c'est un participe (-é)\u202f; ` +
+        `quand on peut remplacer par «\u202fvendre\u202f», c'est l'infinitif (-er). Ici\u202f: «\u202f${expected}\u202f».`;
     } else {
-      text = `« ${typed} » ou « ${expected} » ? Ici il faut « ${expected} ». ${homophoneHint(e.homophoneSet ?? '')}`;
+      text = `«\u202f${typed}\u202f» ou «\u202f${expected}\u202f»\u202f? Ici il faut «\u202f${expected}\u202f». ${homophoneHint(e.homophoneSet ?? '')}`;
     }
   } else if (e.category === 'agreement') {
     text = explainAgreement(e, ctx, expected);
   } else if (e.category === 'accent') {
-    text = `Un accent change tout : « ${expected} », pas « ${typed} ».`;
+    text = `Un accent change tout\u202f: «\u202f${expected}\u202f», pas «\u202f${typed}\u202f».`;
   } else if (e.category === 'punctuation_case') {
-    if (e.typed === null) text = `Il manque « ${expected} » ici.`;
-    else if (e.expected === null) text = `« ${typed} » est en trop.`;
-    else text = `Majuscule ou minuscule : « ${expected} ».`;
+    if (e.typed === null) text = `Il manque «\u202f${expected}\u202f» ici.`;
+    else if (e.expected === null) text = `«\u202f${typed}\u202f» est en trop.`;
+    else text = `Majuscule ou minuscule\u202f: «\u202f${expected}\u202f».`;
   } else {
     // lexical
-    if (e.sub === 'missing') text = `Un mot a disparu : « ${expected} ».`;
-    else if (e.sub === 'extra') text = `Un mot en trop : « ${typed} ».`;
+    if (e.sub === 'missing') text = `Un mot a disparu\u202f: «\u202f${expected}\u202f».`;
+    else if (e.sub === 'extra') text = `Un mot en trop\u202f: «\u202f${typed}\u202f».`;
     else if (e.sub === 'sound_alike')
-      text = `« ${typed} » se prononce comme « ${expected} », mais ici c'est « ${expected} ». Il rejoint tes mots-pièges.`;
-    else text = `Ce mot s'écrit « ${expected} ». Il rejoint tes mots-pièges pour t'entraîner.`;
+      text = `«\u202f${typed}\u202f» se prononce comme «\u202f${expected}\u202f», mais ici c'est «\u202f${expected}\u202f». Il rejoint tes mots-pièges.`;
+    else text = `Ce mot s'écrit «\u202f${expected}\u202f». Il rejoint tes mots-pièges pour t'entraîner.`;
   }
 
   return { title, text };
@@ -301,7 +301,7 @@ export function explain(e: TokenError, ctx: ExplainContext): { title: string; te
 export function caughtText(caught: TokenError): string {
   const expected = caught.expected ?? '';
   if (caught.typed !== null) {
-    return `Tu avais écrit « ${caught.typed} », tu as corrigé en « ${expected} ». Bravo !`;
+    return `Tu avais écrit «\u202f${caught.typed}\u202f», tu as corrigé en «\u202f${expected}\u202f». Bravo\u202f!`;
   }
-  return `Tu avais oublié « ${expected} » : tu as bien fait de l'ajouter en te relisant. Bravo !`;
+  return `Tu avais oublié «\u202f${expected}\u202f»\u202f: tu as bien fait de l'ajouter en te relisant. Bravo\u202f!`;
 }

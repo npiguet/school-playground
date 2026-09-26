@@ -111,7 +111,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.getByTestId('oracle-confirm').click();
 
     const oracleQuestSection = page.getByTestId('oracle-quest');
-    await expect(oracleQuestSection).toContainText(/Oracle : l.Hydre/i);
+    await expect(oracleQuestSection).toContainText(/Oracle\u202f: l.Hydre/i);
     await expect(oracleQuestSection).toContainText('0 / 3 textes');
 
     const cardTestId = await oracleQuestSection.locator('[data-testid^="quest-card-"]').getAttribute('data-testid');
@@ -123,7 +123,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     // opened a second time this week.
     await page.reload();
     await expect(page.getByTestId('scroll-open')).toHaveCount(0);
-    await expect(page.getByTestId('oracle-quest')).toContainText(/Oracle : l.Hydre/i);
+    await expect(page.getByTestId('oracle-quest')).toContainText(/Oracle\u202f: l.Hydre/i);
   });
 
   test('3. quest board shows it, lieutenant page gauges', async ({ page }) => {
@@ -134,7 +134,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await expectScene(page, 'delphi');
     await page.getByTestId('delphi-tablets').click();
 
-    await expect(page.getByTestId(`quest-card-${oracleQuestId}`)).toContainText('Récompense connue : 150 XP · Teinte Écume');
+    await expect(page.getByTestId(`quest-card-${oracleQuestId}`)).toContainText('Récompense connue\u202f: 150 XP · Teinte Écume');
 
     // Two board quests can run alongside the (non-board) Oracle quest; a third is refused.
     await page.getByTestId('board-challenge-echo').getByRole('button', { name: /^Défier / }).click();
@@ -188,7 +188,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
 
     await expect(page.getByTestId('reveal-xp')).toBeVisible();
     await expect(page.getByTestId('reveal-xp')).toContainText(/\+\d+ XP/);
-    await expect(page.getByTestId(`reveal-quest-${oracleQuestId}`)).toContainText('Ce texte compte : 1 / 3');
+    await expect(page.getByTestId(`reveal-quest-${oracleQuestId}`)).toContainText('Ce texte compte\u202f: 1 / 3');
     await page.getByTestId('reveal-continue').click();
     await expect(page.getByTestId('results-catch-rate')).toBeVisible();
   });
@@ -324,7 +324,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     if (await perfectConfirm.isVisible()) await perfectConfirm.click();
     await expect(page.getByTestId('reveal-boss-too-easy')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId('reveal-boss-too-easy')).toContainText(
-      "Dictée parfaite : Éris n'a rien pu saboter ! Furieuse, elle va corrompre le parchemin elle-même. Relance le combat pour démasquer ses pièges.",
+      "Dictée parfaite\u202f: Éris n'a rien pu saboter\u202f! Furieuse, elle va corrompre le parchemin elle-même. Relance le combat pour démasquer ses pièges.",
     );
     await page.getByTestId('reveal-continue').click();
     await expect(page.getByTestId('results-catch-rate')).toBeVisible();

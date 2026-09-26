@@ -28,7 +28,7 @@ test('the nest: the egg in the straw, its growth, its greeting; the exit leads b
   await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
   await expect(page.getByTestId('dragon-stage')).toHaveText('Œuf');
   // UI3b playability #5: the camp's words (« ruses »), a sentence for its mood, a pinned sheet.
-  await expect(page.getByTestId('nest-growth')).toContainText("Pour grandir : 1 ruse d'Éris neutralisée");
+  await expect(page.getByTestId('nest-growth')).toContainText("Pour grandir\u202f: 1 ruse d'Éris neutralisée");
   await expect(page.getByTestId('nest-growth')).toContainText('Il frémit dans sa coquille.');
   await expect(page.getByTestId('nest-growth')).toHaveClass(/kit-sheet/);
   await expect(page.getByTestId('nest-dragon')).toContainText('Un œuf de dragon');

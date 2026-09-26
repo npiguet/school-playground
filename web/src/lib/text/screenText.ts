@@ -101,6 +101,23 @@ function literals(code: string): string {
   return out.join('\n');
 }
 
+/** `style="…"` / `style={…}` attribute values (CSS, never player text - a computed `filter:` or
+ *  `width:` is not French punctuation) are dropped like the `<style>` tag, before the text scan. */
+function stripStyleAttrs(markup: string): string {
+  const re = /\bstyle\s*=\s*/g;
+  let out = '';
+  let i = 0;
+  for (let m = re.exec(markup); m; re.lastIndex = i, m = re.exec(markup)) {
+    out += markup.slice(i, m.index);
+    const valueStart = m.index + m[0].length;
+    if (markup[valueStart] === '"' || markup[valueStart] === "'") i = quotedEnd(markup, valueStart);
+    else if (markup[valueStart] === '{') i = expressionEnd(markup, valueStart + 1) + 1;
+    else i = valueStart;
+    out += ' ';
+  }
+  return out + markup.slice(i);
+}
+
 export function screenText(source: string, kind: 'svelte' | 'ts'): string {
   if (kind === 'ts') return literals(source);
   const scripts = [...source.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) => literals(m[1])).join('\n');
@@ -108,7 +125,12 @@ export function screenText(source: string, kind: 'svelte' | 'ts'): string {
     .replace(/<script[\s\S]*?<\/script>/g, ' ')
     .replace(/<style[\s\S]*?<\/style>/g, ' ')
     .replace(/<!--[\s\S]*?-->/g, ' ');
-  // An expression keeps only its string literals (three passes cover one level of nesting).
-  for (let i = 0; i < 3; i++) markup = markup.replace(/\{[^{}]*\}/g, (m) => ` ${literals(m)} `);
+  markup = stripStyleAttrs(markup);
+  // An expression keeps only its string literals (three passes cover one level of nesting). A
+  // block marker (`{#if}`, `{:else}`, `{/each}`, `{#key expr}`…) is control flow, never text: its
+  // head expression (e.g. a re-render key) is dropped whole rather than read as a string literal.
+  for (let i = 0; i < 3; i++) {
+    markup = markup.replace(/\{[^{}]*\}/g, (m) => (/^\{[#:/]/.test(m) ? ' ' : ` ${literals(m)} `));
+  }
   return `${scripts}\n${markup}`;
 }

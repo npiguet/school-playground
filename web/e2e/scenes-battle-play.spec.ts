@@ -55,7 +55,7 @@ test('a boss dictation locks the slower paces and says why', async ({ page, requ
   await page.goto(`/#/p/${id}/play/${text.id}?encounter=eris&quest=1`);
   await expectBattle(page, 'muster');
   const sheet = page.getByTestId('battle-parchment');
-  await expect(sheet.getByTestId('play-boss-banner')).toHaveText("Combat contre Éris : les Yeux d'Argus restent éteints.");
+  await expect(sheet.getByTestId('play-boss-banner')).toHaveText("Combat contre Éris\u202f: les Yeux d'Argus restent éteints.");
   await expect(sheet.getByTestId('play-quest-banner')).toHaveText('Ce texte compte pour ta quête.');
   await expect(sheet.locator('[data-testid^="pace-option-"].disabled').first()).toContainText('Pas pendant un combat');
 });
@@ -359,7 +359,7 @@ test('Quitter asks first, then shows the resume ribbon with the draft kept', asy
   await startDictation(page, testInfo);
   await page.getByTestId('dictation-textarea').fill('Les fées');
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
-  await expect(page.getByText('Ton brouillon est gardé. Veux-tu vraiment quitter la dictée ?')).toBeVisible();
+  await expect(page.getByText('Ton brouillon est gardé. Veux-tu vraiment quitter la dictée\u202f?')).toBeVisible();
   // Final review M9: the confirm takes the focus, on its first answer.
   await expect(page.getByTestId('btn-quit-confirm')).toBeFocused();
   await tap(page.getByTestId('btn-quit-confirm'), testInfo);
@@ -856,7 +856,7 @@ test('the proofreading has a way out: Quitter asks, then the resume ribbon keeps
   await expect(page.getByTestId('battle-parchment').getByRole('heading', { name: text.title })).toBeVisible();
   await expect(page.getByTestId('battle-parchment')).toContainText("Traque les pièges d'Éris. À toi de jouer. Quand tout te semble juste, dis-le.");
   await tap(page.getByTestId('btn-quit-proof'), testInfo);
-  await expect(page.getByText('Ta relecture est gardée. Veux-tu vraiment quitter ?')).toBeVisible();
+  await expect(page.getByText('Ta relecture est gardée. Veux-tu vraiment quitter\u202f?')).toBeVisible();
   await expect(page.getByTestId('btn-quit-proof-confirm')).toBeFocused();
   await tap(page.getByTestId('btn-quit-proof-confirm'), testInfo);
   await expect(page.getByTestId('battle-resume')).toBeVisible();

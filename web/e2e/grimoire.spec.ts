@@ -57,7 +57,7 @@ test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', asyn
   if (await confirm.isVisible()) await confirm.click();
   // Éris plants at random: none of hers may be caught, and the tally then says they hid (UI4
   // playability #1: never « 0 sur n »). She planted three at least, as the saved grimoire shows.
-  await expect(page.getByTestId('results-catch-rate')).toHaveText(/^(Dés-accords retrouvés : [1-9]\d* sur \d+|Ses dés-accords se sont bien cachés cette fois)$/);
+  await expect(page.getByTestId('results-catch-rate')).toHaveText(/^(Dés-accords retrouvés\u202f: [1-9]\d* sur \d+|Ses dés-accords se sont bien cachés cette fois)$/);
   const profileId = /\/p\/(\d+)\//.exec(page.url())![1];
   const plants = await page.evaluate(
     ([pid, tid]) => (JSON.parse(localStorage.getItem(`discorde.play.${pid}.${tid}.grimoire`) ?? '{}').plants ?? []).length as number,

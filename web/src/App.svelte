@@ -79,7 +79,7 @@
       <div class="gate-night"><p class="kit-ribbon" data-testid="gate-loading">Les Muses cherchent ce héros…</p></div>
     {:else if gateError}
       <div class="gate-night" role="alert">
-        <p class="kit-ribbon" data-testid="gate-error">Impossible de rejoindre ce héros : {gateError}</p>
+        <p class="kit-ribbon" data-testid="gate-error">Impossible de rejoindre ce héros{'\u202f: '}{gateError}</p>
         <a class="kit-bronze" href={href('profiles')}>Changer de héros</a>
       </div>
     {:else if gateProfile}

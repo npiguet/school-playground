@@ -67,8 +67,8 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     // Final review M12: the lock says how to get past it without a tap.
     expect(state('boss', camp())).toMatchObject({ locked: true, caption: 'Encore 2 ruses', isNew: false });
     // Final review M10: the fight's number as the battle screen writes it (Roman).
-    expect(state('boss', ready(), catalog)).toMatchObject({ locked: false, isNew: true, caption: "Combat I : Sandales d'Hermès" });
-    expect(state('boss', ready(), null).caption).toBe('Combat I : une récompense');
+    expect(state('boss', ready(), catalog)).toMatchObject({ locked: false, isNew: true, caption: "Combat I\u202f: Sandales d'Hermès" });
+    expect(state('boss', ready(), null).caption).toBe('Combat I\u202f: une récompense');
   });
 
   it("explains the locked path in the dragon's words", () => {
@@ -90,7 +90,7 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
       parchemins: 'Choisis un texte à défendre',
     });
     const busy = ready({ xp: seasoned, prophecies: prophecy(2), dragon: hatchling, lieutenants: echoStirs });
-    expect(campNews(busy, catalog)).toEqual({ boss: "Combat I : Sandales d'Hermès", oracle: `Une prophétie, ${prophecyWhen(2)}`, dragon: 'Il attend un nom' });
+    expect(campNews(busy, catalog)).toEqual({ boss: "Combat I\u202f: Sandales d'Hermès", oracle: `Une prophétie, ${prophecyWhen(2)}`, dragon: 'Il attend un nom' });
     expect(state('dossier', busy, catalog).caption).toBeNull();
     expect(campNews(camp({ xp: seasoned, dragon: { ...hatchling, neutralised: 6 }, lieutenants: echoStirs }), null)).toEqual({
       oracle: 'Trois rouleaux à ouvrir',
@@ -151,7 +151,7 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
   });
 
   it('keeps the words the other places use', () => {
-    expect(weeklyCaption({ week: 'w', target: 3, done: 1, reached: false })).toBe('Cette semaine : 1 / 3 parchemins défendus');
-    expect(weeklyCaption({ week: 'w', target: 3, done: 3, reached: true })).toBe('Objectif atteint ! Les Muses sont fières.');
+    expect(weeklyCaption({ week: 'w', target: 3, done: 1, reached: false })).toBe('Cette semaine\u202f: 1 / 3 parchemins défendus');
+    expect(weeklyCaption({ week: 'w', target: 3, done: 3, reached: true })).toBe('Objectif atteint\u202f! Les Muses sont fières.');
   });
 });

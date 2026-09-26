@@ -130,7 +130,7 @@
   function questLabel(q: Progression['quests'][number]): string {
     if (q.kind === 'boss') return `Combat contre ${names.eris ?? 'Éris'} (${romanTier(progression.boss?.tier ?? 1)})`;
     const name = names[q.target] ?? q.target;
-    return q.kind === 'oracle' ? `Rouleau de l'Oracle : ${name}` : `Tenir ${lowerLeadingArticle(name)} en échec`;
+    return q.kind === 'oracle' ? `Rouleau de l'Oracle\u202f: ${name}` : `Tenir ${lowerLeadingArticle(name)} en échec`;
   }
 
   function questBonus(q: Progression['quests'][number]): { xp: number | null; rewardName: string | null } {
@@ -304,7 +304,7 @@
         {/each}
       </div>
       {#if rankedUp}
-        <p class="kit-ribbon rank-up">Nouveau rang : {progression.xp.title_after}</p>
+        <p class="kit-ribbon rank-up">Nouveau rang{'\u202f: '}{progression.xp.title_after}</p>
       {/if}
     </div>
   </Reveal>
@@ -315,10 +315,10 @@
       <div class="kit-sheet spoil" class:is-complete={q.completed} data-testid="reveal-quest-{q.id}">
         <p class="spoil-title">{questLabel(q)}</p>
         <p>
-          {q.counted ? 'Ce texte compte : ' : 'Ce texte ne compte pas cette fois : '}{q.progress} / {q.goal ?? '?'}
+          {q.counted ? 'Ce texte compte\u202f: ' : 'Ce texte ne compte pas cette fois\u202f: '}{q.progress} / {q.goal ?? '?'}
         </p>
         {#if q.completed}
-          <p class="kit-stamp accomplished">Quête accomplie !</p>
+          <p class="kit-stamp accomplished">Quête accomplie{'\u202f!'}</p>
           {#if bonus.xp !== null || bonus.rewardName}
             <p class="reward-line">
               {[bonus.xp !== null ? `${bonus.xp} XP` : null, bonus.rewardName].filter(Boolean).join(' · ')}
@@ -338,7 +338,7 @@
           class="lieutenant-art"
         />
         <div class="kit-sheet spoil neutralised-sheet">
-          <p class="spoil-title">{names[key] ?? key} — {agree('neutralisé', key as LieutenantKey)} !</p>
+          <p class="spoil-title">{names[key] ?? key} — {agree('neutralisé', key as LieutenantKey)}{'\u202f!'}</p>
           <p>{VICTORY.neutralised}</p>
           <Medallion rewardId={RELIC_OF[key as LieutenantKey] ?? ''} size={56} label={relicName(key)} />
         </div>
@@ -367,9 +367,9 @@
           name={dragon?.name}
         />
         {#if isHatchEvent}
-          <p class="spoil-title">L'œuf éclôt !</p>
+          <p class="spoil-title">L'œuf éclôt{'\u202f!'}</p>
         {:else}
-          <p class="spoil-title">{dragon?.name ?? 'Ton dragon'} grandit : {stageLabel(progression.dragon.stage_after)}</p>
+          <p class="spoil-title">{dragon?.name ?? 'Ton dragon'} grandit{'\u202f: '}{stageLabel(progression.dragon.stage_after)}</p>
         {/if}
         <Particles trigger={dragonSparkleTrigger} kind="sparkle" />
 
@@ -407,7 +407,7 @@
           {#each Array.from({ length: progression.weekly.target }) as _, i (i)}<span class="leaf"></span>{/each}
         </span>
         <p class="spoil-title">
-          Objectif de la semaine atteint ! +{progression.xp.bonuses.find((b) => b.reason === 'weekly')?.amount ?? 40} XP
+          Objectif de la semaine atteint{'\u202f!'} +{progression.xp.bonuses.find((b) => b.reason === 'weekly')?.amount ?? 40} XP
         </p>
         <Particles trigger={weeklyLaurelTrigger} kind="laurel" />
       </div>

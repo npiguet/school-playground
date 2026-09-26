@@ -27,7 +27,7 @@ describe("Éris's tricks, one by one (playability #1: a monster and its laurels,
     ]);
     expect(rows).toEqual([
       { key: 'hydre', title: "L'Hydre", line: 'tu as déjoué 15 de ses 16 pièges', rules: "l'accord du verbe avec son sujet, l'accord en nombre", leaves: 5 },
-      { key: 'echo', title: 'Écho', line: 'tu as déjoué 1 de ses 4 pièges', rules: 'les mots qui sonnent pareil : a ou à, et ou est', leaves: 1 },
+      { key: 'echo', title: 'Écho', line: 'tu as déjoué 1 de ses 4 pièges', rules: 'les mots qui sonnent pareil\u202f: a ou à, et ou est', leaves: 1 },
       { key: 'eris', title: 'Ses petites ruses', line: 'tu as déjoué ses 2 pièges', rules: 'les accents', leaves: 5 },
     ]);
   });
@@ -67,7 +67,7 @@ describe('the last defences (playability #14)', () => {
   it('dates a text finished at 00:30 local time on that local day, not the UTC one', () => {
     expect(localDay('2026-09-21T22:30:00+00:00')).toBe('2026-09-22');
     expect(defenceGroups([{ text_id: 1, title: 'La veillée', finished_at: '2026-09-21T22:30:00+00:00', mode: 'dictation' }], today)).toEqual([
-      { key: '1:d', title: 'La veillée', grimoire: false, line: 'une défense, le mardi 22 septembre' },
+      { key: '1-d', title: 'La veillée', grimoire: false, line: 'une défense, le mardi 22 septembre' },
     ]);
   });
 
@@ -82,9 +82,9 @@ describe('the last defences (playability #14)', () => {
       today,
     );
     expect(groups).toEqual([
-      { key: '7:d', title: 'La veillée', grimoire: false, line: '2 défenses, la dernière le vendredi 25 septembre' },
-      { key: '8:d', title: 'Le berger', grimoire: false, line: 'une défense, le jeudi 24 septembre' },
-      { key: '7:g', title: 'La veillée', grimoire: true, line: 'une défense, le mardi 22 septembre' },
+      { key: '7-d', title: 'La veillée', grimoire: false, line: '2 défenses, la dernière le vendredi 25 septembre' },
+      { key: '8-d', title: 'Le berger', grimoire: false, line: 'une défense, le jeudi 24 septembre' },
+      { key: '7-g', title: 'La veillée', grimoire: true, line: 'une défense, le mardi 22 septembre' },
     ]);
     for (const g of groups) expect(g.line).not.toMatch(/point|%/);
   });

@@ -85,7 +85,7 @@
       </div>
 
       <!-- Re-review N8: 48 px medallions, 4 px apart - all seven in one row of the side column. -->
-      <LevelMedallions legend="Pour quelle classe ?" name="desk-level" size="sm" bind:value={level} />
+      <LevelMedallions legend="Pour quelle classe{'\u202f?'}" name="desk-level" size="sm" bind:value={level} />
 
       {#if error}
         <p class="orange" role="alert">{error}</p>
@@ -98,7 +98,7 @@
       <!-- Playability #5: the way to finish comes before the optional « Qui l'a écrit ? », so opening
            it never pushes the button out of view. -->
       <details class="who">
-        <summary class="kit-link">Qui l'a écrit ?</summary>
+        <summary class="kit-link">Qui l'a écrit{'\u202f?'}</summary>
         <div class="field">
           <label for="author">Auteur</label>
           <input id="author" type="text" maxlength="120" bind:value={author} />

@@ -86,14 +86,14 @@
   <OverlayVoice line={erisSays(statsLoading ? 'Éris feuillette son dossier…' : dossierIntro(profile.name, stats?.totals.sessions ?? 0))} />
 
   {#if statsError}
-    <p class="kit-note" data-tone="eris">Impossible de lire le dossier : {statsError}</p>
+    <p class="kit-note" data-tone="eris">Impossible de lire le dossier{'\u202f: '}{statsError}</p>
   {/if}
 
   {#if !statsLoading}
     <section>
       <h3 class="kit-section">Ses points faibles</h3>
       {#if !camp && campStore.error && !campStore.loading}
-        <p class="kit-note" data-tone="eris">Les ruses d'Éris n'ont pas pu être lues : {campStore.error}</p>
+        <p class="kit-note" data-tone="eris">Les ruses d'Éris n'ont pas pu être lues{'\u202f: '}{campStore.error}</p>
       {:else if !camp}
         <p class="muted">Éris étale ses notes sur la table…</p>
       {:else}
@@ -115,7 +115,7 @@
                   class="kit-sheet paper"
                   data-testid="dossier-row-{key}"
                   data-lieutenant={key}
-                  aria-label="{nameFor(key)} : voir la ruse et la quête"
+                  aria-label="{nameFor(key)}{'\u202f: '}voir la ruse et la quête"
                   aria-describedby="dossier-{key}-line{l.neutralised ? '' : ` dossier-${key}-progress`}"
                   onclick={() => goLieutenant(key)}
                 >
@@ -158,12 +158,12 @@
         <section class="kit-sheet taire" data-testid="dossier-taire">
           <h3 class="kit-section">Ce qu'elle préfère taire</h3>
           {#if bestCatchRate !== null}
-            <p>Ton meilleur texte : {rateText(bestCatchRate)} de mes pièges déjoués. Je n'en dirai pas plus.</p>
+            <p>Ton meilleur texte{'\u202f: '}{rateText(bestCatchRate)} de mes pièges déjoués. Je n'en dirai pas plus.</p>
           {:else}
             <p>Aucun de mes pièges déjoué pour l'instant. Profitons-en.</p>
           {/if}
           {#if camp}
-            <p>Ton rang : {camp.xp.title}. Je fais semblant de ne pas l'avoir vu.</p>
+            <p>Ton rang{'\u202f: '}{camp.xp.title}. Je fais semblant de ne pas l'avoir vu.</p>
           {/if}
         </section>
       </Reveal>

@@ -67,7 +67,7 @@
     {#if quest.reward.reward_id}
       <Medallion rewardId={quest.reward.reward_id} size={32} />
     {/if}
-    <span>Récompense connue : {rewardLabel(quest, catalog)}</span>
+    <span>Récompense connue{'\u202f: '}{rewardLabel(quest, catalog)}</span>
   </div>
 
   {#if quest.status === 'done' && quest.completed_at}
@@ -91,7 +91,7 @@
   {#if shelvable}
     {#if confirming}
       <div class="confirm">
-        <p>Ranger cette quête ? Elle ne compte plus, sans rien perdre.</p>
+        <p>Ranger cette quête{'\u202f? '}Elle ne compte plus, sans rien perdre.</p>
         {#if shelveError}<p class="kit-note" data-tone="eris" role="alert">{shelveError}</p>{/if}
         <div class="confirm-actions">
           <button type="button" class="kit-bronze" disabled={shelving} onclick={confirmShelve}>Oui</button>

@@ -19,7 +19,7 @@ describe('overlay voices (Ruling W2, W10)', () => {
   });
 
   it('turns the old instruction paragraphs into the owl and the Pythia speaking', () => {
-    expect(VOICES.desk.text).toBe("Hou ! Entre 80 et 200 mots, c'est l'idéal, et les nombres en lettres.");
+    expect(VOICES.desk.text).toBe("Hou\u202f! Entre 80 et 200 mots, c'est l'idéal, et les nombres en lettres.");
     expect(VOICES.lens.text).toContain('une photo par page');
     expect(VOICES.pythia.speaker).toBe('pythia');
   });

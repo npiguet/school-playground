@@ -14,11 +14,11 @@ describe('dragon helpers', () => {
     expect(dragonCaption({ name: 'Braise', stage: 'young' })).toBe('Braise');
     // UI3b playability #15: the dragon speaks in the first person under its own plate.
     expect(stageLine('egg', null, 1)).toBe("Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
-    expect(stageLine('hatchling', null, 5)).toBe('Te revoilà ! Tu me donnes un nom ?');
-    expect(stageLine('hatchling', 'Braise', 5)).toBe("Te revoilà ! Chaque ruse d'Éris neutralisée me fait grandir.");
-    expect(stageLine('young', 'Braise', 2)).toBe("Je bats des ailes ! Encore 2 ruses d'Éris à neutraliser.");
-    expect(stageLine('young', 'Braise', 1)).toBe("Je bats des ailes ! Encore 1 ruse d'Éris à neutraliser.");
-    expect(stageLine('young', 'Braise', 0)).toBe("Je bats des ailes ! Toutes les ruses d'Éris sont neutralisées, pour l'instant.");
+    expect(stageLine('hatchling', null, 5)).toBe('Te revoilà\u202f! Tu me donnes un nom\u202f?');
+    expect(stageLine('hatchling', 'Braise', 5)).toBe("Te revoilà\u202f! Chaque ruse d'Éris neutralisée me fait grandir.");
+    expect(stageLine('young', 'Braise', 2)).toBe("Je bats des ailes\u202f! Encore 2 ruses d'Éris à neutraliser.");
+    expect(stageLine('young', 'Braise', 1)).toBe("Je bats des ailes\u202f! Encore 1 ruse d'Éris à neutraliser.");
+    expect(stageLine('young', 'Braise', 0)).toBe("Je bats des ailes\u202f! Toutes les ruses d'Éris sont neutralisées, pour l'instant.");
     expect(stageLine('adult', 'Braise', null)).toBe("Je veille sur le camp. Éris n'a qu'à bien se tenir.");
     for (const st of ['egg', 'hatchling', 'young', 'adult'] as const) {
       expect(stageLine(st, 'Braise', 2)).not.toMatch(/Braise|Ton dragon|technique/);

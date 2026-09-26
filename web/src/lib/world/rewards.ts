@@ -47,7 +47,7 @@ const HOW_TO_WIN: Record<string, string> = {
 
 /** How to win a reward, as a sentence to the player (the catalog's own words for an unknown id). */
 export function howToWin(id: string, source: string): string {
-  return HOW_TO_WIN[id] ?? `À gagner : ${source.charAt(0).toLowerCase()}${source.slice(1)}.`;
+  return HOW_TO_WIN[id] ?? `À gagner\u202f: ${source.charAt(0).toLowerCase()}${source.slice(1)}.`;
 }
 
 /** The reward ids that have a sentence (the catalog's, rewards.test.ts). */

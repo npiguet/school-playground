@@ -70,11 +70,11 @@ export function dragonCaption(d: Pick<DragonOut, 'name' | 'stage'>): string {
  *  `remaining` is the number of available lieutenants left to neutralise (only said when `young`). */
 export function stageLine(stage: DragonStage, name: string | null, remaining: number | null): string {
   if (stage === 'egg') return "Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.";
-  if (stage === 'hatchling') return name ? "Te revoilà ! Chaque ruse d'Éris neutralisée me fait grandir." : 'Te revoilà ! Tu me donnes un nom ?';
+  if (stage === 'hatchling') return name ? "Te revoilà\u202f! Chaque ruse d'Éris neutralisée me fait grandir." : 'Te revoilà\u202f! Tu me donnes un nom\u202f?';
   if (stage === 'young') {
     const n = Math.max(0, remaining ?? 0);
-    if (n === 0) return "Je bats des ailes ! Toutes les ruses d'Éris sont neutralisées, pour l'instant.";
-    return `Je bats des ailes ! Encore ${plural(n, "ruse d'Éris", "ruses d'Éris")} à neutraliser.`;
+    if (n === 0) return "Je bats des ailes\u202f! Toutes les ruses d'Éris sont neutralisées, pour l'instant.";
+    return `Je bats des ailes\u202f! Encore ${plural(n, "ruse d'Éris", "ruses d'Éris")} à neutraliser.`;
   }
   return "Je veille sur le camp. Éris n'a qu'à bien se tenir.";
 }

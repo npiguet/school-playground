@@ -47,7 +47,7 @@ test('the reckoning strikes once per trap caught, then the lieutenant falls back
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-hits', '1');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'retreat');
   await expect(page.getByTestId('battle-dragon')).toHaveAttribute('data-reaction', 'cheer');
-  await expect(page.getByTestId('victory-title')).toHaveText("L'Hydre recule !");
+  await expect(page.getByTestId('victory-title')).toHaveText("L'Hydre recule\u202f!");
   await expect(page.getByTestId('victory-laurel')).toBeVisible();
   // Final review M8: the stage's plaque, the opponent's name, is the battle's one h1.
   await expect(page.getByRole('heading', { level: 1 })).toHaveText("L'Hydre");
@@ -56,11 +56,11 @@ test('the reckoning strikes once per trap caught, then the lieutenant falls back
   await expect(page.getByTestId('battle-opponent').locator('img')).toHaveCSS('filter', 'none');
   // UI4 playability #1: the tally in the game's words - no percentage (the rate as rateText wrote
   // it, narrow no-break space and all), no « Score », no « x / y ».
-  await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués : 1 sur 2');
-  await expect(page.getByTestId('results-score')).toHaveText(/^Gloire gagnée : \d+$/);
+  await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués\u202f: 1 sur 2');
+  await expect(page.getByTestId('results-score')).toHaveText(/^Gloire gagnée\u202f: \d+$/);
   await expect(page.getByTestId('victory')).toContainText('12 mots sur 13 tiennent bon');
   await expect(page.getByTestId('victory')).not.toContainText(/Score|%|\d\s*\/\s*\d/);
-  expect(await page.getByTestId('results-catch-rate').textContent()).not.toContain('50 %');
+  expect(await page.getByTestId('results-catch-rate').textContent()).not.toContain('50\u202f%');
 });
 
 test('the sheet: spoils, then « Continuer » lets Éris and the dragon speak; the actions are there throughout', async ({ page, request }, testInfo) => {
@@ -80,7 +80,7 @@ test('the sheet: spoils, then « Continuer » lets Éris and the dragon speak; t
   await page.getByTestId('dialogue-advance').click(); // next line
   await expect(page.getByTestId('dialogue-text')).toContainText('Tu as déjoué 1 piège sur 2.');
   // UI4 playability #7: one trap left is « le dernier ».
-  await expect(page.getByTestId('dialogue-text')).toContainText('Le dernier se cache encore : on le débusquera ensemble.');
+  await expect(page.getByTestId('dialogue-text')).toContainText('Le dernier se cache encore\u202f: on le débusquera ensemble.');
 });
 
 // UI4 playability #2, #3, #21: the headline is everything she earned; the laurel is ink on the
@@ -140,14 +140,14 @@ test('« Revoir » opens the review scroll: each trap explained on tap; Back and
   expect(loose).toEqual([]);
   // Final review M10: a trap says what it is in words, and whether its explanation is open; the
   // other words are text, not buttons that do nothing.
-  const trap = scroll.getByRole('button', { name: 'chante : piège, touche pour voir' });
+  const trap = scroll.getByRole('button', { name: 'chante\u202f: piège, touche pour voir' });
   await expect(trap).toHaveAttribute('aria-expanded', 'false');
   await expect(scroll.getByRole('button', { name: 'fées', exact: true })).toHaveCount(0);
   await expect(scroll.locator('.tokens')).toContainText('Les fées dansent');
   await tap(trap, testInfo);
   await expect(trap).toHaveAttribute('aria-expanded', 'true');
   // UI4 playability #18: the word it needed, not the corrector's « Attendu ».
-  await expect(scroll.getByTestId('revoir-popover')).toContainText('Il fallait : « chantent »');
+  await expect(scroll.getByTestId('revoir-popover')).toContainText('Il fallait\u202f: «\u202fchantent\u202f»');
   await page.reload();
   await expect(page.getByTestId('overlay-revoir')).toBeVisible();
   await page.goBack();
@@ -245,7 +245,7 @@ test('« Le camp » from the victory leaves the battle behind, as « Retour au c
 
 test('every trap caught routs the lieutenant', async ({ page, request }, testInfo) => {
   await victory(page, request, `Vic4-${testInfo.project.name}`, REF);
-  await expect(page.getByTestId('victory-title')).toHaveText('Victoire !');
+  await expect(page.getByTestId('victory-title')).toHaveText('Victoire\u202f!');
   await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '0');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'defeat');
   await expect(page.getByTestId('results-catch-rate')).toContainText('2 sur 2');
@@ -253,8 +253,8 @@ test('every trap caught routs the lieutenant', async ({ page, request }, testInf
 
 test('a perfect dictation routs the lieutenant too: nothing to catch, one strike', async ({ page, request }, testInfo) => {
   await victory(page, request, `Vic4b-${testInfo.project.name}`, REF, 'hydre', REF);
-  await expect(page.getByTestId('results-catch-rate')).toHaveText('Texte parfait dès la dictée !');
-  await expect(page.getByTestId('victory-title')).toHaveText('Victoire !');
+  await expect(page.getByTestId('results-catch-rate')).toHaveText('Texte parfait dès la dictée\u202f!');
+  await expect(page.getByTestId('victory-title')).toHaveText('Victoire\u202f!');
   await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '0');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-hits', '1');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'defeat');
@@ -318,7 +318,7 @@ test('after twenty-five minutes the dragon suggests a pause, on the sheet', asyn
   await victory(page, request, `Vic8-${testInfo.project.name}`, HALF);
   const nudge = page.getByTestId('break-nudge');
   // UI4 playability #16: the egg speaks for itself, and the way home says what it does.
-  await expect(nudge).toContainText("(L'œuf frémit.) Vingt-cinq minutes qu'on chasse les pièges… On souffle un peu ?");
+  await expect(nudge).toContainText("(L'œuf frémit.) Vingt-cinq minutes qu'on chasse les pièges… On souffle un peu\u202f?");
   await expect(page.getByTestId('break-pause')).toHaveText('On rentre souffler');
   await tap(page.getByTestId('break-continue'), testInfo);
   await expect(nudge).toHaveCount(0);
@@ -380,8 +380,8 @@ test('beating Éris: her defeat line and her treasure, once, in the parchment st
   await expect(sheet.getByTestId('victory-chest')).toBeVisible();
   const boss = sheet.getByTestId('reveal-boss');
   await expect(boss).toBeVisible();
-  await expect(boss.getByTestId('boss-voice')).toContainText('Impossible ! Garde ta pomme');
-  await expect(boss.getByTestId('reveal-boss-reward')).toHaveText("Ta récompense : Sandales d'Hermès !");
+  await expect(boss.getByTestId('boss-voice')).toContainText('Impossible\u202f! Garde ta pomme');
+  await expect(boss.getByTestId('reveal-boss-reward')).toHaveText("Ta récompense\u202f: Sandales d'Hermès\u202f!");
   expect(((await sheet.textContent()) ?? '').split("Sandales d'Hermès").length - 1, 'the treasure is named once').toBe(1);
   await expect(sheet.getByTestId('reveal-reward-sandales_hermes')).toHaveCount(0);
   await expect(sheet.locator('.kit-cubby')).toHaveCount(0);
@@ -405,14 +405,14 @@ test('Éris escaping speaks for herself, on her plate', async ({ page, request }
   const sheet = await counted(page, request, `Vic15-${testInfo.project.name}`, progression({ boss: { tier: 1, won: false, too_easy: false }, encounter: 'eris' }), true);
   const boss = sheet.getByTestId('reveal-boss');
   await expect(boss.getByTestId('boss-voice')).toHaveAttribute('data-speaker', 'eris');
-  await expect(boss).toContainText("Ha ! Je garde ma pomme… pour cette fois. Le combat reste ouvert : reviens m'affronter quand tu veux.");
+  await expect(boss).toContainText("Ha\u202f! Je garde ma pomme… pour cette fois. Le combat reste ouvert\u202f: reviens m'affronter quand tu veux.");
   await expect(sheet.locator('.kit-note[data-tone="eris"]')).toHaveCount(0);
 });
 
 // UI4 playability #9: naming the dragon is a question, answered on the parchment's line.
 test('the egg hatches: « Comment vas-tu l\'appeler ? », and her answer is inked on a line', async ({ page, request }, testInfo) => {
   const sheet = await counted(page, request, `Vic16-${testInfo.project.name}`, progression({ dragon: { stage_before: 'egg', stage_after: 'hatchling', needs_name: true } }));
-  await expect(sheet.getByTestId('reveal-dragon')).toContainText("Comment vas-tu l'appeler ?");
+  await expect(sheet.getByTestId('reveal-dragon')).toContainText("Comment vas-tu l'appeler\u202f?");
   const field = sheet.getByTestId('reveal-name-input');
   await expect(field).toHaveAttribute('placeholder', 'Son nom…');
   await expect(field).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
@@ -433,7 +433,7 @@ test("Éris's lair: her challenge, the fight's stakes and the rules on the parch
   await expect(sheet.getByTestId('boss-tier')).toHaveText('Combat I');
   await expect(sheet.getByTestId('boss-reward')).toContainText('Récompense si tu gagnes');
   await expect(sheet.getByTestId('boss-start')).toHaveText('Affronter Éris');
-  await expect(sheet).toContainText("Un long texte, sans les Yeux d'Argus. Chaque piège que tu trouves reste acquis : si Éris s'enfuit, tu pourras revenir l'affronter.");
+  await expect(sheet).toContainText("Un long texte, sans les Yeux d'Argus. Chaque piège que tu trouves reste acquis\u202f: si Éris s'enfuit, tu pourras revenir l'affronter.");
   // UI4 playability #14: the « Combat I » banner above her plate, and the parchment hugs its content,
   // centred, so her lair shows around it.
   const tierBox = (await sheet.getByTestId('boss-tier').boundingBox())!;
@@ -472,7 +472,7 @@ const ONE_CAUGHT = 'Les fées danse dans la clairiere. Elles chante et les oisea
 
 test("Éris answers the reckoning from her lines, then the dragon explains a trap still standing (Ruling E14)", async ({ page, request }, testInfo) => {
   await victory(page, request, `Vic14-${testInfo.project.name}`, ONE_CAUGHT, 'hydre', FOUR);
-  await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués : 1 sur 4');
+  await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués\u202f: 1 sur 4');
   await tap(page.getByTestId('reveal-continue'), testInfo);
   const dialogue = page.getByTestId('victory-dialogue');
   await expectLineOf(dialogue.getByTestId('dialogue-box'), 'battle.caught');

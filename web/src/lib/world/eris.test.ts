@@ -74,7 +74,7 @@ describe("Éris's dossier lines", () => {
     expect(erisProgressLine('chimere', l(0, 0, null, 0))).toBe('Pas encore croisée.');
     expect(erisProgressLine('sirenes', l(0, 0, null, 0))).toBe('Pas encore croisées.');
     expect(erisProgressLine('hydre', l(3, 12, 0.9, 16, true))).toBe('');
-    expect(neutraliseRule('hydre')).toBe('Pour la neutraliser : 3 jours de garde, 10 pièges croisés, et 8 sur 10 déjoués.');
+    expect(neutraliseRule('hydre')).toBe('Pour la neutraliser\u202f: 3 jours de garde, 10 pièges croisés, et 8 sur 10 déjoués.');
     expect(neutraliseRule('protee')).toMatch(/^Pour le neutraliser/);
     expect(neutraliseRule('sirenes')).toMatch(/^Pour les neutraliser/);
   });
@@ -86,7 +86,7 @@ describe("Éris's dossier lines", () => {
       expect(line).not.toMatch(/\d/);
       for (const w of FORBIDDEN) expect(line.toLowerCase()).not.toContain(w);
     }
-    expect(dossierIntro('Ana', 1)).toBe('Dossier « Ana ». 1 texte surveillé de près. Voici où mes ruses passent encore.');
+    expect(dossierIntro('Ana', 1)).toBe('Dossier «\u202fAna\u202f». 1 texte surveillé de près. Voici où mes ruses passent encore.');
     expect(dossierIntro('Ana', 7)).toContain('7 textes surveillés');
   });
 

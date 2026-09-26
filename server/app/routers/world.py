@@ -33,7 +33,7 @@ TINT_LOCKED_MESSAGE = "Cette teinte n'est pas encore débloquée."
 # The cabin's walls hold four pieces of decor (UI3b ruling: DECOR_SLOTS in
 # web/src/lib/world/scenes/cabin.ts); a fifth would hang over the first.
 MAX_DISPLAYED_DECOR = 4
-WALLS_FULL_MESSAGE = "Les murs sont pleins : range d'abord une pièce."
+WALLS_FULL_MESSAGE = "Les murs sont pleins\u202f: range d'abord une pièce."
 ORACLE_ALREADY_CONSULTED = "L'Oracle a déjà parlé cette semaine. Reviens lundi."
 
 

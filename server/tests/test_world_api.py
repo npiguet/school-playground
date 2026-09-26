@@ -204,7 +204,7 @@ def test_the_cabin_walls_hold_four_pieces_of_decor(client, settings):
     for rid in decor[:4]:
         assert patch(rid, True).status_code == 200
     full = patch("decor:fresque", True)
-    assert full.status_code == 409 and full.json()["detail"] == "Les murs sont pleins : range d'abord une pièce."
+    assert full.status_code == 409 and full.json()["detail"] == "Les murs sont pleins\u202f: range d'abord une pièce."
     assert not next(r for r in client.get(f"/api/profiles/{pid}/rewards").json() if r["id"] == "decor:fresque")["equipped"]
     # Gear is worn, not hung; a piece already on the wall can be patched again.
     assert patch("sandales_hermes", True).json()["equipped"] is True

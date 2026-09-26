@@ -12,7 +12,7 @@ from app.world.progression import apply_progression
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
-UP_MESSAGE = "Les Muses te font confiance : les Yeux d'Argus s'éteignent un peu."
+UP_MESSAGE = "Les Muses te font confiance\u202f: les Yeux d'Argus s'éteignent un peu."
 DOWN_MESSAGE = "Éris a été retorse. Les Muses rallument les Yeux d'Argus pour t'aider."
 
 

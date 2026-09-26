@@ -23,21 +23,21 @@ describe('explain', () => {
   it('uses the subject for verb agreement', () => {
     const { g, ctx } = ctxFor('Les fées danse dans la clairière.');
     expect(explain(g.errors[0], ctx)).toEqual({ title: "Accord du verbe avec son sujet (L'Hydre)",
-      text: '« dansent » s\'accorde avec son sujet « fées » → pluriel → terminaison « nt »' });
+      text: '«\u202fdansent\u202f» s\'accorde avec son sujet «\u202ffées\u202f» → pluriel → terminaison «\u202fnt\u202f»' });
   });
   it('uses the head noun for number agreement', () => {
     const { g, ctx } = ctxFor('Le fées dansent dans la clairière.');
-    expect(explain(g.errors[0], ctx).text).toBe('« Les » s\'accorde avec « fées » → pluriel');
+    expect(explain(g.errors[0], ctx).text).toBe('«\u202fLes\u202f» s\'accorde avec «\u202ffées\u202f» → pluriel');
   });
   it('explains homophones with the table hint', () => {
     const { g, ctx } = ctxFor('Les fées dansent dans là clairière.');
-    expect(explain(g.errors[0], ctx).text).toMatch(/^« là » ou « la » \? Ici il faut « la »\. /);
+    expect(explain(g.errors[0], ctx).text).toMatch(/^«\u202flà\u202f» ou «\u202fla\u202f»\u202f\? Ici il faut «\u202fla\u202f»\. /);
     expect(statKeyOf(g.errors[0])).toBe('homophone');
   });
   it('explains missing words and accents', () => {
     const { g, ctx } = ctxFor('Les fées dansent dans la clairiere');
-    expect(explain(g.errors[0], ctx).text).toBe('Un accent change tout : « clairière », pas « clairiere ».');
-    expect(explain(g.errors[1], ctx).text).toBe('Il manque « . » ici.');
+    expect(explain(g.errors[0], ctx).text).toBe('Un accent change tout\u202f: «\u202fclairière\u202f», pas «\u202fclairiere\u202f».');
+    expect(explain(g.errors[1], ctx).text).toBe('Il manque «\u202f.\u202f» ici.');
   });
 });
 
@@ -121,20 +121,20 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
   it('names "qui" and the noun it reprend for a relative-clause subject-verb chain', () => {
     const { g, ctx } = ctxFor2('Les fées qui chante dansent.');
     expect(explain(g.errors[0], ctx).text).toBe(
-      '« chantent » s\'accorde avec « qui », qui reprend « Les fées » → pluriel → terminaison « nt »',
+      '«\u202fchantent\u202f» s\'accorde avec «\u202fqui\u202f», qui reprend «\u202fLes fées\u202f» → pluriel → terminaison «\u202fnt\u202f»',
     );
   });
 
   it('names the subject for a plain subject-verb chain', () => {
     const { g, ctx } = ctxFor2('Les fées qui chantent danse.');
     expect(explain(g.errors[0], ctx).text).toBe(
-      '« dansent » s\'accorde avec son sujet « Les fées » → pluriel → terminaison « nt »',
+      '«\u202fdansent\u202f» s\'accorde avec son sujet «\u202fLes fées\u202f» → pluriel → terminaison «\u202fnt\u202f»',
     );
   });
 
   it('names the controller noun for a nominal chain', () => {
     const { g, ctx } = ctxFor2('Le fées qui chantent dansent.');
-    expect(explain(g.errors[0], ctx).text).toBe('« Les » s\'accorde avec le nom « fées » → féminin pluriel');
+    expect(explain(g.errors[0], ctx).text).toBe('«\u202fLes\u202f» s\'accorde avec le nom «\u202ffées\u202f» → féminin pluriel');
   });
 
   it('explains a participle_etre chain', () => {
@@ -183,7 +183,7 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     const g = gradeText(REF3, 'Elles sont partie.', annotation);
     const ctx = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation), annotation, body: REF3 };
     expect(explain(g.errors[0], ctx).text).toBe(
-      'Avec « être », le participe « parties » s\'accorde avec le sujet « Elles » → féminin pluriel',
+      'Avec «\u202fêtre\u202f», le participe «\u202fparties\u202f» s\'accorde avec le sujet «\u202fElles\u202f» → féminin pluriel',
     );
   });
 
@@ -234,18 +234,18 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     const g = gradeText(REF4, 'Elle les a mangé.', annotation);
     const ctxMangees = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation), annotation, body: REF4 };
     expect(explain(g.errors[0], { ...ctxMangees, level: '10H' }).text).toBe(
-      'Avec « avoir », le participe « mangées » s\'accorde avec le complément « les » placé avant → pluriel',
+      'Avec «\u202favoir\u202f», le participe «\u202fmangées\u202f» s\'accorde avec le complément «\u202fles\u202f» placé avant → pluriel',
     );
     // Below 9H the fallback drops the avoir/COD clause too (final review ledger: the avoir rule
     // isn't taught yet); without a level (SP1 callers) the full sentence stays.
     expect(explain(g.errors[0], { ...ctxMangees, level: '8H' }).text).toBe(
-      'Participe passé « mangées » : avec être, il s\'accorde avec le sujet.',
+      'Participe passé «\u202fmangées\u202f»\u202f: avec être, il s\'accorde avec le sujet.',
     );
     expect(explain(g.errors[0], { ...ctxMangees, level: '9H' }).text).toBe(
-      'Avec « avoir », le participe « mangées » s\'accorde avec le complément « les » placé avant → pluriel',
+      'Avec «\u202favoir\u202f», le participe «\u202fmangées\u202f» s\'accorde avec le complément «\u202fles\u202f» placé avant → pluriel',
     );
     expect(explain(g.errors[0], ctxMangees).text).toBe(
-      'Participe passé « mangées » : avec être, il s\'accorde avec le sujet ; ' +
+      'Participe passé «\u202fmangées\u202f»\u202f: avec être, il s\'accorde avec le sujet\u202f; ' +
         'avec avoir, seulement si le complément est placé avant.',
     );
   });
@@ -298,7 +298,7 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     const g = gradeText(REF5, 'Elles sont partie.', annotation);
     const ctx = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation), annotation, body: REF5 };
     expect(explain(g.errors[0], ctx).text).toBe(
-      'Participe passé « parties » : avec être, il s\'accorde avec le sujet ; ' +
+      'Participe passé «\u202fparties\u202f»\u202f: avec être, il s\'accorde avec le sujet\u202f; ' +
         'avec avoir, seulement si le complément est placé avant.',
     );
     expect(explain(g.errors[0], ctx).text).not.toMatch(/→\s*$/);
@@ -310,7 +310,7 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     const { g, ctx } = ctxFor2('Les fées qui chantent danse.');
     const ctxNoBody = { ...ctx, body: undefined };
     expect(explain(g.errors[0], ctxNoBody).text).toBe(
-      'Le verbe « dansent » s\'accorde avec son sujet. Cherche qui fait l\'action.',
+      'Le verbe «\u202fdansent\u202f» s\'accorde avec son sujet. Cherche qui fait l\'action.',
     );
   });
 
@@ -366,7 +366,7 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     const g = gradeText(REF6, 'Les fées qui sont partie dansent.', annotation);
     const ctx = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation), annotation, body: REF6 };
     expect(explain(g.errors[0], ctx).text).toBe(
-      'Avec « être », le participe « parties » s\'accorde avec le sujet « qui », qui reprend « Les fées » → féminin pluriel',
+      'Avec «\u202fêtre\u202f», le participe «\u202fparties\u202f» s\'accorde avec le sujet «\u202fqui\u202f», qui reprend «\u202fLes fées\u202f» → féminin pluriel',
     );
   });
 
@@ -382,7 +382,7 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
       anchor: 0,
     };
     expect(explain(soundAlikeErr, ctx).text).toBe(
-      '« mer » se prononce comme « mère », mais ici c\'est « mère ». Il rejoint tes mots-pièges.',
+      '«\u202fmer\u202f» se prononce comme «\u202fmère\u202f», mais ici c\'est «\u202fmère\u202f». Il rejoint tes mots-pièges.',
     );
   });
 });
@@ -415,7 +415,7 @@ describe('explain (P1-1 elided-text regression)', () => {
     const err = g.errors.find((e) => e.category === 'agreement' && e.sub === 'verb');
     expect(err).toBeDefined();
     expect(explain(err!, ctx).text).toBe(
-      '« chantent » s\'accorde avec son sujet « enfants » → pluriel → terminaison « nt »',
+      '«\u202fchantent\u202f» s\'accorde avec son sujet «\u202fenfants\u202f» → pluriel → terminaison «\u202fnt\u202f»',
     );
   });
 
@@ -438,7 +438,7 @@ describe('explain (P1-1 elided-text regression)', () => {
     const ctx = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation), annotation };
     const err = g.errors.find((e) => e.category === 'agreement' && e.sub === 'number');
     expect(err).toBeDefined();
-    expect(explain(err!, ctx).text).toBe('« étroites » s\'accorde avec « ruelles » → pluriel');
+    expect(explain(err!, ctx).text).toBe('«\u202fétroites\u202f» s\'accorde avec «\u202fruelles\u202f» → pluriel');
   });
 });
 
@@ -479,7 +479,7 @@ describe('explain (P1-2 adjectival participle)', () => {
     expect(statKeyOf(err!)).toBe('agreement:number');
     const { title, text } = explain(err!, ctx);
     expect(title).toBe(CATEGORY_LABELS['agreement:number']);
-    expect(text).toBe('« endormis » s\'accorde avec « toits » → pluriel');
+    expect(text).toBe('«\u202fendormis\u202f» s\'accorde avec «\u202ftoits\u202f» → pluriel');
     expect(text).not.toMatch(/avec être|avec avoir/);
   });
 });
@@ -516,14 +516,14 @@ describe('explain (SP2 playability P1-2 coordinated subjects)', () => {
   it('quotes the coordinated subject as written, determiners included', () => {
     const { err, ctx } = ctxFor(annotation([3, 4, 5, 6, 7], 4));
     expect(explain(err, ctx).text).toBe(
-      '« coupaient » a plusieurs sujets : « le cuisinier et sa fille » → pluriel → terminaison « ent »',
+      '«\u202fcoupaient\u202f» a plusieurs sujets\u202f: «\u202fle cuisinier et sa fille\u202f» → pluriel → terminaison «\u202fent\u202f»',
     );
   });
 
   it('falls back to the generic verb sentence when the group is not quotable, never naming the mis-parsed subject', () => {
     const { err, ctx } = ctxFor(annotation([1, 4, 7], 1)); // « soir » attached as the subject
     const text = explain(err, ctx).text;
-    expect(text).toBe('Le verbe « coupaient » s\'accorde avec son sujet. Cherche qui fait l\'action.');
+    expect(text).toBe('Le verbe «\u202fcoupaient\u202f» s\'accorde avec son sujet. Cherche qui fait l\'action.');
     expect(text).not.toMatch(/soir/);
   });
 });
@@ -564,16 +564,16 @@ describe('explain (SP2 playability P1-3 participle with avoir and a clitic COD)'
     expect(explain(err, ctx).title).toBe(CATEGORY_LABELS['agreement:participle']);
     // the clitic carries no gender in the parse and the slip is the gender: no false « → singulier »
     expect(explain(err, ctx).text).toBe(
-      'Avec « avoir », le participe « choisie » s\'accorde avec le complément « l\' » placé avant. Regarde ce que « l\' » remplace.',
+      'Avec «\u202favoir\u202f», le participe «\u202fchoisie\u202f» s\'accorde avec le complément «\u202fl\'\u202f» placé avant. Regarde ce que «\u202fl\'\u202f» remplace.',
     );
   });
 
   it('uses the generic participle sentence, level-gated, when there is no participle_avoir chain', () => {
     const { err, ctx } = ctxFor(annotation(false, ['participle']), '10H');
     expect(explain(err, ctx).text).toBe(
-      'Participe passé « choisie » : avec être, il s\'accorde avec le sujet ; avec avoir, seulement si le complément est placé avant.',
+      'Participe passé «\u202fchoisie\u202f»\u202f: avec être, il s\'accorde avec le sujet\u202f; avec avoir, seulement si le complément est placé avant.',
     );
-    expect(explain(err, { ...ctx, level: '8H' }).text).toBe('Participe passé « choisie » : avec être, il s\'accorde avec le sujet.');
+    expect(explain(err, { ...ctx, level: '8H' }).text).toBe('Participe passé «\u202fchoisie\u202f»\u202f: avec être, il s\'accorde avec le sujet.');
   });
 
   it('never uses the noun-group sentence even on an older annotation that filed it under gender', () => {
@@ -581,7 +581,7 @@ describe('explain (SP2 playability P1-3 participle with avoir and a clitic COD)'
     expect(err.sub).toBe('gender');
     const text = explain(err, ctx).text;
     expect(text).not.toMatch(/accompagne/);
-    expect(text).toMatch(/^Participe passé « choisie »/);
+    expect(text).toMatch(/^Participe passé «\u202fchoisie\u202f»/);
   });
 });
 
@@ -596,7 +596,7 @@ describe('caughtText', () => {
       sub: 'verb',
       anchor: 1,
     };
-    expect(caughtText(caught)).toBe('Tu avais écrit « danse », tu as corrigé en « dansent ». Bravo !');
+    expect(caughtText(caught)).toBe('Tu avais écrit «\u202fdanse\u202f», tu as corrigé en «\u202fdansent\u202f». Bravo\u202f!');
   });
 
   it('never says "null" for a word she had omitted and then added back (no agreement risk)', () => {
@@ -610,6 +610,6 @@ describe('caughtText', () => {
       anchor: 4,
     };
     // "de l'ajouter" is an infinitive: it never agrees, unlike "l'as ajouté(e)(s)" would.
-    expect(caughtText(caught)).toBe("Tu avais oublié « chevaux » : tu as bien fait de l'ajouter en te relisant. Bravo !");
+    expect(caughtText(caught)).toBe("Tu avais oublié «\u202fchevaux\u202f»\u202f: tu as bien fait de l'ajouter en te relisant. Bravo\u202f!");
   });
 });

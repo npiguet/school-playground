@@ -106,7 +106,7 @@
       <!-- Final review M16: the server's message wraps inside the art box, and the heroes can be
            fetched again without a reload (the camp's own « Réessayer »). -->
       <div class="kit-ribbon title-note title-error stage-text" role="alert" data-testid="title-error">
-        <span>Impossible de charger les héros : {error}</span>
+        <span>Impossible de charger les héros{'\u202f: '}{error}</span>
         <button type="button" class="kit-bronze" data-testid="title-retry" onclick={load}>Réessayer</button>
       </div>
     {:else}

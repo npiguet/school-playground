@@ -232,7 +232,7 @@
       <div class="text-col">
         {#if lowConfidence.length > 0}
           <div class="verify-label">
-            <span>À vérifier :</span>
+            <span>À vérifier{'\u202f:'}</span>
             <span class="check-words" data-testid="scan-low-confidence">
               {#each lowConfidence as w (w)}
                 <button type="button" class="check-word" aria-pressed={viewed.has(w)} onclick={() => showWord(w)}>
@@ -243,7 +243,7 @@
           </div>
           <p class="hint verify-hint" data-testid="scan-verify-hint">
             {#if unviewed.length > 0}
-              Touche chaque mot à vérifier : il se surligne dans le texte, compare-le avec la feuille.
+              Touche chaque mot à vérifier{'\u202f: '}il se surligne dans le texte, compare-le avec la feuille.
             {:else}
               Chaque mot à vérifier a été regardé. Relis quand même chaque ligne avec la feuille.
             {/if}
@@ -261,14 +261,14 @@
         ></textarea>
         <p class="wordcount muted">{plural(wordCount, 'mot', 'mots')}</p>
         <p class="hint key-hint">
-          Corrige chaque mot qui n'est pas comme sur la feuille : ce texte servira de modèle pendant la bataille.
+          Corrige chaque mot qui n'est pas comme sur la feuille{'\u202f: '}ce texte servira de modèle pendant la bataille.
         </p>
       </div>
     </div>
 
     {#if confirming}
       <div class="kit-note confirm" data-testid="scan-confirm" role="group" aria-label="Confirmation">
-        <p class="confirm-question">As-tu comparé chaque ligne avec la feuille ?</p>
+        <p class="confirm-question">As-tu comparé chaque ligne avec la feuille{'\u202f?'}</p>
         <div class="actions">
           <button type="button" class="kit-bronze is-quiet" onclick={() => (confirming = false)}>Pas encore</button>
           <button type="button" class="kit-bronze" data-testid="btn-scan-confirm" onclick={() => (step = 'details')}>
@@ -320,7 +320,7 @@
       </div>
 
       <details class="who">
-        <summary class="kit-link">Qui l'a écrit ?</summary>
+        <summary class="kit-link">Qui l'a écrit{'\u202f?'}</summary>
         <div class="field">
           <label for="scan-author">Auteur</label>
           <input id="scan-author" type="text" maxlength="120" bind:value={author} />

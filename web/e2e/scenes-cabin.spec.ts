@@ -60,7 +60,7 @@ test('the trophy shelf shows every reward, each known in advance', async ({ page
   await expect(sandals.locator('.medallion img.silhouette')).toHaveCSS('filter', /brightness\(0\)/);
   // UI3b playability #7: the dragon speaks from the shelf's plate (no relic won yet: six to win).
   await expect(shelf.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'dragon');
-  await expect(shelf.getByTestId('overlay-voice')).toContainText('Il en manque encore six !');
+  await expect(shelf.getByTestId('overlay-voice')).toContainText('Il en manque encore six\u202f!');
   // Fix round 1: a tint still to win is a grey egg; the filter is on the egg, not on its ring.
   const ecume = shelf.getByTestId('cabin-reward-tint:ecume');
   await expect(ecume.locator('.tint-egg')).toHaveCSS('filter', 'none');
@@ -298,7 +298,7 @@ test('the walls hold four pieces: a fifth « Exposer » says so and hangs nothin
   await page.route(`**/api/profiles/${id}/rewards**`, (route) => {
     if (route.request().method() === 'PATCH') {
       patches.push(route.request().url());
-      return route.fulfill({ status: 409, json: { detail: "Les murs sont pleins : range d'abord une pièce." } });
+      return route.fulfill({ status: 409, json: { detail: "Les murs sont pleins\u202f: range d'abord une pièce." } });
     }
     return route.fulfill({ json: [...shown.map((rid) => row(rid, true)), row('decor:fresque', false)] });
   });
@@ -309,7 +309,7 @@ test('the walls hold four pieces: a fifth « Exposer » says so and hangs nothin
   await expect(fresque).toBeEnabled(); // never disabled without a word
   await expect(shelf.getByTestId('cabin-walls-full')).toHaveCount(0);
   await fresque.click();
-  await expect(shelf.getByTestId('cabin-walls-full')).toHaveText("Les murs sont pleins : range d'abord une pièce.");
+  await expect(shelf.getByTestId('cabin-walls-full')).toHaveText("Les murs sont pleins\u202f: range d'abord une pièce.");
   await expect(fresque).toHaveText('Exposer');
   expect(patches, 'the client refuses before asking the server').toEqual([]);
   await closeOverlay(page);

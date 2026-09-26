@@ -38,7 +38,7 @@
 </script>
 
 {#snippet hero()}
-  <button type="button" class="hud-hero" data-testid="hud-hero" aria-label="Ton héros : {profile.name}" onclick={onHero}>
+  <button type="button" class="hud-hero" data-testid="hud-hero" aria-label="Ton héros{'\u202f: '}{profile.name}" onclick={onHero}>
     <Avatar avatar={profile.avatar} size={40} ring />
     <span class="hud-name">{profile.name}</span>
   </button>

@@ -22,4 +22,16 @@ describe('screenText', () => {
     expect(screenText("const u = 'http://a.b/quête(s)'; // mot(s)", 'ts')).toBe("'http://a.b/quête(s)'");
     expect(screenText('const u = "a // b"; /* c(s) */ const v = \'d\';', 'ts')).toBe('"a // b"\n\'d\'');
   });
+
+  it('drops a style attribute (CSS, never text) whether quoted or a computed expression (UI5 Task 8)', () => {
+    expect(screenText('<p style="color: red; width: 2px">Bonjour</p>', 'svelte')).not.toMatch(/color|width/);
+    expect(screenText('<img style={`filter: ${f(t)}; width: ${n}px`} alt="Ton dragon" />', 'svelte')).not.toMatch(/filter|width/);
+    expect(screenText('<img style={`filter: ${f(t)}; width: ${n}px`} alt="Ton dragon" />', 'svelte')).toContain('Ton dragon');
+  });
+
+  it('drops a block marker’s head expression (control flow, never text) (UI5 Task 8)', () => {
+    const text = screenText('{#key `${a.id}:${b.gen}`}<p>Victoire\u202f!</p>{/key}', 'svelte');
+    expect(text).not.toMatch(/[  ]:/);
+    expect(text).toContain('Victoire\u202f!');
+  });
 });

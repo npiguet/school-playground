@@ -11,9 +11,9 @@ export type { ArgusPass } from './grading/types'; // single source of truth; do 
 export const ARGUS_PASSES: ArgusPass[] = ['verbes', 'groupes_nominaux', 'homophones', 'mots_pieges'];
 
 export const ARGUS_LABELS: Record<ArgusPass, { title: string; hint: string }> = {
-  verbes: { title: 'Verbes', hint: 'Pour chaque verbe, cherche son sujet : singulier ou pluriel ?' },
-  groupes_nominaux: { title: 'Groupes nominaux', hint: "Déterminant, nom, adjectif : ils s'accordent ensemble." },
-  homophones: { title: 'Homophones', hint: 'a ou à ? et ou est ? Remplace par un autre mot pour vérifier.' },
+  verbes: { title: 'Verbes', hint: 'Pour chaque verbe, cherche son sujet\u202f: singulier ou pluriel\u202f?' },
+  groupes_nominaux: { title: 'Groupes nominaux', hint: "Déterminant, nom, adjectif\u202f: ils s'accordent ensemble." },
+  homophones: { title: 'Homophones', hint: 'a ou à\u202f? et ou est\u202f? Remplace par un autre mot pour vérifier.' },
   mots_pieges: { title: 'Mots-pièges', hint: "Les mots qui t'ont déjà joué des tours. Regarde chaque lettre." },
 };
 

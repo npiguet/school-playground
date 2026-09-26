@@ -215,7 +215,7 @@
     {#if work}
       {#if showFilter}
         <LevelMedallions
-          legend="Quelle classe ?"
+          legend="Quelle classe{'\u202f?'}"
           name="work-level"
           options={['Tous', ...LEVELS]}
           bind:value={levelFilter}
@@ -226,7 +226,7 @@
       {#if chunksLoading}
         <p class="muted">Les Muses déroulent les rouleaux…</p>
       {:else if chunksError}
-        <p class="kit-note" data-tone="eris">Impossible de lire les rouleaux : {chunksError}</p>
+        <p class="kit-note" data-tone="eris">Impossible de lire les rouleaux{'\u202f: '}{chunksError}</p>
       {:else if chunks.length === 0}
         {#if levelFilter !== 'Tous'}
           <p class="muted">Aucun rouleau pour cette classe.</p>
@@ -248,7 +248,7 @@
                 <span class="seq">Rouleau {chunk.seq}</span>
                 <span class="kit-medallion is-small" role="img" aria-label="Classe {chunk.level}">{chunk.level}</span>
                 <span class="roll-length">{lengthOf(chunk.word_count)}</span>
-                <span class="stars" role="img" aria-label="Richesse en accords : {starsFor(chunk.score)} sur 5">
+                <span class="stars" role="img" aria-label="Richesse en accords{'\u202f: '}{starsFor(chunk.score)} sur 5">
                   {#each Array.from({ length: starsFor(chunk.score) }, (_, i) => i) as i (i)}<Icon name="star" size={16} />{/each}
                 </span>
               </div>

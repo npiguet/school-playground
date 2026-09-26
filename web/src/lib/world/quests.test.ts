@@ -23,7 +23,7 @@ const catalog = { rewards: { 'tint:ecume': { name: 'Teinte Écume' }, sandales_h
 describe('quest labels', () => {
   it('titles', () => {
     expect(questTitle(q({}), names)).toBe("Tenir l'Hydre en échec");
-    expect(questTitle(q({ kind: 'oracle', target: 'echo' }), names)).toBe("Rouleau de l'Oracle : Écho");
+    expect(questTitle(q({ kind: 'oracle', target: 'echo' }), names)).toBe("Rouleau de l'Oracle\u202f: Écho");
     expect(questTitle(q({ kind: 'boss', target: 'eris', goal: { tier: 2, min_rate: 0.7, min_draft: 3 } }), names)).toBe(
       'Combat contre Éris (II)',
     );

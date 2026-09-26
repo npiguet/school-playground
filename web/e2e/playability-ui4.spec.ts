@@ -275,7 +275,7 @@ async function victorySection(w: Walk) {
   await shot(w, 'c14-victory-dragon-speaks');
   await page.getByTestId('battle-revoir').click();
   await waitForOverlaySettled(page, 'overlay-revoir');
-  await page.getByTestId('overlay-revoir').getByRole('button', { name: 'chante : piège, touche pour voir' }).click();
+  await page.getByTestId('overlay-revoir').getByRole('button', { name: 'chante\u202f: piège, touche pour voir' }).click();
   await shot(w, 'c15-revoir-scroll');
   await noRed(w, 'revoir');
   await closeOverlay(page);
@@ -384,7 +384,7 @@ async function nudgeSection(w: Walk) {
   await expect(page.getByTestId('break-nudge')).toBeVisible();
   // The reckoning has ended (the title names the outcome) and the sheet has come in.
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'defeat');
-  await expect(page.getByTestId('victory-title')).toHaveText('Victoire !');
+  await expect(page.getByTestId('victory-title')).toHaveText('Victoire\u202f!');
   await sheetSettled(page);
   await shot(w, 'c19-victory-break-nudge');
 }

@@ -29,7 +29,7 @@ export function questTitle(q: QuestOut, names: Record<string, string>): string {
     return `Combat contre ${name} (${romanTier(q.goal.tier ?? 1)})`;
   }
   const name = names[q.target] ?? q.target;
-  if (q.kind === 'oracle') return `Rouleau de l'Oracle : ${name}`;
+  if (q.kind === 'oracle') return `Rouleau de l'Oracle\u202f: ${name}`;
   return `Tenir ${lowerLeadingArticle(name)} en échec`;
 }
 

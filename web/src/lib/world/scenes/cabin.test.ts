@@ -19,9 +19,9 @@ describe('the cabin (UI3 Ruling B6)', () => {
     const greeting = cabinGreeting(dragon);
     expect(greeting).toEqual([expect.objectContaining({ key: 'cabin.enter', speaker: 'dragon', name: 'Braise' })]);
     expect(variantsOf('cabin.enter')).toContain(greeting[0].text);
-    expect(trophiesLine(dragon, 4).text).toBe('Chaque ruse neutralisée laisse une relique. Il en manque encore quatre !');
-    expect(trophiesLine(dragon, 1).text).toBe('Chaque ruse neutralisée laisse une relique. Il en manque encore une !');
-    expect(trophiesLine(dragon, 0).text).toBe('Chaque ruse neutralisée a laissé sa relique : elles sont toutes là !');
+    expect(trophiesLine(dragon, 4).text).toBe('Chaque ruse neutralisée laisse une relique. Il en manque encore quatre\u202f!');
+    expect(trophiesLine(dragon, 1).text).toBe('Chaque ruse neutralisée laisse une relique. Il en manque encore une\u202f!');
+    expect(trophiesLine(dragon, 0).text).toBe('Chaque ruse neutralisée a laissé sa relique\u202f: elles sont toutes là\u202f!');
     expect(trophiesLine(dragon, null).text).toBe('Chaque ruse neutralisée laisse une relique.');
     expect(journalLine(dragon).text).toBe('Ton journal se souvient de chaque texte défendu.');
     expect(lyreLine(dragon).text).toBe('Ici, tu choisis la voix qui te lit la dictée, et si le camp fait du bruit.');
@@ -66,6 +66,6 @@ describe('the cabin (UI3 Ruling B6)', () => {
   it('holds one piece per wall spot and says so in words when they are all taken', () => {
     expect(MAX_DISPLAYED_DECOR).toBe(4);
     expect(MAX_DISPLAYED_DECOR).toBe(DECOR_SLOTS.length);
-    expect(WALLS_FULL_LINE).toBe("Les murs sont pleins : range d'abord une pièce.");
+    expect(WALLS_FULL_LINE).toBe("Les murs sont pleins\u202f: range d'abord une pièce.");
   });
 });

@@ -28,7 +28,7 @@ describe('reward words', () => {
     expect(howToWin('criniere_chimere', 'Neutraliser la Chimère')).toBe('Neutralise la Chimère pour la gagner.');
     expect(howToWin('pavot_lethe', 'Neutraliser Léthé')).toBe('Neutralise Léthé pour le gagner.');
     expect(howToWin('sandales_hermes', '')).toBe('Bats Éris une première fois pour les gagner.');
-    expect(howToWin('decor:new', 'Dix quêtes du mur')).toBe('À gagner : dix quêtes du mur.');
+    expect(howToWin('decor:new', 'Dix quêtes du mur')).toBe('À gagner\u202f: dix quêtes du mur.');
     for (const id of HOW_TO_WIN_IDS) expect(howToWin(id, '')).not.toMatch(/Comment l'obtenir|Neutraliser|Vaincre/);
   });
 });

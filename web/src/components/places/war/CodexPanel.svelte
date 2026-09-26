@@ -73,7 +73,7 @@
         <span class="entry-teaser">{e.teaser}</span>
         {#if status}<span class="kit-stamp">{status}</span>{/if}
         {#if e.kind === 'monster' && !unlocked}
-          <span class="entry-locked" data-testid="bestiary-locked">Mythe à débloquer : termine une quête contre {pronounFor(e.key as LieutenantKey)}</span>
+          <span class="entry-locked" data-testid="bestiary-locked">Mythe à débloquer{'\u202f: '}termine une quête contre {pronounFor(e.key as LieutenantKey)}</span>
         {/if}
       </span>
     </button>

@@ -96,7 +96,7 @@
 <div class="panel-care">
   {#if !camp}
     {#if campStore.error && !campStore.loading}
-      <p class="kit-note" data-tone="eris">Impossible de rejoindre ton dragon : {campStore.error}</p>
+      <p class="kit-note" data-tone="eris">Impossible de rejoindre ton dragon{'\u202f: '}{campStore.error}</p>
     {:else}
       <p class="muted">Les Muses cherchent ton dragon…</p>
     {/if}

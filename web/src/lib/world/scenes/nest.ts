@@ -52,7 +52,7 @@ export function nestDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 
 export function growth(d: DragonOut): { value: number; max: number; label: string } {
   const max = d.next_stage_at ?? Math.max(1, d.available);
   if (d.next_stage_at === null) return { value: d.neutralised, max, label: 'Il a fini de grandir.' };
-  return { value: d.neutralised, max, label: `Pour grandir : ${plural(d.next_stage_at, "ruse d'Éris neutralisée", "ruses d'Éris neutralisées")}` };
+  return { value: d.neutralised, max, label: `Pour grandir\u202f: ${plural(d.next_stage_at, "ruse d'Éris neutralisée", "ruses d'Éris neutralisées")}` };
 }
 
 /** The dragon's greeting by its stage (UI5 Ruling E12); an unnamed hatchling asks for a name. */
@@ -64,6 +64,6 @@ export function nestGreeting(d: DragonOut): DialogueLine[] {
  *  first person under its own plate (UI3b playability #15). */
 export function careLine(d: DragonOut): DialogueLine {
   if (d.stage === 'egg') return dragonSays(d, "Je frémis dans la paille. J'éclorai quand une ruse d'Éris sera neutralisée.");
-  if (!d.name) return dragonSays(d, 'Te revoilà ! Tu me donnes un nom ?');
-  return dragonSays(d, 'Admire-moi ! Tu peux changer ma teinte quand tu veux.');
+  if (!d.name) return dragonSays(d, 'Te revoilà\u202f! Tu me donnes un nom\u202f?');
+  return dragonSays(d, 'Admire-moi\u202f! Tu peux changer ma teinte quand tu veux.');
 }

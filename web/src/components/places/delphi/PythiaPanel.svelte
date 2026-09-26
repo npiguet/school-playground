@@ -174,7 +174,7 @@
           {@const bonus = prophecyBonus(p)}
           <li class="kit-sheet prophecy-row" data-testid="oracle-prophecy-{p.text_id}">
             <p>
-              <span class="prophecy-title">« {p.title} »</span>
+              <span class="prophecy-title">{'«\u202f'}{p.title}{'\u202f»'}</span>
               <span class="prophecy-when">{longDate(p.due_date)} · {prophecyWhen(p.days_left)}</span>
               {#if bonus}<span class="prophecy-bonus" data-testid="oracle-prophecy-bonus">{bonus}</span>{/if}
             </p>
@@ -190,7 +190,7 @@
   {#if loading}
     <p class="muted">Les Muses consultent la Pythie…</p>
   {:else if loadError}
-    <p class="kit-note" data-tone="eris">Impossible de rejoindre l'Oracle : {loadError}</p>
+    <p class="kit-note" data-tone="eris">Impossible de rejoindre l'Oracle{'\u202f: '}{loadError}</p>
   {:else if oracle}
     {#if prophecyFirst}{@render propheciesSection(oracle.prophecies)}{/if}
     <!-- Re-review N1: no visible heading over the scrolls (the reward line leads them); the h3 stays
@@ -200,7 +200,7 @@
       <!-- Playability #8: the reward once, with its medallion, in dark bronze. -->
       <div class="reward-line" data-testid="oracle-reward">
         {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} size={36} />{/if}
-        <span>Cette semaine, le rouleau que tu ouvres rapporte : {oracleRewardLine()}</span>
+        <span>Cette semaine, le rouleau que tu ouvres rapporte{'\u202f: '}{oracleRewardLine()}</span>
       </div>
       {#if consultError}<p class="kit-note" data-tone="eris" role="alert">{consultError}</p>{/if}
 
@@ -210,7 +210,7 @@
           <OracleScroll testid="scroll-{s.key}" title={scrollTitle(s.key, s.title)} hint={s.hint} mode="unrolled">
             {#if ecolePickerOpen}
               <div class="picker" bind:this={pickerEl}>
-                <p class="picker-ask">Quel monstre ta classe prépare-t-elle ?</p>
+                <p class="picker-ask">Quel monstre ta classe prépare-t-elle{'\u202f?'}</p>
                 <div class="picker-grid">
                   {#each LIEUTENANT_ORDER as key (key)}
                     <button

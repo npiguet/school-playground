@@ -169,7 +169,7 @@
          out of reach, and offers to try again. -->
     {#if campStore.error && !campStore.loading}
       <div class="kit-parchment place-status stage-text" role="alert" data-testid="place-status">
-        <p>Impossible de rejoindre le camp : {campStore.error}</p>
+        <p>Impossible de rejoindre le camp{'\u202f: '}{campStore.error}</p>
         <button type="button" class="kit-bronze" data-testid="place-retry" onclick={() => refreshCamp(profile.id)}>Réessayer</button>
       </div>
     {:else if campStore.loading}

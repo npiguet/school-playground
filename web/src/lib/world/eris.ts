@@ -94,14 +94,14 @@ export function bandFor(l: LieutenantState): Band {
 
 const LINES: Record<LieutenantKey, Record<Band, string>> = {
   hydre: {
-    none: "Mon Hydre n'a pas encore montré ses têtes dans ces textes. Patience : elles repoussent vite.",
+    none: "Mon Hydre n'a pas encore montré ses têtes dans ces textes. Patience\u202f: elles repoussent vite.",
     strong: 'Les têtes de mon Hydre se glissent dans les pluriels et personne ne les remarque. Délicieux.',
     contested: "Une tête coupée sur deux. L'Hydre s'énerve, et moi aussi.",
     weak: 'Mon Hydre ne trouve presque plus de verbe où se cacher. Je vais devoir la nourrir.',
     neutralised: "L'Hydre est neutralisée. Je refuse d'en parler.",
   },
   echo: {
-    none: 'Écho attend son heure : a ou à, et ou est… elle répète, et on la croit.',
+    none: 'Écho attend son heure\u202f: a ou à, et ou est… elle répète, et on la croit.',
     strong: 'Écho murmure et ses mots passent pour vrais. Mon meilleur tour.',
     contested: 'Écho se fait démasquer une fois sur deux. Elle boude dans sa grotte.',
     weak: 'Écho n\'ose presque plus répéter. Ses échos s\'éteignent, quelle tristesse.',
@@ -109,7 +109,7 @@ const LINES: Record<LieutenantKey, Record<Band, string>> = {
   },
   chimere: {
     none: 'Ma Chimère n\'a pas encore rugi ici. Ses têtes se disputent le genre de chaque mot.',
-    strong: 'Un masculin ici, un féminin là : ma Chimère brouille tout et personne ne bronche.',
+    strong: 'Un masculin ici, un féminin là\u202f: ma Chimère brouille tout et personne ne bronche.',
     contested: 'La Chimère perd une tête sur deux. Elle ne sait plus laquelle rugir.',
     weak: 'Ma Chimère se fait attraper presque à chaque fois. Ses trois têtes en rougissent.',
     neutralised: "La Chimère est neutralisée. Bellérophon n'aurait pas fait mieux… oubliez ce que j'ai dit.",
@@ -122,7 +122,7 @@ const LINES: Record<LieutenantKey, Record<Band, string>> = {
     neutralised: "Protée est neutralisé. On l'a tenu jusqu'à ce qu'il reprenne sa vraie forme. Je déteste ça.",
   },
   sirenes: {
-    none: "Mes Sirènes n'ont pas encore chanté : elles éloignent le sujet de son verbe et attendent.",
+    none: "Mes Sirènes n'ont pas encore chanté\u202f: elles éloignent le sujet de son verbe et attendent.",
     strong: 'Le chant des Sirènes fait oublier le sujet à tout le monde. Mon plus beau tour.',
     contested: 'Une phrase sur deux résiste au chant des Sirènes. Elles chantent plus fort.',
     weak: "Les Sirènes chantent dans le vide. Quelqu'un s'attache au mât, c'est agaçant.",
@@ -142,8 +142,8 @@ export function dossierLine(key: LieutenantKey, band: Band): string {
 }
 
 export function dossierIntro(name: string, sessions: number): string {
-  if (sessions === 0) return `Dossier « ${name} ». Rien à signaler pour l'instant. Ça ne durera pas.`;
-  return `Dossier « ${name} ». ${plural(sessions, 'texte surveillé', 'textes surveillés')} de près. Voici où mes ruses passent encore.`;
+  if (sessions === 0) return `Dossier «\u202f${name}\u202f». Rien à signaler pour l'instant. Ça ne durera pas.`;
+  return `Dossier «\u202f${name}\u202f». ${plural(sessions, 'texte surveillé', 'textes surveillés')} de près. Voici où mes ruses passent encore.`;
 }
 
 /** Éris on her small tricks (accents, letters, capitals), in words, never a count (UI3b playability
@@ -152,7 +152,7 @@ export function smallTricksLine(traps: number, caught: number): string {
   if (traps === 0) return "Mes petites ruses (accents, lettres, majuscules) n'ont pas encore servi.";
   const rate = caught / traps;
   if (rate < 0.4) return 'Mes petites ruses (accents, lettres, majuscules) passent encore presque toutes. Je note.';
-  if (rate < 0.8) return 'Mes petites ruses (accents, lettres, majuscules) : une sur deux se fait prendre. Je note.';
+  if (rate < 0.8) return 'Mes petites ruses (accents, lettres, majuscules)\u202f: une sur deux se fait prendre. Je note.';
   return 'Mes petites ruses (accents, lettres, majuscules) se font presque toutes prendre. Je note, vexée.';
 }
 
@@ -164,7 +164,7 @@ export function objectPronounFor(key: LieutenantKey): string {
 
 /** The neutralisation rule as a sentence (UI3b playability #12): the portrait's gauges measure it. */
 export function neutraliseRule(key: LieutenantKey): string {
-  return `Pour ${objectPronounFor(key)} neutraliser : 3 jours de garde, 10 pièges croisés, et 8 sur 10 déjoués.`;
+  return `Pour ${objectPronounFor(key)} neutraliser\u202f: 3 jours de garde, 10 pièges croisés, et 8 sur 10 déjoués.`;
 }
 
 /** What still stands between the hero and a lieutenant, in Éris's words, for its sheet in her file

@@ -108,7 +108,7 @@ test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back
   // Each scroll on one shelf only: her own class behind the toggle repeats nothing of « Pour toi ».
   await chooseLevel(shelves.getByTestId('shelf-levels'), '10H');
   await expect(shelves.locator('#other-levels [data-testid="text-card"]')).toHaveCount(0);
-  await expect(shelves.locator('#other-levels')).toContainText('sous « Pour toi »');
+  await expect(shelves.locator('#other-levels')).toContainText('sous «\u202fPour toi\u202f»');
   await expectOverlayTapTargets(page, 'overlay-shelves');
   await shelves.getByTestId('overlay-close').click();
   await expect(shelves).toHaveCount(0);
@@ -285,7 +285,7 @@ test('the desk writes a new parchment; saving lands on the shelves and Back neve
   await expect(desk.getByTestId('desk-gauge')).not.toContainText('il en faut');
   // A text to defend is set in Literata (Ruling A8).
   expect(await desk.getByLabel('Texte').evaluate((el) => getComputedStyle(el).fontFamily)).toContain('Literata');
-  const classes = desk.getByRole('group', { name: 'Pour quelle classe ?' });
+  const classes = desk.getByRole('group', { name: 'Pour quelle classe\u202f?' });
   await expect(classes).toBeVisible();
   // Re-review N8: the seven class medallions sit in one row of the side column on the iPad.
   if (testInfo.project.name === 'ipad') {
@@ -295,7 +295,7 @@ test('the desk writes a new parchment; saving lands on the shelves and Back neve
   }
   await expect(desk.locator('select')).toHaveCount(0);
   // Parity: author, work and translator are one tap away.
-  await desk.getByText("Qui l'a écrit ?").click();
+  await desk.getByText("Qui l'a écrit\u202f?").click();
   for (const label of ['Auteur', 'Œuvre', 'Traducteur']) await expect(desk.getByLabel(label)).toBeVisible();
   // Playability #5: the way to finish is visible without scrolling on the iPad.
   const submit = desk.getByRole('button', { name: "Poser sur l'étagère" });
@@ -409,7 +409,7 @@ test('the portal opens the works, a work opens its scrolls, « Toutes les œuvre
   // Playability #7: a never-copied work points at the scribes, with no filter to filter nothing. The
   // shared database may already hold copies of this work (alexandria.spec.ts covers that branch).
   if (firstStatus === 'never') {
-    await expect(work.getByTestId('scribes-empty')).toContainText("Les scribes n'ont encore rien recopié de ce livre. Demande-leur !");
+    await expect(work.getByTestId('scribes-empty')).toContainText("Les scribes n'ont encore rien recopié de ce livre. Demande-leur\u202f!");
     await expect(work.getByTestId('scribes-empty')).toHaveAttribute('data-speaker', 'owl');
     // UI3b playability #19: the owl speaks on the left page, by the button she points at.
     await expect(work.locator('.page-left').getByTestId('scribes-empty')).toBeVisible();
