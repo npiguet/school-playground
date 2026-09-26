@@ -31,8 +31,8 @@
     <a class="link" data-testid="topbar-camp" aria-label="Retour au camp" href={href('camp', { profileId })}
       ><span class="icon"><Icon name="arrow-left" size={20} /></span><span class="label">Retour au camp</span></a
     >
-    <a class="link" aria-label="Progrès" href={href('dossier', { profileId })}
-      ><span class="icon"><Icon name="journal" size={22} /></span><span class="label">Progrès</span></a
+    <a class="link" data-testid="topbar-journal" aria-label="Lire ton journal" href={href('stats', { profileId })}
+      ><span class="icon"><Icon name="journal" size={22} /></span><span class="label">Lire ton journal</span></a
     >
     <a class="link" aria-label="Réglages" href={href('settings', { profileId })}
       ><span class="icon"><Icon name="lamp" size={22} /></span><span class="label">Réglages</span></a

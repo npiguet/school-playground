@@ -41,19 +41,19 @@
   <div class="codex-spread panel-codex-page">
     <section class="codex-page page-left">
       <figure class="plate" class:is-scene={item.kind === 'place'}><img src={item.art} alt="" /></figure>
-      <h3>Le mythe</h3>
+      <h3 class="kit-section">Le mythe</h3>
       {#if unlocked}
         <ul>{#each item.facts as fact (fact)}<li>{fact}</li>{/each}</ul>
       {:else}
         <p>{item.teaser}</p>
         <p class="kit-note" data-tone="eris">Mythe à débloquer : termine une quête contre {pronounFor(item.key as LieutenantKey)}.</p>
       {/if}
-      <h3>Sources</h3>
+      <h3 class="kit-section">Sources</h3>
       <p class="muted sources">{item.sources}</p>
     </section>
     <section class="codex-page page-right">
       <span class="kit-stamp">Fiction du jeu</span>
-      <h3>Au camp</h3>
+      <h3 class="kit-section">Au camp</h3>
       <p>{item.inGame}</p>
       {#if item.kind === 'monster'}
         <button type="button" class="kit-bronze" data-testid="codex-page-lieutenant" onclick={openLieutenant}>Voir la ruse et la quête</button>
