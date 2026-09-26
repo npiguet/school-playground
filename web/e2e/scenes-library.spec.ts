@@ -16,12 +16,13 @@ import {
   redScan,
   tap,
   uniqueName,
+  heroNamer,
 } from './helpers';
 
 // UI3a Task 9 (scenes spec §3 Library, §10): the library tent as a place. desktop + ipad.
 
 const PLACES = ['library-shelves', 'library-desk', 'library-lens', 'library-portal'];
-const heroName = (project: string) => uniqueName(`Tente-${project}`);
+const heroName = heroNamer('Tente');
 
 async function openTent(page: Page, id: number) {
   await page.goto(`/#/p/${id}/tente-parchemins`);

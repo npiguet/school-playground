@@ -1,5 +1,5 @@
 import { test, expect } from './crashGuard';
-import { createProfileApi, expectCamp, uniqueName } from './helpers';
+import { createProfileApi, expectCamp, uniqueName, heroNamer } from './helpers';
 
 // Task 9b: the read-only `?debug` hotspot outline overlay (replaces the interactive `?edit`
 // editor the user decided against). Runs on both WebKit projects (scenes-*.spec.ts matches the
@@ -8,7 +8,7 @@ import { createProfileApi, expectCamp, uniqueName } from './helpers';
 
 // Fix round 1 #6: `Date.now() % 1e6` alone collided across workers under `--repeat-each` (see
 // uniqueName's own comment in helpers.ts).
-const heroName = (project: string) => uniqueName(`Debug-${project}`);
+const heroName = heroNamer('Debug');
 
 test('?debug shows one outline per visible camp hotspot and hotspots stay clickable', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));

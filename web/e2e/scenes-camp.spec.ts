@@ -13,6 +13,7 @@ import {
   tap,
   uniqueName,
   waitForSceneSettled,
+  heroNamer,
 } from './helpers';
 
 // UI1 (scenes spec §9, §10): the camp as a hub scene, in both WebKit projects (desktop 1280x720
@@ -34,7 +35,7 @@ const BODY = 'Les héros reviennent au camp. Ils racontent leurs voyages et les 
 
 // Fix round 1 #6: `Date.now() % 1e6` alone collided across workers under `--repeat-each` (see
 // uniqueName's own comment in helpers.ts).
-const heroName = (project: string) => uniqueName(`Hub-${project}`);
+const heroName = heroNamer('Hub');
 
 // Two animation frames in the page: every effect and DOM update queued before now has run.
 async function afterTwoFrames(page: Page) {
@@ -270,7 +271,7 @@ test('places and their labels sit inside the visible safe zone, never overlap, a
       await openCamp(page, id);
       await expect(page.getByTestId('scene-exit'), at).toHaveCount(0);
       if (id === ready) {
-        await expect(page.getByTestId('camp-boss'), at).toContainText("Combat 1 : Sandales d'Hermès");
+        await expect(page.getByTestId('camp-boss'), at).toContainText("Combat I : Sandales d'Hermès");
         await expect(page.getByTestId('camp-oracle-badge'), at).toBeVisible();
         await expect(page.getByTestId('camp-dossier-badge'), at).toBeVisible();
       } else {
@@ -566,7 +567,7 @@ test('the path to battle opens once Éris can be fought; badges sit on their pla
   // Controller ruling P8c: assert the actual reward name (tier 1 -> BOSS_REWARDS[1] ==
   // "sandales_hermes" -> "Sandales d'Hermès" per server/app/world/catalog.py), not just the
   // tier number.
-  await expect(boss).toContainText("Combat 1 : Sandales d'Hermès");
+  await expect(boss).toContainText("Combat I : Sandales d'Hermès");
   await expect(page.getByTestId('camp-dragon-layer').locator('img')).not.toHaveAttribute('src', /dragon_egg/);
 
   // Playability #5, UI3 Ruling B3: the quest count is pinned to the top-right corner of the Delphi
@@ -613,7 +614,7 @@ test('the weekly ribbon hangs in the open sky, at least 4 px clear of every plac
     await expectCamp(page);
     await waitForSceneSettled(page, 'camp');
     await expect(page.getByTestId('camp-weekly')).toContainText('0 / 5');
-    await expect(page.getByTestId('camp-boss')).toContainText("Combat 1 : Sandales d'Hermès");
+    await expect(page.getByTestId('camp-boss')).toContainText("Combat I : Sandales d'Hermès");
     const { art, weekly, hotspots } = await page.evaluate(() => {
       const rect = (el: Element) => {
         const r = el.getBoundingClientRect();

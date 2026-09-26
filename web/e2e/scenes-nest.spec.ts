@@ -9,12 +9,12 @@ import {
   measureBoxes,
   redScan,
   tap,
-  uniqueName,
+  heroNamer,
 } from './helpers';
 
 // UI3b Task 4 (scenes spec §3 Dragon's nest, §10). desktop + ipad.
 
-const heroName = (project: string) => uniqueName(`Nid-${project}`);
+const heroName = heroNamer('Nid');
 
 test('the nest: the egg in the straw, its growth, its greeting; the exit leads back', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
@@ -77,6 +77,29 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(care.getByTestId('dragon-tint-bronze').locator('.swatch-egg')).toHaveCSS('filter', 'none');
   await closeOverlay(page);
   await expect(page.getByTestId('nest-dragon')).toBeFocused();
+});
+
+test('a name being typed survives a tint tapped (a new camp snapshot) (final review I5)', async ({ page, request }, testInfo) => {
+  // A hatched dragon, named, with a second tint to pick: /camp and the tint PATCH are this test's.
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const camp = await (await route.fetch()).json();
+    camp.dragon = { ...camp.dragon, stage: 'hatchling', name: 'Braise', unlocked_tints: ['bronze', 'ecume'] };
+    await route.fulfill({ json: camp });
+  });
+  await page.route(`**/api/profiles/${id}/dragon`, async (route) => {
+    const tint = (route.request().postDataJSON() as { tint?: string }).tint ?? 'bronze';
+    await route.fulfill({ json: { name: 'Braise', tint, stage: 'hatchling' } });
+  });
+  await page.goto(`/#/p/${id}/dragon?panel=soin&debug`);
+  const care = page.getByTestId('overlay-care');
+  const input = care.getByTestId('dragon-name-input');
+  await expect(input).toHaveValue('Braise');
+  await input.fill('Aile');
+  await care.getByTestId('dragon-tint-ecume').click();
+  await expect(care.getByTestId('dragon-tint-ecume')).toHaveClass(/selected/);
+  await expect(input).toHaveValue('Aile');
+  expect(await redScan(page)).toEqual([]);
 });
 
 test('overlay-care: an in-world scroll, clear of the HUD, 48 px targets, kit classes only', async ({ page, request }, testInfo) => {

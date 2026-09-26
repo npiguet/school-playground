@@ -1,5 +1,10 @@
 # Icon and badge inventory
 
+> **Superseded by UI3b (2026-09-26).** A historical sweep: the screens it cites (`DragonScreen`,
+> `Cabin`, `Lieutenant`, `Dossier`, `Bestiaire`, the camp's old hero panel) are gone, replaced by
+> the places and their overlays (`web/src/screens/Nest.svelte`, `CabinRoom.svelte`,
+> `WarTent.svelte`, `web/src/components/places/`). Its rows keep their original paths as a record.
+
 A sweep of every small visual element (icon, badge, avatar, marker, chip, insignia, pictogram,
 status symbol, decorative glyph) the player can see in La Discorde, done for the iPad rebuild.
 Repo-root `CLAUDE.md` rule: **no emoji anywhere the player can see**, including inside French text.

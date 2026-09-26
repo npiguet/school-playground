@@ -20,5 +20,9 @@ export default defineConfig({
     // Set explicitly (vitest 5's default): each run transforms afresh, as with vitest 3, and the
     // post-run "persist transforms with fsModuleCache" hint stays out of the gate's output.
     fsModuleCache: false,
+    // Set explicitly (the default): every test file gets its own worker, so a file's vi.mock or
+    // shared-store state never leaks into the next. Chosen explicitly, vitest 5 no longer prints its
+    // "isolate: false would be faster" hint into the gate's output (zero warnings, CLAUDE.md).
+    isolate: true,
   },
 });

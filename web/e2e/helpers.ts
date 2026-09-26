@@ -79,6 +79,9 @@ export function uniqueName(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
 
+/** A spec's hero namer (final review M3): `heroNamer('Nid')('webkit')` -> a unique « Nid-webkit-… ». */
+export const heroNamer = (prefix: string) => (project: string) => uniqueName(`${prefix}-${project}`);
+
 // UI1 (scenes spec §9): the camp is a hub scene. The old « Bienvenue au camp, X. » heading is now
 // the dragon's first dialogue line, so specs wait for the scene stage itself.
 export async function expectCamp(page: Page) {

@@ -18,13 +18,14 @@ import {
   redScan,
   tap,
   uniqueName,
+  heroNamer,
 } from './helpers';
 
 // UI3a Task 12 (scenes spec §3 Delphi, §10): the Pythia and the votive tablets. desktop + ipad.
 
 const PLACES = ['delphi-pythia', 'delphi-tablets'];
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
-const heroName = (project: string) => uniqueName(`Delphes-${project}`);
+const heroName = heroNamer('Delphes');
 
 async function openTemple(page: Page, id: number) {
   await page.goto(`/#/p/${id}/temple`);

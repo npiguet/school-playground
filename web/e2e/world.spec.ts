@@ -238,6 +238,8 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.goto(`/#/p/${profileId}/dragon?panel=soin`);
     await page.getByTestId('dragon-name-input').fill('Braise');
     await page.getByTestId('dragon-name-save').click();
+    // Final review I4: the PATCH has landed before the reload (a click resolves on dispatch).
+    await expect(page.getByTestId('overlay-care').getByRole('status')).toHaveText("C'est noté.");
     await page.reload();
     await expect(page.getByTestId('dragon-name-input')).toHaveValue('Braise');
 

@@ -10,13 +10,13 @@ import {
   labelOverlaps,
   redScan,
   tap,
-  uniqueName,
+  heroNamer,
 } from './helpers';
 
 // UI3b Tasks 5-6 (scenes spec §3 Cabin, §10). desktop + ipad.
 
 const PLACES = ['cabin-trophies', 'cabin-journal', 'cabin-lyre'];
-const heroName = (project: string) => uniqueName(`Cabane-${project}`);
+const heroName = heroNamer('Cabane');
 
 async function openCabin(page: Page, id: number) {
   await page.goto(`/#/p/${id}/cabane`);
@@ -140,6 +140,8 @@ test('the HUD hero chip opens the hero panel in the cabin from any place; its se
   await expect(page.getByTestId('scene-cabin')).toHaveAttribute('inert', '');
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/tente-parchemins$/);
+  // Final review M17: the step back remounts the library (a new chip): focus lands on it there too.
+  await expect(page.getByTestId('hud-hero')).toBeFocused();
   await page.getByTestId('hud-hero').click();
   await panel.getByRole('link', { name: 'Ton journal' }).click();
   await expect(page).toHaveURL(/\/stats$/);

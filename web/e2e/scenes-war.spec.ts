@@ -10,7 +10,7 @@ import {
   labelOverlaps,
   redScan,
   tap,
-  uniqueName,
+  heroNamer,
 } from './helpers';
 
 // UI3b (scenes spec §3 War tent, §10): the lieutenants' portrait sheets, the first locked places
@@ -18,7 +18,7 @@ import {
 
 const SHEETS = ['hydre', 'echo', 'chimere', 'protee', 'sirenes', 'lethe'];
 const PLACES = [...SHEETS.map((k) => `war-${k}`), 'war-dossier', 'war-bestiary'];
-const heroName = (project: string) => uniqueName(`Guerre-${project}`);
+const heroName = heroNamer('Guerre');
 
 async function openTent(page: Page, id: number) {
   await page.goto(`/#/p/${id}/tente-de-guerre`);
@@ -95,6 +95,59 @@ test("a lieutenant asleep at the hero's class is a locked place: the dragon says
   await expect(page).toHaveURL(/\/monstres\/hydre$/);
 });
 
+test("a sleeping lieutenant's portrait, however it is reached, has no quest: the dragon says why", async ({ page, request }, testInfo) => {
+  // Final review I1: the sheet was locked, but the codex page and a deep link reached a portrait
+  // with « Lancer une quête », and the server started the quest.
+  const id = await createProfileApi(request, heroName(testInfo.project.name), '7H');
+  const line = 'Protée dort encore. Ses ruses viendront dans une classe plus grande.';
+  const sheet = page.getByTestId('overlay-portrait');
+  const expectAsleep = async (how: string) => {
+    await expect(sheet, how).toBeVisible();
+    await expect(sheet.getByTestId('overlay-voice'), how).toHaveAttribute('data-speaker', 'dragon');
+    await expect(sheet.getByTestId('overlay-voice'), how).toContainText(line);
+    await expect(sheet.getByTestId('lieutenant-portrait'), how).toHaveClass(/asleep/);
+    await expect(sheet.getByTestId('lieutenant-quest'), how).toHaveCount(0);
+    await expect(sheet.getByTestId('lieutenant-gauge-days'), how).toHaveCount(0);
+    expect(await redScan(page), how).toEqual([]);
+  };
+  await page.goto(`/#/p/${id}/monstres/protee`);
+  await expectAsleep('deep link');
+  // The codex page keeps its button: it leads to the same sleeping portrait.
+  await page.goto(`/#/p/${id}/bestiaire/protee`);
+  await page.getByTestId('overlay-codex-page').getByTestId('codex-page-lieutenant').click();
+  await expect(page).toHaveURL(/\/monstres\/protee$/);
+  await expectAsleep('codex page');
+  // A stale client is refused by the server with the same words.
+  const r = await request.post(`/api/profiles/${id}/quests`, { data: { target: 'protee' } });
+  expect(r.status()).toBe(409);
+  expect((await r.json()).detail).toBe(line);
+});
+
+test("a hero switch then a deep link never shows the previous hero's lieutenant (final review I2)", async ({ page, request }, testInfo) => {
+  // The camp store is shared across heroes; until the new hero's /camp answers, the portrait must
+  // wait for it rather than show the previous hero's quest.
+  const before = await createProfileApi(request, heroName(testInfo.project.name));
+  const afterName = heroName(testInfo.project.name);
+  const after = await createProfileApi(request, afterName);
+  expect((await request.post(`/api/profiles/${before}/quests`, { data: { target: 'hydre' } })).ok()).toBeTruthy();
+  await page.goto(`/#/p/${before}/monstres/hydre`);
+  const sheet = page.getByTestId('overlay-portrait');
+  await expect(sheet.getByTestId('lieutenant-quest')).toHaveText('Quête en cours');
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(`**/api/profiles/${after}/camp`, async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.goto(`/#/p/${after}/monstres/hydre`);
+  await expect(page.getByTestId('hud-hero')).toHaveAccessibleName(`Ton héros : ${afterName}`);
+  await expect(sheet).toContainText('Les Muses cherchent ce lieutenant');
+  await expect(sheet.getByTestId('lieutenant-quest')).toHaveCount(0);
+  await expect(sheet.getByTestId('overlay-voice')).toContainText('Éris feuillette son dossier');
+  release();
+  await expect(sheet.getByTestId('lieutenant-quest')).toHaveText('Lancer une quête');
+});
+
 test('places and labels sit in the safe zone, labels never cover another place', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }]) {
@@ -147,6 +200,14 @@ test("the map table opens Éris's file; a sheet opens its lieutenant; the seals 
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/dossier$/);
   await expect(file.getByTestId('dossier-row-hydre')).toBeFocused();
+  // The journal is the cabin's overlay: opened as a tagged push (final review M13), its seal steps
+  // back to this file, not into the bare cabin.
+  await file.getByTestId('dossier-journal').click();
+  await expect(page).toHaveURL(/\/stats$/);
+  await expect(page.getByTestId('overlay-journal')).toBeVisible();
+  await closeOverlay(page);
+  await expect(page).toHaveURL(/\/dossier$/);
+  await expect(page.getByTestId('overlay-dossier')).toBeVisible();
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/tente-de-guerre$/);
 });

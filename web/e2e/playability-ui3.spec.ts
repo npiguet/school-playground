@@ -528,6 +528,7 @@ test('UI3 playability walk', async ({ page }, testInfo) => {
     if (url.protocol === 'http:' || url.protocol === 'https:') origins.add(url.origin);
   });
   await stubSpeech(page);
+  // Leftovers of an earlier run that failed (or was killed) before its cleanup (final review I3).
   await clearEarlierWalk(page.request);
   try {
     if (project === 'ipad-portrait') {
@@ -552,10 +553,17 @@ test('UI3 playability walk', async ({ page }, testInfo) => {
       await expect(page.getByTestId('hotspot-debug')).toBeVisible();
       await shot(w, d.name);
     }
-    // Re-review N15: the walk's global fixtures leave with it (a prophecy due in 3 days would be
-    // every other hero's next step); the heroes stay for a look until the next walk clears them.
-    await deleteTexts(page.request, [PROPHECY_TITLE, DEFENDED_TITLE, VEILLEE_TITLE]);
   } finally {
+    // Re-review N15, final review I3: the walk's global fixtures leave with it, even when a section
+    // failed (a prophecy due in 3 days would be every other hero's next step, and the functional
+    // suite's glow checks would fail for days); clearEarlierWalk above also removes any a crashed
+    // run left. The heroes stay for a look until the next walk clears them. A failed delete is
+    // noted, never allowed to hide the walk's own failure.
+    try {
+      await deleteTexts(page.request, [PROPHECY_TITLE, DEFENDED_TITLE, VEILLEE_TITLE]);
+    } catch (e) {
+      w.notes.push(`cleanup failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
     w.notes.push(`request origins: ${JSON.stringify([...origins])}`);
     console.log(`\n===== NOTES ${project} =====\n${w.notes.join('\n')}\n`);
   }
