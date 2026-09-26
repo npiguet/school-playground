@@ -1,0 +1,49 @@
+// A backend that plays nothing and writes down what it was asked (Ruling E10): vitest's, and every
+// e2e page's (window.__discordeAudioStub), whose engine state is read through window.__discordeAudio.
+import type { AudioBackend, ContextState } from './engine';
+import type { SfxId, TrackId } from './catalog';
+
+export interface Recorded {
+  calls: string[];
+  tracks: { id: TrackId; gain: number; stopped: boolean }[];
+  sfx: { id: SfxId; gain: number }[];
+  state: ContextState;
+}
+
+export function recordingBackend(): AudioBackend & { log: Recorded } {
+  const log: Recorded = { calls: [], tracks: [], sfx: [], state: 'suspended' };
+  return {
+    log,
+    track(id) {
+      const t = { id, gain: 0, stopped: false };
+      log.tracks.push(t);
+      return {
+        start(gain, ms) {
+          t.gain = gain;
+          log.calls.push(`start ${id} ${gain} ${ms}`);
+        },
+        fadeTo(gain, ms) {
+          t.gain = gain;
+          log.calls.push(`fade ${id} ${gain} ${ms}`);
+        },
+        stop(ms) {
+          t.gain = 0;
+          t.stopped = true;
+          log.calls.push(`stop ${id} ${ms}`);
+        },
+      };
+    },
+    sfx(id, gain) {
+      log.sfx.push({ id, gain });
+    },
+    warm() {},
+    // resume/suspend change the state only: the lifecycle test expects no call before the unlock.
+    resume() {
+      log.state = 'running';
+    },
+    suspend() {
+      log.state = 'suspended';
+    },
+    state: () => log.state,
+  };
+}
