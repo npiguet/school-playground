@@ -1,6 +1,7 @@
 import type { APIRequestContext, Page, TestInfo } from '@playwright/test';
 import { test, expect } from './crashGuard';
 import {
+  audioState,
   battleRects,
   createProfileApi,
   createText,
@@ -193,11 +194,14 @@ test('the muster says when the voice is muted, and gives it back (Ruling E7)', a
   await expectBattle(page, 'muster');
   const note = page.getByTestId('battle-voice-muted');
   await expect(note).toContainText('La voix de la dictée est en sourdine.');
+  // The mixer holds the hero's muted voice (Ruling E10's snapshot)...
+  await expect.poll(async () => (await audioState(page))?.settings.voice.muted).toBe(true);
   const saved = page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().endsWith(`/api/profiles/${id}`));
   await tap(page.getByTestId('battle-voice-unmute'), testInfo);
   await expect(note).toHaveCount(0);
-  // Saved on the hero, like the lyre's toggle. (The engine's own snapshot, audioState, arrives with
-  // lane A's mixer, UI5 Task 4; the store and the server are this lane's contract.)
+  // ...and hears « Rendre la voix ».
+  await expect.poll(async () => (await audioState(page))?.settings.voice).toEqual({ volume: 1, muted: false });
+  // Saved on the hero, like the lyre's toggle.
   await saved;
   const hero = await (await request.get(`/api/profiles/${id}`)).json();
   expect(hero.settings.audio.voice).toMatchObject({ muted: false, volume: 1 });

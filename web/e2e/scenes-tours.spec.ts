@@ -158,8 +158,45 @@ test('a deep link to the hero panel waits for the camp tour: one modal at a time
   await expect(page.getByTestId('tour')).toHaveAttribute('data-tour', 'cabin');
 });
 
-// needs lane A's lyre button (UI5 Task 5); un-fixme'd in Task 9
-test.fixme('« Refaire les visites du camp » brings every tour back', async ({ page, request }, testInfo) => {
+// The HUD's sound plate is a popover, not a modal: a tour that opens while it is open (the camp data
+// came late) closes it, so the plate's tap-outside and the tour's tap-anywhere never share a tap.
+test('a tour that opens closes the sound plate, and the HUD stays shut under the tour', async ({ page, request }, testInfo) => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/api/profiles/*/camp', async (route) => {
+    await held;
+    await route.fallback();
+  });
+  const id = await createFreshHeroApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/camp`);
+  const opener = page.getByTestId('hud-mute');
+  await tap(opener, testInfo);
+  await expect(page.getByTestId('hud-sound')).toBeVisible();
+  // iPad Safari never focuses a tapped button: focus is on <body>, so the tour taking focus is no
+  // focus-out from the plate (the test browser may have focused the lyre button).
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await expect(page.getByTestId('hud-sound')).toBeVisible();
+  release();
+  const tour = page.getByTestId('tour');
+  await expect(tour).toHaveAttribute('data-tour', 'camp');
+  await expect(page.getByTestId('hud-sound')).toHaveCount(0);
+  await expect(opener).toHaveAttribute('aria-expanded', 'false');
+  // A tap where the lyre button shows lands on the tour (the HUD is inert under it): the tour moves
+  // on, the plate stays shut.
+  const at = (await opener.boundingBox())!;
+  const x = at.x + at.width / 2;
+  const y = at.y + at.height / 2;
+  await expect
+    .poll(async () => {
+      await (testInfo.project.name === 'ipad' ? page.touchscreen.tap(x, y) : page.mouse.click(x, y));
+      return tour.getAttribute('data-step');
+    })
+    .not.toBe('0');
+  await expect(page.getByTestId('hud-sound')).toHaveCount(0);
+  await expect(opener).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('« Refaire les visites du camp » brings every tour back', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await request.patch(`/api/profiles/${id}`, { data: { settings: { tours: ['camp', 'library', 'delphi', 'war', 'nest', 'cabin'] } } });
   await page.goto(`/#/p/${id}/settings`);

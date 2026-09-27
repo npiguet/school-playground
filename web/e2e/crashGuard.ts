@@ -7,9 +7,14 @@ import { test as base, expect } from '@playwright/test';
 // defect and never retries). Every spec imports `test` from here, not from '@playwright/test'
 // (guarded by src/e2eCrashGuard.test.ts). The error's name lives in crashClassify.ts, with the
 // other crashes the retry counts (Ruling U4-b: a worker or browser segfault).
-import { BROWSER_CRASHED } from './crashClassify';
+import type { BrowserContext } from '@playwright/test';
+import { BROWSER_CRASHED, DURING_BODY } from './crashClassify';
 
 export { BROWSER_CRASHED };
+
+// The contexts whose test body has ended: the `page` fixture's teardown has begun, or (a test that
+// opens its own pages) the `context` fixture's.
+const bodyEnded = new WeakSet<BrowserContext>();
 
 export const test = base.extend<{ tours: boolean }>({
   // UI5 Ruling E10: the first-visit tours stay away unless a spec asks for them with
@@ -19,15 +24,19 @@ export const test = base.extend<{ tours: boolean }>({
   // crash, and the browser for a disconnect. Checked after the test body, whether it passed or not:
   // a crash makes the body fail on whatever it was doing ("Target crashed", a closed page, a
   // timeout), and this error names the cause next to it.
+  // A crash seen before the `page` fixture's teardown began (the body still ran) is marked
+  // DURING_BODY: the classifier then counts every failure of the body as its aftermath.
   context: async ({ context, browser }, use) => {
     const crashes: string[] = [];
     const watch = (page: import('@playwright/test').Page) =>
-      page.on('crash', () => crashes.push(`page crashed at ${page.url()}`));
+      page.on('crash', () => crashes.push(`page crashed at ${page.url()}${bodyEnded.has(context) ? '' : ` ${DURING_BODY}`}`));
     context.pages().forEach(watch);
     context.on('page', watch);
     const onDisconnect = () => crashes.push('browser disconnected');
     browser.on('disconnected', onDisconnect);
     await use(context);
+    // A test that opens its own pages (no `page` fixture): its body has ended here.
+    bodyEnded.add(context);
     await context.unrouteAll({ behavior: 'ignoreErrors' });
     browser.off('disconnected', onDisconnect);
     if (crashes.length) throw new Error(`${BROWSER_CRASHED}: ${crashes.join('; ')}`);
@@ -57,6 +66,7 @@ export const test = base.extend<{ tours: boolean }>({
       }, 100);
     }, tours);
     await use(page);
+    bodyEnded.add(page.context());
     if (testInfo.status !== testInfo.expectedStatus && !page.isClosed()) {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const stalls = await Promise.race([

@@ -20,9 +20,18 @@ export function isCrash(message: string): boolean {
 // doing, "Target crashed", a closed page or browser, a timeout). Nothing else rides along with one.
 const AFTERMATH = /Target crashed|Page crashed|(?:Target page, context or browser|Browser) has been closed|browser has disconnected|Test timeout of \d+ms exceeded/i;
 
+// crashGuard.ts appends this to its named error when the page crashed while the test body still ran
+// (UI5 Task 9: a pending `expect` then fails at once with an empty call log, not « Target crashed »).
+// The body stops at its first failure (the specs use no soft assertions), so whatever failed it came
+// at or after the crash: the crash explains it.
+export const DURING_BODY = '(while the test body ran)';
+
 /** A test crashed when one of its errors is a crash and every other one is only what the crash did
  *  to the body (final review M21): a real assertion failure followed by a teardown segfault stays a
- *  failure, never retried into a green. */
-export const crashedWith = (errors: { message?: string }[]): boolean =>
-  errors.some((e) => isCrash(e.message ?? '')) &&
-  errors.every((e) => isCrash(e.message ?? '') || AFTERMATH.test(e.message ?? ''));
+ *  failure, never retried into a green. A crash that came while the body ran explains every error. */
+export const crashedWith = (errors: { message?: string }[]): boolean => {
+  const crashes = errors.filter((e) => isCrash(e.message ?? ''));
+  if (crashes.length === 0) return false;
+  if (crashes.some((e) => (e.message ?? '').includes(DURING_BODY))) return true;
+  return errors.every((e) => isCrash(e.message ?? '') || AFTERMATH.test(e.message ?? ''));
+};

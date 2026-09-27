@@ -2,7 +2,9 @@
   // The HUD's quick sound toggles (spec §7, Ruling E8): the lyre button drops a small bronze plate
   // with the three channels and a way to the full lyre. A transient control, no route; closes on
   // Escape, on a tap outside, and on its way to the lyre, giving focus back to the lyre button.
+  import { untrack } from 'svelte';
   import Icon from '../ui/Icon.svelte';
+  import { overlayState } from '../../lib/scene/overlayState.svelte';
   import { audioSettings, bothMuted, setChannel } from '../../lib/audio/store.svelte';
   import { unlockAudio, playSfx } from '../../lib/juice/sfx';
   import { go } from '../../lib/scene/panelNav';
@@ -61,6 +63,14 @@
       window.removeEventListener('pointerdown', onDown, true);
       window.removeEventListener('keydown', onKey);
     };
+  });
+
+  // A popover, never under a modal: a tour or a panel that opens (a tour starts once the camp data
+  // arrives, maybe while the plate is open) closes it. Otherwise the plate would stay open under the
+  // inert stage, and the next tap would both close it (outside) and move the tour on (anywhere).
+  // (Under a modal the stage is inert, so the plate cannot be opened there.)
+  $effect(() => {
+    if (overlayState.open > 0) untrack(() => close(false));
   });
 
   // Lane A review #8: Tab (or any move of focus) out of the plate closes it. Only a focus that lands

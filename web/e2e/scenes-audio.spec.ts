@@ -17,7 +17,9 @@ import {
   tap,
   uniqueName,
 } from './helpers';
+import { readdirSync, readFileSync } from 'node:fs';
 import { frenchSpacing } from '../src/lib/text/french';
+import { MUSIC_BUDGET_BYTES, SFX, SFX_BUDGET_BYTES, SFX_MAX_BYTES, TRACKS, TRACK_MAX_BYTES } from '../src/lib/audio/catalog';
 
 // UI5 (spec §7): the engine's state through the recording backend (Ruling E10): no real sound.
 const heroName = heroNamer('Lyre');
@@ -195,4 +197,88 @@ test('a muted voice says nothing, and the dictation still goes on at its pace (R
   await expect(page.getByTestId('dictation-status')).toHaveText("À toi d'écrire.");
   expect(await said(page)).toEqual([]);
   expect((await audioState(page))!.voiceSpeaking).toBe(false);
+});
+
+// ===== The files served (Ruling E16, E17, E9) =====
+
+/** The boxes of an MP4 file, by path ('moov/trak/mdia/mdhd'): the first of each, its payload. */
+function mp4Boxes(buf: Buffer): Map<string, Buffer> {
+  const CONTAINERS = new Set(['moov', 'trak', 'mdia', 'edts', 'minf', 'stbl']);
+  const found = new Map<string, Buffer>();
+  const walk = (at: number, end: number, path: string) => {
+    while (at + 8 <= end) {
+      let size = buf.readUInt32BE(at);
+      const type = buf.toString('latin1', at + 4, at + 8);
+      let head = 8;
+      if (size === 1) {
+        size = Number(buf.readBigUInt64BE(at + 8));
+        head = 16;
+      } else if (size === 0) size = end - at;
+      if (size < head || at + size > end) break;
+      const key = path ? `${path}/${type}` : type;
+      if (!found.has(key)) found.set(key, buf.subarray(at + head, at + size));
+      if (CONTAINERS.has(type)) walk(at + head, at + size, key);
+      at += size;
+    }
+  };
+  walk(0, buf.length, '');
+  return found;
+}
+
+/** What the file says about its audio: the movie's and the track's clocks, and its one edit. Each is
+ *  a full box (a version byte, three flag bytes); version 1 widens times and durations to 64 bits. */
+function loopTiming(buf: Buffer) {
+  const boxes = mp4Boxes(buf);
+  const mvhd = boxes.get('moov/mvhd')!;
+  const mdhd = boxes.get('moov/trak/mdia/mdhd')!;
+  const elst = boxes.get('moov/trak/edts/elst')!;
+  const v1 = (b: Buffer) => b[0] === 1;
+  const num = (b: Buffer, at: number) => (v1(b) ? Number(b.readBigUInt64BE(at)) : b.readUInt32BE(at));
+  // mvhd/mdhd: creation and modification times, then the timescale (always 32-bit), the duration.
+  const clock = (b: Buffer) => {
+    const at = 4 + (v1(b) ? 16 : 8);
+    return { timescale: b.readUInt32BE(at), duration: num(b, at + 4) };
+  };
+  // elst: an entry count (32-bit), then per entry the segment's duration and its media time.
+  expect(elst.readUInt32BE(4), 'one edit').toBe(1);
+  const segment = num(elst, 8);
+  const mediaTime = num(elst, 8 + (v1(elst) ? 8 : 4));
+  return { movie: clock(mvhd), media: clock(mdhd), segment, mediaTime };
+}
+
+test('every sound is served as audio/mp4, within budget, each loop as long as meta.gen.json says (Ruling E16)', async ({ request }) => {
+  const files = ['music', 'sfx'].flatMap((k) =>
+    readdirSync(new URL(`../public/audio/${k}`, import.meta.url)).map((f) => `/audio/${k}/${f}`),
+  );
+  expect(files.length).toBe(14);
+  expect(files.sort()).toEqual([...Object.values(TRACKS), ...Object.values(SFX)].map((d) => d.src).sort());
+  const meta = JSON.parse(readFileSync(new URL('../src/lib/audio/meta.gen.json', import.meta.url), 'utf-8')) as Record<
+    string,
+    { samples: number; rate: number; priming: number }
+  >;
+  const served = new Map<string, Buffer>();
+  for (const f of files) {
+    const res = await request.get(f);
+    expect(res.status(), f).toBe(200);
+    expect(res.headers()['content-type'], f).toBe('audio/mp4');
+    served.set(f, await res.body());
+  }
+  // Ruling E17's budget, on the bytes the iPad downloads.
+  const bytes = (src: string) => served.get(src)!.length;
+  for (const d of Object.values(TRACKS)) expect(bytes(d.src), d.src).toBeLessThanOrEqual(TRACK_MAX_BYTES);
+  for (const d of Object.values(SFX)) expect(bytes(d.src), d.src).toBeLessThanOrEqual(SFX_MAX_BYTES);
+  expect(Object.values(TRACKS).reduce((n, d) => n + bytes(d.src), 0)).toBeLessThanOrEqual(MUSIC_BUDGET_BYTES);
+  expect(Object.values(SFX).reduce((n, d) => n + bytes(d.src), 0)).toBeLessThanOrEqual(SFX_BUDGET_BYTES);
+  // Ruling E9: the loop region the runtime plays is meta.gen.json's. The served file must agree:
+  // its edit skips exactly the encoder's priming, its track clock is the sample rate, and it holds
+  // exactly the priming and the loop's samples (the movie clock rounds the edit to 1 ms).
+  for (const [id, d] of Object.entries(TRACKS)) {
+    const m = meta[id];
+    expect(m, id).toBeDefined();
+    const t = loopTiming(served.get(d.src)!);
+    expect(t.media.timescale, id).toBe(m.rate);
+    expect(t.mediaTime, id).toBe(m.priming);
+    expect(t.media.duration - t.mediaTime, id).toBe(m.samples);
+    expect(Math.abs((t.segment * m.rate) / t.movie.timescale - m.samples), id).toBeLessThanOrEqual(m.rate / t.movie.timescale);
+  }
 });
