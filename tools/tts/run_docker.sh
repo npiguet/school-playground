@@ -6,6 +6,7 @@
 #   tools/tts/run_docker.sh bake <piper|kokoro|chatterbox|xtts|f5> [voice ...]
 #   tools/tts/run_docker.sh post        # ffmpeg atempo stretches, image sizes, index.html
 #   tools/tts/run_docker.sh round2-bake # round 2, Kokoro only; then round2-post (kokoro/index.html)
+#   tools/tts/run_docker.sh parity      # Kokoro plan Task 1: kokoro-onnx vs PyTorch kokoro -> parity.json
 #
 # One heavy run at a time: it holds the machine-wide Playwright lock (scripts/lib.sh), like
 # tools/audio. Timing approximates the 8-core server: 8 threads, pinned to one logical CPU of each of
@@ -63,6 +64,14 @@ case "${1:-}" in
     audio=discorde-audio-tools:$(sha256sum "$REPO/tools/audio/Dockerfile" | cut -c1-12)
     docker image inspect "$audio" >/dev/null 2>&1 || docker build -t "$audio" "$REPO/tools/audio"
     with_playwright_lock docker run --rm -v "$REPO:/work" -w /work "$audio" python tools/tts/round2.py post
+    ;;
+  parity)
+    # Kokoro plan, Task 1 (parity.py): the ONNX build against the PyTorch one, at the service's thread count.
+    image=$(image_for parity)
+    with_playwright_lock docker run --rm --cpuset-cpus "$CPUS" \
+      -e TTS_THREADS=4 -e OMP_NUM_THREADS=4 -e MKL_NUM_THREADS=4 \
+      -e HF_HOME=/cache/hf -e TTS_CACHE=/cache -e PYTHONUNBUFFERED=1 \
+      -v "$CACHE_VOLUME:/cache" -v "$REPO:/work" -w /work "$image" python tools/tts/parity.py
     ;;
   *)
     sed -n '2,9p' "$0" >&2

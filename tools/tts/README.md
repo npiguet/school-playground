@@ -32,3 +32,20 @@ ffmpeg atempo). Its page is `assets/tts-bakeoff/kokoro/index.html`; round 1's pa
 `round2.json` is made by `round2.ts` (bundled and run like `lines.ts`, with `.cache/tts-round2.mjs`
 and `../tools/tts/round2.json`). Variant A is the game's `spokenForm`; B to E are a transform of it in
 `round2.ts` only, the game code is unchanged.
+
+## Parity: ONNX against PyTorch (Kokoro plan, Task 1)
+
+The game's voice service (`tts/`) runs Kokoro-82M. `parity.py` checks that the ONNX build (`kokoro-onnx`
++ onnxruntime, no PyTorch) speaks like the PyTorch `kokoro` package the bake-off used: the same phonemes
+(over the model's vocabulary), the same length (within 50 ms or 2 %), and a spectrogram as close to
+PyTorch's as two PyTorch renders with different seeds are to each other (Kokoro's decoder draws noise),
+within 0.02. `parity.json` holds the verdict, the versions that ran, each model file's sha256 (the
+service's Dockerfile checks them) and a row per line; the samples land in `assets/tts-bakeoff/parity/`.
+
+    tools/tts/run_docker.sh parity
+
+Verdict: **torch** (the phonemes match on 12 of 13 lines, the 13th differing only by the space misaki
+keeps before « ! », but the audio passes on that line only: on the other twelve the similarity is 0.56
+to 0.93 where 0.95 is needed, fed PyTorch's phonemes or not, because kokoro-onnx 0.4.9 picks the voice's
+style vector one row further than PyTorch does, `voice[len(tokens)]` against `pack[len(ps)-1]`; the
+service runs the PyTorch CPU build).
