@@ -9,6 +9,7 @@ import {
   expectBattle,
   expectCamp,
   heroNamer,
+  installFastPauses,
   installKeyboardSim,
   setKeyboard,
   spokenLines,
@@ -23,12 +24,10 @@ const WAIT_HOLD_MS = 800;
 
 const heroName = heroNamer('Voix');
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
-/** BODY's sentences as the voice says them (spoken.ts: a full stop is followed by its name). */
-const SENTENCES = ['Les fées dansent dans la clairière. Point.', 'Elles chantent et les oiseaux les écoutent. Point.'];
 const WRITE = "À toi d'écrire.";
 type PrepareBody = { profile_id: number; lines: { text: string; speed: number }[] };
 
-async function startDictation(page: Page, request: APIRequestContext, testInfo: TestInfo, pace: 1 | 2 | 3 | 4, body = BODY) {
+async function startDictation(page: Page, request: APIRequestContext, testInfo: TestInfo, pace: 1 | 2 | 3, body = BODY) {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const text = await createText(request, { title: uniqueName('Voix'), body, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
@@ -57,23 +56,26 @@ test('the whole script is sent ahead once, each line once, in script order (spec
   expect(body.profile_id).toBe(id);
   expect(body.lines.length).toBeGreaterThan(1);
   expect(new Set(body.lines.map((l) => l.text)).size).toBe(body.lines.length);
-  expect(body.lines.every((l) => l.speed === 0.9)).toBe(true);
+  // The pace redesign: every line at one rate.
+  expect(body.lines.every((l) => l.speed === 0.85)).toBe(true);
   expect(body.lines[0].text).toContain('Les fées dansent');
 });
 
 // The pace bug report (2026-09-27): after a dictation at pace 1, « Quitter » then « Recommencer » and
-// pace 3 must read the text in breath groups, each twice, at 0.9 - not pace 1's sentences again.
+// pace 3 must read the text at pace 3, each group twice - not pace 1's groups again. Since the pace
+// redesign pace III's groups are pace I's merged, about twice as long: the first sentence is one group.
 test('a dictation restarted at another pace reads at that pace', async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
   const asked: { url: string; body: unknown }[] = [];
   page.on('request', (r) => {
     if (r.url().includes('/api/tts/')) asked.push({ url: r.url(), body: r.postDataJSON() });
   });
-  // The user's sentence: three commas, so pace 3 has four breath groups where pace 1 has one line.
   const body = 'Les hommes, affamés par leur longue traversée, burent sans méfiance. Seul Euryloque, resté en arrière par prudence, échappa au sortilège.';
-  const sentences = ['Les hommes, virgule, affamés par leur longue traversée, virgule, burent sans méfiance. Point.'];
+  const paceOne = 'Les hommes, virgule, affamés par leur longue traversée, virgule.';
+  const paceThree = 'Les hommes, virgule, affamés par leur longue traversée, virgule, burent sans méfiance. Point.';
   await startDictation(page, request, testInfo, 1, body);
   await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(0);
-  expect((await spokenLines(page))[0].text).toBe(sentences[0]);
+  expect((await spokenLines(page))[0].text).toBe(paceOne);
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
   await tap(page.getByTestId('btn-quit-confirm'), testInfo);
   await tap(page.getByTestId('battle-resume-restart'), testInfo);
@@ -87,30 +89,31 @@ test('a dictation restarted at another pace reads at that pace', async ({ page, 
   await expectBattle(page, 'dictation');
   await expect.poll(() => asked.slice(from).filter((a) => a.url.endsWith('/prepare')).length).toBe(1);
   const prepare = asked.slice(from).find((a) => a.url.endsWith('/prepare'))!.body as PrepareBody;
-  expect(prepare.lines.length).toBeGreaterThan(2);
-  expect(prepare.lines.every((l) => l.speed === 0.9)).toBe(true);
+  // Pace III's groups here are the two sentences, so the final reading adds no line to send ahead.
+  const secondSentence = 'Seul Euryloque, virgule, resté en arrière par prudence, virgule, échappa au sortilège. Point.';
+  expect(prepare.lines).toEqual([paceThree, secondSentence].map((text) => ({ text, speed: 0.85 })));
   // The first breath group, said twice.
-  await expect.poll(async () => (await spokenLines(page)).length, { timeout: 20_000 }).toBeGreaterThanOrEqual(heard + 2);
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThanOrEqual(heard + 2);
   const [first, second] = (await spokenLines(page)).slice(heard).map((l) => l.text);
   expect(first).toBe(prepare.lines[0].text);
+  expect(first).toBe(paceThree);
   expect(second).toBe(first);
-  expect(first).not.toBe(sentences[0]);
   const speaks = asked.slice(from).filter((a) => a.url.endsWith('/speak'));
-  expect(speaks.every((a) => (a.body as { speed: number }).speed === 0.9)).toBe(true);
+  expect(speaks.every((a) => (a.body as { speed: number }).speed === 0.85)).toBe(true);
 });
 
-// Fix wave A, Ruling R-A1: pace 4's full readings are said a sentence at a time, so the first sound
-// comes as soon as the first sentence is made, not the whole text.
-test('pace 4 reads the text a sentence at a time: the first sentence alone first, sent ahead first', async ({ page, request }, testInfo) => {
+// Fix wave A, Ruling R-A1, and the pace redesign: the whole text is read once, at the end, a sentence
+// at a time; its lines are sent ahead after the groups', a line the groups already said only once.
+test('the final reading comes after the groups, a sentence at a time, and is sent ahead after them', async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
+  const body = 'Le loup, affamé, arriva près de la bergerie. Les brebis dormaient.';
+  const groups = ['Le loup, virgule, affamé, virgule.', 'arriva près de la bergerie. Point.', 'Les brebis dormaient. Point.'];
+  const sentence = 'Le loup, virgule, affamé, virgule, arriva près de la bergerie. Point.';
   const prepared = page.waitForRequest((r) => r.url().endsWith('/api/tts/prepare'));
-  const asked = page.waitForRequest((r) => r.url().endsWith('/api/tts/speak'));
-  await startDictation(page, request, testInfo, 4);
-  const body = (await prepared).postDataJSON() as PrepareBody;
-  expect(body.lines.slice(0, 2)).toEqual(SENTENCES.map((text) => ({ text, speed: 1 })));
-  expect(body.lines.slice(-2)).toEqual(SENTENCES.map((text) => ({ text, speed: 0.95 })));
-  expect((await asked).postDataJSON()).toMatchObject({ text: SENTENCES[0], speed: 1 });
-  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThanOrEqual(2);
-  expect((await spokenLines(page)).slice(0, 2).map((l) => l.text)).toEqual(SENTENCES);
+  await startDictation(page, request, testInfo, 2, body);
+  expect(((await prepared).postDataJSON() as PrepareBody).lines).toEqual([...groups, sentence].map((text) => ({ text, speed: 0.85 })));
+  await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
+  expect((await spokenLines(page)).map((l) => l.text)).toEqual([groups[0], groups[0], groups[1], groups[1], groups[2], groups[2], sentence, groups[2]]);
 });
 
 /** Holds the first /api/tts/speak until the test calls `release()` (review fix round 1 #2: the waiting
@@ -135,10 +138,10 @@ const WAITING_LONG = () => variantsOf('battle.voice.waitLong');
 const oneOf = (lines: string[]) => new RegExp(`^\\s*(${lines.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\s*$`);
 
 // Fix wave B ruling 1: the opener after 1.2 s, the seal waiting (not the reading's pulse), a second
-// line past 5 s, « Pause » still there to tap.
+// line past 5 s, « Pause » still there to tap (pace II, the pace with « Pause »).
 test('a line slow to come shows the waiting line, then a second one, until it plays (spec §5.2)', async ({ page, request }, testInfo) => {
   const held = await holdFirstLine(page);
-  await startDictation(page, request, testInfo, 3);
+  await startDictation(page, request, testInfo, 2);
   const status = page.getByTestId('dictation-status');
   const seal = page.getByTestId('dictation-seal').first();
   await expect(status).toHaveText(oneOf(WAITING()));
@@ -174,7 +177,7 @@ test('with the keyboard open, the compact bar says the waiting line', async ({ p
 // « En pause. », not the waiting line, for as long as the fetch goes on.
 test('a pause while a line is still coming says « En pause. », not the waiting line', async ({ page, request }, testInfo) => {
   const held = await holdFirstLine(page);
-  await startDictation(page, request, testInfo, 3);
+  await startDictation(page, request, testInfo, 2);
   const status = page.getByTestId('dictation-status');
   await expect.poll(async () => WAITING().includes(((await status.textContent()) ?? '').trim())).toBe(true);
   await tap(page.getByTestId('btn-pause'), testInfo);
@@ -200,6 +203,7 @@ test("a silenced voice stops on Éris's card; « Réessayer » keeps it up while
   page.on('request', (r) => {
     if (r.url().endsWith('/api/tts/prepare')) prepares++;
   });
+  await installFastPauses(page);
   await startDictation(page, request, testInfo, 1);
   const card = page.getByTestId('voice-lost');
   await expect(card).toBeVisible();
@@ -273,6 +277,7 @@ test('when the voice comes back, the Pythia says so, then the dictation reads on
 // card must go with it (it stayed up, its button waiting, for the rest of the dictation).
 test('muted while the card is up, « Réessayer » carries on silently and the card goes', async ({ page, request }, testInfo) => {
   await voiceDown(page, 503, () => true);
+  await installFastPauses(page);
   await startDictation(page, request, testInfo, 1);
   const card = page.getByTestId('voice-lost');
   await expect(card).toBeVisible();
@@ -293,7 +298,7 @@ test('a pause during « Réessayer » keeps the same card and gloat through « R
     if (gate) await gate;
     return route.fulfill({ status: 503, contentType: 'application/json', body: '{"detail":"voice down"}' });
   });
-  await startDictation(page, request, testInfo, 3);
+  await startDictation(page, request, testInfo, 2);
   const card = page.getByTestId('voice-lost');
   await expect(card).toBeVisible();
   const gloat = ((await card.getByTestId('voice-lost-eris-text').textContent()) ?? '').trim();

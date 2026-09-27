@@ -669,7 +669,11 @@ export interface PlaySeed {
   phase: 'intro' | 'dictation' | 'proofreading' | 'results';
   draft?: string;
   current?: string;
+  /** 4: the retired pace IV, as a save from before the pace redesign holds it. */
   pace?: 1 | 2 | 3 | 4;
+  /** The script the saved step belongs to (lib/playState.ts DICTATION_SCRIPT, 2); null: a save from
+   *  before the pace redesign, which has none. */
+  dictationScript?: number | null;
   opponent?: string;
   /** Ruling C2c: the encounter and quest the battle was started under (absent: an older save). */
   encounter?: string | null;
@@ -710,6 +714,7 @@ export async function seedPlay(page: Page, s: PlaySeed) {
         bouclier: false,
         submitted: !!seed.progression,
         sessionId: seed.progression ? 1 : null,
+        ...(seed.dictationScript === null ? {} : { dictationScript: seed.dictationScript ?? 2 }),
         ...(seed.opponent ? { opponent: seed.opponent } : {}),
         ...(seed.encounter !== undefined ? { encounter: seed.encounter } : {}),
         ...(seed.quest !== undefined ? { quest: seed.quest } : {}),
@@ -794,6 +799,18 @@ export async function spokenLines(page: Page): Promise<{ text: string; gain: num
 /** The voice channel's gain for each line played, oldest first. */
 export async function spokenVolumes(page: Page): Promise<number[]> {
   return (await spokenLines(page)).map((l) => l.gain);
+}
+
+/** The dictation script's pauses (the pace redesign's longPauseMs and shortPauseMs, 2 s and more a
+ *  group) at `scale` of their length (1/40th by default), through the dictation's own hook
+ *  (DictationPhase's `pauseScale`), so a test that walks a dictation through its groups keeps the
+ *  suite's pace: the recorded lines already last 20 ms (recordingBackend.ts). A test that pauses a
+ *  flowing dictation takes a larger fraction, so the dictation is still going when it pauses it. Every
+ *  other timer stays real. Call before the page loads. */
+export async function installFastPauses(page: Page, scale = 1 / 40) {
+  await page.addInitScript((s) => {
+    (window as unknown as { __discordePauseScale?: number }).__discordePauseScale = s;
+  }, scale);
 }
 
 /** Taps the dialogue box to its next line (or closes it after its last): once to finish the typing,

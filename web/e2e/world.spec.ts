@@ -1,6 +1,6 @@
 import { test, expect } from './crashGuard';
 import type { Page } from '@playwright/test';
-import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, nextLine, createText, makeResult, postSession, redScan, spokenLines, uniqueName } from './helpers';
+import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, installFastPauses, nextLine, createText, makeResult, postSession, redScan, spokenLines, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -8,23 +8,10 @@ import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expect
 // and the break nudge, and a no-red/no-guilt scan. One profile, one describe.serial: each step
 // depends on state the previous one left on the server (quests, mastery, rewards, dragon stage).
 
-// Paces 3-4 auto-advance through real setTimeout pauses (600 ms + a per-chunk pause): a boss
-// dictation is >= 150 words, so without this a real-time run would take minutes and blow past the
-// test timeout. Ported from playability-sp3.spec.ts (installFastTimers/dictate) - only test 7
-// needs it, for the too_easy real-dictation check (P1-5 follow-up).
-async function installFastTimers(page: Page) {
-  await page.addInitScript(() => {
-    const w = window as any;
-    const orig = w.setTimeout;
-    w.setTimeout = function (fn: TimerHandler, ms?: number, ...args: unknown[]) {
-      // The voice's fetch timeout (20 s and more, lib/dictation/voice.ts) stays real: shortened, a
-      // line slow to come under load would silence the dictation. Every pause of the script is shorter.
-      if (w.__fastTimers && typeof ms === 'number' && ms >= 500 && ms < 20_000) ms = Math.ceil(ms / 25);
-      return orig.call(w, fn, ms, ...args);
-    };
-  });
-}
-
+// Every pace reads each breath group twice with a pause after each reading (the pace redesign): a boss
+// dictation is >= 150 words, so without shortened pauses (helpers.ts installFastPauses) a real-time
+// run would take minutes and blow past the test timeout. Tests 4 and 8 walk a short pace I dictation
+// the same way.
 const spokenCount = async (page: Page) => (await spokenLines(page)).length;
 
 async function dictate(page: Page, draft: string, maxSteps = 120) {
@@ -32,7 +19,6 @@ async function dictate(page: Page, draft: string, maxSteps = 120) {
   const next = page.getByTestId('btn-next');
   const finish = page.getByTestId('btn-finish-writing');
   await expect(ta).toBeVisible();
-  await page.evaluate(() => ((window as any).__fastTimers = true));
   for (let i = 0; i < maxSteps; i++) {
     if (await finish.isVisible()) break;
     if ((await next.count()) === 0) break;
@@ -45,7 +31,6 @@ async function dictate(page: Page, draft: string, maxSteps = 120) {
     await expect.poll(async () => (await spokenCount(page)) > before || (await finish.isVisible())).toBe(true);
   }
   await expect(finish).toBeVisible({ timeout: 120_000 });
-  await page.evaluate(() => ((window as any).__fastTimers = false));
   await ta.fill(draft);
 }
 
@@ -163,6 +148,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     });
     textId = text.id;
 
+    await installFastPauses(page);
     await page.goto(`/#/p/${profileId}/play/${textId}?quest=${oracleQuestId}&encounter=hydre`);
     await expect(page.getByTestId('play-quest-banner')).toBeVisible();
 
@@ -272,9 +258,9 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     test.setTimeout(120_000); // a real (fast-timer) boss dictation is added below, P1-5 follow-up
     // Must be registered before this test's first navigation (an SPA route change afterwards
     // never re-runs init scripts) - only takes effect for the too_easy dictation further down.
-    // `page` is a fresh fixture per test even inside describe.serial, so the fast timers need to
+    // `page` is a fresh fixture per test even inside describe.serial, so the fast pauses need to
     // be installed here too.
-    await installFastTimers(page);
+    await installFastPauses(page);
     // A guaranteed >=150-word 10H text so the boss endpoint always has a candidate, regardless
     // of what the seed happens to include.
     await createText(request, {
@@ -376,6 +362,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
   });
 
   test('8. weekly goal and break nudge', async ({ page }) => {
+    await installFastPauses(page);
     await page.goto(`/#/p/${profileId}/camp`);
     // Steps 4-5 already posted three of today's sessions (goal: 3).
     await expect(page.getByTestId('camp-weekly')).toContainText('Objectif atteint');

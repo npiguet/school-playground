@@ -1,11 +1,12 @@
 import { test, expect } from './crashGuard';
-import { closeOverlay, expectCamp, newHero, openShelves, spokenLines, uniqueName } from './helpers';
+import { closeOverlay, expectCamp, installFastPauses, newHero, openShelves, spokenLines, uniqueName } from './helpers';
 
 const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
 
 test('create profile → add text → dictation → proofreading → results → stats', async ({ page }) => {
   const name = uniqueName('Test');
+  await installFastPauses(page);
 
   // Profile
   await newHero(page, name, '10H');
@@ -21,7 +22,7 @@ test('create profile → add text → dictation → proofreading → results →
   await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await page.locator('[data-testid="text-card"]', { hasText: 'Les fées ' + name }).click();
 
-  // Dictation, pace 1 (two sentences)
+  // Dictation, pace 1 (two sentences, a breath group each)
   await page.getByTestId('pace-option-1').click();
   await page.getByRole('button', { name: 'Commencer la dictée' }).click();
   const ta = page.getByTestId('dictation-textarea');

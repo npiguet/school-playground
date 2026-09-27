@@ -13,6 +13,7 @@ import {
   expectMusic,
   expectScene,
   heroNamer,
+  installFastPauses,
   resumeSeeded,
   seedPlay,
   spokenLines,
@@ -239,6 +240,8 @@ async function dictationWithVoice(page: Page, request: APIRequestContext, testIn
   expect(res.ok()).toBeTruthy();
   const body = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
   const text = await createText(request, { title: uniqueName('Voix'), body, level: '10H' });
+  // The script's pauses only are shortened: a muted line still takes its length (voice.ts).
+  await installFastPauses(page);
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
   const sheet = page.getByTestId('battle-parchment');
@@ -273,19 +276,20 @@ test('a muted voice says nothing, and the dictation still goes on at its pace (R
   await expect(page.getByTestId('btn-next')).toBeEnabled();
   await tap(page.getByTestId('btn-next'), testInfo);
   const key = `discorde.play.${id}.${textId}`;
-  await expect.poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').dictationStep, key)).toBe(2);
+  // The second group's first step: the first group's two readings, its two pauses and « Suivant ».
+  await expect.poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').dictationStep, key)).toBe(5);
   const statuses = () => page.evaluate(() => (window as unknown as { __statuses: { text: string; t: number }[] }).__statuses);
   const writing = "À toi d'écrire.";
   await expect.poll(async () => (await statuses()).filter((s) => s.text === writing).length).toBe(2);
   await expect(page.getByTestId('dictation-status')).toHaveText(writing);
-  // Final review I1: « Suivant » starts the second sentence at once (« Écoute… »), read at pace 1's
-  // rate 0.75. « Elles chantent et les oiseaux les écoutent. » is 43 characters before its said
-  // punctuation, so the voice takes at least 43 × 65 ms / 0.75 ≈ 3.7 s (voice.ts, SPEECH_MS_PER_CHAR):
-  // the muted reading takes as long (it used to take a third of it).
+  // Final review I1: « Suivant » starts the second group at once (« Écoute… »), read twice at the
+  // pace redesign's rate 0.85. « Elles chantent et les oiseaux les écoutent. » is 43 characters before
+  // its said punctuation, so the voice takes at least 43 × 65 ms / 0.85 ≈ 3.3 s a reading (voice.ts,
+  // SPEECH_MS_PER_CHAR): the muted readings take as long (they used to take a third of it).
   const seen = await statuses();
   const second = seen.map((s) => s.text).lastIndexOf(writing);
   expect(seen[second - 1]?.text, JSON.stringify(seen)).toBe('Écoute…');
-  expect(seen[second].t - seen[second - 1].t, JSON.stringify(seen)).toBeGreaterThanOrEqual((43 * 65) / 0.75);
+  expect(seen[second].t - seen[second - 1].t, JSON.stringify(seen)).toBeGreaterThanOrEqual((2 * 43 * 65) / 0.85);
   expect(await spokenLines(page)).toEqual([]);
   expect((await audioState(page))!.voiceSpeaking).toBe(false);
 });

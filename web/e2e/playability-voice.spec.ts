@@ -86,7 +86,7 @@ async function clearEarlierWalk(request: APIRequestContext) {
   }
 }
 
-async function startDictation(w: Walk, body: string, pace: 1 | 2 | 3 | 4, title = 'La forêt du renard') {
+async function startDictation(w: Walk, body: string, pace: 1 | 2 | 3, title = 'La forêt du renard') {
   const id = await nextHero(w.request);
   const text = await createText(w.request, { title, body, level: '10H' });
   await w.page.goto(`/#/p/${id}/play/${text.id}`);
@@ -135,8 +135,9 @@ test('the voice walk: waiting, pause, the card, « Réessayer », the lyre', asy
     await shot(w, 'v01-muster');
   }
 
-  // v02-v09: each pace's start, the waiting line if it shows, then the first line under way.
-  for (const pace of [1, 2, 3, 4] as const) {
+  // v02-v07: each pace's start, the waiting line if it shows, then the first line under way (three
+  // paces since the pace redesign).
+  for (const pace of [1, 2, 3] as const) {
     await startDictation(w, SHORT, pace);
     const n = 2 * pace;
     const pad = (k: number) => String(k).padStart(2, '0');
@@ -155,24 +156,24 @@ test('the voice walk: waiting, pause, the card, « Réessayer », the lyre', asy
     w.notes.push(`- pace ${pace}: waiting line ${sawWait ? 'seen' : 'not seen'}; status timeline: ${timeline}`);
   }
 
-  // v10, v12, v13: pace 4 on the longest seed text. It reads a sentence at a time (fix wave A, Ruling
-  // R-A1), so the first sentence comes in about 2 s, or at once when an earlier walk left it in the
-  // voice's cache: the waiting line (after 1.2 s, fix wave B ruling 1) may not show at all. Then a
-  // pause taken while it reads.
+  // v10, v12, v13: pace II on the longest seed text. No line is ever the whole text (fix wave A,
+  // Ruling R-A1; the pace redesign reads groups), so the first comes in about 2 s, or at once when an
+  // earlier walk left it in the voice's cache: the waiting line (after 1.2 s, fix wave B ruling 1) may
+  // not show at all. Then a pause taken while it reads (pace II has « Pause »).
   {
     const body = (JSON.parse(readFileSync('../content/seed/007-renard-mouches-eau.json', 'utf-8')) as { body: string }).body;
-    await startDictation(w, body, 4, "Les Mouches d'eau");
+    await startDictation(w, body, 2, "Les Mouches d'eau");
     let sawWait = true;
     try {
       await isWaiting(page, WAITING());
-      await shot(w, 'v10-long-pace4-waiting', true);
+      await shot(w, 'v10-long-pace2-waiting', true);
     } catch {
       sawWait = false;
-      await shot(w, 'v10-long-pace4-start', true);
+      await shot(w, 'v10-long-pace2-start', true);
     }
     await expect.poll(async () => (await spokenLines(page)).length, { timeout: 60_000 }).toBeGreaterThan(0);
-    w.notes.push(`- longest text, pace 4: waiting line ${sawWait ? 'seen' : 'not seen'}; ${await settledLog(page)}`);
-    await shot(w, 'v12-long-pace4-first-line', true);
+    w.notes.push(`- longest text, pace 2: waiting line ${sawWait ? 'seen' : 'not seen'}; ${await settledLog(page)}`);
+    await shot(w, 'v12-long-pace2-first-line', true);
     await page.getByTestId('btn-pause').tap();
     await expect(page.getByTestId('dictation-status')).toHaveText('En pause.');
     await page.getByTestId('dictation-textarea').fill('Un jour, le renard');
@@ -216,7 +217,7 @@ test('the voice walk: waiting, pause, the card, « Réessayer », the lyre', asy
     await expect(page.getByTestId('dictation-status')).toHaveText("À toi d'écrire.", { timeout: 60_000 });
     await page.getByTestId('dictation-textarea').fill('Le renard court dans la forêt.');
     mode = 503;
-    // The second sentence was fetched ahead while the first played; the third cannot come.
+    // The second group was fetched ahead while the first played; the third cannot come.
     await page.getByTestId('btn-next').tap();
     await expect(page.getByTestId('btn-next')).toBeEnabled({ timeout: 60_000 });
     await page.getByTestId('dictation-textarea').fill('Le renard court dans la forêt. Il cherche sa tanière.');

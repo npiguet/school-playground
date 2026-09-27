@@ -1,5 +1,5 @@
 // The voice walk (Kokoro plan Task 10), run only by tools/tts/voice_walk.sh, against the real voice:
-// each pace's first lines, pace 4 on the longest seed text (its first line, under 10 s), and the card
+// each pace's first lines, pace III on the longest seed text (its first line, under 10 s), and the card
 // when the `tts` container is really stopped, then « Réessayer » once it is back. The script stops and
 // starts the container when this spec writes a marker file (web/.cache/voice-walk/, outside
 // test-results, which Playwright empties at the start of a run).
@@ -14,7 +14,7 @@ const SHORT = 'Le renard court dans la forêt. Il cherche sa tanière. La nuit t
 test.skip(!process.env.VOICE_WALK, 'run by tools/tts/voice_walk.sh');
 test.describe.configure({ mode: 'serial' });
 
-async function start(page: Page, request: APIRequestContext, body: string, pace: 1 | 2 | 3 | 4) {
+async function start(page: Page, request: APIRequestContext, body: string, pace: 1 | 2 | 3) {
   const id = await createProfileApi(request, uniqueName('Marche'));
   const text = await createText(request, { title: uniqueName('Marche'), body, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
@@ -39,36 +39,41 @@ const mark = (name: string) => {
   writeFileSync(`${MARKS}/${name}`, '');
 };
 
-for (const pace of [1, 2, 3, 4] as const) {
+// The pace redesign: every pace reads each group twice, a long pause between; pace I then waits for
+// « Suivant ». The walk takes the pauses at their real length.
+for (const pace of [1, 2, 3] as const) {
   test(`pace ${pace}: the real voice reads its first lines`, async ({ page, request }, testInfo) => {
     const t0 = await start(page, request, SHORT, pace);
     await expect.poll(() => lines(page), { timeout: 120_000, intervals: EVERY_100_MS }).toBeGreaterThan(0);
     note(testInfo, `pace ${pace}, first line`, `${Date.now() - t0} ms`);
-    if (pace <= 2) {
+    await expect.poll(() => lines(page), { timeout: 120_000 }).toBeGreaterThan(1);
+    if (pace === 1) {
       await expect(page.getByTestId('btn-next')).toBeEnabled({ timeout: 60_000 });
       await page.getByTestId('btn-next').click();
     }
-    await expect.poll(() => lines(page), { timeout: 120_000 }).toBeGreaterThan(1);
+    await expect.poll(() => lines(page), { timeout: 120_000 }).toBeGreaterThan(2);
     note(testInfo, `pace ${pace}, lines`, (await spokenLines(page)).map((l) => l.text).join(' / '));
   });
 }
 
-// Fix wave A, Ruling R-A1: pace 4 reads its full readings a sentence at a time, so the first line of
-// even the longest text comes in about a second (it was the whole text as one line: 23 to 26 s).
-// The test then stays until the opening reading is over, so the voice makes that reading's sentences
-// (what the walk's memory samples measure: the next test's /prepare would replace the lines not made
-// yet). The e2e mixer plays each line in 20 ms (recordingBackend.ts), so the time noted is how long
-// the voice took to make the reading, not to say it; tts.log has each sentence's length and making.
-test('pace 4 on the longest seed text: its first line, one sentence, comes quickly', async ({ page, request }, testInfo) => {
+// Fix wave A, Ruling R-A1: no line is ever the whole text (the final reading is said a sentence at a
+// time), so the first line of even the longest text comes in about a second (the whole text as one
+// line took 23 to 26 s). Since the pace redesign that first line is pace III's first group, the
+// longest line a dictation opens on. The test then stays until the group's second reading, so the voice
+// has made the lines around it (what the walk's memory samples measure). The e2e mixer plays each line
+// in 20 ms (recordingBackend.ts), so the time noted is how long the voice took to make them, not to say
+// them; tts.log has each line's length and making.
+test('pace III on the longest seed text: its first line, one group, comes quickly', async ({ page, request }, testInfo) => {
   test.setTimeout(300_000);
   const body = (JSON.parse(readFileSync('../content/seed/007-renard-mouches-eau.json', 'utf-8')) as { body: string }).body;
-  const t0 = await start(page, request, body, 4);
+  const t0 = await start(page, request, body, 3);
   await expect.poll(() => lines(page), { timeout: 60_000, intervals: EVERY_100_MS }).toBeGreaterThan(0);
   const ms = Date.now() - t0;
-  note(testInfo, 'first line (longest text, pace 4)', `${ms} ms`);
+  note(testInfo, 'first line (longest text, pace III)', `${ms} ms`);
   expect(ms).toBeLessThan(10_000);
-  await expect(page.getByText(/^Groupe \d+ sur \d+$/)).toBeVisible({ timeout: 240_000 });
-  note(testInfo, 'opening reading made (longest text, pace 4)', `${Date.now() - t0} ms, ${await lines(page)} lines said`);
+  await expect(page.getByText(/^Groupe 1 sur \d+$/)).toBeVisible();
+  await expect.poll(() => lines(page), { timeout: 240_000 }).toBeGreaterThan(1);
+  note(testInfo, 'first group read twice (longest text, pace III)', `${Date.now() - t0} ms, ${await lines(page)} lines said`);
 });
 
 test("the card when the voice's container stops, and « Réessayer » once it is back", async ({ page, request }) => {
@@ -77,7 +82,8 @@ test("the card when the voice's container stops, and « Réessayer » once it is
   await expect(page.getByTestId('dictation-status')).toHaveText("À toi d'écrire.", { timeout: 120_000 });
   mark('stop-tts');
   await expect.poll(async () => (await request.get('/api/tts/health')).status(), { timeout: 180_000 }).toBe(503);
-  // The second sentence was fetched ahead while the first played: it plays; the third cannot come.
+  // The second group was fetched ahead while the first played: it plays, twice (the same clip); the
+  // third cannot come.
   await page.getByTestId('btn-next').click();
   await expect(page.getByTestId('btn-next')).toBeEnabled({ timeout: 120_000 });
   await page.getByTestId('btn-next').click();
@@ -87,6 +93,7 @@ test("the card when the voice's container stops, and « Réessayer » once it is
   await expect.poll(async () => (await request.get('/api/tts/health')).status(), { timeout: 300_000 }).toBe(200);
   await page.getByTestId('btn-voice-retry').click();
   await expect(page.getByTestId('voice-lost')).toHaveCount(0);
-  await expect.poll(() => lines(page), { timeout: 120_000 }).toBe(3);
+  // Two groups twice, then the third, twice.
+  await expect.poll(() => lines(page), { timeout: 120_000 }).toBe(6);
   await expect(page.getByTestId('dictation-status')).toHaveText("À toi d'écrire.", { timeout: 120_000 });
 });

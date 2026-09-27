@@ -6,6 +6,7 @@ import {
   createProfileApi,
   createText,
   expectBattle,
+  installFastPauses,
   installKeyboardSim,
   makeResult,
   postSession,
@@ -431,6 +432,8 @@ test('UI4 battle walk', async ({ page }, testInfo) => {
     if (url.protocol === 'http:' || url.protocol === 'https:') origins.add(url.origin);
   });
   await installKeyboardSim(page);
+  // The pace redesign's pauses (each group read twice before « Suivant ») at a fraction of their length.
+  await installFastPauses(page);
   // Leftovers of an earlier run that failed (or was killed) before its cleanup.
   await clearEarlierWalk(page.request);
   try {

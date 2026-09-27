@@ -9,6 +9,7 @@ import {
   expectCamp,
   expectLineOf,
   expectOverlayTapTargets,
+  installFastPauses,
   installKeyboardSim,
   LEGACY_UI,
   redScan,
@@ -25,7 +26,7 @@ import {
 // compact layout under the simulated keyboard, and the long text's legibility.
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 
-test('the muster is an order of battle: Éris taunts, four pace medallions, no school metadata', async ({ page, request }, testInfo) => {
+test('the muster is an order of battle: Éris taunts, three pace medallions, no school metadata', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Mus-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Muster'), body: BODY, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}?encounter=hydre`);
@@ -35,9 +36,18 @@ test('the muster is an order of battle: Éris taunts, four pace medallions, no s
   await expect(sheet.getByTestId('battle-voice')).toContainText('Hydre');
   await expect(sheet.getByTestId('muster-words')).toHaveText('13 mots');
   await expect(sheet).not.toContainText(/\b\d{1,2}H\b|≈/);
-  await expect(sheet.getByRole('radio')).toHaveCount(4);
-  await expect(sheet.getByTestId('pace-option-3')).toContainText("D'un bon pas");
-  await expect(sheet.getByTestId('pace-option-4')).toContainText("D'une traite");
+  // The pace redesign: I, II and III; pace IV is gone.
+  await expect(sheet.getByRole('radio')).toHaveCount(3);
+  const medallions = [
+    ['Pas à pas', "Chaque groupe est lu deux fois, puis la Pythie t'attend. Une réécoute par groupe."],
+    ['Par groupes', 'Chaque groupe est lu deux fois, puis la Pythie enchaîne. Tu peux faire une pause.'],
+    ["D'un bon pas", "Des groupes plus longs, lus deux fois. La Pythie ne s'arrête pas."],
+  ];
+  for (const [i, [title, desc]] of medallions.entries()) {
+    await expect(sheet.getByTestId(`pace-option-${i + 1}`).locator('.title')).toHaveText(title);
+    await expect(sheet.getByTestId(`pace-option-${i + 1}`).locator('.desc')).toHaveText(desc);
+  }
+  await expect(sheet.getByTestId('pace-option-4')).toHaveCount(0);
   await expect(sheet.getByText('Plus le rythme est vif, plus la gloire est grande.')).toBeVisible();
   await expect(sheet.locator(LEGACY_UI)).toHaveCount(0);
   await expectOverlayTapTargets(page, 'battle-parchment');
@@ -208,7 +218,7 @@ test('the muster says when the voice is muted, and gives it back (Ruling E7)', a
 // ===== Task 4: the dictation =====
 const LONG = Array.from({ length: 8 }, () => 'Les fées dansent dans la clairière et les oiseaux les écoutent en silence.').join(' ');
 
-async function startDictation(page: Page, testInfo: TestInfo, pace: 1 | 2 | 3 | 4 = 1) {
+async function startDictation(page: Page, testInfo: TestInfo, pace: 1 | 2 | 3 = 1) {
   const sheet = page.getByTestId('battle-parchment');
   await tap(sheet.getByTestId(`pace-option-${pace}`), testInfo);
   await tap(sheet.getByRole('button', { name: 'Commencer la dictée' }), testInfo);
@@ -216,6 +226,7 @@ async function startDictation(page: Page, testInfo: TestInfo, pace: 1 | 2 | 3 | 
 }
 
 test('the dictation writes on the parchment, in Literata, with bronze controls', async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
   const id = await createProfileApi(request, uniqueName(`Dic-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Dictée'), body: BODY, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}?encounter=lethe`);
@@ -250,7 +261,7 @@ test('the dictation writes on the parchment, in Literata, with bronze controls',
   }
 });
 
-// Voice playability #12: a long title wraps; « Phrase 0 sur 2 » stays on one line beside it.
+// Voice playability #12: a long title wraps; « Groupe 0 sur 2 » stays on one line beside it.
 test('a long title wraps, the progress never does', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Dic12-${testInfo.project.name}`));
   const title = uniqueName('Le très long voyage du petit renard roux à travers la grande forêt');
@@ -260,7 +271,7 @@ test('a long title wraps, the progress never does', async ({ page, request }, te
   await startDictation(page, testInfo);
   const heading = page.getByTestId('battle-parchment').getByRole('heading', { name: title });
   const progress = page.getByTestId('dictation-progress');
-  await expect(progress).toHaveText(/^Phrase \d sur 2$/);
+  await expect(progress).toHaveText(/^Groupe \d sur 2$/);
   // The line boxes of the element's text: one client rect per line.
   const lines = (el: HTMLElement | SVGElement) => {
     const range = document.createRange();
@@ -271,25 +282,90 @@ test('a long title wraps, the progress never does', async ({ page, request }, te
   expect(await progress.evaluate(lines)).toBe(1);
 });
 
-// Parity: « Réécouter » counts down at pace 2; « Pause » and « Reprendre » drive a flowing pace.
-test('replay counts down at pace 2; pause and resume a flowing pace', async ({ page, request }, testInfo) => {
-  await installKeyboardSim(page);
-  const id = await createProfileApi(request, uniqueName(`Dic6-${testInfo.project.name}`));
-  const text = await createText(request, { title: uniqueName('Dictée rythmes'), body: LONG, level: '10H' });
+// The pace redesign: every pace reads each breath group twice, then the whole text once, a sentence at
+// a time. I waits for « Suivant » and gives one « Réécouter » a group; II moves on and has « Pause »;
+// III moves on, on groups about twice as long, with neither.
+const TWO = 'Le loup, affamé, arriva près de la bergerie. Les brebis dormaient.';
+const G0 = 'Le loup, virgule, affamé, virgule.';
+const G1 = 'arriva près de la bergerie. Point.';
+const S0 = 'Le loup, virgule, affamé, virgule, arriva près de la bergerie. Point.';
+const S1 = 'Les brebis dormaient. Point.';
+const said = async (page: Page) => (await spokenLines(page)).map((l) => l.text);
+
+test('pace I: each group twice, then « Suivant »; one « Réécouter » a group; the whole text at the end', async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
+  const id = await createProfileApi(request, uniqueName(`Pace1-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Pas à pas'), body: TWO, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await startDictation(page, testInfo, 1);
+  const next = page.getByTestId('btn-next');
+  const replay = page.getByTestId('btn-replay');
+  await expect(page.getByTestId('btn-pause')).toHaveCount(0);
+  await expect(next).toBeEnabled();
+  expect(await said(page)).toEqual([G0, G0]);
+  // One extra reading of the group, then the button is spent...
+  await expect(replay).toHaveText('Réécouter');
+  await tap(replay, testInfo);
+  await expect(replay).toBeDisabled();
+  await expect.poll(() => said(page)).toEqual([G0, G0, G0]);
+  // ...and comes back for the next group.
+  await tap(next, testInfo);
+  await expect(replay).toBeDisabled();
+  await expect(next).toBeEnabled();
+  expect(await said(page)).toEqual([G0, G0, G0, G1, G1]);
+  await expect(replay).toBeEnabled();
+  await tap(replay, testInfo);
+  await expect.poll(() => said(page)).toEqual([G0, G0, G0, G1, G1, G1]);
+  await expect(replay).toBeDisabled();
+  await tap(next, testInfo);
+  // The last group: she may finish now, or hear the whole text once more.
+  await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
+  await expect(page.getByTestId('dictation-progress')).toHaveText('Groupe 3 sur 3');
+  await tap(next, testInfo);
+  await expect(page.getByTestId('dictation-status')).toHaveText("C'est fini ! Relis ton texte quand tu veux.");
+  expect(await said(page)).toEqual([G0, G0, G0, G1, G1, G1, S1, S1, S0, S1]);
+  await expect(page.getByTestId('dictation-progress')).toHaveText('Lecture complète');
+});
+
+test('pace II: each group twice, moving on by itself, with « Pause » and no « Réécouter »', async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
+  const id = await createProfileApi(request, uniqueName(`Pace2-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Par groupes'), body: TWO, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
   await startDictation(page, testInfo, 2);
-  const replay = page.getByTestId('btn-replay');
-  await expect(replay).toBeEnabled();
-  await expect(replay).toContainText('(3)');
-  const before = (await spokenLines(page)).length;
-  await tap(replay, testInfo);
-  await expect(replay).toContainText('(2)');
-  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(before);
+  await expect(page.getByTestId('btn-pause')).toBeVisible();
+  await expect(page.getByTestId('btn-replay')).toHaveCount(0);
+  await expect(page.getByTestId('btn-next')).toHaveCount(0);
+  await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
+  expect(await said(page)).toEqual([G0, G0, G1, G1, S1, S1, S0, S1]);
+});
+
+test("pace III: pace II's reading on groups about twice as long, with no « Pause »", async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
+  const id = await createProfileApi(request, uniqueName(`Pace3-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName("D'un bon pas"), body: TWO, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await startDictation(page, testInfo, 3);
+  await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
+  await expect(page.getByTestId('btn-pause')).toHaveCount(0);
+  await expect(page.getByTestId('btn-replay')).toHaveCount(0);
+  await expect(page.getByTestId('btn-next')).toHaveCount(0);
+  // The first sentence's two groups are one: the group is the sentence, and so is the final reading's.
+  expect(await said(page)).toEqual([S0, S0, S1, S1, S0, S1]);
+});
+
+// « Pause » and « Reprendre » drive pace II, and the pause stays in sight under the keyboard.
+test('pause and resume pace II', async ({ page, request }, testInfo) => {
+  await installKeyboardSim(page);
+  await installFastPauses(page, 1 / 10);
+  const id = await createProfileApi(request, uniqueName(`Dic6-${testInfo.project.name}`));
   const flowing = await createText(request, { title: uniqueName('Dictée pause'), body: LONG, level: '10H' });
   await page.goto(`/#/p/${id}/play/${flowing.id}`);
   await expectBattle(page, 'muster');
-  await startDictation(page, testInfo, 3);
+  await startDictation(page, testInfo, 2);
   await expect(page.getByTestId('btn-pause')).toBeEnabled();
   await tap(page.getByTestId('btn-pause'), testInfo);
   await expect(page.getByTestId('dictation-status')).toHaveText('En pause.');
@@ -412,20 +488,23 @@ test('the resume ribbon names the pace the dictation was saved at, and « Recomm
   // « Recommencer » is the way to another pace: the medallions are back, at the level's default.
   await tap(page.getByTestId('battle-resume-restart'), testInfo);
   const sheet = page.getByTestId('battle-parchment');
-  await expect(sheet.getByRole('radio')).toHaveCount(4);
+  await expect(sheet.getByRole('radio')).toHaveCount(3);
   await expect(sheet.getByTestId('pace-option-3').locator('input')).toBeChecked();
 });
 
-// Chunk review minor 8: the longest label, « D'une traite », fits its bronze button on one line, inside
-// the parchment (iPad and desktop alike).
-test('the longest pace label fits the ribbon button on one line', async ({ page, request }, testInfo) => {
+// The pace redesign retired pace IV: a dictation saved at it (before the redesign, so its step is
+// pace IV's) comes back as III, its reading from the start and her draft kept. Chunk review minor 8:
+// the longest label, now « D'un bon pas », fits its bronze button on one line, inside the parchment
+// (iPad and desktop alike).
+test('a dictation saved at the retired pace IV resumes as III, and its label fits the ribbon on one line', async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
   const id = await createProfileApi(request, uniqueName(`Dic10-${testInfo.project.name}`));
-  const text = await createText(request, { title: uniqueName('Dictée traite'), body: BODY, level: '10H' });
-  await seedPlay(page, { profileId: id, textId: text.id, phase: 'dictation', pace: 4, draft: 'Les fées' });
+  const text = await createText(request, { title: uniqueName('Dictée traite'), body: TWO, level: '10H' });
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'dictation', pace: 4, draft: 'Le loup', dictationStep: 9, dictationScript: null });
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
   const button = page.getByTestId('battle-resume-continue');
-  await expect(button).toHaveText("Continuer — D'une traite");
+  await expect(button).toHaveText("Continuer — D'un bon pas");
   const fit = await button.evaluate((el) => {
     const r = el.getBoundingClientRect();
     const sheet = el.closest('[data-testid="battle-parchment"]')!.getBoundingClientRect();
@@ -441,6 +520,13 @@ test('the longest pace label fits the ribbon button on one line', async ({ page,
   // One line: as tall as « Recommencer », its one-line neighbour.
   expect(Math.abs(fit.height - fit.quietHeight)).toBeLessThanOrEqual(1);
   expect(fit.inside).toBe(true);
+  // « Continuer »: pace III's reading, from its first group (step 9 was pace IV's), her draft kept.
+  await resumeSeeded(page);
+  await expectBattle(page, 'dictation');
+  await expect(page.getByTestId('dictation-textarea')).toHaveValue('Le loup');
+  await expect(page.getByTestId('btn-pause')).toHaveCount(0);
+  await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
+  expect(await said(page)).toEqual([S0, S0, S1, S1, S0, S1]);
 });
 
 test('a saved grimoire names no pace on its ribbon: it has none', async ({ page, request }, testInfo) => {
@@ -452,8 +538,9 @@ test('a saved grimoire names no pace on its ribbon: it has none', async ({ page,
   await expect(page.getByTestId('battle-resume-continue')).toHaveText('Continuer');
 });
 
-// Ruling M20: a dictation left and resumed reads again the sentence it had reached, not the first.
-test('a resumed dictation restarts at the sentence it had reached', async ({ page, request }, testInfo) => {
+// Ruling M20: a dictation left and resumed reads again the group it had reached, not the first.
+test('a resumed dictation restarts at the group it had reached', async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
   const id = await createProfileApi(request, uniqueName(`Dic7-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Dictée reprise'), body: BODY, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
@@ -461,10 +548,12 @@ test('a resumed dictation restarts at the sentence it had reached', async ({ pag
   await startDictation(page, testInfo, 1);
   await expect(page.getByTestId('btn-next')).toBeEnabled();
   await tap(page.getByTestId('btn-next'), testInfo);
-  // The second sentence is read, and the play state keeps where the reading is (debounced save).
+  // The second group (the second sentence) is read, and the play state keeps where the reading is
+  // (debounced save): the group's first step, after the first group's two readings, two pauses and
+  // « Suivant ».
   await expect.poll(async () => (await spokenLines(page)).at(-1)?.text ?? '').toContain('Elles chantent');
   const key = `discorde.play.${id}.${text.id}`;
-  await expect.poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').dictationStep, key)).toBe(2);
+  await expect.poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').dictationStep, key)).toBe(5);
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
   await tap(page.getByTestId('btn-quit-confirm'), testInfo);
   await expect(page.getByTestId('battle-resume')).toBeVisible();
@@ -473,8 +562,8 @@ test('a resumed dictation restarts at the sentence it had reached', async ({ pag
   const heard = (await spokenLines(page)).length;
   await resumeSeeded(page);
   await expectBattle(page, 'dictation');
-  await expect.poll(() => firstReadFrom(heard), 'the resumed reading starts on the second sentence').toContain('Elles chantent');
-  await expect(page.getByTestId('battle-parchment')).toContainText('Phrase 2 sur 2');
+  await expect.poll(() => firstReadFrom(heard), 'the resumed reading starts on the second group').toContain('Elles chantent');
+  await expect(page.getByTestId('battle-parchment')).toContainText('Groupe 2 sur 2');
   // And after a reload, from the saved state alone.
   await page.reload();
   await expectBattle(page, 'muster');
@@ -484,30 +573,39 @@ test('a resumed dictation restarts at the sentence it had reached', async ({ pag
 });
 
 // Closing item 1: a resumed dictation must not get its « Réécouter » back - M20 used to save only
-// the reading position, so a reload refilled the count.
-test('a resumed dictation keeps its reduced replay count', async ({ page, request }, testInfo) => {
+// the reading position, so a reload refilled the count. Since the pace redesign the replay is the
+// group's: spent on a group, it stays spent when that group is read again, and « Suivant » gives it back.
+test("a resumed dictation keeps its group's replay spent", async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
   const id = await createProfileApi(request, uniqueName(`Dic9-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Dictée réécoute'), body: BODY, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
-  await startDictation(page, testInfo, 2);
-  await expect(page.getByTestId('btn-replay')).toBeEnabled();
-  await expect(page.getByTestId('btn-replay')).toContainText('(3)');
-  await tap(page.getByTestId('btn-replay'), testInfo);
-  await expect(page.getByTestId('btn-replay')).toContainText('(2)');
+  await startDictation(page, testInfo, 1);
+  const replay = page.getByTestId('btn-replay');
+  await expect(replay).toBeEnabled();
+  await tap(replay, testInfo);
+  await expect(replay).toBeDisabled();
   const key = `discorde.play.${id}.${text.id}`;
   await expect
     .poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').dictationReplaysLeft, key))
-    .toBe(2);
+    .toBe(0);
   await page.reload();
   await expectBattle(page, 'muster');
   await resumeSeeded(page);
   await expectBattle(page, 'dictation');
-  await expect(page.getByTestId('btn-replay')).toContainText('(2)');
+  await expect(page.getByTestId('btn-next')).toBeEnabled();
+  await expect(replay).toBeDisabled();
+  await tap(page.getByTestId('btn-next'), testInfo);
+  await expect(page.getByTestId('btn-next')).toBeEnabled();
+  await expect(replay).toBeEnabled();
 });
 
-// Ruling C11: a flowing dictation (pace 3) pauses when the iPad turns to portrait, and waits.
+// Ruling C11: a flowing dictation (pace III, which has no « Pause » of its own) pauses when the iPad
+// turns to portrait, and waits. A tenth of the pauses: the pause may cut a 20-second one, which
+// « Reprendre » starts over.
 test('turning to portrait pauses a flowing dictation until « Reprendre »', async ({ page, request }, testInfo) => {
+  await installFastPauses(page, 1 / 10);
   const id = await createProfileApi(request, uniqueName(`Dic5-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Dictée portrait'), body: LONG, level: '10H' });
   const size = page.viewportSize()!;
@@ -523,6 +621,7 @@ test('turning to portrait pauses a flowing dictation until « Reprendre »', asy
   await page.setViewportSize(size);
   await expect(page.getByTestId('rotate-screen')).toBeHidden();
   await expect(page.getByTestId('dictation-status')).toHaveText('En pause.');
+  await expect(page.getByTestId('btn-pause')).toHaveCount(0);
   const spoken = (await spokenLines(page)).length;
   await tap(page.getByTestId('btn-resume'), testInfo);
   await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(spoken);
@@ -531,11 +630,12 @@ test('turning to portrait pauses a flowing dictation until « Reprendre »', asy
 // Final review I1: a hidden page (another app, the iPad locked) suspends the voice; a flowing
 // dictation pauses as in portrait, and waits for her tap once the page is back.
 test('hiding the page pauses a flowing dictation until « Reprendre »', async ({ page, request }, testInfo) => {
+  await installFastPauses(page, 1 / 10);
   const id = await createProfileApi(request, uniqueName(`Dic6-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Dictée cachée'), body: LONG, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
-  await startDictation(page, testInfo, 4);
+  await startDictation(page, testInfo, 3);
   await expect(page.getByTestId('dictation-status')).toHaveText('Écoute…');
   const hide = (hidden: boolean) =>
     page.evaluate((h) => {
