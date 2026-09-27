@@ -76,6 +76,8 @@ not fit.
   - `GET /health` returns ready once the model is loaded.
 - **Limits:** each line is at most 1 000 characters, and `speed` must lie within 0.5–1.5. Anything
   else is a 422.
+  *Amended (Kokoro plan, Ruling K1):* a line is at most 10 000 characters, so pace 4's full reading
+  of the longest seed text (about 1 600 characters spoken) is one line.
 - **Test mode** (`TTS_STUB=1`, e2e only): returns a valid silent MP3 as long as the line would take
   (65 ms a character ÷ speed, the current `SPEECH_MS_PER_CHAR`), instantly, without loading the
   model. It keeps the same cache and queue code paths.
@@ -176,6 +178,8 @@ not fit.
     « Réessayer » carrying on, and the lyre test line.
   - One e2e spec runs against the real model (the non-stub `tts` in a separate compose profile,
     run by `check.sh`) and checks that a dictation's first line plays.
+    *Amended (Kokoro plan, Ruling K8):* the e2e stack's one `tts` service is the real voice when run
+    with `TTS_STUB=0` (`playwright.voice.config.ts`, `voice-real.spec.ts`), not a compose profile.
 - **Guards:** the new copy is covered by the existing guards (noEmoji, registerGuard, copyRules,
   frenchSpacing). A guard forbids `speechSynthesis` anywhere in `web/src`.
 - **The gate:** `check.sh` builds both images and must end `== ALL GREEN`, with zero warnings.

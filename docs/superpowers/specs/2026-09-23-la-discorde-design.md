@@ -53,7 +53,7 @@ Greek mythology (public domain), inspired by what she loves (Percy Jackson, Wing
 - Public domain rule: author **and translator** died before 1956 (Swiss law: life + 70 years). If unknown → reject.
 
 ### 3.3 Dictation
-- Audio through the Web Speech API (`speechSynthesis`, fr-FR/fr-CH voice; prefer voices whose name contains "Natural"/"Premium"/"Enhanced"; the player or a parent can choose the voice in settings). Punctuation is spoken ("virgule", "point", "point d'interrogation", "deux-points", "ouvrez les guillemets"…), as a teacher would. Numbers must be written as words in texts.
+- Audio from the server: Kokoro-82M's French voice `ff_siwis`, synthesised by a second container (`tts`) and played through the game's audio on the voice channel; no browser voice and no fallback (amended by `2026-09-27-kokoro-voice-design.md`). Punctuation is spoken (« virgule », « point d'interrogation », « deux-points », « ouvrez les guillemets »…), as a teacher would; a sentence-ending mark is kept and followed by its capitalised name (« …froissées. Point. »). Numbers must be written as words in texts.
 - Text is segmented into sentences and then *groupes de souffle* (chunks of ~4–10 words split at punctuation and natural boundaries).
 - **Pace levels** (part of difficulty; the player can always lower it in free practice, rewards scale):
   1. Sentence by sentence, slow rate (~0.75), the player advances manually, unlimited replays.
@@ -101,19 +101,24 @@ After the dictation, the player's draft is frozen as a snapshot and she enters p
 ## 4. Architecture
 
 ```
- iPad / laptop (Safari/Chrome/Edge)         Server: single Docker container
+ iPad / laptop (Safari/Chrome/Edge)         Server: two Docker containers
  ┌──────────────────────────────┐          ┌──────────────────────────────────┐
  │ Svelte 5 + TypeScript SPA     │  HTTP    │ FastAPI (Python 3.12)            │
  │ - profiles, game, library     │ ◄──────► │ - serves the built SPA           │
- │ - TTS (speechSynthesis)       │  JSON    │ - REST API /api/...              │
+ │ - audio (Howler), the voice   │  JSON    │ - REST API /api/...              │
  │ - grading engine (TS, pure)   │          │ - spaCy fr_core_news_lg analysis │
  │ - PWA manifest + icons        │          │ - Tesseract OCR (fra) [SP2]      │
  └──────────────────────────────┘          │ - text sourcing [SP2]            │
+                                            │ - /api/tts/* → tts:8000          │
                                             │ SQLite + files in volume /data   │
+                                            └──────────────────────────────────┘
+                                            ┌──────────────────────────────────┐
+                                            │ tts: Kokoro-82M (FastAPI, CPU)   │
+                                            │ internal only, /cache volume     │
                                             └──────────────────────────────────┘
 ```
 
-- **Single container**, multi-stage Dockerfile (node build of the SPA → python runtime serving it). `compose.yaml` with one service, port `8080`, volume for `/data`. Target: **TrueNAS SCALE 25.10** (Apps → Discover → ⋮ → *Install via YAML*), and Docker Desktop on Windows for development.
+- **Two containers**: the game (multi-stage Dockerfile: node build of the SPA → python runtime serving it, port `8080`, volume for `/data`) and its voice (`tts/`, Kokoro-82M, internal only, volume `discorde-tts-cache`), both in `compose.yaml` (amended by `2026-09-27-kokoro-voice-design.md`). Target: **TrueNAS SCALE 25.10** (Apps → Discover → ⋮ → *Install via YAML*), and Docker Desktop on Windows for development.
 - **Plain HTTP on the LAN** is the deployment; everything must work without HTTPS, and no feature needs a secure context (no service worker, no `getUserMedia`). Camera capture uses `<input type="file" accept="image/*" capture="environment">`, which works over HTTP.
 - **Server-authoritative data.** Profiles, texts, sessions and stats live in SQLite on the server. The client keeps only transient state (and may cache the current session in `localStorage` to survive a reload).
 - **Grading runs client-side** in a pure TypeScript module (instant feedback, unit-testable); the client submits the session (draft, final, per-token results) and the server recomputes and stores stats. The server stores the raw texts too, so stats can be recomputed if the grading logic changes.

@@ -24,6 +24,25 @@ translators died more than seventy years ago. Each work and each adopted text ke
 translator on screen (for example « Lewis Carroll, trad. Henri Bué »). The original texts come
 from Wikisource and Project Gutenberg (each work's `source` field in the allowlist says which).
 
+## The dictation voice (spec 2026-09-27)
+
+The `tts` image bakes in Kokoro-82M and its French voice; they are downloaded at build time
+(`tts/Dockerfile`, each file checked against the sha256 in `tools/tts/parity.json`), not shipped in
+this repository. The lyre's credits name them to the players. The build runs ONNX Runtime directly
+on the ONNX export (`tools/tts/parity.json` verdict `onnx-direct`): the kokoro-onnx and kokoro
+Python packages and PyTorch are not in the image.
+
+| Component | Source | Author | Licence |
+|---|---|---|---|
+| Kokoro-82M v1.0 (model weights, `config.json`) | [hexgrad/Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) | hexgrad | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) |
+| Voice `ff_siwis` | trained on the [SIWIS French Speech Synthesis Database](https://datashare.ed.ac.uk/handle/10283/2353) | Junichi Yamagishi, Pierre-Edouard Honnet, Philip N. Garner, Alexandros Lazaridis (University of Edinburgh, Idiap Research Institute) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| ONNX export of Kokoro-82M and its voices (`kokoro-v1.0.onnx`, `voices-v1.0.bin`, release model-files-v1.0) | [thewh1teagle/kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) | thewh1teagle | the weights' [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) (the repository's code is [MIT](https://opensource.org/licenses/MIT)) |
+| ONNX Runtime | [microsoft/onnxruntime](https://github.com/microsoft/onnxruntime) | Microsoft | [MIT](https://opensource.org/licenses/MIT) |
+| misaki (French G2P, its espeak backend) | [hexgrad/misaki](https://github.com/hexgrad/misaki) | hexgrad | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) |
+| phonemizer-fork | [bootphon/phonemizer](https://github.com/bootphon/phonemizer) (fork published by thewh1teagle) | Hadrien Titeux and the phonemizer contributors | [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.html) |
+| espeakng-loader (bundles espeak-ng 1.52.0) | [thewh1teagle/espeakng-loader](https://github.com/thewh1teagle/espeakng-loader) | thewh1teagle | [MIT](https://opensource.org/licenses/MIT) |
+| espeak-ng (French phonemes) | [espeak-ng](https://github.com/espeak-ng/espeak-ng) | the eSpeak NG contributors | [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.html) |
+
 <!-- audio:start -->
 ## Sounds (scenes UI spec §7)
 

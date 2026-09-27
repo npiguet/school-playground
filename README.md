@@ -16,8 +16,8 @@ rewards. The whole game is a set of painted scenes with places to tap (see §8).
   texts typed or pasted at *Le pupitre*, scanned handouts (*La lentille*), and excerpts adopted from
   the Bibliothèque d'Alexandrie (*Le portail*).
 - **Dictation** with 4 paces, from « Pas à pas » (one sentence at a time, unlimited replays) to
-  « D'une traite » (test conditions, no replays), read aloud by the device's own French
-  text-to-speech voice.
+  « D'une traite » (test conditions, no replays), read aloud by a French voice (Kokoro-82M)
+  that the server synthesises in its second container.
 - **Proofreading** — *Les Yeux d'Argus* (a spotlight over one word category at a time: verbs,
   nominal groups, homophones, trap words), *Le Bouclier de Persée* (sentence by sentence, last to
   first), *La Chouette d'Athéna* (limited hints) and *Le Fil d'Ariane* (tap a verb, then its subject).
@@ -229,13 +229,10 @@ iPad ».
 Everything works over plain HTTP on the LAN, including taking a photo of a handout with the
 camera for a scan (the file picker's camera doesn't need a secure page).
 
-**The dictation voice.** The game reads dictations with the iPad's own French voice, so its quality
-depends on the voices installed. Download a good one first: **Réglages → Accessibilité → Contenu
-énoncé → Voix → Français** (Settings → Accessibility → Spoken Content → Voices → French), and pick
-one marked "Enhanced"/"Premium" (« améliorée »). Then choose it in the game: in the hero's cabin,
-tap **« La lyre »** and pick it under « La voix de la dictée » (« Écouter un essai » plays a sample,
-« Enregistrer » saves it for that hero). If no French voice is installed, the lyre says so and
-repeats that path.
+**The dictation voice.** The server reads the dictations with Kokoro-82M's French voice: nothing
+needs installing on the iPad. « Écouter un essai » in the lyre (the hero's cabin, **« La lyre »**)
+plays a sample. If the voice cannot be reached, the dictation stops on a card from Éris asking the
+player to fetch a parent; its small line names the cause (§2, "If the voice goes silent").
 
 **The keyboard.** The game turns off autocorrect, capitals and spell-check in the dictation and
 proofreading fields. If word suggestions still show above the keyboard, turn off predictive text:
@@ -247,12 +244,11 @@ proofreading fields. If word suggestions still show above the keyboard, turn off
   after a reload or coming back to the game the sound returns with the first tap anywhere.
 - **Silent mode mutes the music and the sound effects.** Check it's off: open Control Centre (swipe
   down from the top-right corner) and make sure the bell is not crossed out; older iPads have a
-  switch on the side instead. Whether the dictation voice still speaks in silent mode is up to the
-  iPad.
+  switch on the side instead. The dictation voice plays through the game's own audio too, so silent
+  mode mutes it as well.
 - Each hero has three volumes, for the music, the sound effects and the voice, each with its own
   « Sourdine » (mute): in the lyre under « Les sons du camp », or from the lyre button at the top
-  of every scene. On the iPad the voice's slider has no effect (iPadOS ignores it): use the iPad's
-  volume buttons for the voice. With the voice muted, nothing is read aloud and someone has to read
+  of every scene. Every slider works on the iPad, the voice's included. With the voice muted, nothing is read aloud and someone has to read
   the dictation to the player.
 
 ## 4. Backups
@@ -364,6 +360,8 @@ yourself first.
   processes them.
 - **Fonts** — Cinzel, Alegreya and Literata, self-hosted under the SIL Open Font License 1.1
   (`ASSETS-LICENSES.md`, licence text next to the files in `web/public/fonts/`).
+- **The dictation voice** — Kokoro-82M (Apache-2.0) with its French voice `ff_siwis`, trained on the
+  SIWIS French speech data (CC BY 4.0); credited in `ASSETS-LICENSES.md`.
 - **Public-domain rule** for any text added to the library, seed or Alexandria: author and
   translator must both have died before 1956; if unknown, reject it.
 
@@ -376,9 +374,8 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
 - The scenes' tilt parallax (the picture shifting as the iPad tilts) probably stays off on the
   iPad: Safari only gives motion sensors to HTTPS pages. Dragging a finger across a scene still
   moves it.
-- Text-to-speech voice quality depends entirely on the device's installed voices — pick an
-  "Enhanced" French voice where available (§3).
-- On the iPad the voice's volume slider does nothing; the device's volume buttons set it (§3).
+- The dictation voice needs the server's `tts` container: the first line of a long text at « D'une
+  traite » can take several seconds to come (a short line shows while it does).
 - OCR (Tesseract, French) is for **printed** handouts only; it does not read handwriting.
 - Alexandria needs the server to reach Wikisource and Project Gutenberg; everything else works
   without internet.
@@ -401,8 +398,8 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   - « La tente de guerre » — Éris's lieutenants on their portrait wall, « Le dossier d'Éris » and
     « Le bestiaire ».
   - « Ta cabane » — « Tes trésors » (every reward), « Ton journal » (the hero's all-time counts, the
-    former stats screen) and « La lyre » (the settings: dictation voice, the three sound channels,
-    class, weekly goal, seal, tours, credits).
+    former stats screen) and « La lyre » (the settings: the dictation voice's trial, the three sound
+    channels, class, weekly goal, seal, tours, credits).
   - « Le sentier de la bataille » — the way to Éris herself, once she shows up.
 - **Battles.** A text opens the battle stage (`#/p/:id/play/:textId`; the Grimoire at
   `#/p/:id/grimoire/:textId`): choose a pace, write the dictation, proofread it with the heroes'
