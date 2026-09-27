@@ -35,6 +35,13 @@ def test_flip_number(lexicon):
     assert lexicon.flip_number("les", "le", {"Gender": "Masc", "Number": "Plur"}) == "le"
     assert lexicon.flip_number("petites", "petit", {"Gender": "Fem", "Number": "Plur"}) == "petite"
     assert lexicon.flip_number("et", "et", {}) is None
+    # a past participle under its verb's lemma, like flip_gender does (« parties » → « partie »)
+    part = {"VerbForm": "Part", "Gender": "Fem", "Number": "Plur"}
+    assert lexicon.flip_number("parties", "partir", part) == "partie"
+    assert lexicon.flip_number("venus", "venir", {**part, "Gender": "Masc"}) == "venu"
+    # a spaCy lemma the word itself does not have is ignored: « La pauvre enfant » was planted as
+    # « La pauvre enfers » under the lemma « enfer »
+    assert lexicon.flip_number("enfant", "enfer", {"VerbForm": "Part"}) == "enfants"
 
 
 # SP2 playability P1-4: the Grimoire planted « étalaient → étala » (imparfait → passé simple) and

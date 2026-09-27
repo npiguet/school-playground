@@ -122,11 +122,14 @@ class Lexicon:
         return bool(self.lookup(word))
 
     def _candidate_lemmas(self, word: str, lemma: str | None) -> list[str]:
-        """The lemma to search under: the given spaCy lemma when the lexicon knows it,
-        else every lemma of the word's own lexicon entries."""
-        if lemma and lemma in self.by_lemme:
+        """The lemma to search under: the given spaCy lemma when the lexicon knows it and it is one of
+        the word's own lemmas (or the word is unknown), else every lemma of the word's own entries.
+        A spaCy lemma foreign to the word (« enfant » lemmatised « enfer ») would flip it into
+        another word."""
+        own = sorted({e.lemme for e in self.lookup(word)})
+        if lemma and lemma in self.by_lemme and (not own or lemma in own):
             return [lemma]
-        return sorted({e.lemme for e in self.lookup(word)})
+        return own
 
     def _own_features(self, word: str, cgram_prefixes: tuple[str, ...], morph: dict) -> tuple[str | None, str | None]:
         """Resolve (genre, nombre) for word's own entries restricted to cgram_prefixes.
@@ -295,14 +298,21 @@ class Lexicon:
             result = self._flip_verb_number(word, lemma, morph)
 
         if result is None:
-            genre, own_nombre = self._own_features(word, ("NOM", "ADJ"), morph)
+            # Nouns, adjectives and past participles (under the verb's lemma: « parties » → « partie »);
+            # never a finite form whose number flip failed above
+            participle = any("par:pas" in e.infover.split(";") for e in self.lookup(word))
+            kinds = ("NOM", "ADJ", "VER", "AUX") if participle else ("NOM", "ADJ")
+            genre, own_nombre = self._own_features(word, kinds, morph)
             target_nombre = "p" if own_nombre == "s" else ("s" if own_nombre == "p" else None)
             if target_nombre is not None:
                 lemmas = self._candidate_lemmas(word, lemma)
                 best = None
                 for l in lemmas:
                     for e in self.by_lemme.get(l, []):
-                        if e.cgram.split(":")[0] not in ("NOM", "ADJ"):
+                        cgram_prefix = e.cgram.split(":")[0]
+                        if cgram_prefix not in kinds:
+                            continue
+                        if cgram_prefix in ("VER", "AUX") and "par:pas" not in e.infover.split(";"):
                             continue
                         if e.nombre != target_nombre:
                             continue
