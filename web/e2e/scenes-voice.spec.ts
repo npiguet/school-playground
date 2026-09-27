@@ -28,9 +28,9 @@ const SENTENCES = ['Les fées dansent dans la clairière. Point.', 'Elles chante
 const WRITE = "À toi d'écrire.";
 type PrepareBody = { profile_id: number; lines: { text: string; speed: number }[] };
 
-async function startDictation(page: Page, request: APIRequestContext, testInfo: TestInfo, pace: 1 | 2 | 3 | 4) {
+async function startDictation(page: Page, request: APIRequestContext, testInfo: TestInfo, pace: 1 | 2 | 3 | 4, body = BODY) {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  const text = await createText(request, { title: uniqueName('Voix'), body: BODY, level: '10H' });
+  const text = await createText(request, { title: uniqueName('Voix'), body, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
   const sheet = page.getByTestId('battle-parchment');
@@ -59,6 +59,44 @@ test('the whole script is sent ahead once, each line once, in script order (spec
   expect(new Set(body.lines.map((l) => l.text)).size).toBe(body.lines.length);
   expect(body.lines.every((l) => l.speed === 0.9)).toBe(true);
   expect(body.lines[0].text).toContain('Les fées dansent');
+});
+
+// The pace bug report (2026-09-27): after a dictation at pace 1, « Quitter » then « Recommencer » and
+// pace 3 must read the text in breath groups, each twice, at 0.9 - not pace 1's sentences again.
+test('a dictation restarted at another pace reads at that pace', async ({ page, request }, testInfo) => {
+  const asked: { url: string; body: unknown }[] = [];
+  page.on('request', (r) => {
+    if (r.url().includes('/api/tts/')) asked.push({ url: r.url(), body: r.postDataJSON() });
+  });
+  // The user's sentence: three commas, so pace 3 has four breath groups where pace 1 has one line.
+  const body = 'Les hommes, affamés par leur longue traversée, burent sans méfiance. Seul Euryloque, resté en arrière par prudence, échappa au sortilège.';
+  const sentences = ['Les hommes, virgule, affamés par leur longue traversée, virgule, burent sans méfiance. Point.'];
+  await startDictation(page, request, testInfo, 1, body);
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(0);
+  expect((await spokenLines(page))[0].text).toBe(sentences[0]);
+  await tap(page.getByTestId('btn-quit-dictation'), testInfo);
+  await tap(page.getByTestId('btn-quit-confirm'), testInfo);
+  await tap(page.getByTestId('battle-resume-restart'), testInfo);
+  await expectBattle(page, 'muster');
+  const sheet = page.getByTestId('battle-parchment');
+  await tap(sheet.getByTestId('pace-option-3'), testInfo);
+  await expect(sheet.getByTestId('pace-option-3').locator('input')).toBeChecked();
+  const from = asked.length;
+  const heard = (await spokenLines(page)).length;
+  await tap(sheet.getByRole('button', { name: 'Commencer la dictée' }), testInfo);
+  await expectBattle(page, 'dictation');
+  await expect.poll(() => asked.slice(from).filter((a) => a.url.endsWith('/prepare')).length).toBe(1);
+  const prepare = asked.slice(from).find((a) => a.url.endsWith('/prepare'))!.body as PrepareBody;
+  expect(prepare.lines.length).toBeGreaterThan(2);
+  expect(prepare.lines.every((l) => l.speed === 0.9)).toBe(true);
+  // The first breath group, said twice.
+  await expect.poll(async () => (await spokenLines(page)).length, { timeout: 20_000 }).toBeGreaterThanOrEqual(heard + 2);
+  const [first, second] = (await spokenLines(page)).slice(heard).map((l) => l.text);
+  expect(first).toBe(prepare.lines[0].text);
+  expect(second).toBe(first);
+  expect(first).not.toBe(sentences[0]);
+  const speaks = asked.slice(from).filter((a) => a.url.endsWith('/speak'));
+  expect(speaks.every((a) => (a.body as { speed: number }).speed === 0.9)).toBe(true);
 });
 
 // Fix wave A, Ruling R-A1: pace 4's full readings are said a sentence at a time, so the first sound
