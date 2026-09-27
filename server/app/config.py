@@ -14,6 +14,7 @@ class Settings:
     seed_on_startup: bool = True
     alexandria_offline_dir: Path | None = None
     test_hooks: bool = False
+    tts_url: str = "http://tts:8000"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -26,4 +27,5 @@ class Settings:
             seed_on_startup=os.environ.get("DISCORDE_SEED", "1") == "1",
             alexandria_offline_dir=Path(offline_dir) if offline_dir else None,
             test_hooks=os.environ.get("DISCORDE_TEST_HOOKS") == "1",
+            tts_url=os.environ.get("DISCORDE_TTS_URL", "http://tts:8000"),
         )

@@ -2,12 +2,13 @@
 from __future__ import annotations
 import mimetypes
 from contextlib import asynccontextmanager
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from app.alexandria.flights import AnnotationLimiter, RefreshFlights
 from app.config import Settings
 from app.db import connect, migrate, DB_FILENAME
-from app.routers import profiles, texts, sessions, stats, scan, alexandria, world
+from app.routers import profiles, texts, sessions, stats, scan, alexandria, world, tts
 
 VERSION = "0.1.0"
 
@@ -49,7 +50,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             import_seed(conn, settings.content_dir, annotator)
             reannotate_outdated(conn, annotator)
         conn.close()
+        # The dictation's voice (Kokoro plan Task 4): one pooled client for /api/tts/*.
+        app.state.tts_client = httpx.Client(base_url=settings.tts_url)
         yield
+        app.state.tts_client.close()
 
     app = FastAPI(title="La Discorde", version=VERSION, lifespan=lifespan)
 
@@ -64,6 +68,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(scan.router)
     app.include_router(alexandria.router)
     app.include_router(world.router)
+    app.include_router(tts.router)
 
     # Later tasks insert app.include_router(...) lines HERE, above the /api catch-all.
 
