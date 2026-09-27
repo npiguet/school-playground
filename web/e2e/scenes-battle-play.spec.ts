@@ -416,6 +416,33 @@ test('the resume ribbon names the pace the dictation was saved at, and « Recomm
   await expect(sheet.getByTestId('pace-option-3').locator('input')).toBeChecked();
 });
 
+// Chunk review minor 8: the longest label, « D'une traite », fits its bronze button on one line, inside
+// the parchment (iPad and desktop alike).
+test('the longest pace label fits the ribbon button on one line', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Dic10-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Dictée traite'), body: BODY, level: '10H' });
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'dictation', pace: 4, draft: 'Les fées' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  const button = page.getByTestId('battle-resume-continue');
+  await expect(button).toHaveText("Continuer — D'une traite");
+  const fit = await button.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const sheet = el.closest('[data-testid="battle-parchment"]')!.getBoundingClientRect();
+    const quiet = document.querySelector('[data-testid="battle-resume-restart"]')!.getBoundingClientRect();
+    return {
+      overflow: el.scrollWidth - el.clientWidth,
+      height: r.height,
+      quietHeight: quiet.height,
+      inside: r.left >= sheet.left && r.right <= sheet.right,
+    };
+  });
+  expect(fit.overflow).toBeLessThanOrEqual(0);
+  // One line: as tall as « Recommencer », its one-line neighbour.
+  expect(Math.abs(fit.height - fit.quietHeight)).toBeLessThanOrEqual(1);
+  expect(fit.inside).toBe(true);
+});
+
 test('a saved grimoire names no pace on its ribbon: it has none', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Dic9-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Grimoire rythme'), body: BODY, level: '10H' });

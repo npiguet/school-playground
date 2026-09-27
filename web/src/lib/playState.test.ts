@@ -85,6 +85,20 @@ describe('savePlayState / loadPlayState', () => {
     expect(loadPlayState(1, 2)).toBeNull();
   });
 
+  // Chunk review minor 7: the resume ribbon names the saved pace (PACE_LABELS[pace]), so a saved state
+  // with no pace, or one out of 1-4, is dropped rather than resumed.
+  it('returns null when the saved pace is missing or not one of 1-4', () => {
+    const s = newPlayState(1, 2, 1);
+    for (const pace of [undefined, 0, 5, 2.5, '3', null]) {
+      localStorage.setItem(playKey(1, 2), JSON.stringify({ ...s, pace }));
+      expect(loadPlayState(1, 2), String(pace)).toBeNull();
+    }
+    for (const pace of [1, 2, 3, 4]) {
+      localStorage.setItem(playKey(1, 2), JSON.stringify({ ...s, pace }));
+      expect(loadPlayState(1, 2)?.pace).toBe(pace);
+    }
+  });
+
   it('saves a grimoire state under its own key, coexisting with a dictation state', () => {
     const dictationState = newPlayState(1, 2, 2);
     dictationState.draft = 'Bonjour le monde';

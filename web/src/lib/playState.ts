@@ -111,6 +111,9 @@ export function loadPlayState(profileId: number, textId: number, mode: PlayMode 
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || parsed.version !== VERSION) return null;
+    // The pace scripts the dictation and is named on the resume ribbon (PACE_LABELS): a saved state
+    // without a valid one is corrupt, and dropped like one of another version.
+    if (![1, 2, 3, 4].includes(parsed.pace)) return null;
     return parsed as PlayState;
   } catch {
     return null;
