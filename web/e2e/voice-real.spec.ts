@@ -27,3 +27,28 @@ test("Kokoro reads a dictation's first line", async ({ page, request }) => {
   expect((await spokenLines(page))[0].text).toBe('Le renard court dans la forêt. Point.');
   await expect(page.getByTestId('dictation-status')).toHaveText("À toi d'écrire.", { timeout: 60_000 });
 });
+
+// Pace-bug report 2026-09-27, open item 2: a breath group cut on a word ends with a bare comma, not a
+// full stop, so the voice keeps the phrase open. Kokoro takes that ending and reads it.
+test('Kokoro reads a breath group that ends on a comma, the phrase going on', async ({ page, request }) => {
+  const id = await createProfileApi(request, uniqueName('Kokoro'));
+  const body = "Quand les marins d'Ulysse débarquèrent sur l'île boisée où régnait la magicienne Circé.";
+  const text = await createText(request, { title: uniqueName('Kokoro'), body, level: '10H' });
+  const first = "Quand les marins d'Ulysse débarquèrent sur l'île boisée,";
+  const speak = page.waitForResponse(
+    (r) => r.url().endsWith('/api/tts/speak') && (r.request().postDataJSON() as { text: string }).text === first,
+    { timeout: 120_000 },
+  );
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  const sheet = page.getByTestId('battle-parchment');
+  await sheet.getByTestId('pace-option-3').click();
+  await sheet.getByRole('button', { name: 'Commencer la dictée' }).click();
+  await expectBattle(page, 'dictation');
+  const res = await speak;
+  expect(res.status()).toBe(200);
+  expect(res.headers()['content-type']).toBe('audio/mpeg');
+  expect((await res.body()).length).toBeGreaterThan(4_000);
+  await expect.poll(async () => (await spokenLines(page)).length, { timeout: 60_000 }).toBeGreaterThanOrEqual(1);
+  expect((await spokenLines(page))[0].text).toBe(first);
+});

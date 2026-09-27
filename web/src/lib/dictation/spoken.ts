@@ -52,7 +52,17 @@ const ABBREVIATION_WITH_PERIOD: Record<string, string> = {
   Ste: 'sainte',
 };
 
-export function spokenForm(chunk: string, opts?: { newParagraph?: boolean }): string {
+/**
+ * `continues`: the chunk is a breath group that stops before its sentence ends (buildPlan). When it stops
+ * on a word, not on the text's own punctuation (splitChunks halved a long piece there), the line ends
+ * with a bare comma instead of the full stop (pace-bug report 2026-09-27, open item 2): a full stop
+ * makes the voice close the phrase with a falling cadence, a comma keeps it open, as a teacher's voice
+ * stays up mid-phrase. The comma is only a cue to the voice (espeak's clause-continuing intonation,
+ * where a line with no mark at all ends as a full stop does); nothing names it. A group that stops on
+ * the text's own mark (« , virgule. », « ; point-virgule. ») and a sentence's last group (« . Point. »)
+ * end as before.
+ */
+export function spokenForm(chunk: string, opts?: { newParagraph?: boolean; continues?: boolean }): string {
   const tokens = tokenize(chunk);
   const units: Unit[] = [];
   for (let i = 0; i < tokens.length; i++) {
@@ -90,7 +100,7 @@ export function spokenForm(chunk: string, opts?: { newParagraph?: boolean }): st
     }
     out += u.text;
   });
-  out += '.';
+  out += opts?.continues && units.at(-1)?.kind === 'word' ? ',' : '.';
 
   if (opts?.newParagraph) out = 'À la ligne. ' + (units[0] && units[0].kind !== 'word' ? capitalise(out) : out);
   return out;

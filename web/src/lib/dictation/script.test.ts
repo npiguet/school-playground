@@ -13,6 +13,31 @@ describe('buildPlan', () => {
     expect(plan.chunks[0].spoken).toBe('Le loup, virgule, affamé, virgule.');
     expect(plan.chunks.map((c) => c.sentenceIndex)).toEqual([0, 0, 1]);
   });
+  it('says « À la ligne » once, before the first group of a new paragraph, not before each of its groups', () => {
+    const plan = buildPlan('Il pleut.\n\nLe loup, affamé, arriva près de la bergerie.');
+    expect(plan.chunks.map((c) => c.spoken)).toEqual([
+      'Il pleut. Point.',
+      'À la ligne. Le loup, virgule, affamé, virgule.',
+      'arriva près de la bergerie. Point.',
+    ]);
+    expect(plan.chunks.map((c) => c.newParagraph)).toEqual([false, true, false]);
+  });
+  it("ends only a sentence's last group with the sentence's close; a group cut on a word goes on (text 35)", () => {
+    const body = (JSON.parse(readFileSync('../content/seed/035-muses-circe.json', 'utf-8')) as { body: string }).body;
+    const plan = buildPlan(body);
+    expect(plan.chunks.slice(0, 5).map((c) => c.spoken)).toEqual([
+      "Quand les marins d'Ulysse débarquèrent sur l'île boisée,",
+      'où régnait la magicienne Circé, virgule.',
+      'ils furent accueillis par des lions,',
+      'et des loups étrangement dociles, virgule.',
+      'qui les frôlaient sans jamais montrer les crocs. Point.',
+    ]);
+    plan.chunks.forEach((c, i) => {
+      const last = i === plan.chunks.length - 1 || plan.chunks[i + 1].sentenceIndex !== c.sentenceIndex;
+      if (last) expect(c.spoken, c.text).toMatch(/\. Point\.$/);
+      else expect(c.spoken, c.text).toMatch(/(, virgule\.|[\p{L}\p{N}],)$/u);
+    });
+  });
 });
 
 describe('buildScript', () => {

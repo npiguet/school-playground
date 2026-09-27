@@ -41,4 +41,21 @@ describe('spokenForm', () => {
     expect(spokenForm('Elle rencontra M. Seguin.')).toBe('Elle rencontra monsieur Seguin. Point.');
     expect(spokenForm('Mme Loisel dansait.')).toBe('madame Loisel dansait. Point.');
   });
+  // Pace-bug report, open item 2: a group cut in the middle of its sentence, on a word, goes on; a full
+  // stop would make the voice close a phrase that is not finished. It ends with a bare comma instead.
+  it('ends a group that stops on a word inside its sentence with a comma, not a full stop', () => {
+    expect(spokenForm("Quand les marins d'Ulysse débarquèrent sur l'île boisée", { continues: true }))
+      .toBe("Quand les marins d'Ulysse débarquèrent sur l'île boisée,");
+    expect(spokenForm('Celui-ci, protégé par une herbe magique', { continues: true }))
+      .toBe('Celui-ci, virgule, protégé par une herbe magique,');
+    expect(spokenForm('les invita dans son palais', { continues: true, newParagraph: true }))
+      .toBe('À la ligne. les invita dans son palais,');
+  });
+  it("keeps the ending of a group that stops on the text's own punctuation, and of a whole sentence", () => {
+    expect(spokenForm('où régnait la magicienne Circé,', { continues: true })).toBe('où régnait la magicienne Circé, virgule.');
+    expect(spokenForm('dit la petite chèvre ;', { continues: true })).toBe('dit la petite chèvre ; point-virgule.');
+    expect(spokenForm('qui les frôlaient sans jamais montrer les crocs.', { continues: false }))
+      .toBe('qui les frôlaient sans jamais montrer les crocs. Point.');
+    expect(spokenForm('Fin du premier')).toBe('Fin du premier.');
+  });
 });

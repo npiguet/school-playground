@@ -24,7 +24,11 @@ Ryzen 7 9700.
   « …belle ! Point d'exclamation. », « …vu… Points de suspension. ». The comma and every other
   mark keep today's form: « , virgule, », « ; point-virgule, », « : deux-points, », guillemets,
   tiret. The paragraph prefix « À la ligne. » follows the same rule; its next word is capitalised
-  when that word is a punctuation name.
+  when that word is a punctuation name. Amended 2026-09-27 (pace-bug report, open item 2): a
+  breath group that stops on a word inside its sentence (a long piece halved) ends with a bare
+  comma, not « . », so the voice keeps the phrase open; halving never cuts right after a
+  determiner, a preposition, a pronoun, an auxiliary or a conjunction. « À la ligne. » opens only a
+  paragraph's first group.
 - **No fallback:** if the server cannot produce a line, the dictation stops on an in-universe
   message that sends the player to a parent (§5.3).
 - **Its own container:** the speech engine runs in a second compose service.

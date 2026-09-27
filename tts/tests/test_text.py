@@ -1,5 +1,6 @@
 import pytest
 
+from app.cache import cache_key
 from app.text import MAX_CHARS, Respeller, normalise, segments
 
 
@@ -66,3 +67,13 @@ def test_the_limit_is_ten_thousand_characters():
 
 def test_the_game_s_french_spacing_becomes_plain_spaces():
     assert normalise("Bonjour ! « Point »") == "Bonjour ! « Point »"
+
+
+def test_a_breath_group_that_goes_on_keeps_its_ending():
+    # Pace-bug report 2026-09-27, open item 2: a group cut on a word ends with a bare comma, not a full
+    # stop. The voice takes it as it is: one segment, its comma kept, so its cache key is its own.
+    line = "Quand les marins d'Ulysse débarquèrent sur l'île boisée,"
+    assert normalise(line) == line
+    assert segments(normalise(line)) == [line]
+    assert cache_key("m", "v", 0.9, line) != cache_key("m", "v", 0.9, line[:-1] + ".")
+    assert normalise("les invita dans son palais") == "les invita dans son palais"

@@ -1,6 +1,7 @@
 // Sentence and breath-group (chunk) segmentation for dictation playback.
 // Pure functions: no DOM, no Web Speech API. Spec §3.3.
 import { tokenize } from '$lib/grading/tokenize';
+import type { Token } from '$lib/grading/types';
 
 export interface Sentence {
   text: string;
@@ -94,13 +95,89 @@ export function countWords(s: string): number {
   return tokenize(s).filter((t) => t.kind === 'word').length;
 }
 
-const SPLIT_AFTER_RE = /^[,;:—–»]$|,$|;$|:$|—$|–$|»$/;
+// Where a long piece is halved (pace-bug report 2026-09-27, open item 2). Tokens carry no part of speech
+// on the client, so two small French word lists stand in for one, matched on the lower-cased word.
+// `tokenize` keeps an elided word with the word it leans on (« l'île », « d'Ulysse », « qu'elle »,
+// « jusqu'à » are one token each), so a cut can never fall right after « l' » or « qu' ».
+//
+// A group never ends on a word that needs the next one: a determiner, a preposition, a subject or
+// object pronoun before its verb, an auxiliary or a conjugated « être », a conjunction or a relative.
+const NO_CUT_AFTER = new Set([
+  // determiners
+  'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'au', 'aux', 'ce', 'cet', 'cette', 'ces',
+  'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'son', 'sa', 'ses', 'leur', 'leurs', 'notre', 'nos', 'votre', 'vos',
+  'quel', 'quelle', 'quels', 'quelles', 'chaque', 'plusieurs', 'quelques', 'tout', 'toute', 'tous', 'toutes',
+  // prepositions, and the adverbs that open a compound one (« près de », « afin de »)
+  'à', 'sur', 'sous', 'par', 'pour', 'avec', 'sans', 'dans', 'en', 'vers', 'entre', 'chez', 'contre',
+  'après', 'avant', 'devant', 'derrière', 'depuis', 'pendant', 'parmi', 'selon', 'malgré', 'jusque',
+  'près', 'loin', 'autour', 'auprès', 'afin', 'lors', 'hors', 'grâce',
+  // pronouns before their verb
+  'je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'me', 'te', 'se', 'lui', 'y', 'ne',
+  // auxiliaries and « être »
+  'ai', 'as', 'a', 'avons', 'avez', 'ont', 'avais', 'avait', 'avions', 'aviez', 'avaient', 'eut', 'eurent',
+  'aura', 'auront', 'aurait', 'auraient', 'suis', 'es', 'est', 'sommes', 'êtes', 'sont', 'étais', 'était',
+  'étions', 'étiez', 'étaient', 'fut', 'furent', 'sera', 'seront', 'serait', 'seraient',
+  // conjunctions and relative or subordinating words
+  'et', 'ou', 'mais', 'ni', 'car', 'donc', 'or', 'qui', 'que', 'quoi', 'où', 'dont', 'quand', 'lorsque',
+  'puisque', 'comme', 'si', 'lequel', 'laquelle', 'lesquels', 'lesquelles',
+]);
+// A group rather starts on one of these: a clause (a relative, a subordinating word or a conjunction)
+// is the best cut, a prepositional phrase the next best.
+const CUT_BEFORE_CLAUSE = new Set([
+  'qui', 'que', 'qu', 'lorsqu', 'puisqu', 'où', 'dont', 'quand', 'lorsque', 'puisque', 'comme', 'si', 'et', 'mais', 'ou', 'ni', 'car',
+  'lequel', 'laquelle', 'lesquels', 'lesquelles',
+]);
+const CUT_BEFORE_PHRASE = new Set([
+  'sans', 'pour', 'avec', 'dans', 'sur', 'sous', 'par', 'vers', 'entre', 'chez', 'contre', 'après', 'avant',
+  'devant', 'derrière', 'depuis', 'pendant', 'parmi', 'selon', 'malgré', 'jusqu', 'près', 'loin', 'autour',
+  'auprès', 'afin', 'lors', 'grâce',
+]);
+// A word with an elision is read at both ends: its first part opens the group after the cut
+// (« qu'elle » -> « qu », a relative), its last part closes the group before it (« qu'elle » -> « elle »,
+// a subject pronoun, so no cut after it; « n'avait » -> « avait »).
+const parts = (text: string): string[] => text.toLowerCase().split(/['’ʼ]/);
+const firstPart = (text: string): string => parts(text)[0];
+const lastPart = (text: string): string => parts(text).at(-1) ?? '';
+/** Each group of a halved piece keeps at least this many words; a group under MIN_GOOD is penalised. */
+const MIN_SIDE = 3;
+const MIN_GOOD = 4;
+
+/**
+ * The index, in `words` (token indices of a long piece's words), of the word a halved piece's second
+ * group starts on: the cut with the lowest cost, where the cost is the distance from the middle (in
+ * words), plus 2 for a cut before an ordinary word, 0.5 before a preposition, 0 before a relative or
+ * conjunction, plus 2 when a group would have fewer than MIN_GOOD words. A cut right after a word of
+ * NO_CUT_AFTER, or right after an opening « ( or —, is never taken; if every cut is, the middle is.
+ * Ties go to the cut closer to the middle, then to the earlier one.
+ */
+function bestCut(toks: Token[], words: number[]): number {
+  const n = words.length;
+  const middle = n / 2;
+  let best = Math.floor(middle);
+  let bestCost = Infinity;
+  for (let k = MIN_SIDE; k <= n - MIN_SIDE; k++) {
+    const before = toks[words[k] - 1];
+    if (before.kind === 'punct' ? /^[«(—–"]$/.test(before.text) : NO_CUT_AFTER.has(lastPart(before.text))) continue;
+    const next = firstPart(toks[words[k]].text);
+    const distance = Math.abs(k - middle);
+    const cost =
+      distance +
+      (CUT_BEFORE_CLAUSE.has(next) ? 0 : CUT_BEFORE_PHRASE.has(next) ? 0.5 : 2) +
+      (Math.min(k, n - k) < MIN_GOOD ? 2 : 0);
+    if (cost < bestCost || (cost === bestCost && distance < Math.abs(best - middle))) {
+      best = k;
+      bestCost = cost;
+    }
+  }
+  return best;
+}
 
 /**
  * Splits a sentence into breath groups (~4-10 words): after a word ending
  * with `,` `;` `:` `—` `–` or `»`, and before a word starting with `«` or
  * `—`; tiny pieces (<3 words) are merged into the previous chunk (or the next
- * one if first); long pieces (>10 words) are split near the middle. Never
+ * one if first); long pieces (>10 words) are halved near the middle, at a
+ * sensible boundary (bestCut), until every group has at most 10 words. Never
  * splits inside a word.
  */
 export function splitChunks(sentence: string): string[] {
@@ -170,11 +247,7 @@ export function splitChunks(sentence: string): string[] {
     const n = wordTokenIndices.length;
     if (n <= 10) return [src.slice(toks[startTok].start, toks[endTok - 1].end)];
 
-    // Split at the word boundary closest to the middle of the piece (by word
-    // count): the first half gets floor(n/2) words, the rest go to the
-    // second half.
-    const half = Math.floor(n / 2);
-    const splitTok = wordTokenIndices[half];
+    const splitTok = wordTokenIndices[bestCut(toks, wordTokenIndices)];
     return [
       ...splitLongPiece(toks, startTok, splitTok, src),
       ...splitLongPiece(toks, splitTok, endTok, src),

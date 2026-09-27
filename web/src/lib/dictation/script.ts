@@ -18,6 +18,7 @@ export interface Chunk {
   text: string;
   spoken: string;
   sentenceIndex: number;
+  /** The chunk opens a paragraph: the first group of a sentence that starts one. */
   newParagraph: boolean;
 }
 
@@ -86,12 +87,16 @@ export function buildPlan(text: string): DictationPlan {
   const chunks: Chunk[] = [];
   sentences.forEach((sentence, sentenceIndex) => {
     const chunkTexts = splitChunks(sentence.text);
-    chunkTexts.forEach((chunkText) => {
+    chunkTexts.forEach((chunkText, i) => {
+      // Only the sentence's first group opens its paragraph: « À la ligne » is said once, not before
+      // each group of the sentence.
+      const newParagraph = sentence.newParagraph && i === 0;
       chunks.push({
         text: chunkText,
-        spoken: spokenForm(chunkText, { newParagraph: sentence.newParagraph }),
+        // A group before the sentence's last goes on (spoken.ts: no full stop after a word).
+        spoken: spokenForm(chunkText, { newParagraph, continues: i < chunkTexts.length - 1 }),
         sentenceIndex,
-        newParagraph: sentence.newParagraph,
+        newParagraph,
       });
     });
   });
