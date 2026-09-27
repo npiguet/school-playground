@@ -4,6 +4,7 @@ from pathlib import Path
 from app.corrupt import (apply_plants, candidates, category_weights, corruption_count, is_reform_equivalent, load_reform,
                          match_case, plan_corruptions, reform_canon)
 from app.db import DB_FILENAME, connect
+from app.lexicon import DET_GENDER, DET_NUMBER, DET_NUMBER_REVERSE
 from app.nlp.annotate import annotate
 from app.nlp.chains import build_chains
 from app.nlp.homophones import load_homophones
@@ -100,14 +101,23 @@ def test_no_gender_flip_when_the_pronoun_hides_its_gender(lexicon):
                             ("fatigué", "VERB", {"VerbForm": "Part", "Gender": "Masc", "Number": "Sing"}, 2, "ROOT", "fatiguer"),
                             (".", "PUNCT", {}, 2, "punct")])
     assert "fatiguée" not in _mutations(candidates(fatigue("Je", {"Number": "Sing", "Person": "1"}), lexicon, h), *AGREEMENT)
-    # Controls — Il est fatigué . / Elles sont parties . : the gender flips are real errors
-    assert "fatiguée" in _mutations(candidates(fatigue("Il", {"Gender": "Masc", "Number": "Sing", "Person": "3"}), lexicon, h), *AGREEMENT)
+    # Il est fatigué . — « Il est fatiguée » is a real error, but « Elle est fatiguée » repairs it on
+    # another word: never planted (Grimoire ambiguity)
+    assert "fatiguée" not in _mutations(candidates(fatigue("Il", {"Gender": "Masc", "Number": "Sing", "Person": "3"}), lexicon, h), *AGREEMENT)
+    # Elles sont parties . — « partie » has one repair (« sont » and « Elles » both stay plural), while
+    # « Elles sont partis » also reads as « Ils sont partis »
     elles = _annotation([("Elles", "PRON", {"Gender": "Fem", "Number": "Plur", "Person": "3"}, 2, "nsubj"),
                          ("sont", "AUX", {"VerbForm": "Fin", "Number": "Plur", "Person": "3"}, 2, "aux:tense", "être"),
                          ("parties", "VERB", {"VerbForm": "Part", "Gender": "Fem", "Number": "Plur"}, 2, "ROOT", "partir"),
                          (".", "PUNCT", {}, 2, "punct")])
-    muts = _mutations(candidates(elles, lexicon, h), *AGREEMENT)
-    assert "partis" in muts and muts <= {"partis", "partie"}
+    assert _mutations(candidates(elles, lexicon, h), *AGREEMENT) == {"partie"}
+    # Control — La reine est fatiguée . : « reine » has no masculine form, so « fatigué » is forced
+    reine = _annotation([("La", "DET", {"Gender": "Fem", "Number": "Sing"}, 1, "det", "le"),
+                         ("reine", "NOUN", {"Gender": "Fem", "Number": "Sing"}, 3, "nsubj"),
+                         ("est", "AUX", SING3, 3, "aux:tense", "être"),
+                         ("fatiguée", "VERB", {"VerbForm": "Part", "Gender": "Fem", "Number": "Sing"}, 3, "ROOT", "fatiguer"),
+                         (".", "PUNCT", {}, 3, "punct")])
+    assert {"fatigué", "fatiguées"} <= _mutations(candidates(reine, lexicon, h), *AGREEMENT)
 
 
 def test_indefinite_subject_plants_no_agreement_at_all(lexicon):
@@ -130,13 +140,16 @@ def test_no_gender_flip_on_an_epicene_noun(lexicon):
                           (".", "PUNCT", {}, 2, "punct")])
     cands = candidates(enfant, lexicon, h)
     assert _mutations(cands, "agreement:gender") == set()
-    assert _mutations(cands, "agreement:number") == {"des"}   # number is still dictated (on the receiver, P1-5)
-    # Control — Un chat dort . : « une chat » is a real error
-    chat = _annotation([("Un", "DET", {"Gender": "Masc", "Number": "Sing"}, 1, "det", "un"),
-                        ("chat", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 2, "nsubj"),
-                        ("dort", "VERB", SING3, 2, "ROOT", "dormir"),
-                        (".", "PUNCT", {}, 2, "punct")])
-    assert _mutations(candidates(chat, lexicon, h), "agreement:gender") == {"une"}
+    # number is still dictated (on the receiver, P1-5), and forced: « enfant » and « joue » both stay
+    # singular, so « Des enfant joue » has one single-word repair
+    assert _mutations(cands, "agreement:number") == {"des"}
+    # Control — Un rocher tombe . : « rocher » has no feminine, so « une rocher » is a real error with
+    # one repair (« une chat » is not: « une chatte »)
+    rocher = _annotation([("Un", "DET", {"Gender": "Masc", "Number": "Sing"}, 1, "det", "un"),
+                          ("rocher", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 2, "nsubj"),
+                          ("tombe", "VERB", SING3, 2, "ROOT", "tomber"),
+                          (".", "PUNCT", {}, 2, "punct")])
+    assert _mutations(candidates(rocher, lexicon, h), "agreement:gender") == {"une"}
     # A proper noun's gender is never assumed: Marie est partie . → no « parti »
     marie = _annotation([("Marie", "PROPN", {"Gender": "Fem", "Number": "Sing"}, 2, "nsubj"),
                          ("est", "AUX", SING3, 2, "aux:tense", "être"),
@@ -161,10 +174,20 @@ def test_no_number_flip_around_an_invariable_noun(lexicon):
     # Il croise leurs bras . — « leur bras » is correct French
     leurs = candidates(sentence("leurs", "bras", "leur"), lexicon, h)
     assert _mutations(leurs, "agreement:number", "homophone") == set()
-    # Control — Il croise les doigts . / leurs doigts : « le doigts », « leur doigts » are real errors
+    # Il croise les doigts . / leurs doigts : « le doigts », « leur doigts » are errors, but with two
+    # repairs each (« le doigt », « leur doigt »): never planted (Grimoire ambiguity)
     doigts = candidates(sentence("les", "doigts", "le"), lexicon, h)
-    assert _mutations(doigts, "agreement:number") == {"le"}
-    assert "leur" in _mutations(candidates(sentence("leurs", "doigts", "leur"), lexicon, h), "homophone")
+    assert _mutations(doigts, "agreement:number") == set()
+    assert "leur" not in _mutations(candidates(sentence("leurs", "doigts", "leur"), lexicon, h), "homophone")
+    # Control — Il croise leurs longs doigts . : two words stay plural, « leur » has one repair
+    longs = _annotation([("Il", "PRON", {"Gender": "Masc", "Number": "Sing", "Person": "3"}, 1, "nsubj"),
+                         ("croise", "VERB", SING3, 1, "ROOT", "croiser"),
+                         ("leurs", "DET", {"Number": "Plur"}, 4, "det", "leur"),
+                         ("longs", "ADJ", {"Gender": "Masc", "Number": "Plur"}, 4, "amod", "long"),
+                         ("doigts", "NOUN", {"Gender": "Masc", "Number": "Plur"}, 1, "obj", "doigt"),
+                         (".", "PUNCT", {}, 1, "punct")])
+    cands = candidates(longs, lexicon, h)
+    assert "leur" in _mutations(cands, "homophone") and {"leur", "long"} <= _mutations(cands, "agreement:number")
 
 
 # --- SP2 playability P1-4 / P1-5: a plant is an agreement slip, never a tense change or a new noun ---
@@ -316,3 +339,286 @@ def test_focus_lethe_biases_plants_to_the_last_third(nlp, lexicon):
     threshold = 2 * len(text) / 3
     in_last_third = sum(1 for p in plants if p["start"] >= threshold)
     assert in_last_third / len(plants) >= 0.7
+
+
+# --- One repair only: a plant that another word could also repair is never planted (Grimoire ambiguity) ---
+# User report: « des lions et des loups » planted as « un lions et des loups ». The expected fix was
+# « des lions », but « un lion et des loups » is just as correct and was graded wrong.
+
+CIRCE = ("Quand les marins d'Ulysse débarquèrent sur l'île boisée où régnait la magicienne Circé, ils furent "
+         "accueillis par des lions et des loups étrangement dociles, qui les frôlaient sans jamais montrer les crocs.")
+
+
+def _plants_on(cands: dict, original: str, *cats: str) -> set[str]:
+    return {c["mutated"].lower() for cat in cats for c in cands[cat] if c["original"].lower() == original}
+
+
+def test_user_case_un_lions_is_never_planted(nlp, lexicon):
+    h = load_homophones(CONTENT)
+    annotation = annotate(CIRCE, nlp, h, lexicon)
+    cands = candidates(annotation, lexicon, h, set(), load_reform(CONTENT))
+    by_i = {t["i"]: t for t in annotation["tokens"]}
+    before_lions = {c["mutated"].lower() for cat in cands for c in cands[cat]
+                    if by_i.get(c["token"] + 1, {}).get("text") == "lions"}
+    assert "un" not in before_lions
+    # the same group built by hand, so the test does not hang on the small model's parse
+    ann = _annotation([("Il", "PRON", {"Gender": "Masc", "Number": "Sing", "Person": "3"}, 1, "nsubj"),
+                       ("voit", "VERB", SING3, 1, "ROOT", "voir"),
+                       ("des", "DET", {"Number": "Plur"}, 3, "det", "un"),
+                       ("lions", "NOUN", {"Gender": "Masc", "Number": "Plur"}, 1, "obj", "lion"),
+                       ("et", "CCONJ", {}, 6, "cc"),
+                       ("des", "DET", {"Number": "Plur"}, 6, "det", "un"),
+                       ("loups", "NOUN", {"Gender": "Masc", "Number": "Plur"}, 3, "conj", "loup"),
+                       (".", "PUNCT", {}, 1, "punct")])
+    assert _mutations(candidates(ann, lexicon, h), *AGREEMENT, "homophone") & {"un", "une"} == set()
+
+
+def _group(det: str, det_lemma: str, noun: str, noun_lemma: str, number: str, adj: tuple | None = None) -> dict:
+    """Il voit <det> <noun> [<adj>] . — the nominal group as an object, so no verb agrees with it."""
+    spec = [("Il", "PRON", {"Gender": "Masc", "Number": "Sing", "Person": "3"}, 1, "nsubj"),
+            ("voit", "VERB", SING3, 1, "ROOT", "voir"),
+            (det, "DET", {"Gender": "Masc", "Number": number}, 3, "det", det_lemma),
+            (noun, "NOUN", {"Gender": "Masc", "Number": number}, 1, "obj", noun_lemma)]
+    if adj:
+        spec.append((adj[0], "ADJ", {"Gender": "Masc", "Number": number}, 3, "amod", adj[1]))
+    return _annotation(spec + [(".", "PUNCT", {}, 1, "punct")])
+
+
+def test_a_determiner_and_its_noun_alone_take_no_number_plant(lexicon):
+    h = load_homophones(CONTENT)
+    # « un lions », « des lion »: fixing either word leaves correct French
+    assert _mutations(candidates(_group("des", "un", "lions", "lion", "Plur"), lexicon, h), *AGREEMENT) == set()
+    assert _mutations(candidates(_group("un", "un", "lion", "lion", "Sing"), lexicon, h), "agreement:number") == set()
+    # with an adjective, two words keep the number: « un lions féroces » and « des lions féroce » have one repair
+    plur = candidates(_group("des", "un", "lions", "lion", "Plur", ("féroces", "féroce")), lexicon, h)
+    assert {"un", "féroce"} <= _mutations(plur, "agreement:number")
+    sing = candidates(_group("un", "un", "lion", "lion", "Sing", ("féroce", "féroce")), lexicon, h)
+    assert {"des", "féroces"} <= _mutations(sing, "agreement:number")
+    # the small model tags some common nouns PROPN (« la mer », « un rocher »): still a noun that can change
+    mer = _group("la", "le", "mer", "mer", "Sing")
+    mer["tokens"][3]["pos"] = "PROPN"
+    assert _mutations(candidates(mer, lexicon, h), "agreement:number") == set()
+
+
+def test_a_proper_name_carries_its_number_only_without_a_determiner(lexicon):
+    h = load_homophones(CONTENT)
+    # Ulysse dort . — « Ulysse dorment » has one repair: a name alone is singular
+    ulysse = _subject([("Ulysse", "PROPN", {"Gender": "Masc", "Number": "Sing"}, 1, "nsubj")], "dort", "dormir", SING3)
+    assert _mutations(candidates(ulysse, lexicon, h), "agreement:verb") == {"dorment"}
+    # Un Byron dort . — « des Byron dorment » is correct French: a name takes no plural mark
+    byron = _subject([("Un", "DET", {"Gender": "Masc", "Number": "Sing"}, 1, "det", "un"),
+                      ("Byron", "PROPN", {"Gender": "Masc", "Number": "Sing"}, 2, "nsubj")], "dort", "dormir", SING3)
+    assert _mutations(candidates(byron, lexicon, h), "agreement:verb") == set()
+
+
+def test_a_pronoun_parsed_into_a_nominal_group_carries_nothing(lexicon):
+    h = load_homophones(CONTENT)
+    # qui a bu la rosée : the small model hung « bu » (as a PRON) on « rosée » — « les rosée » still has two repairs
+    ann = _annotation([("Il", "PRON", {"Gender": "Masc", "Number": "Sing", "Person": "3"}, 1, "nsubj"),
+                       ("voit", "VERB", SING3, 1, "ROOT", "voir"),
+                       ("bu", "PRON", {"Number": "Sing", "Person": "3"}, 4, "det", "boire"),
+                       ("la", "DET", {"Gender": "Fem", "Number": "Sing"}, 4, "det", "le"),
+                       ("rosée", "NOUN", {"Gender": "Fem", "Number": "Sing"}, 1, "obj", "rosée"),
+                       (".", "PUNCT", {}, 1, "punct")])
+    assert "les" not in _mutations(candidates(ann, lexicon, h), "agreement:number")
+
+
+def test_a_determiner_takes_a_gender_plant_only_under_a_noun_that_cannot_change_gender(lexicon):
+    h = load_homophones(CONTENT)
+    # « une lion » also reads as « une lionne »
+    assert "une" not in _mutations(candidates(_group("un", "un", "lion", "lion", "Sing"), lexicon, h), "agreement:gender")
+    # « rocher » has no feminine: « une rocher » has one repair
+    assert "une" in _mutations(candidates(_group("un", "un", "rocher", "rocher", "Sing"), lexicon, h), "agreement:gender")
+
+
+def _subject(subject: list[tuple], verb: str, lemma: str, morph: dict) -> dict:
+    n = len(subject)
+    return _annotation(subject + [(verb, "VERB", morph, n, "ROOT", lemma), (".", "PUNCT", {}, n, "punct")])
+
+
+def test_a_verb_takes_a_number_plant_only_when_its_subject_cannot_follow(lexicon):
+    h = load_homophones(CONTENT)
+    # Ils dorment . — « Ils dort » also reads as « Il dort »
+    ils = _subject([("Ils", "PRON", {"Gender": "Masc", "Number": "Plur", "Person": "3"}, 1, "nsubj")], "dorment", "dormir", PLUR3)
+    assert _mutations(candidates(ils, lexicon, h), "agreement:verb") == set()
+    # Les lions dorment . — « les » and « lions » both stay plural
+    lions = _subject([("Les", "DET", {"Number": "Plur"}, 1, "det", "le"),
+                      ("lions", "NOUN", {"Gender": "Masc", "Number": "Plur"}, 2, "nsubj", "lion")], "dorment", "dormir", PLUR3)
+    assert _mutations(candidates(lions, lexicon, h), "agreement:verb") == {"dort"}
+    # Le lion et le loup dorment . — the coordination is plural whatever one word says
+    coord = _subject([("Le", "DET", {"Gender": "Masc", "Number": "Sing"}, 1, "det", "le"),
+                      ("lion", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 5, "nsubj", "lion"),
+                      ("et", "CCONJ", {}, 4, "cc"),
+                      ("le", "DET", {"Gender": "Masc", "Number": "Sing"}, 4, "det", "le"),
+                      ("loup", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 1, "conj", "loup")], "dorment", "dormir", PLUR3)
+    assert _mutations(candidates(coord, lexicon, h), "agreement:verb") == {"dort"}
+
+
+def test_a_person_homophone_is_planted_only_under_a_noun_subject(lexicon):
+    h = load_homophones(CONTENT)
+
+    def parti(subject: list[tuple]) -> dict:
+        n = len(subject)
+        return _annotation(subject + [("est", "AUX", SING3, n + 1, "aux:tense", "être"),
+                                      ("parti", "VERB", {"VerbForm": "Part", "Gender": "Masc", "Number": "Sing"}, n + 1, "ROOT", "partir"),
+                                      (".", "PUNCT", {}, n + 1, "punct")])
+    # Il est parti . — « Il es parti » also reads as « Tu es parti »
+    il = candidates(parti([("Il", "PRON", {"Gender": "Masc", "Number": "Sing", "Person": "3"}, 2, "nsubj")]), lexicon, h)
+    assert "es" not in _plants_on(il, "est", "homophone") and "et" in _plants_on(il, "est", "homophone")
+    # Le lion est parti . — a noun is never « tu »: « es » has one repair
+    lion = candidates(parti([("Le", "DET", {"Gender": "Masc", "Number": "Sing"}, 1, "det", "le"),
+                             ("lion", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 3, "nsubj", "lion")]), lexicon, h)
+    assert "es" in _plants_on(lion, "est", "homophone")
+
+
+# The seed sweep's oracle: an independent brute force over the lexicon. A plant is ambiguous when some
+# other word of its agreement groups has a single-word replacement after which every group agrees
+# again; « agrees » means the words' possible feature values (read from Lexique) still intersect.
+_PRONOUNS = {"je": ("", "s", "1"), "tu": ("", "s", "2"), "il": ("m", "s", "3"), "elle": ("f", "s", "3"),
+             "on": ("", "s", "3"), "nous": ("", "p", "1"), "vous": ("", "", "2"), "ils": ("m", "p", "3"),
+             "elles": ("f", "p", "3")}
+_ANY = {"Gender": {"m", "f"}, "Number": {"s", "p"}, "Person": {"1", "2", "3"}}
+_FEATURES = ("Gender", "Number", "Person")
+
+
+_DET_VALUES = {"Number": ({*DET_NUMBER}, {*DET_NUMBER_REVERSE}),
+               "Gender": ({*DET_GENDER, "cet"}, {*DET_GENDER.values(), "une", "la", "ma", "ta", "sa"})}
+
+
+def _values(lexicon, t: dict, form: str, feature: str) -> set[str]:
+    w = form.lower()
+    if t["pos"] == "PRON":
+        p = _PRONOUNS.get(w)
+        if p is None:   # « cela », « qui »…: what the parse says, and they have no other form here
+            parsed = t.get("morph", {}).get(feature)
+            return {_MORPH_VALUE.get(parsed, parsed)} if parsed else _ANY[feature]
+        v = p[_FEATURES.index(feature)]
+        return {v} if v else _ANY[feature]
+    if t["pos"] in {"NOUN", "PROPN"} and feature == "Person":
+        return {"3"}
+    if t["pos"] == "DET" and feature != "Person":
+        first, second = _DET_VALUES[feature]
+        names = ("s", "p") if feature == "Number" else ("m", "f")
+        found = {names[0]} if w in first else set()
+        found |= {names[1]} if w in second else set()
+        if found:
+            return found
+    if w == t["text"].lower() and feature != "Person":
+        # A blank Lexique value on a word that has a form in the other value (« avoine » / « avoines »)
+        # means Lexique did not record it: the parse says which one this word is.
+        own = _values_from_lexicon(lexicon, t, w, feature)
+        flips = (lexicon.flip_number if feature == "Number" else lexicon.flip_gender)(t["text"], t["lemma"], t.get("morph", {}))
+        parsed = t.get("morph", {}).get(feature)
+        if own == _ANY[feature] and flips and parsed:
+            return {_MORPH_VALUE[parsed]}
+        return own
+    return _values_from_lexicon(lexicon, t, w, feature)
+
+
+_MORPH_VALUE = {"Sing": "s", "Plur": "p", "Masc": "m", "Fem": "f"}
+
+
+def _values_from_lexicon(lexicon, t: dict, w: str, feature: str) -> set[str]:
+    finite = t.get("morph", {}).get("VerbForm") == "Fin"
+    prefixes = {"NOUN": ("NOM",), "DET": ("ART", "ADJ", "PRE"), "ADJ": ("ADJ", "VER"), "VERB": ("VER", "AUX", "ADJ"),
+                "AUX": ("AUX", "VER")}.get(t["pos"], ("NOM", "ADJ", "VER", "AUX", "ART"))
+    entries = [e for e in lexicon.lookup(w) if e.cgram.split(":")[0] in prefixes] or lexicon.lookup(w)
+    tenses: set[str] = set()
+    if finite:   # the verb's own lemma (« sommes » is also « sommer ») and its own moods and tenses
+        entries = [e for e in entries if e.lemme == t["lemma"]] or entries
+        tenses = {c.rsplit(":", 1)[0] for e in lexicon.lookup(t["text"]) if e.lemme == t["lemma"]
+                  for c in e.infover.split(";") if c.count(":") == 2}
+    out: set[str] = set()
+    for e in entries:
+        kind = e.cgram.split(":")[0]
+        if kind in ("VER", "AUX"):
+            codes = [c for c in e.infover.split(";") if c]
+            if finite:
+                for c in codes:
+                    if (c.count(":") == 2 and c[-1] in "sp" and not c.startswith("par:")
+                            and (not tenses or c.rsplit(":", 1)[0] in tenses)):
+                        out |= {"Number": {c[-1]}, "Person": {c[-2]}, "Gender": _ANY["Gender"]}[feature]
+                continue
+            if "par:pas" not in codes:
+                continue
+        if feature == "Person":
+            out |= _ANY["Person"]
+        else:
+            v = e.genre if feature == "Gender" else e.nombre
+            out |= {v} if v else _ANY[feature]
+    return out or _ANY[feature]
+
+
+def _oracle_groups(annotation: dict) -> list[dict]:
+    groups: dict[tuple, dict] = {}
+    for c in annotation["chains"]:
+        if c["confidence"] not in ("high", "medium") or c.get("rule") == "no_agreement":
+            continue
+        conj = c.get("via") == "conj"
+        g = groups.setdefault((c["controller"], conj), {"controller": c["controller"], "conj": conj, "members": set()})
+        g["members"] |= set(c["targets"])
+    return list(groups.values())
+
+
+def _words(g: dict) -> set[int]:
+    return g["members"] | {g["controller"]}
+
+
+def _group_agrees(lexicon, g: dict, by_i: dict, forms: dict[int, str]) -> bool:
+    for feature in _FEATURES:
+        common = set(_ANY[feature])
+        for i in _words(g):
+            if i == g["controller"] and g["conj"]:
+                common &= {"p"} if feature == "Number" else _ANY[feature]   # the coordination is plural
+                continue
+            common &= _values(lexicon, by_i[i], forms.get(i, by_i[i]["text"]), feature)
+        if not common:
+            return False
+    return True
+
+
+def _alternatives(lexicon, t: dict) -> set[str]:
+    if t["pos"] == "PRON":
+        return set(_PRONOUNS) - {t["text"].lower()} if t["text"].lower() in _PRONOUNS else set()
+    morph = t.get("morph", {})
+    flips = (lexicon.flip_number(t["text"], t["lemma"], morph), lexicon.flip_gender(t["text"], t["lemma"], morph))
+    return {f for f in flips if f}
+
+
+def _same_word(lexicon, t: dict, mutated: str) -> bool:
+    """Another form of the same word (« leurs » / « leur », « est » / « es »)."""
+    lemmas = {e.lemme for e in lexicon.lookup(t["text"])} & {e.lemme for e in lexicon.lookup(mutated)}
+    return bool(lemmas) or mutated.lower() in _alternatives(lexicon, t)
+
+
+def _ambiguous(lexicon, groups: list[dict], by_i: dict, cand: dict) -> bool:
+    w = cand["token"]
+    for g in (g for g in groups if w in _words(g)):
+        for u in _words(g) - {w}:
+            if u == g["controller"] and g["conj"]:
+                continue
+            for alt in _alternatives(lexicon, by_i[u]):
+                forms = {w: cand["mutated"], u: alt}
+                touched = [x for x in groups if {w, u} & _words(x)]
+                if all(_group_agrees(lexicon, x, by_i, forms) for x in touched):
+                    return True
+    return False
+
+
+def test_no_seed_text_offers_an_ambiguous_plant(nlp, lexicon):
+    h = load_homophones(CONTENT)
+    reform = load_reform(CONTENT)
+    bad = []
+    for path in sorted((CONTENT / "seed").glob("*.json")):
+        body = json.loads(path.read_text(encoding="utf-8"))["body"]
+        annotation = annotate(body, nlp, h, lexicon)
+        by_i = {t["i"]: t for t in annotation["tokens"]}
+        groups = _oracle_groups(annotation)
+        cands = candidates(annotation, lexicon, h, set(), reform)
+        for cat in (*AGREEMENT, "agreement:verb", "homophone"):
+            for c in cands[cat]:
+                if cat == "homophone" and not _same_word(lexicon, by_i[c["token"]], c["mutated"]):
+                    continue  # « sa » → « ça » swaps in another word: no agreement to repair elsewhere
+                if _ambiguous(lexicon, groups, by_i, c):
+                    bad.append((path.name, cat, c["original"], c["mutated"], by_i[c["token"] + 1]["text"]))
+    assert bad == []
