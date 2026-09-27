@@ -28,5 +28,11 @@
     "priming": 1024,
     "rate": 44100,
     "samples": 2954700
+  },
+  "war": {
+    "ffmpeg": "7.1.5-0+deb13u1",
+    "priming": 1024,
+    "rate": 44100,
+    "samples": 3087000
   }
 }

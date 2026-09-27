@@ -431,7 +431,7 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   is on the cabin's trophy shelf (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can
   be earned; nothing is a gamble.
 - **Art and sound** are served from the same origin: `web/public/art` (WebP, about 5.2 MB) and
-  `web/public/audio` (14 AAC `.m4a` files, about 3.8 MB), played through Howler. Dragon tints are a
+  `web/public/audio` (15 AAC `.m4a` files, about 4.7 MB), played through Howler. Dragon tints are a
   CSS `hue-rotate` filter on one cut-out. The sound settings are saved per hero on the server (and
   remembered on the device for the title scene, before a hero is picked).
 - **`DISCORDE_TEST_HOOKS=1`** enables an `X-Discorde-Day` request header on `POST /api/sessions`,

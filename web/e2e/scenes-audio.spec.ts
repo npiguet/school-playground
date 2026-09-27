@@ -68,7 +68,7 @@ test('each place plays its loop; a reload waits for the first tap', async ({ pag
   await expectMusic(page, 'camp');
   await tap(page.getByTestId('camp-dossier'), testInfo);
   await expectScene(page, 'war');
-  await expectMusic(page, 'lair');
+  await expectMusic(page, 'war');
 });
 
 // Ruling E3b: after a reload, the first tap anywhere unlocks, not only « Entrer » or a hotspot. Final
@@ -345,7 +345,7 @@ test('every sound is served as audio/mp4, within budget, each loop as long as me
   const files = ['music', 'sfx'].flatMap((k) =>
     readdirSync(new URL(`../public/audio/${k}`, import.meta.url)).map((f) => `/audio/${k}/${f}`),
   );
-  expect(files.length).toBe(14);
+  expect(files.length).toBe(15);
   expect(files.sort()).toEqual([...Object.values(TRACKS), ...Object.values(SFX)].map((d) => d.src).sort());
   const meta = JSON.parse(readFileSync(new URL('../src/lib/audio/meta.gen.json', import.meta.url), 'utf-8')) as Record<
     string,

@@ -4,7 +4,7 @@ import { SCENE_MUSIC, SFX, SFX_IDS, TRACKS, TRACK_IDS, battleTrack } from './cat
 
 describe('the sounds of the camp (spec §7, Ruling E4)', () => {
   it('gives every place its loop and every scene definition reads it', () => {
-    expect(SCENE_MUSIC).toEqual({ title: 'sea', camp: 'camp', nest: 'camp', cabin: 'camp', library: 'temple', delphi: 'temple', war: 'lair' });
+    expect(SCENE_MUSIC).toEqual({ title: 'sea', camp: 'camp', nest: 'camp', cabin: 'camp', library: 'temple', delphi: 'temple', war: 'war' });
     for (const s of SCENES) expect(s.ambience.music, s.id).toBe(SCENE_MUSIC[s.id]);
   });
 
@@ -14,7 +14,7 @@ describe('the sounds of the camp (spec §7, Ruling E4)', () => {
   });
 
   it('keeps every sound as an .m4a under /audio, mixed between 0 and 1', () => {
-    expect([...TRACK_IDS].sort()).toEqual(['battle', 'camp', 'lair', 'sea', 'temple']);
+    expect([...TRACK_IDS].sort()).toEqual(['battle', 'camp', 'lair', 'sea', 'temple', 'war']);
     expect([...SFX_IDS].sort()).toEqual(['chime', 'fanfare', 'growth', 'hmpf', 'laurel', 'seal', 'strike', 'tap', 'unroll']);
     for (const [id, d] of Object.entries(TRACKS)) expect(d.src).toBe(`/audio/music/${id}.m4a`);
     for (const [id, d] of Object.entries(SFX)) expect(d.src).toBe(`/audio/sfx/${id}.m4a`);
