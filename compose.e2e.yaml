@@ -1,8 +1,8 @@
 services:
   app:
     build: .
-    # scripts/lib.sh sets APP_IMAGE, NODE_MODULES_VOLUME and PLAYWRIGHT_VERSION per STACK (README
-    # §6); the defaults are the main checkout's names.
+    # scripts/lib.sh sets APP_IMAGE, NODE_MODULES_VOLUME and PLAYWRIGHT_VERSION per STACK (README,
+    # "Development"); the defaults are the main checkout's names.
     image: ${APP_IMAGE:-discorde:local}
     environment:
       {

@@ -315,6 +315,9 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
 
 - Plain HTTP only, on the home network. There is no HTTPS and no offline mode: the iPad needs to
   reach the server to play.
+- The scenes' tilt parallax (the picture shifting as the iPad tilts) probably stays off on the
+  iPad: Safari only gives motion sensors to HTTPS pages. Dragging a finger across a scene still
+  moves it.
 - Text-to-speech voice quality depends entirely on the device's installed voices — pick an
   "Enhanced" French voice where available (§3).
 - On the iPad the voice's volume slider does nothing; the device's volume buttons set it (§3).

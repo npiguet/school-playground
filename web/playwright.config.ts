@@ -19,7 +19,7 @@ export default defineConfig({
   // worker count so the suite's load doesn't depend on the host's core count (Playwright's default
   // is half the cores). The specs themselves stay correct at any count (proven at 12).
   // PW_WORKERS (passed through by compose.e2e.yaml) lowers it for a second stack running side by
-  // side, e.g. `STACK=b PW_WORKERS=4 scripts/check.sh` (README §6).
+  // side, e.g. `STACK=b PW_WORKERS=4 scripts/check.sh` (README, "Development").
   workers: Number(process.env.PW_WORKERS) || 8,
   reporter: [['list'], ['./e2e/crashReporter.ts']],
   // Every web-first assertion (expect(locator)..., expect.poll) waits up to 15 s, not Playwright's
