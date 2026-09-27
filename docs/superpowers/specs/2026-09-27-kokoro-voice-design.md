@@ -136,6 +136,10 @@ not fit.
   back to back, each sentence its own line at the reading's rate, so the first is ready in about a
   second; only the reading's first sentence is a resume point, and the music stays ducked 300 ms
   after a line (Ruling R-A2), so it does not swell between the sentences.
+- *Amended again (the pace redesign, 2026-09-27, `pace-redesign-brief.md`):* pace 4 is gone. Every
+  pace reads each breath group twice and the whole text once at the end, a sentence at a time as
+  above (only its first sentence a resume point), every line at 0.85, so `prepare` sends the groups
+  then the final reading's sentences a group has not already said. §2's rates are now one rate.
 
 ### 5.3 When the voice fails
 

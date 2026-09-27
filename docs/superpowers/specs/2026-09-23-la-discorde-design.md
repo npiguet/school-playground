@@ -60,6 +60,8 @@ Greek mythology (public domain), inspired by what she loves (Percy Jackson, Wing
   2. Chunks, rate ~0.85, limited replays (3 per text; perk *Écho* grants more).
   3. Classroom pace: each chunk read twice, auto-advance with a pause proportional to chunk length (~typing time).
   4. Test conditions: full reading, dictation (chunks read twice, auto), final full reading, no replays.
+
+  *Amended 2026-09-27 (the pace redesign, `.superpowers/sdd/2026-09-27-kokoro-voice/pace-redesign-brief.md`):* three paces, pace 4 is gone (a save or setting at 4 loads as 3; sessions recorded at 4 stay valid). Every pace reads breath groups, each twice: the first reading, a long pause (max(3 s, 1.6 s a word)), the second reading, a short pause (max(2 s, 0.8 s a word)); then the whole text once at the end, a sentence at a time. Every line at rate 0.85. **I, Pas à pas:** waits for « Suivant » after each group; « Réécouter » gives one extra reading a group. **II, Par groupes:** moves on by itself, with « Pause »; no replay. **III, D'un bon pas:** as II with no « Pause » button, on groups about twice as long (neighbouring groups of a sentence merged while they stay at 20 words or fewer). Default by level unchanged: 5H-6H I, 7H-8H II, others III.
 - Typing: a textarea with `autocorrect="off" autocapitalize="off" autocomplete="off" spellcheck="false"`, large font, positioned so the current line stays visible above the iPad on-screen keyboard. The reference text is never visible during dictation.
 
 ### 3.4 Proofreading (*relecture*) — the main game
