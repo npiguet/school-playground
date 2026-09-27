@@ -15,6 +15,7 @@
   import { audioSettings } from '../../../lib/audio/store.svelte';
   import { resetTours } from '../../../lib/tours/seen.svelte';
   import { frenchSpacing } from '../../../lib/text/french';
+  import { sayKey } from '../../../lib/dialogue/select';
   import type { Profile } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -37,16 +38,22 @@
   onDestroy(() => voice.dispose());
   let trying = $state(false);
   let trialFailure = $state<VoiceFailure | null>(null);
+  // The dictation's waiting line when the trial is more than 400 ms late (Task 9 review #6).
+  let trialWait = $state<string | null>(null);
 
   async function tryVoice() {
     trying = true;
     trialFailure = null;
     try {
-      await voice.speak(TRIAL, 0.9);
+      await voice.speak(TRIAL, 0.9, {
+        onSlow: () => (trialWait = sayKey('battle.voice.wait').text),
+        onStart: () => (trialWait = null),
+      });
     } catch (e) {
       trialFailure = e instanceof VoiceError ? e.failure : 'server';
     } finally {
       trying = false;
+      trialWait = null;
     }
   }
 
@@ -118,6 +125,9 @@
       <button type="button" class="kit-bronze is-quiet" data-testid="lyre-try-voice" disabled={audioSettings.voice.muted || trying} onclick={tryVoice}
         >Écouter un essai</button
       >
+      {#if trialWait}
+        <p class="kit-note" role="status" data-testid="lyre-voice-wait">{trialWait}</p>
+      {/if}
       {#if trialFailure}
         <VoiceLostCard failure={trialFailure} onRetry={tryVoice} />
       {/if}

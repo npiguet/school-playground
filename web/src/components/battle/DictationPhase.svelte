@@ -156,7 +156,11 @@
         ? DICTATION.chunk(runnerState.done, runnerState.total)
         : DICTATION.full,
   );
-  const statusText = $derived(voiceWait ?? DICTATION.status[runnerState.status]);
+  // The waiting line only while the dictation goes on (Task 9 review #1): a pause or a silence cancels the
+  // line, but its fetch may still run for seconds, and the status must say « En pause. » meanwhile.
+  const statusText = $derived(
+    voiceWait && (runnerState.status === 'playing' || runnerState.status === 'waiting') ? voiceWait : DICTATION.status[runnerState.status],
+  );
 
   // pace 1-2: she can finish as soon as she reaches the last manual wait,
   // even before tapping "Suivant" once more.

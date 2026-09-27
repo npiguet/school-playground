@@ -272,8 +272,8 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     test.setTimeout(120_000); // a real (fast-timer) boss dictation is added below, P1-5 follow-up
     // Must be registered before this test's first navigation (an SPA route change afterwards
     // never re-runs init scripts) - only takes effect for the too_easy dictation further down.
-    // `page` is a fresh fixture per test even inside describe.serial, so the stub needs to be
-    // (re-)installed here too.
+    // `page` is a fresh fixture per test even inside describe.serial, so the fast timers need to
+    // be installed here too.
     await installFastTimers(page);
     // A guaranteed >=150-word 10H text so the boss endpoint always has a candidate, regardless
     // of what the seed happens to include.

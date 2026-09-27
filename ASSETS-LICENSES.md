@@ -41,6 +41,8 @@ Python packages and PyTorch are not in the image.
 | misaki (French G2P, its espeak backend) | [hexgrad/misaki](https://github.com/hexgrad/misaki) | hexgrad | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) |
 | phonemizer-fork | [bootphon/phonemizer](https://github.com/bootphon/phonemizer) (fork published by thewh1teagle) | Hadrien Titeux and the phonemizer contributors | [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.html) |
 | espeakng-loader (bundles espeak-ng 1.52.0) | [thewh1teagle/espeakng-loader](https://github.com/thewh1teagle/espeakng-loader) | thewh1teagle | [MIT](https://opensource.org/licenses/MIT) |
+| soundfile 0.14.0 (the MP3 encoding, `tts/app/audio.py`) | [bastibe/python-soundfile](https://github.com/bastibe/python-soundfile) | Bastian Bechtold | [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause) |
+| libsndfile 1.2.2, with LAME 3.100 (the MP3 encoder) and mpg123 1.32.3 built in, bundled in soundfile's wheel ([libsndfile-binaries](https://github.com/bastibe/libsndfile-binaries)) | [libsndfile](https://github.com/libsndfile/libsndfile), [LAME](https://lame.sourceforge.io/), [mpg123](https://www.mpg123.de/) | Erik de Castro Lopo and the libsndfile contributors; the LAME developers; the mpg123 developers | libsndfile and mpg123 [LGPL-2.1-or-later](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html), LAME [LGPL-2.0-or-later](https://www.gnu.org/licenses/old-licenses/lgpl-2.0.html) |
 | espeak-ng (French phonemes) | [espeak-ng](https://github.com/espeak-ng/espeak-ng) | the eSpeak NG contributors | [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.html) |
 
 <!-- audio:start -->

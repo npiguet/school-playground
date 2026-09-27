@@ -242,14 +242,15 @@ proofreading fields. If word suggestions still show above the keyboard, turn off
 
 - The iPad only lets a page make sound after a tap: the title page is silent until « Entrer », and
   after a reload or coming back to the game the sound returns with the first tap anywhere.
-- **Silent mode mutes the music and the sound effects.** Check it's off: open Control Centre (swipe
-  down from the top-right corner) and make sure the bell is not crossed out; older iPads have a
-  switch on the side instead. The dictation voice plays through the game's own audio too, so silent
-  mode mutes it as well.
+- **Silent mode mutes all the game's sound: the music, the effects and the dictation voice.** They
+  all play through the same Web Audio context (Howler; the voice is never an HTML media element),
+  which the iPad silences when the bell is crossed out or the side switch is on. Check it's off: open
+  Control Centre (swipe down from the top-right corner) and make sure the bell is not crossed out;
+  older iPads have a switch on the side instead.
 - Each hero has three volumes, for the music, the sound effects and the voice, each with its own
   « Sourdine » (mute): in the lyre under « Les sons du camp », or from the lyre button at the top
-  of every scene. Every slider works on the iPad, the voice's included. With the voice muted, nothing is read aloud and someone has to read
-  the dictation to the player.
+  of every scene. Every slider works on the iPad, the voice's included. With the voice muted,
+  nothing is read aloud and someone has to read the dictation to the player.
 
 ## 4. Backups
 

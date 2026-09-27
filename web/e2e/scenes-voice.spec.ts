@@ -43,20 +43,48 @@ test('the whole script is sent ahead once, each line once, in script order (spec
   expect(body.lines[0].text).toContain('Les fées dansent');
 });
 
-test('a line slow to come shows the waiting line until it plays (spec §5.2)', async ({ page, request }, testInfo) => {
-  let held = true;
+/** Holds the first /api/tts/speak until the test calls `release()` (review fix round 1 #2: the waiting
+ *  line stays up as long as the test needs, so a stalled page cannot make it slip past a poll). */
+async function holdFirstLine(page: Page) {
+  let release!: () => void;
+  const released = new Promise<void>((resolve) => (release = resolve));
+  let first = true;
   await page.route('**/api/tts/speak', async (route) => {
-    if (held) {
-      held = false;
-      await new Promise((r) => setTimeout(r, 1500));
+    if (first) {
+      first = false;
+      await released;
     }
     await route.continue();
   });
+  return { release };
+}
+
+const WAITING = () => variantsOf('battle.voice.wait');
+
+test('a line slow to come shows the waiting line until it plays (spec §5.2)', async ({ page, request }, testInfo) => {
+  const held = await holdFirstLine(page);
   await startDictation(page, request, testInfo, 1);
   const status = page.getByTestId('dictation-status');
-  await expect.poll(async () => variantsOf('battle.voice.wait').includes(((await status.textContent()) ?? '').trim())).toBe(true);
+  await expect.poll(async () => WAITING().includes(((await status.textContent()) ?? '').trim())).toBe(true);
+  held.release();
   await expect(status).toHaveText(WRITE);
   expect((await spokenLines(page))[0].text).toContain('Les fées dansent');
+});
+
+// Review fix round 1 #1: a pause (or the portrait auto-pause) while a line is still coming says
+// « En pause. », not the waiting line, for as long as the fetch goes on.
+test('a pause while a line is still coming says « En pause. », not the waiting line', async ({ page, request }, testInfo) => {
+  const held = await holdFirstLine(page);
+  await startDictation(page, request, testInfo, 3);
+  const status = page.getByTestId('dictation-status');
+  await expect.poll(async () => WAITING().includes(((await status.textContent()) ?? '').trim())).toBe(true);
+  await tap(page.getByTestId('btn-pause'), testInfo);
+  await expect(status).toHaveText('En pause.');
+  await expect(page.getByTestId('btn-resume')).toBeVisible();
+  held.release();
+  await expect(status).toHaveText('En pause.');
+  await tap(page.getByTestId('btn-resume'), testInfo);
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(0);
 });
 
 test("a silenced voice stops on Éris's card; « Réessayer » carries on with the draft kept, even after failing again (spec §5.3)", async ({ page, request }, testInfo) => {
@@ -102,6 +130,21 @@ test('« Retour au camp » leaves the dictation as « Quitter » does: the draft
   await expectBattle(page, 'muster');
   // The resume ribbon (MUSTER.resume), where the existing resume tests read it.
   await expect(page.getByTestId('battle-resume')).toContainText("Ton brouillon t'attend là où tu l'avais laissé.");
+});
+
+test("the lyre's trial slow to come shows the dictation's waiting line until it plays (Task 9 review #6)", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const held = await holdFirstLine(page);
+  await page.goto(`/#/p/${id}/settings`);
+  const lyre = page.getByTestId('overlay-lyre');
+  await lyre.getByTestId('lyre-try-voice').click();
+  const wait = lyre.getByTestId('lyre-voice-wait');
+  await expect(wait).toBeVisible();
+  expect(WAITING()).toContain(((await wait.textContent()) ?? '').trim());
+  held.release();
+  await expect.poll(async () => (await spokenLines(page)).at(-1)?.text ?? '').toContain('Je lirai tes dictées');
+  await expect(wait).toHaveCount(0);
+  await expect(lyre.getByTestId('voice-lost')).toHaveCount(0);
 });
 
 test("the lyre's trial speaks through the server; silenced, it shows the card's short form", async ({ page, request }, testInfo) => {

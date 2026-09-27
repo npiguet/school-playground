@@ -9,9 +9,13 @@ import type { LineHandle, VoiceClip } from '../audio/engine';
 import { lineKey, type SayLine } from './script';
 
 /**
- * How fast a voice speaks French at rate 1: 65 ms a character of the spoken form (its spaces and its
+ * How fast the voice speaks French at rate 1: 65 ms a character of the spoken form (its spaces and its
  * said punctuation included), divided by the line's rate. What a muted voice waits instead of the line
- * (UI5 Ruling E7b) and each clip's estimated length (Ruling K7). Calibrated in UI5 fix wave A.
+ * (UI5 Ruling E7b), each clip's estimated length (Ruling K7) and the stub's silence (tts/app/audio.py).
+ * Measured against Kokoro (`ff_siwis`, the onnx-direct build) in the Kokoro plan's lane S2
+ * (lane-s2-report.md), normalised to rate 1: a 54-character sentence took 3.90 s at 0.90 (the
+ * service's own log line: 65.0 ms a character) and 3.60 s at 1.0 (66.7). Longer lines run faster (423 characters: 58.6; 702 characters of comma lists: 47.0), so
+ * a muted full reading at pace 4 waits a little longer than Kokoro would take: the safe side.
  */
 export const SPEECH_MS_PER_CHAR = 65;
 
