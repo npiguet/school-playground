@@ -5,7 +5,7 @@ import { erisSays } from '../world/voices';
 import { frenchSpacing } from '../text/french';
 import { VICTORY } from '../battle/lines';
 import type { OpponentId } from '../battle/battle';
-import type { DragonOut } from '../world/types';
+import type { DragonLook } from '../world/scenes/speakers';
 import type { DialogueLine } from '../scene/types';
 import type { PlayMode } from '../types';
 import { statKey } from '../grading/grade';
@@ -33,7 +33,7 @@ export function musterLine(o: { opponent: OpponentId; band: Band | null; mode: P
   return sayKey('battle.start', { ctx: { mode: o.mode } });
 }
 
-export function explainIntro(word: string, dragon: DragonOut | null): DialogueLine {
+export function explainIntro(word: string, dragon: DragonLook | null): DialogueLine {
   return sayKey('battle.explain', { vars: { word }, dragon });
 }
 

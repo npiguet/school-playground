@@ -171,7 +171,7 @@ test('the lyre holds the settings, the three sound channels, the goal as medalli
   await expect(muteMusic).toHaveAttribute('aria-pressed', 'false');
   await muteMusic.click();
   await expect(muteMusic).toHaveAttribute('aria-pressed', 'true');
-  await expect(lyre).toContainText("Sur iPad, le volume de la voix suit aussi les boutons de l'appareil.");
+  await expect(lyre).toContainText("Sur iPad, seuls les boutons de l'appareil règlent le volume de la voix.");
   await expect(lyre.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'dragon');
   await lyre.getByRole('group', { name: 'Textes par semaine' }).getByRole('radio', { name: '4' }).check();
   await lyre.getByRole('button', { name: 'Enregistrer' }).click();

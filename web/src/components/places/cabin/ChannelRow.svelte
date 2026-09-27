@@ -6,7 +6,6 @@
   // channel, and a muted channel's slider shows inactive (it still sets the volume for later).
   import { audioSettings, setChannel } from '../../../lib/audio/store.svelte';
   import { playSfx } from '../../../lib/juice/sfx';
-  import { frenchSpacing } from '../../../lib/text/french';
   import type { ChannelId } from '../../../lib/audio/settings';
 
   let {
@@ -54,7 +53,7 @@
     type="button"
     class="kit-bronze is-quiet mute"
     aria-pressed={muted}
-    aria-label={frenchSpacing(`Sourdine\u202f: ${name}`)}
+    aria-label={`Sourdine\u202f: ${name}`}
     data-testid="lyre-mute-{channel}"
     onclick={() => setChannel(profileId, channel, { muted: !muted })}>Sourdine</button
   >

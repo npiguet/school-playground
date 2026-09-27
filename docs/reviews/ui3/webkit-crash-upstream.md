@@ -91,6 +91,23 @@ The web process does not crash.
   container on Docker Desktop).
 - Whether it also happens with a real GPU, or with the GTK port (`minibrowser-gtk`).
 
+## Open item: the UI5 crashes (watch for a trend)
+
+Not closed: per the repository's rule, a crash that keeps coming back stays an open item until its
+cause is known. UI5 (audio and dialogue, 2026-09-27) saw these, each retried once by the rule below
+and green on its retry:
+
+| When | Spec and test | Project | Seen | Runs |
+|---|---|---|---|---|
+| Lane A, fix round 1 | `scenes-audio.spec.ts`, the lyre test, « page crashed at …/cabane » while closing the deep-linked lyre | ipad | 3 | 6 (two `--repeat-each=3` runs under heavy host load); then 0 in 250 runs of the spec |
+| Task 9 | `scenes-battle-play.spec.ts:720`, the page crashed while the body ran | desktop | 1 | one `--repeat-each=3` run; 0 in the two gates |
+| UI5 fix wave A | see `.superpowers/sdd/2026-09-27-ui5-audio-dialogue/fix-wave-a-report.md` (M13) | | | |
+
+What to watch: a cluster on one spec (the lyre's range input, focused and driven by keys, then
+removed by the overlay's close on WPE, is the first thing to bisect), or on pages that play audio.
+The e2e pages never load Howler or build an AudioContext (Ruling E10), so a trend tied to audio would
+point at the page's own code, not WebKit's media stack. Add each new crash to this table.
+
 ## On our side
 
 The suite marks such a test « browser crashed (upstream WebKit) » and runs it once more; no other

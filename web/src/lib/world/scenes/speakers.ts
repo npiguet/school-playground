@@ -6,7 +6,10 @@ import { TINT_FILTERS } from '../dragon';
 import type { DragonOut } from '../types';
 import type { DialogueLine } from '../../scene/types';
 
-export function dragonSpeaker(d: DragonOut): Omit<DialogueLine, 'text'> {
+/** What the dragon's frame reads of it: its name, its stage and its tint. */
+export type DragonLook = Pick<DragonOut, 'name' | 'stage' | 'tint'>;
+
+export function dragonSpeaker(d: DragonLook): Omit<DialogueLine, 'text'> {
   return {
     speaker: 'dragon',
     name: d.name ?? (d.stage === 'egg' ? "L'œuf" : 'Ton dragon'),
@@ -15,6 +18,6 @@ export function dragonSpeaker(d: DragonOut): Omit<DialogueLine, 'text'> {
   };
 }
 
-export function dragonSays(d: DragonOut, text: string): DialogueLine {
+export function dragonSays(d: DragonLook, text: string): DialogueLine {
   return { ...dragonSpeaker(d), text };
 }

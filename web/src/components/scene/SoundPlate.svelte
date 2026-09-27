@@ -89,7 +89,7 @@
     data-testid="hud-mute"
     aria-label="Les sons"
     aria-expanded={open}
-    aria-controls="hud-sound"
+    aria-controls={open ? 'hud-sound' : undefined}
     onclick={toggleOpen}
   >
     <Icon name={bothMuted() ? 'lyre-muted' : 'lyre'} size={28} />

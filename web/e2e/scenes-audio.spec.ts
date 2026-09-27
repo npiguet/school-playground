@@ -148,10 +148,13 @@ test("the HUD's lyre opens three quick toggles that the lyre and a reload rememb
   await expectCamp(page);
   const opener = page.getByTestId('hud-mute');
   await expect(opener).toHaveAttribute('aria-expanded', 'false');
+  // Final review M11: it names the plate only while the plate is there.
+  await expect(opener).not.toHaveAttribute('aria-controls');
   await tap(opener, testInfo);
   const plate = page.getByTestId('hud-sound');
   await expect(plate).toBeVisible();
   await expect(opener).toHaveAttribute('aria-expanded', 'true');
+  await expect(opener).toHaveAttribute('aria-controls', 'hud-sound');
   for (const ch of ['music', 'sfx', 'voice']) await expect(plate.getByTestId(`hud-sound-${ch}`)).toHaveAttribute('aria-pressed', 'true');
   const saved = page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().includes(`/api/profiles/${id}`));
   await tap(plate.getByTestId('hud-sound-music'), testInfo);
@@ -207,6 +210,8 @@ test('the lyre sets each channel: its trial speaks at the voice volume, the keys
   await expect(lyre.getByTestId('lyre-mute-voice')).toHaveAttribute('aria-pressed', 'true');
   await expect(slider).toHaveClass(/inactive/);
   await expect(lyre.getByTestId('lyre-voice-muted')).toHaveText(frenchSpacing(MUTED_VOICE_NOTE));
+  // Final review M7: a muted voice's trial would say nothing: it waits for the voice to come back.
+  await expect(lyre.getByTestId('lyre-try-voice')).toBeDisabled();
   await expect(lyre.locator('input[type="checkbox"]')).toHaveCount(0);
   await closeOverlay(page);
 });
@@ -323,7 +328,11 @@ function loopTiming(buf: Buffer) {
   expect(elst.readUInt32BE(4), 'one edit').toBe(1);
   const segment = num(elst, 8);
   const mediaTime = num(elst, 8 + (v1(elst) ? 8 : 4));
-  return { movie: clock(mvhd), media: clock(mdhd), segment, mediaTime };
+  // stsz: after the full box's header, a default sample size (32-bit), then the sample count: the
+  // number of AAC frames, 1024 samples each once decoded.
+  const stsz = boxes.get('moov/trak/mdia/minf/stbl/stsz')!;
+  const frames = stsz.readUInt32BE(8);
+  return { movie: clock(mvhd), media: clock(mdhd), segment, mediaTime, frames };
 }
 
 test('every sound is served as audio/mp4, within budget, each loop as long as meta.gen.json says (Ruling E16)', async ({ request }) => {
@@ -360,5 +369,10 @@ test('every sound is served as audio/mp4, within budget, each loop as long as me
     expect(t.mediaTime, id).toBe(m.priming);
     expect(t.media.duration - t.mediaTime, id).toBe(m.samples);
     expect(Math.abs((t.segment * m.rate) / t.movie.timescale - m.samples), id).toBeLessThanOrEqual(m.rate / t.movie.timescale);
+    // Final review M6: loopRegion (loop.ts) tells a buffer that kept the priming from one that kept
+    // only the tail padding by its length, which holds while the padding is shorter than the priming.
+    const padding = t.frames * 1024 - m.priming - m.samples;
+    expect(padding, id).toBeGreaterThanOrEqual(0);
+    expect(padding, id).toBeLessThan(m.priming);
   }
 });

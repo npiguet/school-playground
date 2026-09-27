@@ -2,7 +2,7 @@
 // (a `when` that matches) beat the generic ones; the one said last for that key is never said again
 // right away (per page load, like the greetings, Ruling A9), unless it is the only one.
 import { frenchSpacing } from '../text/french';
-import type { DragonOut } from '../world/types';
+import type { DragonLook } from '../world/scenes/speakers';
 import type { DialogueLine } from '../scene/types';
 import { LINES } from './content';
 import { frameFor } from './speakers';
@@ -39,7 +39,7 @@ export function fill(text: string, vars: Record<string, string>): string {
 export interface SayOpts {
   ctx?: DialogueCtx;
   vars?: Record<string, string>;
-  dragon?: DragonOut | null;
+  dragon?: DragonLook | null;
   rnd?: () => number;
 }
 

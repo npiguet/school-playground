@@ -211,7 +211,3 @@ export function sleepingCaption(key: LieutenantKey): string {
 export function stirringCaption(key: LieutenantKey): string {
   return GENDER[key] === 'fp' ? "S'agitent" : "S'agite";
 }
-
-export function campGreeting(hour: number): string {
-  return hour < 5 ? 'Bonne nuit au camp.' : hour < 12 ? 'Bonjour au camp.' : hour < 18 ? 'Bel après-midi au camp.' : 'Bonsoir au camp.';
-}

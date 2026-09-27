@@ -120,7 +120,10 @@
             {/each}
           </select>
         </div>
-        <button type="button" class="kit-bronze is-quiet" onclick={tryVoice}>Écouter un essai</button>
+        <!-- Final review M7: a muted voice says nothing; the trial waits for it (the note below says why). -->
+        <button type="button" class="kit-bronze is-quiet" data-testid="lyre-try-voice" disabled={audioSettings.voice.muted} onclick={tryVoice}
+          >Écouter un essai</button
+        >
       {/if}
     </section>
 
@@ -132,7 +135,8 @@
       {#if audioSettings.voice.muted}
         <p class="kit-note" data-testid="lyre-voice-muted">{frenchSpacing("En sourdine, la dictée n'est plus lue à voix haute\u202f: il faudra quelqu'un pour te la lire.")}</p>
       {/if}
-      <p class="note">{frenchSpacing("Sur iPad, le volume de la voix suit aussi les boutons de l'appareil.")}</p>
+      <!-- Final review M7: iOS ignores an utterance's volume (Ruling E7b), so the slider does nothing there. -->
+      <p class="note">Sur iPad, seuls les boutons de l'appareil règlent le volume de la voix.</p>
     </section>
 
     <section>
