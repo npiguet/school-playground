@@ -4,7 +4,6 @@
 import { writeFileSync } from 'node:fs';
 import { splitSentences } from '$lib/dictation/segment';
 import { spokenForm } from '$lib/dictation/spoken';
-import { PACE_RATES } from '$lib/dictation/script';
 import dragon from '@content/seed/028-muses-dragon-des-muses.json';
 import etoiles from '@content/seed/010-daudet-etoiles.json';
 import canard from '@content/seed/002-andersen-vilain-petit-canard.json';
@@ -22,6 +21,9 @@ const MARKS: [name: string, mark: string][] = [
   ['point', '.'],
 ];
 const CLOSING = new Set(['.', '?', '!', '…']); // marks that end a sentence
+// The two slower paces' rates when round 2 was listened to (paces 1 and 2, before the pace redesign made
+// every line 0.85): round2.json is that frozen record, so the rates stay what they were.
+const ROUND2_PACES = [0.75, 0.85];
 const NAME_RE = new RegExp(`, (${MARKS.map(([n]) => n).join('|')})(?=[,.])`, 'g');
 
 type Variant = 'A' | 'B' | 'C' | 'D' | 'E';
@@ -65,6 +67,6 @@ const sentences = {
 };
 
 writeFileSync(process.argv[2], JSON.stringify({
-  paces: [PACE_RATES[1], PACE_RATES[2]],
+  paces: ROUND2_PACES,
   sentences,
 }, null, 2) + '\n');

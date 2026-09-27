@@ -1,13 +1,17 @@
 // Writes tools/tts/lines.json: the bake-off's lines, spoken as the game speaks them, by the game's own
 // code. Bundled with esbuild and run with node in the repo's node container (README).
 import { writeFileSync } from 'node:fs';
-import { buildPlan, PACE_RATES } from '$lib/dictation/script';
+import { buildPlan } from '$lib/dictation/script';
 import { splitChunks } from '$lib/dictation/segment';
 import { spokenForm } from '$lib/dictation/spoken';
 import { frenchSpacing } from '$lib/text/french';
 import { fill } from '$lib/dialogue/select';
 import seed from '@content/seed/028-muses-dragon-des-muses.json';
 import camp from '@content/dialogue/camp.json';
+
+/** The slow pace's rate when the bake-off was listened to (pace 1's 0.75, before the pace redesign made
+ *  every line 0.85): lines.json records that bake-off, so the rate stays what it was. */
+const BAKEOFF_SLOW_RATE = 0.75;
 
 const plan = buildPlan(seed.body);
 const s = plan.sentences[1];
@@ -20,7 +24,7 @@ const out = {
     b: 'the same sentence, splitChunks chunks 1 and 2, spokenForm',
     c: 'content/dialogue/camp.json camp.weekly[2], fill + frenchSpacing as sayKey renders it (dialogue is not spoken today)',
   },
-  slowRate: PACE_RATES[1],
+  slowRate: BAKEOFF_SLOW_RATE,
   lines: {
     a: { text: s.text, spoken: spokenForm(s.text, { newParagraph: s.newParagraph }) },
     b1: chunk(chunks[0]),
