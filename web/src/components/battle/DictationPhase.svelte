@@ -89,6 +89,7 @@
   );
   // Playability #5 and #8: « Réessayer » keeps Éris's card up (its button waiting) until the voice
   // answers or fails again; when it answers, the Pythia says so for a moment, in the status line.
+  // A pause meanwhile keeps the card too (re-review N4): the same card and gloat until the voice is back.
   let retrying = $state(false);
   let lostFailure = $state<VoiceFailure>('server');
   let voiceBack = $state<string | null>(null);
@@ -97,13 +98,19 @@
     clearTimeout(backTimer);
     voiceBack = null;
   }
-  function lineStarts() {
-    waitLine.done();
+  /** The retried line is under way: heard (the Pythia says the voice is back), or said silently by a
+   *  muted voice, which never starts a clip (re-review N1). Either way the card goes. */
+  function voiceReturns(heard: boolean) {
     if (!retrying) return;
     retrying = false;
+    if (!heard) return;
     voiceBack = sayKey('battle.voice.back').text;
     clearTimeout(backTimer);
     backTimer = setTimeout(hideVoiceBack, VOICE_BACK_MS);
+  }
+  function lineStarts() {
+    waitLine.done();
+    voiceReturns(true);
   }
   const steps = untrack(() => buildScript(plan, pace));
   let lastStatus = untrack(() => runnerState.status);
@@ -112,10 +119,13 @@
       steps,
       {
         pace,
-        speak: (spoken, rate, next) =>
-          voice
+        speak: (spoken, rate, next) => {
+          // A muted voice fetches nothing and waits the line's length (voice.ts): it is said at once.
+          if (voiceMuted()) voiceReturns(false);
+          return voice
             .speak(spoken, rate, { next, onSlow: () => waitLine.slow(), onStart: lineStarts })
-            .finally(() => waitLine.done()),
+            .finally(() => waitLine.done());
+        },
         sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
         cancel: () => voice.cancel(),
         onChange: (s) => {
@@ -126,7 +136,8 @@
             waitLine.clear();
             hideVoiceBack();
           }
-          if (s.status !== 'playing' && s.status !== 'waiting') retrying = false;
+          // Failed again (the card stays, `silenced`) or over; a pause keeps the retry (N4).
+          if (s.status === 'silenced' || s.status === 'finished') retrying = false;
           lastStatus = s.status;
           let moved = false;
           if (s.resumeAt !== reported) {
@@ -165,7 +176,13 @@
   });
 
   function retry() {
-    if (retrying) return;
+    // Not from a card already leaving (N4), nor twice while it asks.
+    if (!cardUp || (retrying && runnerState.status !== 'paused')) return;
+    // Paused during a retry (N4): « Réessayer » asks again, as « Reprendre » does.
+    if (runnerState.status === 'paused') {
+      runner.resume();
+      return;
+    }
     retrying = true;
     prepareAhead();
     runner.retry();
@@ -233,12 +250,22 @@
   // say « En pause. » meanwhile.
   const going = $derived(runnerState.status === 'playing' || runnerState.status === 'waiting');
   const pythiaNote = $derived(cardUp || !going ? null : (voiceBack ?? voiceWait));
-  const statusText = $derived(cardUp ? DICTATION.status.silenced : (pythiaNote ?? DICTATION.status[runnerState.status]));
+  const paused = $derived(runnerState.status === 'paused');
+  const statusText = $derived(
+    paused ? DICTATION.status.paused : cardUp ? DICTATION.status.silenced : (pythiaNote ?? DICTATION.status[runnerState.status]),
+  );
   // Ruling 1: while a line is late the seal waits (a slow breath), it does not pulse as if reading.
-  const sealStatus = $derived(cardUp ? 'silenced' : pythiaNote !== null && pythiaNote === voiceWait ? 'voice-waiting' : runnerState.status);
-  // Playability #8: the card leaves by folding away, so the textarea does not jump 200 px at once.
+  const sealStatus = $derived(
+    paused ? 'paused' : cardUp ? 'silenced' : pythiaNote !== null && pythiaNote === voiceWait ? 'voice-waiting' : runnerState.status,
+  );
+  // Playability #8: the card leaves by folding away, so the textarea does not jump 200 px at once;
+  // a card leaving no longer takes taps (re-review N4; Svelte also marks an outroing element inert,
+  // and retry() ignores a card that is no longer up).
   const reduced = reducedMotion();
-  const cardOut = (node: Element) => (reduced ? fade(node, { duration: 160 }) : slide(node, { duration: 320 }));
+  function cardOut(node: Element) {
+    (node as HTMLElement).inert = true;
+    return reduced ? fade(node, { duration: 160 }) : slide(node, { duration: 320 });
+  }
 
   // pace 1-2: she can finish as soon as she reaches the last manual wait,
   // even before tapping "Suivant" once more.
@@ -357,8 +384,8 @@
   {/if}
 
   {#if cardUp}
-    <div class="card-slot" out:cardOut>
-      <VoiceLostCard failure={lostFailure} {retrying} {compact} onRetry={retry} onLeave={onLeaveToCamp} />
+    <div class="card-slot" data-testid="voice-lost-slot" out:cardOut>
+      <VoiceLostCard failure={lostFailure} retrying={retrying && !paused} {compact} onRetry={retry} onLeave={onLeaveToCamp} />
     </div>
   {/if}
 

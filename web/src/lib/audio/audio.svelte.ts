@@ -9,7 +9,7 @@ import { createEngine, type AudioEngine, type ContextState } from './engine';
 import { onEveryGesture } from './gestures';
 import { lazyBackend } from './lazyBackend';
 import { recordingBackend } from './recordingBackend';
-import { flushPendingAudioSave, setAudioSink, snapshotAudio } from './store.svelte';
+import { audioSettings, flushPendingAudioSave, setAudioSink, snapshotAudio } from './store.svelte';
 
 /** What an e2e page reads (Ruling E10): the engine's state, and the recorded context's, which a spec
  *  can set to `interrupted` as a phone call would (final review I3). */
@@ -19,6 +19,9 @@ export interface AudioProbe {
   interrupt(): void;
   /** The voice lines played, oldest first (e2e: spokenLines). */
   lines(): { text: string; gain: number }[];
+  /** Mutes the voice where no control is at hand (a dictation has no sound plate): fix wave B
+   *  re-review N1's muted « Réessayer ». Not saved on the hero. */
+  muteVoice(): void;
 }
 type TestWindow = Window & { __discordeAudioStub?: boolean; __discordeAudio?: AudioProbe };
 
@@ -37,6 +40,9 @@ export function audio(): AudioEngine {
         recorder.log.state = 'interrupted';
       },
       lines: () => recorder.log.lines.map((l) => ({ text: l.text, gain: l.gain })),
+      muteVoice: () => {
+        audioSettings.voice.muted = true;
+      },
     };
   }
   engine = e;

@@ -231,6 +231,91 @@ test('when the voice comes back, the Pythia says so, then the dictation reads on
   expect((await spokenLines(page))[0].text).toContain('Les fées dansent');
 });
 
+// Re-review N1: a muted voice never starts a clip; « Réessayer » then says the line silently, and the
+// card must go with it (it stayed up, its button waiting, for the rest of the dictation).
+test('muted while the card is up, « Réessayer » carries on silently and the card goes', async ({ page, request }, testInfo) => {
+  await voiceDown(page, 503, () => true);
+  await startDictation(page, request, testInfo, 1);
+  const card = page.getByTestId('voice-lost');
+  await expect(card).toBeVisible();
+  await page.evaluate(() => (window as unknown as { __discordeAudio: { muteVoice(): void } }).__discordeAudio.muteVoice());
+  await tap(card.getByTestId('btn-voice-retry'), testInfo);
+  await expect(page.getByTestId('voice-lost')).toHaveCount(0);
+  await expect(page.getByTestId('dictation-status')).toHaveText(WRITE, { timeout: 15_000 });
+  await expect(page.getByTestId('btn-next')).toBeEnabled();
+});
+
+// Re-review N4: a pause while « Réessayer » asks keeps the same card and gloat (never a new card after
+// « Reprendre »), and its button asks again once paused.
+test('a pause during « Réessayer » keeps the same card and gloat through « Reprendre »', async ({ page, request }, testInfo) => {
+  let gate: Promise<void> | null = null;
+  const asked = { n: 0 };
+  await page.route('**/api/tts/speak', async (route: Route) => {
+    asked.n++;
+    if (gate) await gate;
+    return route.fulfill({ status: 503, contentType: 'application/json', body: '{"detail":"voice down"}' });
+  });
+  await startDictation(page, request, testInfo, 3);
+  const card = page.getByTestId('voice-lost');
+  await expect(card).toBeVisible();
+  const gloat = ((await card.getByTestId('voice-lost-eris-text').textContent()) ?? '').trim();
+  await card.evaluate((el) => el.setAttribute('data-first-card', ''));
+  let open!: () => void;
+  gate = new Promise<void>((resolve) => (open = resolve));
+  await tap(card.getByTestId('btn-voice-retry'), testInfo);
+  await expect(card).toHaveAttribute('data-retrying', 'true');
+  await tap(page.getByTestId('btn-pause'), testInfo);
+  const status = page.getByTestId('dictation-status');
+  await expect(status).toHaveText('En pause.');
+  await expect(card).toHaveAttribute('data-first-card', '');
+  await expect(card).toHaveAttribute('data-retrying', 'false');
+  await expect(card.getByTestId('btn-voice-retry')).toBeEnabled();
+  gate = null;
+  open();
+  await expect.poll(() => asked.n).toBe(4); // the cancelled line's retry, answered and dropped
+  await expect(status).toHaveText('En pause.');
+  await tap(page.getByTestId('btn-resume'), testInfo);
+  await expect.poll(() => asked.n).toBe(6);
+  await expect(status).toHaveText("La voix s'est tue.");
+  await expect(card).toHaveAttribute('data-first-card', '');
+  await expect(card.getByTestId('voice-lost-eris-text')).toHaveText(gloat);
+  await expect(card.getByTestId('btn-voice-retry')).toBeEnabled();
+});
+
+// Re-review N4: a card folding away takes no tap. A tap on its « Réessayer » as it leaves (dispatched
+// the moment the slot turns inert) must not bring the card back.
+test('the leaving card is inert: a late « Réessayer » does not bring it back', async ({ page, request }, testInfo) => {
+  let down = true;
+  await voiceDown(page, 503, () => down);
+  await startDictation(page, request, testInfo, 3);
+  const card = page.getByTestId('voice-lost');
+  await expect(card).toBeVisible();
+  await page.evaluate(() => {
+    const events: string[] = [];
+    (window as unknown as { __cardEvents: string[] }).__cardEvents = events;
+    new MutationObserver(() => {
+      const slot = document.querySelector<HTMLElement>('[data-testid="voice-lost-slot"]');
+      const status = document.querySelector('[data-testid="dictation-status"]')?.textContent ?? '';
+      // The voice is back (the status moved on) while the card is still there: it is leaving.
+      if (slot?.inert && !events.includes('inert')) events.push('inert');
+      if (slot && status !== "La voix s'est tue." && !events.includes('tapped')) {
+        events.push('tapped');
+        slot.querySelector<HTMLButtonElement>('[data-testid="btn-voice-retry"]')?.click();
+      }
+      // The card taken back up by that tap says the voice is silent again.
+      if (events.includes('tapped') && status === "La voix s'est tue." && !events.includes('silent-again')) events.push('silent-again');
+    }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
+  });
+  down = false;
+  await tap(card.getByTestId('btn-voice-retry'), testInfo);
+  await expect(page.getByTestId('voice-lost')).toHaveCount(0);
+  await expect(page.getByTestId('dictation-status')).toHaveText('Écoute…');
+  const events = await page.evaluate(() => (window as unknown as { __cardEvents: string[] }).__cardEvents);
+  expect(events).toContain('tapped');
+  expect(events).toContain('inert');
+  expect(events).not.toContain('silent-again');
+});
+
 // The card under the keyboard (playability #7's plate is taller): a smaller plate, the parent's line
 // beside the buttons, and still a line of her draft in sight under the card.
 test('under the keyboard the card leaves a line of the draft in sight', async ({ page, request }, testInfo) => {
@@ -334,4 +419,47 @@ test("the lyre's trial speaks through the server; silenced, it shows the card's 
   await expect.poll(async () => (await spokenLines(page)).at(-1)?.text ?? '').toContain('Je lirai tes dictées');
   await expect(lyre.getByTestId('voice-lost')).toHaveCount(0);
   await expect(lyre.getByTestId('lyre-try-voice')).toBeEnabled();
+});
+
+// Re-review N3: a slow retry from the lyre's card shows no waiting line above the card, which already
+// says the Pythia tries again.
+test("a slow retry from the lyre's card shows no second waiting line", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let gate: Promise<void> | null = null;
+  await page.route('**/api/tts/speak', async (route: Route) => {
+    if (gate) await gate;
+    return route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+  });
+  await page.goto(`/#/p/${id}/settings`);
+  const lyre = page.getByTestId('overlay-lyre');
+  await tap(lyre.getByTestId('lyre-try-voice'), testInfo);
+  const card = lyre.getByTestId('voice-lost');
+  await expect(card).toBeVisible();
+  let open!: () => void;
+  gate = new Promise<void>((resolve) => (open = resolve));
+  await tap(card.getByTestId('btn-voice-retry'), testInfo);
+  await expect(card.getByTestId('voice-lost-retrying')).toBeVisible();
+  // Past the 1.2 s after which a late line would show the waiting line.
+  await page.waitForTimeout(1_600);
+  await expect(lyre.getByTestId('lyre-voice-wait')).toHaveCount(0);
+  gate = null;
+  open();
+  await expect(card).toHaveAttribute('data-retrying', 'false');
+});
+
+// Re-review N2: muted from the lyre while the card is up, « Réessayer » has nothing left to fail: the
+// card goes, and the muted note says why the trial is silent.
+test("muted while the lyre's card is up, « Réessayer » takes the card away", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await voiceDown(page, 503, () => true);
+  await page.goto(`/#/p/${id}/settings`);
+  const lyre = page.getByTestId('overlay-lyre');
+  await tap(lyre.getByTestId('lyre-try-voice'), testInfo);
+  const card = lyre.getByTestId('voice-lost');
+  await expect(card).toBeVisible();
+  await lyre.getByRole('button', { name: frenchSpacing('Sourdine : Voix') }).click();
+  await expect(lyre.getByTestId('lyre-voice-muted')).toBeVisible();
+  await tap(card.getByTestId('btn-voice-retry'), testInfo);
+  await expect(lyre.getByTestId('voice-lost')).toHaveCount(0);
+  await expect(lyre.getByTestId('lyre-try-voice')).toBeVisible();
 });

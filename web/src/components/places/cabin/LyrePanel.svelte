@@ -55,6 +55,8 @@
   async function tryVoice() {
     if (trying) return;
     trying = true;
+    // A muted voice fetches nothing (the note under « La voix » says why): nothing left to fail.
+    if (audioSettings.voice.muted) trialFailure = null;
     try {
       await voice.speak(TRIAL, 0.9, {
         onSlow: () => waitLine.slow(),
@@ -64,6 +66,8 @@
           trialPlaying = true;
         },
       });
+      // Said: a muted voice never starts a clip, but its trial went through (re-review N2).
+      trialFailure = null;
     } catch (e) {
       trialFailure = e instanceof VoiceError ? e.failure : 'server';
     } finally {
@@ -143,7 +147,8 @@
           >Écouter un essai</button
         >
       {/if}
-      {#if trialWait}
+      <!-- While the card is up it says the Pythia tries again: no second line saying so (re-review N3). -->
+      {#if trialWait && !trialFailure}
         <p class="kit-note" role="status" data-testid="lyre-voice-wait">{trialWait}</p>
       {:else if trialPlaying}
         <p class="kit-note" role="status" data-testid="lyre-voice-playing">{TRIAL_PLAYING}</p>
