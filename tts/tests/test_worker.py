@@ -27,7 +27,7 @@ def test_lines_are_made_one_at_a_time_in_order(tmp_path):
     make, started, release, made = blocking()
     w = worker(tmp_path, make)
     futures = [w.request(Line(t, 1.0), urgent=False) for t in "ABC"]
-    started.wait(5)
+    assert started.wait(5)
     assert w.pending() == ["B", "C"]
     release.set()
     assert [f.result(5) for f in futures] == [b"mp3:A", b"mp3:B", b"mp3:C"]
@@ -39,7 +39,7 @@ def test_a_line_asked_for_now_jumps_the_queue(tmp_path):
     make, started, release, made = blocking()
     w = worker(tmp_path, make)
     w.request(Line("A", 1.0), urgent=False)
-    started.wait(5)
+    assert started.wait(5)
     w.request(Line("B", 1.0), urgent=False)
     w.request(Line("C", 1.0), urgent=False)
     d = w.request(Line("D", 1.0), urgent=True)
@@ -57,7 +57,7 @@ def test_two_requests_for_one_line_share_one_job(tmp_path):
     make, started, release, made = blocking()
     w = worker(tmp_path, make)
     a = w.request(Line("A", 1.0), urgent=False)
-    started.wait(5)
+    assert started.wait(5)
     first = w.request(Line("B", 1.0), urgent=False)
     again = w.request(Line("B", 1.0), urgent=True)
     running = w.request(Line("A", 1.0), urgent=True)   # being made: the same job too
@@ -117,7 +117,7 @@ def test_a_line_finished_while_asked_for_is_not_made_again(tmp_path):
     w = Worker(make, cache, key=lambda line: line.text)
     w.start()
     prepared = w.request(Line("A", 1.0), urgent=False)
-    started.wait(5)
+    assert started.wait(5)
     cache.hold = True
     asked = []
     t = threading.Thread(target=lambda: asked.append(w.request(Line("A", 1.0), urgent=True)))
@@ -166,7 +166,7 @@ def test_a_waiter_cannot_cancel_or_break_the_shared_job(tmp_path):
     make, started, release, made = blocking()
     w = worker(tmp_path, make)
     w.request(Line("A", 1.0), urgent=False)
-    started.wait(5)
+    assert started.wait(5)
     b = w.request(Line("B", 1.0), urgent=False)
     assert not b.cancel()                  # the job is shared: one waiter cannot cancel it for the others
     c = w.request(Line("C", 1.0), urgent=False)
@@ -180,19 +180,18 @@ def test_a_waiter_cannot_cancel_or_break_the_shared_job(tmp_path):
     assert not w.alive()
 
 
-def test_queueing_a_line_reads_no_file(tmp_path):
+def test_preparing_lines_reads_no_file(tmp_path):
     make, started, release, made = blocking()
     cache = Cache(tmp_path, 10_000_000)
     reads = []
-    cache.get = lambda key: reads.append(key)   # queue() may only check that a line is there
+    cache.get = lambda key: reads.append(key)   # prepare() may only check that a line is there
     w = Worker(make, cache, key=lambda line: line.text)
     w.start()
     cache.put("A", b"mp3:A")
-    w.queue(Line("X", 1.0))
-    started.wait(5)                             # « X » is being made
-    w.queue(Line("A", 1.0))                     # cached: nothing to do
-    w.queue(Line("B", 1.0))
-    w.queue(Line("B", 1.0))                     # already queued: once
+    w.prepare([Line("X", 1.0)])
+    assert started.wait(5)                      # « X » is being made
+    # « X » being made and « A » cached: nothing to do; « B » twice: once.
+    w.prepare([Line("X", 1.0), Line("A", 1.0), Line("B", 1.0), Line("B", 1.0)])
     assert w.pending() == ["B"]
     assert reads == []
     release.set()
@@ -210,3 +209,48 @@ def test_a_line_that_fails_in_the_queue_is_logged(tmp_path, caplog):
     assert isinstance(f.exception(5), RuntimeError)
     w.stop()
     assert any("could not say" in r.getMessage() and r.exc_info for r in caplog.records)
+
+
+def test_a_new_prepare_drops_the_queued_lines_nobody_waits_for(tmp_path):
+    # I2: one child plays at a time, so the latest dictation wins. A line asked for (/speak) and the line
+    # being made stay; an abandoned dictation's lines no longer hold the one worker.
+    make, started, release, made = blocking()
+    w = worker(tmp_path, make)
+    w.prepare([Line(t, 1.0) for t in "XABC"])
+    assert started.wait(5)                                 # « X » is being made
+    asked = w.request(Line("B", 1.0), urgent=True)         # the new dictation's first line, asked for now
+    w.prepare([Line(t, 1.0) for t in "DXA"])               # « C » is dropped; « A » comes after « D »
+    assert w.pending() == ["B", "D", "A"]
+    release.set()
+    assert asked.result(5) == b"mp3:B"
+    assert w.request(Line("A", 1.0), urgent=False).result(5) == b"mp3:A"   # the last one, made
+    w.stop()
+    assert made == ["X", "B", "D", "A"]
+
+
+def test_the_lines_queued_and_not_waited_on_are_one_prepare_at_most(tmp_path):
+    # Final review M2: repeated /prepare calls cannot grow the queue (MAX_PREPARE_LINES bounds one call).
+    make, started, release, made = blocking()
+    w = worker(tmp_path, make)
+    w.prepare([Line("X", 1.0)])
+    assert started.wait(5)
+    for n in range(5):
+        w.prepare([Line(f"{n}-{i}", 1.0) for i in range(100)])
+    assert w.pending() == [f"4-{i}" for i in range(100)]
+    w.prepare([])
+    assert w.pending() == []
+    release.set()
+    w.stop()
+
+
+def test_a_line_asked_for_is_still_made_after_a_prepare_that_leaves_it_out(tmp_path):
+    make, started, release, made = blocking()
+    w = worker(tmp_path, make)
+    w.prepare([Line("X", 1.0)])
+    assert started.wait(5)
+    waited = w.request(Line("A", 1.0), urgent=False)       # queued behind nothing, and waited on
+    w.prepare([Line("B", 1.0)])
+    assert w.pending() == ["A", "B"]
+    release.set()
+    assert waited.result(5) == b"mp3:A"
+    w.stop()

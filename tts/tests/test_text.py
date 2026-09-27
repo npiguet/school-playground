@@ -60,7 +60,7 @@ def test_an_overlong_sentence_stays_whole():
 
 
 def test_the_limit_is_ten_thousand_characters():
-    # Kokoro plan Ruling K1: pace 4's full reading of a 4 000-character text (web MAX_LINE_CHARS).
+    # Kokoro plan Ruling K1, now a guard: the game says a sentence at a time (web MAX_LINE_CHARS).
     assert MAX_CHARS == 10_000
 
 

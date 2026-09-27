@@ -8,7 +8,13 @@ import os
 import threading
 from pathlib import Path
 
-FORMAT_VERSION = 1  # bump when the MP3s change for the same inputs (bitrate, encoder, trimming)
+# Bump when the MP3s or the phonemes change for the same inputs: the bitrate, the encoder, the trimming, or
+# a new pin of the G2P stack in requirements.txt (misaki, phonemizer-fork, espeakng-loader), which the key
+# does not otherwise cover.
+FORMAT_VERSION = 1
+# Past the limit, the oldest lines go until the cache is down to this share of it: one scan of the
+# directory frees room for many lines, instead of a scan on every line made (final review M5).
+LOW_WATER = 0.9
 
 
 def cache_key(model: str, voice: str, speed: float, text: str) -> str:
@@ -67,7 +73,7 @@ class Cache:
             except FileNotFoundError:
                 continue
         for _, f in sorted(files):
-            if self._total <= self.limit:
+            if self._total <= self.limit * LOW_WATER:
                 break
             try:
                 size = f.stat().st_size

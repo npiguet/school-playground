@@ -1,6 +1,6 @@
 """The dictation's voice (spec 2026-09-27 §4.1): internal to the compose network; the game server proxies
 /api/tts/* here. /speak makes a line now (ahead of the queue) unless it is cached; /prepare queues a
-dictation's lines in order; /health is ready once the model is loaded (it loads in the background, so
+dictation's lines in order, in place of the queued lines nobody waits on; /health is ready once the model is loaded (it loads in the background, so
 the service answers « loading » meanwhile)."""
 from __future__ import annotations
 
@@ -105,7 +105,7 @@ def create_app(config: Config | None = None, engine_factory: Callable[[Config], 
     async def speak(body: SpeakBody, request: Request):
         worker = worker_of(request)
         line = line_of(request, body)
-        # A cached line is read off the event loop (a pace-4 full reading is several MB).
+        # A cached line is a file read (on the NAS's disk): off the event loop.
         future = await run_in_threadpool(worker.request, line, True)
         try:
             data = await asyncio.wrap_future(future)
@@ -117,8 +117,8 @@ def create_app(config: Config | None = None, engine_factory: Callable[[Config], 
     def prepare(body: PrepareBody, request: Request):
         worker = worker_of(request)
         lines = [line_of(request, b) for b in body.lines]
-        for line in lines:
-            worker.queue(line)
+        # The latest dictation wins: its lines replace the queued ones nobody waits on (Worker.prepare).
+        worker.prepare(lines)
         return {"queued": len(lines)}
 
     return app

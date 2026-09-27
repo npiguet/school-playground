@@ -72,7 +72,7 @@ def test_speak_refuses_what_it_cannot_say(client, body):
 
 
 def test_the_limits_themselves_are_accepted(config):
-    # Review Focus 1: pace 4's full reading of a long text is one line of several thousand characters.
+    # Ruling K1, kept as a guard: the game says a sentence at a time, but a line may be this long.
     spy = SpyEngine(ms=50)
     with TestClient(create_app(config, engine_factory=lambda c: spy)) as c:
         wait_ready(c)
@@ -136,3 +136,27 @@ def test_a_voice_whose_worker_stopped_is_not_ready(config):
         assert c.post("/speak", json={"text": "a", "speed": 1.0}).status_code == 503
         assert c.post("/prepare", json={"lines": [{"text": "a", "speed": 1.0}]}).status_code == 503
     assert spy.said == []
+
+
+def test_a_new_prepare_replaces_the_lines_still_queued(config):
+    # I2 (spec §4.1): the latest dictation wins; the lines an abandoned one queued are never made.
+    spy = SpyEngine(ms=50)
+    making, gate = threading.Event(), threading.Event()
+    say = spy.synth
+
+    def held(text, speed):
+        making.set()
+        gate.wait(5)
+        return say(text, speed)
+
+    spy.synth = held
+    old = [{"text": f"Ancienne {i}. Point.", "speed": 1.0} for i in range(3)]
+    new = {"text": "Nouvelle. Point.", "speed": 1.0}
+    with TestClient(create_app(config, engine_factory=lambda c: spy)) as c:
+        wait_ready(c)
+        assert c.post("/prepare", json={"lines": old}).status_code == 202
+        assert making.wait(5)                        # the first old line is being made
+        assert c.post("/prepare", json={"lines": [new]}).status_code == 202
+        gate.set()
+        assert c.post("/speak", json=new).status_code == 200
+    assert [t for t, _ in spy.said] == ["Ancienne 0. Point.", "Nouvelle. Point."]

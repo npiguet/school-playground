@@ -73,3 +73,16 @@ def test_has_touches_without_reading(tmp_path):
     assert c.has("k")
     assert c.path("k").stat().st_mtime > 1000   # now the most recently used
     assert not c.has("missing")
+
+
+def test_past_the_limit_the_cache_frees_room_for_many_lines_at_once(tmp_path):
+    # Final review M5: eviction goes down to LOW_WATER of the limit, so the next lines need no scan.
+    c = Cache(tmp_path, limit_bytes=1000)
+    for i in range(10):
+        c.put(f"k{i}", b"x" * 100)
+        os.utime(c.path(f"k{i}"), (1000 + i, 1000 + i))
+    assert len(list(tmp_path.glob("*.mp3"))) == 10   # at the limit, not past it
+    c.put("k10", b"x" * 100)                         # 1 100: down to 900, the two oldest go
+    assert {p.stem for p in tmp_path.glob("*.mp3")} == {f"k{i}" for i in range(2, 11)}
+    c.put("k11", b"x" * 100)                         # 1 000: no eviction
+    assert len(list(tmp_path.glob("*.mp3"))) == 10

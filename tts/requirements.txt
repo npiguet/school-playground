@@ -4,7 +4,8 @@ soundfile>=0.14,<0.15
 # The voice (Kokoro plan Task 3, verdict onnx-direct): the versions tools/tts/parity.json recorded, so the
 # service phonemises and speaks exactly as the parity proof measured. misaki without extras: only its
 # espeak G2P is used (misaki[en] would pull spaCy); that G2P runs phonemizer-fork on espeakng-loader's
-# bundled espeak-ng 1.52.0, which decide the phonemes.
+# bundled espeak-ng 1.52.0, which decide the phonemes. A change to any of these three pins must bump
+# FORMAT_VERSION in app/cache.py, or the cached lines keep the old pronunciation.
 numpy==2.5.3
 onnxruntime==1.22.1
 misaki==0.9.4
