@@ -9,13 +9,15 @@ import type { LineHandle, VoiceClip } from '../audio/engine';
 import { lineKey, type SayLine } from './script';
 
 /**
- * How fast the voice speaks French at rate 1: 65 ms a character of the spoken form (its spaces and its
- * said punctuation included), divided by the line's rate. What a muted voice waits instead of the line
- * (UI5 Ruling E7b), each clip's estimated length (Ruling K7) and the stub's silence (tts/app/audio.py).
- * Measured against Kokoro (`ff_siwis`, the onnx-direct build) in the Kokoro plan's lane S2
- * (lane-s2-report.md), normalised to rate 1: a 54-character sentence took 3.90 s at 0.90 (the
- * service's own log line: 65.0 ms a character) and 3.60 s at 1.0 (66.7). Longer lines run faster (423 characters: 58.6; 702 characters of comma lists: 47.0), so
- * a muted full reading at pace 4 waits a little longer than Kokoro would take: the safe side.
+ * How fast the voice speaks French at rate 1: 65 ms a character of the spoken form (its spaces and
+ * its said punctuation included), divided by the line's rate. Only what a muted voice waits instead
+ * of the line (UI5 Ruling E7b), each clip's estimated length (Ruling K7: the line's watchdog) and
+ * the stub's silence (tts/app/audio.py): the real voice takes its own time. It stays 65 (fix wave A,
+ * Ruling R-A4). Kokoro's spread, measured by the Task 10 walk (task-10-report.md, `ff_siwis`,
+ * onnx-direct, Ryzen 9 5950X) as ms a character times the rate: short lines 74.6 at 0.75, 69.0 at
+ * 0.85, 66.0 at 0.90, 58.3 at 0.95 and 60.1 at 1.0; one 1557-character line 53.6 at 1.0. So a muted
+ * slow line waits about 13 % less than Kokoro takes, and a muted long line about 20 % more. Pace 4
+ * now reads its full readings a sentence at a time, so no line is that long any more.
  */
 export const SPEECH_MS_PER_CHAR = 65;
 
@@ -82,6 +84,10 @@ export function createVoice(deps: VoiceDeps): Voice {
   const revoke = deps.revoke ?? ((url: string) => URL.revokeObjectURL(url));
   const clips = new Map<string, Promise<VoiceClip>>();
   const urls = new Set<string>();
+  /** The fetches still running (final review M3): dispose() aborts them, so a dictation left
+   *  mid-fetch holds neither a thread of the game server nor the voice's time. cancel() leaves them:
+   *  a paused line's clip is used again on resume. */
+  const inflight = new Set<AbortController>();
   let generation = 0;
   let current: LineHandle | null = null;
   let disposed = false;
@@ -95,6 +101,7 @@ export function createVoice(deps: VoiceDeps): Voice {
   async function attempt(line: SayLine): Promise<VoiceClip> {
     const abort = new AbortController();
     const timer = setTimeout(() => abort.abort(), fetchTimeoutMs(line.spoken));
+    inflight.add(abort);
     try {
       const res = await doFetch('/api/tts/speak', {
         ...post({ profile_id: deps.profileId, text: line.spoken, speed: line.rate }),
@@ -115,6 +122,7 @@ export function createVoice(deps: VoiceDeps): Voice {
       throw new VoiceError('unreachable'); // the network, or the timeout's abort
     } finally {
       clearTimeout(timer);
+      inflight.delete(abort);
     }
   }
 
@@ -174,6 +182,9 @@ export function createVoice(deps: VoiceDeps): Voice {
     prefetch,
     prepare(lines) {
       if (disposed || muted() || lines.length === 0) return;
+      // A text within the server's 4 000-character limit gives far fewer lines, even at pace 4 (each
+      // sentence twice, each chunk once). Past MAX_PREPARE_LINES the tail would be left out, and the
+      // one-ahead prefetch would still fetch each of those lines while the one before it plays.
       const body = { profile_id: deps.profileId, lines: lines.slice(0, MAX_PREPARE_LINES).map((l) => ({ text: l.spoken, speed: l.rate })) };
       void doFetch('/api/tts/prepare', post(body)).catch(() => undefined);
     },
@@ -181,6 +192,8 @@ export function createVoice(deps: VoiceDeps): Voice {
     dispose() {
       disposed = true;
       cancel();
+      for (const abort of inflight) abort.abort();
+      inflight.clear();
       for (const url of urls) revoke(url);
       urls.clear();
       clips.clear();

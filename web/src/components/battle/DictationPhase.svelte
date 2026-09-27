@@ -3,13 +3,15 @@
   // the status as a small seal and words, the bronze controls, and the textarea in Literata on the
   // ruled text zone. While the keyboard is open (Ruling C4, `layout === 'compact'`) everything but
   // the textarea folds into one bar under the stage's band. A flowing pace pauses itself when the
-  // iPad turns to portrait (Ruling C11); « Reprendre » shows whenever the runner is paused.
+  // iPad turns to portrait (Ruling C11) or the page is hidden (final review I1); « Reprendre » shows
+  // whenever the runner is paused.
   // The voice is Kokoro on the server (spec 2026-09-27): a late line shows the waiting line, a silenced
   // one Éris's card.
   import { onDestroy, onMount, untrack } from 'svelte';
   import { createRunner, type RunnerState } from '../../lib/dictation/runner';
   import { buildScript, replayLimit, sayLines, type DictationPlan, type Pace } from '../../lib/dictation/script';
   import { createVoice } from '../../lib/dictation/voice';
+  import { voiceMuted } from '../../lib/audio/voice';
   import { sayKey } from '../../lib/dialogue/select';
   import VoiceLostCard from './VoiceLostCard.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -110,11 +112,28 @@
   );
   runnerState = untrack(() => runner.state());
 
+  /** §5.2 and Ruling K12: the lines from the unit being read on, sent ahead in order. */
+  const prepareAhead = () => voice.prepare(sayLines(steps.slice(runner.state().resumeAt)));
+
   onMount(() => {
-    // §5.2 and Ruling K12: the lines from the unit this dictation starts at, sent ahead in order.
-    voice.prepare(sayLines(steps.slice(runner.state().resumeAt)));
+    prepareAhead();
     runner.start();
   });
+
+  // Final review M4: a voice unmuted mid-dictation never prepared anything (a muted one sends
+  // nothing), so the rest of the script is sent then; « Réessayer » sends it too (retry below), for
+  // a restarted voice has lost its queue.
+  let wasMuted = untrack(() => voiceMuted());
+  $effect(() => {
+    const muted = voiceMuted();
+    if (wasMuted && !muted) untrack(prepareAhead);
+    wasMuted = muted;
+  });
+
+  function retry() {
+    prepareAhead();
+    runner.retry();
+  }
 
   onDestroy(() => {
     runner.stop();
@@ -140,6 +159,19 @@
       mq.removeEventListener('change', check);
       window.removeEventListener('resize', check);
     };
+  });
+
+  // Final review I1: a hidden page (another app, the iPad locked) suspends the mixer, so a line
+  // playing freezes and its watchdog gives it up; a flowing dictation would read on into the silence,
+  // and pace 3-4 have no « Réécouter ». It pauses as in portrait (C11): « Reprendre » is her tap, and
+  // says the cut line again.
+  $effect(() => {
+    const flowing = untrack(() => pace >= 3);
+    const onVisibility = () => {
+      if (flowing && document.hidden && runner.state().status === 'playing') runner.pause();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
   });
 
   const compact = $derived(layout === 'compact');
@@ -278,7 +310,7 @@
   {/if}
 
   {#if runnerState.status === 'silenced'}
-    <VoiceLostCard failure={runnerState.failure ?? 'server'} onRetry={() => runner.retry()} onLeave={onLeaveToCamp} />
+    <VoiceLostCard failure={runnerState.failure ?? 'server'} onRetry={retry} onLeave={onLeaveToCamp} />
   {/if}
 
   <div class="status" class:sr-only={compact}>

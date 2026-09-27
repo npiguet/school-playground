@@ -8,7 +8,10 @@ import { frenchSpacing } from '../src/lib/text/french';
 
 const heroName = heroNamer('Voix');
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
+/** BODY's sentences as the voice says them (spoken.ts: a full stop is followed by its name). */
+const SENTENCES = ['Les fées dansent dans la clairière. Point.', 'Elles chantent et les oiseaux les écoutent. Point.'];
 const WRITE = "À toi d'écrire.";
+type PrepareBody = { profile_id: number; lines: { text: string; speed: number }[] };
 
 async function startDictation(page: Page, request: APIRequestContext, testInfo: TestInfo, pace: 1 | 2 | 3 | 4) {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
@@ -35,12 +38,26 @@ async function voiceDown(page: Page, status: number, down: () => boolean) {
 test('the whole script is sent ahead once, each line once, in script order (spec §5.2)', async ({ page, request }, testInfo) => {
   const prepared = page.waitForRequest((r) => r.url().endsWith('/api/tts/prepare'));
   const { id } = await startDictation(page, request, testInfo, 3);
-  const body = (await prepared).postDataJSON() as { profile_id: number; lines: { text: string; speed: number }[] };
+  const body = (await prepared).postDataJSON() as PrepareBody;
   expect(body.profile_id).toBe(id);
   expect(body.lines.length).toBeGreaterThan(1);
   expect(new Set(body.lines.map((l) => l.text)).size).toBe(body.lines.length);
   expect(body.lines.every((l) => l.speed === 0.9)).toBe(true);
   expect(body.lines[0].text).toContain('Les fées dansent');
+});
+
+// Fix wave A, Ruling R-A1: pace 4's full readings are said a sentence at a time, so the first sound
+// comes as soon as the first sentence is made, not the whole text.
+test('pace 4 reads the text a sentence at a time: the first sentence alone first, sent ahead first', async ({ page, request }, testInfo) => {
+  const prepared = page.waitForRequest((r) => r.url().endsWith('/api/tts/prepare'));
+  const asked = page.waitForRequest((r) => r.url().endsWith('/api/tts/speak'));
+  await startDictation(page, request, testInfo, 4);
+  const body = (await prepared).postDataJSON() as PrepareBody;
+  expect(body.lines.slice(0, 2)).toEqual(SENTENCES.map((text) => ({ text, speed: 1 })));
+  expect(body.lines.slice(-2)).toEqual(SENTENCES.map((text) => ({ text, speed: 0.95 })));
+  expect((await asked).postDataJSON()).toMatchObject({ text: SENTENCES[0], speed: 1 });
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThanOrEqual(2);
+  expect((await spokenLines(page)).slice(0, 2).map((l) => l.text)).toEqual(SENTENCES);
 });
 
 /** Holds the first /api/tts/speak until the test calls `release()` (review fix round 1 #2: the waiting
@@ -90,6 +107,10 @@ test('a pause while a line is still coming says « En pause. », not the waiting
 test("a silenced voice stops on Éris's card; « Réessayer » carries on with the draft kept, even after failing again (spec §5.3)", async ({ page, request }, testInfo) => {
   let down = true;
   const asked = await voiceDown(page, 503, () => down);
+  let prepares = 0;
+  page.on('request', (r) => {
+    if (r.url().endsWith('/api/tts/prepare')) prepares++;
+  });
   await startDictation(page, request, testInfo, 1);
   const card = page.getByTestId('voice-lost');
   await expect(card).toBeVisible();
@@ -101,8 +122,11 @@ test("a silenced voice stops on Éris's card; « Réessayer » carries on with t
   await expect(page.getByTestId('dictation-status')).toHaveText("La voix s'est tue.");
   await page.getByTestId('dictation-textarea').fill('Les fées');
   // Review Focus 3: still down, « Réessayer » brings the card back, never a stuck dictation.
+  expect(prepares).toBe(1);
   await tap(card.getByTestId('btn-voice-retry'), testInfo);
   await expect.poll(() => asked.n).toBe(4);
+  // Final review M4: a restarted voice has lost its queue: « Réessayer » sends the rest ahead again.
+  await expect.poll(() => prepares).toBe(2);
   await expect(page.getByTestId('voice-lost')).toBeVisible();
   down = false;
   await tap(page.getByTestId('btn-voice-retry'), testInfo);
@@ -137,7 +161,7 @@ test("the lyre's trial slow to come shows the dictation's waiting line until it 
   const held = await holdFirstLine(page);
   await page.goto(`/#/p/${id}/settings`);
   const lyre = page.getByTestId('overlay-lyre');
-  await lyre.getByTestId('lyre-try-voice').click();
+  await tap(lyre.getByTestId('lyre-try-voice'), testInfo);
   const wait = lyre.getByTestId('lyre-voice-wait');
   await expect(wait).toBeVisible();
   expect(WAITING()).toContain(((await wait.textContent()) ?? '').trim());
@@ -153,12 +177,12 @@ test("the lyre's trial speaks through the server; silenced, it shows the card's 
   await voiceDown(page, 503, () => down);
   await page.goto(`/#/p/${id}/settings`);
   const lyre = page.getByTestId('overlay-lyre');
-  await lyre.getByTestId('lyre-try-voice').click();
+  await tap(lyre.getByTestId('lyre-try-voice'), testInfo);
   const card = lyre.getByTestId('voice-lost');
   await expect(card).toBeVisible();
   await expect(card.getByTestId('btn-voice-camp')).toHaveCount(0);
   down = false;
-  await card.getByTestId('btn-voice-retry').click();
+  await tap(card.getByTestId('btn-voice-retry'), testInfo);
   await expect.poll(async () => (await spokenLines(page)).at(-1)?.text ?? '').toContain('Je lirai tes dictées');
   await expect(lyre.getByTestId('voice-lost')).toHaveCount(0);
 });

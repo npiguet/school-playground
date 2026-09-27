@@ -208,7 +208,7 @@ test('the muster says when the voice is muted, and gives it back (Ruling E7)', a
 // ===== Task 4: the dictation =====
 const LONG = Array.from({ length: 8 }, () => 'Les fées dansent dans la clairière et les oiseaux les écoutent en silence.').join(' ');
 
-async function startDictation(page: Page, testInfo: TestInfo, pace: 1 | 2 | 3 = 1) {
+async function startDictation(page: Page, testInfo: TestInfo, pace: 1 | 2 | 3 | 4 = 1) {
   const sheet = page.getByTestId('battle-parchment');
   await tap(sheet.getByTestId(`pace-option-${pace}`), testInfo);
   await tap(sheet.getByRole('button', { name: 'Commencer la dictée' }), testInfo);
@@ -444,6 +444,32 @@ test('turning to portrait pauses a flowing dictation until « Reprendre »', asy
   const spoken = (await spokenLines(page)).length;
   await tap(page.getByTestId('btn-resume'), testInfo);
   await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(spoken);
+});
+
+// Final review I1: a hidden page (another app, the iPad locked) suspends the voice; a flowing
+// dictation pauses as in portrait, and waits for her tap once the page is back.
+test('hiding the page pauses a flowing dictation until « Reprendre »', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Dic6-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Dictée cachée'), body: LONG, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await startDictation(page, testInfo, 4);
+  await expect(page.getByTestId('dictation-status')).toHaveText('Écoute…');
+  const hide = (hidden: boolean) =>
+    page.evaluate((h) => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (h ? 'hidden' : 'visible') });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, hidden);
+  await hide(true);
+  await expect(page.getByTestId('dictation-status')).toHaveText('En pause.');
+  const spoken = (await spokenLines(page)).length;
+  await hide(false);
+  await expect(page.getByTestId('dictation-status')).toHaveText('En pause.');
+  expect((await spokenLines(page)).length).toBe(spoken);
+  await tap(page.getByTestId('btn-resume'), testInfo);
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(spoken);
+  await expect(page.getByTestId('dictation-status')).toHaveText('Écoute…');
 });
 
 // ===== Task 5: the proofreading =====

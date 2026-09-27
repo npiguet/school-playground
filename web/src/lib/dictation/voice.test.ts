@@ -197,6 +197,21 @@ describe('the voice on the server (spec 2026-09-27 §5)', () => {
     expect(played).toHaveLength(1);
   });
 
+  it('dispose() aborts the fetches still running; cancel() leaves them for the resume (final review M3)', async () => {
+    const signals: AbortSignal[] = [];
+    const { voice, calls } = harness({ respond: (c, n, init) => (signals.push(init.signal!), hang(c, n, init)) });
+    let done = false;
+    void voice.speak('Un.', 1).then(() => (done = true));
+    voice.prefetch({ spoken: 'Deux.', rate: 1 });
+    await vi.waitFor(() => expect(signals).toHaveLength(2));
+    voice.cancel();
+    expect(signals.map((s) => s.aborted)).toEqual([false, false]);
+    voice.dispose();
+    expect(signals.map((s) => s.aborted)).toEqual([true, true]);
+    await vi.waitFor(() => expect(done).toBe(true));
+    expect(calls).toHaveLength(2); // an aborted fetch is not tried again
+  });
+
   it('says nothing once disposed: no fetch, and speak() resolves at once (lane W review #4)', async () => {
     const { voice, calls, played } = harness();
     voice.dispose();
