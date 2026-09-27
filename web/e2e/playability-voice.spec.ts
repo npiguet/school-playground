@@ -68,14 +68,15 @@ const statusLog = (page: Page) =>
   page.evaluate(() => (window as unknown as { __statusLog: { t: number; text: string }[] }).__statusLog ?? []);
 /** The timeline once the waiting line has given way (the sampler lags a line's start by up to 25 ms). */
 async function settledLog(page: Page) {
-  await expect.poll(async () => WAITING().includes((await statusLog(page)).at(-1)?.text ?? '')).toBe(false);
+  const waiting = [...WAITING(), ...WAITING_LONG()];
+  await expect.poll(async () => waiting.includes((await statusLog(page)).at(-1)?.text ?? '')).toBe(false);
   const log = await statusLog(page);
   return log.map((e) => `${e.t} ms « ${e.text} »`).join(' → ');
 }
 
 // Readable names for the shots (the playability config runs one worker; an earlier walk's heroes are
 // deleted first, since a hero's name is unique).
-const HEROES = ['Ariane', 'Iris', 'Daphné', 'Thalie', 'Io', 'Hélène', 'Médée', 'Callisto'].map((n) => `${n}-Voix`);
+const HEROES = ['Ariane', 'Iris', 'Daphné', 'Thalie', 'Io', 'Hélène', 'Pénélope', 'Médée', 'Callisto'].map((n) => `${n}-Voix`);
 let heroes = 0;
 const nextHero = (request: APIRequestContext) => createProfileApi(request, HEROES[heroes++]);
 async function clearEarlierWalk(request: APIRequestContext) {
@@ -98,11 +99,12 @@ async function startDictation(w: Walk, body: string, pace: 1 | 2 | 3 | 4, title 
 }
 
 const WAITING = () => variantsOf('battle.voice.wait');
-const isWaiting = (page: Page, variants: string[]) =>
+const WAITING_LONG = () => variantsOf('battle.voice.waitLong');
+const isWaiting = (page: Page, variants: string[], timeout = 5_000) =>
   page.waitForFunction(
     (v) => v.includes((document.querySelector('[data-testid="dictation-status"]')?.textContent ?? '').trim()),
     variants,
-    { polling: 'raf', timeout: 5_000 },
+    { polling: 'raf', timeout },
   );
 
 async function voiceDown(page: Page, how: () => number | 'abort' | null) {
@@ -153,27 +155,57 @@ test('the voice walk: waiting, pause, the card, « Réessayer », the lyre', asy
     w.notes.push(`- pace ${pace}: waiting line ${sawWait ? 'seen' : 'not seen'}; status timeline: ${timeline}`);
   }
 
-  // v10-v13: pace 4 on the longest seed text (the known 23-26 s wait), and a pause taken during it.
+  // v10, v12, v13: pace 4 on the longest seed text. It reads a sentence at a time (fix wave A, Ruling
+  // R-A1), so the first sentence comes in about 2 s, or at once when an earlier walk left it in the
+  // voice's cache: the waiting line (after 1.2 s, fix wave B ruling 1) may not show at all. Then a
+  // pause taken while it reads.
   {
     const body = (JSON.parse(readFileSync('../content/seed/007-renard-mouches-eau.json', 'utf-8')) as { body: string }).body;
     await startDictation(w, body, 4, "Les Mouches d'eau");
-    await isWaiting(page, WAITING());
-    await shot(w, 'v10-long-pace4-waiting');
-    await page.waitForTimeout(10_000);
-    await shot(w, 'v11-long-pace4-still-waiting-10s');
-    // She is typing (the keyboard is open, the compact bar): is the wait still said?
-    await page.getByTestId('dictation-textarea').click();
-    await setKeyboard(page, 400);
-    await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
-    await shot(w, 'v11b-long-pace4-waiting-keyboard');
-    await setKeyboard(page, 0);
-    await expect.poll(async () => (await spokenLines(page)).length, { timeout: 120_000 }).toBeGreaterThan(0);
-    w.notes.push(`- longest text, pace 4: ${await settledLog(page)}`);
+    let sawWait = true;
+    try {
+      await isWaiting(page, WAITING());
+      await shot(w, 'v10-long-pace4-waiting', true);
+    } catch {
+      sawWait = false;
+      await shot(w, 'v10-long-pace4-start', true);
+    }
+    await expect.poll(async () => (await spokenLines(page)).length, { timeout: 60_000 }).toBeGreaterThan(0);
+    w.notes.push(`- longest text, pace 4: waiting line ${sawWait ? 'seen' : 'not seen'}; ${await settledLog(page)}`);
     await shot(w, 'v12-long-pace4-first-line', true);
     await page.getByTestId('btn-pause').tap();
     await expect(page.getByTestId('dictation-status')).toHaveText('En pause.');
     await page.getByTestId('dictation-textarea').fill('Un jour, le renard');
     await shot(w, 'v13-paused');
+  }
+
+  // v11: a line held back (a cold container, a busy NAS): the Pythia's waiting line and the seal's
+  // slow breath, her second line past 5 s, and the same line in the keyboard's compact bar.
+  {
+    let release!: () => void;
+    const released = new Promise<void>((r) => (release = r));
+    let hold = true;
+    await page.route('**/api/tts/speak', async (route) => {
+      if (hold) {
+        hold = false;
+        await released;
+      }
+      return route.continue();
+    });
+    await startDictation(w, SHORT, 3);
+    await isWaiting(page, WAITING());
+    await shot(w, 'v11-held-waiting', true);
+    await isWaiting(page, WAITING_LONG(), 10_000);
+    await shot(w, 'v11a-held-waiting-5s', true);
+    // She is typing (the keyboard is open, the compact bar): the wait is still said.
+    await page.getByTestId('dictation-textarea').click();
+    await setKeyboard(page, 400);
+    await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+    await shot(w, 'v11b-held-waiting-keyboard', true);
+    await setKeyboard(page, 0);
+    release();
+    w.notes.push(`- a line held back, pace 3: ${await settledLog(page)}`);
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
   }
 
   // v14-v18: the card. A 503 (what a stopped container gives), a 500, a refused connection; then back.
