@@ -169,9 +169,11 @@ loaded instead of looking for them on Docker Hub. Everything else comes from the
   `DISCORDE_STATIC_DIR=/app/static`, `SPACY_MODEL=fr_core_news_lg`) describe the image's layout;
   leave them alone. `DISCORDE_ALEXANDRIA_OFFLINE_DIR` and `DISCORDE_TEST_HOOKS` are for the test
   suite only; never set them in production. `TTS_STUB` is for the test suite only.
-- **RAM:** the container uses about 1.1 GB once started (measured at rest, with the language model
-  loaded). Analysing a new text, a scan or an Alexandria adoption runs that model again, so leave it
-  some room above that.
+- **RAM:** the game's container uses about 1.1 GB once started (measured at rest, with the language
+  model loaded). Analysing a new text, a scan or an Alexandria adoption runs that model again, so
+  leave it some room above that. The voice's container uses about 0.59 GB at rest and up to 0.95 GB
+  while it makes a dictation's lines (measured with the default `TTS_THREADS` of 4, on an AMD Ryzen 9
+  5950X, pace 4 on the longest seed text).
 
 ### Update to a new version
 
@@ -208,8 +210,8 @@ Then:
    if it is stopped or crash-looping); with Docker Desktop, `docker compose ps` and
    `docker compose restart tts`.
 3. Read its logs: TrueNAS, the app's **Logs** for the `tts` container; Docker Desktop,
-   `docker compose logs --tail 100 tts`. A line such as `tts: 84 characters at 0.90: 6.10 s of speech
-   in 1.30 s` is a line made; `the voice could not load` is followed by the reason.
+   `docker compose logs --tail 100 tts`. A line such as `tts: 104 characters at 1.00: 6.25 s of speech
+   in 1.53 s` is a line made; `the voice could not load` is followed by the reason.
 4. Once the health answers `ready`, « Réessayer » on the card carries on where the dictation stopped,
    with everything typed so far. « Retour au camp » keeps the draft too: the dictation resumes from the
    text's parchment later.
@@ -376,7 +378,8 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   iPad: Safari only gives motion sensors to HTTPS pages. Dragging a finger across a scene still
   moves it.
 - The dictation voice needs the server's `tts` container: the first line of a long text at « D'une
-  traite » can take several seconds to come (a short line shows while it does).
+  traite » took about 24 s in our measurements (23 to 26 s, the longest seed text, on the same Ryzen 9
+  5950X as the RAM figures in §2; a short line shows while it comes).
 - OCR (Tesseract, French) is for **printed** handouts only; it does not read handwriting.
 - Alexandria needs the server to reach Wikisource and Project Gutenberg; everything else works
   without internet.

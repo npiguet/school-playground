@@ -58,3 +58,15 @@ style vector one row further than PyTorch does, `voice[len(tokens)]` against `pa
 similarity is 0.56 to 0.93 on twelve lines where 0.95 is needed; `DirectKokoro` passes all 13, with
 PyTorch's exact phonemes, its exact lengths and a similarity of 0.965 to 0.971; the service runs it, with
 no PyTorch and no kokoro-onnx).
+
+## The voice walk (Kokoro plan, Task 10)
+
+    tools/tts/voice_walk.sh
+
+It brings up the e2e stack with the real voice (`TTS_STUB=0`) and runs
+`web/e2e/voice-walk.spec.ts` under the machine-wide Playwright lock: each pace's first lines, pace
+4's time to its first line on the longest seed text, and Éris's card when the `tts` container is
+really stopped (the script stops and starts it when the spec writes `web/.cache/voice-walk/stop-tts`
+and `start-tts`), then « Réessayer » once it is back. Both containers' memory is sampled every 2 s,
+into `web/.cache/voice-walk/memory-rest.txt` (once the stack is healthy) and `memory-samples.txt`
+(throughout); the logs land next to them in `app.log` and `tts.log`.
