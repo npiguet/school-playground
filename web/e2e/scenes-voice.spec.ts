@@ -3,8 +3,23 @@
 // the way back to the camp, and the lyre's trial. The e2e stack runs `tts` as its stub (TTS_STUB=1).
 import type { APIRequestContext, Page, Route, TestInfo } from '@playwright/test';
 import { test, expect } from './crashGuard';
-import { createProfileApi, createText, expectBattle, expectCamp, heroNamer, spokenLines, tap, uniqueName, variantsOf } from './helpers';
+import {
+  createProfileApi,
+  createText,
+  expectBattle,
+  expectCamp,
+  heroNamer,
+  installKeyboardSim,
+  setKeyboard,
+  spokenLines,
+  tap,
+  uniqueName,
+  variantsOf,
+} from './helpers';
 import { frenchSpacing } from '../src/lib/text/french';
+
+/** waitLine.ts's WAIT_HOLD_MS (that module pulls in the audio engine, so it is not imported here). */
+const WAIT_HOLD_MS = 800;
 
 const heroName = heroNamer('Voix');
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
@@ -77,15 +92,44 @@ async function holdFirstLine(page: Page) {
 }
 
 const WAITING = () => variantsOf('battle.voice.wait');
+const WAITING_LONG = () => variantsOf('battle.voice.waitLong');
+/** Matches exactly one of `lines` (a key's variants, for toHaveText). */
+const oneOf = (lines: string[]) => new RegExp(`^\\s*(${lines.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\s*$`);
 
-test('a line slow to come shows the waiting line until it plays (spec §5.2)', async ({ page, request }, testInfo) => {
+// Fix wave B ruling 1: the opener after 1.2 s, the seal waiting (not the reading's pulse), a second
+// line past 5 s, « Pause » still there to tap.
+test('a line slow to come shows the waiting line, then a second one, until it plays (spec §5.2)', async ({ page, request }, testInfo) => {
   const held = await holdFirstLine(page);
-  await startDictation(page, request, testInfo, 1);
+  await startDictation(page, request, testInfo, 3);
   const status = page.getByTestId('dictation-status');
-  await expect.poll(async () => WAITING().includes(((await status.textContent()) ?? '').trim())).toBe(true);
+  const seal = page.getByTestId('dictation-seal').first();
+  await expect(status).toHaveText(oneOf(WAITING()));
+  await expect(seal).toHaveAttribute('data-status', 'voice-waiting');
+  await expect(seal).not.toHaveClass(/pulse/);
+  await expect(page.getByTestId('btn-pause')).toBeEnabled();
+  await expect(status).toHaveText(oneOf(WAITING_LONG()), { timeout: 10_000 });
   held.release();
-  await expect(status).toHaveText(WRITE);
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(0);
   expect((await spokenLines(page))[0].text).toContain('Les fées dansent');
+  await expect(status).toHaveText('Écoute…');
+  await expect(seal).toHaveAttribute('data-status', 'playing');
+});
+
+// Playability #2: with the keyboard open the stage folds into the compact bar; the late line is
+// said there too, next to the seal, as « En pause. » is.
+test('with the keyboard open, the compact bar says the waiting line', async ({ page, request }, testInfo) => {
+  await installKeyboardSim(page);
+  const held = await holdFirstLine(page);
+  await startDictation(page, request, testInfo, 3);
+  await tap(page.getByTestId('dictation-textarea'), testInfo);
+  await setKeyboard(page, (await page.evaluate(() => window.innerHeight)) - 420);
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+  const bar = page.getByTestId('bar-status');
+  await expect(bar).toHaveText(oneOf(WAITING()));
+  // One line (17 px type), cut with an ellipsis if the bar is short: never two lines tall.
+  expect((await bar.boundingBox())!.height).toBeLessThan(34);
+  held.release();
+  await expect(bar).toHaveText(/^\s*$/);
 });
 
 // Review fix round 1 #1: a pause (or the portrait auto-pause) while a line is still coming says
@@ -104,9 +148,16 @@ test('a pause while a line is still coming says « En pause. », not the waiting
   await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(0);
 });
 
-test("a silenced voice stops on Éris's card; « Réessayer » carries on with the draft kept, even after failing again (spec §5.3)", async ({ page, request }, testInfo) => {
+test("a silenced voice stops on Éris's card; « Réessayer » keeps it up while it asks, and carries on with the draft kept (spec §5.3)", async ({ page, request }, testInfo) => {
   let down = true;
-  const asked = await voiceDown(page, 503, () => down);
+  // While set, the voice's answers wait for it (the card's « Réessayer » caught in the middle).
+  let gate: Promise<void> | null = null;
+  const asked = { n: 0 };
+  await page.route('**/api/tts/speak', async (route: Route) => {
+    asked.n++;
+    if (gate) await gate;
+    return down ? route.fulfill({ status: 503, contentType: 'application/json', body: '{"detail":"voice down"}' }) : route.continue();
+  });
   let prepares = 0;
   page.on('request', (r) => {
     if (r.url().endsWith('/api/tts/prepare')) prepares++;
@@ -116,23 +167,67 @@ test("a silenced voice stops on Éris's card; « Réessayer » carries on with t
   await expect(card).toBeVisible();
   await expect(card).toHaveAttribute('data-failure', 'unreachable');
   expect(asked.n).toBe(2); // one silent retry
-  await expect(card.getByTestId('voice-lost-cause')).toHaveText(frenchSpacing('voix : serveur injoignable'));
-  await expect(card.getByTestId('voice-lost-eris')).toHaveAttribute('data-key', 'battle.voice.lost');
-  expect(variantsOf('battle.voice.lost')).toContain(((await card.getByTestId('voice-lost-eris-text').textContent()) ?? '').trim());
+  // Fix wave B ruling 4: her own tap first, a parent if the voice stays silent.
+  await expect(card).toContainText(frenchSpacing('Touche « Réessayer ». Si la voix reste muette, appelle un parent : il saura rompre ce sortilège.'));
+  const cause = card.getByTestId('voice-lost-cause');
+  await expect(cause).toHaveText(frenchSpacing('voix : serveur injoignable'));
+  // Playability #13: the parent's line upright, 15 px, in the ink, readable over her shoulder.
+  await expect(cause).toHaveCSS('font-style', 'normal');
+  await expect(cause).toHaveCSS('font-size', '15px');
+  const eris = card.getByTestId('voice-lost-eris');
+  await expect(eris).toHaveAttribute('data-key', 'battle.voice.lost');
+  const gloat = ((await card.getByTestId('voice-lost-eris-text').textContent()) ?? '').trim();
+  expect(variantsOf('battle.voice.lost')).toContain(gloat);
+  // Playability #7: the speaking plate's layout, her name above her line, and no wax seal by her portrait.
+  await expect(eris.locator('.voice-name')).toHaveText('Éris');
+  const name = (await eris.locator('.voice-name').boundingBox())!;
+  const said = (await eris.locator('.voice-text').boundingBox())!;
+  expect(name.y + name.height).toBeLessThanOrEqual(said.y + 1);
+  expect(await card.evaluate((el) => getComputedStyle(el, '::before').display)).toBe('none');
   await expect(page.getByTestId('dictation-status')).toHaveText("La voix s'est tue.");
   await page.getByTestId('dictation-textarea').fill('Les fées');
-  // Review Focus 3: still down, « Réessayer » brings the card back, never a stuck dictation.
+  // Playability #5: while « Réessayer » asks, the card stays up (the same card, the same gloat) and
+  // says so; still down, it stays with Éris's first line, never a new one in reply to her tap.
   expect(prepares).toBe(1);
+  await card.evaluate((el) => el.setAttribute('data-first-card', ''));
+  let open!: () => void;
+  gate = new Promise<void>((resolve) => (open = resolve));
   await tap(card.getByTestId('btn-voice-retry'), testInfo);
+  await expect(card).toHaveAttribute('data-retrying', 'true');
+  await expect(card.getByTestId('btn-voice-retry')).toBeDisabled();
+  await expect(card.getByTestId('voice-lost-retrying')).toHaveText('La Pythie essaie encore…');
+  await expect(page.getByTestId('dictation-status')).toHaveText("La voix s'est tue.");
+  gate = null;
+  open();
   await expect.poll(() => asked.n).toBe(4);
+  await expect(card).toHaveAttribute('data-retrying', 'false');
+  await expect(card.getByTestId('btn-voice-retry')).toBeEnabled();
+  await expect(card).toHaveAttribute('data-first-card', '');
+  await expect(card.getByTestId('voice-lost-eris-text')).toHaveText(gloat);
   // Final review M4: a restarted voice has lost its queue: « Réessayer » sends the rest ahead again.
   await expect.poll(() => prepares).toBe(2);
-  await expect(page.getByTestId('voice-lost')).toBeVisible();
   down = false;
   await tap(page.getByTestId('btn-voice-retry'), testInfo);
   await expect(page.getByTestId('voice-lost')).toHaveCount(0);
   await expect(page.getByTestId('dictation-status')).toHaveText(WRITE);
   await expect(page.getByTestId('dictation-textarea')).toHaveValue('Les fées');
+  expect((await spokenLines(page))[0].text).toContain('Les fées dansent');
+});
+
+// Playability #8: the voice back after « Réessayer », the Pythia says so for a moment in the status
+// line, and the card folds away rather than vanishing.
+test('when the voice comes back, the Pythia says so, then the dictation reads on', async ({ page, request }, testInfo) => {
+  let down = true;
+  await voiceDown(page, 503, () => down);
+  await startDictation(page, request, testInfo, 3);
+  const card = page.getByTestId('voice-lost');
+  await expect(card).toBeVisible();
+  down = false;
+  await tap(card.getByTestId('btn-voice-retry'), testInfo);
+  const status = page.getByTestId('dictation-status');
+  await expect(status).toHaveText(oneOf(variantsOf('battle.voice.back')));
+  await expect(card).toHaveCount(0);
+  await expect(status).toHaveText('Écoute…');
   expect((await spokenLines(page))[0].text).toContain('Les fées dansent');
 });
 
@@ -161,28 +256,58 @@ test("the lyre's trial slow to come shows the dictation's waiting line until it 
   const held = await holdFirstLine(page);
   await page.goto(`/#/p/${id}/settings`);
   const lyre = page.getByTestId('overlay-lyre');
+  // Playability #10: the trial says it is being read. The e2e voice plays a line in 20 ms, so what
+  // the lyre showed is written down as it appears.
+  await page.evaluate(() => {
+    const seen: string[] = [];
+    (window as unknown as { __lyreSeen: string[] }).__lyreSeen = seen;
+    new MutationObserver(() => {
+      const el = document.querySelector('[data-testid="lyre-voice-playing"]');
+      if (el && !seen.includes(el.textContent ?? '')) seen.push(el.textContent ?? '');
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  });
   await tap(lyre.getByTestId('lyre-try-voice'), testInfo);
   const wait = lyre.getByTestId('lyre-voice-wait');
   await expect(wait).toBeVisible();
   expect(WAITING()).toContain(((await wait.textContent()) ?? '').trim());
+  // Past the waiting line's hold (ruling 1), so the trial's own line shows as soon as it plays.
+  await page.waitForTimeout(WAIT_HOLD_MS);
   held.release();
   await expect.poll(async () => (await spokenLines(page)).at(-1)?.text ?? '').toContain('Je lirai tes dictées');
   await expect(wait).toHaveCount(0);
   await expect(lyre.getByTestId('voice-lost')).toHaveCount(0);
+  await expect(lyre.getByTestId('lyre-try-voice')).toBeEnabled();
+  expect(await page.evaluate(() => (window as unknown as { __lyreSeen: string[] }).__lyreSeen)).toEqual(['Écoute la Pythie…']);
 });
 
 test("the lyre's trial speaks through the server; silenced, it shows the card's short form", async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   let down = true;
-  await voiceDown(page, 503, () => down);
+  let gate: Promise<void> | null = null;
+  await page.route('**/api/tts/speak', async (route: Route) => {
+    if (gate) await gate;
+    return down ? route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }) : route.continue();
+  });
   await page.goto(`/#/p/${id}/settings`);
   const lyre = page.getByTestId('overlay-lyre');
   await tap(lyre.getByTestId('lyre-try-voice'), testInfo);
   const card = lyre.getByTestId('voice-lost');
   await expect(card).toBeVisible();
   await expect(card.getByTestId('btn-voice-camp')).toHaveCount(0);
-  down = false;
+  // Playability #10: one button replays the trial while the card is up, the card's own.
+  await expect(lyre.getByTestId('lyre-try-voice')).toHaveCount(0);
+  // Playability #5: the card stays up, its button waiting, while « Réessayer » asks.
+  const gloat = ((await card.getByTestId('voice-lost-eris-text').textContent()) ?? '').trim();
+  let open!: () => void;
+  gate = new Promise<void>((resolve) => (open = resolve));
   await tap(card.getByTestId('btn-voice-retry'), testInfo);
+  await expect(card).toHaveAttribute('data-retrying', 'true');
+  await expect(card.getByTestId('btn-voice-retry')).toBeDisabled();
+  await expect(card.getByTestId('voice-lost-eris-text')).toHaveText(gloat);
+  down = false;
+  gate = null;
+  open();
   await expect.poll(async () => (await spokenLines(page)).at(-1)?.text ?? '').toContain('Je lirai tes dictées');
   await expect(lyre.getByTestId('voice-lost')).toHaveCount(0);
+  await expect(lyre.getByTestId('lyre-try-voice')).toBeEnabled();
 });

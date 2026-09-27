@@ -191,7 +191,7 @@ test('the muster says when the voice is muted, and gives it back (Ruling E7)', a
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
   const note = page.getByTestId('battle-voice-muted');
-  await expect(note).toContainText('La voix de la dictée est en sourdine.');
+  await expect(note).toContainText('La voix de la Pythie est en sourdine.');
   // The mixer holds the hero's muted voice (Ruling E10's snapshot)...
   await expect.poll(async () => (await audioState(page))?.settings.voice.muted).toBe(true);
   const saved = page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().endsWith(`/api/profiles/${id}`));
@@ -226,7 +226,8 @@ test('the dictation writes on the parchment, in Literata, with bronze controls',
   // UI4 playability #11: the battle is the text's (its title), the phase told in the fiction, and the
   // rulings in the parchment's sepia.
   await expect(page.getByTestId('battle-parchment').getByRole('heading', { name: text.title })).toBeVisible();
-  await expect(page.getByTestId('battle-parchment')).toContainText('Écris ce que dit la voix.');
+  // Voice playability #9: the voice is the Pythia's, as the waiting line and Éris's card say.
+  await expect(page.getByTestId('battle-parchment')).toContainText('Écris ce que dit la Pythie.');
   await expect(page.getByTestId('battle-parchment').getByRole('heading', { name: 'Dictée', exact: true })).toHaveCount(0);
   await expect(ta).toHaveCSS('background-image', /rgba\(92, 64, 24, 0\.14\)/);
   const font = await ta.evaluate((el) => {
@@ -247,6 +248,27 @@ test('the dictation writes on the parchment, in Literata, with bronze controls',
   for (const c of ['battle-dragon', 'battle-opponent']) {
     await expect.poll(() => page.getByTestId(c).evaluate((el) => el.getAnimations({ subtree: true }).length), c).toBe(0);
   }
+});
+
+// Voice playability #12: a long title wraps; « Phrase 0 sur 2 » stays on one line beside it.
+test('a long title wraps, the progress never does', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Dic12-${testInfo.project.name}`));
+  const title = uniqueName('Le très long voyage du petit renard roux à travers la grande forêt');
+  const text = await createText(request, { title, body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await startDictation(page, testInfo);
+  const heading = page.getByTestId('battle-parchment').getByRole('heading', { name: title });
+  const progress = page.getByTestId('dictation-progress');
+  await expect(progress).toHaveText(/^Phrase \d sur 2$/);
+  // The line boxes of the element's text: one client rect per line.
+  const lines = (el: HTMLElement | SVGElement) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    return new Set(Array.from(range.getClientRects(), (r) => Math.round(r.top))).size;
+  };
+  expect(await heading.evaluate(lines)).toBeGreaterThanOrEqual(2);
+  expect(await progress.evaluate(lines)).toBe(1);
 });
 
 // Parity: « Réécouter » counts down at pace 2; « Pause » and « Reprendre » drive a flowing pace.
