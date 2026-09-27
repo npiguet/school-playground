@@ -79,12 +79,22 @@
     ],
     "battle.voice.wait": [
       { "speaker": "pythia", "text": "La voix de la Pythie s'éclaircit…" },
-      { "speaker": "pythia", "text": "La Pythie reprend son souffle…" },
+      { "speaker": "pythia", "text": "La Pythie s'apprête à parler…" },
       { "speaker": "pythia", "text": "Les vapeurs de Delphes montent. La voix arrive…" }
+    ],
+    "battle.voice.waitLong": [
+      { "speaker": "pythia", "text": "Les vapeurs s'épaississent. Encore un instant…" },
+      { "speaker": "pythia", "text": "La Pythie cherche ses mots. Encore un instant…" },
+      { "speaker": "pythia", "text": "Delphes est loin, mais la voix est en chemin…" }
+    ],
+    "battle.voice.back": [
+      { "speaker": "pythia", "text": "La Pythie a retrouvé sa voix." },
+      { "speaker": "pythia", "text": "Le sort d'Éris est rompu : la Pythie reprend." },
+      { "speaker": "pythia", "text": "La voix de la Pythie résonne de nouveau." }
     ],
     "battle.voice.lost": [
       { "speaker": "eris", "text": "Chut ! J'ai fait taire la voix de la Pythie. Plus un mot ne sortira de Delphes." },
-      { "speaker": "eris", "text": "La voix s'est tue ? C'est mon œuvre, et j'en suis très fière." },
+      { "speaker": "eris", "text": "Plus un son ? C'est mon œuvre, et j'en suis très fière." },
       { "speaker": "eris", "text": "Un petit sort sur la voix, et la voilà muette. Je suis ravie de mon coup !" }
     ]
   }

@@ -2,7 +2,7 @@
 // /api/tts/speak (the game server proxies the `tts` service), kept as a blob URL for replays and the
 // next line, and played by `playLine` on the voice channel (the music ducks, effects wait). A muted
 // voice fetches nothing and waits the line's length. A failed fetch - a network error, a 5xx, or no
-// answer within 20 s + 50 ms a character - is tried once more, silently; then speak() rejects with a
+// answer within 8 s + 30 ms a character - is tried once more, silently; then speak() rejects with a
 // VoiceError, which the runner turns into Éris's card (§5.3). There is no other voice (§2).
 import { playLine, voiceMuted } from '../audio/voice';
 import type { LineHandle, VoiceClip } from '../audio/engine';
@@ -27,10 +27,12 @@ export function speechMs(text: string, rate: number): number {
   return Math.max(300, (text.length * SPEECH_MS_PER_CHAR) / rate);
 }
 
-/** A line not back after this long shows the waiting line (§5.2). */
-export const SLOW_MS = 400;
-/** How long a line may take to come (§5.3). */
-export const fetchTimeoutMs = (spoken: string): number => 20_000 + 50 * spoken.length;
+/** A line not back after this long shows the waiting line (§5.2; fix wave B ruling 1: Kokoro makes a
+ *  short line in 0.5 to 0.9 s, and a line shown for less than that reads as a flicker). */
+export const SLOW_MS = 1_200;
+/** How long a line may take to come (§5.3; fix wave B ruling 11: a sentence at a time, Kokoro's
+ *  real time factor stays under 0.3, so this is several times its slowest line on the Ryzen). */
+export const fetchTimeoutMs = (spoken: string): number => 8_000 + 30 * spoken.length;
 /** The voice service's limit on one prepare (tts/app/main.py MAX_PREPARE_LINES). */
 export const MAX_PREPARE_LINES = 500;
 

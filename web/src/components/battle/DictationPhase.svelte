@@ -10,7 +10,10 @@
   import { onDestroy, onMount, untrack } from 'svelte';
   import { createRunner, type RunnerState } from '../../lib/dictation/runner';
   import { buildScript, replayLimit, sayLines, type DictationPlan, type Pace } from '../../lib/dictation/script';
-  import { createVoice } from '../../lib/dictation/voice';
+  import { createVoice, type VoiceFailure } from '../../lib/dictation/voice';
+  import { createWaitLine } from '../../lib/dictation/waitLine';
+  import { reducedMotion } from '../../lib/juice/motion';
+  import { fade, slide } from 'svelte/transition';
   import { voiceMuted } from '../../lib/audio/voice';
   import { sayKey } from '../../lib/dialogue/select';
   import VoiceLostCard from './VoiceLostCard.svelte';
@@ -19,6 +22,9 @@
   import { react } from '../../lib/battle/stage.svelte';
   import { focusOnMount } from '../../lib/battle/focus';
   import type { BattleLayout } from '../../lib/battle/layout';
+
+  /** How long the Pythia's « the voice is back » line holds the status (playability #8). */
+  const VOICE_BACK_MS = 1_500;
 
   let {
     plan,
@@ -74,9 +80,33 @@
   let reportedReplays = untrack(() => fromReplaysLeft ?? replayLimit(pace));
   // The server's voice (spec 2026-09-27 §5): one per dictation, its clips freed when it ends.
   const voice = untrack(() => createVoice({ profileId }));
-  // §5.2: the waiting line while a line is more than 400 ms late (null: the runner's own status).
+  // §5.2 and fix wave B ruling 1: the Pythia's waiting line while a line is more than 1.2 s late,
+  // another past 5 s, each up at least 800 ms (null: the runner's own status).
   let voiceWait = $state<string | null>(null);
+  const waitLine = createWaitLine(
+    (text) => (voiceWait = text),
+    (key) => sayKey(key).text,
+  );
+  // Playability #5 and #8: « Réessayer » keeps Éris's card up (its button waiting) until the voice
+  // answers or fails again; when it answers, the Pythia says so for a moment, in the status line.
+  let retrying = $state(false);
+  let lostFailure = $state<VoiceFailure>('server');
+  let voiceBack = $state<string | null>(null);
+  let backTimer: ReturnType<typeof setTimeout> | undefined;
+  function hideVoiceBack() {
+    clearTimeout(backTimer);
+    voiceBack = null;
+  }
+  function lineStarts() {
+    waitLine.done();
+    if (!retrying) return;
+    retrying = false;
+    voiceBack = sayKey('battle.voice.back').text;
+    clearTimeout(backTimer);
+    backTimer = setTimeout(hideVoiceBack, VOICE_BACK_MS);
+  }
   const steps = untrack(() => buildScript(plan, pace));
+  let lastStatus = untrack(() => runnerState.status);
   const runner = untrack(() =>
     createRunner(
       steps,
@@ -84,16 +114,20 @@
         pace,
         speak: (spoken, rate, next) =>
           voice
-            .speak(spoken, rate, {
-              next,
-              onSlow: () => (voiceWait = sayKey('battle.voice.wait').text),
-              onStart: () => (voiceWait = null),
-            })
-            .finally(() => (voiceWait = null)),
+            .speak(spoken, rate, { next, onSlow: () => waitLine.slow(), onStart: lineStarts })
+            .finally(() => waitLine.done()),
         sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
         cancel: () => voice.cancel(),
         onChange: (s) => {
           runnerState = s;
+          if (s.status === 'silenced' && s.failure) lostFailure = s.failure;
+          // A pause, the silence, her turn to write or the end: the line is said or no longer coming.
+          if (s.status !== lastStatus && s.status !== 'playing') {
+            waitLine.clear();
+            hideVoiceBack();
+          }
+          if (s.status !== 'playing' && s.status !== 'waiting') retrying = false;
+          lastStatus = s.status;
           let moved = false;
           if (s.resumeAt !== reported) {
             reported = s.resumeAt;
@@ -131,6 +165,8 @@
   });
 
   function retry() {
+    if (retrying) return;
+    retrying = true;
     prepareAhead();
     runner.retry();
   }
@@ -138,6 +174,8 @@
   onDestroy(() => {
     runner.stop();
     voice.dispose();
+    waitLine.clear();
+    clearTimeout(backTimer);
   });
 
   // Ruling C11: turning the iPad to portrait hides the text behind the rotate screen; a flowing
@@ -188,11 +226,19 @@
         ? DICTATION.chunk(runnerState.done, runnerState.total)
         : DICTATION.full,
   );
-  // The waiting line only while the dictation goes on (Task 9 review #1): a pause or a silence cancels the
-  // line, but its fetch may still run for seconds, and the status must say « En pause. » meanwhile.
-  const statusText = $derived(
-    voiceWait && (runnerState.status === 'playing' || runnerState.status === 'waiting') ? voiceWait : DICTATION.status[runnerState.status],
-  );
+  // Éris's card is up while the voice is silenced, and while « Réessayer » asks again (playability #5).
+  const cardUp = $derived(runnerState.status === 'silenced' || retrying);
+  // The Pythia's own lines (waiting, then back) only while the dictation goes on (Task 9 review #1): a
+  // pause or a silence cancels the line, but its fetch may still run for seconds, and the status must
+  // say « En pause. » meanwhile.
+  const going = $derived(runnerState.status === 'playing' || runnerState.status === 'waiting');
+  const pythiaNote = $derived(cardUp || !going ? null : (voiceBack ?? voiceWait));
+  const statusText = $derived(cardUp ? DICTATION.status.silenced : (pythiaNote ?? DICTATION.status[runnerState.status]));
+  // Ruling 1: while a line is late the seal waits (a slow breath), it does not pulse as if reading.
+  const sealStatus = $derived(cardUp ? 'silenced' : pythiaNote !== null && pythiaNote === voiceWait ? 'voice-waiting' : runnerState.status);
+  // Playability #8: the card leaves by folding away, so the textarea does not jump 200 px at once.
+  const reduced = reducedMotion();
+  const cardOut = (node: Element) => (reduced ? fade(node, { duration: 160 }) : slide(node, { duration: 320 }));
 
   // pace 1-2: she can finish as soon as she reaches the last manual wait,
   // even before tapping "Suivant" once more.
@@ -242,7 +288,7 @@
 
 <!-- The status seal, in the full status line and in the compact bar alike (final review M15). -->
 {#snippet seal()}
-  <span class="seal" class:pulse={runnerState.status === 'playing'} data-status={runnerState.status} aria-hidden="true"></span>
+  <span class="seal" class:pulse={sealStatus === 'playing'} data-status={sealStatus} data-testid="dictation-seal" aria-hidden="true"></span>
 {/snippet}
 
 {#snippet controls()}
@@ -278,12 +324,13 @@
   {#if compact}
     <div class="bar">
       {@render quitButton()}
-      <!-- The seal stays in sight, and a pause says so (the live status below is read out). -->
+      <!-- The seal stays in sight, and a pause or the Pythia's line says so (playability #2: she writes
+           with the keyboard up, so a late line is said here too; the live status below is read out). -->
       <span class="bar-status" data-testid="bar-status" aria-hidden="true">
         {@render seal()}
-        {#if runnerState.status === 'paused'}{DICTATION.status.paused}{/if}
+        {#if runnerState.status === 'paused'}{DICTATION.status.paused}{:else if pythiaNote}<span class="bar-note">{pythiaNote}</span>{/if}
       </span>
-      <span class="progress">{progress}</span>
+      <span class="progress" data-testid="dictation-progress">{progress}</span>
       {@render controls()}
     </div>
   {:else}
@@ -294,7 +341,7 @@
         <h2 class="phase-title">{title}</h2>
         <p class="cue">{DICTATION.cue}</p>
       </div>
-      <span class="progress">{progress}</span>
+      <span class="progress" data-testid="dictation-progress">{progress}</span>
     </div>
   {/if}
   {#if compact}<h2 class="sr-only">{title}</h2>{/if}
@@ -309,8 +356,10 @@
     </div>
   {/if}
 
-  {#if runnerState.status === 'silenced'}
-    <VoiceLostCard failure={runnerState.failure ?? 'server'} onRetry={retry} onLeave={onLeaveToCamp} />
+  {#if cardUp}
+    <div class="card-slot" out:cardOut>
+      <VoiceLostCard failure={lostFailure} {retrying} onRetry={retry} onLeave={onLeaveToCamp} />
+    </div>
   {/if}
 
   <div class="status" class:sr-only={compact}>
@@ -378,24 +427,37 @@
     font-style: italic;
     color: var(--ink-soft);
   }
+  /* Playability #12: « Phrase 2 sur 3 » never wraps; a long title wraps instead. */
   .progress {
+    flex: none;
     margin-left: auto;
     font-size: 16px;
     color: var(--ink-soft);
     text-align: right;
+    white-space: nowrap;
   }
   .bar .progress {
     margin-left: 0;
-    white-space: nowrap;
   }
   .bar-status {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
     font-size: 17px;
     font-weight: 600;
     color: var(--ink);
     white-space: nowrap;
+  }
+  /* The Pythia's line in the bar: one line, cut with an ellipsis if the bar is short. */
+  .bar-note {
+    min-width: 0;
+    max-width: 24em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-slot {
+    flex: none;
   }
   .confirm {
     display: flex;
@@ -441,6 +503,19 @@
   .seal.pulse {
     animation: seal-pulse 1.2s ease-in-out infinite;
   }
+  /* A late line (ruling 1): bronze, breathing slowly, never the reading's gold pulse. */
+  .seal[data-status='voice-waiting'] {
+    animation: seal-breath 2.8s ease-in-out infinite;
+  }
+  @keyframes seal-breath {
+    0%,
+    100% {
+      opacity: 0.95;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
   @keyframes seal-pulse {
     0%,
     100% {
@@ -451,7 +526,8 @@
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .seal.pulse {
+    .seal.pulse,
+    .seal[data-status='voice-waiting'] {
       animation: none;
     }
   }

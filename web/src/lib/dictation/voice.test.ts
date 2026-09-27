@@ -69,10 +69,11 @@ describe('the voice on the server (spec 2026-09-27 §5)', () => {
     expect(played).toEqual([]);
   });
 
-  it('says when a line is late (400 ms), then when it starts', async () => {
+  it('says when a line is late (1.2 s, fix wave B ruling 1), then when it starts', async () => {
     vi.useFakeTimers();
+    expect(SLOW_MS).toBe(1_200);
     const said: string[] = [];
-    const { voice } = harness({ respond: () => new Promise((r) => setTimeout(() => r(ok()), 1000)) });
+    const { voice } = harness({ respond: () => new Promise((r) => setTimeout(() => r(ok()), SLOW_MS + 1000)) });
     void voice.speak('Un.', 1, { onSlow: () => said.push('slow'), onStart: () => said.push('start') });
     await vi.advanceTimersByTimeAsync(SLOW_MS - 1);
     expect(said).toEqual([]);
@@ -121,7 +122,8 @@ describe('the voice on the server (spec 2026-09-27 §5)', () => {
     expect(speaks(calls)).toEqual(['Un.', 'Un.']);
     await vi.advanceTimersByTimeAsync(fetchTimeoutMs('Un.'));
     expect(failure).toBe('unreachable');
-    expect(fetchTimeoutMs('x'.repeat(100))).toBe(25_000);
+    // Fix wave B ruling 11: 8 s + 30 ms a character.
+    expect(fetchTimeoutMs('x'.repeat(100))).toBe(11_000);
   });
 
   it('does not try again a line the server refused (4xx): « server »', async () => {

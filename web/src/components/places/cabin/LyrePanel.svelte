@@ -10,6 +10,7 @@
   import VoiceLostCard from '../../battle/VoiceLostCard.svelte';
   import { api, ApiError } from '../../../lib/api';
   import { createVoice, VoiceError, type VoiceFailure } from '../../../lib/dictation/voice';
+  import { createWaitLine } from '../../../lib/dictation/waitLine';
   import { profileStore } from '../../../lib/profileStore.svelte';
   import { useToast } from '../../../lib/ui/toast.svelte';
   import { audioSettings } from '../../../lib/audio/store.svelte';
@@ -34,26 +35,41 @@
 
   // The trial line (Ruling K10): the server's voice, like the dictation; the same card when it fails.
   const TRIAL = 'Bonjour\u202f! Je lirai tes dictées. Virgule, point.';
+  const TRIAL_PLAYING = 'Écoute la Pythie…';
   const voice = untrack(() => createVoice({ profileId: profile.id }));
   onDestroy(() => voice.dispose());
   let trying = $state(false);
   let trialFailure = $state<VoiceFailure | null>(null);
-  // The dictation's waiting line when the trial is more than 400 ms late (Task 9 review #6).
+  // The dictation's waiting lines when the trial is late (Task 9 review #6, fix wave B ruling 1).
   let trialWait = $state<string | null>(null);
+  const waitLine = createWaitLine(
+    (text) => (trialWait = text),
+    (key) => sayKey(key).text,
+  );
+  // Playability #10: the trial says it is being read (with the sound low, she still sees it played).
+  let trialPlaying = $state(false);
+  onDestroy(() => waitLine.clear());
 
+  // A failed trial's card stays up while its « Réessayer » asks again (playability #5), and « Écouter
+  // un essai » steps aside meanwhile, so the two never offer the same thing (#10).
   async function tryVoice() {
+    if (trying) return;
     trying = true;
-    trialFailure = null;
     try {
       await voice.speak(TRIAL, 0.9, {
-        onSlow: () => (trialWait = sayKey('battle.voice.wait').text),
-        onStart: () => (trialWait = null),
+        onSlow: () => waitLine.slow(),
+        onStart: () => {
+          waitLine.done();
+          trialFailure = null;
+          trialPlaying = true;
+        },
       });
     } catch (e) {
       trialFailure = e instanceof VoiceError ? e.failure : 'server';
     } finally {
       trying = false;
-      trialWait = null;
+      trialPlaying = false;
+      waitLine.clear();
     }
   }
 
@@ -120,16 +136,20 @@
 <div class="panel-lyre">
   <form onsubmit={save}>
     <section>
-      <h3 class="kit-section">La voix de la dictée</h3>
+      <h3 class="kit-section">La voix de la Pythie</h3>
       <!-- Final review M7: a muted voice says nothing; the trial waits for it (the note below says why). -->
-      <button type="button" class="kit-bronze is-quiet" data-testid="lyre-try-voice" disabled={audioSettings.voice.muted || trying} onclick={tryVoice}
-        >Écouter un essai</button
-      >
+      {#if !trialFailure}
+        <button type="button" class="kit-bronze is-quiet" data-testid="lyre-try-voice" disabled={audioSettings.voice.muted || trying} onclick={tryVoice}
+          >Écouter un essai</button
+        >
+      {/if}
       {#if trialWait}
         <p class="kit-note" role="status" data-testid="lyre-voice-wait">{trialWait}</p>
+      {:else if trialPlaying}
+        <p class="kit-note" role="status" data-testid="lyre-voice-playing">{TRIAL_PLAYING}</p>
       {/if}
       {#if trialFailure}
-        <VoiceLostCard failure={trialFailure} onRetry={tryVoice} />
+        <VoiceLostCard failure={trialFailure} retrying={trying} onRetry={tryVoice} />
       {/if}
     </section>
 
@@ -191,7 +211,7 @@
   <details class="lyre-credits" data-testid="lyre-credits">
     <summary class="kit-link">Merci à ceux qui ont aidé le camp</summary>
     <p>Les lettres du camp{'\u202f: '}Cinzel, Alegreya et Literata, offertes par leurs auteurs sous la licence SIL Open Font.</p>
-    <p>La voix de la dictée est celle de Kokoro, offerte par ses auteurs sous la licence Apache 2.0, apprise sur les enregistrements français SIWIS, offerts sous la licence Creative Commons Attribution 4.0.</p>
+    <p>La voix de la Pythie est celle de Kokoro, offerte par ses auteurs sous la licence Apache 2.0, apprise sur les enregistrements français SIWIS, offerts sous la licence Creative Commons Attribution 4.0.</p>
     <p>Les musiques et les bruitages du camp ont été offerts à tous par leurs auteurs, sous la licence Creative Commons Zéro.</p>
     <p>Les livres d'Alexandrie viennent de Wikisource et du Projet Gutenberg. Chaque œuvre garde le nom de son auteur et de son traducteur.</p>
     <p>Les peintures du camp ont été faites pour lui.</p>

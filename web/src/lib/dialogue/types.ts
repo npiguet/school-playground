@@ -35,7 +35,7 @@ export const DIALOGUE_KEYS = [
   'nest.enter', 'nest.name',
   'cabin.enter',
   'battle.start', 'battle.retry', 'battle.perfect', 'battle.victory', 'battle.retreat', 'battle.caught', 'battle.missed', 'battle.explain',
-  'battle.voice.wait', 'battle.voice.lost',
+  'battle.voice.wait', 'battle.voice.waitLong', 'battle.voice.back', 'battle.voice.lost',
 ] as const;
 export type DialogueKey = (typeof DIALOGUE_KEYS)[number];
 

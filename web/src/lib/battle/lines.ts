@@ -52,14 +52,14 @@ export const MUSTER = {
   corrupting: 'Éris corrompt le grimoire…',
   backToShelves: 'Retour aux parchemins',
   // UI5 Ruling E7: a muted voice keeps the dictation's pace but reads nothing aloud.
-  voiceMuted: 'La voix de la dictée est en sourdine.',
+  voiceMuted: 'La voix de la Pythie est en sourdine.',
   voiceBack: 'Rendre la voix',
 } as const;
 
 // ===== Dictation (Task 4) =====
 export const DICTATION = {
   /** UI4 playability #11: the heading is the text's title; the phase, in the fiction, under it. */
-  cue: 'Écris ce que dit la voix.',
+  cue: 'Écris ce que dit la Pythie.',
   quit: 'Quitter',
   quitAsk: 'Ton brouillon est gardé. Veux-tu vraiment quitter la dictée\u202f?',
   quitYes: 'Oui, quitter',
@@ -85,10 +85,15 @@ export const DICTATION = {
 
 // ===== The voice (Kokoro plan, Task 8) =====
 /** Éris's card when the voice cannot be heard (spec 2026-09-27 §5.3). Her gloat is the content key
- *  `battle.voice.lost`; the waiting line is `battle.voice.wait` (Ruling K5). The cause is for the parent. */
+ *  `battle.voice.lost`; the waiting lines are `battle.voice.wait` then `battle.voice.waitLong` (Ruling
+ *  K5, fix wave B ruling 1), and the Pythia's line when the voice comes back `battle.voice.back`. The
+ *  cause is for the parent. */
 export const VOICE_LOST = {
-  askParent: 'Appelle un parent\u202f: lui seul peut rompre ce sortilège.',
+  // Fix wave B ruling 4: her own tap first (a blip clears on its own), the parent if it does not.
+  askParent: 'Touche «\u202fRéessayer\u202f». Si la voix reste muette, appelle un parent\u202f: il saura rompre ce sortilège.',
   retry: 'Réessayer',
+  /** Playability #5: the card stays up while « Réessayer » asks again, and says so. */
+  retrying: 'La Pythie essaie encore…',
   toCamp: 'Retour au camp',
   cause: {
     unreachable: 'voix\u202f: serveur injoignable',
