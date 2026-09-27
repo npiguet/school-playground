@@ -1,6 +1,6 @@
 import { test, expect } from './crashGuard';
 import type { Page } from '@playwright/test';
-import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, installFastPauses, nextLine, createText, makeResult, postSession, redScan, spokenLines, uniqueName } from './helpers';
+import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, installFastPauses, nextLine, createText, makeResult, postSession, redScan, spokenLines, swissDay, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -181,7 +181,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
   });
 
   test('5. complete the Oracle quest via API, see the tint unlocked', async ({ page, request }) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = swissDay();
     // The Oracle quest counts sessions, not distinct days - two more today's-dated sessions on
     // top of step 4's finish it (goal: 3).
     await postSession(request, {
@@ -292,7 +292,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     const bossQuest = active.find((q: { kind: string }) => q.kind === 'boss');
     expect(bossQuest).toBeTruthy();
     const bossTextId = bossQuest.goal.text_id as number;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = swissDay();
 
     // P1-5 follow-up (controller ruling): a perfect dictation ("nothing to catch") must not win
     // the boss - it's a draw, and "reviens avec un texte plus long" would be false (the boss text

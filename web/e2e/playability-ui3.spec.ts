@@ -11,6 +11,7 @@ import {
   expectScene,
   makeResult,
   postSession,
+  swissDay,
   redScan,
   waitForSceneSettled,
 } from './helpers';
@@ -222,13 +223,13 @@ async function librarySection(w: Walk) {
   // Re-review N15: the prophecy exists before the shelves (a07 shows it on its own shelf), and a
   // defended scroll - one finished defence posted through the API - shows its broken seal (a07; UI3b
   // playability #24: it is already in view there, so a07c, the same frame again, is gone).
-  const due = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+  const due = swissDay(-3);
   await createText(page.request, { title: PROPHECY_TITLE, body: BODY, level: '10H', due_date: due });
   const defended = await createText(page.request, { title: DEFENDED_TITLE, body: BODY, level: '10H' });
   await postSession(page.request, {
     profileId: w.profileId,
     textId: defended.id,
-    day: new Date().toISOString().slice(0, 10),
+    day: swissDay(),
     result: makeResult({ draft: 4, caught: 3 }),
   });
   await page.goto(`/#/p/${w.profileId}/camp`);
@@ -377,7 +378,7 @@ async function hubSection(w: Walk) {
   // the walk shows follows the story: 5, 4 and 3 days ago, one text a day.
   for (const [i, title] of LIVED_IN_TITLES.entries()) {
     const text = await createText(page.request, { title, body: BODY, level: '10H' });
-    const day = new Date(Date.now() - (5 - i) * 86_400_000).toISOString().slice(0, 10);
+    const day = swissDay(5 - i);
     for (const category of ['agreement:verb', 'homophone']) {
       await postSession(page.request, { profileId: w.profileId, textId: text.id, day, result: makeResult({ draft: 4, caught: 4, category }) });
     }

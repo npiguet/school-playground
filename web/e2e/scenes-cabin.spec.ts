@@ -6,6 +6,7 @@ import {
   createText,
   makeResult,
   postSession,
+  swissDay,
   uniqueName,
   expectCamp,
   expectInSafeZone,
@@ -126,8 +127,8 @@ test("the journal tells Éris's tricks by their monster, and each text once", as
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const title = uniqueName('La veillée');
   const text = await createText(request, { title, body: 'Les fées dansent dans la clairière.', level: '10H' });
-  const today = new Date().toISOString().slice(0, 10);
-  const before = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  const today = swissDay();
+  const before = swissDay(1);
   await postSession(request, { profileId: id, textId: text.id, day: before, result: makeResult({ draft: 4, caught: 3, category: 'agreement:verb' }) });
   await postSession(request, { profileId: id, textId: text.id, day: today, result: makeResult({ draft: 2, caught: 0, category: 'homophone' }) });
   await page.goto(`/#/p/${id}/stats`);

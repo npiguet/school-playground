@@ -10,6 +10,7 @@ import {
   installKeyboardSim,
   makeResult,
   postSession,
+  swissDay,
   redScan,
   resumeSeeded,
   seedPlay,
@@ -420,7 +421,7 @@ const SECTIONS: { name: string; run: (w: Walk) => Promise<void> }[] = [
   { name: 'nudge', run: nudgeSection },
 ];
 
-const isoDay = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10);
+const isoDay = (daysAgo: number) => swissDay(daysAgo);
 
 test('UI4 battle walk', async ({ page }, testInfo) => {
   test.setTimeout(600_000);

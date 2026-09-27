@@ -14,6 +14,7 @@ import {
   labelOverlaps,
   makeResult,
   postSession,
+  swissDay,
   redScan,
   tap,
   uniqueName,
@@ -159,7 +160,7 @@ test('a defended text wears a broken seal and a laurel; a new one keeps its seal
   const body = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
   await createText(request, { title: fresh, body, level: '10H' });
   const t = await createText(request, { title: defended, body, level: '10H' });
-  await postSession(request, { profileId: id, textId: t.id, day: new Date().toISOString().slice(0, 10), result: makeResult({ draft: 4, caught: 3 }) });
+  await postSession(request, { profileId: id, textId: t.id, day: swissDay(), result: makeResult({ draft: 4, caught: 3 }) });
   await page.goto(`/#/p/${id}/parchemins`);
   const shelves = page.getByTestId('overlay-shelves');
   const whole = shelves.locator('[data-testid="text-card"]', { hasText: fresh });
