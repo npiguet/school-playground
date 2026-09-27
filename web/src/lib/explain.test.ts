@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gradeText, tokenize, mapAnnotation } from '$lib/grading';
-import { caughtText, explain, statKeyOf, CATEGORY_LABELS } from './explain';
+import { caughtText, explain, spokenExplanation, statKeyOf, CATEGORY_LABELS } from './explain';
 import type { Annotation, AnnotToken, Chain, TokenError } from '$lib/grading/types';
 
 const REF = 'Les fées dansent dans la clairière.';
@@ -38,6 +38,37 @@ describe('explain', () => {
     const { g, ctx } = ctxFor('Les fées dansent dans la clairiere');
     expect(explain(g.errors[0], ctx).text).toBe('Un accent change tout\u202f: «\u202fclairière\u202f», pas «\u202fclairiere\u202f».');
     expect(explain(g.errors[1], ctx).text).toBe('Il manque «\u202f.\u202f» ici.');
+  });
+
+  // UI5 playability #4: in the victory's dialogue box the dragon speaks; the arrows stay on the cards.
+  it('says each explanation in spoken sentences for the dragon', () => {
+    const verb = ctxFor('Les fées danse dans la clairière.');
+    expect(spokenExplanation(verb.g.errors[0], verb.ctx)).toBe(
+      "Qui fait l'action\u202f? «\u202ffées\u202f». Il y en a plusieurs, alors le verbe prend «\u202f-nt\u202f»\u202f: «\u202fdansent\u202f».",
+    );
+    const noun = ctxFor('Le fées dansent dans la clairière.');
+    expect(spokenExplanation(noun.g.errors[0], noun.ctx)).toBe("«\u202fLes\u202f» accompagne «\u202ffées\u202f», alors il s'accorde au pluriel.");
+    // No annotation: the generic verb sentence, spoken.
+    const bare = { refTokens: verb.ctx.refTokens, annots: [], annotation: null };
+    expect(spokenExplanation(verb.g.errors[0], bare)).toBe("«\u202fdansent\u202f» suit celui qui fait l'action. Cherche qui le fait, et tu sauras comment l'écrire.");
+  });
+
+  it('never says an arrow, « terminaison » or a sentence without its full stop', () => {
+    for (const typed of [
+      'Les fées danse dans la clairière.',
+      'Le fées dansent dans la clairière.',
+      'Les fées dansent dans là clairière.',
+      'Les fées dansent dans la clairiere',
+      'Les fée dansent la clairière.',
+      'les fées dansent dans la clairière.',
+    ]) {
+      const { g, ctx } = ctxFor(typed);
+      for (const e of g.errors) {
+        const s = spokenExplanation(e, ctx);
+        expect(s, typed).not.toMatch(/→|terminaison/);
+        expect(s, typed).toMatch(/[.!?]$/);
+      }
+    }
   });
 });
 
@@ -137,6 +168,22 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     expect(explain(g.errors[0], ctx).text).toBe('«\u202fLes\u202f» s\'accorde avec le nom «\u202ffées\u202f» → féminin pluriel');
   });
 
+  // UI5 playability #4: the dragon says the same things in sentences at the victory.
+  it('has a spoken form of each chain explanation, for the dragon', () => {
+    const qui = ctxFor2('Les fées qui chante dansent.');
+    expect(spokenExplanation(qui.g.errors[0], qui.ctx)).toBe(
+      "Qui fait l'action\u202f? «\u202fqui\u202f», c'est-à-dire «\u202fLes fées\u202f». Il y en a plusieurs, alors le verbe prend «\u202f-nt\u202f»\u202f: «\u202fchantent\u202f».",
+    );
+    const plain = ctxFor2('Les fées qui chantent danse.');
+    expect(spokenExplanation(plain.g.errors[0], plain.ctx)).toBe(
+      "Qui fait l'action\u202f? «\u202fLes fées\u202f». Il y en a plusieurs, alors le verbe prend «\u202f-nt\u202f»\u202f: «\u202fdansent\u202f».",
+    );
+    const nominal = ctxFor2('Le fées qui chantent dansent.');
+    expect(spokenExplanation(nominal.g.errors[0], nominal.ctx)).toBe("«\u202fLes\u202f» accompagne «\u202ffées\u202f», alors il s'accorde au féminin pluriel.");
+    // « Revoir » keeps its card.
+    expect(explain(plain.g.errors[0], plain.ctx).text).toContain('→');
+  });
+
   it('explains a participle_etre chain', () => {
     const REF3 = 'Elles sont parties.';
     const CHAINS3: Chain[] = [
@@ -184,6 +231,9 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     const ctx = { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation), annotation, body: REF3 };
     expect(explain(g.errors[0], ctx).text).toBe(
       'Avec «\u202fêtre\u202f», le participe «\u202fparties\u202f» s\'accorde avec le sujet «\u202fElles\u202f» → féminin pluriel',
+    );
+    expect(spokenExplanation(g.errors[0], ctx)).toBe(
+      "Avec «\u202fêtre\u202f», «\u202fparties\u202f» suit celui qui fait l'action, «\u202fElles\u202f»\u202f: il s'accorde au féminin pluriel.",
     );
   });
 
@@ -247,6 +297,17 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     expect(explain(g.errors[0], ctxMangees).text).toBe(
       'Participe passé «\u202fmangées\u202f»\u202f: avec être, il s\'accorde avec le sujet\u202f; ' +
         'avec avoir, seulement si le complément est placé avant.',
+    );
+    // UI5 playability #4: spoken by the dragon.
+    expect(spokenExplanation(g.errors[0], { ...ctxMangees, level: '10H' })).toBe(
+      'Avec «\u202favoir\u202f», «\u202fmangées\u202f» s\'accorde avec «\u202fles\u202f», placé avant lui\u202f: au pluriel.',
+    );
+    expect(spokenExplanation(g.errors[0], { ...ctxMangees, level: '8H' })).toBe(
+      'Avec «\u202fêtre\u202f», «\u202fmangées\u202f» s\'accorde avec celui qui fait l\'action.',
+    );
+    expect(spokenExplanation(g.errors[0], ctxMangees)).toBe(
+      'Avec «\u202fêtre\u202f», «\u202fmangées\u202f» s\'accorde avec celui qui fait l\'action\u202f; ' +
+        'avec «\u202favoir\u202f», seulement avec un complément placé avant lui.',
     );
   });
 

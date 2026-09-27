@@ -483,7 +483,10 @@ test("Éris answers the reckoning from her lines, then the dragon explains a tra
   await expectLineOf(dialogue.getByTestId('dialogue-box'), 'battle.explain', { word: 'dansent' });
   await expect(dialogue.getByTestId('dialogue-box')).toHaveAttribute('data-speaker', 'dragon');
   await nextLine(page);
-  // explain()'s own words for that trap, the ones « Revoir » shows on tap.
-  await expect(dialogue.getByTestId('dialogue-text')).toContainText('dansent');
+  // UI5 playability #4: the same explanation « Revoir » shows on tap, in the dragon's spoken form:
+  // whole sentences, never the card's arrows.
+  await expect(dialogue.getByTestId('dialogue-text')).toContainText("Qui fait l'action\u202f? «\u202fLes fées\u202f». Il y en a plusieurs");
+  await expect(dialogue.getByTestId('dialogue-text')).toContainText('«\u202fdansent\u202f».');
+  await expect(dialogue.getByTestId('dialogue-text')).not.toContainText('→');
   await expect(dialogue.getByTestId('dialogue-box')).not.toHaveAttribute('data-key', /./);
 });

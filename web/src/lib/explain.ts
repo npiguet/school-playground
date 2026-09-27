@@ -106,14 +106,36 @@ function genericAgreement(expected: string): string {
   return `«\u202f${expected}\u202f» doit s'accorder. Regarde le mot avec lequel il va.`;
 }
 
-function genericVerb(expected: string): string {
-  return `Le verbe «\u202f${expected}\u202f» s'accorde avec son sujet. Cherche qui fait l'action.`;
+/** Two forms of one explanation (UI5 playability #4): `card`, the reference card of « Revoir » (a
+ *  formula with arrows is fine on a card); `spoken`, what the dragon says in the victory's dialogue
+ *  box (whole sentences, each ending with a full stop, no arrow and no « terminaison »). */
+export type ExplainForm = 'card' | 'spoken';
+
+const q = (w: string) => `«\u202f${w}\u202f»`;
+
+function genericVerb(expected: string, form: ExplainForm = 'card'): string {
+  if (form === 'spoken') return `${q(expected)} suit celui qui fait l'action. Cherche qui le fait, et tu sauras comment l'écrire.`;
+  return `Le verbe ${q(expected)} s'accorde avec son sujet. Cherche qui fait l'action.`;
+}
+
+/** The subject-verb sentence, spoken: who does it, how many, and so the verb's ending. `subject` is
+ *  already quoted (it may be « qui », c'est-à-dire « … »). */
+function spokenVerb(subject: string, plural: boolean, expected: string, typed: string): string {
+  const who = `Qui fait l'action\u202f? ${subject}.`;
+  // « Il y en a plusieurs » and « c'est au singulier » never gender the subject (its gender may be unknown).
+  if (!plural) return `${who} C'est au singulier, alors le verbe s'écrit ${q(expected)}.`;
+  return `${who} Il y en a plusieurs, alors le verbe prend ${q(`-${verbEnding(expected, typed)}`)}\u202f: ${q(expected)}.`;
 }
 
 /** The SP1 participle sentence: the avoir/COD clause isn't taught before 9H (spec §3.4). */
-function genericParticiple(expected: string, level: string | undefined): string {
-  const withEtre = `Participe passé «\u202f${expected}\u202f»\u202f: avec être, il s'accorde avec le sujet`;
-  if (level !== undefined && levelIndex(level) < levelIndex('9H')) return `${withEtre}.`;
+function genericParticiple(expected: string, level: string | undefined, form: ExplainForm = 'card'): string {
+  const early = level !== undefined && levelIndex(level) < levelIndex('9H');
+  if (form === 'spoken') {
+    const withEtre = `Avec ${q('être')}, ${q(expected)} s'accorde avec celui qui fait l'action`;
+    return early ? `${withEtre}.` : `${withEtre}\u202f; avec ${q('avoir')}, seulement avec un complément placé avant lui.`;
+  }
+  const withEtre = `Participe passé ${q(expected)}\u202f: avec être, il s'accorde avec le sujet`;
+  if (early) return `${withEtre}.`;
   return `${withEtre}\u202f; avec avoir, seulement si le complément est placé avant.`;
 }
 
@@ -143,7 +165,7 @@ function subjectPhrase(chain: Chain, NP: string): string {
  * to the SP1 templates below, which never name a subject/head/feature that wasn't confidently
  * identified (spec §1.3 "when uncertain, skip").
  */
-function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string): string | null {
+function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string, form: ExplainForm): string | null {
   const refIndex = e.refIndex;
   if (refIndex === null || !ctx.annotation || ctx.body === undefined) return null;
   const annot = ctx.annots[refIndex];
@@ -151,14 +173,19 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
   const chain = explainChain(ctx.annotation, annot.i);
   if (!chain) return null;
   const NP = groupText(ctx.annotation, chain, ctx.body);
+  const spoken = form === 'spoken';
 
   if (chain.kind === 'subject_verb') {
     // P1-2: a subject group that can't be quoted as written (see `groupText`) is never named.
     // The generic sentence is returned here rather than `null` so the caller's SP1 fallback
     // doesn't name `annot.subject` instead — for a mis-parsed coordination that is the very
     // false subject (« soir ») the chain was refused for.
-    if (NP === '') return genericVerb(expected);
+    if (NP === '') return genericVerb(expected, form);
     const num = chainNumberWord(chain.features) ?? 'singulier';
+    if (spoken) {
+      const subject = chain.via === 'qui' ? `${q('qui')}, c'est-à-dire ${q(NP)}` : q(NP);
+      return spokenVerb(subject, chain.via === 'conj' || num === 'pluriel', expected, e.typed ?? '');
+    }
     const ending = verbEnding(expected, e.typed ?? '');
     if (chain.via === 'qui') {
       return `«\u202f${expected}\u202f» s'accorde avec «\u202fqui\u202f», qui reprend «\u202f${NP}\u202f» → ${num} → terminaison «\u202f${ending}\u202f»`;
@@ -174,12 +201,14 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
   if (chain.kind === 'attribute') {
     const fw = featureWords(chain.features);
     if (fw === '') return null;
+    if (spoken) return `${q(expected)} décrit ${spokenSubject(chain, NP)}, alors il s'accorde au ${fw}.`;
     return `«\u202f${expected}\u202f» est attribut du sujet ${subjectPhrase(chain, NP)} → ${fw}`;
   }
 
   if (chain.kind === 'participle_etre') {
     const fw = featureWords(chain.features);
     if (fw === '') return null;
+    if (spoken) return `Avec ${q('être')}, ${q(expected)} suit celui qui fait l'action, ${spokenSubject(chain, NP)}\u202f: il s'accorde au ${fw}.`;
     return `Avec «\u202fêtre\u202f», le participe «\u202f${expected}\u202f» s'accorde avec le sujet ${subjectPhrase(chain, NP)} → ${fw}`;
   }
 
@@ -188,6 +217,7 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
     // generic participle sentence rather than teach the avoir/COD rule early.
     if (ctx.level === undefined || levelIndex(ctx.level) < levelIndex('9H')) return null;
     if (chain.rule === 'no_agreement') {
+      if (spoken) return `Avec ${q('avoir')}, ${q(expected)} ne suit pas celui qui fait l'action. Rien n'est placé avant lui, alors il reste ${q(expected)}.`;
       return `Avec «\u202favoir\u202f», le participe «\u202f${expected}\u202f» ne s'accorde pas avec le sujet\u202f: aucun complément n'est placé avant → «\u202f${expected}\u202f»`;
     }
     if (chain.rule === 'cod_before') {
@@ -202,8 +232,10 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
       const covered =
         (genderSlip && chain.features.Gender !== undefined) || (numberSlip && chain.features.Number !== undefined);
       if (fw === '' || !covered) {
+        if (spoken) return `Avec ${q('avoir')}, ${q(expected)} s'accorde avec ${q(NP)}, placé avant lui. Regarde ce que ${q(NP)} remplace.`;
         return `Avec «\u202favoir\u202f», le participe «\u202f${expected}\u202f» s'accorde avec le complément «\u202f${NP}\u202f» placé avant. Regarde ce que «\u202f${NP}\u202f» remplace.`;
       }
+      if (spoken) return `Avec ${q('avoir')}, ${q(expected)} s'accorde avec ${q(NP)}, placé avant lui\u202f: au ${fw}.`;
       return `Avec «\u202favoir\u202f», le participe «\u202f${expected}\u202f» s'accorde avec le complément «\u202f${NP}\u202f» placé avant → ${fw}`;
     }
     return null;
@@ -214,14 +246,15 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
     if (!controller) return null;
     const fw = featureWords(chain.features);
     if (fw === '') return null;
+    if (spoken) return `${q(expected)} accompagne ${q(controller.text)}, alors il s'accorde au ${fw}.`;
     return `«\u202f${expected}\u202f» s'accorde avec le nom «\u202f${controller.text}\u202f» → ${fw}`;
   }
 
   return null;
 }
 
-function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string): string {
-  const chainText = chainAgreementText(e, ctx, expected);
+function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string, form: ExplainForm): string {
+  const chainText = chainAgreementText(e, ctx, expected, form);
   if (chainText !== null) return chainText;
 
   const refIndex = e.refIndex;
@@ -233,23 +266,29 @@ function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string):
       const subject = ctx.refTokens[subjectRef]?.text;
       const number = numberWord(ctx.annots[subjectRef]?.morph.Number);
       if (subject && number) {
+        if (form === 'spoken') return spokenVerb(q(subject), number === 'pluriel', expected, e.typed ?? '');
         const ending = verbEnding(expected, e.typed ?? '');
         return `«\u202f${expected}\u202f» s'accorde avec son sujet «\u202f${subject}\u202f» → ${number} → terminaison «\u202f${ending}\u202f»`;
       }
     }
-    return genericVerb(expected);
+    return genericVerb(expected, form);
   }
 
   // P1-3: a compound-tense participle filed under gender/number (ADJ-tagged in an older
   // annotation) still gets the participle rule, never the noun-group sentence.
   if (e.sub === 'participle' || (annot !== undefined && hasOwnAuxiliary(ctx, annot))) {
-    return genericParticiple(expected, ctx.level);
+    return genericParticiple(expected, ctx.level, form);
   }
 
   if (e.sub === 'number' || e.sub === 'gender') {
     const value = e.sub === 'number' ? numberWord(annot?.morph.Number) : genderWord(annot?.morph.Gender);
     if (value && refIndex !== null) {
       const head = headNounText(ctx, refIndex);
+      if (form === 'spoken') {
+        return head !== null
+          ? `${q(expected)} accompagne ${q(head)}, alors il s'accorde au ${value}.`
+          : `${q(expected)} s'accorde avec le nom qu'il accompagne, au ${value}.`;
+      }
       return `«\u202f${expected}\u202f» s'accorde ${agreementWith(head)} → ${value}`;
     }
   }
@@ -257,7 +296,18 @@ function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string):
   return genericAgreement(expected);
 }
 
-export function explain(e: TokenError, ctx: ExplainContext): { title: string; text: string } {
+/** « qui », c'est-à-dire « NP » through a relative pronoun, else « NP » (the spoken `subjectPhrase`). */
+function spokenSubject(chain: Chain, NP: string): string {
+  return chain.via === 'qui' ? `${q('qui')}, c'est-à-dire ${q(NP)}` : q(NP);
+}
+
+/** What the dragon says about a trap at the victory (UI5 playability #4): `explain()`'s text in
+ *  spoken form. « Revoir » keeps the card form. */
+export function spokenExplanation(e: TokenError, ctx: ExplainContext): string {
+  return explain(e, ctx, 'spoken').text;
+}
+
+export function explain(e: TokenError, ctx: ExplainContext, form: ExplainForm = 'card'): { title: string; text: string } {
   const title = CATEGORY_LABELS[statKeyOf(e)];
   const expected = e.expected ?? '';
   const typed = e.typed ?? '';
@@ -272,7 +322,7 @@ export function explain(e: TokenError, ctx: ExplainContext): { title: string; te
       text = `«\u202f${typed}\u202f» ou «\u202f${expected}\u202f»\u202f? Ici il faut «\u202f${expected}\u202f». ${homophoneHint(e.homophoneSet ?? '')}`;
     }
   } else if (e.category === 'agreement') {
-    text = explainAgreement(e, ctx, expected);
+    text = explainAgreement(e, ctx, expected, form);
   } else if (e.category === 'accent') {
     text = `Un accent change tout\u202f: «\u202f${expected}\u202f», pas «\u202f${typed}\u202f».`;
   } else if (e.category === 'punctuation_case') {
@@ -288,6 +338,9 @@ export function explain(e: TokenError, ctx: ExplainContext): { title: string; te
     else text = `Ce mot s'écrit «\u202f${expected}\u202f». Il rejoint tes mots-pièges pour t'entraîner.`;
   }
 
+  // The homophone tables' examples show a swap with an arrow (« il l'a vu » → « il l'avait vu »):
+  // spoken, it « devient ».
+  if (form === 'spoken') text = text.replace(/\s*→\s*/gu, ' devient ');
   return { title, text };
 }
 

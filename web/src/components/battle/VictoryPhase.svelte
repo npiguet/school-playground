@@ -16,7 +16,7 @@
   import { reckoningSteps, reckoningVerdict } from '../../lib/battle/hp';
   import { react, strike } from '../../lib/battle/stage.svelte';
   import { emitBattle } from '../../lib/battle/events';
-  import { explain, type ExplainContext } from '../../lib/explain';
+  import { spokenExplanation, type ExplainContext } from '../../lib/explain';
   import { erisVictoryLine, explainIntro, stillStanding } from '../../lib/dialogue/battle';
   import { EGG } from '../../lib/dialogue/speakers';
   import { frenchSpacing } from '../../lib/text/french';
@@ -147,8 +147,9 @@
       picked = [erisVictoryLine({ draft, catchRate: result.catchRate, introduced, mode }), dragonSays(speaker, dragonTally({ draft, caught, mode }))];
       if (explainCtx) {
         for (const e of stillStanding(result.finalErrors, 2)) {
-          // Spaced like its intro (a « guillemet » never ends a line alone).
-          picked.push(explainIntro(e.expected ?? e.typed ?? '', speaker), dragonSays(speaker, frenchSpacing(explain(e, explainCtx).text)));
+          // Spaced like its intro (a « guillemet » never ends a line alone). UI5 playability #4: the
+          // dragon says it in whole sentences; « Revoir »'s cards keep the formula.
+          picked.push(explainIntro(e.expected ?? e.typed ?? '', speaker), dragonSays(speaker, frenchSpacing(spokenExplanation(e, explainCtx))));
         }
       }
     }
