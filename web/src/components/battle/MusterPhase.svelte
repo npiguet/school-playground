@@ -195,6 +195,18 @@
     padding: 18px 22px;
     color: var(--ink);
     font-family: var(--font-body);
+    /* UI5 playability #22: the foot of the parchment fades out, so a line cut by its edge reads as
+       "more below", never as half a line of letters. */
+    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent);
+    mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent);
+  }
+  /* ...and scrolled to the end, the last line clears that fade by a line's height (a spacer, not
+     padding: a flex column's bottom padding is lost to the scroll in older WebKit). */
+  .muster::after {
+    content: '';
+    flex: none;
+    height: 1.4em;
+    margin-top: -14px;
   }
   .muster > :global(*) {
     flex: none;

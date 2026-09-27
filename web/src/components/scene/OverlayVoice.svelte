@@ -25,6 +25,9 @@
 </figure>
 
 <style>
+  /* UI5 playability #18: the same box as the places' dialogue (parchment, upright words), with a
+     bronze rim so it stands out of the panel's own parchment. It was night glass with italics, so
+     one character spoke from two different boxes. */
   .overlay-voice {
     flex: none;
     display: flex;
@@ -32,11 +35,16 @@
     gap: 14px;
     margin: 0 0 14px;
     padding: 8px 16px 8px 8px;
-    border: 1px solid var(--bronze-light);
+    border: 2px solid var(--bronze);
     border-radius: 12px;
-    background: linear-gradient(180deg, rgba(21, 18, 26, 0.84), rgba(21, 18, 26, 0.72));
-    color: var(--bronze-ink);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(255, 255, 255, 0.4), transparent 60%),
+      linear-gradient(180deg, #f8f0dc, #efe0bf);
+    color: var(--ink);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 240, 200, 0.7),
+      inset 0 0 22px rgba(140, 100, 40, 0.16),
+      0 3px 8px rgba(0, 0, 0, 0.25);
   }
   /* DialogueBox's portrait treatment (a round, gold-lit frame), at the plate's smaller size. */
   .voice-portrait {
@@ -45,7 +53,7 @@
     height: 64px;
     object-fit: contain;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(241, 220, 154, 0.28), transparent 70%);
+    background: radial-gradient(circle, rgba(241, 220, 154, 0.55), rgba(241, 220, 154, 0) 70%);
   }
   .voice-body {
     display: flex;
@@ -59,11 +67,10 @@
     font-size: 13px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--gold-light);
+    color: var(--bronze-dark);
   }
   .voice-text {
     font-family: var(--font-body);
-    font-style: italic;
     font-size: 18px;
     line-height: 1.35;
   }

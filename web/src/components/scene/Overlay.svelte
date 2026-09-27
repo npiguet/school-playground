@@ -118,8 +118,14 @@
       <Icon name="close" size={22} />
     </button>
   </header>
-  {#if voice}<OverlayVoice line={voice} />{/if}
-  <div class="overlay-body kit-form">{@render children()}</div>
+  <!-- UI5 playability #16: on a scroll or a table the character's line scrolls away with the content
+       (pinned above it, it cropped the first line under it and took room from a short screen). An
+       open book keeps it on its left page (re-review N10). -->
+  {#if voice && variant === 'codex'}<OverlayVoice line={voice} />{/if}
+  <div class="overlay-body kit-form">
+    {#if voice && variant !== 'codex'}<OverlayVoice line={voice} />{/if}
+    {@render children()}
+  </div>
 </div>
 
 <style>

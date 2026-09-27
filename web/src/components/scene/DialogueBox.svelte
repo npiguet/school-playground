@@ -192,9 +192,10 @@
     left: auto;
     width: 100%;
   }
-  /* UI4 playability #15: one speaker, two shapes - the dark OverlayVoice plate for a single line, this
-     light box for a conversation. Inside a panel (`fill`) its portrait is the plate's 64 px, so the
-     two read as one family on the victory sheet. */
+  /* UI4 playability #15: one speaker, two shapes - the OverlayVoice plate for a single line, this box
+     for a conversation (since UI5 playability #18 both are parchment with upright words). Inside a
+     panel (`fill`) its portrait is the plate's 64 px, so the two read as one family on the victory
+     sheet. */
   .dialogue.fill .portrait {
     width: 64px;
     height: 64px;

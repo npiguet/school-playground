@@ -91,5 +91,6 @@ export function journalLine(d: DragonOut): DialogueLine {
 }
 
 export function lyreLine(d: DragonOut): DialogueLine {
-  return dragonSays(d, 'Ici, tu choisis la voix qui te lit la dictée, et si le camp fait du bruit.');
+  // UI5 playability #17.
+  return dragonSays(d, 'Ici, tu règles la voix qui te lit la dictée, la musique du camp et ses bruitages.');
 }

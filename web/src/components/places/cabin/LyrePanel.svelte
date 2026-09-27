@@ -167,7 +167,11 @@
       {/if}
     </section>
 
-    <section>
+    <!-- UI5 playability #16: « Enregistrer » closes the choices above it, in its own row; the tours
+         come after an engraved line, so it never reads as the button that saves the tours. -->
+    <button type="submit" class="kit-bronze" data-testid="lyre-save" disabled={saving}>Enregistrer</button>
+
+    <section class="apart">
       <h3 class="kit-section">Les visites du camp</h3>
       <button type="button" class="kit-link" data-testid="lyre-tours" onclick={replayTours} disabled={replaying}>Refaire les visites du camp</button>
     </section>
@@ -178,8 +182,6 @@
     {#if toast.message}
       <p class="kit-note" role="status">{toast.message}</p>
     {/if}
-
-    <button type="submit" class="kit-bronze" disabled={saving}>Enregistrer</button>
   </form>
 
   <details class="lyre-credits" data-testid="lyre-credits">
@@ -203,6 +205,13 @@
   }
   .field {
     margin-bottom: 12px;
+  }
+  /* An engraved line: a dark cut with a lit lip under it, on the parchment. */
+  .apart {
+    margin-top: 8px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(92, 64, 24, 0.45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
   }
   .note {
     margin: 4px 0 0;

@@ -103,6 +103,21 @@
     gap: 14px;
     padding: 14px 22px 16px;
   }
+  /* UI5 playability #20: the sheet's content sits centred in its height, never a block at the top
+     over an empty stretch of parchment. Two auto-margin spacers, not `justify-content: center`: when
+     the content overflows they shrink to nothing, so its top is never cut off the scroll. */
+  .sheet-body::before,
+  .sheet-body::after {
+    content: '';
+    flex: none;
+    margin: -7px 0;
+  }
+  .sheet-body::before {
+    margin-top: auto;
+  }
+  .sheet-body::after {
+    margin-bottom: auto;
+  }
   .crown {
     display: flex;
     flex-direction: column;
