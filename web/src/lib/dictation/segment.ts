@@ -147,7 +147,7 @@ const NO_CUT_AFTER = new Set([
 // which may also end a clause as an attribute (« il était petit | et… »), and the adverbs of degree
 // that are also plain adverbs (« les plus | lamentables », but « il ne revint plus | dans… »). The
 // cut after one is allowed only before a word of CUT_BEFORE_CLAUSE or CUT_BEFORE_PHRASE other than
-// « que » (« plus | que », « bien | que », « grand | que » are never cut).
+// one of COMPOUND_TAILS (« plus | que », « bien | que », « même | si », « tout | comme » are never cut).
 const LEANS_ON_NEXT = new Set([
   'petit', 'petite', 'petits', 'petites', 'grand', 'grande', 'grands', 'grandes', 'bon', 'bonne', 'bons', 'bonnes',
   'beau', 'bel', 'belle', 'beaux', 'belles', 'vieux', 'vieil', 'vieille', 'vieilles', 'jeune', 'jeunes',
@@ -159,6 +159,10 @@ const LEANS_ON_NEXT = new Set([
   'même', 'mêmes', 'tout',
   'plus', 'moins', 'bien', 'aussi', 'fort',
 ]);
+// The clause words that make a two-word conjunction with a word of LEANS_ON_NEXT before them (« bien
+// que », « plus que », « même si », « tout comme »): that word never ends a group before one of these,
+// though they open a clause.
+const COMPOUND_TAILS = new Set(['que', 'qu', 'si', 'comme']);
 // « venir de » + infinitive: no cut between a form of « venir » and its « de » (« nous venons | de
 // rapporter »).
 const VENIR = new Set([
@@ -167,8 +171,8 @@ const VENIR = new Set([
 ]);
 // The negation after an auxiliary: no cut between it and the participle (« n'était pas | passé »).
 const AFTER_NEGATION = new Set(['pas', 'point', 'jamais', 'plus', 'guère', 'rien']);
-// Titles written with a « . » (the same as splitSentences' ABBREVIATIONS): never a cut after its « . ».
-const TITLES = new Set(['M', 'MM', 'St', 'Ste']);
+// Titles written with a « . » (splitSentences' ABBREVIATIONS, the one list): never a cut after its « . ».
+const TITLES = ABBREVIATIONS;
 // A group rather starts on one of these: a clause (a relative, a subordinating word, the first word
 // of a two-word one, or a conjunction) is the best cut, a prepositional phrase the next best.
 const CUT_BEFORE_CLAUSE = new Set([
@@ -214,7 +218,7 @@ function blocked(toks: Token[], at: number): boolean {
   const last = lastPart(before.text);
   if (NO_CUT_AFTER.has(last)) return true;
   if (TOUT.has(last) && DETERMINERS.has(next)) return true;
-  if (LEANS_ON_NEXT.has(last) && (next === 'que' || next === 'qu' || !(CUT_BEFORE_CLAUSE.has(next) || CUT_BEFORE_PHRASE.has(next)))) {
+  if (LEANS_ON_NEXT.has(last) && (COMPOUND_TAILS.has(next) || !(CUT_BEFORE_CLAUSE.has(next) || CUT_BEFORE_PHRASE.has(next)))) {
     return true;
   }
   if (VENIR.has(last) && (next === 'de' || next === 'd')) return true;

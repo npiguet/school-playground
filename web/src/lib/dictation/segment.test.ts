@@ -222,6 +222,22 @@ describe('splitChunks: where a long piece of a seed text is halved', () => {
     expect(splitChunks('Les belles chèvres du bon vieux M. Seguin se sauvaient toujours vers la montagne'))
       .toEqual(['Les belles chèvres du bon vieux M. Seguin', 'se sauvaient toujours vers la montagne']);
   });
+  // Chunk re-review, new breakage 1: every title of splitSentences' ABBREVIATIONS, « Mme. » and
+  // « Mlle. » too.
+  it('never cuts after the « . » of « Mme. » or « Mlle. »', () => {
+    expect(splitChunks('Les belles chèvres du bon vieux Mme. Seguin se sauvaient toujours vers la montagne'))
+      .toEqual(['Les belles chèvres du bon vieux Mme. Seguin', 'se sauvaient toujours vers la montagne']);
+    expect(splitChunks('Les belles chèvres du bon vieux Mlle. Seguin se sauvaient toujours vers la montagne'))
+      .toEqual(['Les belles chèvres du bon vieux Mlle. Seguin', 'se sauvaient toujours vers la montagne']);
+  });
+  // Chunk re-review, new breakage 2: a word that leans on the next one never ends a group before the
+  // clause word it makes a conjunction with (« même si », « tout comme », as « bien que »).
+  it('never cuts inside « même si » or « tout comme »', () => {
+    expect(splitChunks('Le vieux berger gardait ses moutons même si la neige tombait fort'))
+      .toEqual(['Le vieux berger gardait ses moutons', 'même si la neige tombait fort']);
+    expect(splitChunks('Le jeune garçon aimait beaucoup les chevaux tout comme son frère aîné'))
+      .toEqual(['Le jeune garçon aimait beaucoup', 'les chevaux tout comme son frère aîné']);
+  });
   it('never cuts between « venir » and its « de »', () => {
     expect(splitChunks('Les bergers du village voisin venaient de rentrer au bercail avec leurs grands troupeaux'))
       .toEqual(['Les bergers du village voisin venaient de rentrer', 'au bercail avec leurs grands troupeaux']);
