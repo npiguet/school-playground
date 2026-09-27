@@ -17,8 +17,9 @@ Ryzen 7 9700.
 
 - **Voice:** Kokoro-82M, voice `ff_siwis` alone. It is the only French Kokoro voice; no community
   French voice exists. Blends and other voices added an accent.
-- **Pace:** each pace uses Kokoro's own `speed` (the `PACE_RATES` values and pace 4's final
-  0.95), not a time stretch.
+- **Pace:** the voice's rate is Kokoro's own `speed`, not a time stretch. Since the pace redesign
+  (2026-09-27, §5.2's last note) every line of every pace is at one rate, `DICTATION_RATE` = 0.85
+  (it was the `PACE_RATES` values, 0.75 to 1.0, and pace 4's final 0.95).
 - **Punctuation ending (bake-off variant C):** a sentence-ending mark is kept as the real mark and
   followed by its capitalised name: « …froissées. Point. », « …berger ? Point d'interrogation. »,
   « …belle ! Point d'exclamation. », « …vu… Points de suspension. ». The comma and every other

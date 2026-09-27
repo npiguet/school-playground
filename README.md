@@ -15,9 +15,11 @@ rewards. The whole game is a set of painted scenes with places to tap (see §8).
 - **Les parchemins** — the shared library of texts, in the parchment tent: curated seed passages,
   texts typed or pasted at *Le pupitre*, scanned handouts (*La lentille*), and excerpts adopted from
   the Bibliothèque d'Alexandrie (*Le portail*).
-- **Dictation** with 4 paces, from « Pas à pas » (one sentence at a time, unlimited replays) to
-  « D'une traite » (test conditions, no replays), read aloud by a French voice (Kokoro-82M)
-  that the server synthesises in its second container.
+- **Dictation** with 3 paces, each reading the text in breath groups, every group twice, then the
+  whole text once: « Pas à pas » (she taps « Suivant » after each group, one extra « Réécouter »
+  a group), « Par groupes » (moves on by itself, with a pause button) and « D'un bon pas » (longer
+  groups, no pause button). A French voice (Kokoro-82M) reads it, synthesised by the server in its
+  second container.
 - **Proofreading** — *Les Yeux d'Argus* (a spotlight over one word category at a time: verbs,
   nominal groups, homophones, trap words), *Le Bouclier de Persée* (sentence by sentence, last to
   first), *La Chouette d'Athéna* (limited hints) and *Le Fil d'Ariane* (tap a verb, then its
@@ -174,7 +176,8 @@ loaded instead of looking for them on Docker Hub. Everything else comes from the
   model loaded). Analysing a new text, a scan or an Alexandria adoption runs that model again, so
   leave it some room above that. The voice's container uses about 0.59 GB at rest and up to 0.89 GB
   while it makes a dictation's lines (measured with the default `TTS_THREADS` of 4, on an AMD
-  Ryzen 9 5950X, while it made pace 4's lines for the longest seed text, a sentence at a time).
+  Ryzen 9 5950X, while it made the lines of the longest seed text, a sentence at a time, at the
+  retired pace 4, the heaviest script there was).
 
 ### Update to a new version
 
@@ -388,9 +391,9 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   iPad: Safari only gives motion sensors to HTTPS pages. Dragging a finger across a scene still
   moves it.
 - The dictation voice needs the server's `tts` container. The first line of a dictation comes in
-  about a second, a long text at « D'une traite » included, since it is read a sentence at a time
-  (1.8 to 2.1 s on the longest seed text, 0.5 to 1.1 s on a short one, on the same Ryzen 9 5950X as
-  the RAM figures in §2; a short line shows while it comes).
+  about a second, a long text included, since no line is longer than a sentence (1.8 to 2.1 s on
+  the longest seed text, 0.5 to 1.1 s on a short one, on the same Ryzen 9 5950X as the RAM figures
+  in §2; a short line shows while it comes).
 - OCR (Tesseract, French) is for **printed** handouts only; it does not read handwriting.
 - Alexandria needs the server to reach Wikisource and Project Gutenberg; everything else works
   without internet.
