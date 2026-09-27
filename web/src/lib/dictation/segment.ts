@@ -96,39 +96,89 @@ export function countWords(s: string): number {
 }
 
 // Where a long piece is halved (pace-bug report 2026-09-27, open item 2). Tokens carry no part of speech
-// on the client, so two small French word lists stand in for one, matched on the lower-cased word.
+// on the client, so the small French word lists below stand in for one, matched on the lower-cased
+// word; `blocked` and `bestCut` say how each is used.
 // `tokenize` keeps an elided word with the word it leans on (« l'île », « d'Ulysse », « qu'elle »,
 // « jusqu'à » are one token each), so a cut can never fall right after « l' » or « qu' ».
 //
-// A group never ends on a word that needs the next one: a determiner, a preposition, a subject or
-// object pronoun before its verb, an auxiliary or a conjugated « être », a conjunction or a relative.
-const NO_CUT_AFTER = new Set([
-  // determiners
+// The auxiliaries: the forms of « avoir » and « être » that take a participle (« avait donnée »,
+// « n'était pas passé »). No cut after one, nor after its negation (AFTER_NEGATION).
+const AUXILIARIES = new Set([
+  'ai', 'as', 'a', 'avons', 'avez', 'ont', 'avais', 'avait', 'avions', 'aviez', 'avaient', 'eut', 'eurent',
+  'aura', 'auront', 'aurait', 'auraient', 'eût', 'suis', 'es', 'est', 'sommes', 'êtes', 'sont', 'étais', 'était',
+  'étions', 'étiez', 'étaient', 'fut', 'furent', 'sera', 'seront', 'serait', 'seraient', 'soit', 'fût',
+]);
+// A determiner: never the last word of a group; after « tous », « toute », « toutes », it makes them
+// a determiner too (« tous les fruits »), where alone they end their clause (« se
+// ressemblaient tous | et où… »).
+const DETERMINERS = new Set([
   'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'au', 'aux', 'ce', 'cet', 'cette', 'ces',
   'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'son', 'sa', 'ses', 'leur', 'leurs', 'notre', 'nos', 'votre', 'vos',
-  'quel', 'quelle', 'quels', 'quelles', 'chaque', 'plusieurs', 'quelques', 'tout', 'toute', 'tous', 'toutes',
+  'quel', 'quelle', 'quels', 'quelles', 'chaque', 'plusieurs', 'quelques', 'l', 'd',
+]);
+const TOUT = new Set(['toute', 'tous', 'toutes']);
+// A group never ends on a word that needs the next one: a determiner, a preposition, a subject or
+// object pronoun before its verb, an auxiliary, a conjunction or a relative, the first word of a
+// two-word conjunction or idiom.
+//
+// Trade-off: « lui », « elle », « nous », « vous », « elles » are also stressed pronouns after a
+// preposition (« il se tourna vers elle | et lui sourit »), where a cut after them is fine; they are
+// kept here for the far more common clitic case (« que lui avait donnée », « nous venons »).
+const NO_CUT_AFTER = new Set([
+  ...DETERMINERS,
+  ...AUXILIARIES,
   // prepositions, and the adverbs that open a compound one (« près de », « afin de »)
   'à', 'sur', 'sous', 'par', 'pour', 'avec', 'sans', 'dans', 'en', 'vers', 'entre', 'chez', 'contre',
   'après', 'avant', 'devant', 'derrière', 'depuis', 'pendant', 'parmi', 'selon', 'malgré', 'jusque',
-  'près', 'loin', 'autour', 'auprès', 'afin', 'lors', 'hors', 'grâce',
+  'près', 'loin', 'autour', 'auprès', 'afin', 'lors', 'hors', 'grâce', 'lieu',
   // pronouns before their verb
   'je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'me', 'te', 'se', 'lui', 'y', 'ne',
-  // auxiliaries and « être »
-  'ai', 'as', 'a', 'avons', 'avez', 'ont', 'avais', 'avait', 'avions', 'aviez', 'avaient', 'eut', 'eurent',
-  'aura', 'auront', 'aurait', 'auraient', 'suis', 'es', 'est', 'sommes', 'êtes', 'sont', 'étais', 'était',
-  'étions', 'étiez', 'étaient', 'fut', 'furent', 'sera', 'seront', 'serait', 'seraient',
   // conjunctions and relative or subordinating words
   'et', 'ou', 'mais', 'ni', 'car', 'donc', 'or', 'qui', 'que', 'quoi', 'où', 'dont', 'quand', 'lorsque',
   'puisque', 'comme', 'si', 'lequel', 'laquelle', 'lesquels', 'lesquelles',
+  // the first word of a two-word conjunction (« parce que », « tandis que », « plutôt que », « dès
+  // que », « ainsi que », « alors que », « sitôt que »), and of « les uns / les unes … les autres »
+  'parce', 'tandis', 'plutôt', 'dès', 'ainsi', 'alors', 'sitôt', 'uns', 'unes',
+  // adverbs of degree that always lean on the next word (« très extraordinaire », « trop tard »)
+  'très', 'trop', 'assez', 'tellement', 'presque',
 ]);
-// A group rather starts on one of these: a clause (a relative, a subordinating word or a conjunction)
-// is the best cut, a prepositional phrase the next best.
+// Words that lean on the next one unless a clause or a phrase starts there (LEANS_ON_NEXT is checked
+// against the next word): the pre-noun adjectives (« un petit | chaperon », « de grandes | envies »),
+// which may also end a clause as an attribute (« il était petit | et… »), and the adverbs of degree
+// that are also plain adverbs (« les plus | lamentables », but « il ne revint plus | dans… »). The
+// cut after one is allowed only before a word of CUT_BEFORE_CLAUSE or CUT_BEFORE_PHRASE other than
+// « que » (« plus | que », « bien | que », « grand | que » are never cut).
+const LEANS_ON_NEXT = new Set([
+  'petit', 'petite', 'petits', 'petites', 'grand', 'grande', 'grands', 'grandes', 'bon', 'bonne', 'bons', 'bonnes',
+  'beau', 'bel', 'belle', 'beaux', 'belles', 'vieux', 'vieil', 'vieille', 'vieilles', 'jeune', 'jeunes',
+  'joli', 'jolie', 'jolis', 'jolies', 'gros', 'grosse', 'grosses', 'long', 'longue', 'longs', 'longues',
+  'mauvais', 'mauvaise', 'mauvaises', 'nouveau', 'nouvel', 'nouvelle', 'nouveaux', 'nouvelles',
+  'premier', 'première', 'premiers', 'premières', 'dernier', 'dernière', 'derniers', 'dernières',
+  // (not « autre(s) »: « les autres » is as often a pronoun that ends its phrase, « les uns contre les
+  // autres | au fond de la grotte »)
+  'même', 'mêmes', 'tout',
+  'plus', 'moins', 'bien', 'aussi', 'fort',
+]);
+// « venir de » + infinitive: no cut between a form of « venir » and its « de » (« nous venons | de
+// rapporter »).
+const VENIR = new Set([
+  'viens', 'vient', 'venons', 'venez', 'viennent', 'venais', 'venait', 'venions', 'veniez', 'venaient',
+  'vins', 'vint', 'vinrent', 'viendra', 'viendrait', 'venant', 'venu', 'venue', 'venus', 'venues', 'venir',
+]);
+// The negation after an auxiliary: no cut between it and the participle (« n'était pas | passé »).
+const AFTER_NEGATION = new Set(['pas', 'point', 'jamais', 'plus', 'guère', 'rien']);
+// Titles written with a « . » (the same as splitSentences' ABBREVIATIONS): never a cut after its « . ».
+const TITLES = new Set(['M', 'MM', 'St', 'Ste']);
+// A group rather starts on one of these: a clause (a relative, a subordinating word, the first word
+// of a two-word one, or a conjunction) is the best cut, a prepositional phrase the next best.
 const CUT_BEFORE_CLAUSE = new Set([
   'qui', 'que', 'qu', 'lorsqu', 'puisqu', 'où', 'dont', 'quand', 'lorsque', 'puisque', 'comme', 'si', 'et', 'mais', 'ou', 'ni', 'car',
-  'lequel', 'laquelle', 'lesquels', 'lesquelles',
+  'lequel', 'laquelle', 'lesquels', 'lesquelles', 'parce', 'tandis', 'dès',
 ]);
+// (« au » and « aux » too, which carry their article, « un lapin blanc | aux yeux roses »; not a bare
+// « à », which is as often a verb's own « commencèrent à | crever ».)
 const CUT_BEFORE_PHRASE = new Set([
-  'sans', 'pour', 'avec', 'dans', 'sur', 'sous', 'par', 'vers', 'entre', 'chez', 'contre', 'après', 'avant',
+  'au', 'aux', 'sans', 'pour', 'avec', 'dans', 'sur', 'sous', 'par', 'vers', 'entre', 'chez', 'contre', 'après', 'avant',
   'devant', 'derrière', 'depuis', 'pendant', 'parmi', 'selon', 'malgré', 'jusqu', 'près', 'loin', 'autour',
   'auprès', 'afin', 'lors', 'grâce',
 ]);
@@ -142,13 +192,44 @@ const lastPart = (text: string): string => parts(text).at(-1) ?? '';
 const MIN_SIDE = 3;
 const MIN_GOOD = 4;
 
+const CAPITALISED = /^\p{Lu}/u;
+
+/**
+ * Whether a cut right before token `at` (a word) is never taken: after an opening « ( — or ", after
+ * the « . » of a title (« M. | Seguin »), between two capitalised words (« Maréchal | Niel »), after
+ * a word of NO_CUT_AFTER, after « toute(s) » or « tous » before a determiner, after a word of
+ * LEANS_ON_NEXT unless a clause or a phrase starts next, between a form of « venir » and its « de »,
+ * or between an auxiliary's negation and the participle.
+ */
+function blocked(toks: Token[], at: number): boolean {
+  const before = toks[at - 1];
+  const nextText = toks[at].text;
+  const next = firstPart(nextText);
+  if (before.kind === 'punct') {
+    if (/^[«(—–"]$/.test(before.text)) return true;
+    const title = toks[at - 2];
+    return before.text === '.' && title?.kind === 'word' && TITLES.has(title.text);
+  }
+  if (CAPITALISED.test(before.text) && CAPITALISED.test(nextText)) return true;
+  const last = lastPart(before.text);
+  if (NO_CUT_AFTER.has(last)) return true;
+  if (TOUT.has(last) && DETERMINERS.has(next)) return true;
+  if (LEANS_ON_NEXT.has(last) && (next === 'que' || next === 'qu' || !(CUT_BEFORE_CLAUSE.has(next) || CUT_BEFORE_PHRASE.has(next)))) {
+    return true;
+  }
+  if (VENIR.has(last) && (next === 'de' || next === 'd')) return true;
+  const beforeThat = toks[at - 2];
+  if (AFTER_NEGATION.has(last) && beforeThat?.kind === 'word' && AUXILIARIES.has(lastPart(beforeThat.text))) return true;
+  return false;
+}
+
 /**
  * The index, in `words` (token indices of a long piece's words), of the word a halved piece's second
  * group starts on: the cut with the lowest cost, where the cost is the distance from the middle (in
  * words), plus 2 for a cut before an ordinary word, 0.5 before a preposition, 0 before a relative or
- * conjunction, plus 2 when a group would have fewer than MIN_GOOD words. A cut right after a word of
- * NO_CUT_AFTER, or right after an opening « ( or —, is never taken; if every cut is, the middle is.
- * Ties go to the cut closer to the middle, then to the earlier one.
+ * conjunction, plus 1 before a capitalised word (a name in apposition, « la magicienne | Circé »),
+ * plus 2 when a group would have fewer than MIN_GOOD words. A cut `blocked` is never taken; if every
+ * cut is, the middle is. Ties go to the cut closer to the middle, then to the earlier one.
  */
 function bestCut(toks: Token[], words: number[]): number {
   const n = words.length;
@@ -156,13 +237,14 @@ function bestCut(toks: Token[], words: number[]): number {
   let best = Math.floor(middle);
   let bestCost = Infinity;
   for (let k = MIN_SIDE; k <= n - MIN_SIDE; k++) {
-    const before = toks[words[k] - 1];
-    if (before.kind === 'punct' ? /^[«(—–"]$/.test(before.text) : NO_CUT_AFTER.has(lastPart(before.text))) continue;
-    const next = firstPart(toks[words[k]].text);
+    if (blocked(toks, words[k])) continue;
+    const nextText = toks[words[k]].text;
+    const next = firstPart(nextText);
     const distance = Math.abs(k - middle);
     const cost =
       distance +
       (CUT_BEFORE_CLAUSE.has(next) ? 0 : CUT_BEFORE_PHRASE.has(next) ? 0.5 : 2) +
+      (CAPITALISED.test(nextText) ? 1 : 0) +
       (Math.min(k, n - k) < MIN_GOOD ? 2 : 0);
     if (cost < bestCost || (cost === bestCost && distance < Math.abs(best - middle))) {
       best = k;

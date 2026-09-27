@@ -59,6 +59,8 @@ const NEEDS_NEXT = new Set([
   'je', 'tu', 'il', 'elle', 'on', 'ils', 'elles', 'se', 'ne', 'qu', 'j', 's', 'n',
   'a', 'ont', 'avait', 'avaient', 'est', 'sont', 'était', 'étaient', 'fut', 'furent',
   'et', 'ou', 'mais', 'qui', 'que', 'où', 'dont', 'quand', 'lorsque', 'comme',
+  // the first word of a two-word conjunction or idiom, and the adverbs of degree that always lean on the next
+  'parce', 'tandis', 'plutôt', 'dès', 'ainsi', 'alors', 'uns', 'unes', 'très', 'trop', 'assez',
 ]);
 const lastWord = (chunk: string): string => {
   const words = chunk.toLowerCase().match(/[\p{L}\p{N}'’-]+/gu) ?? [];
@@ -121,5 +123,111 @@ describe('splitChunks: where a long piece is halved', () => {
     // 13 words: the middle falls between words 6 and 7, « qui » starts word 9.
     expect(splitChunks("Le vieux berger compta longuement ses moutons fatigués qui dormaient sous les étoiles d'or"))
       .toEqual(['Le vieux berger compta longuement ses moutons fatigués', "qui dormaient sous les étoiles d'or"]);
+  });
+});
+
+// Fix round of the chunk review: real seed sentences, each pinned, one per rule of bestCut.
+describe('splitChunks: where a long piece of a seed text is halved', () => {
+  const sentenceOf = (file: string, start: string): string => {
+    const found = splitSentences(seedBody(file)).find((s) => s.text.startsWith(start));
+    if (!found) throw new Error(`${file}: no sentence starts with « ${start} »`);
+    return found.text;
+  };
+  const cases: { rule: string; file: string; start: string; groups: string[] }[] = [
+    {
+      rule: 'a pre-noun adjective stays with its noun (« un petit | chaperon » was cut)',
+      file: '001-perrault-chaperon-rouge.json',
+      start: 'Cette bonne femme',
+      groups: ['Cette bonne femme lui fit faire un petit chaperon rouge', 'qui lui seyait si bien,', "que partout on l'appelait le petit Chaperon rouge."],
+    },
+    {
+      rule: 'no cut inside a two-word conjunction (« plutôt | que »)',
+      file: '033-muses-polypheme.json',
+      start: "Ulysse comprit qu'il devait ruser",
+      groups: ["Ulysse comprit qu'il devait ruser", 'plutôt que combattre, et, tout bas,', 'il chuchota un plan à ses hommes tremblants.'],
+    },
+    {
+      rule: 'a pre-noun adjective (« de grandes | envies »), a verb and its « de » (« venait | de »)',
+      file: '017-maupassant-papa-de-simon.json',
+      start: 'Et Simon avait des minutes',
+      groups: ['Et Simon avait des minutes de béatitude,', "de cet alanguissement qui suit les larmes,", 'où il lui venait de grandes envies', "de s'endormir là, sur l'herbe,", 'dans la chaleur.'],
+    },
+    {
+      rule: 'a pre-noun adjective (« les petites | grenouilles »), and a cut before « au »',
+      file: '026-ramuz-aline.json',
+      start: "C'est l'heure où les petites",
+      groups: ["C'est l'heure où les petites grenouilles souffrent", 'au creux des mottes,', 'à cause du soleil qui a bu la rosée,', 'et leur gorge lisse saute vite.'],
+    },
+    {
+      rule: 'an adverb of degree stays with its adjective (« très | extraordinaire »)',
+      file: '006-carroll-alice-terrier.json',
+      start: "Il n'y avait rien là de bien étonnant",
+      groups: ["Il n'y avait rien là de bien étonnant,", 'et Alice ne trouva même pas très extraordinaire', "d'entendre parler le Lapin qui se disait :", '« Ah ! j\'arriverai trop tard ! »'],
+    },
+    {
+      rule: 'no cut inside a proper name (« Maréchal | Niel »)',
+      file: '012-kipling-rikki-tikki.json',
+      start: "C'était un grand jardin",
+      groups: [
+        "C'était un grand jardin,", 'seulement à demi cultivé,', 'avec des buissons de roses Maréchal Niel', 'aussi gros que des kiosques,',
+        'des citronniers et des orangers,', 'des bouquets de bambous et des fourrés de hautes herbes.',
+      ],
+    },
+    {
+      rule: '« tous » that ends its clause is a cut point (« se ressemblaient tous | et où »)',
+      file: '030-muses-fil-ariane.json',
+      start: "Thésée s'enfonça",
+      groups: ["Thésée s'enfonça dans les couloirs sombres,", 'où les murs de pierre se ressemblaient tous', 'et où les carrefours se multipliaient sans logique apparente.'],
+    },
+    {
+      rule: '« les uns après les autres » stays whole',
+      file: '002-andersen-vilain-petit-canard.json',
+      start: 'Enfin les œufs',
+      groups: ['Enfin les œufs commencèrent à crever', 'les uns après les autres ; on entendait « pi-pip » ;', "c'étaient les petits canards qui vivaient", 'et tendaient leur cou au dehors.'],
+    },
+    {
+      rule: '« les uns contre les autres » stays whole, and « les autres » may end a group',
+      file: '033-muses-polypheme.json',
+      start: "Les compagnons d'Ulysse",
+      groups: ["Les compagnons d'Ulysse, terrifiés,", 'se serrèrent les uns contre les autres', 'au fond de la grotte,', 'retenant leur souffle.'],
+    },
+    {
+      rule: 'an auxiliary, its negation and its participle stay together (« n\'était pas | passé »)',
+      file: '014-stevenson-ile-au-tresor.json',
+      start: 'Chaque soir, en revenant',
+      groups: ['Chaque soir, en revenant de sa promenade,', "il demandait s'il n'était pas passé", 'des marins sur la route.'],
+    },
+    {
+      rule: 'a verb and its « de » stay together (« nous venons | de rapporter »)',
+      file: '020-dumas-trois-mousquetaires.json',
+      start: 'En sortant de la chambre paternelle',
+      groups: [
+        'En sortant de la chambre paternelle,', 'le jeune homme trouva sa mère', "qui l'attendait avec la fameuse recette",
+        'dont les conseils que nous venons de rapporter', 'devaient nécessiter un assez fréquent emploi.',
+      ],
+    },
+  ];
+  for (const c of cases) {
+    it(c.rule, () => {
+      const s = sentenceOf(c.file, c.start);
+      expect(splitChunks(s)).toEqual(c.groups);
+    });
+  }
+
+  it('cuts before « parce que », never inside it', () => {
+    expect(splitChunks('Le petit berger restait assis sous le chêne parce que la pluie tombait sans cesse'))
+      .toEqual(['Le petit berger restait assis sous le chêne', 'parce que la pluie tombait sans cesse']);
+  });
+  it('never cuts after the « . » of « M. »: the title stays with its name', () => {
+    expect(splitChunks('Les belles chèvres du bon vieux M. Seguin se sauvaient toujours vers la montagne'))
+      .toEqual(['Les belles chèvres du bon vieux M. Seguin', 'se sauvaient toujours vers la montagne']);
+  });
+  it('never cuts between « venir » and its « de »', () => {
+    expect(splitChunks('Les bergers du village voisin venaient de rentrer au bercail avec leurs grands troupeaux'))
+      .toEqual(['Les bergers du village voisin venaient de rentrer', 'au bercail avec leurs grands troupeaux']);
+  });
+  it('never cuts after « tous » when a determiner follows', () => {
+    expect(splitChunks('Les enfants du village cueillirent tous les fruits mûrs du grand verger'))
+      .toEqual(['Les enfants du village cueillirent', 'tous les fruits mûrs du grand verger']);
   });
 });
