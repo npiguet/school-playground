@@ -102,7 +102,7 @@
 - Modify: `tools/tts/run_docker.sh` (a `parity` command and its usage line), `tools/tts/README.md` (a « Parity » section)
 
 **Interfaces:**
-- Consumes: `tools/tts/lines.json` (`lines.<id>.spoken`, `slowRate`), `tools/tts/round2.json` (`sentences.<id>.variants.C`, `paces`), the `discorde-tts-cache` volume (the bake-off's Hugging Face cache at `/cache/hf`), `with_playwright_lock` (`scripts/lib.sh`).
+- Consumes: `tools/tts/lines.json` (`lines.<id>.spoken`, `slowRate`), `tools/tts/round2.json` (`sentences.<id>.variants.C`, `paces`), the `discorde-tts-bakeoff-cache` volume (the bake-off's Hugging Face cache at `/cache/hf`; renamed in Task 1's fix round 2 so it never shares the service's line cache, `discorde-tts-cache`), `with_playwright_lock` (`scripts/lib.sh`).
 - Produces: `tools/tts/parity.json` with `verdict` ∈ `"onnx" | "onnx-misaki" | "torch"` (Task 3 reads it), `versions` (the exact package versions that ran), `files` (each model file: `url`, `sha256`, `bytes`; Task 3's Dockerfile checksums come from here), `criteria`, `noise_floor` and a row per line.
 
 - [ ] **Step 1: The parity image**
@@ -1947,7 +1947,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- server/
 
 **Interfaces:**
 - Consumes: `TTS_IMAGE`, `TTS_TEST_IMAGE`, `scripts/tts-pytest.sh` (Task 2); the model in the image (Task 3); `/api/tts/health` (Task 4).
-- Produces: the `tts` service in every stack (prod: volume `discorde-tts-cache`; e2e: `TTS_STUB` from the environment, default `1`; dev: default `0`); the playwright container waits for a healthy `tts`; `check.sh` steps `== tts: pytest` and `== docker build tts`; `playwright.sh` builds `app tts` and saves `web/test-results/tts.log` on a failure. Task 9 adds the real-voice step to `check.sh` after the e2e step.
+- Produces: the `tts` service in every stack (prod: volume `discorde-tts-cache`; e2e: `TTS_STUB` from the environment, default `1`; dev: the real voice, no stub switch, preflight ruling #10); the playwright container waits for a healthy `tts`; `check.sh` steps `== tts: pytest` and `== docker build tts`; `playwright.sh` builds `app tts` and saves `web/test-results/tts.log` on a failure. Task 9 adds the real-voice step to `check.sh` after the e2e step.
 
 - [ ] **Step 1: The e2e smoke test (failing)**
 

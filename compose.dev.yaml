@@ -20,8 +20,16 @@ services:
     volumes: [".:/work", "node_modules:/work/web/node_modules"]
     ports: ["${DEV_WEB_PORT:-5173}:5173"]
     depends_on: [server]
+  # The dictation's voice, the real model (the stub is for the e2e stack only, spec §4.1). The dev
+  # server needs no depends_on: it starts on its own and reaches the voice as http://tts:8000 once
+  # it is up.
+  tts:
+    image: ${TTS_IMAGE:-discorde-tts:local}
+    environment: { TTS_THREADS: "4" }
+    volumes: ["discorde-dev-tts-cache:/cache"]
 volumes:
   discorde-dev-data:
+  discorde-dev-tts-cache:
   node_modules:
     name: ${NODE_MODULES_VOLUME:-discorde-web-node_modules}
     external: true
