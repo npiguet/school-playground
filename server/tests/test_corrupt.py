@@ -501,6 +501,8 @@ def test_a_noun_with_a_gender_counterpart_does_not_fix_the_gender(lexicon):
     assert "partis" not in _mutations(candidates(parties("Les", "déesses", "déesse", "Fem"), lexicon, h), *AGREEMENT)
     # Les rois sont partis . — « parties » also reads as « Les reines sont parties »
     assert "parties" not in _mutations(candidates(parties("Les", "rois", "roi", "Masc"), lexicon, h), *AGREEMENT)
+    # Les sœurs sont parties . — « partis » also reads as « Les frères sont partis » (Lexique spells « soeur »)
+    assert "partis" not in _mutations(candidates(parties("Les", "sœurs", "sœur", "Fem"), lexicon, h), *AGREEMENT)
     # Control — Les fées sont parties . : « fée » has no masculine, « partis » has one repair
     assert "partis" in _mutations(candidates(parties("Les", "fées", "fée", "Fem"), lexicon, h), *AGREEMENT)
     # « une lion » also reads as « une lionne », « un grande rocher » has one repair
@@ -772,10 +774,11 @@ def _group_agrees(lexicon, g: dict, by_i: dict, forms: dict[int, str]) -> bool:
 
 _ALL_DETERMINERS = ({*DET_NUMBER, *DET_NUMBER.values(), *DET_NUMBER_REVERSE, *DET_GENDER, *DET_GENDER.values(), "l'"}
                     | {d for pair in DET_NUMBER_REVERSE.values() for d in pair})
+_OE = str.maketrans({"œ": "oe", "æ": "ae"})   # Lexique spells « soeur »
 _PAIRS: dict[str, set[str]] = {}
 for _m, _f in NOUN_GENDER_PAIRS:
-    _PAIRS.setdefault(_m, set()).add(_f)
-    _PAIRS.setdefault(_f, set()).add(_m)
+    _PAIRS.setdefault(_m.translate(_OE), set()).add(_f.translate(_OE))
+    _PAIRS.setdefault(_f.translate(_OE), set()).add(_m.translate(_OE))
 
 
 _KINDS = {"NOUN": ("NOM",), "PROPN": ("NOM",), "ADJ": ("ADJ", "VER"), "VERB": ("VER", "AUX"),
@@ -786,7 +789,7 @@ def _repairs(lexicon, t: dict) -> set[str]:
     """Every word a reader could put in `t`'s place and still write the same word, in the same role:
     the forms of its Lexique lemma (a noun's other nouns, a verb's other verb forms), of its gender
     counterpart, another personal pronoun, another determiner."""
-    w = t["text"].lower()
+    w = t["text"].lower().translate(_OE)
     if t["pos"] == "PRON" and w in _PRONOUNS:
         return set(_PRONOUNS) - {w}
     if t["pos"] == "DET" and t["dep"] in ("det", "det:poss"):

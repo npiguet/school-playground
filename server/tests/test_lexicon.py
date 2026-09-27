@@ -60,9 +60,30 @@ def test_gender_counterparts_of_a_noun(lexicon):
     assert lexicon.gender_counterparts("déesse", "déesse") == {"dieu"}
     assert lexicon.gender_counterparts("rois", "roi") == {"reines"}         # same number
     assert "ogresse" in lexicon.gender_counterparts("ogre", "ogre")
-    assert "danseuse" in lexicon.gender_counterparts("danseur", "danseur")  # a derived suffix pair
+    assert lexicon.gender_counterparts("sœurs", "sœur") == {"frères"}       # Lexique spells « soeur »
+    assert lexicon.gender_counterparts("frère", "frère") == {"sœur"}
     assert lexicon.gender_counterparts("rocher", "rocher") == set()         # gender fixed
     assert lexicon.gender_counterparts("maison", "maison") == set()
+
+
+def test_no_gender_pair_is_derived_from_a_suffix(lexicon):
+    # suffix rules (-esse, -ine, -euse, -trice) pair unrelated nouns: only Lexique's lemmas and the table count
+    for noun in ("machine", "ruine", "haine", "haleine", "usine", "farine", "jeunesse", "richesse", "sagesse"):
+        assert lexicon.gender_counterparts(noun, noun) == set(), noun
+    for noun, false_pair in (("serpent", "serpentine"), ("café", "caféine"), ("dé", "déesse"), ("petit", "petitesse"),
+                             ("grand", "grandesse"), ("rat", "ratine"), ("car", "caresse"), ("jeune", "jeunesse")):
+        assert false_pair not in lexicon.gender_counterparts(noun, noun), (noun, false_pair)
+
+
+def test_the_oe_ligature_is_folded(lexicon):
+    # Lexique spells « soeur », « coeur », « boeufs »: a word written with the ligature is still known
+    for word in ("cœur", "bœuf", "bœufs", "œil", "œuvre", "vœu", "nœud", "sœur", "œufs"):
+        assert lexicon.is_known(word), word
+    # and a form found for it keeps the ligature
+    assert lexicon.flip_number("bœuf", "bœuf", {"Gender": "Masc", "Number": "Sing"}) == "bœufs"
+    assert lexicon.flip_number("cœurs", "cœur", {"Gender": "Masc", "Number": "Plur"}) == "cœur"
+    assert lexicon.flip_number("vœu", "vœu", {"Gender": "Masc", "Number": "Sing"}) == "vœux"
+    assert "cœurs" in lexicon.forms_of("cœur", "cœur")
 
 
 # SP2 playability P1-4: the Grimoire planted « étalaient → étala » (imparfait → passé simple) and
