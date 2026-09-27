@@ -11,7 +11,10 @@ another real, plausible spelling — never a spelling that is itself correct (sp
 - an agreement flip is planted only when the chain's controller really dictates the flipped
   feature: never a gender flip under « je/tu/nous/vous » or an epicene noun (« une enfant »),
   never a number flip on the determiner of an invariable noun (« le bras » / « les bras »),
-  nothing at all under « on » / « ce » (final review C-1, C-2). When in doubt, skip.
+  nothing at all under « on » / « ce » (final review C-1, C-2). When in doubt, skip;
+- an agreement slip is planted only when the original is its one single-word repair: « un lions »
+  (from « des lions ») also reads as « un lion », so it is never planted (see `_one_repair`); and a
+  determiner never takes a number or gender plant, since other determiners would repair it too.
 
 Pure, deterministic (given a `random.Random` instance) planning logic; `server/app/routers/
 texts.py` wires this to sqlite (profile stats, trap words) and the stored annotation.
@@ -25,7 +28,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from app.levels import level_index
-from app.nlp.chains import INDEFINITE_SUBJECTS
+from app.nlp.chains import INDEFINITE_SUBJECTS, NOMINAL_POS
 from app.world.catalog import LIEUTENANTS
 
 BASE_WEIGHTS = {
@@ -54,6 +57,7 @@ GENDERED_PRONOUNS = {"il": "Masc", "ils": "Masc", "elle": "Fem", "elles": "Fem"}
 # (« Vous êtes venu »): the pronoun's form does not dictate the number of such targets.
 NUMBER_AMBIGUOUS_PRONOUNS = {"nous", "vous"}
 _LEXIQUE_GENDER = {"m": "Masc", "f": "Fem"}
+NUMBER, GENDER = frozenset({"Number"}), frozenset({"Gender"})
 
 
 def corruption_count(word_count: int) -> int:
@@ -230,14 +234,145 @@ def _differ_only_by_s(a: str, b: str) -> bool:
     return a.lower().rstrip("s") == b.lower().rstrip("s")
 
 
+# --- One repair only (Grimoire ambiguity) ---
+# A planted agreement slip must have exactly one single-word repair: the original. After the plant, the
+# other words of the agreement group still carry the original value; when only one of them carries it
+# and it could change too, it offers a second repair: « un lions » reads as « des lions » or as « un
+# lion ». A plant is kept only when the original value is carried by a word that cannot change (the
+# fixed gender of « rocher », the person of a noun subject, the plural of a coordination) or by at
+# least two words. A word that marks no value (« bras », « féroce » for gender) carries nothing.
+
+def _agreement_groups(chains: list[dict], by_i: dict[int, dict], lexicon) -> dict[int, list[dict]]:
+    """The agreement groups each token belongs to: a controller with the targets of all its chains
+    (its determiners and adjectives, its verbs, attributes and participles). A coordinated subject is
+    a group of its own, whose plural the coordination imposes."""
+    groups: dict[tuple[int, bool], dict] = {}
+    coordinated = {t["head"] for t in by_i.values() if t["dep"] == "conj" and t["head"] != t["i"]}
+    for c in chains:
+        if c.get("rule") == "no_agreement":
+            continue  # « ils ont mangé »: the participle agrees with no word, its only repair is itself
+        # « le lion et le loup dorment », and through « qui » / « que » (« le lion et le loup qui
+        # dorment »): the predicate agrees with the coordination, not with its first noun
+        conj = c.get("via") == "conj" or (c["kind"] != "nominal" and c["controller"] in coordinated)
+        g = groups.setdefault((c["controller"], conj), {"controller": c["controller"], "conj": conj,
+                                                         "members": set(), "values": {}})
+        g["members"].update(c["targets"])
+        # a nominal chain records no person, a predicate noun's chain no gender: merge them all
+        gender = None if conj else _controller_gender(c, by_i, lexicon)   # « la louve et le lion »: masculine
+        for feature, value in (("Number", "Plur" if conj else c["features"].get("Number")),
+                               ("Person", c["features"].get("Person")), ("Gender", gender)):
+            if g["values"].get(feature) is None:
+                g["values"][feature] = value
+    of_token: dict[int, list[dict]] = {}
+    for g in groups.values():
+        for i in g["members"] | {g["controller"]}:
+            of_token.setdefault(i, []).append(g)
+    return of_token
+
+
+AGREEING_POS = {"DET", "ADJ", "VERB", "AUX", "NOUN"}
+# Subject pronouns with no other-number or other-person form a repair could swap in: « Chacun
+# dorment » has one repair. Personal pronouns do swap (« Ils dort » → « Il dort », « Il es » → « Tu es »).
+FIXED_PRONOUNS = {"chacun", "chacune", "personne", "rien", "cela", "ça", "ceci", "quelqu'un", "quelqu'une",
+                  "quiconque", "aucun", "aucune", "nul", "nulle"}
+_NUMBER_LETTER = {"Sing": "s", "Plur": "p"}
+
+
+def _known_verb(t: dict, lexicon) -> bool:
+    return any(e.cgram.split(":")[0] in ("VER", "AUX") for e in lexicon.lookup(t["text"]))
+
+
+def _noun_number_carrier(g: dict, t: dict, by_i: dict[int, dict], lexicon) -> str | None:
+    if _flips_number(t, lexicon):
+        return "flip"  # a common noun, even one the small model tagged PROPN (« la mer »)
+    if t["pos"] == "PROPN":
+        # « Ulysse » alone is singular; « des Byron » takes no plural mark
+        return None if any(by_i[i]["pos"] == "DET" for i in g["members"]) else "fixed"
+    # a noun Lexique knows in one number only (« gens »), against an invariable one (« bras »)
+    numbers = {e.nombre for e in lexicon.lookup(t["text"]) if e.cgram.split(":")[0] == "NOM"}
+    return "fixed" if numbers == {_NUMBER_LETTER.get(g["values"]["Number"])} else None
+
+
+def _carrier(g: dict, t: dict, feature: str, by_i: dict[int, dict], lexicon) -> str | None:
+    """How `t` carries the group's value of `feature`: "fixed" (it cannot change), "flip" (another
+    form of it carries the other value) or None (it marks no value)."""
+    morph = t.get("morph", {})
+    if t["i"] == g["controller"]:
+        if g["conj"]:
+            return "fixed" if feature == "Number" or t["pos"] in NOMINAL_POS else "flip"
+        if t["pos"] not in NOMINAL_POS:
+            if feature != "Gender" and _lower(t["text"]) in FIXED_PRONOUNS:
+                return "fixed"
+            return "flip"  # « il » → « elle », « ils », « tu »
+        if feature == "Person":
+            return "fixed"
+        if feature == "Number":
+            return _noun_number_carrier(g, t, by_i, lexicon)
+        # « lion » / « lionne », « dieu » / « déesse »: a noun with a counterpart could change instead
+        return "flip" if lexicon.gender_counterparts(t["text"], t["lemma"]) else "fixed"
+    if feature == "Number" and _lower(t["text"]) == "l'" and g["values"]["Number"] == "Sing":
+        return "fixed"  # « L'oiseaux » is no French: « l' » is singular and has no plural form
+    if t["pos"] not in AGREEING_POS or morph.get(feature) != g["values"][feature]:
+        return None  # a pronoun the parse hung on a noun (« a bu la rosée ») agrees with nothing
+    if morph.get("VerbForm") == "Fin" and not _known_verb(t, lexicon):
+        return None  # a noun the parse took for a verb (« front »): its plural is no verb agreement
+    if feature == "Person":
+        return "flip" if morph.get("VerbForm") == "Fin" else None
+    flip = lexicon.flip_number if feature == "Number" else lexicon.flip_gender
+    return "flip" if flip(t["text"], t["lemma"], morph) else None
+
+
+def _one_repair(t: dict, features: set[str], groups: list[dict], by_i: dict[int, dict], lexicon) -> bool:
+    """True when changing `features` of `t` leaves the original as the only single-word repair."""
+    for g in groups:
+        for feature in features:
+            if g["values"][feature] is None:
+                return False
+            carriers = [c for i in g["members"] | {g["controller"]} if i != t["i"]
+                        if (c := _carrier(g, by_i[i], feature, by_i, lexicon))]
+            if "fixed" not in carriers and len(carriers) < 2:
+                return False
+    return True
+
+
+# No number or gender plant on a determiner (ruling R2): « un lions féroces » reads as « des », but
+# also as « les », « ces » or « mes lions féroces », and the grader wants the original back. Plants go
+# on the adjectives, participles and verbs; determiners still carry the value for `_one_repair`.
+UNPLANTED_POS = frozenset({"DET"})
+
+
+def _swap_features(t: dict, mutated: str, next_word: str | None, lexicon) -> set[str]:
+    """The agreement features a homophone swap changes: « leurs » → « leur » (number), « quel » →
+    « quelles » (gender and number), « est » → « es » (person). Empty for another word (« et »)."""
+    morph = t.get("morph", {})
+    m = mutated.lower()
+    features = set()
+    if lexicon.flip_number(t["text"], t["lemma"], morph) == m:
+        features.add("Number")
+    if lexicon.flip_gender(t["text"], t["lemma"], morph, next_word) == m:
+        features.add("Gender")
+    if features or not {e.lemme for e in lexicon.lookup(t["text"])} & {e.lemme for e in lexicon.lookup(m)}:
+        return features
+    return {"Person"} if morph.get("VerbForm") == "Fin" else {"Number", "Gender"}
+
+
 def candidates(annotation: dict, lexicon, homophones, trap_words: set[str] = frozenset(),
                reform: dict | None = None) -> dict[str, list[dict]]:
     tokens = annotation["tokens"]
     by_i = {t["i"]: t for t in tokens}
     chains = [c for c in annotation.get("chains", []) if c["confidence"] in ("high", "medium")]
     out: dict[str, list[dict]] = {cat: [] for cat in BASE_WEIGHTS}
+    groups = _agreement_groups(chains, by_i, lexicon)
 
-    def add(cat: str, t: dict, mutated: str | None) -> None:
+    def add(cat: str, t: dict, mutated: str | None, features: set[str] = frozenset()) -> None:
+        if features & {"Number", "Gender"} and t["pos"] in UNPLANTED_POS:
+            return
+        if features:
+            if t["i"] in groups:
+                if not _one_repair(t, features, groups[t["i"]], by_i, lexicon):
+                    return
+            elif cat == "homophone" and t["pos"] in {"DET", "ADJ", "VERB", "AUX"}:
+                return  # a word that agrees with some other word, but no chain says which: skip
         if _valid(t["text"], mutated) and not is_reform_equivalent(t["text"], mutated, reform):
             out[cat].append({"token": t["i"], "start": t["start"], "end": t["end"],
                               "original": t["text"], "mutated": mutated, "category": cat})
@@ -253,8 +388,9 @@ def candidates(annotation: dict, lexicon, homophones, trap_words: set[str] = fro
         if c["kind"] == "subject_verb":
             for ti in c["targets"]:
                 t = by_i[ti]
-                if _eligible(t) and t.get("morph", {}).get("VerbForm") == "Fin":
-                    add("agreement:verb", t, lexicon.flip_number(t["text"], t["lemma"], t.get("morph", {})))
+                # a noun the parse took for a verb (« front contre front »): its plural is no verb agreement
+                if _eligible(t) and t.get("morph", {}).get("VerbForm") == "Fin" and _known_verb(t, lexicon):
+                    add("agreement:verb", t, lexicon.flip_number(t["text"], t["lemma"], t.get("morph", {})), NUMBER)
 
         # An invariable head noun (bras, souris, prix…) makes « le bras » / « les bras » both correct:
         # no number flip anywhere in its group. The head noun itself is never planted either:
@@ -265,7 +401,7 @@ def candidates(annotation: dict, lexicon, homophones, trap_words: set[str] = fro
             for ti in c["targets"]:
                 t = by_i[ti]
                 if _eligible(t) and t["pos"] in {"DET", "ADJ"}:
-                    add("agreement:number", t, lexicon.flip_number(t["text"], t["lemma"], t.get("morph", {})))
+                    add("agreement:number", t, lexicon.flip_number(t["text"], t["lemma"], t.get("morph", {})), NUMBER)
 
         if c["kind"] in {"nominal", "attribute", "participle_etre"} and gender is not None:
             for ti in c["targets"]:
@@ -274,17 +410,17 @@ def candidates(annotation: dict, lexicon, homophones, trap_words: set[str] = fro
                 if _eligible(t) and (t["pos"] in {"DET", "ADJ"} or is_participle):
                     next_word = _next_word(by_i, t["i"])
                     add("agreement:gender", t,
-                        lexicon.flip_gender(t["text"], t["lemma"], t.get("morph", {}), next_word))
+                        lexicon.flip_gender(t["text"], t["lemma"], t.get("morph", {}), next_word), GENDER)
 
         for ti in c["targets"]:
             t = by_i[ti]
             if _eligible(t) and t.get("morph", {}).get("VerbForm") == "Part":
                 next_word = _next_word(by_i, t["i"])
                 if number_dictated:
-                    add("agreement:participle", t, lexicon.flip_number(t["text"], t["lemma"], t.get("morph", {})))
+                    add("agreement:participle", t, lexicon.flip_number(t["text"], t["lemma"], t.get("morph", {})), NUMBER)
                 if gender is not None:
                     add("agreement:participle", t,
-                        lexicon.flip_gender(t["text"], t["lemma"], t.get("morph", {}), next_word))
+                        lexicon.flip_gender(t["text"], t["lemma"], t.get("morph", {}), next_word), GENDER)
 
     for t in tokens:
         if not _eligible(t):
@@ -300,7 +436,7 @@ def candidates(annotation: dict, lexicon, homophones, trap_words: set[str] = fro
                         continue
                     if skip_s_only and _differ_only_by_s(text, m):
                         continue  # « leurs bras » vs « leur bras »
-                    add("homophone", t, match_case(text, m))
+                    add("homophone", t, match_case(text, m), _swap_features(t, m, _next_word(by_i, t["i"]), lexicon))
 
         accent_idx = _last_accent_index(text)
         if accent_idx is not None:

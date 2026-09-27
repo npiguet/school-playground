@@ -28,6 +28,23 @@ class Entry:
 
 ELISIONS = ("l'", "d'", "qu'", "j'", "n'", "m'", "t'", "s'", "c'")
 
+# Lexique spells the ligatures out (« soeur », « coeur », « boeufs »): every word and lemma is looked
+# up folded, and a form found for a word written with the ligature is given it back (« sœurs »).
+_LIGATURES = str.maketrans({"œ": "oe", "æ": "ae"})
+
+
+def _fold(word: str) -> str:
+    return word.lower().replace("’", "'").translate(_LIGATURES)
+
+
+def _restyle(word: str, form: str) -> str:
+    low = word.lower()
+    if "œ" in low:
+        form = form.replace("oe", "œ")
+    if "æ" in low:
+        form = form.replace("ae", "æ")
+    return form
+
 DET_NUMBER = {
     "le": "les", "la": "les", "un": "des", "une": "des", "ce": "ces", "cet": "ces", "cette": "ces",
     "mon": "mes", "ma": "mes", "ton": "tes", "ta": "tes", "son": "ses", "sa": "ses",
@@ -51,6 +68,32 @@ DET_GENDER = {
 # "ce" and "cet" both map to "cette" in DET_GENDER, so a naive reverse loses "ce". "cette" is
 # excluded here and resolved by _masculine_demonstrative(next_word) instead.
 DET_GENDER_REVERSE = {v: k for k, v in DET_GENDER.items() if k not in ("ce", "cet")}
+
+# Nouns whose other-gender counterpart Lexique files under another lemma, or that are another word
+# altogether (masculine, feminine). « La dieu » reads as « Le dieu » or as « La déesse »: the noun's
+# gender is not fixed, so a gender slip around it has two repairs (Grimoire ambiguity, ruling R1).
+NOUN_GENDER_PAIRS = (
+    ("dieu", "déesse"), ("roi", "reine"), ("oncle", "tante"), ("ogre", "ogresse"), ("prince", "princesse"),
+    ("héros", "héroïne"), ("homme", "femme"), ("mari", "femme"), ("père", "mère"), ("frère", "sœur"),
+    ("fils", "fille"), ("garçon", "fille"), ("maître", "maîtresse"), ("comte", "comtesse"),
+    ("duc", "duchesse"), ("empereur", "impératrice"), ("neveu", "nièce"), ("époux", "épouse"),
+    ("parrain", "marraine"), ("monsieur", "madame"), ("seigneur", "dame"), ("gendre", "bru"),
+    ("papa", "maman"), ("grand-père", "grand-mère"), ("compagnon", "compagne"), ("serviteur", "servante"),
+    ("tigre", "tigresse"), ("âne", "ânesse"), ("poète", "poétesse"), ("prêtre", "prêtresse"),
+    ("hôte", "hôtesse"), ("abbé", "abbesse"), ("pape", "papesse"), ("damoiseau", "demoiselle"),
+    ("jumeau", "jumelle"), ("vieillard", "vieille"), ("cheval", "jument"), ("bouc", "chèvre"),
+    ("taureau", "vache"), ("bélier", "brebis"), ("coq", "poule"), ("cerf", "biche"), ("sanglier", "laie"),
+    ("lièvre", "hase"), ("jars", "oie"), ("mâle", "femelle"), ("chanoine", "chanoinesse"),
+    ("sorcier", "sorcière"), ("magicien", "magicienne"), ("berger", "bergère"), ("dauphin", "dauphine"),
+    ("tsar", "tsarine"), ("chasseur", "chasseresse"), ("vengeur", "vengeresse"), ("docteur", "doctoresse"),
+    ("diable", "diablesse"), ("traître", "traîtresse"), ("druide", "druidesse"), ("prophète", "prophétesse"),
+    ("pauvre", "pauvresse"),
+)
+# Keyed as Lexique spells the lemmas it is matched against (« soeur »); the values keep the ligature.
+_GENDER_PAIR_OF: dict[str, set[str]] = {}
+for _m, _f in NOUN_GENDER_PAIRS:
+    _GENDER_PAIR_OF.setdefault(_m.translate(_LIGATURES), set()).add(_f)
+    _GENDER_PAIR_OF.setdefault(_f.translate(_LIGATURES), set()).add(_m)
 
 # Small, deliberately conservative list of common "h muet" words (liaison applies, so the
 # masculine demonstrative is "cet"). Absent from this list, an h-initial word is treated as
@@ -109,7 +152,7 @@ class Lexicon:
         self.by_phon = by_phon
 
     def lookup(self, word: str) -> list[Entry]:
-        w = word.lower().replace("’", "'")
+        w = _fold(word)
         hit = self.by_ortho.get(w)
         if hit:
             return hit
@@ -122,11 +165,15 @@ class Lexicon:
         return bool(self.lookup(word))
 
     def _candidate_lemmas(self, word: str, lemma: str | None) -> list[str]:
-        """The lemma to search under: the given spaCy lemma when the lexicon knows it,
-        else every lemma of the word's own lexicon entries."""
-        if lemma and lemma in self.by_lemme:
+        """The lemma to search under: the given spaCy lemma when the lexicon knows it and it is one of
+        the word's own lemmas (or the word is unknown), else every lemma of the word's own entries.
+        A spaCy lemma foreign to the word (« enfant » lemmatised « enfer ») would flip it into
+        another word."""
+        own = sorted({e.lemme for e in self.lookup(word)})
+        lemma = lemma.translate(_LIGATURES) if lemma else lemma   # spaCy says « sœur », Lexique « soeur »
+        if lemma and lemma in self.by_lemme and (not own or lemma in own):
             return [lemma]
-        return sorted({e.lemme for e in self.lookup(word)})
+        return own
 
     def _own_features(self, word: str, cgram_prefixes: tuple[str, ...], morph: dict) -> tuple[str | None, str | None]:
         """Resolve (genre, nombre) for word's own entries restricted to cgram_prefixes.
@@ -154,7 +201,7 @@ class Lexicon:
         return genre, nombre
 
     def forms_of(self, word: str, lemma: str | None = None, limit: int = 12) -> dict[str, dict]:
-        w = word.lower().replace("’", "'")
+        w = _fold(word)
         lemmas = self._candidate_lemmas(word, lemma)
         own = self.lookup(word)
         finite = [c for e in own if e.lemme in lemmas
@@ -229,10 +276,10 @@ class Lexicon:
                 n = e.nombre or None
             result[e.ortho] = {"g": g, "n": n}
 
-        return dict(list(result.items())[:limit])
+        return {_restyle(word, form): v for form, v in list(result.items())[:limit]}
 
     def sound_alikes(self, word: str, min_freq: float = 0.5, limit: int = 5) -> list[str]:
-        w = word.lower().replace("’", "'")
+        w = _fold(word)
         phons = {e.phon for e in self.lookup(word)}
         best: dict[str, float] = {}
         for p in phons:
@@ -242,7 +289,7 @@ class Lexicon:
                 if e.ortho not in best or e.freq > best[e.ortho]:
                     best[e.ortho] = e.freq
         ordered = sorted(best.items(), key=lambda kv: -kv[1])
-        return [ortho for ortho, _ in ordered[:limit]]
+        return [_restyle(word, ortho) for ortho, _ in ordered[:limit]]
 
     def _flip_verb_number(self, word: str, lemma: str, morph: dict) -> str | None:
         """The same finite form in the other number, keeping mood, tense and person.
@@ -282,7 +329,7 @@ class Lexicon:
         return best.ortho if best is not None else None
 
     def flip_number(self, word: str, lemma: str, morph: dict) -> str | None:
-        w = word.lower().replace("’", "'")
+        w = _fold(word)
         result: str | None = None
 
         if w in DET_NUMBER:
@@ -291,18 +338,29 @@ class Lexicon:
             masc, fem = DET_NUMBER_REVERSE[w]
             result = fem if morph.get("Gender") == "Fem" else masc
 
-        if result is None:
-            result = self._flip_verb_number(word, lemma, morph)
+        tagged_participle = morph.get("VerbForm") == "Part"
+        if result is None and not tagged_participle:
+            result = self._flip_verb_number(word, lemma, morph)  # « finis » tagged Part stays a participle
 
         if result is None:
-            genre, own_nombre = self._own_features(word, ("NOM", "ADJ"), morph)
+            # Nouns, adjectives and past participles (under the verb's lemma: « parties » → « partie »).
+            # A past participle is a word tagged as one, or a word the lexicon knows as a participle and
+            # never as a finite form (« vu » mis-tagged finite); never a finite form whose flip failed above.
+            codes = {c for e in self.lookup(word) for c in e.infover.split(";") if c}
+            finite = any(c.count(":") == 2 and not c.startswith("par:") for c in codes)
+            participle = "par:pas" in codes and (tagged_participle or not finite)
+            kinds = ("NOM", "ADJ", "VER", "AUX") if participle else ("NOM", "ADJ")
+            genre, own_nombre = self._own_features(word, kinds, morph)
             target_nombre = "p" if own_nombre == "s" else ("s" if own_nombre == "p" else None)
             if target_nombre is not None:
                 lemmas = self._candidate_lemmas(word, lemma)
                 best = None
                 for l in lemmas:
                     for e in self.by_lemme.get(l, []):
-                        if e.cgram.split(":")[0] not in ("NOM", "ADJ"):
+                        cgram_prefix = e.cgram.split(":")[0]
+                        if cgram_prefix not in kinds:
+                            continue
+                        if cgram_prefix in ("VER", "AUX") and "par:pas" not in e.infover.split(";"):
                             continue
                         if e.nombre != target_nombre:
                             continue
@@ -318,10 +376,10 @@ class Lexicon:
 
         if result is None or result == w:
             return None
-        return result
+        return _restyle(word, result)
 
     def flip_gender(self, word: str, lemma: str, morph: dict, next_word: str | None = None) -> str | None:
-        w = word.lower().replace("’", "'")
+        w = _fold(word)
         result: str | None = None
 
         if w == "cette":
@@ -357,7 +415,31 @@ class Lexicon:
 
         if result is None or result == w:
             return None
-        return result
+        return _restyle(word, result)
+
+    def gender_counterparts(self, word: str, lemma: str | None = None) -> set[str]:
+        """The noun's forms in the other gender, same number: « lion » → « lionne » (one lemma in
+        Lexique), « dieu » → « déesse », « rois » → « reines », « sœurs » → « frères »
+        (NOUN_GENDER_PAIRS). Empty for a noun whose gender is fixed (« rocher »).
+
+        The pair table is the only source beyond Lexique's own lemmas: suffix rules (-esse, -euse,
+        -trice, -ine) pair unrelated nouns (jeune / jeunesse, riche / richesse, serpent / serpentine,
+        machine / « mach »), so the real pairs are listed instead."""
+        w = _fold(word)
+        out: set[str] = set()
+        same_lemma = self.flip_gender(word, lemma or w, {})
+        if same_lemma:
+            out.add(same_lemma)
+        for e in self.lookup(word):
+            if e.cgram.split(":")[0] != "NOM":
+                continue
+            for other in _GENDER_PAIR_OF.get(e.lemme.lower(), set()):
+                plural = self.flip_number(other, other, {"Number": "Sing"}) or other
+                if e.nombre != "p":
+                    out.add(other)
+                if e.nombre != "s":
+                    out.add(plural)  # « fils » is both numbers: « fille » and « filles »
+        return {o for o in out if _fold(o) != w}
 
 
 @lru_cache(maxsize=2)
