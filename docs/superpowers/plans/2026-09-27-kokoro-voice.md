@@ -1476,7 +1476,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- scripts
 
 **Interfaces:**
 - Consumes: `tools/tts/parity.json` (`verdict`, `versions`, `files.onnx.*.sha256` or `files.torch.*.sha256`) from Task 1; `app.engine.load_engine` (imports `app.kokoro.KokoroEngine(model_dir: Path, threads: int)`), `app.text.segments`, `app.audio.SR`, `app.audio.encode_mp3` from Task 2.
-- Produces: `app.kokoro.KokoroEngine` with `model_id` (`"kokoro-82m-v1.0-onnx"`, `"kokoro-82m-v1.0-onnx-misaki"` or `"kokoro-82m-v1.0-torch"`) and `synth(text, speed) -> np.ndarray`; the runtime and test images carry the model under `/models`. Nothing outside `tts/app/kokoro.py`, `tts/Dockerfile` and `tts/requirements.txt` depends on the verdict.
+- Produces: `app.kokoro.KokoroEngine` with `model_id` `"kokoro-82m-v1.0-onnx-direct"` (`app.kokoro.MODEL_ID`; the verdict was `onnx-direct`, Task 3 addendum and lane S2 fix round, Ruling 1: the other variants below were not built) and `synth(text, speed) -> np.ndarray`; the runtime and test images carry the model under `/models`. Nothing outside `tts/app/kokoro.py`, `tts/Dockerfile` and `tts/requirements.txt` depends on the verdict.
 
 - [ ] **Step 1: Write the failing model tests**
 
@@ -2052,7 +2052,7 @@ Expected: PASS on `desktop` (the smoke spec is a `desktop` spec).
 
 - [ ] **Step 4: Measure the image**
 
-Run: `source scripts/lib.sh && docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' "$TTS_IMAGE" "$APP_IMAGE"`
+Run: `source scripts/lib.sh && for i in "$TTS_IMAGE" "$APP_IMAGE"; do docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' "$i"; done` (`docker image ls` takes one reference at a time)
 Expected: both sizes (paste them; the README below uses them).
 
 - [ ] **Step 5: The README**
@@ -2112,7 +2112,7 @@ Edit `README.md` (English, as the rest):
 
    Then:
 
-   1. Open `http://<server>:8080/api/tts/health`. `{"voice":"ready","engine":"kokoro-82m-v1.0-…"}` means the
+   1. Open `http://<server>:8080/api/tts/health`. `{"voice":"ready","engine":"kokoro-82m-v1.0-onnx-direct"}` means the
       voice is fine again: tap « Réessayer » on the card. `{"voice":"loading"}`: wait a minute and try
       again. `{"voice":"unreachable"}`: the container is not running. `{"voice":"error"}`: it could not load
       its model; its logs say why.

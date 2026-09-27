@@ -50,8 +50,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             import_seed(conn, settings.content_dir, annotator)
             reannotate_outdated(conn, annotator)
         conn.close()
-        # The dictation's voice (Kokoro plan Task 4): one pooled client for /api/tts/*.
-        app.state.tts_client = httpx.Client(base_url=settings.tts_url)
+        # The dictation's voice (Kokoro plan Task 4): one pooled client for /api/tts/*. trust_env=False: the
+        # hop stays inside the compose network, whatever HTTP_PROXY Docker Desktop injects.
+        app.state.tts_client = httpx.Client(base_url=settings.tts_url, trust_env=False)
         yield
         app.state.tts_client.close()
 

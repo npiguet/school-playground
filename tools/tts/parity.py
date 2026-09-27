@@ -43,6 +43,8 @@ VOICE = "ff_siwis"
 ONNX_BASE = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0"
 ONNX_FILES = ["kokoro-v1.0.onnx", "voices-v1.0.bin"]
 HF_REPO = "hexgrad/Kokoro-82M"
+# A commit, not `main`: the files (and the URLs parity.json records for tts/Dockerfile) cannot move.
+HF_REVISION = "f3ff3571791e39611d31c381e3a41a3af07b4987"
 HF_FILES = ["kokoro-v1_0.pth", "config.json", "voices/ff_siwis.pt"]
 MAX_LEN_DIFF_S = 0.05      # or MAX_LEN_DIFF_REL of the PyTorch length, whichever is larger
 MAX_LEN_DIFF_REL = 0.02
@@ -120,21 +122,24 @@ def vocab_only(ps: str, vocab) -> str:
 def torch_build():
     import torch
     from huggingface_hub import snapshot_download
-    from kokoro import KPipeline
+    from kokoro import KModel, KPipeline
 
     torch.set_num_threads(THREADS)
-    pipe = KPipeline(lang_code="f", repo_id=HF_REPO)
-    local = Path(snapshot_download(HF_REPO, allow_patterns=HF_FILES))
+    local = Path(snapshot_download(HF_REPO, revision=HF_REVISION, allow_patterns=HF_FILES))
+    # The pinned snapshot's own files: given paths, KModel and KPipeline fetch nothing from `main`.
+    model = KModel(repo_id=HF_REPO, config=str(local / "config.json"), model=str(local / "kokoro-v1_0.pth")).eval()
+    pipe = KPipeline(lang_code="f", repo_id=HF_REPO, model=model)
+    voice = str(local / f"voices/{VOICE}.pt")
 
     def synth(text: str, speed: float, seed: int):
         torch.manual_seed(seed)
         audio, ph = [], []
-        for r in pipe(text, voice=VOICE, speed=speed):
+        for r in pipe(text, voice=voice, speed=speed):
             audio.append(r.audio.numpy())
             ph.append(r.phonemes)
         return np.concatenate(audio), ph
 
-    files = {f: {"url": f"https://huggingface.co/{HF_REPO}/resolve/main/{f}", "sha256": sha256(local / f),
+    files = {f: {"url": f"https://huggingface.co/{HF_REPO}/resolve/{HF_REVISION}/{f}", "sha256": sha256(local / f),
                  "bytes": (local / f).stat().st_size} for f in HF_FILES}
     return synth, pipe.model.vocab, files, local
 

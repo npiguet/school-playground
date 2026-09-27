@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from pathlib import Path
 
 import numpy as np
@@ -15,18 +16,30 @@ import numpy as np
 from app.audio import silence, stub_ms
 from app.text import segments
 
-MODEL_ID = "kokoro-82m-onnx-direct"   # /health's engine, and part of every line's cache key
+MODEL_ID = "kokoro-82m-v1.0-onnx-direct"   # /health's engine, and part of every line's cache key
 VOICE = "ff_siwis"
 CHUNK_CHARS = 400     # kokoro.KPipeline.__call__, non-English lang_code
 MAX_PHONEMES = 510    # the model's context, less the two pad tokens
-_PAUSES = ",;:"       # a cut just after one of these falls where the voice pauses anyway
+_PAUSES = ",;:.!?"    # a cut just after one of these falls where the voice pauses anyway
+_STRESS = "ˈˌ"        # stress marks lead the vowel after them
+_LENGTH = "ː"         # the length mark trails the phoneme before it
+
+
+def _no_space_cut(ps: str) -> int:
+    """The middle of a run with no space, moved back so that a phoneme keeps its marks: never before a
+    combining mark (the tilde of « ɛ̃ ») or a length mark, never just after a stress mark."""
+    cut = len(ps) // 2
+    while cut > 1 and (unicodedata.combining(ps[cut]) or ps[cut] in _LENGTH or ps[cut - 1] in _STRESS):
+        cut -= 1
+    return cut
 
 
 def split_phonemes(ps: str, limit: int = MAX_PHONEMES) -> list[str]:
     """`ps` in pieces of at most `limit` phonemes, never truncated (Task 3 addendum #3; KPipeline would cut
     the rest of the sentence off). A cut is made at the space nearest the middle, preferably one just after
-    a pause mark in the middle half, and each half is cut again until it fits; the spaces cut at are the
-    only phonemes left out, so " ".join(pieces) == ps. A piece with no space at all is cut at its middle."""
+    a pause or sentence mark in the middle half, and each half is cut again until it fits; the spaces cut
+    at are the only phonemes left out, so " ".join(pieces) == ps. A piece with no space at all is cut near
+    its middle, between two phonemes (_no_space_cut), and then "".join gives it back."""
     if len(ps) <= limit:
         return [ps]
     n, mid = len(ps), len(ps) // 2
@@ -37,7 +50,8 @@ def split_phonemes(ps: str, limit: int = MAX_PHONEMES) -> list[str]:
         cut = min(candidates, key=lambda i: abs(i - mid))
         left, right = ps[:cut], ps[cut + 1:]
     else:
-        left, right = ps[:mid], ps[mid:]
+        cut = _no_space_cut(ps)
+        left, right = ps[:cut], ps[cut:]
     return split_phonemes(left, limit) + split_phonemes(right, limit)
 
 

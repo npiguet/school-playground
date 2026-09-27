@@ -21,6 +21,11 @@ STACK="${STACK:-}"
 if [ -n "$STACK" ]; then
   case "$STACK" in
     *[!a-z0-9_-]*) echo "STACK must use lowercase letters, digits, - or _ (got '$STACK')" >&2; exit 2 ;;
+    # The app image of STACK=<x>-tts would be discorde-<x>-tts:local, the voice image of STACK=<x>
+    # (TTS_IMAGE below; STACK=tts: discorde-tts:local, the main checkout's voice and compose.yaml's).
+    tts | *-tts)
+      echo "STACK must not be 'tts' or end in '-tts' (got '$STACK'): its app image would take the name of another stack's voice image" >&2
+      exit 2 ;;
   esac
   STACK_NAME="discorde-$STACK"
 else

@@ -49,7 +49,10 @@ def _forward(request: Request, path: str, payload: dict, timeout: float) -> Resp
     except httpx.HTTPError as e:
         log.warning("tts proxy: the voice cannot be reached (%s)", e)
         return JSONResponse(UNREACHABLE, status_code=503)
-    return Response(r.content, status_code=r.status_code, media_type=r.headers.get("content-type"))
+    # The voice's own caching instructions pass through too (it sends `no-store` with every line).
+    headers = {"Cache-Control": r.headers["cache-control"]} if "cache-control" in r.headers else None
+    return Response(r.content, status_code=r.status_code, media_type=r.headers.get("content-type"),
+                    headers=headers)
 
 
 @router.post("/speak")
@@ -75,7 +78,9 @@ def health(request: Request):
     try:
         body = r.json()
     except ValueError:
-        body = {}
+        body = None
+    if not isinstance(body, dict):   # not the voice's health answer (not a JSON object): an error
+        return JSONResponse({"voice": "error"}, status_code=503)
     if r.status_code == 200:
         return {"voice": "ready", "engine": body.get("engine")}
     return JSONResponse({"voice": "loading" if body.get("status") == "loading" else "error"}, status_code=503)

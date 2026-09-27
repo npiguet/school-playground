@@ -200,7 +200,7 @@ parent. The card's small line says why:
 
 Then:
 
-1. Open `http://<server>:8080/api/tts/health`. `{"voice":"ready","engine":"kokoro-82m-onnx-direct"}`
+1. Open `http://<server>:8080/api/tts/health`. `{"voice":"ready","engine":"kokoro-82m-v1.0-onnx-direct"}`
    means the voice is fine again: tap « Réessayer » on the card. `{"voice":"loading"}`: wait a minute
    and try again. `{"voice":"unreachable"}`: the container is not running. `{"voice":"error"}`: it
    could not load its model; its logs say why.
@@ -334,8 +334,10 @@ parallel.
 
 **Two checkouts side by side** (e.g. two git worktrees): prefix any script with `STACK=<id>`, e.g.
 `STACK=b scripts/check.sh`. That checkout gets its own compose project, app image, voice image,
-server dev image and `node_modules` volume (`discorde-b…`); unset, the names stay `discorde`. A second dev stack
-also needs `DEV_API_PORT`/`DEV_WEB_PORT`. Two e2e runs can't overlap (see the lock), but a run is
+server dev image and `node_modules` volume (`discorde-b…`); unset, the names stay `discorde`. The
+scripts refuse `STACK=tts` and any id ending in `-tts`: that stack's app image would take the name of
+another stack's voice image (`discorde-tts:local` is the main checkout's). A second dev stack also
+needs `DEV_API_PORT`/`DEV_WEB_PORT`. Two e2e runs can't overlap (see the lock), but a run is
 lighter with fewer workers: `PW_WORKERS` sets them (8 when unset), e.g.
 `STACK=b PW_WORKERS=4 scripts/check.sh`. `PLAYWRIGHT_VERSION` in `scripts/lib.sh` pins the e2e
 image and must equal `@playwright/test` in `web/package.json`; a manual `docker compose -f

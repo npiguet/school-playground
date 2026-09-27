@@ -49,9 +49,18 @@ not fit.
   voice baked into the image. The plan's first task proves that its phonemes and audio match the
   PyTorch `kokoro` package the user listened to on the bake-off lines. If they don't, the service
   uses the PyTorch build (CPU wheels) instead.
+  *Amended (Kokoro plan, Task 1's verdict and the Task 3 addendum):* the engine is onnxruntime
+  directly on the same ONNX model (verdict `onnx-direct`, `tools/tts/parity.json`): misaki's French
+  espeak G2P and the PyTorch package's chunking and style row, with neither `kokoro-onnx` nor
+  PyTorch; `kokoro-onnx` failed the proof by picking the voice's style one row off. `/health` names
+  it `kokoro-82m-v1.0-onnx-direct`. A sentence too long for the model (over 510 phonemes) is split,
+  never truncated.
 - **Threads:** the service uses at most `TTS_THREADS` threads (default 4), so the game server stays
   responsive while a dictation is being prepared.
 - **Output:** MP3, 24 kHz mono, with no leading or trailing silence beyond what Kokoro produces.
+  *Amended (Kokoro plan, Task 3):* a line with nothing to pronounce (« - » or « / » alone gives no
+  phonemes) is the muted line's silence instead (65 ms a character ÷ speed, at least 300 ms), since
+  an empty MP3 would not play.
 - **Cache:** the service keeps `/cache` in its own volume, `discorde-tts-cache`. Each file is named
   `sha256(model, voice, speed, respelled text, format version).mp3`. The cache is limited to
   `TTS_CACHE_MB` (default 2048) and evicts the least recently used files. It needs no backup: every

@@ -27,7 +27,7 @@ def voice(client, handler) -> list[httpx.Request]:
 
 
 def mp3(_):
-    return httpx.Response(200, content=b"ID3fake", headers={"content-type": "audio/mpeg"})
+    return httpx.Response(200, content=b"ID3fake", headers={"content-type": "audio/mpeg", "cache-control": "no-store"})
 
 
 def down(request):
@@ -39,6 +39,7 @@ def test_speak_passes_the_line_to_the_voice_and_the_mp3_back(client):
     r = client.post("/api/tts/speak", json={"profile_id": hero(client), "text": "Un matin. Point.", "speed": 0.75})
     assert r.status_code == 200
     assert r.content == b"ID3fake" and r.headers["content-type"] == "audio/mpeg"
+    assert r.headers["cache-control"] == "no-store"
     assert [(q.method, q.url.path) for q in seen] == [("POST", "/speak")]
     assert json.loads(seen[0].content) == {"text": "Un matin. Point.", "speed": 0.75}
 
@@ -92,11 +93,26 @@ def test_prepare_forwards_the_lines_in_order(client):
     (lambda _: httpx.Response(503, json={"status": "loading"}), 503, {"voice": "loading"}),
     (lambda _: httpx.Response(503, json={"status": "error", "detail": "RuntimeError: x"}), 503, {"voice": "error"}),
     (down, 503, {"voice": "unreachable"}),
+    # something answers, but not with the voice's health object
+    (lambda _: httpx.Response(200, json=["ready"]), 503, {"voice": "error"}),
+    (lambda _: httpx.Response(503, json="loading"), 503, {"voice": "error"}),
+    (lambda _: httpx.Response(200, content=b"<html>proxy</html>"), 503, {"voice": "error"}),
 ])
 def test_the_voice_s_health(client, answer, status, body):
     voice(client, answer)
     r = client.get("/api/tts/health")
     assert r.status_code == status and r.json() == body
+
+
+def test_the_voice_is_reached_directly_whatever_proxy_the_environment_names(monkeypatch, settings):
+    from app.main import create_app
+    from fastapi.testclient import TestClient
+
+    monkeypatch.setenv("HTTP_PROXY", "http://corporate-proxy.invalid:3128")
+    with TestClient(create_app(settings)) as c:
+        tts_client = c.app.state.tts_client
+        assert tts_client.trust_env is False
+        assert tts_client._transport_for_url(httpx.URL("http://tts:8000/health")) is tts_client._transport
 
 
 def test_the_game_s_health_stays_about_the_game(client):

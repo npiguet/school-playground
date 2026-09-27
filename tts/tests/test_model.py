@@ -86,7 +86,7 @@ def test_the_service_speaks_with_the_real_voice(tmp_path):
                     respell_path=tmp_path / "respell.json", model_dir=Path("/models"))
     with TestClient(create_app(config)) as c:
         wait_ready(c, timeout=120)
-        assert c.get("/health").json()["engine"] == MODEL_ID == "kokoro-82m-onnx-direct"
+        assert c.get("/health").json()["engine"] == MODEL_ID == "kokoro-82m-v1.0-onnx-direct"
         r = c.post("/speak", json={"text": LINE, "speed": 0.9})
         assert r.status_code == 200 and r.headers["content-type"] == "audio/mpeg"
         assert sf.info(io.BytesIO(r.content)).duration > 1.0
