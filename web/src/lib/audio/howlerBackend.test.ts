@@ -32,6 +32,10 @@ const { FakeHowl, made, ctx } = vi.hoisted(() => {
       if (this.fading && !this.stuck) this.stopFade();
     }
     stuck = false;
+    st: 'unloaded' | 'loading' | 'loaded' = 'loaded';
+    state() {
+      return this.st;
+    }
     duration() {
       return 60 + 2048 / 44100;
     }
@@ -64,6 +68,7 @@ const { FakeHowl, made, ctx } = vi.hoisted(() => {
 vi.mock('howler', () => ({ Howl: FakeHowl, Howler: { ctx } }));
 vi.mock('./meta.gen.json', () => ({ default: { camp: { samples: 60 * 44100, rate: 44100, priming: 1024 } } }));
 
+import { Howler } from 'howler';
 import { howlerBackend } from './howlerBackend';
 
 beforeEach(() => {
@@ -158,6 +163,48 @@ describe('the Howler backend (iPad Safari, Rulings E3 and E9)', () => {
     expect(b.state()).toBe('running');
     b.suspend();
     expect(ctx.suspend).toHaveBeenCalled();
+  });
+
+  // Final review M4: hops across three places within a crossfade keep at most the one outgoing loop.
+  it('frees an older loop still fading out when a new one starts: never three decoded loops', () => {
+    const b = howlerBackend();
+    const hop = (id: 'camp' | 'sea' | 'lair') => {
+      const h = b.track(id);
+      h.start(0.5, 1200);
+      made.at(-1)!.emit('load');
+      return { h, loop: made.at(-1)!, probe: made.at(-2)! };
+    };
+    const camp = hop('camp');
+    camp.h.stop(1200);
+    const sea = hop('sea');
+    sea.h.stop(1200);
+    expect(camp.loop.calls).not.toContain('unload');
+    const lair = hop('lair');
+    expect(camp.loop.calls.at(-1)).toBe('unload');
+    expect(camp.probe.calls.at(-1)).toBe('unload');
+    expect(sea.loop.calls).not.toContain('unload');
+    expect(lair.loop.calls).not.toContain('unload');
+    // Its own timer, later, frees nothing twice.
+    vi.advanceTimersByTime(1250);
+    expect(camp.loop.calls.filter((c) => c === 'unload')).toHaveLength(1);
+    expect(sea.loop.calls.at(-1)).toBe('unload');
+  });
+
+  it("leaves the context's life to the engine: no Howler idle suspend (final review M5)", () => {
+    howlerBackend();
+    expect((Howler as unknown as { autoSuspend?: boolean }).autoSuspend).toBe(false);
+  });
+
+  it('drops an effect whose file is not loaded yet rather than play it late (final review M12)', () => {
+    const b = howlerBackend();
+    b.warm();
+    const tap = made.find((m) => m.opts.src[0] === '/audio/sfx/tap.m4a')!;
+    tap.st = 'loading';
+    b.sfx('tap', 0.3);
+    expect(tap.calls).toEqual([]);
+    tap.st = 'loaded';
+    b.sfx('tap', 0.3);
+    expect(tap.calls).toEqual(['play', 'volume 0.3']);
   });
 
   it('stays silent over a file that cannot load: no throw, no play, one note per file (the files arrive later)', () => {

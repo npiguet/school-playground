@@ -21,8 +21,16 @@ function missing(src: string): void {
 }
 
 export function howlerBackend(): AudioBackend {
+  // Final review M5: the engine owns the context's life (suspend when the page hides, resume on a
+  // tap or when it shows). Howler's own 30 s idle suspend would be a second owner, and its
+  // `Howler.state` would go stale.
+  Howler.autoSuspend = false;
   const effects = new Map<SfxId, Howl>();
   const broken = new Set<SfxId>();
+  // Final review M4: the loops still fading out, oldest first, each with its own release. At most
+  // one outgoing crossfade is kept when a new loop starts: quick hops across places never hold
+  // three decoded loops (about 20-24 MB each).
+  const outgoing: (() => void)[] = [];
   const effect = (id: SfxId): Howl => {
     let h = effects.get(id);
     if (!h) {
@@ -39,6 +47,7 @@ export function howlerBackend(): AudioBackend {
 
   return {
     track(id) {
+      while (outgoing.length > 1) outgoing[0]();
       const src = TRACKS[id].src;
       let loop: Howl | null = null;
       let sound: number | null = null;
@@ -82,16 +91,24 @@ export function howlerBackend(): AudioBackend {
           // once when it interrupts a running fade (a hard cut) and never for a fade from 0 to 0 (a
           // silent loop left decoded in memory).
           l.fade(l.volume(s) as number, 0, ms, s);
-          setTimeout(() => {
+          let freed = false;
+          const free = () => {
+            if (freed) return;
+            freed = true;
+            outgoing.splice(outgoing.indexOf(free), 1);
             l.unload();
             probe.unload();
-          }, ms + 50);
+          };
+          outgoing.push(free);
+          setTimeout(free, ms + 50);
         },
       };
     },
     sfx(id, gain) {
       const h = effect(id);
-      if (broken.has(id)) return;
+      // Final review M12: an effect whose file is not loaded yet (a tap right at « Entrer », before
+      // the warm-up is done) is dropped, never queued by Howler to play late.
+      if (broken.has(id) || h.state() !== 'loaded') return;
       const s = h.play();
       h.volume(gain, s);
     },
