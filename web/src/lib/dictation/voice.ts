@@ -9,15 +9,16 @@ import type { LineHandle, VoiceClip } from '../audio/engine';
 import { lineKey, type SayLine } from './script';
 
 /**
- * How fast the voice speaks French at rate 1: 65 ms a character of the spoken form (its spaces and
- * its said punctuation included), divided by the line's rate. Only what a muted voice waits instead
- * of the line (UI5 Ruling E7b), each clip's estimated length (Ruling K7: the line's watchdog) and
- * the stub's silence (tts/app/audio.py): the real voice takes its own time. It stays 65 (fix wave A,
- * Ruling R-A4). Kokoro's spread, measured by the Task 10 walk (task-10-report.md, `ff_siwis`,
- * onnx-direct, Ryzen 9 5950X) as ms a character times the rate: short lines 74.6 at 0.75, 69.0 at
- * 0.85, 66.0 at 0.90, 58.3 at 0.95 and 60.1 at 1.0; one 1557-character line 53.6 at 1.0. So a muted
- * slow line waits about 13 % less than Kokoro takes, and a muted long line about 20 % more. Pace 4
- * now reads its full readings a sentence at a time, so no line is that long any more.
+ * How fast the voice speaks French at rate 1: 65 ms a character of the spoken form (its spaces
+ * and its said punctuation included), divided by the line's rate. Only what a muted voice waits
+ * instead of the line (UI5 Ruling E7b), each clip's estimated length (Ruling K7: the line's
+ * watchdog) and the stub's silence (tts/app/audio.py): the real voice takes its own time. It
+ * stays 65 (fix wave A, Ruling R-A4). Kokoro's spread, measured by the Task 10 walk
+ * (task-10-report.md, `ff_siwis`, onnx-direct, Ryzen 9 5950X) as ms a character times the rate:
+ * short lines 74.6 at 0.75, 69.0 at 0.85, 66.0 at 0.90, 58.3 at 0.95 and 60.1 at 1.0; one
+ * 1557-character line 53.6 at 1.0. So a muted slow line waits about 13 % less than Kokoro takes,
+ * and a muted long line about 20 % more. Pace 4 now reads its full readings a sentence at a
+ * time, so no line is that long any more.
  */
 export const SPEECH_MS_PER_CHAR = 65;
 
@@ -85,8 +86,8 @@ export function createVoice(deps: VoiceDeps): Voice {
   const clips = new Map<string, Promise<VoiceClip>>();
   const urls = new Set<string>();
   /** The fetches still running (final review M3): dispose() aborts them, so a dictation left
-   *  mid-fetch holds neither a thread of the game server nor the voice's time. cancel() leaves them:
-   *  a paused line's clip is used again on resume. */
+   *  mid-fetch holds neither a thread of the game server nor the voice's time. cancel() leaves
+   *  them: a paused line's clip is used again on resume. */
   const inflight = new Set<AbortController>();
   let generation = 0;
   let current: LineHandle | null = null;
@@ -182,9 +183,10 @@ export function createVoice(deps: VoiceDeps): Voice {
     prefetch,
     prepare(lines) {
       if (disposed || muted() || lines.length === 0) return;
-      // A text within the server's 4 000-character limit gives far fewer lines, even at pace 4 (each
-      // sentence twice, each chunk once). Past MAX_PREPARE_LINES the tail would be left out, and the
-      // one-ahead prefetch would still fetch each of those lines while the one before it plays.
+      // A text within the server's 4 000-character limit gives far fewer lines, even at pace 4
+      // (each sentence twice, each chunk once). Past MAX_PREPARE_LINES the tail would be left out,
+      // and the one-ahead prefetch would still fetch each of those lines while the one before it
+      // plays.
       const body = { profile_id: deps.profileId, lines: lines.slice(0, MAX_PREPARE_LINES).map((l) => ({ text: l.spoken, speed: l.rate })) };
       void doFetch('/api/tts/prepare', post(body)).catch(() => undefined);
     },
