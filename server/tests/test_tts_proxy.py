@@ -105,14 +105,70 @@ def test_the_voice_s_health(client, answer, status, body):
 
 
 def test_the_voice_is_reached_directly_whatever_proxy_the_environment_names(monkeypatch, settings):
-    from app.main import create_app
+    # Final review M8: the behaviour, not httpx's internals. A voice on this host answers `ready`; the
+    # environment names a proxy that refuses every connection, which a default client would go through.
+    from dataclasses import replace
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    import threading
+
     from fastapi.testclient import TestClient
 
-    monkeypatch.setenv("HTTP_PROXY", "http://corporate-proxy.invalid:3128")
-    with TestClient(create_app(settings)) as c:
-        tts_client = c.app.state.tts_client
-        assert tts_client.trust_env is False
-        assert tts_client._transport_for_url(httpx.URL("http://tts:8000/health")) is tts_client._transport
+    from app.main import create_app
+
+    class Voice(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = json.dumps({"status": "ready", "engine": "stub"}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Voice)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{server.server_address[1]}"
+    for name in ("NO_PROXY", "no_proxy"):
+        monkeypatch.delenv(name, raising=False)
+    for name in ("HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"):
+        monkeypatch.setenv(name, "http://127.0.0.1:9")   # the discard port: nothing listens there
+    try:
+        with pytest.raises(httpx.TransportError):        # the control: through the proxy, no answer
+            httpx.get(f"{url}/health", timeout=3.0)
+        with TestClient(create_app(replace(settings, tts_url=url))) as c:
+            r = c.get("/api/tts/health")
+        assert r.status_code == 200 and r.json() == {"voice": "ready", "engine": "stub"}
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.parametrize("body", [
+    {"text": "", "speed": 1.0}, {"text": "a" * 10_001, "speed": 1.0},
+    {"text": "a", "speed": 0.49}, {"text": "a", "speed": 1.51},
+])
+def test_a_line_past_the_voice_s_limits_is_refused_here(client, body):
+    # Final review M1: the voice's own limits, before the game server holds the body or sends it on.
+    seen = voice(client, mp3)
+    pid = hero(client)
+    assert client.post("/api/tts/speak", json={"profile_id": pid, **body}).status_code == 422
+    assert client.post("/api/tts/prepare", json={"profile_id": pid, "lines": [body]}).status_code == 422
+    assert seen == []
+
+
+def test_too_many_lines_to_prepare_are_refused_here(client):
+    seen = voice(client, lambda _: httpx.Response(202, json={"queued": 500}))
+    pid = hero(client)
+    lines = [{"text": f"Ligne {i}. Point.", "speed": 1.0} for i in range(501)]
+    assert client.post("/api/tts/prepare", json={"profile_id": pid, "lines": lines}).status_code == 422
+    assert seen == []
+    # The limits themselves pass.
+    assert client.post("/api/tts/prepare", json={"profile_id": pid, "lines": lines[:500]}).status_code == 202
+    for body in ({"text": "a" * 10_000, "speed": 1.0}, {"text": "a", "speed": 0.5}, {"text": "a", "speed": 1.5}):
+        assert client.post("/api/tts/prepare", json={"profile_id": pid, "lines": [body]}).status_code == 202
+    assert len(seen) == 4
 
 
 def test_the_game_s_health_stays_about_the_game(client):

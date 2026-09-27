@@ -10,7 +10,7 @@ import sqlite3
 import httpx
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.db import get_db
 from app.routers.profiles import fetch_profile
@@ -18,22 +18,26 @@ from app.routers.profiles import fetch_profile
 router = APIRouter(prefix="/api/tts", tags=["tts"])
 log = logging.getLogger("uvicorn.error")
 UNREACHABLE = {"detail": "the voice cannot be reached"}
-
-
-class SpeakBody(BaseModel):
-    profile_id: int
-    text: str
-    speed: float
+# The voice's own limits (tts/app/text.py MAX_CHARS, MIN_SPEED, MAX_SPEED; tts/app/main.py
+# MAX_PREPARE_LINES), checked here too (final review M1): a body past them is a 422 before the game
+# server holds it, sizes a timeout from it, or sends it on.
+MAX_CHARS = 10_000
+MIN_SPEED, MAX_SPEED = 0.5, 1.5
+MAX_PREPARE_LINES = 500
 
 
 class PrepareLine(BaseModel):
-    text: str
-    speed: float
+    text: str = Field(min_length=1, max_length=MAX_CHARS)
+    speed: float = Field(ge=MIN_SPEED, le=MAX_SPEED)
+
+
+class SpeakBody(PrepareLine):
+    profile_id: int
 
 
 class PrepareBody(BaseModel):
     profile_id: int
-    lines: list[PrepareLine]
+    lines: list[PrepareLine] = Field(max_length=MAX_PREPARE_LINES)
 
 
 def speak_timeout(text: str) -> float:
