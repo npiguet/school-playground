@@ -123,7 +123,9 @@ not fit.
   script order.
 - Before the first line plays, the dictation fetches it. If it isn't back within 400 ms, a short
   in-universe waiting line shows, e.g. « La voix de la Pythie s'éclaircit… » (final wording from
-  the French copy pass), until it arrives.
+  the French copy pass), until it arrives. *Amended (fix wave B, ruling 1):* the line shows after
+  1.2 s, stays at least 800 ms once shown, gives way to a second line after about 5 s, and the
+  status seal waits (no reading pulse) meanwhile.
 - During the dictation, each line's fetch starts when the previous line starts playing, so the
   gaps between lines stay as the pace defines them.
 - *Amended (fix wave A, Ruling R-A1):* pace 4's two full readings are said a sentence at a time,
@@ -134,7 +136,7 @@ not fit.
 ### 5.3 When the voice fails
 
 - **Retry:** a failed fetch (network error, 5xx, or a timeout of 20 s + 50 ms a character) is
-  retried once, silently.
+  retried once, silently. *Amended (fix wave B, ruling 11):* the timeout is 8 s + 30 ms a character.
 - **The card:** if the retry fails, the dictation pauses on an in-universe card. Éris gloats that
   she has silenced the voice, and the card tells the player to call a parent. It has a
   « Réessayer » button (retry the same line and carry on) and a way back to the camp. The draft

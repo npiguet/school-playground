@@ -20,7 +20,8 @@ rewards. The whole game is a set of painted scenes with places to tap (see §8).
   that the server synthesises in its second container.
 - **Proofreading** — *Les Yeux d'Argus* (a spotlight over one word category at a time: verbs,
   nominal groups, homophones, trap words), *Le Bouclier de Persée* (sentence by sentence, last to
-  first), *La Chouette d'Athéna* (limited hints) and *Le Fil d'Ariane* (tap a verb, then its subject).
+  first), *La Chouette d'Athéna* (limited hints) and *Le Fil d'Ariane* (tap a verb, then its
+  subject).
 - **Scan a handout** — photograph a printed page (camera or photo library), OCR it with Tesseract,
   and check the recognised text against the photo before it becomes the answer key.
 - **Dictée préparée** — a text can carry the date of a class test; until that date it shows as the
@@ -97,9 +98,9 @@ docker build -t discorde-tts:2026-09-27 tts
 docker save discorde:2026-09-27 discorde-tts:2026-09-27 | gzip > discorde-2026-09-27.tar.gz
 ```
 
-The game's image takes about 3.2 GB on disk once loaded (mostly the `fr_core_news_lg` spaCy model and
-Tesseract), and the voice's image takes about 1.3 GB (its model and the ONNX runtime); the compressed
-file is much smaller. Copy the `.tar.gz` onto the NAS, e.g. into an SMB
+The game's image takes about 3.2 GB on disk once loaded (mostly the `fr_core_news_lg` spaCy model
+and Tesseract), and the voice's image takes about 1.3 GB (its model and the ONNX runtime); the
+compressed file is much smaller. Copy the `.tar.gz` onto the NAS, e.g. into an SMB
 share or with `scp`, then load it from a shell on the NAS (**System → Shell**, or SSH as the admin
 user):
 
@@ -172,8 +173,8 @@ loaded instead of looking for them on Docker Hub. Everything else comes from the
 - **RAM:** the game's container uses about 1.1 GB once started (measured at rest, with the language
   model loaded). Analysing a new text, a scan or an Alexandria adoption runs that model again, so
   leave it some room above that. The voice's container uses about 0.59 GB at rest and up to 0.89 GB
-  while it makes a dictation's lines (measured with the default `TTS_THREADS` of 4, on an AMD Ryzen 9
-  5950X, while it made pace 4's lines for the longest seed text, a sentence at a time).
+  while it makes a dictation's lines (measured with the default `TTS_THREADS` of 4, on an AMD
+  Ryzen 9 5950X, while it made pace 4's lines for the longest seed text, a sentence at a time).
 
 ### Update to a new version
 
@@ -192,29 +193,37 @@ Take a snapshot of the dataset before updating (§4) so you can roll the data ba
 ### If the voice goes silent
 
 The game never falls back to the device's own voice. When it cannot get a line from its voice, the
-dictation stops on a card where Éris boasts that she has silenced it and asks the player to fetch a
-parent. The card's small line says why:
+dictation stops on a card where Éris boasts that she has silenced it; the card asks the player to
+tap « Réessayer », then to fetch a parent if the voice stays silent. The card's small line says why:
 
-- « voix : serveur injoignable » — the game could not reach its voice: the `tts` container is stopped,
-  still starting (loading the model takes a few seconds, up to a minute or two on a slow NAS), or the
-  network between the two containers is down;
+- « voix : serveur injoignable » — the game could not reach its voice: the `tts` container is
+  stopped, still starting (loading the model takes a few seconds, up to a minute or two on a slow
+  NAS), or the network between the two containers is down;
 - « voix : erreur du serveur » — the voice answered with an error (see its logs).
 
 Then:
 
-1. Open `http://<server>:8080/api/tts/health`. `{"voice":"ready","engine":"kokoro-82m-v1.0-onnx-direct"}`
-   means the voice is fine again: tap « Réessayer » on the card. `{"voice":"loading"}`: wait a minute
-   and try again. `{"voice":"unreachable"}`: the container is not running. `{"voice":"error"}`: it
-   could not load its model; its logs say why.
-2. Check the container: on TrueNAS, **Apps → discorde**, the `tts` container's state (restart the app
-   if it is stopped or crash-looping); with Docker Desktop, `docker compose ps` and
+1. Open `http://<server>:8080/api/tts/health`.
+   `{"voice":"ready","engine":"kokoro-82m-v1.0-onnx-direct"}` means the voice is fine again: tap
+   « Réessayer » on the card. `{"voice":"loading"}`: wait a minute and try again.
+   `{"voice":"unreachable"}`: the container is not running. `{"voice":"error"}`: it could not load
+   its model; its logs say why.
+2. Check the container: on TrueNAS, **Apps → discorde**, the `tts` container's state (restart the
+   app if it is stopped or crash-looping); with Docker Desktop, `docker compose ps` and
    `docker compose restart tts`.
 3. Read its logs: TrueNAS, the app's **Logs** for the `tts` container; Docker Desktop,
-   `docker compose logs --tail 100 tts`. A line such as `tts: 104 characters at 1.00: 6.25 s of speech
-   in 1.53 s` is a line made; `the voice could not load` is followed by the reason.
-4. Once the health answers `ready`, « Réessayer » on the card carries on where the dictation stopped,
-   with everything typed so far. « Retour au camp » keeps the draft too: the dictation resumes from the
-   text's parchment later.
+   `docker compose logs --tail 100 tts`. A line such as
+   `tts: 104 characters at 1.00: 6.25 s of speech in 1.53 s` is a line made; `the voice could not
+   load` is followed by the reason.
+4. Once the health answers `ready`, « Réessayer » on the card carries on where the dictation
+   stopped, with everything typed so far. « Retour au camp » keeps the draft too: the dictation
+   resumes from the text's parchment later.
+
+A slow server can bring up the card too. The game waits 8 s plus 30 ms a character for a line
+(about 9 to 10 s for a sentence) and asks once more before the card. A very slow server (an
+overloaded NAS, or a CPU far slower than a desktop's) can take longer than that to make a sentence,
+and the card then says « serveur injoignable » although the voice is running; « Réessayer » usually
+works then, since the voice finished the line meanwhile and kept it in its cache.
 
 ## 3. Play on the iPad
 
@@ -234,7 +243,8 @@ camera for a scan (the file picker's camera doesn't need a secure page).
 **The dictation voice.** The server reads the dictations with Kokoro-82M's French voice: nothing
 needs installing on the iPad. « Écouter un essai » in the lyre (the hero's cabin, **« La lyre »**)
 plays a sample. If the voice cannot be reached, the dictation stops on a card from Éris asking the
-player to fetch a parent; its small line names the cause (§2, "If the voice goes silent").
+player to try again, then to fetch a parent; its small line names the cause (§2, "If the voice goes
+silent").
 
 **The keyboard.** The game turns off autocorrect, capitals and spell-check in the dictation and
 proofreading fields. If word suggestions still show above the keyboard, turn off predictive text:
@@ -246,9 +256,9 @@ proofreading fields. If word suggestions still show above the keyboard, turn off
   after a reload or coming back to the game the sound returns with the first tap anywhere.
 - **Silent mode mutes all the game's sound: the music, the effects and the dictation voice.** They
   all play through the same Web Audio context (Howler; the voice is never an HTML media element),
-  which the iPad silences when the bell is crossed out or the side switch is on. Check it's off: open
-  Control Centre (swipe down from the top-right corner) and make sure the bell is not crossed out;
-  older iPads have a switch on the side instead.
+  which the iPad silences when the bell is crossed out or the side switch is on. Check it's off:
+  open Control Centre (swipe down from the top-right corner) and make sure the bell is not crossed
+  out; older iPads have a switch on the side instead.
 - Each hero has three volumes, for the music, the sound effects and the voice, each with its own
   « Sourdine » (mute): in the lyre under « Les sons du camp », or from the lyre button at the top
   of every scene. Every slider works on the iPad, the voice's included. With the voice muted,
@@ -334,9 +344,9 @@ parallel.
 **Two checkouts side by side** (e.g. two git worktrees): prefix any script with `STACK=<id>`, e.g.
 `STACK=b scripts/check.sh`. That checkout gets its own compose project, app image, voice image,
 server dev image and `node_modules` volume (`discorde-b…`); unset, the names stay `discorde`. The
-scripts refuse `STACK=tts` and any id ending in `-tts`: that stack's app image would take the name of
-another stack's voice image (`discorde-tts:local` is the main checkout's). A second dev stack also
-needs `DEV_API_PORT`/`DEV_WEB_PORT`. Two e2e runs can't overlap (see the lock), but a run is
+scripts refuse `STACK=tts` and any id ending in `-tts`: that stack's app image would take the name
+of another stack's voice image (`discorde-tts:local` is the main checkout's). A second dev stack
+also needs `DEV_API_PORT`/`DEV_WEB_PORT`. Two e2e runs can't overlap (see the lock), but a run is
 lighter with fewer workers: `PW_WORKERS` sets them (8 when unset), e.g.
 `STACK=b PW_WORKERS=4 scripts/check.sh`. `PLAYWRIGHT_VERSION` in `scripts/lib.sh` pins the e2e
 image and must equal `@playwright/test` in `web/package.json`; a manual `docker compose -f
