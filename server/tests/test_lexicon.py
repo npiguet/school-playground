@@ -41,7 +41,28 @@ def test_flip_number(lexicon):
     assert lexicon.flip_number("venus", "venir", {**part, "Gender": "Masc"}) == "venu"
     # a spaCy lemma the word itself does not have is ignored: « La pauvre enfant » was planted as
     # « La pauvre enfers » under the lemma « enfer »
-    assert lexicon.flip_number("enfant", "enfer", {"VerbForm": "Part"}) == "enfants"
+    assert lexicon.flip_number("enfant", "enfer", {"Gender": "Masc", "Number": "Sing"}) == "enfants"
+
+
+def test_flip_number_of_a_participle_follows_its_tag(lexicon):
+    # tagged a participle, « finis » stays one (not the present « finissons »)
+    assert lexicon.flip_number("finis", "finir", {"VerbForm": "Part", "Gender": "Masc", "Number": "Plur"}) == "fini"
+    # « vu » mis-tagged finite is still a participle: the lexicon knows no finite « vu »
+    fin = {"VerbForm": "Fin", "Mood": "Ind", "Tense": "Pres", "Person": "3", "Number": "Sing"}
+    assert lexicon.flip_number("vu", "voir", fin) == "vus"
+    # a finite form keeps its finite flip
+    assert lexicon.flip_number("finit", "finir", fin) == "finissent"
+
+
+def test_gender_counterparts_of_a_noun(lexicon):
+    assert lexicon.gender_counterparts("lion", "lion") == {"lionne"}        # one lemma in Lexique
+    assert lexicon.gender_counterparts("dieu", "dieu") == {"déesse"}        # the pair table
+    assert lexicon.gender_counterparts("déesse", "déesse") == {"dieu"}
+    assert lexicon.gender_counterparts("rois", "roi") == {"reines"}         # same number
+    assert "ogresse" in lexicon.gender_counterparts("ogre", "ogre")
+    assert "danseuse" in lexicon.gender_counterparts("danseur", "danseur")  # a derived suffix pair
+    assert lexicon.gender_counterparts("rocher", "rocher") == set()         # gender fixed
+    assert lexicon.gender_counterparts("maison", "maison") == set()
 
 
 # SP2 playability P1-4: the Grimoire planted « étalaient → étala » (imparfait → passé simple) and

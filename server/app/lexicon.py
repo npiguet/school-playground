@@ -52,6 +52,29 @@ DET_GENDER = {
 # excluded here and resolved by _masculine_demonstrative(next_word) instead.
 DET_GENDER_REVERSE = {v: k for k, v in DET_GENDER.items() if k not in ("ce", "cet")}
 
+# Nouns whose other-gender counterpart Lexique files under another lemma, or that are another word
+# altogether (masculine, feminine). « La dieu » reads as « Le dieu » or as « La déesse »: the noun's
+# gender is not fixed, so a gender slip around it has two repairs (Grimoire ambiguity, ruling R1).
+NOUN_GENDER_PAIRS = (
+    ("dieu", "déesse"), ("roi", "reine"), ("oncle", "tante"), ("ogre", "ogresse"), ("prince", "princesse"),
+    ("héros", "héroïne"), ("homme", "femme"), ("mari", "femme"), ("père", "mère"), ("frère", "sœur"),
+    ("fils", "fille"), ("garçon", "fille"), ("maître", "maîtresse"), ("comte", "comtesse"),
+    ("duc", "duchesse"), ("empereur", "impératrice"), ("neveu", "nièce"), ("époux", "épouse"),
+    ("parrain", "marraine"), ("monsieur", "madame"), ("seigneur", "dame"), ("gendre", "bru"),
+    ("papa", "maman"), ("grand-père", "grand-mère"), ("compagnon", "compagne"), ("serviteur", "servante"),
+    ("tigre", "tigresse"), ("âne", "ânesse"), ("poète", "poétesse"), ("prêtre", "prêtresse"),
+    ("hôte", "hôtesse"), ("abbé", "abbesse"), ("pape", "papesse"), ("damoiseau", "demoiselle"),
+    ("jumeau", "jumelle"), ("vieillard", "vieille"), ("cheval", "jument"), ("bouc", "chèvre"),
+    ("taureau", "vache"), ("bélier", "brebis"), ("coq", "poule"), ("cerf", "biche"), ("sanglier", "laie"),
+    ("lièvre", "hase"), ("jars", "oie"), ("mâle", "femelle"), ("chanoine", "chanoinesse"),
+    ("sorcier", "sorcière"), ("magicien", "magicienne"), ("berger", "bergère"), ("dauphin", "dauphine"),
+    ("tsar", "tsarine"), ("chasseur", "chasseresse"), ("vengeur", "vengeresse"), ("docteur", "doctoresse"),
+)
+_GENDER_PAIR_OF: dict[str, set[str]] = {}
+for _m, _f in NOUN_GENDER_PAIRS:
+    _GENDER_PAIR_OF.setdefault(_m, set()).add(_f)
+    _GENDER_PAIR_OF.setdefault(_f, set()).add(_m)
+
 # Small, deliberately conservative list of common "h muet" words (liaison applies, so the
 # masculine demonstrative is "cet"). Absent from this list, an h-initial word is treated as
 # "h aspiré" (no liaison, "ce"), per the ruling: "if unsure, choose 'ce' for h".
@@ -294,13 +317,17 @@ class Lexicon:
             masc, fem = DET_NUMBER_REVERSE[w]
             result = fem if morph.get("Gender") == "Fem" else masc
 
-        if result is None:
-            result = self._flip_verb_number(word, lemma, morph)
+        tagged_participle = morph.get("VerbForm") == "Part"
+        if result is None and not tagged_participle:
+            result = self._flip_verb_number(word, lemma, morph)  # « finis » tagged Part stays a participle
 
         if result is None:
-            # Nouns, adjectives and past participles (under the verb's lemma: « parties » → « partie »);
-            # never a finite form whose number flip failed above
-            participle = any("par:pas" in e.infover.split(";") for e in self.lookup(word))
+            # Nouns, adjectives and past participles (under the verb's lemma: « parties » → « partie »).
+            # A past participle is a word tagged as one, or a word the lexicon knows as a participle and
+            # never as a finite form (« vu » mis-tagged finite); never a finite form whose flip failed above.
+            codes = {c for e in self.lookup(word) for c in e.infover.split(";") if c}
+            finite = any(c.count(":") == 2 and not c.startswith("par:") for c in codes)
+            participle = "par:pas" in codes and (tagged_participle or not finite)
             kinds = ("NOM", "ADJ", "VER", "AUX") if participle else ("NOM", "ADJ")
             genre, own_nombre = self._own_features(word, kinds, morph)
             target_nombre = "p" if own_nombre == "s" else ("s" if own_nombre == "p" else None)
@@ -368,6 +395,55 @@ class Lexicon:
         if result is None or result == w:
             return None
         return result
+
+
+    def _derived_gender_pairs(self, base: str, genre: str) -> set[str]:
+        """Suffix pairs Lexique files under two lemmas, kept only when the derived form is a noun of
+        the other gender: -esse (ogre / ogresse), -euse (danseur / danseuse), -trice (acteur /
+        actrice), -ine (tsar / tsarine)."""
+        if genre == "m":
+            forms = [base + ("sse" if base.endswith("e") else "esse"), base + "ine"]
+            if base.endswith("eur"):
+                forms.append(base[:-3] + "euse")
+            if base.endswith("teur"):
+                forms.append(base[:-4] + "trice")
+            other = "f"
+        else:
+            forms = []
+            if base.endswith("esse") and base[:-3].endswith("e"):
+                forms.append(base[:-3])  # ogresse → ogre, comtesse → comte; never déesse → « dé »
+            if base.endswith("euse"):
+                forms.append(base[:-4] + "eur")
+            if base.endswith("trice"):
+                forms.append(base[:-5] + "teur")
+            if base.endswith("ine"):
+                forms.append(base[:-3])
+            other = "m"
+        return {f for f in forms if f and any(e.cgram.split(":")[0] == "NOM" and e.genre == other
+                                              for e in self.by_ortho.get(f, []))}
+
+    def gender_counterparts(self, word: str, lemma: str | None = None) -> set[str]:
+        """The noun's forms in the other gender, same number: « lion » → « lionne » (one lemma in
+        Lexique), « dieu » → « déesse », « rois » → « reines » (NOUN_GENDER_PAIRS), « ogre » →
+        « ogresse » (a reliable suffix pair). Empty for a noun whose gender is fixed (« rocher »)."""
+        w = word.lower().replace("’", "'")
+        out: set[str] = set()
+        same_lemma = self.flip_gender(word, lemma or w, {})
+        if same_lemma:
+            out.add(same_lemma)
+        for e in self.lookup(word):
+            if e.cgram.split(":")[0] != "NOM":
+                continue
+            base = e.lemme.lower()
+            genre = e.genre or ("f" if base in {f for _, f in NOUN_GENDER_PAIRS} else "m")
+            for other in _GENDER_PAIR_OF.get(base, set()) | self._derived_gender_pairs(base, genre):
+                plural = self.flip_number(other, other, {"Number": "Sing"}) or other
+                if e.nombre != "p":
+                    out.add(other)
+                if e.nombre != "s":
+                    out.add(plural)  # « fils » is both numbers: « fille » and « filles »
+        out.discard(w)
+        return out
 
 
 @lru_cache(maxsize=2)
