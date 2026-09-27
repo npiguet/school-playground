@@ -54,6 +54,7 @@
     done: 0,
     total: 0,
     resumeAt: 0,
+    failure: null,
   });
 
   // The runner is built once from this run's plan/pace (a new Dictation instance is mounted for

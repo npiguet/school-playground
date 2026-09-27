@@ -4,6 +4,7 @@
 // `speechSynthesis` is always read from `globalThis` at call time (never
 // cached at import) so tests (and Playwright) can stub it.
 import { voiceGain, voiceMuted, voiceSpeaking } from '../audio/voice';
+import { speechMs } from './voice';
 
 const NATURAL_RE = /natural|premium|enhanced|amélior/i;
 
@@ -79,26 +80,19 @@ export function pickVoice(
   return listFrenchVoices(voices)[0];
 }
 
-/**
- * How fast a voice speaks French at rate 1: about 15 characters a second, i.e. 65 ms a character of
- * the spoken form (its spaces and its said punctuation, « virgule », « point », included). Final
- * review I1: this is what a muted voice (Ruling E7b) and a missing speech engine wait instead of the
- * line, so the dictation keeps the pace the adult reading it aloud expects. Divided by the line's
- * rate like the voice itself (PACE_RATES 0.75-1.0): a slower pace waits longer. The script's own
- * pauses (its `wait` steps: 600 ms between a chunk's two readings, then pauseMs) come after it
- * exactly as after a spoken line.
- * Calibrated (UI5 fix wave A) against the e2e WebKit's own speechSynthesis (Flite) on three dictation
- * lines of 40, 56 and 77 characters at rates 0.75, 0.9 and 1: 76.6, 59.6 and 58.2 ms a character at
- * rate 1 (62.9 over the three), each line's time exactly inversely proportional to the rate. The
- * review's figure for French voices at the dictation rates, 65-90 ms a character at 0.75-1.0, is
- * 49-90 at rate 1. 65 lies within 20 % of every measured line (tts.test.ts pins it).
+/*
+ * How fast a voice speaks French (SPEECH_MS_PER_CHAR, speechMs) now lives in ./voice, the server's
+ * voice, and is re-exported here until this file goes (Kokoro plan preflight #14). Final review I1:
+ * it is what a muted voice (Ruling E7b) and a missing speech engine wait instead of the line, so the
+ * dictation keeps the pace the adult reading it aloud expects; the script's own pauses (its `wait`
+ * steps: 600 ms between a chunk's two readings, then pauseMs) come after it exactly as after a spoken
+ * line. Calibrated (UI5 fix wave A) against the e2e WebKit's own speechSynthesis (Flite) on three
+ * dictation lines of 40, 56 and 77 characters at rates 0.75, 0.9 and 1: 76.6, 59.6 and 58.2 ms a
+ * character at rate 1 (62.9 over the three), each line's time exactly inversely proportional to the
+ * rate. The review's figure for French voices at the dictation rates, 65-90 ms a character at
+ * 0.75-1.0, is 49-90 at rate 1. 65 lies within 20 % of every measured line (tts.test.ts pins it).
  */
-export const SPEECH_MS_PER_CHAR = 65;
-
-/** How long a French voice takes to say `text` at `rate`, in ms (at least 300). */
-export function speechMs(text: string, rate: number): number {
-  return Math.max(300, (text.length * SPEECH_MS_PER_CHAR) / rate);
-}
+export { SPEECH_MS_PER_CHAR, speechMs } from './voice';
 
 /** A line said by nobody (no speech engine, or the voice muted) takes the time the voice would. */
 const silentLine = (text: string, rate: number): Promise<void> =>

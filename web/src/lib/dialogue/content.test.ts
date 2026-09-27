@@ -110,7 +110,7 @@ describe('the dialogue content (spec §8)', () => {
 
   it('is never spoken by the dictation voice', () => {
     for (const f of ['src/lib/dialogue/select.ts', 'src/lib/dialogue/battle.ts', 'src/lib/tours/tours.ts', 'src/components/scene/DialogueBox.svelte', 'src/components/scene/OverlayVoice.svelte', 'src/components/scene/TourLayer.svelte']) {
-      expect(readFileSync(f, 'utf-8'), f).not.toMatch(/dictation\/tts|speechSynthesis|speak\(/);
+      expect(readFileSync(f, 'utf-8'), f).not.toMatch(/dictation\/(tts|voice)|speechSynthesis|speak\(/);
     }
   });
 });

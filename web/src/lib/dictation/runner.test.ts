@@ -136,3 +136,93 @@ describe('createRunner', () => {
     expect(cancel).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('when the voice fails (spec 2026-09-27 §5.3)', () => {
+  const failing = (failure: 'unreachable' | 'server') => Object.assign(new Error('voice'), { failure });
+
+  it('passes the next line to be fetched ahead, then none after the last', async () => {
+    const nexts: (string | null)[] = [];
+    const runner = createRunner([say(0), { kind: 'wait', ms: 600 }, say(0, 2), { kind: 'wait', ms: 3000 }, say(1), { kind: 'done' }], {
+      pace: 3, speak: async (_s, _r, next) => void nexts.push(next?.spoken ?? null), sleep: async () => {}, cancel: () => {}, onChange: () => {},
+    });
+    runner.start();
+    await flush();
+    expect(nexts).toEqual(['s0', 's1', null]);
+  });
+
+  it('pauses on the line it could not say, with the cause; « Réessayer » says it and carries on', async () => {
+    let down = true;
+    const spoken: string[] = [];
+    const runner = createRunner([say(0), { kind: 'manual', index: 0 }, say(1), { kind: 'manual', index: 1 }, { kind: 'done' }], {
+      pace: 2,
+      speak: async (s) => {
+        if (down) throw failing('unreachable');
+        spoken.push(s);
+      },
+      sleep: async () => {}, cancel: () => {}, onChange: () => {},
+    });
+    runner.start();
+    await flush();
+    expect(runner.state()).toMatchObject({ status: 'silenced', failure: 'unreachable', index: 0, done: 0 });
+    down = false;
+    runner.retry();
+    await flush();
+    expect(spoken).toEqual(['s0']);
+    expect(runner.state()).toMatchObject({ status: 'waiting', failure: null, done: 1 });
+  });
+
+  it('a retry that fails again silences again, with the new cause (Review Focus 3)', async () => {
+    const causes: ('unreachable' | 'server')[] = ['unreachable', 'server'];
+    const runner = createRunner([say(0), { kind: 'manual', index: 0 }, { kind: 'done' }], {
+      pace: 2, speak: async () => { throw failing(causes.shift() ?? 'server'); }, sleep: async () => {}, cancel: () => {}, onChange: () => {},
+    });
+    runner.start();
+    await flush();
+    expect(runner.state()).toMatchObject({ status: 'silenced', failure: 'unreachable' });
+    runner.retry();
+    await flush();
+    expect(runner.state()).toMatchObject({ status: 'silenced', failure: 'server' });
+  });
+
+  it('a failed replay silences; « Réessayer » replays without spending a replay, then waits (Review Focus 4)', async () => {
+    let down = false;
+    const spoken: string[] = [];
+    const runner = createRunner([say(0), { kind: 'manual', index: 0 }, { kind: 'done' }], {
+      pace: 2,
+      speak: async (s) => {
+        if (down) throw failing('server');
+        spoken.push(s);
+      },
+      sleep: async () => {}, cancel: () => {}, onChange: () => {},
+    });
+    runner.start();
+    await flush();
+    down = true;
+    runner.replay();
+    await flush();
+    expect(runner.state()).toMatchObject({ status: 'silenced', failure: 'server', replaysLeft: 2 });
+    down = false;
+    runner.retry();
+    await flush();
+    expect(spoken).toEqual(['s0', 's0']);
+    expect(runner.state()).toMatchObject({ status: 'waiting', failure: null, replaysLeft: 2 });
+  });
+
+  it('a pause wins over a failure that lands after it; a stopped runner says nothing more', async () => {
+    let fail!: () => void;
+    const states: string[] = [];
+    const runner = createRunner([say(0), { kind: 'wait', ms: 600 }, say(0, 2), { kind: 'done' }], {
+      pace: 3,
+      speak: () => new Promise<void>((_, reject) => (fail = () => reject(failing('unreachable')))),
+      sleep: async () => {}, cancel: () => {}, onChange: (s) => states.push(s.status),
+    });
+    runner.start();
+    await flush();
+    runner.pause();
+    fail();
+    await flush();
+    expect(runner.state().status).toBe('paused');
+    runner.stop();
+    expect(states.at(-1)).toBe('paused');
+  });
+});

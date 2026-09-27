@@ -76,6 +76,16 @@
       { "speaker": "dragon", "text": "Regarde « {word} » avec moi." },
       { "speaker": "dragon", "text": "Un piège que je veux te montrer : « {word} »." },
       { "speaker": "dragon", "text": "Celui-ci, je te l'explique : « {word} »." }
+    ],
+    "battle.voice.wait": [
+      { "speaker": "pythia", "text": "La voix de la Pythie s'éclaircit…" },
+      { "speaker": "pythia", "text": "La Pythie reprend son souffle…" },
+      { "speaker": "pythia", "text": "Les vapeurs de Delphes montent. La voix arrive…" }
+    ],
+    "battle.voice.lost": [
+      { "speaker": "eris", "text": "Chut ! J'ai fait taire la voix de la Pythie. Plus un mot ne sortira de Delphes." },
+      { "speaker": "eris", "text": "La voix s'est tue ? C'est mon œuvre, et j'en suis très fière." },
+      { "speaker": "eris", "text": "Un petit sort sur la voix, et la voilà muette. Je suis ravie de mon coup !" }
     ]
   }
 }

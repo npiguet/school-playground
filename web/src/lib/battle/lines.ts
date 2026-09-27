@@ -70,6 +70,7 @@ export const DICTATION = {
     playing: 'Écoute…',
     waiting: "À toi d'écrire.",
     paused: 'En pause.',
+    silenced: "La voix s'est tue.",
     finished: "C'est fini\u202f! Relis ton texte quand tu veux.",
   },
   replay: 'Réécouter',
@@ -81,6 +82,19 @@ export const DICTATION = {
   sentence: (done: number, total: number) => `Phrase ${done} sur ${total}`,
   chunk: (done: number, total: number) => `Groupe ${done} sur ${total}`,
   full: 'Lecture complète',
+} as const;
+
+// ===== The voice (Kokoro plan, Task 8) =====
+/** Éris's card when the voice cannot be heard (spec 2026-09-27 §5.3). Her gloat is the content key
+ *  `battle.voice.lost`; the waiting line is `battle.voice.wait` (Ruling K5). The cause is for the parent. */
+export const VOICE_LOST = {
+  askParent: 'Appelle un parent : lui seul peut rompre ce sortilège.',
+  retry: 'Réessayer',
+  toCamp: 'Retour au camp',
+  cause: {
+    unreachable: 'voix : serveur injoignable',
+    server: 'voix : erreur du serveur',
+  },
 } as const;
 
 // ===== Proofreading (Task 5) =====
