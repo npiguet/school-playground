@@ -12,7 +12,7 @@
   import { MUSTER } from '../../lib/battle/lines';
   import { battleStage, react } from '../../lib/battle/stage.svelte';
   import { isProphecy } from '../../lib/dates';
-  import type { Pace } from '../../lib/dictation/script';
+  import { PACE_LABELS, type Pace } from '../../lib/dictation/script';
   import type { PlayState } from '../../lib/playState';
   import { go } from '../../lib/scene/panelNav';
   import { href } from '../../lib/routes';
@@ -68,6 +68,10 @@
   // asked for the encounter only): whether a grimoire counts for a quest is the server's rule.
   const grimoireQuery = $derived(encounter ? { encounter } : undefined);
 
+  // « Continuer » resumes a saved dictation at its saved pace, so the ribbon names it (pace-bug report
+  // 2026-09-27, open item 1); « Recommencer » is the way to another. A grimoire has no pace.
+  const continueLabel = $derived(mode === 'dictation' ? MUSTER.continueAt(PACE_LABELS[playState.pace].title) : MUSTER.continue);
+
   function credits(t: TextFull): string {
     if (t.credits) return t.credits;
     if (t.source === 'custom' && t.added_by_name) return `Ajouté par ${t.added_by_name}`;
@@ -92,7 +96,7 @@
       <div class="resume-sheet" data-testid="battle-resume">
         <p class="kit-ribbon">{MUSTER.resume}</p>
         <div class="actions">
-          <button type="button" class="kit-bronze" data-testid="battle-resume-continue" onclick={onContinue}>{MUSTER.continue}</button>
+          <button type="button" class="kit-bronze" data-testid="battle-resume-continue" onclick={onContinue}>{continueLabel}</button>
           <button type="button" class="kit-bronze is-quiet" data-testid="battle-resume-restart" onclick={onRestart}>{MUSTER.restart}</button>
         </div>
       </div>

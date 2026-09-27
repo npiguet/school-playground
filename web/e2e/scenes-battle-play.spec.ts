@@ -392,6 +392,39 @@ test('Quitter asks first, then shows the resume ribbon with the draft kept', asy
   await expect(page.getByTestId('dictation-textarea')).toHaveValue('Les fées');
 });
 
+// Pace-bug report 2026-09-27, open item 1: « Continuer » resumes at the saved pace, so the ribbon names
+// it. A 10H hero's muster preselects « D'un bon pas »: the ribbon must say the pace she really chose.
+test('the resume ribbon names the pace the dictation was saved at, and « Recommencer » offers them all', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Dic8-${testInfo.project.name}`), '10H');
+  const text = await createText(request, { title: uniqueName('Dictée rythme'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await startDictation(page, testInfo, 1);
+  await tap(page.getByTestId('btn-quit-dictation'), testInfo);
+  await tap(page.getByTestId('btn-quit-confirm'), testInfo);
+  await expect(page.getByTestId('battle-resume-continue')).toHaveText('Continuer — Pas à pas');
+  // She comes back later: the same ribbon, the same pace named.
+  await page.reload();
+  await expectBattle(page, 'muster');
+  const ribbon = page.getByTestId('battle-resume');
+  await expect(ribbon).toContainText("Ton brouillon t'attend là où tu l'avais laissé.");
+  await expect(page.getByTestId('battle-resume-continue')).toHaveText('Continuer — Pas à pas');
+  // « Recommencer » is the way to another pace: the medallions are back, at the level's default.
+  await tap(page.getByTestId('battle-resume-restart'), testInfo);
+  const sheet = page.getByTestId('battle-parchment');
+  await expect(sheet.getByRole('radio')).toHaveCount(4);
+  await expect(sheet.getByTestId('pace-option-3').locator('input')).toBeChecked();
+});
+
+test('a saved grimoire names no pace on its ribbon: it has none', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Dic9-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Grimoire rythme'), body: BODY, level: '10H' });
+  await seedPlay(page, { profileId: id, textId: text.id, mode: 'grimoire', phase: 'proofreading', draft: BODY, opponent: 'eris' });
+  await page.goto(`/#/p/${id}/grimoire/${text.id}`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('battle-resume-continue')).toHaveText('Continuer');
+});
+
 // Ruling M20: a dictation left and resumed reads again the sentence it had reached, not the first.
 test('a resumed dictation restarts at the sentence it had reached', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Dic7-${testInfo.project.name}`));

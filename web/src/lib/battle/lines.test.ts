@@ -118,6 +118,7 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
     expect(L.VICTORY.caught(1, 2, 'dictation')).toBe('Pièges déjoués\u202f: 1 sur 2');
     expect(L.VICTORY.caught(3, 4, 'grimoire')).toBe('Dés-accords retrouvés\u202f: 3 sur 4');
     expect([L.MUSTER.words(84), L.MUSTER.words(1)]).toEqual(['84 mots', '1 mot']);
+    expect(L.MUSTER.continueAt('Pas à pas')).toBe('Continuer — Pas à pas');
   });
 
   // UI4 playability #1: the victory tally is the game's, not a marked test.

@@ -33,6 +33,9 @@ export const STAGE = {
 export const MUSTER = {
   resume: "Ton brouillon t'attend là où tu l'avais laissé.",
   continue: 'Continuer',
+  /** The resume ribbon of a saved dictation names the pace « Continuer » resumes at (pace-bug report
+   *  2026-09-27, open item 1): its PACE_LABELS title. A grimoire has no pace: plain « Continuer ». */
+  continueAt: (pace: string) => `Continuer — ${pace}`,
   restart: 'Recommencer',
   words: (n: number) => plural(n, 'mot', 'mots'),
   prophecy: (when: string) => `La Pythie a vu cette dictée pour ${when}.`,
