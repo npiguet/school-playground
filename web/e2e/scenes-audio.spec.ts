@@ -161,6 +161,21 @@ test("the HUD's lyre opens three quick toggles that the lyre and a reload rememb
   await saved;
   await expect(plate.getByTestId('hud-sound-music')).toHaveAttribute('aria-pressed', 'false');
   expect((await audioState(page))!.settings.music.muted).toBe(true);
+  // UI5 playability #2: each row says its state in the lyre's words, never by a dimmed word alone.
+  await expect(plate.getByTestId('hud-sound-music-state')).toHaveText('en sourdine');
+  await expect(plate.getByTestId('hud-sound-sfx-state')).toHaveText('en marche');
+  await expect(plate.getByTestId('hud-sound-voice-state')).toHaveText('en marche');
+  // #1: a bronze plaque with a way to the full lyre as a button, not a link.
+  await expect(plate.getByTestId('hud-sound-lyre')).toHaveText('Ouvrir la lyre');
+  expect(await plate.getByTestId('hud-sound-lyre').evaluate((el) => getComputedStyle(el).textDecorationLine)).toBe('none');
+  // The notch hangs right under the lyre button's centre.
+  const notch = await plate.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const right = parseFloat(getComputedStyle(el, '::before').right);
+    return r.right - 3 - right - 8; // inside the 3 px rim; the 16 px square's centre
+  });
+  const lyre = (await opener.boundingBox())!;
+  expect(Math.abs(notch - (lyre.x + lyre.width / 2))).toBeLessThanOrEqual(3);
   await page.keyboard.press('Escape');
   await expect(plate).toHaveCount(0);
   await expect(opener).toBeFocused();
