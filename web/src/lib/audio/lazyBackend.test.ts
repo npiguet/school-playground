@@ -128,3 +128,20 @@ describe('the lazily loaded backend (lane A review #12)', () => {
     expect(lazy.state()).toBe('none');
   });
 });
+
+describe('a voice line before and after Howler arrives', () => {
+  it('is silent at its length until Howler is there, then played by it', async () => {
+    vi.useFakeTimers();
+    const { real, open, lazy } = deferred();
+    let over = false;
+    void lazy.line({ url: 'blob:1', text: 'Un.', ms: 500 }, 1).ended.then(() => (over = true));
+    await vi.advanceTimersByTimeAsync(500);
+    expect(over).toBe(true);
+    expect(real.log.lines).toEqual([]);
+    open();
+    await vi.advanceTimersByTimeAsync(0);
+    lazy.line({ url: 'blob:2', text: 'Deux.', ms: 500 }, 0.5);
+    expect(real.log.lines.map((l) => [l.text, l.gain])).toEqual([['Deux.', 0.5]]);
+    vi.useRealTimers();
+  });
+});

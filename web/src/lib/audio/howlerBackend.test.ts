@@ -11,7 +11,7 @@ const { FakeHowl, made, ctx } = vi.hoisted(() => {
     calls: string[] = [];
     vol = 1;
     fading = false;
-    constructor(public opts: { src: string[]; sprite?: Record<string, [number, number, boolean?]>; html5?: boolean }) {
+    constructor(public opts: { src: string[]; sprite?: Record<string, [number, number, boolean?]>; html5?: boolean; format?: string[]; volume?: number }) {
       made.push(this);
     }
     once(ev: string, fn: () => void) {
@@ -59,6 +59,10 @@ const { FakeHowl, made, ctx } = vi.hoisted(() => {
       this.calls.push(`volume ${v}`);
       return this;
     }
+    stop() {
+      this.calls.push('stop');
+      return this;
+    }
     unload() {
       this.calls.push('unload');
     }
@@ -69,7 +73,7 @@ vi.mock('howler', () => ({ Howl: FakeHowl, Howler: { ctx } }));
 vi.mock('./meta.gen.json', () => ({ default: { camp: { samples: 60 * 44100, rate: 44100, priming: 1024 } } }));
 
 import { Howler } from 'howler';
-import { howlerBackend } from './howlerBackend';
+import { howlerBackend, lineWatchdogMs } from './howlerBackend';
 
 beforeEach(() => {
   made.length = 0;
@@ -228,6 +232,56 @@ describe('the Howler backend (iPad Safari, Rulings E3 and E9)', () => {
       expect.stringContaining('/audio/music/sea.m4a'),
       expect.stringContaining('/audio/sfx/seal.m4a'),
     ]);
+    note.mockRestore();
+  });
+});
+
+describe('a voice line (spec 2026-09-27 §5.1)', () => {
+  const clip = { url: 'blob:abc', text: 'Un matin. Point.', ms: 2000 };
+
+  it('plays the fetched MP3 once through Web Audio, at the gain, and is over at its end', async () => {
+    const b = howlerBackend();
+    const line = b.line(clip, 0.6);
+    const h = made.at(-1)!;
+    expect(h.opts).toMatchObject({ src: ['blob:abc'], format: ['mp3'], volume: 0.6 });
+    expect(h.opts.html5).toBeUndefined();
+    expect(h.calls).toEqual(['play']);
+    h.emit('end');
+    await line.ended;
+    expect(h.calls).toContain('unload');
+  });
+
+  it('stops at once, and follows the channel while it plays', async () => {
+    const b = howlerBackend();
+    const line = b.line(clip, 0.6);
+    const h = made.at(-1)!;
+    line.volume(0.3);
+    expect(h.calls).toContain('volume 0.3');
+    line.stop();
+    await line.ended;
+    expect(h.calls.slice(-2)).toEqual(['stop', 'unload']);
+  });
+
+  it('a line whose end never comes is over after its watchdog (the iPad locked mid-line)', async () => {
+    vi.useFakeTimers();
+    const b = howlerBackend();
+    let over = false;
+    void b.line(clip, 1).ended.then(() => (over = true));
+    await vi.advanceTimersByTimeAsync(lineWatchdogMs(2000) - 1);
+    expect(over).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(over).toBe(true);
+    expect(lineWatchdogMs(2000)).toBe(7000);
+  });
+
+  it('a clip that cannot load is skipped, never thrown', async () => {
+    const note = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const b = howlerBackend();
+    const line = b.line(clip, 1);
+    made.at(-1)!.emit('loaderror');
+    await line.ended;
+    expect(made.at(-1)!.calls).toContain('unload');
+    expect(note.mock.calls.map((c) => String(c[0]))).toEqual([expect.stringContaining('blob:abc')]);
     note.mockRestore();
   });
 });

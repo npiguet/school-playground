@@ -7,7 +7,7 @@ import { Howl, Howler } from 'howler';
 import META from './meta.gen.json';
 import { SFX, SFX_IDS, TRACKS, type SfxId } from './catalog';
 import { loopRegion, type LoopMeta } from './loop';
-import type { AudioBackend, ContextState } from './engine';
+import type { AudioBackend, ContextState, LineHandle, VoiceClip } from './engine';
 
 const noted = new Set<string>();
 /** A gain change smaller than this is not faded (inaudible, and Howler never ends a no-op fade). */
@@ -19,6 +19,10 @@ function missing(src: string): void {
   noted.add(src);
   console.info(`[audio] ${src} could not load; it stays silent.`);
 }
+
+/** A line's end event that never comes (the iPad locked or interrupted mid-line): given up after twice
+ *  its estimated length and 3 s more, so the dictation goes on and the music comes back up. */
+export const lineWatchdogMs = (ms: number): number => ms * 2 + 3000;
 
 export function howlerBackend(): AudioBackend {
   // Final review M5: the engine owns the context's life (suspend when the page hides, resume on a
@@ -123,6 +127,40 @@ export function howlerBackend(): AudioBackend {
     },
     state(): ContextState {
       return (Howler.ctx?.state as ContextState | undefined) ?? 'none';
+    },
+    line(clip: VoiceClip, gain: number): LineHandle {
+      // Web Audio (never html5: iOS ignores a media element's volume, audioGuards.test.ts). A blob URL
+      // has no extension: the format says what it is.
+      const h = new Howl({ src: [clip.url], format: ['mp3'], volume: gain });
+      let done!: () => void;
+      const ended = new Promise<void>((resolve) => (done = resolve));
+      let over = false;
+      const finish = () => {
+        if (over) return;
+        over = true;
+        clearTimeout(watchdog);
+        h.unload();
+        done();
+      };
+      const skipped = () => {
+        missing(clip.url);
+        finish();
+      };
+      h.once('end', finish);
+      h.once('loaderror', skipped);
+      h.once('playerror', skipped);
+      const watchdog = setTimeout(finish, lineWatchdogMs(clip.ms));
+      h.play();
+      return {
+        ended,
+        stop() {
+          if (!over) h.stop();
+          finish();
+        },
+        volume(g) {
+          if (!over) h.volume(g);
+        },
+      };
     },
   };
 }

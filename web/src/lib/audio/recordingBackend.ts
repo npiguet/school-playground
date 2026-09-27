@@ -1,17 +1,22 @@
 // A backend that plays nothing and writes down what it was asked (Ruling E10): vitest's, and every
 // e2e page's (window.__discordeAudioStub), whose engine state is read through window.__discordeAudio.
-import type { AudioBackend, ContextState } from './engine';
+import type { AudioBackend, ContextState, LineHandle, VoiceClip } from './engine';
 import type { SfxId, TrackId } from './catalog';
 
 export interface Recorded {
   calls: string[];
   tracks: { id: TrackId; gain: number; stopped: boolean }[];
   sfx: { id: SfxId; gain: number }[];
+  lines: { text: string; gain: number; ms: number; stopped: boolean }[];
   state: ContextState;
 }
 
+/** How long a recorded line lasts: the former speechSynthesis stub's 20 ms (Ruling K7), so the e2e
+ *  suite keeps its pace; the line's real length is written down in `ms`. */
+export const RECORDED_LINE_MS = 20;
+
 export function recordingBackend(): AudioBackend & { log: Recorded } {
-  const log: Recorded = { calls: [], tracks: [], sfx: [], state: 'suspended' };
+  const log: Recorded = { calls: [], tracks: [], sfx: [], lines: [], state: 'suspended' };
   return {
     log,
     track(id) {
@@ -45,5 +50,23 @@ export function recordingBackend(): AudioBackend & { log: Recorded } {
       log.state = 'suspended';
     },
     state: () => log.state,
+    line(clip: VoiceClip, gain: number): LineHandle {
+      const l = { text: clip.text, gain, ms: clip.ms, stopped: false };
+      log.lines.push(l);
+      let done!: () => void;
+      const ended = new Promise<void>((resolve) => (done = resolve));
+      const timer = setTimeout(done, RECORDED_LINE_MS);
+      return {
+        ended,
+        stop() {
+          l.stopped = true;
+          clearTimeout(timer);
+          done();
+        },
+        volume(g) {
+          l.gain = g;
+        },
+      };
+    },
   };
 }

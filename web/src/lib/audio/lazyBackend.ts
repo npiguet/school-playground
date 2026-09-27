@@ -3,7 +3,7 @@
 // long before « Entrer ». Until it is there, what the engine asks is kept and replayed: the context's last wish
 // (running or suspended), the effects' warm-up and each loop still wanted, at its latest gain.
 // Effects asked meanwhile are dropped (they are short cues, late is worse than never).
-import type { AudioBackend, ContextState, TrackHandle } from './engine';
+import { silentLine, type AudioBackend, type ContextState, type LineHandle, type TrackHandle, type VoiceClip } from './engine';
 import type { TrackId } from './catalog';
 import { onNextGesture } from './gestures';
 
@@ -90,6 +90,10 @@ export function lazyBackend(load: () => Promise<AudioBackend>, onNextGesture: (f
     },
     state(): ContextState {
       return backend ? backend.state() : 'none';
+    },
+    // A line asked before Howler arrived is silent at its length (short, and late is worse than never).
+    line(clip: VoiceClip, gain: number): LineHandle {
+      return backend ? backend.line(clip, gain) : silentLine(clip.ms);
     },
   };
 }

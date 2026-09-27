@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CROSSFADE_MS, DUCK_GAIN, FADE_MS, SETTINGS_FADE_MS, SFX_REPEAT_MS, createEngine } from './engine';
-import { recordingBackend } from './recordingBackend';
+import { RECORDED_LINE_MS, recordingBackend } from './recordingBackend';
 import { DEFAULT_AUDIO, type AudioSettings } from './settings';
 
 const with_ = (patch: Partial<Record<keyof AudioSettings, Partial<AudioSettings['music']>>>): AudioSettings => {
@@ -155,5 +155,69 @@ describe('the mixer (spec §7)', () => {
     engine.gate(true);
     engine.gesture(); // once unlocked, a tap resumes wherever it lands
     expect(backend.log.state).toBe('running');
+  });
+});
+
+describe('the voice channel (spec 2026-09-27 §5.1: the dictation plays through the mixer)', () => {
+  afterEach(() => vi.useRealTimers());
+  const clip = (text = 'Un matin. Point.', ms = 1000) => ({ url: `blob:${text}`, text, ms });
+
+  it('plays a line at the voice gain, the music ducked under it until it ends', async () => {
+    vi.useFakeTimers();
+    const { backend, engine } = setup();
+    engine.unlock();
+    engine.scene('camp');
+    engine.setSettings(with_({ voice: { volume: 0.4 } }));
+    const line = engine.say(clip());
+    expect(backend.log.lines).toEqual([{ text: 'Un matin. Point.', gain: 0.4, ms: 1000, stopped: false }]);
+    expect(engine.snapshot()).toMatchObject({ ducks: ['voice'], voiceSpeaking: true });
+    await vi.advanceTimersByTimeAsync(RECORDED_LINE_MS);
+    await line.ended;
+    expect(engine.snapshot()).toMatchObject({ ducks: [], voiceSpeaking: false });
+  });
+
+  it('drops effects while a line plays (Ruling E6)', () => {
+    const { backend, engine } = setup();
+    engine.unlock();
+    engine.say(clip());
+    engine.sfx('tap');
+    expect(backend.log.sfx).toEqual([]);
+  });
+
+  it('says one line at a time: a new line stops the last, whose late end leaves the music down', async () => {
+    vi.useFakeTimers();
+    const { backend, engine } = setup();
+    engine.unlock();
+    engine.say(clip('Un.'));
+    const second = engine.say(clip('Deux.'));
+    expect(backend.log.lines.map((l) => [l.text, l.stopped])).toEqual([['Un.', true], ['Deux.', false]]);
+    await Promise.resolve();
+    expect(engine.snapshot().ducks).toEqual(['voice']);
+    await vi.advanceTimersByTimeAsync(RECORDED_LINE_MS);
+    await second.ended;
+    expect(engine.snapshot().ducks).toEqual([]);
+  });
+
+  it("applies the voice channel to the line playing: a new volume at once, silence when muted", () => {
+    const { backend, engine } = setup();
+    engine.unlock();
+    engine.say(clip());
+    engine.setSettings(with_({ voice: { volume: 0.25 } }));
+    expect(backend.log.lines[0].gain).toBe(0.25);
+    engine.setSettings(with_({ voice: { muted: true } }));
+    expect(backend.log.lines[0].gain).toBe(0);
+  });
+
+  it('before the unlock, a line is silent and takes its length (Ruling K14)', async () => {
+    vi.useFakeTimers();
+    const { backend, engine } = setup();
+    let over = false;
+    void engine.say(clip('Un.', 800)).ended.then(() => (over = true));
+    expect(backend.log.lines).toEqual([]);
+    expect(engine.snapshot().ducks).toEqual([]);
+    await vi.advanceTimersByTimeAsync(799);
+    expect(over).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(over).toBe(true);
   });
 });

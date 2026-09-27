@@ -1,6 +1,6 @@
 // The mixer (scenes UI spec §7, Rulings E3-E6): one loop at a time on the music channel, short
-// effects on the sfx channel, and the voice (speechSynthesis, played elsewhere) only signalled here,
-// so the music ducks under it and no effect talks over it. Backend-agnostic: Howler in the browser
+// effects on the sfx channel, and the dictation's voice (a line at a time, fetched from the server by
+// lib/dictation/voice.ts), so the music ducks under it and no effect talks over it. Backend-agnostic: Howler in the browser
 // (howlerBackend.ts), a recorder in vitest and in every e2e run (recordingBackend.ts). Nothing plays
 // before `unlock()`, which a tap calls (iOS only lets a gesture start audio); a loop asked for
 // earlier waits for it.
@@ -24,6 +24,35 @@ export interface TrackHandle {
   stop(fadeMs: number): void;
 }
 
+/** A line of the dictation's voice: its audio (a blob URL of the server's MP3), its text (the e2e
+ *  recorder writes it down) and its estimated length (voice.ts `speechMs`: a silent line's length and the
+ *  Howler backend's watchdog, Ruling K7). */
+export interface VoiceClip {
+  url: string;
+  text: string;
+  ms: number;
+}
+export interface LineHandle {
+  ended: Promise<void>;
+  stop(): void;
+  volume(gain: number): void;
+}
+
+/** A line nobody hears (before the unlock, Ruling K14; Howler not there yet): it takes its length. */
+export function silentLine(ms: number): LineHandle {
+  let done!: () => void;
+  const ended = new Promise<void>((resolve) => (done = resolve));
+  const timer = setTimeout(done, ms);
+  return {
+    ended,
+    stop() {
+      clearTimeout(timer);
+      done();
+    },
+    volume() {},
+  };
+}
+
 export interface AudioBackend {
   track(id: TrackId): TrackHandle;
   sfx(id: SfxId, gain: number): void;
@@ -32,6 +61,9 @@ export interface AudioBackend {
   resume(): void;
   suspend(): void;
   state(): ContextState;
+  /** Plays one line of the dictation's voice once, at `gain` (spec 2026-09-27 §5.1). `ended` resolves
+   *  when it ends, is stopped, or cannot be played (a line is never an error of the mixer). */
+  line(clip: VoiceClip, gain: number): LineHandle;
 }
 
 export interface AudioSnapshot {
@@ -53,6 +85,7 @@ export function createEngine(backend: AudioBackend, now: () => number = () => Da
   let wanted: TrackId | null = null;
   let current: { id: TrackId; handle: TrackHandle } | null = null;
   const ducks = new Set<DuckReason>();
+  let line: LineHandle | null = null;
   const played: SfxId[] = [];
   const lastPlayed = new Map<SfxId, number>();
 
@@ -117,6 +150,7 @@ export function createEngine(backend: AudioBackend, now: () => number = () => Da
     },
     setSettings(next: AudioSettings): void {
       settings = next;
+      line?.volume(gainOf(settings.voice));
       sync(SETTINGS_FADE_MS);
     },
     /** The battle asks for its loop (the ducks stay: its phases own them). */
@@ -139,6 +173,24 @@ export function createEngine(backend: AudioBackend, now: () => number = () => Da
     duck,
     voice(speaking: boolean): void {
       duck('voice', speaking);
+    },
+    /** One line of the dictation's voice (spec 2026-09-27 §5.1): at the voice channel's gain, the music
+     *  ducked and effects held while it plays; a new line stops the last. Before the unlock it is
+     *  silent and takes its length (Ruling K14). */
+    say(clip: VoiceClip): LineHandle {
+      line?.stop();
+      if (!unlocked) return silentLine(clip.ms);
+      const h = backend.line(clip, gainOf(settings.voice));
+      line = h;
+      duck('voice', true);
+      void h.ended.then(() => {
+        // A stopped line ending late must not let the music up under the next one.
+        if (line === h) {
+          line = null;
+          duck('voice', false);
+        }
+      });
+      return h;
     },
     sfx(id: SfxId): void {
       if (!unlocked || settings.sfx.muted || ducks.has('voice')) return;

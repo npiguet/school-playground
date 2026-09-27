@@ -17,6 +17,8 @@ export interface AudioProbe {
   snapshot: AudioEngine['snapshot'];
   context(): ContextState;
   interrupt(): void;
+  /** The voice lines played, oldest first (e2e: spokenLines). */
+  lines(): { text: string; gain: number }[];
 }
 type TestWindow = Window & { __discordeAudioStub?: boolean; __discordeAudio?: AudioProbe };
 
@@ -34,6 +36,7 @@ export function audio(): AudioEngine {
       interrupt: () => {
         recorder.log.state = 'interrupted';
       },
+      lines: () => recorder.log.lines.map((l) => ({ text: l.text, gain: l.gain })),
     };
   }
   engine = e;

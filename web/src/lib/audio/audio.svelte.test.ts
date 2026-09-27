@@ -47,7 +47,10 @@ describe('the mixer on the page (lane A review)', () => {
   });
 
   it('publishes its state for the e2e pages and never loads Howler there (#12)', () => {
-    expect((window as unknown as { __discordeAudio?: object }).__discordeAudio).toBeDefined();
+    const w = window as unknown as { __discordeAudio?: AudioProbe };
+    expect(w.__discordeAudio).toBeDefined();
+    expect(typeof w.__discordeAudio!.lines).toBe('function');
+    expect(w.__discordeAudio!.lines()).toEqual([]);
   });
 
   // Ruling E3b and final review I3: a completed gesture anywhere unlocks, then resumes an
