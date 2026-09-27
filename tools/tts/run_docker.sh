@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # TTS bake-off (tools/tts/README.md): each candidate engine runs in its own throwaway CPU-only container
 # (image discorde-tts-<candidate>, built from tools/tts/<candidate>/Dockerfile); nothing is installed on
-# the host. Model weights are kept in the discorde-tts-cache volume between runs.
+# the host. Model weights are kept in the discorde-tts-bakeoff-cache volume between runs.
 #
 #   tools/tts/run_docker.sh bake <piper|kokoro|chatterbox|xtts|f5> [voice ...]
 #   tools/tts/run_docker.sh post        # ffmpeg atempo stretches, image sizes, index.html
@@ -17,7 +17,8 @@ REPO=$(cd "$HERE/../.." && (pwd -W 2>/dev/null || pwd))
 # shellcheck source=../../scripts/lib.sh
 source "$HERE/../../scripts/lib.sh"
 CPUS=${TTS_CPUSET:-0,2,4,6,8,10,12,14}
-CACHE_VOLUME=discorde-tts-cache
+# Not discorde-tts-cache: that name is the voice service's line cache (spec 2026-09-27 §4.1).
+CACHE_VOLUME=discorde-tts-bakeoff-cache
 
 image_for() {
   local tag

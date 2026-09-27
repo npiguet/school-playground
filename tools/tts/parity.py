@@ -204,7 +204,9 @@ class DirectKokoro:
             for chunk in filter(None, chunks):
                 ps, _ = self.g2p(chunk)
                 if ps:
-                    out.append(ps[: self.MAX_PHONEMES])   # KPipeline truncates the same way
+                    # KPipeline truncates the same way, dropping the rest of an over-long sentence: kept here
+                    # for parity only. The service's engine (Task 3) must split such a chunk instead.
+                    out.append(ps[: self.MAX_PHONEMES])
         return out
 
     def synth_phonemes(self, ps: str, speed: float) -> np.ndarray:
@@ -218,6 +220,14 @@ class DirectKokoro:
     def synth(self, text: str, speed: float) -> tuple[np.ndarray, list[str]]:
         ps = self.phonemes(text)
         return np.concatenate([self.synth_phonemes(p, speed) for p in ps]), ps
+
+
+def espeak_ng_version() -> str:
+    """The espeak-ng misaki's G2P actually loads (espeakng-loader's bundled library, set by misaki.espeak)."""
+    from misaki import espeak  # noqa: F401  (sets phonemizer's library and data path)
+    from phonemizer.backend.espeak.wrapper import EspeakWrapper
+
+    return ".".join(map(str, EspeakWrapper().version))
 
 
 def main() -> None:
@@ -275,8 +285,12 @@ def main() -> None:
     result = {
         "verdict": verdict,
         "verdict_order": ["onnx", "onnx-misaki", "onnx-direct", "torch"],
-        "versions": {p: md.version(p) for p in
-                     ("torch", "kokoro", "misaki", "kokoro-onnx", "onnxruntime", "soundfile", "numpy")},
+        # phonemizer-fork and espeakng-loader decide misaki's phonemes: misaki.espeak points phonemizer at
+        # espeakng-loader's own espeak-ng (library and fr data), not the image's Debian one.
+        "versions": {**{p: md.version(p) for p in
+                        ("torch", "kokoro", "misaki", "kokoro-onnx", "onnxruntime", "soundfile", "numpy",
+                         "phonemizer-fork", "espeakng-loader")},
+                     "espeak-ng": espeak_ng_version()},
         "threads": THREADS,
         "criteria": {"max_len_diff_s": MAX_LEN_DIFF_S, "max_len_diff_rel": MAX_LEN_DIFF_REL,
                      "sim_margin": SIM_MARGIN, "sim_floor_cap": SIM_FLOOR_CAP},

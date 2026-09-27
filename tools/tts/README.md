@@ -3,7 +3,8 @@
 A listening comparison of open-source French TTS engines for the dictation, run server-side on CPU:
 Piper, Kokoro-82M, Chatterbox Multilingual, Coqui XTTS-v2 and F5-TTS (French fine-tune). Nothing here
 is used by the game. Docker only: each engine has its own image (`<engine>/Dockerfile`), weights stay
-in the `discorde-tts-cache` volume.
+in the `discorde-tts-bakeoff-cache` volume (`discorde-tts-cache` is the game's voice service's line
+cache, spec 2026-09-27-kokoro-voice-design §4.1: the two are kept apart).
 
     tools/tts/run_docker.sh bake piper      # then kokoro, chatterbox, xtts, f5: one at a time
     tools/tts/run_docker.sh post            # atempo stretches, pauses, image sizes, index.html
@@ -35,11 +36,11 @@ and `../tools/tts/round2.json`). Variant A is the game's `spokenForm`; B to E ar
 
 ## Parity: ONNX against PyTorch (Kokoro plan, Task 1)
 
-The game's voice service (`tts/`) runs Kokoro-82M. `parity.py` checks that the ONNX build (`kokoro-onnx`
-+ onnxruntime, no PyTorch) speaks like the PyTorch `kokoro` package the bake-off used: the same phonemes
-(over the model's vocabulary), the same length (within 50 ms or 2 %), and a spectrogram as close to
-PyTorch's as two PyTorch renders with different seeds are to each other (Kokoro's decoder draws noise),
-within 0.02. `parity.json` holds the verdict, the versions that ran, each model file's sha256 (the
+The game's voice service (`tts/`) runs Kokoro-82M. `parity.py` checks that the ONNX build
+(`kokoro-onnx` + onnxruntime, no PyTorch) speaks like the PyTorch `kokoro` package the bake-off used:
+the same phonemes (over the model's vocabulary), the same length (within 50 ms or 2 %), and a
+spectrogram as close to PyTorch's as two PyTorch renders with different seeds are to each other
+(Kokoro's decoder draws noise), within 0.02. `parity.json` holds the verdict, the versions that ran, each model file's sha256 (the
 service's Dockerfile checks them) and a row per line; the samples land in `assets/tts-bakeoff/parity/`.
 
 The verdicts, first passing one wins (the same criteria for each): `onnx` (kokoro-onnx with its own
