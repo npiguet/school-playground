@@ -1,7 +1,8 @@
-"""The dictation's voice (spec 2026-09-27 §4.1): internal to the compose network; the game server proxies
-/api/tts/* here. /speak makes a line now (ahead of the queue) unless it is cached; /prepare queues a
-dictation's lines in order, in place of the queued lines nobody waits on; /health is ready once the model is loaded (it loads in the background, so
-the service answers « loading » meanwhile)."""
+"""The dictation's voice (spec 2026-09-27 §4.1): internal to the compose network; the game server
+proxies /api/tts/* here. /speak makes a line now (ahead of the queue) unless it is cached; /prepare
+queues a dictation's lines in order, in place of the queued lines nobody waits on; /health is ready
+once the model is loaded (it loads in the background, so the service answers « loading »
+meanwhile)."""
 from __future__ import annotations
 
 import asyncio
@@ -38,7 +39,9 @@ class PrepareBody(BaseModel):
     lines: list[SpeakBody] = Field(max_length=MAX_PREPARE_LINES)
 
 
-def create_app(config: Config | None = None, engine_factory: Callable[[Config], Engine] = load_engine) -> FastAPI:
+def create_app(
+    config: Config | None = None, engine_factory: Callable[[Config], Engine] = load_engine
+) -> FastAPI:
     config = config or Config.from_env()
 
     @asynccontextmanager
@@ -62,11 +65,15 @@ def create_app(config: Config | None = None, engine_factory: Callable[[Config], 
                              len(line.text), line.speed, len(audio) / SR, time.perf_counter() - t)
                     return data
 
-                worker = Worker(make, cache, lambda line: cache_key(engine.model_id, VOICE, line.speed, line.text))
+                def key(line: Line) -> str:
+                    return cache_key(engine.model_id, VOICE, line.speed, line.text)
+
+                worker = Worker(make, cache, key)
                 worker.start()
                 app.state.engine_id = engine.model_id
                 app.state.worker = worker
-                log.info("tts: voice ready (%s) in %.1f s", engine.model_id, time.perf_counter() - t0)
+                log.info("tts: voice ready (%s) in %.1f s",
+                         engine.model_id, time.perf_counter() - t0)
             except Exception as e:
                 app.state.error = f"{type(e).__name__}: {e}"
                 log.exception("tts: the voice could not load")
@@ -117,7 +124,8 @@ def create_app(config: Config | None = None, engine_factory: Callable[[Config], 
     def prepare(body: PrepareBody, request: Request):
         worker = worker_of(request)
         lines = [line_of(request, b) for b in body.lines]
-        # The latest dictation wins: its lines replace the queued ones nobody waits on (Worker.prepare).
+        # The latest dictation wins: its lines replace the queued ones nobody waits on
+        # (Worker.prepare).
         worker.prepare(lines)
         return {"queued": len(lines)}
 
