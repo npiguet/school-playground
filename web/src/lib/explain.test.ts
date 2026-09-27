@@ -646,6 +646,83 @@ describe('explain (SP2 playability P1-3 participle with avoir and a clitic COD)'
   });
 });
 
+// UI5 copy pass: the spoken sentence names an ending only when the right form just adds letters
+// to the typed one. « est » → « sont » and « a » → « ont » share no prefix, so « -sont » / « -ont »
+// would teach a false ending: the dragon says the whole form instead. Fixture: a three-word
+// sentence with one plain subject-verb chain (« Les fées » → the verb), the verb carrying its
+// singular sibling in `forms` so « est » / « a » grade as an agreement error, not a lexical one.
+describe('explain (spoken verb ending, UI5 copy pass)', () => {
+  function verbCtx(ref: string, typed: string, pos: 'VERB' | 'AUX', singular?: string) {
+    const chains: Chain[] = [
+      {
+        id: 0,
+        kind: 'subject_verb',
+        controller: 1,
+        controller_group: [0, 1],
+        targets: [2],
+        via: null,
+        via_token: null,
+        features: { Gender: 'Fem', Number: 'Plur', Person: '3' },
+        confidence: 'high',
+        distance: 1,
+        rule: null,
+      },
+    ];
+    const spec: [string, string[], Record<string, string>][] = [
+      ['DET', ['nominal_group'], { Number: 'Plur' }],
+      ['NOUN', ['nominal_group'], { Gender: 'Fem', Number: 'Plur' }],
+      [pos, ['verb'], { VerbForm: 'Fin', Number: 'Plur' }],
+    ];
+    const annotation = (): Annotation => ({
+      version: 2,
+      model: 't',
+      sentences: [],
+      chains,
+      tokens: tokenize(ref).map((t, i) => ({
+        i,
+        text: t.text,
+        start: t.start,
+        end: t.end,
+        lemma: t.norm,
+        pos: spec[i]?.[0] ?? 'PUNCT',
+        morph: spec[i]?.[2] ?? {},
+        head: 1,
+        dep: 'dep',
+        categories: spec[i]?.[1] ?? [],
+        homophone: null,
+        subject: null,
+        ...(i === 2 && singular ? { forms: { [singular]: { g: null, n: 's' as const } } } : {}),
+      })),
+    });
+    const g = gradeText(ref, typed, annotation());
+    return { e: g.errors[0], ctx: { refTokens: g.refTokens, annots: mapAnnotation(g.refTokens, annotation()), annotation: annotation(), body: ref } };
+  }
+
+  it('names « -nt » when the plural only adds letters (« danse » → « dansent »)', () => {
+    const { e, ctx } = verbCtx('Les fées dansent.', 'Les fées danse.', 'VERB');
+    expect(e.category).toBe('agreement');
+    expect(spokenExplanation(e, ctx)).toBe(
+      "Le sujet, ici, c'est «\u202fLes fées\u202f». Il est au pluriel, alors le verbe prend «\u202f-nt\u202f»\u202f: «\u202fdansent\u202f».",
+    );
+  });
+
+  it('says the whole form for « est » → « sont », never « -sont »', () => {
+    const { e, ctx } = verbCtx('Les fées sont prêtes.', 'Les fées est prêtes.', 'AUX', 'est');
+    expect(e.category).toBe('agreement');
+    const s = spokenExplanation(e, ctx);
+    expect(s).toBe("Le sujet, ici, c'est «\u202fLes fées\u202f». Il est au pluriel, alors le verbe s'écrit «\u202fsont\u202f».");
+    expect(s).not.toContain('-sont');
+  });
+
+  it('says the whole form for « a » → « ont », never « -ont »', () => {
+    const { e, ctx } = verbCtx('Les fées ont chanté.', 'Les fées a chanté.', 'AUX', 'a');
+    expect(e.category).toBe('agreement');
+    const s = spokenExplanation(e, ctx);
+    expect(s).toBe("Le sujet, ici, c'est «\u202fLes fées\u202f». Il est au pluriel, alors le verbe s'écrit «\u202font\u202f».");
+    expect(s).not.toContain('-ont');
+  });
+});
+
 describe('caughtText', () => {
   it('quotes what she typed and what she corrected it to', () => {
     const caught: TokenError = {
