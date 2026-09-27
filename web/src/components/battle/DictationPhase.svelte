@@ -358,7 +358,7 @@
 
   {#if cardUp}
     <div class="card-slot" out:cardOut>
-      <VoiceLostCard failure={lostFailure} {retrying} onRetry={retry} onLeave={onLeaveToCamp} />
+      <VoiceLostCard failure={lostFailure} {retrying} {compact} onRetry={retry} onLeave={onLeaveToCamp} />
     </div>
   {/if}
 

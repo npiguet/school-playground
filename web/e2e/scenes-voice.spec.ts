@@ -231,6 +231,30 @@ test('when the voice comes back, the Pythia says so, then the dictation reads on
   expect((await spokenLines(page))[0].text).toContain('Les fées dansent');
 });
 
+// The card under the keyboard (playability #7's plate is taller): a smaller plate, the parent's line
+// beside the buttons, and still a line of her draft in sight under the card.
+test('under the keyboard the card leaves a line of the draft in sight', async ({ page, request }, testInfo) => {
+  await installKeyboardSim(page);
+  await voiceDown(page, 503, () => true);
+  await startDictation(page, request, testInfo, 1);
+  const card = page.getByTestId('voice-lost');
+  await expect(card).toBeVisible();
+  const ta = page.getByTestId('dictation-textarea');
+  await ta.fill('Les fées dansent');
+  await tap(ta, testInfo);
+  const inner = await page.evaluate(() => window.innerHeight);
+  const view = await setKeyboard(page, inner - 420);
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+  await expect(card.getByTestId('btn-voice-retry')).toBeVisible();
+  await expect(card.getByTestId('voice-lost-cause')).toBeVisible();
+  const cardBox = (await card.boundingBox())!;
+  const box = (await ta.boundingBox())!;
+  // The first line of the draft: the textarea's top padding, then one line of Literata.
+  const firstLine = await ta.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop) + parseFloat(getComputedStyle(el).lineHeight));
+  expect(box.y).toBeGreaterThanOrEqual(cardBox.y + cardBox.height - 1);
+  expect(Math.min(box.y + box.height, view.bottom) - box.y).toBeGreaterThanOrEqual(firstLine);
+});
+
 test("a voice that answers with an error names it for the parent: « erreur du serveur »", async ({ page, request }, testInfo) => {
   await voiceDown(page, 500, () => true);
   await startDictation(page, request, testInfo, 2);

@@ -14,21 +14,28 @@
   import OverlayVoice from '../scene/OverlayVoice.svelte';
   import type { VoiceFailure } from '../../lib/dictation/voice';
 
+  // `compact`: under the keyboard (Ruling C4) the plate is smaller and the parent's line joins the
+  // buttons' row, so a line of her draft stays in sight below the card.
   let {
     failure,
     retrying = false,
+    compact = false,
     onRetry,
     onLeave,
-  }: { failure: VoiceFailure; retrying?: boolean; onRetry: () => void; onLeave?: () => void } = $props();
+  }: { failure: VoiceFailure; retrying?: boolean; compact?: boolean; onRetry: () => void; onLeave?: () => void } = $props();
 
   // Picked once, when the card opens (UI5 Ruling E14: a pick never lives in a $derived).
   const line = untrack(() => sayKey('battle.voice.lost'));
 </script>
 
-<div class="kit-note voice-lost" data-tone="eris" role="alert" data-testid="voice-lost" data-failure={failure} data-retrying={retrying}>
+{#snippet cause()}
+  <p class="cause" data-testid="voice-lost-cause">{VOICE_LOST.cause[failure]}</p>
+{/snippet}
+
+<div class="kit-note voice-lost" class:compact data-tone="eris" role="alert" data-testid="voice-lost" data-failure={failure} data-retrying={retrying}>
   <OverlayVoice {line} testId="voice-lost-eris"><span data-testid="voice-lost-eris-text">{line.text}</span></OverlayVoice>
   <p class="ask">{VOICE_LOST.askParent}</p>
-  <p class="cause" data-testid="voice-lost-cause">{VOICE_LOST.cause[failure]}</p>
+  {#if !compact}{@render cause()}{/if}
   <div class="actions">
     <button type="button" class="kit-bronze" data-testid="btn-voice-retry" onclick={onRetry} disabled={retrying} use:focusOnMount>{VOICE_LOST.retry}</button>
     {#if onLeave}
@@ -37,6 +44,7 @@
     {#if retrying}
       <span class="retrying" role="status" data-testid="voice-lost-retrying">{VOICE_LOST.retrying}</span>
     {/if}
+    {#if compact}{@render cause()}{/if}
   </div>
 </div>
 
@@ -74,5 +82,23 @@
   .retrying {
     font-style: italic;
     color: var(--ink-soft);
+  }
+  .compact {
+    gap: 6px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .compact :global(.overlay-voice) {
+    padding: 4px 12px 4px 4px;
+  }
+  .compact :global(.voice-portrait) {
+    width: 44px;
+    height: 44px;
+  }
+  .compact :global(.voice-text) {
+    font-size: 16px;
+  }
+  .compact .cause {
+    margin-left: auto;
   }
 </style>
