@@ -1,0 +1,111 @@
+{
+  "music/war-hall": {
+    "character": "A low, warm room tone: filtered noise with a soft 74 Hz body and nothing else, the tent's own air.",
+    "file": "assets/audio/staging/war/fs_752273_9616576.mp3",
+    "sha256": "977f038ebd6b613d6e4f5165a4d748491fe6a77b9d78e106166430a586e328be",
+    "title": "Low Roomtone",
+    "author": "IENBA",
+    "url": "https://freesound.org/people/IENBA/sounds/752273/",
+    "download": "https://cdn.freesound.org/previews/752/752273_9616576-hq.mp3",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "evidence": "Freesound CC0 deed confirmed on the sound's page, read 2026-09-27: 'You can copy, modify, distribute and perform the sound, even for commercial purposes, all without the need of asking permission to the author.' Page: 'Low, kind of industrial, interior roomtone, entirely designed using filtered and modulated white noise.'",
+    "start": 3,
+    "duration": 74,
+    "xfade": 4.0
+  },
+  "music/war-brazier": {
+    "character": "A wood fire muffled as if across the tent (low-passed at 1.8 kHz: its roar and soft pops, no sharp crackle), over the low room tone.",
+    "file": "assets/audio/staging/war/fs_163996_1622836.mp3",
+    "sha256": "6d6f98f7b9414d28cd2dc39cb7c498a582e09fb1902baf45d5cc0eb8c359c4a9",
+    "title": "Wood heater",
+    "author": "danieldouch",
+    "url": "https://freesound.org/people/danieldouch/sounds/163996/",
+    "download": "https://cdn.freesound.org/previews/163/163996_1622836-hq.mp3",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "evidence": "Freesound CC0 deed confirmed on the sound's page, read 2026-09-27: 'You can copy, modify, distribute and perform the sound, even for commercial purposes, all without the need of asking permission to the author.' Page: 'A recording of a fire going in my wood heater. You can hear the wood crackling and also the sound of the fan blowing the warm air out.'",
+    "start": 8,
+    "duration": 74,
+    "xfade": 4.0,
+    "filter": "lowpass=f=1800,lowpass=f=1800",
+    "layers": [
+      {
+        "file": "assets/audio/staging/war/fs_752273_9616576.mp3",
+        "sha256": "977f038ebd6b613d6e4f5165a4d748491fe6a77b9d78e106166430a586e328be",
+        "title": "Low Roomtone",
+        "author": "IENBA",
+        "url": "https://freesound.org/people/IENBA/sounds/752273/",
+        "download": "https://cdn.freesound.org/previews/752/752273_9616576-hq.mp3",
+        "license": "CC0 1.0",
+        "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "evidence": "See music/war-hall.",
+        "start": 3,
+        "xfade": 4.0,
+        "gain_db": -11
+      }
+    ]
+  },
+  "music/war-thunder": {
+    "character": "Dry rolls of thunder very far off, like war drums beyond the hills, now and then over the low room tone; no rain.",
+    "file": "assets/audio/staging/war/fs_717845_97550.mp3",
+    "sha256": "7b68a632e50b44ce266fcf02f1c68b984b79623f4676972ca59ae714515da7ca",
+    "title": "230405 Thunder DRY rolling distant low rumbles, roof, EM272s, Toronto 7am",
+    "author": "TRP",
+    "url": "https://freesound.org/people/TRP/sounds/717845/",
+    "download": "https://cdn.freesound.org/previews/717/717845_97550-hq.mp3",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "evidence": "Freesound CC0 deed confirmed on the sound's page, read 2026-09-27: 'You can copy, modify, distribute and perform the sound, even for commercial purposes, all without the need of asking permission to the author.' Page: 'Various distant dry rolling thunders. EM272s. Toronto.'",
+    "start": 45,
+    "duration": 74,
+    "xfade": 4.0,
+    "layers": [
+      {
+        "file": "assets/audio/staging/war/fs_752273_9616576.mp3",
+        "sha256": "977f038ebd6b613d6e4f5165a4d748491fe6a77b9d78e106166430a586e328be",
+        "title": "Low Roomtone",
+        "author": "IENBA",
+        "url": "https://freesound.org/people/IENBA/sounds/752273/",
+        "download": "https://cdn.freesound.org/previews/752/752273_9616576-hq.mp3",
+        "license": "CC0 1.0",
+        "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "evidence": "See music/war-hall.",
+        "start": 3,
+        "xfade": 4.0,
+        "gain_db": -6
+      }
+    ]
+  },
+  "music/war-canvas": {
+    "character": "Desert wind on an old fabric tent, recorded from inside (Palmyra, 2007), low-passed at 1.6 kHz and gently compressed so the gusts breathe without the flapping's snap.",
+    "file": "assets/audio/staging/war/fs_527434_11519060.mp3",
+    "sha256": "66ace0255bc51beead3f3b8bcf7d580879610b3bc0afd6ebc697072c1ff26867",
+    "title": "windy tent.wav",
+    "author": "bruno.auzet",
+    "url": "https://freesound.org/people/bruno.auzet/sounds/527434/",
+    "download": "https://cdn.freesound.org/previews/527/527434_11519060-hq.mp3",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "evidence": "Freesound CC0 deed confirmed on the sound's page, read 2026-09-27: 'You can copy, modify, distribute and perform the sound, even for commercial purposes, all without the need of asking permission to the author.' Page: microphone inside an old fabric tent with wooden tent pegs, vibrations under the desert wind, recorded in Palmyra, Syria, 2007.",
+    "start": 6,
+    "duration": 74,
+    "xfade": 4.0,
+    "filter": "lowpass=f=1600,lowpass=f=1600,acompressor=threshold=-38dB:ratio=4:attack=60:release=1200:makeup=1"
+  },
+  "music/war-dark": {
+    "character": "A played dark-ambient pad (Roli Seaboard), low and slow: soft swells around 90-130 Hz with a faint upper voice, the most musical of the five; no beat.",
+    "file": "assets/audio/staging/war/fs_494317_4594836.mp3",
+    "sha256": "9d16d659b1f736d6af7715cb10e71540457284549c62dc1038559b282c6215d5",
+    "title": "Dark Ambient",
+    "author": "dlolbful",
+    "url": "https://freesound.org/people/dlolbful/sounds/494317/",
+    "download": "https://cdn.freesound.org/previews/494/494317_4594836-hq.mp3",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "evidence": "Freesound CC0 deed confirmed on the sound's page, read 2026-09-27: 'You can copy, modify, distribute and perform the sound, even for commercial purposes, all without the need of asking permission to the author.' Page: 'Recorded using Roli Seaboard Block with GarageBand.' The source fades out after ~65 s, so the excerpt stops before it.",
+    "start": 2,
+    "duration": 62,
+    "xfade": 4.0
+  }
+}
