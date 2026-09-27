@@ -180,8 +180,9 @@ export const VICTORY = {
   nudgeEgg: "(L'œuf frémit.) Vingt-cinq minutes qu'on chasse les pièges… On souffle un peu\u202f?",
   nudgeHome: 'On rentre souffler',
   nudgeMore: 'Encore un texte',
-  /** UI5 (Ruling E14): Éris's own aside after her victory line, for the traps she slipped in. */
-  erisIntroduced: (n: number) => `(Et j'en ai glissé ${n} pendant ta relecture. Sournois, je sais.)`,
+  /** UI5 (Ruling E14): Éris's own aside after her victory line, for the traps she slipped in. She is a
+   *  goddess: « Sournoise » (UI5 playability #3; copyRules' erisSelfMasculine checks every Éris line). */
+  erisIntroduced: (n: number) => `(Et j'en ai glissé ${n} pendant ta relecture. Sournoise, je sais.)`,
   introduced: (n: number) =>
     `Éris a profité de la relecture pour glisser ${plural(n, 'nouveau piège', 'nouveaux pièges')}. Ça arrive\u202f: «\u202fRevoir\u202f» te les montre.`,
   continue: 'Continuer',

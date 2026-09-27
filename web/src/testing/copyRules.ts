@@ -62,3 +62,30 @@ export const GENDERED = new RegExp(
   String.raw`(?<!\p{L})${YOU}\s+${FILLER}(?:${AGREEING.join('|')})(?!\p{L})|(^|[,!?«]\s*)(cher |jeune |petite? )?héro(s|ïne)\s*[,!]`,
   'iu',
 );
+
+/** UI5 playability #3: Éris is a goddess, and she agrees with herself in the feminine (« Sournoise,
+ *  je sais. », « Je note, vexée. »). The frames where she describes herself: « je suis X », « je
+ *  reste X », « me voilà X », « X, je sais », « je note, X », « moi, X. ». */
+const SELF = [
+  String.raw`(?<!\p{L})je (?:suis|reste|resterai|serai|serais|me sens|me sentais|étais)\s+${FILLER}(\p{L}+)`,
+  String.raw`(?<!\p{L})me (?:voilà|voici)\s+${FILLER}(\p{L}+)`,
+  String.raw`(?:^|[.!?(…]\s*)(\p{L}+),\s+je (?:sais|l[’']avoue|te l[’']accorde)`,
+  String.raw`(?<!\p{L})je note,\s+(\p{L}+)`,
+  String.raw`(?<!\p{L})moi,\s+(\p{L}+)\s*[.!…]`,
+].map((s) => new RegExp(s, 'giu'));
+/** Words those frames catch that are no adjective (« je suis là », « Oui, je sais », « Moi,
+ *  jamais. »). An epicene adjective (« triste », « calme ») already ends in -e. */
+const NOT_ADJECTIVES = new Set(['là', 'ici', 'de', 'du', 'à', 'au', 'en', 'un', 'le', 'mon', 'pas', 'plus', 'rien', 'jamais', 'toujours', 'bien', 'oui', 'non', 'ah', 'oh', 'bref', 'soit', 'enfin']);
+
+/** The adjectives Éris says of herself in the masculine: the word each self-describing frame catches
+ *  must be feminine (it ends in -e or -es) or no adjective at all. */
+export function erisSelfMasculine(text: string): string[] {
+  const out: string[] = [];
+  for (const re of SELF) {
+    for (const m of text.matchAll(re)) {
+      const w = m[1].toLowerCase();
+      if (!/es?$/u.test(w) && !NOT_ADJECTIVES.has(w)) out.push(w);
+    }
+  }
+  return out;
+}

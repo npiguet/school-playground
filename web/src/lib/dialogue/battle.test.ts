@@ -21,7 +21,7 @@ describe("Éris in battle (Ruling E14)", () => {
     const g = erisVictoryLine({ draft: 4, catchRate: 1, introduced: 0, mode: 'grimoire' });
     expect(poolFor(LINES['battle.victory'], { mode: 'grimoire' }).map((x) => frenchSpacing(x.text))).toContain(g.text);
     expect(g).toMatchObject({ speaker: 'eris', key: 'battle.victory' });
-    expect(erisVictoryLine({ draft: 4, catchRate: 0.5, introduced: 2, mode: 'dictation' }).text).toMatch(/\(Et j'en ai glissé 2 pendant ta relecture\. Sournois, je sais\.\)$/);
+    expect(erisVictoryLine({ draft: 4, catchRate: 0.5, introduced: 2, mode: 'dictation' }).text).toMatch(/\(Et j'en ai glissé 2 pendant ta relecture\. Sournoise, je sais\.\)$/);
   });
 
   it('opens the muster with her line, her retry line, or the lieutenant’s dossier line', () => {

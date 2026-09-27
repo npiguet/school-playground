@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FORBIDDEN } from '../world/eris';
-import { GENDERED } from '../../testing/copyRules';
+import { FORBIDDEN, dossierLine, smallTricksLine, type Band } from '../world/eris';
+import { LIEUTENANT_ORDER } from '../world/types';
+import { GENDERED, erisSelfMasculine } from '../../testing/copyRules';
 import { outcomeOf } from './hp';
 import * as L from './lines';
+
+const BANDS: Band[] = ['none', 'strong', 'contested', 'weak', 'neutralised'];
 
 // Every string reachable from lines.ts, functions called with representative arguments.
 function allLines(): string[] {
@@ -33,6 +36,20 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
     for (const s of [...Object.values(L.CHALLENGE_LINES), L.VICTORY.bossWon, L.VICTORY.bossLost, L.VICTORY.erisIntroduced(2)]) {
       for (const f of FORBIDDEN) expect(s.toLowerCase().includes(f), `${f} in ${s}`).toBe(false);
     }
+  });
+
+  it('lets Éris agree with herself in the feminine (UI5 playability #3)', () => {
+    const eris = [
+      ...Object.values(L.CHALLENGE_LINES),
+      L.VICTORY.bossWon,
+      L.VICTORY.bossLost,
+      L.VICTORY.bossTooEasy,
+      L.VICTORY.erisIntroduced(2),
+      ...LIEUTENANT_ORDER.flatMap((k) => BANDS.map((b) => dossierLine(k, b))),
+      ...[[0, 0], [10, 1], [10, 5], [10, 9]].map(([t, c]) => smallTricksLine(t, c)),
+    ];
+    for (const s of eris) expect(erisSelfMasculine(s), s).toEqual([]);
+    expect(L.VICTORY.erisIntroduced(2)).toContain('Sournoise, je sais.');
   });
 
   it('keeps every static voice line short enough for its plate', () => {
