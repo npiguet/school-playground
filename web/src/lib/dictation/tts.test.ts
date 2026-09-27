@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { cancelSpeech, listFrenchVoices, pickVoice, speak, ttsAvailable, unlockSpeech, waitForVoices } from './tts';
+import { cancelSpeech, listFrenchVoices, pickVoice, SPEECH_MS_PER_CHAR, speak, ttsAvailable, unlockSpeech, waitForVoices } from './tts';
+import { buildPlan, buildScript, PACE_RATES } from './script';
+import { createRunner } from './runner';
 
 const v = (name: string, lang: string) => ({ name, lang, default: false, localService: true, voiceURI: name }) as SpeechSynthesisVoice;
 
@@ -143,28 +145,110 @@ describe('the voice channel (Rulings E5, E7)', () => {
     const said: string[] = [];
     (globalThis as any).speechSynthesis.speak = (u: any) => void said.push(u.text);
     let done = false;
-    void speak('Deux mots.', { rate: 1 }).then(() => (done = true));
+    // Final review I1: the time the voice would take, at the line's rate (10 characters at 0.75).
+    void speak('Deux mots.', { rate: 0.75 }).then(() => (done = true));
     expect(audio().snapshot().voiceSpeaking).toBe(false);
-    await vi.advanceTimersByTimeAsync(299);
+    const ms = (10 * SPEECH_MS_PER_CHAR) / 0.75;
+    await vi.advanceTimersByTimeAsync(ms - 1);
     expect(done).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
     expect(done).toBe(true);
     expect(said).toEqual([]);
   });
 
+  // Final review I1: the calibration lines (tts.ts, SPEECH_MS_PER_CHAR), each spoken by a voice that
+  // takes what the e2e WebKit's took (ms a character at rate 1, divided by the rate), and muted: the
+  // same line takes the same time within 20 %, at every pace's rate.
+  it('keeps the pace muted: a muted line takes the time the voice takes, within 20 %, at every rate', async () => {
+    vi.useFakeTimers();
+    const { audioSettings } = await import('../audio/store.svelte');
+    const measured: [string, number][] = [
+      ['Les fées dansent dans la clairière point', 76.6],
+      ['Elles chantent virgule et les oiseaux les écoutent point', 59.6],
+      ['Le petit dragon regarde les étoiles au-dessus de la montagne point à la ligne', 58.2],
+    ];
+    const timed = async (text: string, rate: number, muted: boolean, msPerChar: number): Promise<number> => {
+      audioSettings.voice = { volume: 1, muted };
+      (globalThis as any).speechSynthesis.speak = (u: any) => void setTimeout(() => u.onend?.(), (u.text.length * msPerChar) / u.rate);
+      const t0 = Date.now();
+      let end = 0;
+      void speak(text, { rate }).then(() => (end = Date.now()));
+      while (!end) await vi.advanceTimersByTimeAsync(10);
+      return end - t0;
+    };
+    for (const rate of Object.values(PACE_RATES)) {
+      for (const [text, msPerChar] of measured) {
+        const spoken = await timed(text, rate, false, msPerChar);
+        const muted = await timed(text, rate, true, msPerChar);
+        expect(Math.abs(muted - spoken) / spoken, `${text} at ${rate}: spoken ${spoken} ms, muted ${muted} ms`).toBeLessThanOrEqual(0.2);
+      }
+    }
+  });
+
+  // The script's pauses are the runner's own `wait` steps: a muted chunk read twice at pace 3, with
+  // its pauses, takes the time a spoken one does (within 20 %).
+  it('keeps a whole chunk\'s pace muted, its pauses included (pace 3)', async () => {
+    vi.useFakeTimers();
+    const { audioSettings } = await import('../audio/store.svelte');
+    const steps = buildScript(buildPlan('Le petit dragon regarde les étoiles au-dessus de la montagne.'), 3);
+    const run = async (muted: boolean): Promise<number> => {
+      audioSettings.voice = { volume: 1, muted };
+      (globalThis as any).speechSynthesis.speak = (u: any) => void setTimeout(() => u.onend?.(), (u.text.length * 58.2) / u.rate);
+      let finished = 0;
+      const t0 = Date.now();
+      const runner = createRunner(steps, {
+        pace: 3,
+        speak: (s, rate) => speak(s, { rate }),
+        sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+        cancel: () => undefined,
+        onChange: (s) => {
+          if (s.status === 'finished') finished = Date.now();
+        },
+      });
+      runner.start();
+      while (!finished) await vi.advanceTimersByTimeAsync(10);
+      return finished - t0;
+    };
+    const spoken = await run(false);
+    const muted = await run(true);
+    expect(Math.abs(muted - spoken) / spoken, `spoken ${spoken} ms, muted ${muted} ms`).toBeLessThanOrEqual(0.2);
+  });
+
   // Lane A review #3: a line whose end event never comes (iOS) must not keep the music down forever.
-  it('lets the music back up once a line has run far past its length without an end event', async () => {
+  // Final review I2: nor keep the dictation waiting - speak() resolves as if the line had ended.
+  it('lets the music back up and the caller go on once a line has run far past its length without an end event', async () => {
     vi.useFakeTimers();
     const { audio } = await import('../audio/audio.svelte');
-    (globalThis as any).speechSynthesis.speak = () => undefined; // never ends
+    const synth = (globalThis as any).speechSynthesis;
+    synth.speak = () => {
+      synth.speaking = true; // never ends
+    };
     const text = 'Une phrase.';
-    void speak(text, { rate: 0.5 });
+    let done = false;
+    void speak(text, { rate: 0.5 }).then(() => (done = true));
     expect(audio().snapshot().voiceSpeaking).toBe(true);
     const max = (text.length * 150) / 0.5 + 3000;
     await vi.advanceTimersByTimeAsync(max - 1);
     expect(audio().snapshot().voiceSpeaking).toBe(true);
+    expect(done).toBe(false);
+    const cancels = synth.cancel.mock.calls.length;
     await vi.advanceTimersByTimeAsync(1);
     expect(audio().snapshot().voiceSpeaking).toBe(false);
+    expect(done).toBe(true);
+    // The stuck voice is silenced, so the next line does not talk over it.
+    expect(synth.cancel.mock.calls.length).toBe(cancels + 1);
+  });
+
+  it('lets the caller go on after a lost end event even when the engine says it is no longer speaking', async () => {
+    vi.useFakeTimers();
+    const synth = (globalThis as any).speechSynthesis;
+    synth.speak = () => undefined; // never ends, never says it speaks
+    let done = false;
+    void speak('Six.', { rate: 1 }).then(() => (done = true));
+    const cancels = synth.cancel.mock.calls.length;
+    await vi.advanceTimersByTimeAsync((4 * 150) / 1 + 3000);
+    expect(done).toBe(true);
+    expect(synth.cancel.mock.calls.length).toBe(cancels);
   });
 
   // Lane A review #10: a cancel lands between speak() and its deferred start (iOS settle tick).

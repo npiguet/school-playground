@@ -188,13 +188,33 @@ test('a dictation line is spoken at the voice volume, with the music down under 
 });
 
 test('a muted voice says nothing, and the dictation still goes on at its pace (Ruling E7b)', async ({ page, request }, testInfo) => {
+  // Final review I1: each status the dictation shows, timed by the page itself (no round trip in it).
+  await page.addInitScript(() => {
+    const seen: { text: string; t: number }[] = [];
+    (window as unknown as { __statuses: typeof seen }).__statuses = seen;
+    new MutationObserver(() => {
+      const text = document.querySelector('[data-testid="dictation-status"]')?.textContent ?? null;
+      if (text !== null && text !== seen.at(-1)?.text) seen.push({ text, t: performance.now() });
+    }).observe(document, { subtree: true, childList: true, characterData: true });
+  });
   const { id, textId } = await dictationWithVoice(page, request, testInfo, { volume: 1, muted: true });
   await expect(page.getByTestId('dictation-status')).toHaveText("À toi d'écrire.");
   await expect(page.getByTestId('btn-next')).toBeEnabled();
   await tap(page.getByTestId('btn-next'), testInfo);
   const key = `discorde.play.${id}.${textId}`;
   await expect.poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').dictationStep, key)).toBe(2);
-  await expect(page.getByTestId('dictation-status')).toHaveText("À toi d'écrire.");
+  const statuses = () => page.evaluate(() => (window as unknown as { __statuses: { text: string; t: number }[] }).__statuses);
+  const writing = "À toi d'écrire.";
+  await expect.poll(async () => (await statuses()).filter((s) => s.text === writing).length).toBe(2);
+  await expect(page.getByTestId('dictation-status')).toHaveText(writing);
+  // Final review I1: « Suivant » starts the second sentence at once (« Écoute… »), read at pace 1's
+  // rate 0.75. « Elles chantent et les oiseaux les écoutent. » is 43 characters before its said
+  // punctuation, so the voice takes at least 43 × 65 ms / 0.75 ≈ 3.7 s (tts.ts, SPEECH_MS_PER_CHAR):
+  // the muted reading takes as long (it used to take a third of it).
+  const seen = await statuses();
+  const second = seen.map((s) => s.text).lastIndexOf(writing);
+  expect(seen[second - 1]?.text, JSON.stringify(seen)).toBe('Écoute…');
+  expect(seen[second].t - seen[second - 1].t, JSON.stringify(seen)).toBeGreaterThanOrEqual((43 * 65) / 0.75);
   expect(await said(page)).toEqual([]);
   expect((await audioState(page))!.voiceSpeaking).toBe(false);
 });

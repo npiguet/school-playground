@@ -79,16 +79,37 @@ export function pickVoice(
   return listFrenchVoices(voices)[0];
 }
 
-/** A line said by nobody (no speech engine, or the voice muted) still takes about its time. */
-const silentLine = (text: string): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, Math.max(300, text.length * 30)));
+/**
+ * How fast a voice speaks French at rate 1: about 15 characters a second, i.e. 65 ms a character of
+ * the spoken form (its spaces and its said punctuation, « virgule », « point », included). Final
+ * review I1: this is what a muted voice (Ruling E7b) and a missing speech engine wait instead of the
+ * line, so the dictation keeps the pace the adult reading it aloud expects. Divided by the line's
+ * rate like the voice itself (PACE_RATES 0.75-1.0): a slower pace waits longer. The script's own
+ * pauses (its `wait` steps: 600 ms between a chunk's two readings, then pauseMs) come after it
+ * exactly as after a spoken line.
+ * Calibrated (UI5 fix wave A) against the e2e WebKit's own speechSynthesis (Flite) on three dictation
+ * lines of 40, 56 and 77 characters at rates 0.75, 0.9 and 1: 76.6, 59.6 and 58.2 ms a character at
+ * rate 1 (62.9 over the three), each line's time exactly inversely proportional to the rate. The
+ * review's figure for French voices at the dictation rates, 65-90 ms a character at 0.75-1.0, is
+ * 49-90 at rate 1. 65 lies within 20 % of every measured line (tts.test.ts pins it).
+ */
+export const SPEECH_MS_PER_CHAR = 65;
+
+/** How long a French voice takes to say `text` at `rate`, in ms (at least 300). */
+export function speechMs(text: string, rate: number): number {
+  return Math.max(300, (text.length * SPEECH_MS_PER_CHAR) / rate);
+}
+
+/** A line said by nobody (no speech engine, or the voice muted) takes the time the voice would. */
+const silentLine = (text: string, rate: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, speechMs(text, rate)));
 
 /** How long a line may run before its missing end event is given up on (lane A review #3). */
 const watchdogMs = (text: string, rate: number): number => (text.length * 150) / rate + 3000;
 
 export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesisVoice | null }): Promise<void> {
   const synth = (globalThis as any).speechSynthesis as SpeechSynthesis | undefined;
-  if (!synth) return silentLine(text);
+  if (!synth) return silentLine(text, opts.rate);
 
   // Capture this before cancel(), which clears speaking/pending immediately.
   const wasActive = Boolean(synth.speaking || synth.pending);
@@ -100,7 +121,7 @@ export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesi
   if (voiceMuted()) {
     activeUtterance = null;
     voiceSpeaking(false);
-    return silentLine(text);
+    return silentLine(text, opts.rate);
   }
 
   return new Promise((resolve) => {
@@ -133,9 +154,12 @@ export function speak(text: string, opts: { rate: number; voice?: SpeechSynthesi
       activeUtterance = utterance;
       // UI5 Ruling E5: the music is down before the first word.
       voiceSpeaking(true);
-      // An end event that never comes (iOS) must not keep the music down: un-duck, the line is long gone.
+      // An end event that never comes (iOS): the line is long gone. Final review I2: as if it had
+      // ended - the music comes back up and the dictation goes on (the runner awaits this promise).
+      // A voice somehow still going is silenced first, so the next line does not talk over it.
       watchdog = setTimeout(() => {
-        if (activeUtterance === utterance) voiceSpeaking(false);
+        if (activeUtterance === utterance && synth.speaking) synth.cancel();
+        finish();
       }, watchdogMs(text, opts.rate));
       synth.speak(utterance);
     };
