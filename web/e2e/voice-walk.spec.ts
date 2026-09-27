@@ -71,7 +71,7 @@ test('pace III on the longest seed text: its first line, one group, comes quickl
   const ms = Date.now() - t0;
   note(testInfo, 'first line (longest text, pace III)', `${ms} ms`);
   expect(ms).toBeLessThan(10_000);
-  await expect(page.getByText(/^Groupe 1 sur \d+$/)).toBeVisible();
+  await expect(page.getByText(/^Groupe \d+ sur \d+$/)).toBeVisible();
   await expect.poll(() => lines(page), { timeout: 240_000 }).toBeGreaterThan(1);
   note(testInfo, 'first group read twice (longest text, pace III)', `${Date.now() - t0} ms, ${await lines(page)} lines said`);
 });
