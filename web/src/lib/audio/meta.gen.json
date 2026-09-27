@@ -1,25 +1,30 @@
 {
   "battle": {
+    "ffmpeg": "7.1.5-0+deb13u1",
     "priming": 1024,
     "rate": 44100,
     "samples": 2902152
   },
   "camp": {
+    "ffmpeg": "7.1.5-0+deb13u1",
     "priming": 1024,
     "rate": 44100,
     "samples": 2513700
   },
   "lair": {
+    "ffmpeg": "7.1.5-0+deb13u1",
     "priming": 1024,
     "rate": 44100,
     "samples": 2954700
   },
   "sea": {
+    "ffmpeg": "7.1.5-0+deb13u1",
     "priming": 1024,
     "rate": 44100,
     "samples": 2513700
   },
   "temple": {
+    "ffmpeg": "7.1.5-0+deb13u1",
     "priming": 1024,
     "rate": 44100,
     "samples": 2954700

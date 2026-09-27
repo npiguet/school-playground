@@ -1,7 +1,8 @@
 """UI5 audio pipeline (Ruling E17): trims each CC0 source, crossfades a loop's seam, normalises its
 loudness, encodes AAC-LC 96 kbps .m4a, records each loop's exact length for the runtime loop region
 (web/src/lib/audio/meta.gen.json) and writes the credits into ASSETS-LICENSES.md. Runs in the
-tools/audio container (run_docker.sh); sources are listed in tools/audio/sources.json."""
+tools/audio container (run_docker.sh), whose ffmpeg is pinned (Dockerfile); sources are listed in
+tools/audio/sources.json, each with its download URL and sha256 (`fetch` gets them all)."""
 from __future__ import annotations
 
 import hashlib
@@ -26,6 +27,40 @@ TRUE_PEAK = -1.5
 # encoded file's true peak was seen up to ~2 dB above a PCM limiter set right at TRUE_PEAK. Limit the
 # PCM before encoding this much further below TRUE_PEAK so the encoded file still lands under it.
 ENCODE_HEADROOM = 3.0
+
+
+def ffmpeg_version() -> str:
+    """The toolchain's own version line, e.g. « 7.1.5-0+deb13u1 » (final review I6): printed at each
+    build and recorded with each loop, so a drift of the pinned ffmpeg (tools/audio/Dockerfile) shows."""
+    out = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, check=True).stdout
+    return out.split()[2]
+
+
+def fetch(sources: dict) -> None:
+    """Downloads every source and layer into assets/audio/staging/ from its recorded `download` URL
+    (a Kenney pack: its zip, then its `member`) and checks its sha256; a file already there and
+    matching is kept (final review I6)."""
+    import io
+    import urllib.request
+    import zipfile
+
+    entries = [(slot, s) for slot, s in sorted(sources.items())]
+    entries += [(f"{slot} (layer)", layer) for slot, s in sorted(sources.items()) for layer in s.get("layers", [])]
+    for slot, s in entries:
+        dest = ROOT / s["file"]
+        if dest.is_file() and sha256(dest) == s["sha256"]:
+            print(f"{slot:24} kept")
+            continue
+        req = urllib.request.Request(s["download"], headers={"User-Agent": "discorde-audio-tools"})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            data = r.read()
+        if "member" in s:
+            data = zipfile.ZipFile(io.BytesIO(data)).read(s["member"])
+        if hashlib.sha256(data).hexdigest() != s["sha256"]:
+            sys.exit(f"{slot}: {s['download']} does not match its recorded sha256")
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+        print(f"{slot:24} fetched, sha256 ok")
 
 
 def run(args: list[str]) -> str:
@@ -155,7 +190,7 @@ def build(slot: str, s: dict) -> dict:
         sys.exit(f"{slot}: true peak {tp:.1f} dBTP exceeds the {TRUE_PEAK} dBTP ceiling")
     print(f"{slot:14} {dest.stat().st_size / 1024:7.1f} KiB  {samples / rate:6.2f} s  "
           f"{li:6.1f} LUFS  {tp:5.1f} dBTP  [{status} vs {target} LUFS target]")
-    return {"samples": samples, "rate": rate, "priming": PRIMING} if kind == "music" else {}
+    return {"samples": samples, "rate": rate, "priming": PRIMING, "ffmpeg": ffmpeg_version()} if kind == "music" else {}
 
 
 def credits(sources: dict) -> None:
@@ -186,7 +221,10 @@ def main() -> None:
             i, tp = loudness(ROOT / a)
             nf = noise_floor(ROOT / a)
             print(f"{a}: {duration(ROOT / a):.2f} s, {i:.1f} LUFS, {tp:.1f} dBTP, noise floor {nf:.1f} dBFS")
+    elif cmd == "fetch":
+        fetch(sources)
     elif cmd == "build":
+        print(f"ffmpeg {ffmpeg_version()}")
         meta = json.loads(META.read_text(encoding="utf-8")) if META.exists() else {}
         for slot in args or sorted(sources):
             m = build(slot, sources[slot])
@@ -196,7 +234,7 @@ def main() -> None:
     elif cmd == "credits":
         credits(sources)
     else:
-        sys.exit("usage: process.py measure <files> | build [slots] | credits")
+        sys.exit("usage: process.py fetch | measure <files> | build [slots] | credits")
 
 
 if __name__ == "__main__":
