@@ -1,0 +1,26 @@
+{
+  "source": {
+    "a": "content/seed/028-muses-dragon-des-muses.json, sentence 2 (splitSentences), spokenForm",
+    "b": "the same sentence, splitChunks chunks 1 and 2, spokenForm",
+    "c": "content/dialogue/camp.json camp.weekly[2], fill + frenchSpacing as sayKey renders it (dialogue is not spoken today)"
+  },
+  "slowRate": 0.75,
+  "lines": {
+    "a": {
+      "text": "Un matin, l'œuf se fendit en craquant, et un petit dragon aux écailles vertes en sortit, les ailes encore froissées.",
+      "spoken": "Un matin, virgule, l'œuf se fendit en craquant, virgule, et un petit dragon aux écailles vertes en sortit, virgule, les ailes encore froissées, point."
+    },
+    "b1": {
+      "text": "Un matin, l'œuf se fendit en craquant,",
+      "spoken": "Un matin, virgule, l'œuf se fendit en craquant, virgule."
+    },
+    "b2": {
+      "text": "et un petit dragon aux écailles vertes en sortit,",
+      "spoken": "et un petit dragon aux écailles vertes en sortit, virgule."
+    },
+    "c": {
+      "text": "Objectif de la semaine atteint ! Même Éris l'a remarqué, et ça l'agace.",
+      "spoken": "Objectif de la semaine atteint ! Même Éris l'a remarqué, et ça l'agace."
+    }
+  }
+}

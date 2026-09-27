@@ -1,0 +1,30 @@
+{
+  "piper": {
+    "engine": "piper-tts 1.8.0 (piper1-gpl): GPL-3.0-or-later (PyPI metadata, github.com/OHF-Voice/piper1-gpl)",
+    "voices": {
+      "siwis": "trained on SIWIS (datashare.ed.ac.uk/handle/10283/2353): CC-BY 4.0 (piper-voices MODEL_CARD)",
+      "tom": "AGPLv3 (piper-voices MODEL_CARD; git.bksp.space/Tjiho/French-tts-model-piper)",
+      "upmc": "trained on upmc-pierre-data (github.com/marytts): CC-BY-SA 4.0 (piper-voices MODEL_CARD)",
+      "mls": "trained on Multilingual LibriSpeech (openslr.org/94): CC-BY 4.0 (piper-voices MODEL_CARD)",
+      "gilles": "fine-tuned on a Kaggle French single-speaker dataset (bryanpark): CC0 (piper-voices MODEL_CARD)"
+    }
+  },
+  "kokoro": {
+    "engine": "kokoro 0.9.4 + misaki 0.9.4: Apache-2.0 (PyPI metadata)",
+    "weights": "Kokoro-82M: Apache-2.0 (hexgrad/Kokoro-82M model card); ff_siwis trained on SIWIS, CC BY (VOICES.md, grade B-, under 11 h of data)"
+  },
+  "chatterbox": {
+    "engine": "chatterbox-tts 0.1.7: MIT (PyPI metadata)",
+    "weights": "ResembleAI/chatterbox: MIT (Hugging Face model card)",
+    "note": "every output carries Resemble's inaudible Perth watermark (the package applies it); no native speed control, the slow line is the atempo stretch only"
+  },
+  "xtts": {
+    "engine": "coqui-tts 0.27.5 (idiap fork): MPL-2.0 (PyPI metadata)",
+    "weights": "coqui/XTTS-v2: Coqui Public Model License (coqui.ai/cpml), non-commercial (Hugging Face model card)"
+  },
+  "f5": {
+    "engine": "f5-tts 1.1.22: MIT (PyPI metadata)",
+    "weights": "RASPIAUDIO/F5-French-MixedSpeakers-reduced: CC-BY-NC 4.0, fine-tuned from SWivid/F5-TTS (CC-BY-NC 4.0) on LibriVox French (Hugging Face model cards)",
+    "note": "voice cloned from the reference clip bundled with the f5-tts package (infer/examples/basic/basic_ref_en.wav, English); the checkpoint ships no reference of its own"
+  }
+}

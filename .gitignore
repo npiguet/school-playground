@@ -20,3 +20,5 @@ core.[0-9]*
 assets/art/web/
 # UI5 Task 3: downloaded audio sources (tools/audio/sources.json records each URL and sha256). Never committed.
 assets/audio/staging/
+# TTS bake-off samples and results (tools/tts/run_docker.sh): generated, never committed.
+assets/tts-bakeoff/
