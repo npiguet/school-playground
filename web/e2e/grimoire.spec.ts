@@ -1,10 +1,9 @@
 import { test, expect } from './crashGuard';
-import { chooseLevel, createProfile, createText, expectCamp, stubSpeech, uniqueName } from './helpers';
+import { chooseLevel, createProfile, createText, expectCamp, uniqueName } from './helpers';
 
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent. Le vent emporte leurs chansons jusqu\'au village. Les enfants sortent de leurs maisons, émerveillés. La musique descend de la forêt et la nuit est douce.';
 
 test('Grimoire corrompu: planted errors, Fil d\'Ariane, results and stats', async ({ page, request }) => {
-  await stubSpeech(page);
   await createProfile(page, uniqueName('Grim'), '10H');
   // A unique title: the library is shared by every profile, so a fixed one matches several cards
   // under --repeat-each (strict mode violation).

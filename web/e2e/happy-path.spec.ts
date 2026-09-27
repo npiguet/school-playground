@@ -1,11 +1,10 @@
 import { test, expect } from './crashGuard';
-import { closeOverlay, expectCamp, newHero, openShelves, stubSpeech, uniqueName } from './helpers';
+import { closeOverlay, expectCamp, newHero, openShelves, spokenLines, uniqueName } from './helpers';
 
 const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
 
 test('create profile → add text → dictation → proofreading → results → stats', async ({ page }) => {
-  await stubSpeech(page);
   const name = uniqueName('Test');
 
   // Profile
@@ -32,7 +31,7 @@ test('create profile → add text → dictation → proofreading → results →
   await page.getByTestId('btn-next').click();
   await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
   await ta.fill(DRAFT);
-  expect(await page.evaluate(() => (window as any).__spoken.length)).toBeGreaterThanOrEqual(2);
+  expect((await spokenLines(page)).length).toBeGreaterThanOrEqual(2);
   await page.getByTestId('btn-finish-writing').click();
 
   // Proofreading: stage 1 with Argus passes; fix one of the two errors

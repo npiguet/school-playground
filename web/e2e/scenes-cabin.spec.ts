@@ -14,7 +14,6 @@ import {
   expectScene,
   labelOverlaps,
   redScan,
-  stubSpeech,
   tap,
   heroNamer,
 } from './helpers';
@@ -150,7 +149,6 @@ test("the journal tells Éris's tricks by their monster, and each text once", as
 
 test('the lyre holds the settings, the three sound channels, the goal as medallions, the credits', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  await stubSpeech(page);
   await openCabin(page, id);
   await tap(page.getByTestId('cabin-lyre'), testInfo);
   await expect(page).toHaveURL(/\/settings$/);
@@ -161,9 +159,9 @@ test('the lyre holds the settings, the three sound channels, the goal as medalli
   // The camp's sounds are three channels (UI5, spec §7): a slider and a « Sourdine » toggle each,
   // never a bare checkbox, and no longer a radio pair.
   await expect(lyre.locator('input[type="checkbox"]')).toHaveCount(0);
-  // The voice's select: named for a screen reader, no label printed over it (playability #6).
-  await expect(lyre.getByLabel('Voix de la dictée')).toBeVisible();
-  await expect(lyre.locator('label[for="voice"]')).toHaveCount(0);
+  // The voice is the server's (Kokoro plan Ruling K10): a trial to hear, nothing to choose.
+  await expect(lyre.getByTestId('lyre-try-voice')).toBeVisible();
+  await expect(lyre.locator('select')).toHaveCount(0);
   for (const ch of ['music', 'sfx', 'voice']) await expect(lyre.getByTestId(`lyre-channel-${ch}`)).toBeVisible();
   await expect(lyre.getByRole('radiogroup', { name: 'Les sons du camp' })).toHaveCount(0);
   await expect(lyre.getByRole('group', { name: 'Les sons du camp' })).toHaveCount(0);
@@ -171,13 +169,13 @@ test('the lyre holds the settings, the three sound channels, the goal as medalli
   await expect(muteMusic).toHaveAttribute('aria-pressed', 'false');
   await muteMusic.click();
   await expect(muteMusic).toHaveAttribute('aria-pressed', 'true');
-  await expect(lyre).toContainText("Sur iPad, seuls les boutons de l'appareil règlent le volume de la voix.");
   await expect(lyre.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'dragon');
   await lyre.getByRole('group', { name: 'Textes par semaine' }).getByRole('radio', { name: '4' }).check();
   await lyre.getByRole('button', { name: 'Enregistrer' }).click();
   await expect(lyre.getByRole('status')).toHaveText("C'est noté.");
   await lyre.getByTestId('lyre-credits').locator('summary').click();
   await expect(lyre.getByTestId('lyre-credits')).toContainText('Wikisource');
+  await expect(lyre.getByTestId('lyre-credits')).toContainText('Kokoro');
   expect(await redScan(page)).toEqual([]);
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/cabane$/);
@@ -233,7 +231,7 @@ test('the dragon greets in the cabin, once per page load', async ({ page, reques
   await page.getByTestId('dialogue-skip').click();
   await expect(box).toHaveCount(0);
   await tap(page.getByTestId('cabin-lyre'), testInfo);
-  await expect(page.getByTestId('overlay-lyre').getByTestId('overlay-voice')).toContainText('Choisis ici qui te lit la dictée');
+  await expect(page.getByTestId('overlay-lyre').getByTestId('overlay-voice')).toContainText('Règle ici la musique, les bruitages et la voix');
   await closeOverlay(page);
   await expect(box).toHaveCount(0);
 });

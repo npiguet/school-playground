@@ -5,10 +5,11 @@ import { defineConfig, devices } from '@playwright/test';
 // 1280x720, the pre-UI1 setup); `ipad` runs the scene specs (scenes-*.spec.ts) at iPad landscape
 // 1180x820 with touch; `chromium` runs the one history test whose bug only Chromium shows (below).
 // Playability walks (playability*.spec.ts) write review screenshots and only run through
-// playwright.playability.config.ts.
+// playwright.playability.config.ts. The real-voice specs (voice-*.spec.ts) only run through
+// playwright.voice.config.ts.
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: ['**/playability*.spec.ts'],
+  testIgnore: ['**/playability*.spec.ts', '**/voice-*.spec.ts'],
   timeout: 60_000,
   // Never any retry: a failure is a defect (CLAUDE.md). The one exception, a test whose browser
   // crashed (upstream WebKit, Ruling F3), runs once more through scripts/playwright-crash-retry.mjs,

@@ -1,15 +1,15 @@
 <script lang="ts">
-  // The lyre (UI3 Ruling B6, was the Settings screen): the dictation voice, the hero's class, the
-  // camp's sounds, the weekly goal as medallions, the seal (PIN), the camp's tours and the credits
+  // The lyre (UI3 Ruling B6, was the Settings screen): the dictation voice's trial, the hero's class,
+  // the camp's sounds, the weekly goal as medallions, the seal (PIN), the camp's tours and the credits
   // (immersion Deferred #7), on a scroll in the cabin. The mute (A17) became three channels (UI5,
-  // spec §7). UI3b playability #6: every choice is a medallion, the voice's select wears the
-  // parchment look with no label over it, and the dragon says what the lyre is for from the
-  // overlay's voice plate (CabinRoom.svelte), so the headings stay short.
-  import { untrack } from 'svelte';
+  // spec §7). UI3b playability #6: every choice is a medallion, and the dragon says what the lyre is
+  // for from the overlay's voice plate (CabinRoom.svelte), so the headings stay short.
+  import { onDestroy, untrack } from 'svelte';
   import LevelMedallions from '../../ui/LevelMedallions.svelte';
   import ChannelRow from './ChannelRow.svelte';
+  import VoiceLostCard from '../../battle/VoiceLostCard.svelte';
   import { api, ApiError } from '../../../lib/api';
-  import { listFrenchVoices, pickVoice, speak, waitForVoices } from '../../../lib/dictation/tts';
+  import { createVoice, VoiceError, type VoiceFailure } from '../../../lib/dictation/voice';
   import { profileStore } from '../../../lib/profileStore.svelte';
   import { useToast } from '../../../lib/ui/toast.svelte';
   import { audioSettings } from '../../../lib/audio/store.svelte';
@@ -19,10 +19,8 @@
 
   let { profile }: { profile: Profile } = $props();
 
-  let voices = $state<SpeechSynthesisVoice[]>([]);
   // Local, editable copies of the profile's settings: each field is seeded once from `profile`
   // and then owned by its own form control, so they must not track `profile` afterwards.
-  let voiceName = $state(untrack(() => profile.settings.voice ?? ''));
   let level = $state(untrack(() => profile.level));
   // A string for the medallions (radio values); sent back as a number.
   let weeklyGoal = $state(String(untrack(() => profile.settings.weekly_goal ?? 3)));
@@ -33,17 +31,23 @@
   let removingPin = $state(false);
   let replaying = $state(false);
 
-  async function loadVoices() {
-    const all = await waitForVoices();
-    voices = listFrenchVoices(all);
-    if (!voiceName && voices.length > 0) voiceName = voices[0].name;
-  }
-
-  loadVoices();
+  // The trial line (Ruling K10): the server's voice, like the dictation; the same card when it fails.
+  const TRIAL = 'Bonjour\u202f! Je lirai tes dictées. Virgule, point.';
+  const voice = untrack(() => createVoice({ profileId: profile.id }));
+  onDestroy(() => voice.dispose());
+  let trying = $state(false);
+  let trialFailure = $state<VoiceFailure | null>(null);
 
   async function tryVoice() {
-    const voice = pickVoice(voices, voiceName || null);
-    await speak('Bonjour\u202f! Je lirai tes dictées. Virgule, point.', { rate: 0.9, voice });
+    trying = true;
+    trialFailure = null;
+    try {
+      await voice.speak(TRIAL, 0.9);
+    } catch (e) {
+      trialFailure = e instanceof VoiceError ? e.failure : 'server';
+    } finally {
+      trying = false;
+    }
   }
 
   function onPinInput(event: Event) {
@@ -60,8 +64,8 @@
     saving = true;
     error = '';
     try {
-      const body: { settings: { voice?: string; weekly_goal?: number }; level: string; pin?: string } = {
-        settings: { voice: voiceName || undefined, weekly_goal: Number(weeklyGoal) },
+      const body: { settings: { weekly_goal?: number }; level: string; pin?: string } = {
+        settings: { weekly_goal: Number(weeklyGoal) },
         level,
       };
       if (newPin) body.pin = newPin;
@@ -110,20 +114,12 @@
   <form onsubmit={save}>
     <section>
       <h3 class="kit-section">La voix de la dictée</h3>
-      {#if voices.length === 0}
-        <p class="kit-note">Aucune voix française sur cet appareil. Sur iPad{'\u202f: '}ouvre Réglages, puis Accessibilité, puis Contenu énoncé, puis Voix, puis Français.</p>
-      {:else}
-        <div class="field">
-          <select id="voice" aria-label="Voix de la dictée" data-testid="lyre-voice" bind:value={voiceName}>
-            {#each voices as v (v.name)}
-              <option value={v.name}>{v.name}</option>
-            {/each}
-          </select>
-        </div>
-        <!-- Final review M7: a muted voice says nothing; the trial waits for it (the note below says why). -->
-        <button type="button" class="kit-bronze is-quiet" data-testid="lyre-try-voice" disabled={audioSettings.voice.muted} onclick={tryVoice}
-          >Écouter un essai</button
-        >
+      <!-- Final review M7: a muted voice says nothing; the trial waits for it (the note below says why). -->
+      <button type="button" class="kit-bronze is-quiet" data-testid="lyre-try-voice" disabled={audioSettings.voice.muted || trying} onclick={tryVoice}
+        >Écouter un essai</button
+      >
+      {#if trialFailure}
+        <VoiceLostCard failure={trialFailure} onRetry={tryVoice} />
       {/if}
     </section>
 
@@ -135,8 +131,6 @@
       {#if audioSettings.voice.muted}
         <p class="kit-note" data-testid="lyre-voice-muted">{frenchSpacing("En sourdine, la dictée n'est plus lue à voix haute\u202f: il faudra quelqu'un pour te la lire.")}</p>
       {/if}
-      <!-- Final review M7: iOS ignores an utterance's volume (Ruling E7b), so the slider does nothing there. -->
-      <p class="note">Sur iPad, seuls les boutons de l'appareil règlent le volume de la voix.</p>
     </section>
 
     <section>
@@ -187,6 +181,7 @@
   <details class="lyre-credits" data-testid="lyre-credits">
     <summary class="kit-link">Merci à ceux qui ont aidé le camp</summary>
     <p>Les lettres du camp{'\u202f: '}Cinzel, Alegreya et Literata, offertes par leurs auteurs sous la licence SIL Open Font.</p>
+    <p>La voix de la dictée est celle de Kokoro, offerte par ses auteurs sous la licence Apache 2.0, apprise sur les enregistrements français SIWIS, offerts sous la licence Creative Commons Attribution 4.0.</p>
     <p>Les musiques et les bruitages du camp ont été offerts à tous par leurs auteurs, sous la licence Creative Commons Zéro.</p>
     <p>Les livres d'Alexandrie viennent de Wikisource et du Projet Gutenberg. Chaque œuvre garde le nom de son auteur et de son traducteur.</p>
     <p>Les peintures du camp ont été faites pour lui.</p>
@@ -212,12 +207,6 @@
     padding-top: 18px;
     border-top: 1px solid rgba(92, 64, 24, 0.45);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  }
-  .note {
-    margin: 4px 0 0;
-    font-size: 15px;
-    font-style: italic;
-    color: var(--form-ink-soft);
   }
   .lyre-credits {
     margin-top: 22px;

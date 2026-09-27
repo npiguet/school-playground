@@ -58,18 +58,19 @@ describe('the mixer (spec §7)', () => {
     expect(backend.log.tracks.at(-1)!.gain).toBeCloseTo(0.8);
   });
 
-  it('ducks under the voice, the dictation and the proofreading, until every reason is gone (Ruling E5)', () => {
+  it('ducks under the voice, the dictation and the proofreading, until every reason is gone (Ruling E5)', async () => {
     const { backend, engine } = setup();
     engine.unlock();
     engine.music('battle');
     const full = 0.5 * 0.9;
     engine.duck('dictation', true);
     expect(backend.log.calls.at(-1)).toBe(`fade battle ${full * DUCK_GAIN} ${FADE_MS}`);
-    engine.voice(true);
+    const line = engine.say({ url: 'blob:line', text: 'Un matin. Point.', ms: 1000 });
     engine.duck('dictation', false);
     expect(engine.snapshot()).toMatchObject({ ducks: ['voice'], voiceSpeaking: true });
     expect(backend.log.tracks[0].gain).toBeCloseTo(full * DUCK_GAIN);
-    engine.voice(false);
+    line.stop();
+    await line.ended;
     expect(backend.log.tracks[0].gain).toBeCloseTo(full);
     engine.duck('proofreading', true);
     engine.duck('proofreading', true);
@@ -82,10 +83,11 @@ describe('the mixer (spec §7)', () => {
     engine.unlock();
     engine.music('battle');
     engine.duck('proofreading', true);
-    engine.voice(true);
+    const line = engine.say({ url: 'blob:line', text: 'Un matin. Point.', ms: 1000 });
     engine.scene('camp');
     expect(engine.snapshot()).toMatchObject({ ducks: [], voiceSpeaking: false, playing: 'camp' });
     expect(backend.log.tracks.at(-1)!.gain).toBeCloseTo(0.5);
+    line.stop();
   });
 
   it('plays effects at their volume, never muted, never over the voice, never twice in 80 ms (Ruling E6)', () => {
@@ -97,9 +99,7 @@ describe('the mixer (spec §7)', () => {
     later(SFX_REPEAT_MS);
     engine.sfx('chime');
     expect(backend.log.sfx.filter((s) => s.id === 'chime')).toHaveLength(2);
-    engine.voice(true);
-    engine.sfx('tap');
-    engine.voice(false);
+    // Never over the voice: « drops effects while a line plays » (the voice channel's tests) pins it.
     engine.setSettings(with_({ sfx: { muted: true } }));
     engine.sfx('seal');
     expect(backend.log.sfx.map((s) => s.id)).toEqual(['chime', 'chime']);

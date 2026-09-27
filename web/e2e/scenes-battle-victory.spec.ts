@@ -12,7 +12,6 @@ import {
   nextLine,
   redScan,
   seedPlay,
-  stubSpeech,
   tap,
   uniqueName,
 } from './helpers';
@@ -22,8 +21,6 @@ import {
 const REF = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
 const HALF = 'Les fées dansent dans la clairière. Elles chante et les oiseaux les écoutent.';
-
-test.beforeEach(async ({ page }) => stubSpeech(page));
 
 async function victory(
   page: import('@playwright/test').Page,

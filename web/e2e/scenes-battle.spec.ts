@@ -10,7 +10,6 @@ import {
   resumeSeeded,
   seedPlay,
   setKeyboard,
-  stubSpeech,
   tap,
   uniqueName,
 } from './helpers';
@@ -20,8 +19,6 @@ import {
 // the exit sign replace the old top bar at the muster (Ruling C5).
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const HOME: Record<string, string> = { hydre: 'river', lethe: 'river', sirenes: 'coast', protee: 'coast', echo: 'temple', chimere: 'temple' };
-
-test.beforeEach(async ({ page }) => stubSpeech(page));
 
 test('a free text meets a lieutenant on its own ground, and keeps it after a reload', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Bat-${testInfo.project.name}`));

@@ -3,15 +3,9 @@
 // instead).
 import { withAudio } from './audio.svelte';
 import { audioSettings } from './store.svelte';
-import { gainOf } from './settings';
 import { silentLine, type LineHandle, type VoiceClip } from './engine';
 
-export const voiceGain = (): number => gainOf(audioSettings.voice);
 export const voiceMuted = (): boolean => audioSettings.voice.muted;
-
-export function voiceSpeaking(on: boolean): void {
-  withAudio((e) => e.voice(on));
-}
 
 /** Plays one line of the dictation's voice (the music ducks under it, effects wait). A mixer that throws
  *  plays it silently at its length: the dictation goes on. */

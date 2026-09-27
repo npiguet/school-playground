@@ -12,7 +12,6 @@
   import { MUSTER } from '../../lib/battle/lines';
   import { battleStage, react } from '../../lib/battle/stage.svelte';
   import { isProphecy } from '../../lib/dates';
-  import { ttsAvailable } from '../../lib/dictation/tts';
   import type { Pace } from '../../lib/dictation/script';
   import type { PlayState } from '../../lib/playState';
   import { go } from '../../lib/scene/panelNav';
@@ -157,9 +156,6 @@
         <button type="button" class="kit-bronze grand" data-testid="btn-open-grimoire" onclick={onOpenGrimoire}>{MUSTER.openGrimoire}</button>
       {/if}
     {:else}
-      {#if !ttsAvailable()}
-        <p class="kit-note" data-tone="eris">{MUSTER.noVoice}</p>
-      {/if}
       <PaceMedallions bind:pace={playState.pace} {minPace} />
       <p class="glory">{MUSTER.paceGlory}</p>
       <button type="button" class="kit-bronze grand" onclick={onStart}>{MUSTER.start}</button>

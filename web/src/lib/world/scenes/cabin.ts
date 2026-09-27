@@ -91,6 +91,6 @@ export function journalLine(d: DragonOut): DialogueLine {
 }
 
 export function lyreLine(d: DragonOut): DialogueLine {
-  // UI5 playability #17.
-  return dragonSays(d, 'Choisis ici qui te lit la dictée, et règle la musique et les bruitages à ton goût.');
+  // UI5 playability #17; Kokoro plan preflight #6: the voice is no longer chosen here.
+  return dragonSays(d, 'Règle ici la musique, les bruitages et la voix qui te lit la dictée, et refais les visites du camp quand tu veux.');
 }

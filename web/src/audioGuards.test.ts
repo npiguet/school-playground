@@ -25,4 +25,7 @@ describe('audio on the iPad', () => {
   it('leaves reduced motion to the eyes', () => {
     expect(walk('src/lib/audio').filter((f) => /reducedMotion|prefers-reduced-motion/.test(readFileSync(f, 'utf-8')))).toEqual([]);
   });
+  it('never speaks through the browser: the voice is Kokoro on the server, with no fallback (spec 2026-09-27 §2, §5.1)', () => {
+    expect(files.filter((f) => /speechSynthesis|SpeechSynthesis/.test(readFileSync(f, 'utf-8')))).toEqual([]);
+  });
 });

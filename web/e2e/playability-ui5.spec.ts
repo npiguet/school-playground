@@ -16,7 +16,6 @@ import {
   redScan,
   seedPlay,
   setKeyboard,
-  stubSpeech,
 } from './helpers';
 
 // UI5 audio and dialogue walk (scenes spec §7-§8, §10): iPad-size screenshots of the first-visit
@@ -263,7 +262,7 @@ async function soundSection(w: Walk) {
   await waitForOverlaySettled(page, 'overlay-lyre');
   const lyre = page.getByTestId('overlay-lyre');
   // UI5 playability #17, #18: the egg's line at the top of the lyre, in the places' parchment box.
-  await expect(lyre.getByTestId('overlay-voice')).toContainText('Choisis ici qui te lit la dictée');
+  await expect(lyre.getByTestId('overlay-voice')).toContainText('Règle ici la musique, les bruitages et la voix');
   await shot(w, 'e22-lyre-egg');
   await lyre.getByTestId('lyre-mute-music').click();
   await expect(lyre.getByTestId('lyre-mute-music')).toHaveAttribute('aria-pressed', 'false');
@@ -373,7 +372,6 @@ test('UI5 audio and dialogue walk', async ({ page }, testInfo) => {
     if (url.protocol === 'http:' || url.protocol === 'https:') origins.add(url.origin);
   });
   await installKeyboardSim(page);
-  await stubSpeech(page);
   // Leftovers of an earlier run that failed (or was killed) before its cleanup.
   await clearEarlierWalk(page.request);
   try {

@@ -11,7 +11,7 @@ export interface Recorded {
   state: ContextState;
 }
 
-/** How long a recorded line lasts: the former speechSynthesis stub's 20 ms (Ruling K7), so the e2e
+/** How long a recorded line lasts: the former browser-voice stub's 20 ms (Ruling K7), so the e2e
  *  suite keeps its pace; the line's real length is written down in `ms`. */
 export const RECORDED_LINE_MS = 20;
 

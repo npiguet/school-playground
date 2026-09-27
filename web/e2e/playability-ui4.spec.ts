@@ -13,7 +13,6 @@ import {
   resumeSeeded,
   seedPlay,
   setKeyboard,
-  stubSpeech,
 } from './helpers';
 
 // UI4 battle walk (scenes spec §10): iPad-size screenshots of the battle stage in every phase and
@@ -432,7 +431,6 @@ test('UI4 battle walk', async ({ page }, testInfo) => {
     if (url.protocol === 'http:' || url.protocol === 'https:') origins.add(url.origin);
   });
   await installKeyboardSim(page);
-  await stubSpeech(page);
   // Leftovers of an earlier run that failed (or was killed) before its cleanup.
   await clearEarlierWalk(page.request);
   try {

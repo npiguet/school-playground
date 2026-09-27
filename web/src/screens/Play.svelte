@@ -21,7 +21,6 @@
   import { resetBattleStage, setHp } from '../lib/battle/stage.svelte';
   import { debounce } from '../lib/debounce';
   import { buildPlan, defaultPace, type DictationPlan } from '../lib/dictation/script';
-  import { pickVoice, unlockSpeech, waitForVoices } from '../lib/dictation/tts';
   import { gradeSession } from '../lib/grading/grade';
   import type { Annotation, SessionResult } from '../lib/grading/types';
   import { initAudioSettings } from '../lib/audio/store.svelte';
@@ -83,7 +82,6 @@
   let trapWords = $state<TrapWord[]>([]);
   let stats = $state<StatsResponse | null>(null);
   let plan = $state<DictationPlan | null>(null);
-  let voice = $state<SpeechSynthesisVoice | null>(null);
   let showResumeBanner = $state(false);
   let loading = $state(true);
   let error = $state('');
@@ -135,9 +133,6 @@
       if (playState.phase === 'results') void ensureResults();
       // M3: « Revoir » lives in the victory only; a deep link to it elsewhere drops the panel.
       if (reviewOpen && playState.phase !== 'results') replaceRoute(baseHref);
-
-      const voices = await waitForVoices();
-      voice = pickVoice(voices, profile.settings.voice ?? null) ?? null;
     } catch (e) {
       error = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
@@ -227,19 +222,14 @@
     clockStop();
   });
 
-  // Tapped from the resume banner, which is itself a tap - a safe place to
-  // unlock iOS speech even when we're resuming straight into the dictation
-  // phase (whose own DictationPhase.svelte onMount starts the runner with no
-  // further user gesture available).
+  // Tapped from the resume banner. The tap itself unlocks the audio (lib/audio/gestures.ts), the voice
+  // included.
   function continueSession() {
-    unlockSpeech();
     showResumeBanner = false;
   }
 
-  // iOS Safari only allows speechSynthesis to start from inside a user
-  // gesture - unlockSpeech() must run synchronously, first, in this handler.
+  // The tap on « Commencer la dictée » unlocks the audio (lib/audio/gestures.ts): the voice plays through it.
   function startDictation() {
-    unlockSpeech();
     if (!playState) return;
     playState.startedAt = new Date().toISOString();
     playState.phase = 'dictation';
@@ -253,6 +243,13 @@
     save();
     showResumeBanner = true;
     emitBattle({ kind: 'leave' });
+  }
+
+  // Spec 2026-09-27 §5.3: Éris's card's way back to the camp leaves as « Quitter » does (the draft kept
+  // behind the resume ribbon), then goes home.
+  function leaveDictationForCamp() {
+    quitDictation();
+    go(href('camp', { profileId: String(profile.id) }));
   }
 
   // UI4 Ruling C15: « Quitter » on the proofreading, quitDictation's twin (the play state is saved
@@ -496,7 +493,7 @@
         <DictationPhase
           {plan}
           pace={playState.pace}
-          {voice}
+          profileId={profile.id}
           {layout}
           title={text.title}
           from={playState.dictationStep ?? 0}
@@ -504,6 +501,7 @@
           bind:text={playState.draft}
           onFinish={onDictationFinish}
           onQuit={quitDictation}
+          onLeaveToCamp={leaveDictationForCamp}
           onProgress={(step, replaysLeft) => {
             if (playState) {
               playState.dictationStep = step;

@@ -15,7 +15,7 @@ import {
   resumeSeeded,
   seedPlay,
   setKeyboard,
-  stubSpeech,
+  spokenLines,
   tap,
   uniqueName,
   visibleBand,
@@ -24,8 +24,6 @@ import {
 // UI4 lane P (spec §5): the muster, the dictation and the proofreading on the battle stage, their
 // compact layout under the simulated keyboard, and the long text's legibility.
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
-
-test.beforeEach(async ({ page }) => stubSpeech(page));
 
 test('the muster is an order of battle: Éris taunts, four pace medallions, no school metadata', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Mus-${testInfo.project.name}`));
@@ -262,10 +260,10 @@ test('replay counts down at pace 2; pause and resume a flowing pace', async ({ p
   const replay = page.getByTestId('btn-replay');
   await expect(replay).toBeEnabled();
   await expect(replay).toContainText('(3)');
-  const before = await page.evaluate(() => (window as any).__spoken.length);
+  const before = (await spokenLines(page)).length;
   await tap(replay, testInfo);
   await expect(replay).toContainText('(2)');
-  await expect.poll(() => page.evaluate(() => (window as any).__spoken.length)).toBeGreaterThan(before);
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(before);
   const flowing = await createText(request, { title: uniqueName('Dictée pause'), body: LONG, level: '10H' });
   await page.goto(`/#/p/${id}/play/${flowing.id}`);
   await expectBattle(page, 'muster');
@@ -281,10 +279,10 @@ test('replay counts down at pace 2; pause and resume a flowing pace', async ({ p
   await expect(page.getByTestId('bar-status')).toHaveText('En pause.');
   await setKeyboard(page, 0);
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'full');
-  const paused = await page.evaluate(() => (window as any).__spoken.length);
+  const paused = (await spokenLines(page)).length;
   await tap(page.getByTestId('btn-resume'), testInfo);
   await expect(page.getByTestId('dictation-status')).toHaveText('Écoute…');
-  await expect.poll(() => page.evaluate(() => (window as any).__spoken.length)).toBeGreaterThan(paused);
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(paused);
 });
 
 // Spec §10: the compact layout with a simulated keyboard. The stage becomes a band above the
@@ -382,16 +380,15 @@ test('a resumed dictation restarts at the sentence it had reached', async ({ pag
   await expect(page.getByTestId('btn-next')).toBeEnabled();
   await tap(page.getByTestId('btn-next'), testInfo);
   // The second sentence is read, and the play state keeps where the reading is (debounced save).
-  await expect.poll(() => page.evaluate(() => ((window as any).__spoken as string[]).at(-1) ?? '')).toContain('Elles chantent');
+  await expect.poll(async () => (await spokenLines(page)).at(-1)?.text ?? '').toContain('Elles chantent');
   const key = `discorde.play.${id}.${text.id}`;
   await expect.poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').dictationStep, key)).toBe(2);
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
   await tap(page.getByTestId('btn-quit-confirm'), testInfo);
   await expect(page.getByTestId('battle-resume')).toBeVisible();
-  // The first words read after `from` (« Continuer » first speaks an empty line to unlock iOS speech).
-  const firstReadFrom = (from: number) =>
-    page.evaluate((n) => ((window as any).__spoken as string[]).slice(n).find((s) => s.trim() !== '') ?? '', from);
-  const heard = await page.evaluate(() => (window as any).__spoken.length);
+  // The first words read after `from`.
+  const firstReadFrom = async (from: number) => (await spokenLines(page)).slice(from)[0]?.text ?? '';
+  const heard = (await spokenLines(page)).length;
   await resumeSeeded(page);
   await expectBattle(page, 'dictation');
   await expect.poll(() => firstReadFrom(heard), 'the resumed reading starts on the second sentence').toContain('Elles chantent');
@@ -399,7 +396,7 @@ test('a resumed dictation restarts at the sentence it had reached', async ({ pag
   // And after a reload, from the saved state alone.
   await page.reload();
   await expectBattle(page, 'muster');
-  const again = await page.evaluate(() => (window as any).__spoken.length);
+  const again = (await spokenLines(page)).length;
   await resumeSeeded(page);
   await expect.poll(() => firstReadFrom(again)).toContain('Elles chantent');
 });
@@ -444,9 +441,9 @@ test('turning to portrait pauses a flowing dictation until « Reprendre »', asy
   await page.setViewportSize(size);
   await expect(page.getByTestId('rotate-screen')).toBeHidden();
   await expect(page.getByTestId('dictation-status')).toHaveText('En pause.');
-  const spoken = await page.evaluate(() => (window as any).__spoken.length);
+  const spoken = (await spokenLines(page)).length;
   await tap(page.getByTestId('btn-resume'), testInfo);
-  await expect.poll(() => page.evaluate(() => (window as any).__spoken.length)).toBeGreaterThan(spoken);
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(spoken);
 });
 
 // ===== Task 5: the proofreading =====

@@ -15,8 +15,8 @@ import {
   heroNamer,
   resumeSeeded,
   seedPlay,
+  spokenLines,
   spokenVolumes,
-  stubSpeech,
   tap,
   uniqueName,
 } from './helpers';
@@ -123,7 +123,6 @@ test.describe('with the tours on', () => {
 });
 
 test('the battle loop ducks through the dictation and the proofreading, and the camp comes back clear (Ruling E5)', async ({ page, request }, testInfo) => {
-  await stubSpeech(page);
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const body = 'Les enfants jouent dans le jardin. Ils rient.';
   const text = await createText(request, { title: uniqueName('Duck'), body, level: '10H' });
@@ -199,7 +198,6 @@ test("the HUD's lyre opens three quick toggles that the lyre and a reload rememb
 });
 
 test('the lyre sets each channel: its trial speaks at the voice volume, the keys save once they rest, and a muted voice is said so (Ruling E7)', async ({ page, request }, testInfo) => {
-  await stubSpeech(page);
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.goto(`/#/p/${id}/settings`);
   const lyre = page.getByTestId('overlay-lyre');
@@ -231,10 +229,9 @@ test('the lyre sets each channel: its trial speaks at the voice volume, the keys
   await closeOverlay(page);
 });
 
-// Review #11: the voice channel reaches a real dictation line; muted, nothing is spoken (Ruling E7b:
-// iOS ignores an utterance's volume) and the dictation goes on at its pace.
+// Review #11: the voice channel reaches a real dictation line; muted, nothing is fetched or played (Ruling
+// E7b) and the dictation goes on at its pace.
 async function dictationWithVoice(page: Page, request: APIRequestContext, testInfo: TestInfo, voice: { volume: number; muted: boolean }) {
-  await stubSpeech(page);
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const res = await request.patch(`/api/profiles/${id}`, {
     data: { settings: { audio: { music: { volume: 0.5, muted: false }, sfx: { volume: 0.7, muted: false }, voice } } },
@@ -250,19 +247,13 @@ async function dictationWithVoice(page: Page, request: APIRequestContext, testIn
   await expectBattle(page, 'dictation');
   return { id, textId: text.id as number };
 }
-/** The non-empty lines the stubbed speechSynthesis was asked to say, with their volume. */
-const said = (page: Page) =>
-  page.evaluate(() => {
-    const w = window as unknown as { __spoken: string[]; __spokenVolumes: number[] };
-    return w.__spoken.map((text, i) => ({ text, volume: w.__spokenVolumes[i] })).filter((l) => l.text.trim() !== '');
-  });
 
 test('a dictation line is spoken at the voice volume, with the music down under it (Ruling E5)', async ({ page, request }, testInfo) => {
   await dictationWithVoice(page, request, testInfo, { volume: 0.4, muted: false });
-  await expect.poll(async () => (await said(page)).length).toBeGreaterThan(0);
-  const first = (await said(page))[0];
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(0);
+  const first = (await spokenLines(page))[0];
   expect(first.text).toContain('Les fées dansent');
-  expect(first.volume).toBe(0.4);
+  expect(first.gain).toBe(0.4);
   await expect(page.getByTestId('dictation-status')).toHaveText("À toi d'écrire.");
   await expect.poll(async () => (await audioState(page))?.ducks).toEqual(['dictation']);
 });
@@ -289,13 +280,13 @@ test('a muted voice says nothing, and the dictation still goes on at its pace (R
   await expect(page.getByTestId('dictation-status')).toHaveText(writing);
   // Final review I1: « Suivant » starts the second sentence at once (« Écoute… »), read at pace 1's
   // rate 0.75. « Elles chantent et les oiseaux les écoutent. » is 43 characters before its said
-  // punctuation, so the voice takes at least 43 × 65 ms / 0.75 ≈ 3.7 s (tts.ts, SPEECH_MS_PER_CHAR):
+  // punctuation, so the voice takes at least 43 × 65 ms / 0.75 ≈ 3.7 s (voice.ts, SPEECH_MS_PER_CHAR):
   // the muted reading takes as long (it used to take a third of it).
   const seen = await statuses();
   const second = seen.map((s) => s.text).lastIndexOf(writing);
   expect(seen[second - 1]?.text, JSON.stringify(seen)).toBe('Écoute…');
   expect(seen[second].t - seen[second - 1].t, JSON.stringify(seen)).toBeGreaterThanOrEqual((43 * 65) / 0.75);
-  expect(await said(page)).toEqual([]);
+  expect(await spokenLines(page)).toEqual([]);
   expect((await audioState(page))!.voiceSpeaking).toBe(false);
 });
 

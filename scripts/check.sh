@@ -12,4 +12,6 @@ echo "== web: vitest";           scripts/npm.sh run test
 echo "== docker build";          docker build -t "$APP_IMAGE" .
 echo "== docker build tts";      docker build -t "$TTS_IMAGE" tts
 echo "== e2e: playwright";       scripts/playwright.sh
+# The real voice (spec 2026-09-27 §7, Kokoro plan Ruling K8): one spec against Kokoro itself.
+echo "== e2e: the real voice";   TTS_STUB=0 scripts/playwright.sh --config playwright.voice.config.ts voice-real
 echo "== ALL GREEN"

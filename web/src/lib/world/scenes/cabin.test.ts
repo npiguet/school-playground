@@ -24,7 +24,7 @@ describe('the cabin (UI3 Ruling B6)', () => {
     expect(trophiesLine(dragon, 0).text).toBe('Chaque ruse neutralisée a laissé sa relique\u202f: elles sont toutes là\u202f!');
     expect(trophiesLine(dragon, null).text).toBe('Chaque ruse neutralisée laisse une relique.');
     expect(journalLine(dragon).text).toBe('Ton journal se souvient de chaque texte défendu.');
-    expect(lyreLine(dragon).text).toBe('Choisis ici qui te lit la dictée, et règle la musique et les bruitages à ton goût.');
+    expect(lyreLine(dragon).text).toBe('Règle ici la musique, les bruitages et la voix qui te lit la dictée, et refais les visites du camp quand tu veux.');
     for (const l of [trophiesLine(dragon, 4), journalLine(dragon), lyreLine(dragon), ...cabinGreeting(dragon)]) {
       expect(l.text.length).toBeLessThanOrEqual(160);
       expect(l.portrait).toBe('/art/dragon/dragon_young_cut.webp');

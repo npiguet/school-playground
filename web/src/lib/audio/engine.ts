@@ -171,9 +171,6 @@ export function createEngine(backend: AudioBackend, now: () => number = () => Da
       }
     },
     duck,
-    voice(speaking: boolean): void {
-      duck('voice', speaking);
-    },
     /** One line of the dictation's voice (spec 2026-09-27 §5.1): at the voice channel's gain, the music
      *  ducked and effects held while it plays; a new line stops the last. Before the unlock it is
      *  silent and takes its length (Ruling K14). */

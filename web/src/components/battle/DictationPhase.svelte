@@ -4,10 +4,14 @@
   // ruled text zone. While the keyboard is open (Ruling C4, `layout === 'compact'`) everything but
   // the textarea folds into one bar under the stage's band. A flowing pace pauses itself when the
   // iPad turns to portrait (Ruling C11); « Reprendre » shows whenever the runner is paused.
+  // The voice is Kokoro on the server (spec 2026-09-27): a late line shows the waiting line, a silenced
+  // one Éris's card.
   import { onDestroy, onMount, untrack } from 'svelte';
   import { createRunner, type RunnerState } from '../../lib/dictation/runner';
-  import { buildScript, replayLimit, type DictationPlan, type Pace } from '../../lib/dictation/script';
-  import { cancelSpeech, speak } from '../../lib/dictation/tts';
+  import { buildScript, replayLimit, sayLines, type DictationPlan, type Pace } from '../../lib/dictation/script';
+  import { createVoice } from '../../lib/dictation/voice';
+  import { sayKey } from '../../lib/dialogue/select';
+  import VoiceLostCard from './VoiceLostCard.svelte';
   import Icon from '../ui/Icon.svelte';
   import { DICTATION } from '../../lib/battle/lines';
   import { react } from '../../lib/battle/stage.svelte';
@@ -17,7 +21,7 @@
   let {
     plan,
     pace,
-    voice,
+    profileId,
     text = $bindable(),
     title,
     from = 0,
@@ -25,11 +29,13 @@
     layout,
     onFinish,
     onQuit,
+    onLeaveToCamp,
     onProgress,
   }: {
     plan: DictationPlan;
     pace: Pace;
-    voice: SpeechSynthesisVoice | null;
+    /** The hero the voice speaks for (/api/tts/* needs her, Ruling K4). */
+    profileId: number;
     text: string;
     /** The text's title, the phase's heading (UI4 playability #11). */
     title: string;
@@ -42,6 +48,8 @@
     layout: BattleLayout;
     onFinish: () => void;
     onQuit: () => void;
+    /** Éris's card's way back to the camp (spec 2026-09-27 §5.3). */
+    onLeaveToCamp: () => void;
     /** Ruling M20 / closing item 1: the step and the replay count to save, each time either moves. */
     onProgress?: (step: number, replaysLeft: number) => void;
   } = $props();
@@ -62,14 +70,26 @@
   // tracked - untrack() says so explicitly instead of looking like an accidental one-shot read.
   let reported = untrack(() => from);
   let reportedReplays = untrack(() => fromReplaysLeft ?? replayLimit(pace));
+  // The server's voice (spec 2026-09-27 §5): one per dictation, its clips freed when it ends.
+  const voice = untrack(() => createVoice({ profileId }));
+  // §5.2: the waiting line while a line is more than 400 ms late (null: the runner's own status).
+  let voiceWait = $state<string | null>(null);
+  const steps = untrack(() => buildScript(plan, pace));
   const runner = untrack(() =>
     createRunner(
-      buildScript(plan, pace),
+      steps,
       {
         pace,
-        speak: (spoken, rate) => speak(spoken, { rate, voice }),
+        speak: (spoken, rate, next) =>
+          voice
+            .speak(spoken, rate, {
+              next,
+              onSlow: () => (voiceWait = sayKey('battle.voice.wait').text),
+              onStart: () => (voiceWait = null),
+            })
+            .finally(() => (voiceWait = null)),
         sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-        cancel: cancelSpeech,
+        cancel: () => voice.cancel(),
         onChange: (s) => {
           runnerState = s;
           let moved = false;
@@ -91,14 +111,14 @@
   runnerState = untrack(() => runner.state());
 
   onMount(() => {
+    // §5.2 and Ruling K12: the lines from the unit this dictation starts at, sent ahead in order.
+    voice.prepare(sayLines(steps.slice(runner.state().resumeAt)));
     runner.start();
   });
 
   onDestroy(() => {
     runner.stop();
-    // Belt and braces: stop() already cancels via deps.cancel(), but a
-    // stray utterance must never keep talking past this component's life.
-    cancelSpeech();
+    voice.dispose();
   });
 
   // Ruling C11: turning the iPad to portrait hides the text behind the rotate screen; a flowing
@@ -136,7 +156,7 @@
         ? DICTATION.chunk(runnerState.done, runnerState.total)
         : DICTATION.full,
   );
-  const statusText = $derived(DICTATION.status[runnerState.status]);
+  const statusText = $derived(voiceWait ?? DICTATION.status[runnerState.status]);
 
   // pace 1-2: she can finish as soon as she reaches the last manual wait,
   // even before tapping "Suivant" once more.
@@ -156,7 +176,7 @@
   }
 
   function finish() {
-    cancelSpeech();
+    voice.cancel();
     react('dragon', 'cheer');
     onFinish();
   }
@@ -167,7 +187,7 @@
   let confirmQuit = $state(false);
 
   function confirmedQuit() {
-    cancelSpeech();
+    voice.cancel();
     onQuit();
   }
 </script>
@@ -251,6 +271,10 @@
         <button type="button" class="kit-bronze is-quiet" onclick={() => (confirmQuit = false)}>{DICTATION.quitNo}</button>
       </div>
     </div>
+  {/if}
+
+  {#if runnerState.status === 'silenced'}
+    <VoiceLostCard failure={runnerState.failure ?? 'server'} onRetry={() => runner.retry()} onLeave={onLeaveToCamp} />
   {/if}
 
   <div class="status" class:sr-only={compact}>
@@ -374,7 +398,8 @@
   .seal[data-status='finished'] {
     background: radial-gradient(circle at 38% 32%, var(--laurel-light), var(--laurel) 70%);
   }
-  .seal[data-status='paused'] {
+  .seal[data-status='paused'],
+  .seal[data-status='silenced'] {
     opacity: 0.6;
   }
   .seal.pulse {

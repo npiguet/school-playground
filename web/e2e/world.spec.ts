@@ -1,6 +1,6 @@
 import { test, expect } from './crashGuard';
 import type { Page } from '@playwright/test';
-import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, nextLine, stubSpeech, createText, makeResult, postSession, redScan, uniqueName } from './helpers';
+import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, nextLine, createText, makeResult, postSession, redScan, spokenLines, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
 // mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -17,13 +17,15 @@ async function installFastTimers(page: Page) {
     const w = window as any;
     const orig = w.setTimeout;
     w.setTimeout = function (fn: TimerHandler, ms?: number, ...args: unknown[]) {
-      if (w.__fastTimers && typeof ms === 'number' && ms >= 500) ms = Math.ceil(ms / 25);
+      // The voice's fetch timeout (20 s and more, lib/dictation/voice.ts) stays real: shortened, a
+      // line slow to come under load would silence the dictation. Every pause of the script is shorter.
+      if (w.__fastTimers && typeof ms === 'number' && ms >= 500 && ms < 20_000) ms = Math.ceil(ms / 25);
       return orig.call(w, fn, ms, ...args);
     };
   });
 }
 
-const spokenCount = (page: Page) => page.evaluate(() => ((window as any).__spoken as string[]).length);
+const spokenCount = async (page: Page) => (await spokenLines(page)).length;
 
 async function dictate(page: Page, draft: string, maxSteps = 120) {
   const ta = page.getByTestId('dictation-textarea');
@@ -38,7 +40,8 @@ async function dictate(page: Page, draft: string, maxSteps = 120) {
     const before = await spokenCount(page);
     await next.click();
     // Final review M11 (same class as the camp spec's sleeps): wait until the tap has taken effect
-    // - the next segment spoken (stubSpeech records it), or the dictation over - not a fixed 60 ms.
+    // - the next segment spoken (the recording mixer writes it down), or the dictation over - not a
+    // fixed 60 ms.
     await expect.poll(async () => (await spokenCount(page)) > before || (await finish.isVisible())).toBe(true);
   }
   await expect(finish).toBeVisible({ timeout: 120_000 });
@@ -56,7 +59,6 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     test.use({ tours: true });
 
     test('1. camp is home', async ({ page }) => {
-      await stubSpeech(page);
       // Fix round 1 #6: `Date.now() % 1e6` alone collided under `--repeat-each` elsewhere in the
       // suite (see uniqueName's own comment in helpers.ts) - same weak pattern, fixed here too.
       const name = uniqueName('Ariane');
@@ -154,7 +156,6 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
   });
 
   test('4. a real session counts for the quest and shows the reveal', async ({ page, request }) => {
-    await stubSpeech(page);
     const text = await createText(request, {
       title: uniqueName('Les fées'),
       body: 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.',
@@ -271,9 +272,8 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     test.setTimeout(120_000); // a real (fast-timer) boss dictation is added below, P1-5 follow-up
     // Must be registered before this test's first navigation (an SPA route change afterwards
     // never re-runs init scripts) - only takes effect for the too_easy dictation further down.
-    // `page` is a fresh fixture per test even inside describe.serial, so both stubs need to be
-    // (re-)installed here too, exactly as test 1 does for itself.
-    await stubSpeech(page);
+    // `page` is a fresh fixture per test even inside describe.serial, so the stub needs to be
+    // (re-)installed here too.
     await installFastTimers(page);
     // A guaranteed >=150-word 10H text so the boss endpoint always has a candidate, regardless
     // of what the seed happens to include.
@@ -380,7 +380,6 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     // Steps 4-5 already posted three of today's sessions (goal: 3).
     await expect(page.getByTestId('camp-weekly')).toContainText('Objectif atteint');
 
-    await stubSpeech(page);
     // Seeds the ~26-minute break-nudge clock via an init script (applied fresh to every future
     // navigation, including the reload below) rather than a live page.evaluate() + reload(): a
     // reload after mutating sessionStorage on an already-mounted page races the app's own

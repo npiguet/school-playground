@@ -3,60 +3,6 @@ import { readFileSync } from 'node:fs';
 // The loader's own typography (Ruling E15), so the variants read exactly as the app shows them.
 import { frenchSpacing } from '../src/lib/text/french';
 
-// Stubs the Web Speech API before any navigation so the dictation runner never depends on a
-// real TTS engine (none is available in the headless Playwright container anyway). Installed
-// with page.addInitScript so it exists before the app's own scripts run.
-export async function stubSpeech(page: Page) {
-  await page.addInitScript(() => {
-    class U {
-      text: string;
-      rate = 1;
-      lang = '';
-      voice: unknown = null;
-      pitch = 1;
-      volume = 1;
-      onend: null | ((e: unknown) => void) = null;
-      onerror: null | ((e: unknown) => void) = null;
-      constructor(t: string) {
-        this.text = t;
-      }
-    }
-    const spoken: string[] = [];
-    (window as any).__spoken = spoken;
-    const spokenVolumes: number[] = [];
-    (window as any).__spokenVolumes = spokenVolumes;
-    (window as any).SpeechSynthesisUtterance = U;
-    const stub = {
-      speaking: false,
-      pending: false,
-      paused: false,
-      speak(u: U) {
-        spoken.push(u.text);
-        spokenVolumes.push(u.volume);
-        setTimeout(() => u.onend?.({}), 20);
-      },
-      cancel() {},
-      pause() {},
-      resume() {},
-      getVoices() {
-        return [{ name: 'Stub fr', lang: 'fr-FR', default: true, localService: true, voiceURI: 'stub' }];
-      },
-      addEventListener() {},
-      removeEventListener() {},
-    };
-    // `speechSynthesis` is a readonly getter-only attribute on Window in real browsers (WebKit
-    // included): a plain `window.speechSynthesis = stub` assignment silently no-ops there, which
-    // then leaves speak() calling the *native* engine with our stub's SpeechSynthesisUtterance
-    // instances, throwing "must be an instance of SpeechSynthesisUtterance". defineProperty
-    // redefines the (configurable) accessor outright so the stub actually takes effect.
-    Object.defineProperty(window, 'speechSynthesis', {
-      value: stub,
-      configurable: true,
-      writable: true,
-    });
-  });
-}
-
 // Taps (iPad) or clicks (desktop) a locator - a finger on the iPad project, a mouse on the desktop
 // one (final review M9): there is no touch device to tap with on `desktop`, and WebKit's mouse
 // click doesn't fire the touch-only events some flows depend on.
@@ -644,10 +590,10 @@ export async function expectInWorldOverlay(page: Page, testId: string, scene: st
 }
 
 // UI4 (spec §10: the battle's compact layout "with a simulated keyboard"): the iPad's on-screen
-// keyboard shrinks the *visual* viewport, not the layout one, and Playwright cannot open it. Like
-// stubSpeech's speechSynthesis, `window.visualViewport` (a [Replaceable], configurable attribute of
-// the window) is replaced before the app runs by a stand-in whose height is innerHeight minus the
-// keyboard. lib/battle/viewport.svelte.ts reads window.visualViewport at every event.
+// keyboard shrinks the *visual* viewport, not the layout one, and Playwright cannot open it.
+// `window.visualViewport` (a [Replaceable], configurable attribute of the window) is replaced before
+// the app runs by a stand-in whose height is innerHeight minus the keyboard.
+// lib/battle/viewport.svelte.ts reads window.visualViewport at every event.
 // Final review I3: iOS also pans the visual viewport when it scrolls a focused field low on the page
 // into view above the keyboard: `offsetTop` grows (the visible band is offsetTop .. offsetTop +
 // height of the layout viewport) and the viewport fires `scroll`. `top` stands in for that pan.
@@ -837,9 +783,17 @@ export async function expectMusic(page: Page, track: string | null, opts: { duck
   if (opts.ducks) await expect.poll(async () => (await audioState(page))?.ducks ?? null).toEqual(opts.ducks);
 }
 
-/** The volumes the stubbed speechSynthesis was asked to speak at, oldest first. */
+/** The dictation's voice lines the (recording) mixer played, oldest first (Kokoro plan: the voice is the
+ *  server's, played through the mixer; e2e records it, Ruling K7). */
+export async function spokenLines(page: Page): Promise<{ text: string; gain: number }[]> {
+  return page.evaluate(
+    () => (window as unknown as { __discordeAudio?: { lines(): { text: string; gain: number }[] } }).__discordeAudio?.lines() ?? [],
+  );
+}
+
+/** The voice channel's gain for each line played, oldest first. */
 export async function spokenVolumes(page: Page): Promise<number[]> {
-  return page.evaluate(() => (window as unknown as { __spokenVolumes?: number[] }).__spokenVolumes ?? []);
+  return (await spokenLines(page)).map((l) => l.gain);
 }
 
 /** Taps the dialogue box to its next line (or closes it after its last): once to finish the typing,
@@ -876,6 +830,10 @@ const CONTENT_LINES: Record<string, { text: string }[]> = Object.assign(
   ),
 );
 
+/** A dialogue key's variants as the page shows them (French spacing applied). */
+export function variantsOf(key: string): string[] {
+  return (CONTENT_LINES[key] ?? []).map((l) => frenchSpacing(l.text));
+}
 
 /** The dialogue box (or a voice plate) says one of `key`'s variants (the pick is random, Ruling E11). */
 export async function expectLineOf(box: Locator, key: string, vars: Record<string, string> = {}) {

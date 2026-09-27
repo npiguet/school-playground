@@ -7,11 +7,11 @@ import {
   createText,
   enterTitle,
   expectCamp,
+  expectLineOf,
   expectScene,
   makeResult,
   postSession,
   redScan,
-  stubSpeech,
   waitForSceneSettled,
 } from './helpers';
 
@@ -311,7 +311,8 @@ async function delphiSection(w: Walk) {
   await expectScene(page, 'delphi');
   await expect(page.getByTestId('dialogue-box')).toBeVisible();
   await settleDialogue(page);
-  await expect(page.getByTestId('dialogue-text')).toContainText('Approche.');
+  // The greeting is one of its key's variants, picked at random (UI5 Ruling E11): not always « Approche. ».
+  await expectLineOf(page.getByTestId('dialogue-box'), 'delphi.enter.sealed');
   await shot(w, 'a12-delphi-pythia-greeting');
   await skipGreeting(w, 'delphi');
   await shot(w, 'a13-delphi-temple');
@@ -542,7 +543,6 @@ test('UI3 playability walk', async ({ page }, testInfo) => {
     const url = new URL(req.url());
     if (url.protocol === 'http:' || url.protocol === 'https:') origins.add(url.origin);
   });
-  await stubSpeech(page);
   // Leftovers of an earlier run that failed (or was killed) before its cleanup (final review I3).
   await clearEarlierWalk(page.request);
   try {
