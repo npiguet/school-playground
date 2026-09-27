@@ -57,7 +57,17 @@ export function snapshotAudio(): AudioSettings {
   };
 }
 
+/** The hero whose channels the store holds (seeded once a page load: final review M2). */
+let seededFor: number | null = null;
+
+/** Seeds the channels from the hero, once per hero and page load. Later on the store is the truth:
+ *  a whole-profile response that crossed a pending audio save (a PATCH of the tours, the lyre's
+ *  « Enregistrer ») carries the older `settings.audio`, and re-seeding from it at the next place
+ *  would silently undo the player's last change (final review M2). */
 export function initAudioSettings(profile: Profile): void {
+  if (seededFor === profile.id) return;
+  flushPendingAudioSave();
+  seededFor = profile.id;
   assign(audioFrom(profile.settings, null));
 }
 
@@ -65,6 +75,9 @@ export const bothMuted = (): boolean => audioSettings.music.muted && audioSettin
 
 let chain: Promise<unknown> = Promise.resolve();
 let liveTimer: ReturnType<typeof setTimeout> | undefined;
+/** A moving slider's save, waiting for the slider to rest: its hero and the values of the change
+ *  (final review M1: never a later snapshot, which could be another hero's). */
+let pending: { profileId: number; audio: AudioSettings } | null = null;
 let sink: ((s: AudioSettings) => void) | null = null;
 
 /** The mixer's ear (installAudio): told synchronously of every channel change made here. */
@@ -72,17 +85,30 @@ export function setAudioSink(fn: ((s: AudioSettings) => void) | null): void {
   sink = fn;
 }
 
-/** The device copy and the server's, together: a toggle at once, a slider once it rests. */
-function save(profileId: number): void {
-  clearTimeout(liveTimer);
-  liveTimer = undefined;
-  const audio = snapshotAudio();
+function send(profileId: number, audio: AudioSettings): void {
   writeDevice(audio);
   chain = chain
     .then(() => api.profiles.patch(profileId, { settings: { audio } }))
     .catch(() => {
       // Server out of reach: the local values still apply; the next load reconciles.
     });
+}
+
+/** The device copy and the server's, together: a toggle at once, a slider once it rests. A waiting
+ *  slider save of another hero goes first, with its own values. */
+function save(profileId: number, audio: AudioSettings): void {
+  const waiting = pending;
+  clearTimeout(liveTimer);
+  liveTimer = undefined;
+  pending = null;
+  if (waiting && waiting.profileId !== profileId) send(waiting.profileId, waiting.audio);
+  send(profileId, audio);
+}
+
+/** Final review M1: a slider's save still waiting to rest goes now (installAudio calls this when the
+ *  page hides or unloads, so a reload right after a slider move keeps it). */
+export function flushPendingAudioSave(): void {
+  if (pending) save(pending.profileId, pending.audio);
 }
 
 export function setChannels(
@@ -107,10 +133,12 @@ export function setChannels(
   const current = profileStore.current;
   if (current && current.id === profileId) current.settings = { ...current.settings, audio: s };
   if (opts.live) {
+    if (pending && pending.profileId !== profileId) flushPendingAudioSave();
     clearTimeout(liveTimer);
-    liveTimer = setTimeout(() => save(profileId), LIVE_SAVE_MS);
+    pending = { profileId, audio: s };
+    liveTimer = setTimeout(flushPendingAudioSave, LIVE_SAVE_MS);
   } else {
-    save(profileId);
+    save(profileId, s);
   }
 }
 
@@ -126,6 +154,8 @@ export async function flushAudioSave(): Promise<void> {
 export function resetAudioStoreForTests(): void {
   clearTimeout(liveTimer);
   liveTimer = undefined;
+  pending = null;
+  seededFor = null;
   chain = Promise.resolve();
   assign(DEFAULT_AUDIO);
 }

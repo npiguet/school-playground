@@ -48,6 +48,7 @@ export interface AudioSnapshot {
 
 export function createEngine(backend: AudioBackend, now: () => number = () => Date.now()) {
   let unlocked = false;
+  let gateClosed = false;
   let settings: AudioSettings = DEFAULT_AUDIO;
   let wanted: TrackId | null = null;
   let current: { id: TrackId; handle: TrackHandle } | null = null;
@@ -61,7 +62,8 @@ export function createEngine(backend: AudioBackend, now: () => number = () => Da
     if (!unlocked) return;
     const target = settings.music.muted ? null : wanted;
     if (current && current.id !== target) {
-      current.handle.stop(CROSSFADE_MS);
+      // Final review M3: « Musique » off answers at once (the settings' fade); a place change crossfades.
+      current.handle.stop(target === null && settings.music.muted ? SETTINGS_FADE_MS : CROSSFADE_MS);
       current = null;
     }
     if (current) {
@@ -79,17 +81,34 @@ export function createEngine(backend: AudioBackend, now: () => number = () => Da
     sync();
   }
 
+  function unlock(): void {
+    if (!unlocked) backend.warm();
+    backend.resume();
+    if (unlocked) return;
+    unlocked = true;
+    sync();
+  }
+
+  /** A tap anywhere: the iPad may have suspended or interrupted the context meanwhile. */
+  function poke(): void {
+    if (unlocked && backend.state() !== 'running') backend.resume();
+  }
+
   return {
-    unlock(): void {
-      if (!unlocked) backend.warm();
-      backend.resume();
-      if (unlocked) return;
-      unlocked = true;
-      sync();
+    unlock,
+    poke,
+    /** A completed gesture anywhere on the page (audio.svelte.ts, gestures.ts). Ruling E3b: after a
+     *  reload the first one unlocks, whatever it touched (the dialogue box, a tour, a panel), not
+     *  only « Entrer » or a hotspot; every later one resumes a context the iPad suspended or
+     *  interrupted (a call, Siri, the lock screen). Behind the closed title gate it does not unlock
+     *  (Ruling E3: « Entrer » is the first sound of the game). */
+    gesture(): void {
+      if (unlocked) poke();
+      else if (!gateClosed) unlock();
     },
-    /** A tap anywhere: the iPad may have suspended or interrupted the context meanwhile. */
-    poke(): void {
-      if (unlocked && backend.state() !== 'running') backend.resume();
+    /** The title's gate (Title.svelte): closed until « Entrer », whose own tap unlocks. */
+    gate(closed: boolean): void {
+      gateClosed = closed;
     },
     visibility(hidden: boolean): void {
       if (!unlocked) return;

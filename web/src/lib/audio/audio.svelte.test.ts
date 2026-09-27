@@ -2,13 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../api', () => ({ api: { profiles: { patch: vi.fn(async () => ({})) } } }));
 
-// A page as installAudio sees it, in node: the e2e stub flag (so the recording backend) and inert
-// listeners.
+// A page as installAudio sees it, in node: the e2e stub flag (so the recording backend), a window
+// that events can be dispatched on, and an inert document.
 const on = () => undefined;
-vi.stubGlobal('window', { __discordeAudioStub: true, addEventListener: on, removeEventListener: on });
+const page = Object.assign(new EventTarget(), { __discordeAudioStub: true });
+vi.stubGlobal('window', page);
 vi.stubGlobal('document', { hidden: false, addEventListener: on, removeEventListener: on });
 
 const { audio, installAudio, withAudio } = await import('./audio.svelte');
+type AudioProbe = import('./audio.svelte').AudioProbe;
 const { setChannel } = await import('./store.svelte');
 const { playSfx, unlockAudio } = await import('../juice/sfx');
 
@@ -46,5 +48,35 @@ describe('the mixer on the page (lane A review)', () => {
 
   it('publishes its state for the e2e pages and never loads Howler there (#12)', () => {
     expect((window as unknown as { __discordeAudio?: object }).__discordeAudio).toBeDefined();
+  });
+
+  // Ruling E3b and final review I3: a completed gesture anywhere unlocks, then resumes an
+  // interrupted context; a finger's pointerdown does neither.
+  it('hears every completed gesture on the page, never a pointerdown', () => {
+    const gesture = vi.spyOn(audio(), 'gesture');
+    page.dispatchEvent(new Event('pointerdown'));
+    expect(gesture).not.toHaveBeenCalled();
+    for (const type of ['pointerup', 'touchend', 'click', 'keydown']) page.dispatchEvent(new Event(type));
+    expect(gesture).toHaveBeenCalledTimes(4);
+    gesture.mockRestore();
+    teardown();
+    teardown = () => undefined;
+    const after = vi.spyOn(audio(), 'gesture');
+    page.dispatchEvent(new Event('click'));
+    expect(after).not.toHaveBeenCalled();
+    after.mockRestore();
+  });
+
+  it('resumes an interrupted context on the next tap anywhere (a call, Siri, the lock screen)', () => {
+    const probe = (window as unknown as { __discordeAudio: AudioProbe }).__discordeAudio;
+    page.dispatchEvent(new Event('click'));
+    expect(audio().snapshot().unlocked).toBe(true);
+    expect(probe.context()).toBe('running');
+    probe.interrupt();
+    expect(probe.context()).toBe('interrupted');
+    page.dispatchEvent(new Event('pointerdown'));
+    expect(probe.context()).toBe('interrupted');
+    page.dispatchEvent(new Event('pointerup'));
+    expect(probe.context()).toBe('running');
   });
 });

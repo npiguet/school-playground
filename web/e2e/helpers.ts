@@ -821,6 +821,16 @@ export async function audioState(page: Page): Promise<AudioSnap | null> {
   });
 }
 
+/** The recorded audio context's state ('suspended' until the unlock, then 'running'). */
+export async function audioContext(page: Page): Promise<string | null> {
+  return page.evaluate(() => (window as unknown as { __discordeAudio?: { context(): string } }).__discordeAudio?.context() ?? null);
+}
+
+/** Interrupts the recorded audio context, as a phone call, Siri or the lock screen does on an iPad. */
+export async function interruptAudio(page: Page): Promise<void> {
+  await page.evaluate(() => (window as unknown as { __discordeAudio: { interrupt(): void } }).__discordeAudio.interrupt());
+}
+
 /** Waits until the loop playing is `track` (null: none), and optionally for its ducking. */
 export async function expectMusic(page: Page, track: string | null, opts: { ducks?: string[] } = {}) {
   await expect.poll(async () => (await audioState(page))?.playing ?? null).toBe(track);

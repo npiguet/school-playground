@@ -5,7 +5,16 @@ vi.mock('../api', () => ({ api: { profiles: { patch: (id: number, body: { settin
 
 import { profileStore } from '../profileStore.svelte';
 import { DEFAULT_AUDIO } from './settings';
-import { audioSettings, bothMuted, flushAudioSave, initAudioSettings, resetAudioStoreForTests, setChannel, setChannels } from './store.svelte';
+import {
+  audioSettings,
+  bothMuted,
+  flushAudioSave,
+  flushPendingAudioSave,
+  initAudioSettings,
+  resetAudioStoreForTests,
+  setChannel,
+  setChannels,
+} from './store.svelte';
 
 const hero = (settings: object = {}) => ({ id: 4, name: 'Io', avatar: 'chouette', level: '10H', has_pin: false, help_stage: 1, created_at: '', settings }) as never;
 
@@ -59,6 +68,40 @@ describe('the channel store (Ruling E2)', () => {
     setChannel(4, 'sfx', { muted: false });
     await flushAudioSave();
     expect(order).toEqual(['true', 'false']);
+  });
+
+  // Final review M1: the values of the change, never a later snapshot; and never lost to a reload.
+  it("saves a resting slider's own values for its own hero, even after another hero's seeding", async () => {
+    initAudioSettings(hero());
+    setChannel(4, 'voice', { volume: 0.3 }, { live: true });
+    const other = { ...(hero({ audio: { music: { volume: 0.9, muted: true } } }) as object), id: 5 } as never;
+    initAudioSettings(other);
+    await vi.runAllTimersAsync();
+    expect(patch).toHaveBeenCalledTimes(1);
+    expect(patch.mock.lastCall![0]).toBe(4);
+    expect(patch.mock.lastCall![1]).toMatchObject({ settings: { audio: { voice: { volume: 0.3 }, music: { volume: 0.5, muted: false } } } });
+    expect(audioSettings.music).toEqual({ volume: 0.9, muted: true });
+  });
+
+  it('sends a waiting slider save at once when asked (the page hides or unloads)', async () => {
+    initAudioSettings(hero());
+    setChannel(4, 'music', { volume: 0.2 }, { live: true });
+    expect(patch).not.toHaveBeenCalled();
+    flushPendingAudioSave();
+    await flushAudioSave();
+    expect(patch).toHaveBeenCalledTimes(1);
+    expect(patch.mock.lastCall![1]).toMatchObject({ settings: { audio: { music: { volume: 0.2 } } } });
+    await vi.runAllTimersAsync();
+    expect(patch).toHaveBeenCalledTimes(1);
+  });
+
+  // Final review M2: a whole-profile response that crossed a pending audio save carries the older
+  // audio; the next place's seeding must not undo the player's change.
+  it('seeds a hero once per page load: a stale profile never reverts the channels', () => {
+    initAudioSettings(hero());
+    setChannel(4, 'music', { muted: true });
+    initAudioSettings(hero({ audio: { music: { volume: 0.5, muted: false } } }));
+    expect(audioSettings.music.muted).toBe(true);
   });
 
   it('never throws when the server or the storage is out of reach', async () => {

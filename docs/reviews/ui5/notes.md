@@ -141,6 +141,8 @@ is the AAC encoder's start-up padding, and the game's loop regions should hide i
 - [ ] The muster shows « La voix de la dictée est en sourdine. » with « Rendre la voix ».
 - [ ] In a dictation nothing is spoken, not even quietly, and the dictation still moves on at its
   usual pace.
+- [ ] At pace 3, muted, read the dictation aloud yourself as it goes: each chunk leaves you the
+  time to say it twice, as the voice would (final review I1). Note if it runs ahead of you or drags.
 - [ ] « Rendre la voix » gives the voice back for the next dictation.
 
 **The silent switch** (Ruling E3)
@@ -151,8 +153,14 @@ is the AAC encoder's start-up padding, and the game's loop regions should hide i
 **Coming back**
 - [ ] Lock the iPad while a loop plays, then unlock: the loop is back by the first tap at the
   latest.
-- [ ] The same after a phone or FaceTime call, or after Siri.
+- [ ] The same after a phone or FaceTime call, or after Siri. Make that first tap a tap on the
+  dialogue box or on a tour, not on a place (final review I3: any tap anywhere must bring it back).
 - [ ] The same after switching to another app and back.
+- [ ] Reload the page on the camp: it is silent until your first tap, and that first tap brings
+  the fire, wherever it lands: the dialogue box, a tour's « Suite », an empty spot of the camp
+  (Ruling E3b). On the title page, only « Entrer » starts the sound.
+- [ ] During a dictation, if the voice ever stops mid-line and nothing happens, wait: within a few
+  seconds the dictation moves on by itself and the music comes back up (final review I2).
 
 **Memory.** Each place's loop is loaded again at each visit.
 - [ ] Walk back and forth between the camp, the tents, Delphi and the nest about 30 times. The

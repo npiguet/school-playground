@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { lazyBackend } from './lazyBackend';
 import { recordingBackend } from './recordingBackend';
 import { createEngine } from './engine';
@@ -80,6 +80,38 @@ describe('the lazily loaded backend (lane A review #12)', () => {
     await tick();
     expect(real.log.state).toBe('running');
     expect(gestures).toEqual([]);
+  });
+
+  // Final review I3: the page's own listener (the default) resumes on a gesture's end, never on a
+  // finger's pointerdown, which WebKit does not count as a user activation.
+  it("resumes the late context on the page's next completed gesture, not on a pointerdown", async () => {
+    const page = new EventTarget();
+    vi.stubGlobal('window', page);
+    try {
+      let inGesture = false;
+      const real = recordingBackend();
+      real.resume = () => {
+        if (inGesture) real.log.state = 'running';
+      };
+      const lazy = lazyBackend(() => Promise.resolve(real));
+      const engine = createEngine(lazy);
+      inGesture = true;
+      engine.unlock(); // « Entrer », Howler still on its way
+      inGesture = false;
+      await tick();
+      expect(real.log.state).toBe('suspended');
+      const gesture = (type: string) => {
+        inGesture = true;
+        page.dispatchEvent(new Event(type));
+        inGesture = false;
+      };
+      gesture('pointerdown');
+      expect(real.log.state).toBe('suspended');
+      gesture('touchend');
+      expect(real.log.state).toBe('running');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('stays silent, never throwing, when the backend cannot load', async () => {

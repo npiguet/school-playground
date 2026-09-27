@@ -15,6 +15,7 @@
   import { requestTilt } from '../lib/scene/tiltState.svelte';
   import { closePanel, go } from '../lib/scene/panelNav';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
+  import { withAudio } from '../lib/audio/audio.svelte';
   import { api, ApiError } from '../lib/api';
   import { href } from '../lib/routes';
   import { OVERLAY_TITLES, type PanelId } from '../lib/world/places';
@@ -55,6 +56,13 @@
     playSfx('chime');
     titleGate.entered = true;
   }
+
+  // Ruling E3 over E3b: a tap on the title's background never unlocks the sound, only « Entrer ».
+  $effect(() => {
+    const closed = !titleGate.entered;
+    withAudio((e) => e.gate(closed));
+    return () => withAudio((e) => e.gate(false));
+  });
 
   const pick = (p: Profile) => go(href('camp', { profileId: String(p.id) }));
   const openNew = () => go(href('profile-new'), 'panel');

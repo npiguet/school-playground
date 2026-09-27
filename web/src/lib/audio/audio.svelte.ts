@@ -1,24 +1,41 @@
 // The one mixer of the page (Ruling E1) and what keeps it in step with the page: the hero's channels,
-// a hidden page (suspend), a shown page or a tap (resume, the iPad's `interrupted` state), the
+// a hidden page (suspend), a shown page or a tap (the first one unlocks, Ruling E3b; later ones
+// resume, the iPad's `interrupted` state), the
 // battle's events (battleAudio.ts). In a browser it plays through Howler, loaded lazily (lane A
 // review #12), unless an e2e page set __discordeAudioStub (Ruling E10): then it records, never loads
 // Howler, and publishes its state as window.__discordeAudio.
 import { listenToBattle } from './battleAudio';
-import { createEngine, type AudioEngine } from './engine';
+import { createEngine, type AudioEngine, type ContextState } from './engine';
+import { onEveryGesture } from './gestures';
 import { lazyBackend } from './lazyBackend';
 import { recordingBackend } from './recordingBackend';
-import { setAudioSink, snapshotAudio } from './store.svelte';
+import { flushPendingAudioSave, setAudioSink, snapshotAudio } from './store.svelte';
 
-type TestWindow = Window & { __discordeAudioStub?: boolean; __discordeAudio?: { snapshot: AudioEngine['snapshot'] } };
+/** What an e2e page reads (Ruling E10): the engine's state, and the recorded context's, which a spec
+ *  can set to `interrupted` as a phone call would (final review I3). */
+export interface AudioProbe {
+  snapshot: AudioEngine['snapshot'];
+  context(): ContextState;
+  interrupt(): void;
+}
+type TestWindow = Window & { __discordeAudioStub?: boolean; __discordeAudio?: AudioProbe };
 
 let engine: AudioEngine | null = null;
 
 export function audio(): AudioEngine {
   if (engine) return engine;
   const w = typeof window === 'undefined' ? null : (window as TestWindow);
-  const recording = !w || w.__discordeAudioStub === true;
-  const e = createEngine(recording ? recordingBackend() : lazyBackend(() => import('./howlerBackend').then((m) => m.howlerBackend())));
-  if (w && recording) w.__discordeAudio = { snapshot: () => e.snapshot() };
+  const recorder = !w || w.__discordeAudioStub === true ? recordingBackend() : null;
+  const e = createEngine(recorder ?? lazyBackend(() => import('./howlerBackend').then((m) => m.howlerBackend())));
+  if (w && recorder) {
+    w.__discordeAudio = {
+      snapshot: () => e.snapshot(),
+      context: () => recorder.log.state,
+      interrupt: () => {
+        recorder.log.state = 'interrupted';
+      },
+    };
+  }
   engine = e;
   return e;
 }
@@ -50,17 +67,25 @@ export function installAudio(): () => void {
   });
   let stopBattle = (): void => undefined;
   withAudio((e) => (stopBattle = listenToBattle(e)));
-  const onVisibility = () => withAudio((e) => e.visibility(document.hidden));
-  const onPoke = () => withAudio((e) => e.poke());
+  const onVisibility = () => {
+    // Final review M1: a slider's save still waiting to rest is not lost to a reload or a closed tab.
+    if (document.hidden) flushPendingAudioSave();
+    withAudio((e) => e.visibility(document.hidden));
+  };
+  const onPageHide = () => flushPendingAudioSave();
   document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('pageshow', onVisibility);
-  window.addEventListener('pointerdown', onPoke, { capture: true, passive: true });
+  window.addEventListener('pagehide', onPageHide);
+  // Ruling E3b and final review I3: a completed gesture anywhere (gestures.ts) unlocks the mixer
+  // after a reload, and resumes a context the iPad suspended or interrupted.
+  const stopGestures = onEveryGesture(window, () => withAudio((e) => e.gesture()));
   return () => {
     setAudioSink(null);
     stopSync();
     stopBattle();
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pageshow', onVisibility);
-    window.removeEventListener('pointerdown', onPoke, { capture: true });
+    window.removeEventListener('pagehide', onPageHide);
+    stopGestures();
   };
 }

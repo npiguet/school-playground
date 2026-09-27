@@ -5,6 +5,7 @@
 // Effects asked meanwhile are dropped (they are short cues, late is worse than never).
 import type { AudioBackend, ContextState, TrackHandle } from './engine';
 import type { TrackId } from './catalog';
+import { onNextGesture } from './gestures';
 
 interface Pending {
   id: TrackId;
@@ -13,16 +14,11 @@ interface Pending {
   real: TrackHandle | null;
 }
 
-/** The next tap or key press anywhere, once (the default: the page's own). */
+/** The next completed tap or key press anywhere, once (the default: the page's own). Final review I3:
+ *  on the events that end a gesture (gestures.ts), never a finger's pointerdown. */
 function nextGesture(fn: () => void): void {
   if (typeof window === 'undefined') return;
-  const once = () => {
-    window.removeEventListener('pointerdown', once, true);
-    window.removeEventListener('keydown', once, true);
-    fn();
-  };
-  window.addEventListener('pointerdown', once, true);
-  window.addEventListener('keydown', once, true);
+  onNextGesture(window, fn);
 }
 
 export function lazyBackend(load: () => Promise<AudioBackend>, onNextGesture: (fn: () => void) => void = nextGesture): AudioBackend {

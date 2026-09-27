@@ -1,9 +1,12 @@
 import type { APIRequestContext, Page, TestInfo } from '@playwright/test';
 import { test, expect } from './crashGuard';
 import {
+  audioContext,
   audioState,
   closeOverlay,
+  createFreshHeroApi,
   createProfileApi,
+  interruptAudio,
   createText,
   expectBattle,
   expectCamp,
@@ -37,6 +40,12 @@ test('silent until « Entrer », then the sea wind at the gates (Ruling E3)', as
   await expectScene(page, 'title');
   await expect.poll(async () => (await audioState(page))?.wanted).toBe('sea');
   expect(await audioState(page)).toMatchObject({ unlocked: false, playing: null, sfx: [] });
+  // Ruling E3 over E3b: a tap on the title's background (its bottom-left corner) stays silent.
+  const stage = (await page.getByTestId('scene-title').boundingBox())!;
+  const corner = { x: stage.x + 12, y: stage.y + stage.height - 12 };
+  if (testInfo.project.name === 'ipad') await page.touchscreen.tap(corner.x, corner.y);
+  else await page.mouse.click(corner.x, corner.y);
+  expect(await audioState(page)).toMatchObject({ unlocked: false, playing: null, sfx: [] });
   await tap(page.getByTestId('title-gate'), testInfo);
   await expectMusic(page, 'sea');
   // The gate's chime rings once its press has played out (the hotspot's activation), after the unlock.
@@ -60,6 +69,57 @@ test('each place plays its loop; a reload waits for the first tap', async ({ pag
   await tap(page.getByTestId('camp-dossier'), testInfo);
   await expectScene(page, 'war');
   await expectMusic(page, 'lair');
+});
+
+// Ruling E3b: after a reload, the first tap anywhere unlocks, not only « Entrer » or a hotspot. Final
+// review I3: on the events that end a gesture, which WebKit accepts (a finger's pointerdown is not one).
+test('after a reload the first tap on the dialogue box unlocks the camp (Ruling E3b)', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  await expect.poll(async () => (await audioState(page))?.wanted).toBe('camp');
+  expect(await audioState(page)).toMatchObject({ unlocked: false, playing: null });
+  expect(await audioContext(page)).toBe('suspended');
+  await tap(page.getByTestId('dialogue-advance'), testInfo);
+  await expectMusic(page, 'camp');
+  expect(await audioContext(page)).toBe('running');
+});
+
+test('a tap anywhere resumes the camp after a phone call; a pointerdown alone does not (review I3)', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  // Not a control: the laurel bar only shows the XP.
+  const inert = page.getByTestId('hud-xp');
+  await tap(inert, testInfo);
+  await expectMusic(page, 'camp');
+  await interruptAudio(page);
+  expect(await audioContext(page)).toBe('interrupted');
+  await inert.dispatchEvent('pointerdown', { pointerType: 'touch', isPrimary: true, bubbles: true });
+  expect(await audioContext(page)).toBe('interrupted');
+  await tap(inert, testInfo);
+  await expect.poll(() => audioContext(page)).toBe('running');
+  await interruptAudio(page);
+  await page.keyboard.press('Shift');
+  await expect.poll(() => audioContext(page)).toBe('running');
+  expect((await audioState(page))!.playing).toBe('camp');
+});
+
+test.describe('with the tours on', () => {
+  test.use({ tours: true });
+  test("after a reload the first tap on a tour unlocks (Ruling E3b)", async ({ page, request }, testInfo) => {
+    const id = await createFreshHeroApi(request, heroName(testInfo.project.name));
+    await page.goto(`/#/p/${id}/camp`);
+    const tour = page.getByTestId('tour');
+    await expect(tour).toHaveAttribute('data-tour', 'camp');
+    await expect.poll(async () => (await audioState(page))?.wanted).toBe('camp');
+    expect((await audioState(page))!.unlocked).toBe(false);
+    // The tour's tap-anywhere: the place under it, away from its dialogue box.
+    const box = (await tour.boundingBox())!;
+    if (testInfo.project.name === 'ipad') await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height * 0.3);
+    else await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.3);
+    await expectMusic(page, 'camp');
+  });
 });
 
 test('the battle loop ducks through the dictation and the proofreading, and the camp comes back clear (Ruling E5)', async ({ page, request }, testInfo) => {

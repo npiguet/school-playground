@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CROSSFADE_MS, DUCK_GAIN, FADE_MS, SFX_REPEAT_MS, createEngine } from './engine';
+import { CROSSFADE_MS, DUCK_GAIN, FADE_MS, SETTINGS_FADE_MS, SFX_REPEAT_MS, createEngine } from './engine';
 import { recordingBackend } from './recordingBackend';
 import { DEFAULT_AUDIO, type AudioSettings } from './settings';
 
@@ -51,6 +51,8 @@ describe('the mixer (spec §7)', () => {
     engine.setSettings(with_({ music: { muted: true } }));
     expect(live(backend)).toEqual([]);
     expect(engine.snapshot().playing).toBeNull();
+    // Final review M3: the mute answers at the settings' fade, not the places' 1.2 s crossfade.
+    expect(backend.log.calls.at(-1)).toBe(`stop sea ${SETTINGS_FADE_MS}`);
     engine.setSettings(with_({ music: { muted: false, volume: 0.8 } }));
     expect(live(backend)).toEqual(['sea']);
     expect(backend.log.tracks.at(-1)!.gain).toBeCloseTo(0.8);
@@ -119,6 +121,39 @@ describe('the mixer (spec §7)', () => {
     expect(backend.log.state).toBe('running');
     backend.log.state = 'interrupted';
     engine.poke();
+    expect(backend.log.state).toBe('running');
+  });
+
+  // Ruling E3b: after a reload the first gesture anywhere unlocks (not only « Entrer » or a hotspot);
+  // every later one resumes a context the iPad interrupted (final review I3).
+  it('unlocks on the first gesture anywhere, then resumes an interrupted context on the next', () => {
+    const { backend, engine } = setup();
+    engine.scene('camp');
+    engine.gesture();
+    expect(engine.snapshot()).toMatchObject({ unlocked: true, playing: 'camp' });
+    expect(backend.log.state).toBe('running');
+    const calls = backend.log.calls.length;
+    engine.gesture();
+    expect(backend.log.calls).toHaveLength(calls);
+    backend.log.state = 'interrupted';
+    engine.gesture();
+    expect(backend.log.state).toBe('running');
+    expect(backend.log.tracks.filter((t) => !t.stopped).map((t) => t.id)).toEqual(['camp']);
+  });
+
+  it("never unlocks on a gesture behind the title's closed gate: only « Entrer » does (Ruling E3)", () => {
+    const { backend, engine } = setup();
+    engine.scene('sea');
+    engine.gate(true);
+    engine.gesture();
+    expect(engine.snapshot()).toMatchObject({ unlocked: false, playing: null });
+    expect(backend.log.state).toBe('suspended');
+    engine.unlock(); // « Entrer »
+    engine.gate(false);
+    expect(engine.snapshot()).toMatchObject({ unlocked: true, playing: 'sea' });
+    backend.log.state = 'interrupted';
+    engine.gate(true);
+    engine.gesture(); // once unlocked, a tap resumes wherever it lands
     expect(backend.log.state).toBe('running');
   });
 });
