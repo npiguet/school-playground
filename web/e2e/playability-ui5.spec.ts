@@ -220,6 +220,9 @@ async function placesSection(w: Walk) {
   await expect(box).toHaveAttribute('data-speaker', 'pythia');
   await shot(w, 'e06-delphi-tour-tablets');
   await openTour(page, `/#/p/${w.tourHero}/tente-de-guerre`, 'war', 'war');
+  // UI5 playability #10: the lieutenants' line rings the wall of portraits.
+  await tourTo(page, atTarget(page, 'portraits'));
+  await shot(w, 'e21-war-tour-portraits');
   await tourTo(page, async () => (await box.getAttribute('data-speaker')) === 'eris');
   await shot(w, 'e07-war-tour-eris');
   await noRed(w, 'war tour');
@@ -259,6 +262,9 @@ async function soundSection(w: Walk) {
   await page.goto(`/#/p/${w.tourHero}/settings`);
   await waitForOverlaySettled(page, 'overlay-lyre');
   const lyre = page.getByTestId('overlay-lyre');
+  // UI5 playability #17, #18: the egg's line at the top of the lyre, in the places' parchment box.
+  await expect(lyre.getByTestId('overlay-voice')).toContainText('Ici, tu règles la voix');
+  await shot(w, 'e22-lyre-egg');
   await lyre.getByTestId('lyre-mute-music').click();
   await expect(lyre.getByTestId('lyre-mute-music')).toHaveAttribute('aria-pressed', 'false');
   await lyre.getByTestId('lyre-mute-voice').click();
@@ -268,7 +274,8 @@ async function soundSection(w: Walk) {
   await noRed(w, 'lyre');
   await lyre.getByTestId('lyre-credits').locator('summary').click();
   await expect(lyre.getByTestId('lyre-credits')).toHaveAttribute('open', '');
-  await lyre.getByRole('heading', { name: 'Les visites du camp' }).evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  // UI5 playability #16: the seal, « Enregistrer » in its own row, then the tours past a line.
+  await lyre.getByRole('heading', { name: 'Ton sceau' }).evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await shot(w, 'e13-lyre-tours');
   // The voice back, for whoever looks at the walk's hero afterwards.
   await lyre.getByTestId('lyre-mute-voice').click();

@@ -102,6 +102,7 @@ and green on its retry:
 | Lane A, fix round 1 | `scenes-audio.spec.ts`, the lyre test, « page crashed at …/cabane » while closing the deep-linked lyre | ipad | 3 | 6 (two `--repeat-each=3` runs under heavy host load); then 0 in 250 runs of the spec |
 | Task 9 | `scenes-battle-play.spec.ts:720`, the page crashed while the body ran | desktop | 1 | one `--repeat-each=3` run; 0 in the two gates |
 | UI5 fix wave A | see `.superpowers/sdd/2026-09-27-ui5-audio-dialogue/fix-wave-a-report.md` (M13) | | | |
+| UI5 fix wave B | `scenes-battle-play.spec.ts:571` (the Argus and the four tools), the page crashed while the body ran, right after the tap on the Bouclier (`?help=1`) | ipad | 1 | one `--repeat-each=3` run of the spec (120 of its tests); green on its retry. A second battle-play crash in two UI5 waves: this spec is now the one to watch |
 
 What to watch: a cluster on one spec (the lyre's range input, focused and driven by keys, then
 removed by the overlay's close on WPE, is the first thing to bisect), or on pages that play audio.
