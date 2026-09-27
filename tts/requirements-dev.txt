@@ -1,2 +1,3 @@
 pytest>=8
-httpx>=0.27
+# Starlette's TestClient runs on httpx2 (on httpx it warns that httpx is deprecated for it).
+httpx2>=2.13,<3
