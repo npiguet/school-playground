@@ -6,7 +6,7 @@ import { ART } from '../art';
 import { agree, lieutenantName, sleepingCaption, stirringCaption } from '../eris';
 import { LIEUTENANT_ORDER, type LieutenantKey } from '../types';
 import { st, type HotspotDef, type HotspotState, type SceneContext, type SceneDef } from '../../scene/types';
-import { WAR_SHAPES } from './war.shapes';
+import { WAR_SHAPES, WAR_TOUR_AREAS } from './war.shapes';
 
 export const LIEUTENANT_NAMES = Object.fromEntries(LIEUTENANT_ORDER.map((k) => [k, lieutenantName(k)])) as Record<LieutenantKey, string>;
 
@@ -54,6 +54,8 @@ export const WAR_SCENE: SceneDef = {
   hotspots: WAR_HOTSPOTS,
   ambience: { particles: 'dust', music: SCENE_MUSIC.war },
   narrator: { enter: 'war.enter', tour: 'war' },
+  // UI5 playability #10: the tour rings the whole wall of portraits when it names the lieutenants.
+  tourAreas: WAR_TOUR_AREAS,
   // The only way out is the camp (final review M8).
   preload: [ART.scenes.hubCamp],
 };

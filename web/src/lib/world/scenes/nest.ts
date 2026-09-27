@@ -64,6 +64,7 @@ export function nestGreeting(d: DragonOut): DialogueLine[] {
  *  first person under its own plate (UI3b playability #15). */
 export function careLine(d: DragonOut): DialogueLine {
   if (d.stage === 'egg') return dragonSays(d, "Je frémis dans la paille. J'éclorai quand une ruse d'Éris sera neutralisée.");
-  if (!d.name) return dragonSays(d, 'Te revoilà\u202f! Tu me donnes un nom\u202f?');
+  // UI5 playability #12: the nest's greeting has already asked (`nest.name`); here is where she names it.
+  if (!d.name) return dragonSays(d, 'Ici, tu peux me donner un nom, et choisir ma teinte.');
   return dragonSays(d, 'Admire-moi\u202f! Tu peux changer ma teinte quand tu veux.');
 }

@@ -4,7 +4,19 @@
       { "speaker": "dragon", "text": "Bienvenue au camp, {hero}." },
       { "speaker": "dragon", "text": "Te revoilà, {hero} ! Le feu t'attendait." },
       { "speaker": "dragon", "text": "{hero} ! Les Muses ont gardé ta place près du feu." },
-      { "speaker": "dragon", "text": "Salut, {hero}. Le camp est plus calme quand tu es là." }
+      { "speaker": "dragon", "text": "Salut, {hero}. Le camp est plus calme quand tu es là." },
+      { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "Toc, toc ! Bonjour, {hero}. Je t'attendais bien au chaud." },
+      { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "{hero} ! J'ai tapoté ma coquille toute la nuit." },
+      { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "{hero}, c'est toi ? Ma coquille s'est réchauffée d'un coup." },
+      { "speaker": "dragon", "when": { "stage": ["hatchling"] }, "text": "{hero} ! Regarde, j'ai fait de la fumée !" },
+      { "speaker": "dragon", "when": { "stage": ["hatchling"] }, "text": "{hero} ! J'ai trotté autour du feu toute la matinée." },
+      { "speaker": "dragon", "when": { "stage": ["hatchling"] }, "text": "Bonjour, {hero}. Mes écailles ont encore brillé cette nuit." },
+      { "speaker": "dragon", "when": { "stage": ["young"] }, "text": "{hero} ! J'ai volé jusqu'au temple, ce matin." },
+      { "speaker": "dragon", "when": { "stage": ["young"] }, "text": "{hero} ! J'ai fait trois fois le tour du camp sans me poser." },
+      { "speaker": "dragon", "when": { "stage": ["young"] }, "text": "Bonjour, {hero}. Mes ailes me démangent : on part à l'aventure ?" },
+      { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "{hero}. J'ai fait le tour du camp en volant : tout est calme." },
+      { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "Bonjour, {hero}. J'ai monté la garde toute la nuit, le feu n'a pas bougé." },
+      { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "{hero}. Le camp est sous bonne garde : la mienne." }
     ],
     "camp.weekly": [
       { "speaker": "dragon", "text": "Ton objectif de la semaine est atteint. Le camp te remercie !" },
@@ -40,9 +52,8 @@
   "tour": [
     { "speaker": "dragon", "target": null, "when": { "stage": ["egg"] }, "text": "Toc, toc ! C'est moi, l'œuf que les Muses t'ont confié. Je vais te montrer le camp." },
     { "speaker": "dragon", "target": null, "when": { "stage": ["hatchling", "young", "adult"] }, "text": "On refait le tour du camp ? Suis-moi." },
-    { "speaker": "dragon", "target": null, "text": "Les Muses comptent sur toi pour défendre les textes du camp contre Éris, la déesse de la Discorde." },
-    { "speaker": "dragon", "target": null, "text": "Éris sème des dés-accords : un -s oublié, un a pour un à… Chacun de ses lieutenants est une ruse." },
-    { "speaker": "dragon", "target": null, "text": "Relis une chose à la fois, et ses ruses tombent une à une." },
+    { "speaker": "dragon", "target": null, "text": "Les Muses comptent sur toi : Éris, la déesse de la Discorde, sème des dés-accords dans les textes du camp. Un -s oublié, un a pour un à…" },
+    { "speaker": "dragon", "target": null, "text": "Chacun de ses lieutenants cache une ruse. Relis une chose à la fois, et ses ruses tombent une à une." },
     { "speaker": "dragon", "target": "parchemins", "text": "La tente des parchemins : tes textes t'y attendent, et on peut en apporter de nouveaux." },
     { "speaker": "dragon", "target": "oracle", "text": "Le chemin de Delphes : la Pythie y ouvre les rouleaux de la semaine et annonce tes prochaines dictées." },
     { "speaker": "dragon", "target": "dossier", "text": "La tente de guerre : le dossier d'Éris et le bestiaire de ses monstres." },

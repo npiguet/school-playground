@@ -2,9 +2,10 @@
 // camp's copy rules here, since the file guards (registerGuard, noGuilt) scan src/ only.
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
-import { FORBIDDEN } from '../world/eris';
+import { FORBIDDEN, lieutenantName } from '../world/eris';
 import { SCENES } from '../world/scenes';
-import { GENDERED, GUILT, banned } from '../../testing/copyRules';
+import { LIEUTENANT_ORDER } from '../world/types';
+import { GENDERED, GUILT, banned, erisSelfMasculine } from '../../testing/copyRules';
 import { LINES, TOURS, parseDialogueFile } from './content';
 import { DIALOGUE_KEYS, PLACEHOLDERS, TOUR_IDS, type DialogueCtx, type DialogueKey, type LineDef } from './types';
 import { poolFor } from './select';
@@ -17,9 +18,14 @@ const every: { where: string; line: LineDef }[] = [
 
 // The contexts each key is asked in (default: none): every one must have at least three lines to
 // pick from, so « no immediate repeat » always has somewhere to go.
+const STAGES = ['egg', 'hatchling', 'young', 'adult'].map((stage) => ({ stage }) as DialogueCtx);
 const DOMAINS: Partial<Record<DialogueKey, DialogueCtx[]>> = {
-  'nest.enter': ['egg', 'hatchling', 'young', 'adult'].map((stage) => ({ stage }) as DialogueCtx),
+  // UI5 playability #13: the camp's greeting grows with the dragon (without camp data: the generic).
+  'camp.enter': [{}, ...STAGES],
+  'nest.enter': STAGES,
   'battle.start': [{ mode: 'dictation' }, { mode: 'grimoire' }],
+  // UI5 playability #21: a retry names the lieutenant on the field (Éris herself: the generic lines).
+  'battle.retry': ['eris', ...LIEUTENANT_ORDER].flatMap((opponent) => (['dictation', 'grimoire'] as const).map((mode) => ({ opponent, mode }) as DialogueCtx)),
   // Final review M9: a grimoire that Éris failed to corrupt (no dés-accord took) ends « perfect » too.
   'battle.perfect': [{ mode: 'dictation' }, { mode: 'grimoire' }],
   'battle.victory': [{ mode: 'dictation' }, { mode: 'grimoire' }],
@@ -48,7 +54,8 @@ describe('the dialogue content (spec §8)', () => {
     expect(Object.keys(TOURS).sort()).toEqual([...TOUR_IDS].sort());
     for (const id of TOUR_IDS) {
       const scene = SCENES.find((s) => s.id === id)!;
-      for (const step of TOURS[id]) if (step.target) expect(scene.hotspots.map((h) => h.id), `${id}: ${step.target}`).toContain(step.target);
+      const ringable = [...scene.hotspots.map((h) => h.id), ...Object.keys(scene.tourAreas ?? {})];
+      for (const step of TOURS[id]) if (step.target) expect(ringable, `${id}: ${step.target}`).toContain(step.target);
       for (const stage of ['egg', 'hatchling', 'young', 'adult'] as const) {
         expect(TOURS[id].filter((s) => !s.when || s.when.stage?.includes(stage)).length, `${id} ${stage}`).toBeGreaterThanOrEqual(2);
       }
@@ -75,6 +82,22 @@ describe('the dialogue content (spec §8)', () => {
     for (const { where, line } of every.filter((x) => x.line.speaker === 'eris')) {
       for (const w of FORBIDDEN) expect(line.text.toLowerCase().includes(w), `${where}: « ${w} »`).toBe(false);
     }
+  });
+
+  it('lets Éris agree with herself in the feminine (UI5 playability #3)', () => {
+    for (const { where, line } of every.filter((x) => x.line.speaker === 'eris')) expect(erisSelfMasculine(line.text), where).toEqual([]);
+  });
+
+  it("names the lieutenant on the field when Éris sees a text again (UI5 playability #21)", () => {
+    for (const k of LIEUTENANT_ORDER) {
+      const name = lieutenantName(k).replace(/^(L'|La |Les )/, '');
+      for (const l of poolFor(LINES['battle.retry'], { opponent: k })) expect(l.text, k).toContain(name);
+    }
+  });
+
+  it("keeps the owl's « Hou » to about a third of its lines (UI5 playability #11)", () => {
+    const owl = every.filter((x) => x.line.speaker === 'owl');
+    expect(owl.filter((x) => /(^|[.!?] )Hou\b/.test(x.line.text)).length).toBeLessThanOrEqual(Math.ceil(owl.length / 3));
   });
 
   it('is authored with plain spaces, typographic signs and a length that fits the box', () => {

@@ -69,8 +69,10 @@ export function dragonCaption(d: Pick<DragonOut, 'name' | 'stage'>): string {
  *  greeting and the nest's. `name` is null until it is named (a hatchling then asks for one);
  *  `remaining` is the number of available lieutenants left to neutralise (only said when `young`). */
 export function stageLine(stage: DragonStage, name: string | null, remaining: number | null): string {
-  if (stage === 'egg') return "Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.";
-  if (stage === 'hatchling') return name ? "Te revoilà\u202f! Chaque ruse d'Éris neutralisée me fait grandir." : 'Te revoilà\u202f! Tu me donnes un nom\u202f?';
+  // UI5 playability #12: it follows `camp.enter`, which has already said hello (no second « Toc,
+  // toc », no « Te revoilà » after the greeting).
+  if (stage === 'egg') return "Chaque piège d'Éris déjoué me fait frémir dans ma coquille.";
+  if (stage === 'hatchling') return name ? "Chaque ruse d'Éris neutralisée me fait grandir." : 'Au fait, tu me donnes un nom\u202f?';
   if (stage === 'young') {
     const n = Math.max(0, remaining ?? 0);
     if (n === 0) return "Je bats des ailes\u202f! Toutes les ruses d'Éris sont neutralisées, pour l'instant.";

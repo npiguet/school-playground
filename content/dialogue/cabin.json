@@ -7,7 +7,7 @@
     ]
   },
   "tour": [
-    { "speaker": "dragon", "target": "trophies", "text": "L'étagère garde tes trésors. Chaque récompense est annoncée à l'avance : rien n'est tiré au sort." },
+    { "speaker": "dragon", "target": "trophies", "text": "L'étagère garde tes trésors. Ici, pas de hasard : tu sais toujours ce que tu peux gagner." },
     { "speaker": "dragon", "target": "journal", "text": "Ton journal se souvient de chaque texte défendu et de chaque piège déjoué." },
     { "speaker": "dragon", "target": "lyre", "text": "La lyre règle la voix qui lit la dictée, la musique et les bruitages du camp." }
   ]

@@ -28,7 +28,8 @@ test("a new hero's camp begins with the egg's tour, once (the Muses' cards are g
   // A modal: the camp is inert under it, its labels stay readable.
   await expect(page.getByTestId('scene-camp')).toHaveAttribute('inert', '');
   await expect(page.getByTestId('scene-camp')).not.toHaveClass(/has-overlay/);
-  expect(await walkTour(page)).toEqual(['', '', '', '', 'parchemins', 'oracle', 'dossier', 'dragon', 'cabin', 'boss', '']);
+  // UI5 playability #7: two lines of lore before the first place lights up.
+  expect(await walkTour(page)).toEqual(['', '', '', 'parchemins', 'oracle', 'dossier', 'dragon', 'cabin', 'boss', '']);
   await expect(tour).toHaveCount(0);
   // The seen flag is saved after the tour closes: poll the server rather than race the PATCH.
   await expect
@@ -111,6 +112,37 @@ test('Escape skips the tour, and it is seen', async ({ page, request }, testInfo
   await expectScene(page, 'nest');
   await expectLineOf(page.getByTestId('dialogue-box'), 'nest.enter');
   await expect(tour).toHaveCount(0);
+});
+
+// UI5 playability #10 and #8: the war tour rings the whole wall of portraits when it names the
+// lieutenants, and its last step offers « C'est parti ! », not « Passer la visite ».
+test("the war tour rings the portrait wall, and the last step's button starts her off", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/tente-de-guerre`);
+  const tour = page.getByTestId('tour');
+  await expect(tour).toHaveAttribute('data-tour', 'war');
+  await expectScene(page, 'war');
+  await expect(tour).toHaveAttribute('data-target', 'dossier');
+  await nextLine(page);
+  await expect(tour).toHaveAttribute('data-target', 'portraits');
+  const ring = (await page.getByTestId('tour-ring').boundingBox())!;
+  for (const k of ['hydre', 'echo', 'chimere', 'protee', 'sirenes', 'lethe']) {
+    const sheet = (await page.getByTestId(`war-${k}`).boundingBox())!;
+    expect(sheet.x, k).toBeGreaterThanOrEqual(ring.x - 2);
+    expect(sheet.y, k).toBeGreaterThanOrEqual(ring.y - 2);
+    expect(sheet.x + sheet.width, k).toBeLessThanOrEqual(ring.x + ring.width + 2);
+    expect(sheet.y + sheet.height, k).toBeLessThanOrEqual(ring.y + ring.height + 2);
+  }
+  await expect(page.getByTestId('dialogue-skip')).toHaveText('Passer la visite');
+  await nextLine(page);
+  await expect(tour).toHaveAttribute('data-target', 'bestiary');
+  await nextLine(page);
+  await expect(tour).toHaveAttribute('data-step', '3');
+  await expect(page.getByTestId('dialogue-skip')).toHaveText("C'est parti\u202f!");
+  await tap(page.getByTestId('dialogue-skip'), testInfo);
+  await expect(tour).toHaveCount(0);
+  // Focus goes back to the last hotspot the tour ringed (the wall is no hotspot).
+  await expect(page.getByTestId('war-bestiary')).toBeFocused();
 });
 
 test('/camp out of reach: the tour gives up, the place greets, the hero panel link still opens', async ({ page, request }, testInfo) => {

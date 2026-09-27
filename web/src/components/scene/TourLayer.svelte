@@ -20,14 +20,22 @@
   const art = $derived(stageBox(vw, vh));
   const target = $derived(targets[index] ?? null);
   const box = $derived.by(() => {
-    const h = target ? scene.hotspots.find((x) => x.id === target) : null;
-    return h ? shapeBox(h.shape) : null;
+    if (!target) return null;
+    // A hotspot, or an area of the place that is no single hotspot (the war tent's portrait wall).
+    const shape = scene.hotspots.find((x) => x.id === target)?.shape ?? scene.tourAreas?.[target];
+    return shape ? shapeBox(shape) : null;
   });
+  // An area is a group of things (six portraits): a round ring would cut its corners, so it gets a
+  // rounded frame.
+  const area = $derived(!!target && !scene.hotspots.some((h) => h.id === target));
   const still = reducedMotion();
   // Where focus goes when the tour ends (never <body>): the last hotspot it ringed, else the place's
   // first one.
   const returnFocus = $derived.by(() => {
-    const ringed = targets.slice(0, index + 1).filter((t): t is string => !!t).at(-1);
+    const ringed = targets
+      .slice(0, index + 1)
+      .filter((t): t is string => !!t && scene.hotspots.some((h) => h.id === t))
+      .at(-1);
     const id = ringed ?? scene.hotspots[0]?.id;
     return id ? hotspotSelector(scene.id, id) : undefined;
   });
@@ -86,18 +94,20 @@
       class:whole={!box}
       class:still
       aria-hidden="true"
-      style="--hud:{HUD_BAND}%;{box ? `--x:${box.x + box.w / 2}%;--y:${box.y + box.h / 2}%;--rx:${box.w / 2 + 3}%;--ry:${box.h / 2 + 4}%` : ''}"
+      style="--hud:{HUD_BAND}%;{box ? `--x:${box.x + box.w / 2}%;--y:${box.y + box.h / 2}%;--rx:${(box.w / 2) * (area ? 1.42 : 1) + 3}%;--ry:${(box.h / 2) * (area ? 1.42 : 1) + 4}%` : ''}"
     ></div>
     {#if box}
       <div
         class="ring"
+        class:area
         class:still
         aria-hidden="true"
         data-testid="tour-ring"
         style="left:{box.x - 1}%;top:{box.y - 1}%;width:{box.w + 2}%;height:{box.h + 2}%"
       ></div>
     {/if}
-    <DialogueBox {lines} {onDone} onLine={(i) => (index = i)} skipLabel="Passer la visite" />
+    <!-- UI5 playability #8: on the last step there is nothing left to skip; the button starts her off. -->
+    <DialogueBox {lines} {onDone} onLine={(i) => (index = i)} skipLabel={index === lines.length - 1 ? "C'est parti\u202f!" : 'Passer la visite'} />
   </div>
 </div>
 
@@ -133,6 +143,9 @@
     box-shadow: 0 0 18px color-mix(in srgb, var(--gold-light) 70%, transparent);
     animation: tour-ring 1.6s ease-in-out infinite;
     pointer-events: none;
+  }
+  .ring.area {
+    border-radius: 18px;
   }
   .ring.still {
     animation: none !important;

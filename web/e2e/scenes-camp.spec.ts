@@ -427,7 +427,7 @@ test('the dragon greets once per visit; a tap advances, « Tout passer » closes
   // Final review M6: the live region starts empty and is filled after insertion.
   await expect(page.getByTestId('dialogue-live')).toHaveText((await text.textContent())!);
   await page.getByTestId('dialogue-advance').click();
-  await expect(text).toHaveText("Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
+  await expect(text).toHaveText("Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
   // Playability #2: the last line points at where the texts are defended.
   await nextLine(page);
   await expectLineOf(box, 'camp.next.first-text');

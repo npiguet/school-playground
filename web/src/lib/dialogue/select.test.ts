@@ -39,13 +39,16 @@ describe('picking a line (spec §8)', () => {
   it('speaks a key as a framed line, spaced, with its key, and remembers it', () => {
     const d = { name: 'Brasier', stage: 'young', tint: 'bronze' } as never;
     const first = sayKey('camp.enter', { vars: { hero: 'Io' }, dragon: d, rnd: seq(0) });
-    expect(first).toMatchObject({ speaker: 'dragon', name: 'Brasier', key: 'camp.enter', text: 'Bienvenue au camp, Io.' });
+    // UI5 playability #13: the dragon greets the camp in its own stage's words.
+    expect(first).toMatchObject({ speaker: 'dragon', name: 'Brasier', key: 'camp.enter', text: "Io\u202f! J'ai volé jusqu'au temple, ce matin." });
     for (let i = 0; i < 20; i++) {
       const again = sayKey('camp.enter', { vars: { hero: 'Io' }, dragon: d });
       expect(again.text).not.toBe(first.text);
       first.text = again.text;
     }
-    expect(sayKey('library.owl', { rnd: seq(0.3) }).text).toMatch(/^Hou\u202f!/);
+    // Without a dragon (no camp data), the generic greetings.
+    expect(sayKey('camp.enter', { vars: { hero: 'Io' }, rnd: seq(0) }).text).toBe('Bienvenue au camp, Io.');
+    expect(sayKey('library.owl', { rnd: seq(0) }).text).toMatch(/^Hou\u202f!/);
   });
 
   it('knows every key it can be asked for', () => {

@@ -122,6 +122,9 @@ export interface SceneDef {
   ambience: { particles: FxPreset; music: TrackId | null };
   /** The place's greeting key and its first-visit tour (content/dialogue/*.json, UI5). */
   narrator: { enter: DialogueKey | null; tour: TourId | null };
+  /** Areas a tour step may ring that are no single hotspot (UI5 playability #10: the war tent's
+   *  wall of portraits), by the id the step's `target` names. */
+  tourAreas?: ShapeMap;
   /** Backgrounds the player is likely to open next (spec §4 performance). */
   preload: string[];
 }

@@ -13,3 +13,8 @@ export const WAR_SHAPES = {
   dossier: { kind: 'polygon', points: [[20, 64], [66, 64], [68, 78], [18, 78]] },
   bestiary: { kind: 'polygon', points: [[69, 42], [85, 42], [85, 78], [69, 78]] },
 } satisfies ShapeMap;
+
+/** Not hotspots: areas the tour rings (UI5 playability #10). The wall is the six sheets' bounds. */
+export const WAR_TOUR_AREAS = {
+  portraits: { kind: 'polygon', points: [[21.5, 22], [45, 22], [45, 55], [21.5, 55]] },
+} satisfies ShapeMap;

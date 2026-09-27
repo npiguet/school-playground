@@ -14,6 +14,6 @@
   "tour": [
     { "speaker": "pythia", "target": "pythia", "text": "Je suis la Pythie. Chaque semaine, trois rouleaux scellés t'attendent ici : tu en ouvres un, et sa quête commence." },
     { "speaker": "pythia", "target": "tablets", "text": "Sur ce mur, les tablettes votives gardent tes quêtes et les monstres que tu as défiés." },
-    { "speaker": "pythia", "target": null, "text": "Et quand ta classe prépare une dictée, pose son texte sur les étagères : j'en ferai une prophétie." }
+    { "speaker": "pythia", "target": null, "text": "Et quand ta classe prépare une dictée, apporte son texte à la tente des parchemins : j'en ferai une prophétie." }
   ]
 }

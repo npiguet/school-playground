@@ -123,7 +123,8 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     const lines = campGreeting('Ariane', camp());
     expect(lines.map((l) => l.key)).toEqual(['camp.enter', undefined, 'camp.next.first-text']);
     expect(variantsOf('camp.enter', { hero: 'Ariane' })).toContain(lines[0].text);
-    expect(lines[1].text).toBe("Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
+    // UI5 playability #12: after the greeting, the stage line says no second hello.
+    expect(lines[1].text).toBe("Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
     expect(variantsOf('camp.next.first-text')).toContain(lines[2].text);
     expect(lines[0]).toMatchObject({ key: 'camp.enter', speaker: 'dragon', name: "L'œuf", portrait: '/art/dragon/dragon_egg_cut.webp', portraitFilter: 'none' });
   });
