@@ -42,6 +42,10 @@ export PLAYWRIGHT_VERSION="1.63.0"
 export APP_IMAGE="$STACK_NAME:local"
 export NODE_MODULES_VOLUME="$STACK_NAME-web-node_modules"
 export SERVER_DEV_IMAGE="$STACK_NAME-server-dev"
+# The dictation voice's service (tts/, Kokoro plan): its image and its test image, per stack like the
+# app's. compose*.yaml read TTS_IMAGE; scripts/tts-pytest.sh builds and runs the test image.
+export TTS_IMAGE="$STACK_NAME-tts:local"
+TTS_TEST_IMAGE="$STACK_NAME-tts-test"
 NPM_CACHE_VOLUME="discorde-npm-cache"
 
 # The install records which package-lock.json it came from (its sha256, in the volume), so a lockfile
