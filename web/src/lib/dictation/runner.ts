@@ -38,6 +38,15 @@ export function unitStart(steps: Step[], index: number): number {
   return 0;
 }
 
+/** The unit being read, for the progress line (paces review, Important 1): the line said last, from
+ *  its first reading through its pauses (and « Suivant »), or, before the first line, the unit the
+ *  runner starts at. The runner emits whenever a unit opens, so `state.lastSay` is never a unit behind. */
+export function unitBeingRead(steps: Step[], state: RunnerState): SayStep | null {
+  if (state.lastSay) return state.lastSay;
+  const start = steps[state.resumeAt];
+  return start?.kind === 'say' ? start : null;
+}
+
 export interface RunnerDeps {
   pace: Pace;
   // `next`: the line said after this one, fetched ahead once this one plays (null after the last).

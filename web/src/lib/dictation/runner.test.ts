@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createRunner, unitStart, type RunnerDeps } from './runner';
+import { createRunner, unitBeingRead, unitStart, type RunnerDeps } from './runner';
 import { buildPlan, buildScript, type Pace, type SayStep, type Step } from './script';
 
 const say = (i: number, repeat: 1 | 2 = 1): Step => ({ kind: 'say', text: `t${i}`, spoken: `s${i}`, rate: 0.85, label: 'chunk', unit: 'chunk', index: i, repeat });
@@ -162,6 +162,61 @@ describe('createRunner', () => {
     expect(cancel).not.toHaveBeenCalled();
     runner.stop();
     expect(cancel).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Paces review, Important 1: « Groupe X sur Y » names the group being read, from its first reading on,
+// never the count of groups already over.
+describe('the unit being read (the progress line)', () => {
+  const plan = buildPlan('Le loup, affamé, arriva près de la bergerie. Les brebis dormaient.');
+  it('is the first group before anything is said, then each group from its first reading to the next, then the final reading', async () => {
+    for (const pace of [1, 2, 3] as const) {
+      const steps = buildScript(plan, pace);
+      const releases: (() => void)[] = [];
+      const wakes: (() => void)[] = [];
+      let state = createRunner(steps, { pace, speak: async () => {}, sleep: async () => {}, cancel: () => {}, onChange: () => {} }).state();
+      const runner = createRunner(steps, {
+        pace,
+        speak: () => new Promise<void>((r) => releases.push(r)),
+        sleep: () => new Promise<void>((r) => wakes.push(r)),
+        cancel: () => {},
+        onChange: (s) => (state = s),
+      });
+      const reading = () => {
+        const s = unitBeingRead(steps, state);
+        return s && `${s.unit} ${s.index}`;
+      };
+      expect(reading(), `${pace}: before the start`).toBe('chunk 0');
+      runner.start();
+      await flush();
+      expect(reading(), `${pace}: the first reading`).toBe('chunk 0');
+      releases.shift()!();
+      await flush();
+      expect(reading(), `${pace}: the long pause`).toBe('chunk 0');
+      wakes.shift()!();
+      await flush();
+      releases.shift()!();
+      await flush();
+      wakes.shift()!();
+      await flush();
+      if (pace === 1) {
+        expect(reading(), '1: waiting for « Suivant »').toBe('chunk 0');
+        runner.next();
+        await flush();
+      }
+      expect(reading(), `${pace}: the second group's first reading`).toBe('chunk 1');
+      runner.stop();
+    }
+    // A resumed dictation names the unit it resumes at, before its first line.
+    const steps = buildScript(plan, 2);
+    const closing = steps.findIndex((s) => s.kind === 'say' && s.unit === 'full');
+    const at = (from: number) => {
+      const r = createRunner(steps, { pace: 2, speak: async () => {}, sleep: async () => {}, cancel: () => {}, onChange: () => {} }, from);
+      const s = unitBeingRead(steps, r.state());
+      return s && `${s.unit} ${s.index}`;
+    };
+    expect(at(6)).toBe('chunk 1');
+    expect(at(closing + 1)).toBe('full 0');
   });
 });
 

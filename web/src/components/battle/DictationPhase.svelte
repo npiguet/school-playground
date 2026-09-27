@@ -8,7 +8,7 @@
   // The voice is Kokoro on the server (spec 2026-09-27): a late line shows the waiting line, a silenced
   // one Éris's card.
   import { onDestroy, onMount, untrack } from 'svelte';
-  import { createRunner, type RunnerState } from '../../lib/dictation/runner';
+  import { createRunner, unitBeingRead, type RunnerState } from '../../lib/dictation/runner';
   import { buildScript, replayLimit, sayLines, type DictationPlan, type Pace } from '../../lib/dictation/script';
   import { createVoice, type VoiceFailure } from '../../lib/dictation/voice';
   import { createWaitLine } from '../../lib/dictation/waitLine';
@@ -235,9 +235,11 @@
 
   const compact = $derived(layout === 'compact');
 
-  // Header/progress line: the group being said, or the final reading.
+  // Header/progress line: the group being read, from its first reading on (paces review, Important 1),
+  // or the final reading.
+  const reading = $derived(unitBeingRead(steps, runnerState));
   const progress = $derived(
-    runnerState.lastSay?.label === 'full' ? DICTATION.full : DICTATION.chunk(runnerState.done, runnerState.total),
+    reading?.unit === 'full' ? DICTATION.full : DICTATION.chunk((reading?.index ?? 0) + 1, runnerState.total),
   );
   // Éris's card is up while the voice is silenced, and while « Réessayer » asks again (playability #5).
   const cardUp = $derived(runnerState.status === 'silenced' || retrying);

@@ -41,7 +41,7 @@ test('the muster is an order of battle: Éris taunts, three pace medallions, no 
   const medallions = [
     ['Pas à pas', "Chaque groupe est lu deux fois, puis la Pythie t'attend. Une réécoute par groupe."],
     ['Par groupes', 'Chaque groupe est lu deux fois, puis la Pythie enchaîne. Tu peux faire une pause.'],
-    ["D'un bon pas", "Des groupes plus longs, lus deux fois. La Pythie ne s'arrête pas."],
+    ["D'un bon pas", 'Des groupes plus longs, lus deux fois, sans bouton pause : la Pythie enchaîne.'],
   ];
   for (const [i, [title, desc]] of medallions.entries()) {
     await expect(sheet.getByTestId(`pace-option-${i + 1}`).locator('.title')).toHaveText(title);
@@ -309,9 +309,8 @@ test('pace I: each group twice, then « Suivant »; one « Réécouter » a grou
   await tap(replay, testInfo);
   await expect(replay).toBeDisabled();
   await expect.poll(() => said(page)).toEqual([G0, G0, G0]);
-  // ...and comes back for the next group.
+  // ...and comes back for the next group, once it has been read twice.
   await tap(next, testInfo);
-  await expect(replay).toBeDisabled();
   await expect(next).toBeEnabled();
   expect(await said(page)).toEqual([G0, G0, G0, G1, G1]);
   await expect(replay).toBeEnabled();
@@ -332,9 +331,23 @@ test('pace II: each group twice, moving on by itself, with « Pause » and no «
   await installFastPauses(page);
   const id = await createProfileApi(request, uniqueName(`Pace2-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Par groupes'), body: TWO, level: '10H' });
+  // Paces review, Important 1: the progress names the group being read. Each group's line is held back
+  // until the test has read the label, so the check never races the reading.
+  const held = new Map<string, () => void>();
+  const gates = new Map([G0, G1].map((t) => [t, new Promise<void>((r) => held.set(t, r))]));
+  await page.route('**/api/tts/speak', async (route) => {
+    await gates.get((route.request().postDataJSON() as { text: string }).text);
+    await route.continue();
+  });
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
   await startDictation(page, testInfo, 2);
+  const progress = page.getByTestId('dictation-progress');
+  await expect(progress).toHaveText('Groupe 1 sur 3');
+  held.get(G0)!();
+  await expect.poll(() => said(page)).toEqual([G0, G0]);
+  await expect(progress).toHaveText('Groupe 2 sur 3');
+  held.get(G1)!();
   await expect(page.getByTestId('btn-pause')).toBeVisible();
   await expect(page.getByTestId('btn-replay')).toHaveCount(0);
   await expect(page.getByTestId('btn-next')).toHaveCount(0);
