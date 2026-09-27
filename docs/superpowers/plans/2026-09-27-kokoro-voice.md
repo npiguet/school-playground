@@ -102,7 +102,7 @@
 - Modify: `tools/tts/run_docker.sh` (a `parity` command and its usage line), `tools/tts/README.md` (a « Parity » section)
 
 **Interfaces:**
-- Consumes: `tools/tts/lines.json` (`lines.<id>.spoken`, `slowRate`), `tools/tts/round2.json` (`sentences.<id>.variants.C`, `paces`), the `discorde-tts-cache` volume (the bake-off's Hugging Face cache at `/cache/hf`), `with_playwright_lock` (`scripts/lib.sh`).
+- Consumes: `tools/tts/lines.json` (`lines.<id>.spoken`, `slowRate`), `tools/tts/round2.json` (`sentences.<id>.variants.C`, `paces`), the `discorde-tts-bakeoff-cache` volume (the bake-off's Hugging Face cache at `/cache/hf`; renamed in Task 1's fix round 2 so it never shares the service's line cache, `discorde-tts-cache`), `with_playwright_lock` (`scripts/lib.sh`).
 - Produces: `tools/tts/parity.json` with `verdict` ∈ `"onnx" | "onnx-misaki" | "torch"` (Task 3 reads it), `versions` (the exact package versions that ran), `files` (each model file: `url`, `sha256`, `bytes`; Task 3's Dockerfile checksums come from here), `criteria`, `noise_floor` and a row per line.
 
 - [ ] **Step 1: The parity image**
@@ -1476,7 +1476,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- scripts
 
 **Interfaces:**
 - Consumes: `tools/tts/parity.json` (`verdict`, `versions`, `files.onnx.*.sha256` or `files.torch.*.sha256`) from Task 1; `app.engine.load_engine` (imports `app.kokoro.KokoroEngine(model_dir: Path, threads: int)`), `app.text.segments`, `app.audio.SR`, `app.audio.encode_mp3` from Task 2.
-- Produces: `app.kokoro.KokoroEngine` with `model_id` (`"kokoro-82m-v1.0-onnx"`, `"kokoro-82m-v1.0-onnx-misaki"` or `"kokoro-82m-v1.0-torch"`) and `synth(text, speed) -> np.ndarray`; the runtime and test images carry the model under `/models`. Nothing outside `tts/app/kokoro.py`, `tts/Dockerfile` and `tts/requirements.txt` depends on the verdict.
+- Produces: `app.kokoro.KokoroEngine` with `model_id` `"kokoro-82m-v1.0-onnx-direct"` (`app.kokoro.MODEL_ID`; the verdict was `onnx-direct`, Task 3 addendum and lane S2 fix round, Ruling 1: the other variants below were not built) and `synth(text, speed) -> np.ndarray`; the runtime and test images carry the model under `/models`. Nothing outside `tts/app/kokoro.py`, `tts/Dockerfile` and `tts/requirements.txt` depends on the verdict.
 
 - [ ] **Step 1: Write the failing model tests**
 
@@ -1947,7 +1947,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- server/
 
 **Interfaces:**
 - Consumes: `TTS_IMAGE`, `TTS_TEST_IMAGE`, `scripts/tts-pytest.sh` (Task 2); the model in the image (Task 3); `/api/tts/health` (Task 4).
-- Produces: the `tts` service in every stack (prod: volume `discorde-tts-cache`; e2e: `TTS_STUB` from the environment, default `1`; dev: default `0`); the playwright container waits for a healthy `tts`; `check.sh` steps `== tts: pytest` and `== docker build tts`; `playwright.sh` builds `app tts` and saves `web/test-results/tts.log` on a failure. Task 9 adds the real-voice step to `check.sh` after the e2e step.
+- Produces: the `tts` service in every stack (prod: volume `discorde-tts-cache`; e2e: `TTS_STUB` from the environment, default `1`; dev: the real voice, no stub switch, preflight ruling #10); the playwright container waits for a healthy `tts`; `check.sh` steps `== tts: pytest` and `== docker build tts`; `playwright.sh` builds `app tts` and saves `web/test-results/tts.log` on a failure. Task 9 adds the real-voice step to `check.sh` after the e2e step.
 
 - [ ] **Step 1: The e2e smoke test (failing)**
 
@@ -2052,7 +2052,7 @@ Expected: PASS on `desktop` (the smoke spec is a `desktop` spec).
 
 - [ ] **Step 4: Measure the image**
 
-Run: `source scripts/lib.sh && docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' "$TTS_IMAGE" "$APP_IMAGE"`
+Run: `source scripts/lib.sh && for i in "$TTS_IMAGE" "$APP_IMAGE"; do docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' "$i"; done` (`docker image ls` takes one reference at a time)
 Expected: both sizes (paste them; the README below uses them).
 
 - [ ] **Step 5: The README**
@@ -2112,7 +2112,7 @@ Edit `README.md` (English, as the rest):
 
    Then:
 
-   1. Open `http://<server>:8080/api/tts/health`. `{"voice":"ready","engine":"kokoro-82m-v1.0-…"}` means the
+   1. Open `http://<server>:8080/api/tts/health`. `{"voice":"ready","engine":"kokoro-82m-v1.0-onnx-direct"}` means the
       voice is fine again: tap « Réessayer » on the card. `{"voice":"loading"}`: wait a minute and try
       again. `{"voice":"unreachable"}`: the container is not running. `{"voice":"error"}`: it could not load
       its model; its logs say why.

@@ -3,7 +3,8 @@
 A listening comparison of open-source French TTS engines for the dictation, run server-side on CPU:
 Piper, Kokoro-82M, Chatterbox Multilingual, Coqui XTTS-v2 and F5-TTS (French fine-tune). Nothing here
 is used by the game. Docker only: each engine has its own image (`<engine>/Dockerfile`), weights stay
-in the `discorde-tts-cache` volume.
+in the `discorde-tts-bakeoff-cache` volume (`discorde-tts-cache` is the game's voice service's line
+cache, spec 2026-09-27-kokoro-voice-design §4.1: the two are kept apart).
 
     tools/tts/run_docker.sh bake piper      # then kokoro, chatterbox, xtts, f5: one at a time
     tools/tts/run_docker.sh post            # atempo stretches, pauses, image sizes, index.html
@@ -35,3 +36,25 @@ listened to: do not regenerate it with `round2.ts`.
 `round2.json` is made by `round2.ts` (bundled and run like `lines.ts`, with `.cache/tts-round2.mjs`
 and `../tools/tts/round2.json`). Variant A is the game's `spokenForm`; B to E are a transform of it in
 `round2.ts` only, the game code is unchanged.
+
+## Parity: ONNX against PyTorch (Kokoro plan, Task 1)
+
+The game's voice service (`tts/`) runs Kokoro-82M. `parity.py` checks that the ONNX build
+(`kokoro-onnx` + onnxruntime, no PyTorch) speaks like the PyTorch `kokoro` package the bake-off used:
+the same phonemes (over the model's vocabulary), the same length (within 50 ms or 2 %), and a
+spectrogram as close to PyTorch's as two PyTorch renders with different seeds are to each other
+(Kokoro's decoder draws noise), within 0.02. `parity.json` holds the verdict, the versions that ran, each model file's sha256 (the
+service's Dockerfile checks them) and a row per line; the samples land in `assets/tts-bakeoff/parity/`.
+
+The verdicts, first passing one wins (the same criteria for each): `onnx` (kokoro-onnx with its own
+phonemiser), `onnx-misaki` (kokoro-onnx fed misaki's phonemes), `onnx-direct` (`DirectKokoro` in
+`parity.py`: the same ONNX model through onnxruntime alone, misaki's phonemes and PyTorch's style row
+`pack[len(ps)-1]`; the reference the service's engine lifts), then `torch` (the PyTorch CPU build).
+
+    tools/tts/run_docker.sh parity
+
+Verdict: **onnx-direct** (kokoro-onnx 0.4.9 fails, fed misaki's phonemes or not: it picks the voice's
+style vector one row further than PyTorch does, `voice[len(tokens)]` against `pack[len(ps)-1]`, and its
+similarity is 0.56 to 0.93 on twelve lines where 0.95 is needed; `DirectKokoro` passes all 13, with
+PyTorch's exact phonemes, its exact lengths and a similarity of 0.965 to 0.971; the service runs it, with
+no PyTorch and no kokoro-onnx).

@@ -21,6 +21,11 @@ STACK="${STACK:-}"
 if [ -n "$STACK" ]; then
   case "$STACK" in
     *[!a-z0-9_-]*) echo "STACK must use lowercase letters, digits, - or _ (got '$STACK')" >&2; exit 2 ;;
+    # The app image of STACK=<x>-tts would be discorde-<x>-tts:local, the voice image of STACK=<x>
+    # (TTS_IMAGE below; STACK=tts: discorde-tts:local, the main checkout's voice and compose.yaml's).
+    tts | *-tts)
+      echo "STACK must not be 'tts' or end in '-tts' (got '$STACK'): its app image would take the name of another stack's voice image" >&2
+      exit 2 ;;
   esac
   STACK_NAME="discorde-$STACK"
 else
@@ -42,6 +47,10 @@ export PLAYWRIGHT_VERSION="1.63.0"
 export APP_IMAGE="$STACK_NAME:local"
 export NODE_MODULES_VOLUME="$STACK_NAME-web-node_modules"
 export SERVER_DEV_IMAGE="$STACK_NAME-server-dev"
+# The dictation voice's service (tts/, Kokoro plan): its image and its test image, per stack like the
+# app's. compose*.yaml read TTS_IMAGE; scripts/tts-pytest.sh builds and runs the test image.
+export TTS_IMAGE="$STACK_NAME-tts:local"
+TTS_TEST_IMAGE="$STACK_NAME-tts-test"
 NPM_CACHE_VOLUME="discorde-npm-cache"
 
 # The install records which package-lock.json it came from (its sha256, in the volume), so a lockfile

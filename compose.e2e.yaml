@@ -11,6 +11,7 @@ services:
         DISCORDE_TEST_HOOKS: "1",
       }
     volumes: ["./server/tests/fixtures:/fixtures:ro"]
+    depends_on: [tts]
     # Reached as http://discorde:8080, not http://app:8080: `app` is a gTLD on Chromium's HSTS
     # preload list, so Chromium (the `chromium` project, playwright.config.ts) forces HTTPS on it.
     # The alias lives in this compose project's own network, so every STACK keeps the same BASE_URL.
@@ -22,6 +23,17 @@ services:
       timeout: 3s
       retries: 30
       start_period: 20s
+  # The dictation's voice (Kokoro plan): the stub (silent MP3s, no model) unless TTS_STUB=0, as the
+  # real-voice run does (scripts/check.sh, Ruling K8). The app reaches it as http://tts:8000.
+  tts:
+    build: ./tts
+    image: ${TTS_IMAGE:-discorde-tts:local}
+    environment: { TTS_STUB: "${TTS_STUB:-1}", TTS_THREADS: "4" }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)"]
+      interval: 2s
+      timeout: 3s
+      retries: 90
   playwright:
     image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION:?run through scripts/playwright.sh}-noble
     working_dir: /work/web
@@ -48,6 +60,7 @@ services:
     volumes: [".:/work", "node_modules:/work/web/node_modules"]
     depends_on:
       app: { condition: service_healthy }
+      tts: { condition: service_healthy }
     ipc: host
     # No core dumps: a crashing browser process would write a multi-GB core.<pid> into web/ (the
     # bind-mounted working directory). Crash counting uses its own override, see

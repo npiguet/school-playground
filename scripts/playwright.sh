@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Build the production image, start it, run Playwright against it, tear down.
+# Build the production images (the game and its voice, as its stub), start them, run Playwright
+# against them, tear down.
 # Example: scripts/playwright.sh                                     (all e2e specs)
 #          scripts/playwright.sh --config playwright.playability.config.ts
 #          STACK=b scripts/playwright.sh                             (a second stack, side by side)
 #          PW_WORKERS=4 scripts/playwright.sh                        (fewer workers; 8 when unset)
+#          TTS_STUB=0 scripts/playwright.sh --config playwright.voice.config.ts voice-real   (the real voice)
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # The browsers in the image must match the @playwright/test the specs run with.
 if ! grep -q "\"@playwright/test\": \"$PLAYWRIGHT_VERSION\"" "$ROOT/web/package.json"; then
@@ -12,7 +14,7 @@ if ! grep -q "\"@playwright/test\": \"$PLAYWRIGHT_VERSION\"" "$ROOT/web/package.
 fi
 ensure_volumes
 cd "$ROOT"
-docker compose -f compose.e2e.yaml build app
+docker compose -f compose.e2e.yaml build app tts
 
 # One Playwright run at a time on this machine, whatever the stack or worktree (fix round 2 of
 # batch B4: two stacks at once starved WebKit's rendering, overlays froze mid-transition and the
@@ -31,7 +33,8 @@ set -e
 if [ "$status" -ne 0 ]; then
   mkdir -p web/test-results
   docker compose -f compose.e2e.yaml logs --no-color app > web/test-results/app.log 2>&1 || true
-  echo "server log: web/test-results/app.log"
+  docker compose -f compose.e2e.yaml logs --no-color tts > web/test-results/tts.log 2>&1 || true
+  echo "server logs: web/test-results/app.log, web/test-results/tts.log"
 fi
 docker compose -f compose.e2e.yaml down -v --remove-orphans
 exit $status
