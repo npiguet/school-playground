@@ -55,7 +55,7 @@ class HttpFetcher:
         try:
             data = resp.json()
         except ValueError as e:
-            raise FetchError(f"réponse invalide de Wikisource: {e}") from e
+            raise FetchError(f"réponse invalide de Wikisource : {e}") from e
         if "error" in data:
             raise FetchError(str(data["error"]))
         text = data.get("parse", {}).get("text")
@@ -88,13 +88,13 @@ class OfflineFetcher:
     def wikisource_page(self, title: str) -> str:
         path = self.root / "wikisource" / f"{page_slug(title)}.html"
         if not path.is_file():
-            raise FetchError(f"fichier introuvable: {path}")
+            raise FetchError(f"fichier introuvable : {path}")
         return path.read_text(encoding="utf-8")
 
     def gutenberg_text(self, ebook_id: int) -> str:
         path = self.root / "gutenberg" / f"pg{ebook_id}.txt"
         if not path.is_file():
-            raise FetchError(f"fichier introuvable: {path}")
+            raise FetchError(f"fichier introuvable : {path}")
         return path.read_text(encoding="utf-8")
 
 

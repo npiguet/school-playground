@@ -98,13 +98,14 @@ describe('filTap', () => {
     s = filTap(s, 4, ANN, identityTypedTextOf); // "dansent": high chain
     expect(s.step).toBe('pick-subject');
     expect(s.highlightVerb).toBe(4);
-    expect(s.message).toBe('Verbe : « dansent ». Maintenant, touche son sujet.');
+    // Final review I5: French spacing (U+202F) like every other string on screen.
+    expect(s.message).toBe('Verbe : « dansent ». Maintenant, touche son sujet.');
     s = filTap(s, 0, ANN, identityTypedTextOf); // "Les" belongs to the subject group → correct
     expect(s.step).toBe('done');
     expect(s.correct).toBe(1);
     expect(s.drawn).toBe(1);
     expect(s.highlightSubject).toEqual([0, 1]);
-    expect(s.message).toBe('Le fil est tendu entre « dansent » et « Les fées » (pluriel). Vérifie la terminaison du verbe.');
+    expect(s.message).toBe('Le fil est tendu entre « dansent » et « Les fées » (pluriel). Vérifie la terminaison du verbe.');
   });
 
   it('reveals the subject after two wrong taps and counts the thread as drawn but not correct', () => {
@@ -117,7 +118,7 @@ describe('filTap', () => {
     expect(s.step).toBe('done');
     expect(s.drawn).toBe(1);
     expect(s.correct).toBe(0);
-    expect(s.message).toBe('Le fil te guide : le sujet de « dansent », c\'est « Les fées » (pluriel).');
+    expect(s.message).toBe('Le fil te guide : le sujet de « dansent », c\'est « Les fées » (pluriel).');
   });
 
   // SP2 playability P1-7: after a drawn thread the Fil stays armed — the next tap on another verb
@@ -182,11 +183,11 @@ describe('filTap', () => {
 
     let s = filTap(filStart(), 4, ANN, typedTextOf); // "dansent" -> typed "danse"
     expect(s.step).toBe('pick-subject');
-    expect(s.message).toBe('Verbe : « danse ». Maintenant, touche son sujet.');
+    expect(s.message).toBe('Verbe : « danse ». Maintenant, touche son sujet.');
     s = filTap(s, 0, ANN, typedTextOf); // "Les" (unchanged) belongs to the subject group
     expect(s.step).toBe('done');
     expect(s.message).toBe(
-      'Le fil est tendu entre « danse » et « Les fée » (pluriel). Vérifie la terminaison du verbe.',
+      'Le fil est tendu entre « danse » et « Les fée » (pluriel). Vérifie la terminaison du verbe.',
     );
     expect(s.message).not.toMatch(/dansent/);
     expect(s.message).not.toMatch(/fées/);

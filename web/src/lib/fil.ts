@@ -104,7 +104,7 @@ function pickVerb(
     attempts: 0,
     highlightVerb: annotIndex,
     highlightSubject: [],
-    message: `Verbe : « ${verbText} ». Maintenant, touche son sujet.`,
+    message: `Verbe : « ${verbText} ». Maintenant, touche son sujet.`,
   };
 }
 
@@ -130,14 +130,14 @@ function pickSubject(
     annotIndex !== undefined && (chain.controller_group.includes(annotIndex) || annotIndex === chain.via_token);
 
   if (isCorrect) {
-    const prefix = chain.via === 'qui' ? `« qui » reprend « ${group} ». ` : '';
+    const prefix = chain.via === 'qui' ? `« qui » reprend « ${group} ». ` : '';
     return {
       ...state,
       step: 'done',
       drawn: state.drawn + 1,
       correct: state.correct + 1,
       highlightSubject: chain.controller_group,
-      message: `${prefix}Le fil est tendu entre « ${verb} » et « ${group} » (${num}). Vérifie la terminaison du verbe.`,
+      message: `${prefix}Le fil est tendu entre « ${verb} » et « ${group} » (${num}). Vérifie la terminaison du verbe.`,
     };
   }
 
@@ -145,7 +145,7 @@ function pickSubject(
     return {
       ...state,
       attempts: state.attempts + 1,
-      message: `Le fil ne tient pas. Le sujet, c'est qui fait l'action de « ${verb} ». Réessaie.`,
+      message: `Le fil ne tient pas. Le sujet, c'est qui fait l'action de « ${verb} ». Réessaie.`,
     };
   }
 
@@ -154,7 +154,7 @@ function pickSubject(
     step: 'done',
     drawn: state.drawn + 1,
     highlightSubject: chain.controller_group,
-    message: `Le fil te guide : le sujet de « ${verb} », c'est « ${group} » (${num}).`,
+    message: `Le fil te guide : le sujet de « ${verb} », c'est « ${group} » (${num}).`,
   };
 }
 
