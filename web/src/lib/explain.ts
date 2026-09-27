@@ -114,24 +114,32 @@ export type ExplainForm = 'card' | 'spoken';
 const q = (w: string) => `«\u202f${w}\u202f»`;
 
 function genericVerb(expected: string, form: ExplainForm = 'card'): string {
-  if (form === 'spoken') return `${q(expected)} suit celui qui fait l'action. Cherche qui le fait, et tu sauras comment l'écrire.`;
+  if (form === 'spoken') return `${q(expected)} s'accorde avec son sujet. Cherche-le, et tu sauras comment l'écrire.`;
   return `Le verbe ${q(expected)} s'accorde avec son sujet. Cherche qui fait l'action.`;
 }
 
-/** The subject-verb sentence, spoken: who does it, how many, and so the verb's ending. `subject` is
- *  already quoted (it may be « qui », c'est-à-dire « … »). */
-function spokenVerb(subject: string, plural: boolean, expected: string, typed: string): string {
-  const who = `Qui fait l'action\u202f? ${subject}.`;
-  // « Il y en a plusieurs » and « c'est au singulier » never gender the subject (its gender may be unknown).
-  if (!plural) return `${who} C'est au singulier, alors le verbe s'écrit ${q(expected)}.`;
-  return `${who} Il y en a plusieurs, alors le verbe prend ${q(`-${verbEnding(expected, typed)}`)}\u202f: ${q(expected)}.`;
+/** The subject-verb sentence, spoken: its subject, its number, and so the verb's form. `subject` is
+ *  already quoted (it may be « qui », qui reprend « … »). It says « le sujet », never « celui qui fait
+ *  l'action »: in « Les souris sont mangées par le chat » the cat acts, but « Les souris » rule the
+ *  verb. « Il » stands for « le sujet », so it never genders a subject whose gender may be unknown. */
+function spokenVerb(subject: string, plural: boolean, expected: string, typed: string, conj = false): string {
+  const who = conj ? `Le verbe a plusieurs sujets, ici\u202f: ${subject}.` : `Le sujet, ici, c'est ${subject}.`;
+  // « Il » is the verb after several subjects, else the subject.
+  const number = conj ? 'Il est donc au pluriel et' : `Il est au ${plural ? 'pluriel' : 'singulier'}, alors le verbe`;
+  // An ending is named only when the right form just adds letters (« danse » + « nt »): « est » and
+  // « sont » share nothing, and « -sont » would teach a false ending.
+  const ending = verbEnding(expected, typed);
+  if (plural && typed !== '' && expected.startsWith(typed) && ending !== expected) {
+    return `${who} ${number} prend ${q(`-${ending}`)}\u202f: ${q(expected)}.`;
+  }
+  return `${who} ${number} s'écrit ${q(expected)}.`;
 }
 
 /** The SP1 participle sentence: the avoir/COD clause isn't taught before 9H (spec §3.4). */
 function genericParticiple(expected: string, level: string | undefined, form: ExplainForm = 'card'): string {
   const early = level !== undefined && levelIndex(level) < levelIndex('9H');
   if (form === 'spoken') {
-    const withEtre = `Avec ${q('être')}, ${q(expected)} s'accorde avec celui qui fait l'action`;
+    const withEtre = `Avec ${q('être')}, ${q(expected)} s'accorde avec le sujet`;
     return early ? `${withEtre}.` : `${withEtre}\u202f; avec ${q('avoir')}, seulement avec un complément placé avant lui.`;
   }
   const withEtre = `Participe passé ${q(expected)}\u202f: avec être, il s'accorde avec le sujet`;
@@ -183,8 +191,8 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
     if (NP === '') return genericVerb(expected, form);
     const num = chainNumberWord(chain.features) ?? 'singulier';
     if (spoken) {
-      const subject = chain.via === 'qui' ? `${q('qui')}, c'est-à-dire ${q(NP)}` : q(NP);
-      return spokenVerb(subject, chain.via === 'conj' || num === 'pluriel', expected, e.typed ?? '');
+      const conj = chain.via === 'conj';
+      return spokenVerb(spokenSubject(chain, NP), conj || num === 'pluriel', expected, e.typed ?? '', conj);
     }
     const ending = verbEnding(expected, e.typed ?? '');
     if (chain.via === 'qui') {
@@ -201,14 +209,14 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
   if (chain.kind === 'attribute') {
     const fw = featureWords(chain.features);
     if (fw === '') return null;
-    if (spoken) return `${q(expected)} décrit ${spokenSubject(chain, NP)}, alors il s'accorde au ${fw}.`;
+    if (spoken) return `${q(expected)} décrit le sujet, ${spokenSubject(chain, NP)}\u202f: il s'accorde au ${fw}.`;
     return `«\u202f${expected}\u202f» est attribut du sujet ${subjectPhrase(chain, NP)} → ${fw}`;
   }
 
   if (chain.kind === 'participle_etre') {
     const fw = featureWords(chain.features);
     if (fw === '') return null;
-    if (spoken) return `Avec ${q('être')}, ${q(expected)} suit celui qui fait l'action, ${spokenSubject(chain, NP)}\u202f: il s'accorde au ${fw}.`;
+    if (spoken) return `Avec ${q('être')}, ${q(expected)} s'accorde avec le sujet, ${spokenSubject(chain, NP)}\u202f: au ${fw}.`;
     return `Avec «\u202fêtre\u202f», le participe «\u202f${expected}\u202f» s'accorde avec le sujet ${subjectPhrase(chain, NP)} → ${fw}`;
   }
 
@@ -217,7 +225,7 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
     // generic participle sentence rather than teach the avoir/COD rule early.
     if (ctx.level === undefined || levelIndex(ctx.level) < levelIndex('9H')) return null;
     if (chain.rule === 'no_agreement') {
-      if (spoken) return `Avec ${q('avoir')}, ${q(expected)} ne suit pas celui qui fait l'action. Rien n'est placé avant lui, alors il reste ${q(expected)}.`;
+      if (spoken) return `Avec ${q('avoir')}, ${q(expected)} ne s'accorde pas avec le sujet. Aucun complément n'est placé avant lui, alors il ne change pas\u202f: ${q(expected)}.`;
       return `Avec «\u202favoir\u202f», le participe «\u202f${expected}\u202f» ne s'accorde pas avec le sujet\u202f: aucun complément n'est placé avant → «\u202f${expected}\u202f»`;
     }
     if (chain.rule === 'cod_before') {
@@ -232,10 +240,10 @@ function chainAgreementText(e: TokenError, ctx: ExplainContext, expected: string
       const covered =
         (genderSlip && chain.features.Gender !== undefined) || (numberSlip && chain.features.Number !== undefined);
       if (fw === '' || !covered) {
-        if (spoken) return `Avec ${q('avoir')}, ${q(expected)} s'accorde avec ${q(NP)}, placé avant lui. Regarde ce que ${q(NP)} remplace.`;
+        if (spoken) return `Avec ${q('avoir')}, ${q(expected)} s'accorde avec le complément placé avant lui, ${q(NP)}. Regarde ce que ${q(NP)} remplace.`;
         return `Avec «\u202favoir\u202f», le participe «\u202f${expected}\u202f» s'accorde avec le complément «\u202f${NP}\u202f» placé avant. Regarde ce que «\u202f${NP}\u202f» remplace.`;
       }
-      if (spoken) return `Avec ${q('avoir')}, ${q(expected)} s'accorde avec ${q(NP)}, placé avant lui\u202f: au ${fw}.`;
+      if (spoken) return `Avec ${q('avoir')}, ${q(expected)} s'accorde avec le complément placé avant lui, ${q(NP)}\u202f: au ${fw}.`;
       return `Avec «\u202favoir\u202f», le participe «\u202f${expected}\u202f» s'accorde avec le complément «\u202f${NP}\u202f» placé avant → ${fw}`;
     }
     return null;
@@ -296,9 +304,9 @@ function explainAgreement(e: TokenError, ctx: ExplainContext, expected: string, 
   return genericAgreement(expected);
 }
 
-/** « qui », c'est-à-dire « NP » through a relative pronoun, else « NP » (the spoken `subjectPhrase`). */
+/** « qui », qui reprend « NP » through a relative pronoun, else « NP » (the spoken `subjectPhrase`). */
 function spokenSubject(chain: Chain, NP: string): string {
-  return chain.via === 'qui' ? `${q('qui')}, c'est-à-dire ${q(NP)}` : q(NP);
+  return chain.via === 'qui' ? `${q('qui')}, qui reprend ${q(NP)}` : q(NP);
 }
 
 /** What the dragon says about a trap at the victory (UI5 playability #4): `explain()`'s text in
@@ -340,7 +348,8 @@ export function explain(e: TokenError, ctx: ExplainContext, form: ExplainForm = 
 
   // The homophone tables' examples show a swap with an arrow (« il l'a vu » → « il l'avait vu »):
   // spoken, it « devient ».
-  if (form === 'spoken') text = text.replace(/\s*→\s*/gu, ' devient ');
+  // « ses » = les siens: spoken, it « veut dire ».
+  if (form === 'spoken') text = text.replace(/\s*→\s*/gu, ' devient ').replace(/\s+=\s+/gu, ' veut dire ');
   return { title, text };
 }
 

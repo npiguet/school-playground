@@ -65,6 +65,6 @@ export function nestGreeting(d: DragonOut): DialogueLine[] {
 export function careLine(d: DragonOut): DialogueLine {
   if (d.stage === 'egg') return dragonSays(d, "Je frémis dans la paille. J'éclorai quand une ruse d'Éris sera neutralisée.");
   // UI5 playability #12: the nest's greeting has already asked (`nest.name`); here is where she names it.
-  if (!d.name) return dragonSays(d, 'Ici, tu peux me donner un nom, et choisir ma teinte.');
+  if (!d.name) return dragonSays(d, 'Ici, tu peux me donner un nom et choisir ma teinte.');
   return dragonSays(d, 'Admire-moi\u202f! Tu peux changer ma teinte quand tu veux.');
 }

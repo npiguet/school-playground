@@ -44,13 +44,13 @@ describe('explain', () => {
   it('says each explanation in spoken sentences for the dragon', () => {
     const verb = ctxFor('Les fées danse dans la clairière.');
     expect(spokenExplanation(verb.g.errors[0], verb.ctx)).toBe(
-      "Qui fait l'action\u202f? «\u202ffées\u202f». Il y en a plusieurs, alors le verbe prend «\u202f-nt\u202f»\u202f: «\u202fdansent\u202f».",
+      "Le sujet, ici, c'est «\u202ffées\u202f». Il est au pluriel, alors le verbe prend «\u202f-nt\u202f»\u202f: «\u202fdansent\u202f».",
     );
     const noun = ctxFor('Le fées dansent dans la clairière.');
     expect(spokenExplanation(noun.g.errors[0], noun.ctx)).toBe("«\u202fLes\u202f» accompagne «\u202ffées\u202f», alors il s'accorde au pluriel.");
     // No annotation: the generic verb sentence, spoken.
     const bare = { refTokens: verb.ctx.refTokens, annots: [], annotation: null };
-    expect(spokenExplanation(verb.g.errors[0], bare)).toBe("«\u202fdansent\u202f» suit celui qui fait l'action. Cherche qui le fait, et tu sauras comment l'écrire.");
+    expect(spokenExplanation(verb.g.errors[0], bare)).toBe("«\u202fdansent\u202f» s'accorde avec son sujet. Cherche-le, et tu sauras comment l'écrire.");
   });
 
   it('never says an arrow, « terminaison » or a sentence without its full stop', () => {
@@ -65,7 +65,7 @@ describe('explain', () => {
       const { g, ctx } = ctxFor(typed);
       for (const e of g.errors) {
         const s = spokenExplanation(e, ctx);
-        expect(s, typed).not.toMatch(/→|terminaison/);
+        expect(s, typed).not.toMatch(/→|terminaison|\s=\s/);
         expect(s, typed).toMatch(/[.!?]$/);
       }
     }
@@ -172,11 +172,11 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
   it('has a spoken form of each chain explanation, for the dragon', () => {
     const qui = ctxFor2('Les fées qui chante dansent.');
     expect(spokenExplanation(qui.g.errors[0], qui.ctx)).toBe(
-      "Qui fait l'action\u202f? «\u202fqui\u202f», c'est-à-dire «\u202fLes fées\u202f». Il y en a plusieurs, alors le verbe prend «\u202f-nt\u202f»\u202f: «\u202fchantent\u202f».",
+      "Le sujet, ici, c'est «\u202fqui\u202f», qui reprend «\u202fLes fées\u202f». Il est au pluriel, alors le verbe prend «\u202f-nt\u202f»\u202f: «\u202fchantent\u202f».",
     );
     const plain = ctxFor2('Les fées qui chantent danse.');
     expect(spokenExplanation(plain.g.errors[0], plain.ctx)).toBe(
-      "Qui fait l'action\u202f? «\u202fLes fées\u202f». Il y en a plusieurs, alors le verbe prend «\u202f-nt\u202f»\u202f: «\u202fdansent\u202f».",
+      "Le sujet, ici, c'est «\u202fLes fées\u202f». Il est au pluriel, alors le verbe prend «\u202f-nt\u202f»\u202f: «\u202fdansent\u202f».",
     );
     const nominal = ctxFor2('Le fées qui chantent dansent.');
     expect(spokenExplanation(nominal.g.errors[0], nominal.ctx)).toBe("«\u202fLes\u202f» accompagne «\u202ffées\u202f», alors il s'accorde au féminin pluriel.");
@@ -233,7 +233,7 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
       'Avec «\u202fêtre\u202f», le participe «\u202fparties\u202f» s\'accorde avec le sujet «\u202fElles\u202f» → féminin pluriel',
     );
     expect(spokenExplanation(g.errors[0], ctx)).toBe(
-      "Avec «\u202fêtre\u202f», «\u202fparties\u202f» suit celui qui fait l'action, «\u202fElles\u202f»\u202f: il s'accorde au féminin pluriel.",
+      "Avec «\u202fêtre\u202f», «\u202fparties\u202f» s'accorde avec le sujet, «\u202fElles\u202f»\u202f: au féminin pluriel.",
     );
   });
 
@@ -300,13 +300,13 @@ describe('explain (chain-aware, SP2 Task 7)', () => {
     );
     // UI5 playability #4: spoken by the dragon.
     expect(spokenExplanation(g.errors[0], { ...ctxMangees, level: '10H' })).toBe(
-      'Avec «\u202favoir\u202f», «\u202fmangées\u202f» s\'accorde avec «\u202fles\u202f», placé avant lui\u202f: au pluriel.',
+      'Avec «\u202favoir\u202f», «\u202fmangées\u202f» s\'accorde avec le complément placé avant lui, «\u202fles\u202f»\u202f: au pluriel.',
     );
     expect(spokenExplanation(g.errors[0], { ...ctxMangees, level: '8H' })).toBe(
-      'Avec «\u202fêtre\u202f», «\u202fmangées\u202f» s\'accorde avec celui qui fait l\'action.',
+      'Avec «\u202fêtre\u202f», «\u202fmangées\u202f» s\'accorde avec le sujet.',
     );
     expect(spokenExplanation(g.errors[0], ctxMangees)).toBe(
-      'Avec «\u202fêtre\u202f», «\u202fmangées\u202f» s\'accorde avec celui qui fait l\'action\u202f; ' +
+      'Avec «\u202fêtre\u202f», «\u202fmangées\u202f» s\'accorde avec le sujet\u202f; ' +
         'avec «\u202favoir\u202f», seulement avec un complément placé avant lui.',
     );
   });

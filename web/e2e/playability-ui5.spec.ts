@@ -263,7 +263,7 @@ async function soundSection(w: Walk) {
   await waitForOverlaySettled(page, 'overlay-lyre');
   const lyre = page.getByTestId('overlay-lyre');
   // UI5 playability #17, #18: the egg's line at the top of the lyre, in the places' parchment box.
-  await expect(lyre.getByTestId('overlay-voice')).toContainText('Ici, tu règles la voix');
+  await expect(lyre.getByTestId('overlay-voice')).toContainText('Choisis ici qui te lit la dictée');
   await shot(w, 'e22-lyre-egg');
   await lyre.getByTestId('lyre-mute-music').click();
   await expect(lyre.getByTestId('lyre-mute-music')).toHaveAttribute('aria-pressed', 'false');

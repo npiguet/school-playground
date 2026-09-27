@@ -485,7 +485,7 @@ test("Éris answers the reckoning from her lines, then the dragon explains a tra
   await nextLine(page);
   // UI5 playability #4: the same explanation « Revoir » shows on tap, in the dragon's spoken form:
   // whole sentences, never the card's arrows.
-  await expect(dialogue.getByTestId('dialogue-text')).toContainText("Qui fait l'action\u202f? «\u202fLes fées\u202f». Il y en a plusieurs");
+  await expect(dialogue.getByTestId('dialogue-text')).toContainText("Le sujet, ici, c'est «\u202fLes fées\u202f». Il est au pluriel");
   await expect(dialogue.getByTestId('dialogue-text')).toContainText('«\u202fdansent\u202f».');
   await expect(dialogue.getByTestId('dialogue-text')).not.toContainText('→');
   await expect(dialogue.getByTestId('dialogue-box')).not.toHaveAttribute('data-key', /./);

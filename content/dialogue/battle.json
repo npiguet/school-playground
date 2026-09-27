@@ -19,8 +19,8 @@
       { "speaker": "eris", "when": { "opponent": ["echo"] }, "text": "Encore ce texte ? Écho y répète ses pièges, un peu différemment." },
       { "speaker": "eris", "when": { "opponent": ["echo"] }, "text": "Revoilà ce parchemin ? Écho a trouvé d'autres mots à faire résonner." },
       { "speaker": "eris", "when": { "opponent": ["echo"] }, "text": "Deuxième manche ! Écho murmure déjà : a ou à, et ou est…" },
-      { "speaker": "eris", "when": { "opponent": ["chimere"] }, "text": "Revoilà ce parchemin ? Ma Chimère y a échangé d'autres masculins et féminins." },
-      { "speaker": "eris", "when": { "opponent": ["chimere"] }, "text": "Encore ce texte ? Les trois têtes de ma Chimère ont changé de place." },
+      { "speaker": "eris", "when": { "opponent": ["chimere"] }, "text": "Revoilà ce parchemin ? Ma Chimère y a mêlé d'autres masculins et féminins." },
+      { "speaker": "eris", "when": { "opponent": ["chimere"] }, "text": "Encore ce texte ? Ma Chimère a soufflé sur quelques mots. Ils n'ont plus le même genre." },
       { "speaker": "eris", "when": { "opponent": ["chimere"] }, "text": "Deuxième manche ! Ma Chimère rugit déjà, et pas au même endroit." },
       { "speaker": "eris", "when": { "opponent": ["protee"] }, "text": "Revoilà ce parchemin ? Protée y a pris d'autres formes." },
       { "speaker": "eris", "when": { "opponent": ["protee"] }, "text": "Encore ce texte ? Protée ne se cache jamais deux fois sous la même forme." },
@@ -28,7 +28,7 @@
       { "speaker": "eris", "when": { "opponent": ["sirenes"] }, "text": "Revoilà ce parchemin ? Mes Sirènes ont appris un nouveau chant." },
       { "speaker": "eris", "when": { "opponent": ["sirenes"] }, "text": "Encore ce texte ? Mes Sirènes y chantent un autre couplet, cette fois." },
       { "speaker": "eris", "when": { "opponent": ["sirenes"] }, "text": "Deuxième manche ! Mes Sirènes éloignent déjà d'autres sujets de leurs verbes." },
-      { "speaker": "eris", "when": { "opponent": ["lethe"] }, "text": "Revoilà ce parchemin ? Léthé attend toujours la fin, mais plus au même endroit." },
+      { "speaker": "eris", "when": { "opponent": ["lethe"] }, "text": "Revoilà ce parchemin ? Léthé attend toujours la fin du texte. Ses oublis, eux, ont changé de place." },
       { "speaker": "eris", "when": { "opponent": ["lethe"] }, "text": "Encore ce texte ? Léthé a déjà versé son eau d'oubli sur les dernières lignes." },
       { "speaker": "eris", "when": { "opponent": ["lethe"] }, "text": "Deuxième manche ! Léthé somnole à la fin du texte. Elle ne dort que d'un œil." }
     ],
@@ -59,18 +59,18 @@
     "battle.caught": [
       { "speaker": "eris", "text": "Ha ! Mes pièges tiennent encore. Mais tu commences à voir clair…" },
       { "speaker": "eris", "text": "Quelques pièges débusqués. Les autres rient encore dans leur cachette." },
-      { "speaker": "eris", "text": "Quelques-uns de mes pièges, débusqués… Le camp apprend vite. Trop vite à mon goût." },
+      { "speaker": "eris", "text": "Certains de mes pièges n'ont pas tenu… Le camp apprend vite. Trop vite à mon goût." },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Ha ! Quelques dés-accords retrouvés. Le grimoire commence à se réparer." },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Quelques pages réparées… Mon grimoire garde le reste de ses secrets." },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Tu as débusqué quelques dés-accords. Les autres dorment encore entre les lignes." }
     ],
     "battle.missed": [
       { "speaker": "eris", "text": "Mes pièges sont restés bien cachés. Cette fois." },
-      { "speaker": "eris", "text": "Mes pièges ont tenu, cette fois. Mais au camp, on les cherche déjà, je le sens." },
+      { "speaker": "eris", "text": "Mes pièges n'ont pas bougé. Mais au camp, on les cherche déjà, je le sens." },
       { "speaker": "eris", "text": "Ils se sont bien cachés, mes petits pièges. Le dragon va vouloir les chercher avec toi, je parie." },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Mes dés-accords sont restés bien cachés dans ce grimoire. Cette fois." },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Mon grimoire garde tous ses secrets… pour l'instant." },
-      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Mon encre tient bon, aujourd'hui. Le camp finira bien par la lire, je le crains." }
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Mon encre tient bon, aujourd'hui. Mais le camp finira par la faire pâlir, je le crains." }
     ],
     "battle.explain": [
       { "speaker": "dragon", "text": "Regarde « {word} » avec moi." },

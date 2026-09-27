@@ -1,7 +1,7 @@
 {
   "lines": {
     "library.enter": [
-      { "speaker": "owl", "text": "Bienvenue sous la tente. Les étagères sont pleines, et le pupitre attend ta plume." },
+      { "speaker": "owl", "text": "Bienvenue sous la tente. Tes parchemins sont rangés sur les étagères, et le pupitre attend ta plume." },
       { "speaker": "owl", "text": "Hou ! Quel parchemin défendons-nous aujourd'hui ?" },
       { "speaker": "owl", "text": "Les étagères t'attendent. Si tu hésites, touche-moi." }
     ],

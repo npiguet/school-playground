@@ -233,7 +233,7 @@ test('the dragon greets in the cabin, once per page load', async ({ page, reques
   await page.getByTestId('dialogue-skip').click();
   await expect(box).toHaveCount(0);
   await tap(page.getByTestId('cabin-lyre'), testInfo);
-  await expect(page.getByTestId('overlay-lyre').getByTestId('overlay-voice')).toContainText('Ici, tu règles la voix qui te lit la dictée');
+  await expect(page.getByTestId('overlay-lyre').getByTestId('overlay-voice')).toContainText('Choisis ici qui te lit la dictée');
   await closeOverlay(page);
   await expect(box).toHaveCount(0);
 });

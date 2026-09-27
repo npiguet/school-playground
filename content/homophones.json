@@ -1,7 +1,7 @@
 {
   "version": 1,
   "sets": [
-    {"id": "a", "words": ["a", "à", "as"], "hint": "« a » (et « as ») peut se remplacer par « avait » : « il avait » → « a ». Sinon, c'est « à » avec un accent."},
+    {"id": "a", "words": ["a", "à", "as"], "hint": "« a » (et « as ») peut se remplacer par « avait » (« il a » → « il avait »). Sinon, c'est « à » avec un accent."},
     {"id": "et", "words": ["et", "est", "es"], "hint": "« est » peut se remplacer par « était » (« il est » → « il était »). « es » aussi, c'est le verbe être à la 2e personne (« tu es » → « tu étais »). « et » veut dire « et puis »."},
     {"id": "ces", "words": ["ces", "ses", "c'est", "s'est", "sais", "sait"], "hint": "« ses » = les siens (« ses livres » → « son livre »). « ces » = ceux-là (« ces livres » → « ce livre »). « c'est » = « cela est ». « s'est » est suivi d'un participe passé (« il s'est levé »). « sais / sait » viennent du verbe savoir (« je sais, il sait » → « je savais, il savait »)."},
     {"id": "son", "words": ["son", "sont"], "hint": "« sont » peut se remplacer par « étaient ». « son » = le sien."},
