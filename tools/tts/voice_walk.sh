@@ -2,7 +2,8 @@
 # The voice walk (Kokoro plan, Task 10): the e2e stack with the real voice (TTS_STUB=0), then
 # web/e2e/voice-walk.spec.ts; the `tts` container is stopped and started when the spec writes its
 # marker files (web/.cache/voice-walk/stop-tts, start-tts), and both containers' memory is sampled
-# every 2 s (memory-rest.txt once the stack is healthy, memory-samples.txt meanwhile). Holds the
+# about every 4 s: `docker stats --no-stream` takes about 2 s itself, then a 2 s sleep
+# (memory-rest.txt once the stack is healthy, memory-samples.txt meanwhile). Holds the
 # machine-wide Playwright lock throughout (scripts/lib.sh). Logs: web/.cache/voice-walk/{app,tts}.log.
 #
 #   tools/tts/voice_walk.sh

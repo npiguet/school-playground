@@ -65,8 +65,9 @@ no PyTorch and no kokoro-onnx).
 
 It brings up the e2e stack with the real voice (`TTS_STUB=0`) and runs
 `web/e2e/voice-walk.spec.ts` under the machine-wide Playwright lock: each pace's first lines, pace
-4's time to its first line on the longest seed text, and Éris's card when the `tts` container is
-really stopped (the script stops and starts it when the spec writes `web/.cache/voice-walk/stop-tts`
-and `start-tts`), then « Réessayer » once it is back. Both containers' memory is sampled every 2 s,
-into `web/.cache/voice-walk/memory-rest.txt` (once the stack is healthy) and `memory-samples.txt`
+4's time to its first line on the longest seed text (under 10 s, since pace 4 reads a sentence at a
+time), and Éris's card when the `tts` container is really stopped (the script stops and starts it
+when the spec writes `web/.cache/voice-walk/stop-tts` and `start-tts`), then « Réessayer » once it is
+back. Both containers' memory is sampled about every 4 s (`docker stats --no-stream` itself takes
+about 2 s, then the sampler sleeps 2 s; a peak is the highest sample, not a continuous maximum), into `web/.cache/voice-walk/memory-rest.txt` (once the stack is healthy) and `memory-samples.txt`
 (throughout); the logs land next to them in `app.log` and `tts.log`.

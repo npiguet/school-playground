@@ -6,3 +6,10 @@ web/playwright-report
 data
 docs
 .claude
+# Nothing the game's image copies (final review M7): the walk's files would bust the SPA build layer,
+# and the bake-off's samples alone are 51 MB of build context. The voice builds from tts/ itself.
+web/.cache
+assets
+tts
+tools
+.superpowers

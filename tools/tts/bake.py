@@ -27,6 +27,11 @@ CACHE = Path(os.environ.get("TTS_CACHE", "/cache"))
 LINES = json.loads((ROOT / "tools/tts/lines.json").read_text(encoding="utf-8"))
 SLOW = LINES["slowRate"]
 THREADS = int(os.environ.get("TTS_THREADS", "8"))
+# Hugging Face commits, not `main`, so the bake-off can be reproduced (final review M9); each was its
+# repository's head when the bake-off ran (2026-09-27), as parity.py pins Kokoro's.
+PIPER_REVISION = "c10ece1aade47bb51c153c893d14e5bf8e5b7117"      # rhasspy/piper-voices
+KOKORO_REVISION = "f3ff3571791e39611d31c381e3a41a3af07b4987"     # hexgrad/Kokoro-82M (parity.py)
+F5_REVISION = "bcad6ae266c8406dc572b33d1d6ffced4db114fe"         # RASPIAUDIO/F5-French-MixedSpeakers-reduced
 
 
 def write_wav(path: Path, audio: np.ndarray, sr: int) -> float:
@@ -72,7 +77,7 @@ def torch_threads() -> None:
 def engine_piper():
     from piper import PiperVoice, SynthesisConfig
 
-    base = "https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR"
+    base = f"https://huggingface.co/rhasspy/piper-voices/resolve/{PIPER_REVISION}/fr/fr_FR"
     models = [("siwis", "medium"), ("tom", "medium"), ("upmc", "medium"), ("mls", "medium"), ("gilles", "low")]
     # mls-medium has 125 speakers: three spread over the id range (its .onnx.json maps ids to
     # LibriVox reader numbers, no names or genders).
@@ -109,14 +114,19 @@ def engine_piper():
 def engine_kokoro():
     torch_threads()
     from huggingface_hub import snapshot_download
-    from kokoro import KPipeline
+    from kokoro import KModel, KPipeline
 
-    pipe = KPipeline(lang_code="f", repo_id="hexgrad/Kokoro-82M")
-    local = Path(snapshot_download("hexgrad/Kokoro-82M", allow_patterns=["kokoro-v1_0.pth", "config.json", "voices/ff_siwis.pt"]))
+    repo = "hexgrad/Kokoro-82M"
+    local = Path(snapshot_download(repo, revision=KOKORO_REVISION,
+                                   allow_patterns=["kokoro-v1_0.pth", "config.json", "voices/ff_siwis.pt"]))
+    # The pinned snapshot's own files: given paths, KModel and KPipeline fetch nothing from `main`.
+    model = KModel(repo_id=repo, config=str(local / "config.json"), model=str(local / "kokoro-v1_0.pth")).eval()
+    pipe = KPipeline(lang_code="f", repo_id=repo, model=model)
+    voice = str(local / "voices/ff_siwis.pt")
 
     def synth(text, speed):
         audio, phonemes = [], []
-        for result in pipe(text, voice="ff_siwis", speed=speed):
+        for result in pipe(text, voice=voice, speed=speed):
             audio.append(result.audio.numpy())
             phonemes.append(result.phonemes)
         return np.concatenate(audio), 24000, {"phonemes": " | ".join(phonemes)}
@@ -174,8 +184,8 @@ def engine_f5():
     from huggingface_hub import hf_hub_download
 
     repo = "RASPIAUDIO/F5-French-MixedSpeakers-reduced"
-    ckpt = hf_hub_download(repo, "model_last_reduced.pt")
-    vocab = hf_hub_download(repo, "vocab.txt")
+    ckpt = hf_hub_download(repo, "model_last_reduced.pt", revision=F5_REVISION)
+    vocab = hf_hub_download(repo, "vocab.txt", revision=F5_REVISION)
     f5 = F5TTS(model="F5TTS_Base", ckpt_file=ckpt, vocab_file=vocab, device="cpu")
     # The checkpoint ships no reference clip: the reference is the one bundled with the f5-tts package
     # (a synthetic English sample), with its transcript as the f5-tts examples give it.

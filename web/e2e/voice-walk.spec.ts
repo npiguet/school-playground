@@ -1,5 +1,5 @@
 // The voice walk (Kokoro plan Task 10), run only by tools/tts/voice_walk.sh, against the real voice:
-// each pace's first lines, pace 4 on the longest seed text (the time to its first line), and the card
+// each pace's first lines, pace 4 on the longest seed text (its first line, under 10 s), and the card
 // when the `tts` container is really stopped, then « Réessayer » once it is back. The script stops and
 // starts the container when this spec writes a marker file (web/.cache/voice-walk/, outside
 // test-results, which Playwright empties at the start of a run).
@@ -50,12 +50,17 @@ for (const pace of [1, 2, 3, 4] as const) {
   });
 }
 
-test('pace 4 on the longest seed text: the time to its first line (Review Focus 1)', async ({ page, request }, testInfo) => {
-  test.setTimeout(300_000);
+// Fix wave A, Ruling R-A1: pace 4 reads its full readings a sentence at a time, so the first line of
+// even the longest text comes in about a second (it was the whole text as one line: 23 to 26 s).
+test('pace 4 on the longest seed text: its first line, one sentence, comes quickly', async ({ page, request }, testInfo) => {
   const body = (JSON.parse(readFileSync('../content/seed/007-renard-mouches-eau.json', 'utf-8')) as { body: string }).body;
   const t0 = await start(page, request, body, 4);
-  await expect.poll(() => lines(page), { timeout: 240_000 }).toBeGreaterThan(0);
-  note(testInfo, 'first line (longest text, pace 4)', `${Date.now() - t0} ms`);
+  await expect.poll(() => lines(page), { timeout: 60_000 }).toBeGreaterThan(0);
+  const ms = Date.now() - t0;
+  note(testInfo, 'first line (longest text, pace 4)', `${ms} ms`);
+  expect(ms).toBeLessThan(10_000);
+  await expect.poll(() => lines(page), { timeout: 60_000 }).toBeGreaterThan(1);
+  note(testInfo, 'second line (longest text, pace 4)', `${Date.now() - t0} ms`);
 });
 
 test("the card when the voice's container stops, and « Réessayer » once it is back", async ({ page, request }) => {

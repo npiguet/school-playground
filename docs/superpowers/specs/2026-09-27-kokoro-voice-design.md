@@ -67,6 +67,8 @@ not fit.
   file can be regenerated.
 - **Queue:** one worker thread makes lines one at a time. A request for a line waiting in the queue
   moves it to the front. Two requests for the same line share one job.
+  *Amended (fix wave A, I2):* a new `/prepare` replaces every queued line nobody waits on (the latest
+  dictation wins); a line `/speak` asked for, and the one being made, stay.
 - **Pronunciation fixes:** `tts/respell.json` maps words to respellings and is applied
   word-boundary-safe before synthesis. It ships empty. A change to it changes the cache key.
 - **Endpoints**, internal only:
@@ -78,6 +80,8 @@ not fit.
   else is a 422.
   *Amended (Kokoro plan, Ruling K1):* a line is at most 10 000 characters, so pace 4's full reading
   of the longest seed text (about 1 600 characters spoken) is one line.
+  *Amended again (fix wave A, Ruling R-A1):* pace 4 now says its full readings a sentence at a time,
+  so the longest line is one sentence; the 10 000-character limit stays as a guard.
 - **Test mode** (`TTS_STUB=1`, e2e only): returns a valid silent MP3 as long as the line would take
   (65 ms a character ÷ speed, the current `SPEECH_MS_PER_CHAR`), instantly, without loading the
   model. It keeps the same cache and queue code paths.
@@ -122,6 +126,10 @@ not fit.
   the French copy pass), until it arrives.
 - During the dictation, each line's fetch starts when the previous line starts playing, so the
   gaps between lines stay as the pace defines them.
+- *Amended (fix wave A, Ruling R-A1):* pace 4's two full readings are said a sentence at a time,
+  back to back, each sentence its own line at the reading's rate, so the first is ready in about a
+  second; only the reading's first sentence is a resume point, and the music stays ducked 300 ms
+  after a line (Ruling R-A2), so it does not swell between the sentences.
 
 ### 5.3 When the voice fails
 
