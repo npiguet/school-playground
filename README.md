@@ -171,9 +171,9 @@ loaded instead of looking for them on Docker Hub. Everything else comes from the
   suite only; never set them in production. `TTS_STUB` is for the test suite only.
 - **RAM:** the game's container uses about 1.1 GB once started (measured at rest, with the language
   model loaded). Analysing a new text, a scan or an Alexandria adoption runs that model again, so
-  leave it some room above that. The voice's container uses about 0.59 GB at rest and up to 0.95 GB
+  leave it some room above that. The voice's container uses about 0.59 GB at rest and up to 0.89 GB
   while it makes a dictation's lines (measured with the default `TTS_THREADS` of 4, on an AMD Ryzen 9
-  5950X, pace 4 on the longest seed text).
+  5950X, while it made pace 4's lines for the longest seed text, a sentence at a time).
 
 ### Update to a new version
 
@@ -377,9 +377,10 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
 - The scenes' tilt parallax (the picture shifting as the iPad tilts) probably stays off on the
   iPad: Safari only gives motion sensors to HTTPS pages. Dragging a finger across a scene still
   moves it.
-- The dictation voice needs the server's `tts` container: the first line of a long text at « D'une
-  traite » took about 24 s in our measurements (23 to 26 s, the longest seed text, on the same Ryzen 9
-  5950X as the RAM figures in §2; a short line shows while it comes).
+- The dictation voice needs the server's `tts` container. The first line of a dictation comes in
+  about a second, a long text at « D'une traite » included, since it is read a sentence at a time
+  (1.8 to 2.1 s on the longest seed text, 0.5 to 1.1 s on a short one, on the same Ryzen 9 5950X as
+  the RAM figures in §2; a short line shows while it comes).
 - OCR (Tesseract, French) is for **printed** handouts only; it does not read handwriting.
 - Alexandria needs the server to reach Wikisource and Project Gutenberg; everything else works
   without internet.

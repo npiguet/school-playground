@@ -26,6 +26,9 @@ async function start(page: Page, request: APIRequestContext, body: string, pace:
   return Date.now();
 }
 const lines = async (page: Page) => (await spokenLines(page)).length;
+/** A time to a first line is polled every 100 ms (expect.poll's own back-off, up to 1 s a step, would
+ *  round it up to the next second). */
+const EVERY_100_MS = [100];
 /** A figure for the report: an annotation, and a line on stdout (the list reporter prints it). */
 function note(testInfo: { annotations: { type: string; description?: string }[] }, type: string, description: string) {
   testInfo.annotations.push({ type, description });
@@ -39,7 +42,7 @@ const mark = (name: string) => {
 for (const pace of [1, 2, 3, 4] as const) {
   test(`pace ${pace}: the real voice reads its first lines`, async ({ page, request }, testInfo) => {
     const t0 = await start(page, request, SHORT, pace);
-    await expect.poll(() => lines(page), { timeout: 120_000 }).toBeGreaterThan(0);
+    await expect.poll(() => lines(page), { timeout: 120_000, intervals: EVERY_100_MS }).toBeGreaterThan(0);
     note(testInfo, `pace ${pace}, first line`, `${Date.now() - t0} ms`);
     if (pace <= 2) {
       await expect(page.getByTestId('btn-next')).toBeEnabled({ timeout: 60_000 });
@@ -52,15 +55,20 @@ for (const pace of [1, 2, 3, 4] as const) {
 
 // Fix wave A, Ruling R-A1: pace 4 reads its full readings a sentence at a time, so the first line of
 // even the longest text comes in about a second (it was the whole text as one line: 23 to 26 s).
+// The test then stays until the opening reading is over, so the voice makes that reading's sentences
+// (what the walk's memory samples measure: the next test's /prepare would replace the lines not made
+// yet). The e2e mixer plays each line in 20 ms (recordingBackend.ts), so the time noted is how long
+// the voice took to make the reading, not to say it; tts.log has each sentence's length and making.
 test('pace 4 on the longest seed text: its first line, one sentence, comes quickly', async ({ page, request }, testInfo) => {
+  test.setTimeout(300_000);
   const body = (JSON.parse(readFileSync('../content/seed/007-renard-mouches-eau.json', 'utf-8')) as { body: string }).body;
   const t0 = await start(page, request, body, 4);
-  await expect.poll(() => lines(page), { timeout: 60_000 }).toBeGreaterThan(0);
+  await expect.poll(() => lines(page), { timeout: 60_000, intervals: EVERY_100_MS }).toBeGreaterThan(0);
   const ms = Date.now() - t0;
   note(testInfo, 'first line (longest text, pace 4)', `${ms} ms`);
   expect(ms).toBeLessThan(10_000);
-  await expect.poll(() => lines(page), { timeout: 60_000 }).toBeGreaterThan(1);
-  note(testInfo, 'second line (longest text, pace 4)', `${Date.now() - t0} ms`);
+  await expect(page.getByText(/^Groupe \d+ sur \d+$/)).toBeVisible({ timeout: 240_000 });
+  note(testInfo, 'opening reading made (longest text, pace 4)', `${Date.now() - t0} ms, ${await lines(page)} lines said`);
 });
 
 test("the card when the voice's container stops, and « Réessayer » once it is back", async ({ page, request }) => {
