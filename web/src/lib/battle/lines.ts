@@ -88,12 +88,12 @@ export const DICTATION = {
 /** Éris's card when the voice cannot be heard (spec 2026-09-27 §5.3). Her gloat is the content key
  *  `battle.voice.lost`; the waiting line is `battle.voice.wait` (Ruling K5). The cause is for the parent. */
 export const VOICE_LOST = {
-  askParent: 'Appelle un parent : lui seul peut rompre ce sortilège.',
+  askParent: 'Appelle un parent\u202f: lui seul peut rompre ce sortilège.',
   retry: 'Réessayer',
   toCamp: 'Retour au camp',
   cause: {
-    unreachable: 'voix : serveur injoignable',
-    server: 'voix : erreur du serveur',
+    unreachable: 'voix\u202f: serveur injoignable',
+    server: 'voix\u202f: erreur du serveur',
   },
 } as const;
 

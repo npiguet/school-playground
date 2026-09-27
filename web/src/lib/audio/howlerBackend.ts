@@ -20,6 +20,11 @@ function missing(src: string): void {
   console.info(`[audio] ${src} could not load; it stays silent.`);
 }
 
+/** Tests only: forgets the files already noted, so each test sees its own notes whatever ran before. */
+export function forgetNotedForTests(): void {
+  noted.clear();
+}
+
 /** A line's end event that never comes (the iPad locked or interrupted mid-line): given up after twice
  *  its estimated length and 3 s more, so the dictation goes on and the music comes back up. */
 export const lineWatchdogMs = (ms: number): number => ms * 2 + 3000;

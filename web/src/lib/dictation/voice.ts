@@ -6,7 +6,7 @@
 // VoiceError, which the runner turns into Éris's card (§5.3). There is no other voice (§2).
 import { playLine, voiceMuted } from '../audio/voice';
 import type { LineHandle, VoiceClip } from '../audio/engine';
-import type { SayLine } from './script';
+import { lineKey, type SayLine } from './script';
 
 /**
  * How fast a voice speaks French at rate 1: 65 ms a character of the spoken form (its spaces and its
@@ -115,7 +115,7 @@ export function createVoice(deps: VoiceDeps): Voice {
   }
 
   function load(line: SayLine): Promise<VoiceClip> {
-    const key = `${line.rate}|${line.spoken}`;
+    const key = lineKey(line.rate, line.spoken);
     const known = clips.get(key);
     if (known) return known;
     const made = attempt(line).catch((e: VoiceError) => (e.retryable && !disposed ? attempt(line) : Promise.reject(e)));
@@ -141,6 +141,7 @@ export function createVoice(deps: VoiceDeps): Voice {
   return {
     async speak(spoken, rate, opts = {}) {
       cancel();
+      if (disposed) return; // the dictation is gone: nothing more is fetched or said
       const token = generation;
       if (muted()) {
         await new Promise((resolve) => setTimeout(resolve, speechMs(spoken, rate)));

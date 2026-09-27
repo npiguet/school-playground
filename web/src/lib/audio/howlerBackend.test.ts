@@ -73,10 +73,11 @@ vi.mock('howler', () => ({ Howl: FakeHowl, Howler: { ctx } }));
 vi.mock('./meta.gen.json', () => ({ default: { camp: { samples: 60 * 44100, rate: 44100, priming: 1024 } } }));
 
 import { Howler } from 'howler';
-import { howlerBackend, lineWatchdogMs } from './howlerBackend';
+import { forgetNotedForTests, howlerBackend, lineWatchdogMs } from './howlerBackend';
 
 beforeEach(() => {
   made.length = 0;
+  forgetNotedForTests();
   vi.useFakeTimers();
 });
 afterEach(() => vi.useRealTimers());
@@ -263,7 +264,6 @@ describe('a voice line (spec 2026-09-27 §5.1)', () => {
   });
 
   it('a line whose end never comes is over after its watchdog (the iPad locked mid-line)', async () => {
-    vi.useFakeTimers();
     const b = howlerBackend();
     let over = false;
     void b.line(clip, 1).ended.then(() => (over = true));

@@ -79,6 +79,8 @@ export function createRunner(steps: Step[], deps: RunnerDeps, from = 0, fromRepl
   let stopped = false;
   let failure: VoiceFailure | null = null;
   let silencedBy: 'loop' | 'replay' | null = null;
+  /** The current run of runLoop (lane W review #1): an older run left off at a pause. */
+  let runs = 0;
 
   function snapshot(): RunnerState {
     return { index, status, lastSay, replaysLeft, done, total, resumeAt, failure };
@@ -107,8 +109,12 @@ export function createRunner(steps: Step[], deps: RunnerDeps, from = 0, fromRepl
   // Runs steps starting at `index` until a `manual` step (waits for next()),
   // a `done` step (finishes), or a pause/stop interrupts an in-flight
   // speak()/sleep(). Re-entrant: next()/resume() call it again from where it
-  // left off.
+  // left off. Each call is a new run (lane W review #1): a line or a wait from before a pause can
+  // settle after resume() started the next run, and that stale run must leave off without touching
+  // anything, so after every await it checks it is still the current one.
   async function runLoop() {
+    const run = ++runs;
+    const over = () => stopped || paused || run !== runs;
     paused = false;
     status = 'playing';
     emit();
@@ -124,16 +130,16 @@ export function createRunner(steps: Step[], deps: RunnerDeps, from = 0, fromRepl
         try {
           await deps.speak(step.spoken, step.rate, nextSay(steps, index));
         } catch (e) {
-          if (stopped || paused) return;
+          if (over()) return;
           silence(e, 'loop'); // the same step is said again on retry()
           return;
         }
-        if (stopped || paused) return;
+        if (over()) return;
         if (step.repeat === 1 && step.unit === 'chunk') done++;
         index++;
       } else if (step.kind === 'wait') {
         await deps.sleep(step.ms);
-        if (stopped || paused) return;
+        if (over()) return;
         index++;
       } else if (step.kind === 'manual') {
         index++;

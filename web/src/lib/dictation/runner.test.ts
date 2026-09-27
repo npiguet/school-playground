@@ -226,3 +226,57 @@ describe('when the voice fails (spec 2026-09-27 §5.3)', () => {
     expect(states.at(-1)).toBe('paused');
   });
 });
+
+describe('a pause, then a resume before the paused line or wait settles (lane W review #1)', () => {
+  it('a line still coming from before the pause ends nothing: no step skipped, no group counted twice', async () => {
+    const releases: (() => void)[] = [];
+    const spoken: string[] = [];
+    const runner = createRunner([say(0), { kind: 'manual', index: 0 }, say(1), { kind: 'manual', index: 1 }, { kind: 'done' }], {
+      pace: 2,
+      speak: (s) => {
+        spoken.push(s);
+        return new Promise<void>((r) => releases.push(r));
+      },
+      sleep: async () => {}, cancel: () => {}, onChange: () => {},
+    });
+    runner.start();
+    await flush();
+    runner.pause();
+    runner.resume();
+    await flush();
+    expect(spoken).toEqual(['s0', 's0']);
+    releases[0](); // the paused line settles late
+    await flush();
+    expect(runner.state()).toMatchObject({ status: 'playing', index: 0, done: 0 });
+    releases[1]();
+    await flush();
+    expect(runner.state()).toMatchObject({ status: 'waiting', index: 2, done: 1 });
+    expect(spoken).toEqual(['s0', 's0']);
+  });
+
+  it('a wait still running from before the pause ends nothing: no step skipped, no group counted twice', async () => {
+    const wakes: (() => void)[] = [];
+    const spoken: string[] = [];
+    const runner = createRunner([say(0), { kind: 'wait', ms: 600 }, say(0, 2), { kind: 'wait', ms: 3000 }, say(1), { kind: 'done' }], {
+      pace: 3,
+      speak: async (s) => void spoken.push(s),
+      sleep: () => new Promise<void>((r) => wakes.push(r)),
+      cancel: () => {}, onChange: () => {},
+    });
+    runner.start();
+    await flush();
+    expect(runner.state()).toMatchObject({ index: 1, done: 1 });
+    runner.pause();
+    runner.resume();
+    await flush();
+    wakes[0](); // the paused wait ends late
+    await flush();
+    expect(runner.state()).toMatchObject({ status: 'playing', index: 1, done: 1 });
+    expect(spoken).toEqual(['s0']);
+    wakes[1]();
+    await flush();
+    expect(spoken).toEqual(['s0', 's0']);
+    expect(runner.state()).toMatchObject({ status: 'playing', index: 3, done: 1 });
+    expect(wakes).toHaveLength(3);
+  });
+});

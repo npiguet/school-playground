@@ -197,6 +197,14 @@ describe('the voice on the server (spec 2026-09-27 §5)', () => {
     expect(played).toHaveLength(1);
   });
 
+  it('says nothing once disposed: no fetch, and speak() resolves at once (lane W review #4)', async () => {
+    const { voice, calls, played } = harness();
+    voice.dispose();
+    await voice.speak('Un.', 1);
+    expect(calls).toEqual([]);
+    expect(played).toEqual([]);
+  });
+
   it('sends the lines ahead, in order, for this hero; a muted voice sends nothing', async () => {
     const { voice, calls, muted } = harness();
     voice.prepare([{ spoken: 'Un.', rate: 0.9 }, { spoken: 'Deux.', rate: 0.9 }]);

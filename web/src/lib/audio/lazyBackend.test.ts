@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { lazyBackend } from './lazyBackend';
 import { recordingBackend } from './recordingBackend';
 import { createEngine } from './engine';
@@ -130,6 +130,8 @@ describe('the lazily loaded backend (lane A review #12)', () => {
 });
 
 describe('a voice line before and after Howler arrives', () => {
+  afterEach(() => vi.useRealTimers());
+
   it('is silent at its length until Howler is there, then played by it', async () => {
     vi.useFakeTimers();
     const { real, open, lazy } = deferred();
@@ -142,6 +144,5 @@ describe('a voice line before and after Howler arrives', () => {
     await vi.advanceTimersByTimeAsync(0);
     lazy.line({ url: 'blob:2', text: 'Deux.', ms: 500 }, 0.5);
     expect(real.log.lines.map((l) => [l.text, l.gain])).toEqual([['Deux.', 0.5]]);
-    vi.useRealTimers();
   });
 });

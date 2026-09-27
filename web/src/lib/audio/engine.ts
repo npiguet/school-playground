@@ -1,9 +1,9 @@
 // The mixer (scenes UI spec §7, Rulings E3-E6): one loop at a time on the music channel, short
 // effects on the sfx channel, and the dictation's voice (a line at a time, fetched from the server by
-// lib/dictation/voice.ts), so the music ducks under it and no effect talks over it. Backend-agnostic: Howler in the browser
-// (howlerBackend.ts), a recorder in vitest and in every e2e run (recordingBackend.ts). Nothing plays
-// before `unlock()`, which a tap calls (iOS only lets a gesture start audio); a loop asked for
-// earlier waits for it.
+// lib/dictation/voice.ts), so the music ducks under it and no effect talks over it. Backend-agnostic:
+// Howler in the browser (howlerBackend.ts), a recorder in vitest and in every e2e run
+// (recordingBackend.ts). Nothing plays before `unlock()`, which a tap calls (iOS only lets a gesture
+// start audio); a loop asked for earlier waits for it.
 import { SFX, TRACKS, type SfxId, type TrackId } from './catalog';
 import { DEFAULT_AUDIO, gainOf, type AudioSettings } from './settings';
 

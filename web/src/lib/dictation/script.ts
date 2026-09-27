@@ -59,6 +59,10 @@ export interface SayLine {
  *  reading of the longest text must fit. */
 export const MAX_LINE_CHARS = 10_000;
 
+/** What makes two lines the same line: its rate and its spoken form (sayLines' dedupe and the voice's
+ *  clip cache; both must agree for the prefetch, the replay and the prepare to line up). */
+export const lineKey = (rate: number, spoken: string): string => `${rate}|${spoken}`;
+
 /** The lines a script says, each once, in the order it first says them (spec 2026-09-27 §5.2: what the
  *  dictation sends ahead to be recorded). */
 export function sayLines(steps: Step[]): SayLine[] {
@@ -66,7 +70,7 @@ export function sayLines(steps: Step[]): SayLine[] {
   const out: SayLine[] = [];
   for (const s of steps) {
     if (s.kind !== 'say') continue;
-    const key = `${s.rate}|${s.spoken}`;
+    const key = lineKey(s.rate, s.spoken);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ spoken: s.spoken, rate: s.rate });
