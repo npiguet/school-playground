@@ -123,3 +123,16 @@ def test_a_line_that_fails_is_a_500_and_is_tried_again_next_time(config):
         wait_ready(c)
         assert c.post("/speak", json={"text": "a", "speed": 1.0}).status_code == 500
         assert c.post("/speak", json={"text": "a", "speed": 1.0}).status_code == 200
+
+
+def test_a_voice_whose_worker_stopped_is_not_ready(config):
+    spy = SpyEngine(ms=50)
+    with TestClient(create_app(config, engine_factory=lambda c: spy)) as c:
+        wait_ready(c)
+        c.app.state.worker.stop()
+        r = c.get("/health")
+        assert r.status_code == 503
+        assert r.json() == {"status": "error", "detail": "the voice's worker stopped"}
+        assert c.post("/speak", json={"text": "a", "speed": 1.0}).status_code == 503
+        assert c.post("/prepare", json={"lines": [{"text": "a", "speed": 1.0}]}).status_code == 503
+    assert spy.said == []

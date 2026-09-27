@@ -53,3 +53,23 @@ def test_what_an_earlier_run_left_counts(tmp_path):
     assert not (tmp_path / "z.part").exists()
     c.put("d", b"x" * 100)
     assert sorted(p.stem for p in tmp_path.glob("*.mp3")) == ["c", "d"]
+
+
+def test_a_line_evicted_as_it_is_read_is_still_served(tmp_path, monkeypatch):
+    c = Cache(tmp_path, limit_bytes=1000)
+    c.put("k", b"mp3")
+
+    def gone(*args, **kwargs):
+        raise FileNotFoundError("evicted between the read and the touch")
+
+    monkeypatch.setattr(cache_mod.os, "utime", gone)
+    assert c.get("k") == b"mp3"
+
+
+def test_has_touches_without_reading(tmp_path):
+    c = Cache(tmp_path, limit_bytes=1000)
+    c.put("k", b"mp3")
+    os.utime(c.path("k"), (1000, 1000))
+    assert c.has("k")
+    assert c.path("k").stat().st_mtime > 1000   # now the most recently used
+    assert not c.has("missing")

@@ -2,13 +2,16 @@
 the front of the queue, and two requests for the same line share one job."""
 from __future__ import annotations
 
+import logging
 import threading
 from collections import deque
-from concurrent.futures import Future
+from concurrent.futures import Future, InvalidStateError
 from dataclasses import dataclass, field
 from typing import Callable
 
 from app.cache import Cache
+
+log = logging.getLogger("uvicorn.error")
 
 
 @dataclass(frozen=True)
@@ -22,6 +25,12 @@ class _Job:
     key: str
     line: Line
     future: Future = field(default_factory=Future)
+
+
+def _settled(data: bytes) -> Future:
+    done: Future = Future()
+    done.set_result(data)
+    return done
 
 
 class Worker:
@@ -42,17 +51,42 @@ class Worker:
             self._cv.notify_all()
         self._thread.join(timeout=5)
 
+    def alive(self) -> bool:
+        return self._thread.is_alive()
+
     def request(self, line: Line, urgent: bool) -> Future:
+        """The line's MP3: at once if cached, else from its job (queued now, or the one already there)."""
         k = self._key(line)
-        data = self._cache.get(k)
-        if data is not None:
-            done: Future = Future()
-            done.set_result(data)
-            return done
+        while True:
+            data = self._cache.get(k)
+            if data is not None:
+                return _settled(data)
+            job = self._enqueue(k, line, urgent)
+            if job is not None:
+                return job.future
+            # Made between the miss above and the lock: read it now (or, evicted since, ask again).
+
+    def queue(self, line: Line) -> None:
+        """/prepare: queue the line unless it is cached or already queued. Reads no file."""
+        k = self._key(line)
+        if not self._cache.has(k):
+            self._enqueue(k, line, urgent=False)
+
+    def pending(self) -> list[str]:
+        with self._cv:
+            return [j.line.text for j in self._queue]
+
+    def _enqueue(self, k: str, line: Line, urgent: bool) -> _Job | None:
+        """The line's job, new or existing; None if the line got cached since the caller's miss (`put`
+        comes before `_forget`, so no job under the lock means the file is there, or the line failed)."""
         with self._cv:
             job = self._jobs.get(k)
             if job is None:
+                if self._cache.has(k):
+                    return None
                 job = _Job(k, line)
+                # Running from the start: shared by every waiter, so none of them can cancel it.
+                job.future.set_running_or_notify_cancel()
                 self._jobs[k] = job
                 if urgent:
                     self._queue.appendleft(job)
@@ -62,11 +96,7 @@ class Worker:
             elif urgent and job in self._queue:
                 self._queue.remove(job)
                 self._queue.appendleft(job)
-            return job.future
-
-    def pending(self) -> list[str]:
-        with self._cv:
-            return [j.line.text for j in self._queue]
+            return job
 
     def _run(self) -> None:
         while True:
@@ -80,14 +110,20 @@ class Worker:
                 data = self._make(job.line)
                 self._cache.put(job.key, data)
             except BaseException as e:  # the request that waits on it answers 500; the next one tries again
-                self._forget(job)
-                job.future.set_exception(e)
+                log.exception("tts: the voice could not say a line (%d characters at %.2f)",
+                              len(job.line.text), job.line.speed)
+                self._settle(job, lambda: job.future.set_exception(e))
             else:
-                self._forget(job)
-                job.future.set_result(data)
+                self._settle(job, lambda: job.future.set_result(data))
 
-    def _forget(self, job: _Job) -> None:
-        """The job leaves the table before its future settles (preflight ruling #4): a request that finds
-        it gone reads the cache or starts a fresh job, never a finished future (or an old failure)."""
+    def _settle(self, job: _Job, settle: Callable[[], None]) -> None:
+        # The job leaves the table before its future settles (preflight ruling #4): a request that finds
+        # it gone reads the cache or starts a fresh job, never a finished future (or an old failure).
         with self._cv:
             self._jobs.pop(job.key, None)
+        if job.future.done():   # a waiter settled it itself: the worker carries on regardless
+            return
+        try:
+            settle()
+        except InvalidStateError:
+            pass

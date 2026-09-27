@@ -10,7 +10,8 @@ MAX_CHARS = 10_000   # one line (Kokoro plan Ruling K1; web/src/lib/dictation/sc
 MIN_SPEED, MAX_SPEED = 0.5, 1.5
 SEGMENT_CHARS = 300  # a line up to this length is one synthesis, as in the bake-off
 
-_SPACES = re.compile(r"[\s  ]+")
+# \s covers the game's French spacing too: in a str pattern, U+202F and U+00A0 are whitespace.
+_SPACES = re.compile(r"\s+")
 # A segment may end after a full stop, never between a sentence-ending mark and its spoken name
 # (« froissées. Point. »): the next word must not be « Point » or « Points ».
 _BOUNDARY = re.compile(r"(?<=\.)\s+(?!Points?\b)")
@@ -43,7 +44,9 @@ class Respeller:
 
 def segments(text: str, limit: int = SEGMENT_CHARS) -> list[str]:
     """The line cut after named full stops into pieces of at most `limit` characters, greedily; a single
-    sentence longer than `limit` stays whole (the engine splits it itself)."""
+    sentence longer than `limit` stays whole. The engine (app/kokoro.py, Kokoro plan Task 3) then reads it:
+    the model takes at most 510 phonemes at a time, so the engine must split a longer phoneme sequence
+    (at a pause, else at a space) rather than truncate it, which would drop the end of the sentence."""
     out: list[str] = []
     current = ""
     for part in _BOUNDARY.split(text):

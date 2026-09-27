@@ -14,6 +14,7 @@ from typing import Callable
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
 from app.audio import SR, encode_mp3
 from app.cache import Cache, cache_key
@@ -24,6 +25,7 @@ from app.worker import Line, Worker
 
 VOICE = "ff_siwis"
 MAX_PREPARE_LINES = 500
+STOPPED = "the voice's worker stopped"   # /health's detail once the worker thread is gone
 log = logging.getLogger("uvicorn.error")
 
 
@@ -78,7 +80,7 @@ def create_app(config: Config | None = None, engine_factory: Callable[[Config], 
 
     def worker_of(request: Request) -> Worker:
         worker = request.app.state.worker
-        if worker is None:
+        if worker is None or not worker.alive():
             raise HTTPException(503, "the voice is not ready")
         return worker
 
@@ -92,6 +94,8 @@ def create_app(config: Config | None = None, engine_factory: Callable[[Config], 
     def health(request: Request):
         state = request.app.state
         if state.worker is not None:
+            if not state.worker.alive():
+                return JSONResponse({"status": "error", "detail": STOPPED}, status_code=503)
             return {"status": "ready", "engine": state.engine_id}
         if state.error:
             return JSONResponse({"status": "error", "detail": state.error}, status_code=503)
@@ -100,11 +104,12 @@ def create_app(config: Config | None = None, engine_factory: Callable[[Config], 
     @app.post("/speak")
     async def speak(body: SpeakBody, request: Request):
         worker = worker_of(request)
-        future = worker.request(line_of(request, body), urgent=True)
+        line = line_of(request, body)
+        # A cached line is read off the event loop (a pace-4 full reading is several MB).
+        future = await run_in_threadpool(worker.request, line, True)
         try:
             data = await asyncio.wrap_future(future)
-        except Exception:
-            log.exception("tts: a line failed")
+        except Exception:   # the worker has logged it
             raise HTTPException(500, "the voice could not say this line")
         return Response(data, media_type="audio/mpeg", headers={"Cache-Control": "no-store"})
 
@@ -113,7 +118,7 @@ def create_app(config: Config | None = None, engine_factory: Callable[[Config], 
         worker = worker_of(request)
         lines = [line_of(request, b) for b in body.lines]
         for line in lines:
-            worker.request(line, urgent=False)
+            worker.queue(line)
         return {"queued": len(lines)}
 
     return app

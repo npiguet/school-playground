@@ -30,13 +30,21 @@ class Cache:
         return self.root / f"{key}.mp3"
 
     def get(self, key: str) -> bytes | None:
-        p = self.path(key)
         try:
-            data = p.read_bytes()
-            os.utime(p)   # most recently used = newest mtime (atime is unreliable on noatime mounts)
+            data = self.path(key).read_bytes()
         except FileNotFoundError:
             return None
+        self.has(key)   # read: now the most recently used (evicted meanwhile? the bytes read are still good)
         return data
+
+    def has(self, key: str) -> bool:
+        """Whether the line is cached, marking it the most recently used (the newest mtime: atime is
+        unreliable on noatime mounts). Reads nothing."""
+        try:
+            os.utime(self.path(key))
+        except FileNotFoundError:
+            return False
+        return True
 
     def put(self, key: str, data: bytes) -> None:
         p = self.path(key)
