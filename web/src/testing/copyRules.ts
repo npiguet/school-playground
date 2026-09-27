@@ -30,8 +30,24 @@ export const banned = (text: string): string[] => BANNED.filter(([re]) => re.tes
  *  « Il manque un mot » (a neutral hint) and « ratisser » are fine. Global: use with matchAll/match. */
 export const GUILT = /(?<![\p{L}])(manquée?s?|ratée?s?|perdue?s?)(?![\p{L}])/giu;
 
-/** The adjectives and participles that would agree with the player (« perdue » is GUILT's). */
-export const AGREEING = ['prête', 'sûre', 'arrêtée', 'piégée', 'seule', 'contente', 'fatiguée'];
+/** The adjectives and participles that would agree with the player (« perdue » is GUILT's), in
+ *  both genders: « tu es prêt » genders her as much as « tu es prête » (final review M10). */
+export const AGREEING = [
+  'prête',
+  'sûre',
+  'arrêtée',
+  'piégée',
+  'seule',
+  'contente',
+  'fatiguée',
+  'prêt',
+  'sûr',
+  'arrêté',
+  'piégé',
+  'seul',
+  'content',
+  'fatigué',
+];
 
 // Said to the player: « tu es », « es-tu », « t'es », « te sens », « sois », « te voilà »… A bare
 // word would also flag a right agreement with a feminine noun (« la dictée avancera toute seule »,

@@ -20,6 +20,8 @@ const every: { where: string; line: LineDef }[] = [
 const DOMAINS: Partial<Record<DialogueKey, DialogueCtx[]>> = {
   'nest.enter': ['egg', 'hatchling', 'young', 'adult'].map((stage) => ({ stage }) as DialogueCtx),
   'battle.start': [{ mode: 'dictation' }, { mode: 'grimoire' }],
+  // Final review M9: a grimoire that Éris failed to corrupt (no dés-accord took) ends « perfect » too.
+  'battle.perfect': [{ mode: 'dictation' }, { mode: 'grimoire' }],
   'battle.victory': [{ mode: 'dictation' }, { mode: 'grimoire' }],
   'battle.retreat': [{ mode: 'dictation' }, { mode: 'grimoire' }],
   'battle.caught': [{ mode: 'dictation' }, { mode: 'grimoire' }],

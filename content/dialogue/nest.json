@@ -17,7 +17,7 @@
     "nest.name": [
       { "speaker": "dragon", "text": "Te revoilà ! Tu me donnes un nom ?" },
       { "speaker": "dragon", "text": "Je n'ai toujours pas de nom… Tu m'en choisis un ?" },
-      { "speaker": "dragon", "text": "Un dragon sans nom, c'est un peu triste. Tu m'aides ?" }
+      { "speaker": "dragon", "text": "J'aimerais bien un nom. Tu m'en trouves un ?" }
     ]
   },
   "tour": [

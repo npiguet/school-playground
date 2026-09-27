@@ -17,7 +17,10 @@
     "battle.perfect": [
       { "speaker": "eris", "text": "Pfff. Tu n'as rien laissé passer pendant la dictée. Je reviendrai." },
       { "speaker": "eris", "text": "Pas un seul piège ? Mes lieutenants vont m'entendre." },
-      { "speaker": "eris", "text": "Rien. Pas un dés-accord. Le camp a de la chance, cette fois." }
+      { "speaker": "eris", "text": "Rien. Pas un dés-accord. Le camp a de la chance, cette fois." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Mon encre n'a pas pris sur ce parchemin. Pas un dés-accord à réparer. Pour cette fois." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Rien à réparer dans ce grimoire ? Ma plume a dû trembler. Ça ne se reproduira pas." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Cette page m'a résisté. La prochaine, je la corromprai mieux." }
     ],
     "battle.victory": [
       { "speaker": "eris", "text": "Impossible ! Tu as déjoué presque tous mes pièges. Ça ne se reproduira pas." },

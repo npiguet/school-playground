@@ -12,6 +12,14 @@ const WITH_A_NOUN: Record<string, string> = {
   seule: 'La dictée avancera toute seule, sans voix. Une seule catégorie reste.',
   contente: 'La Pythie est contente de te voir.',
   fatiguée: 'La chouette est fatiguée ce soir.',
+  // Final review M10: the masculine forms, agreeing with a masculine noun.
+  prêt: 'Le dragon est prêt.',
+  sûr: "C'est sûr : Éris reviendra.",
+  arrêté: 'Le texte est arrêté.',
+  piégé: 'Ce mot est piégé.',
+  seul: 'Un seul mot reste.',
+  content: 'Le dragon est content de te voir.',
+  fatigué: 'Le hibou est fatigué ce soir.',
 };
 
 const TO_THE_PLAYER = [
@@ -25,6 +33,7 @@ const TO_THE_PLAYER = [
   (w: string) => `Tu étais ${w}.`,
   (w: string) => `Tu seras ${w} demain.`,
   (w: string) => `Tu n’es plus toute ${w}.`,
+  (w: string) => `Tu n’es plus tout ${w}.`,
 ];
 
 describe('the agreement rule (self-test)', () => {
