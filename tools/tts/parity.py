@@ -12,6 +12,10 @@ Verdicts:
   phonemiser;
 - onnx-misaki: some phonemes differ, but ONNX fed PyTorch's own phonemes (misaki's espeak G2P) passes on
   every line -> the service runs kokoro-onnx on misaki's phonemes;
+- onnx-direct: kokoro-onnx fails either way, but the same ONNX model called through onnxruntime directly
+  (DirectKokoro below: misaki's phonemes, PyTorch's style row pack[len(ps)-1]) passes on every line, its
+  phonemes equal too -> the service runs DirectKokoro, no PyTorch and no kokoro-onnx (controller ruling,
+  Task 1 fix round 1: kokoro-onnx 0.4.9 takes the style row voice[len(tokens)], one row further);
 - torch: otherwise -> the service runs the PyTorch CPU build.
 
 Writes assets/tts-bakeoff/parity/<build>-<line>.wav (for listening; not committed) and
@@ -22,6 +26,7 @@ import hashlib
 import importlib.metadata as md
 import json
 import os
+import re
 import time
 import urllib.request
 import wave
@@ -131,7 +136,7 @@ def torch_build():
 
     files = {f: {"url": f"https://huggingface.co/{HF_REPO}/resolve/main/{f}", "sha256": sha256(local / f),
                  "bytes": (local / f).stat().st_size} for f in HF_FILES}
-    return synth, pipe.model.vocab, files
+    return synth, pipe.model.vocab, files, local
 
 
 def onnx_build():
@@ -157,15 +162,72 @@ def onnx_build():
         return from_phonemes(ps, speed), ps
 
     files = {p.name: {"url": f"{ONNX_BASE}/{p.name}", "sha256": sha256(p), "bytes": p.stat().st_size} for p in paths}
-    return synth, from_phonemes, files
+    return synth, from_phonemes, files, paths
+
+
+class DirectKokoro:
+    """The onnx-direct build, the reference Task 3 lifts: Kokoro-82M's ONNX export through onnxruntime alone,
+    with the PyTorch package's G2P (misaki's espeak, fr-fr), chunking and style row. Needs numpy,
+    onnxruntime, misaki (espeak) and three files: kokoro-v1.0.onnx, voices-v1.0.bin (an npz of one
+    (510, 1, 256) style pack per voice) and Kokoro-82M's config.json (its "vocab")."""
+    CHUNK_CHARS = 400   # kokoro.KPipeline.__call__, non-English lang_code
+    MAX_PHONEMES = 510  # the model's context, less the two pad tokens
+
+    def __init__(self, model: Path, voices: Path, config: Path, voice: str, threads: int):
+        import onnxruntime as ort
+        from misaki import espeak
+
+        opts = ort.SessionOptions()
+        opts.intra_op_num_threads = threads
+        opts.inter_op_num_threads = 1
+        self.session = ort.InferenceSession(str(model), sess_options=opts, providers=["CPUExecutionProvider"])
+        with np.load(voices) as packs:
+            self.pack = np.asarray(packs[voice], dtype=np.float32)
+        self.vocab: dict[str, int] = json.loads(config.read_text(encoding="utf-8"))["vocab"]
+        self.g2p = espeak.EspeakG2P(language="fr-fr")
+
+    def phonemes(self, text: str) -> list[str]:
+        """kokoro.KPipeline.__call__ for lang_code 'f': lines split at newlines, cut after sentence marks into
+        chunks of at most CHUNK_CHARS (a longer sentence stays whole), each phonemised on its own."""
+        out = []
+        for graphemes in re.split(r"\n+", text.strip()):
+            parts = re.split(r"([.!?]+)", graphemes)
+            chunks, current = [], ""
+            for i in range(0, len(parts), 2):
+                sentence = parts[i] + (parts[i + 1] if i + 1 < len(parts) else "")
+                if len(current) + len(sentence) <= self.CHUNK_CHARS:
+                    current += sentence
+                else:
+                    chunks.append(current.strip())
+                    current = sentence
+            chunks.append(current.strip())
+            for chunk in filter(None, chunks):
+                ps, _ = self.g2p(chunk)
+                if ps:
+                    out.append(ps[: self.MAX_PHONEMES])   # KPipeline truncates the same way
+        return out
+
+    def synth_phonemes(self, ps: str, speed: float) -> np.ndarray:
+        ids = [self.vocab[c] for c in ps if c in self.vocab]
+        # kokoro.KPipeline.infer's style row, pack[len(ps)-1]; kokoro-onnx 0.4.9 takes voice[len(tokens)].
+        style = self.pack[len(ps) - 1]
+        audio = self.session.run(None, {"tokens": np.array([[0, *ids, 0]], dtype=np.int64), "style": style,
+                                        "speed": np.array([speed], dtype=np.float32)})[0]
+        return np.asarray(audio, dtype=np.float32).reshape(-1)
+
+    def synth(self, text: str, speed: float) -> tuple[np.ndarray, list[str]]:
+        ps = self.phonemes(text)
+        return np.concatenate([self.synth_phonemes(p, speed) for p in ps]), ps
 
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    t_synth, vocab, hf_files = torch_build()
-    o_synth, o_from_ph, onnx_files = onnx_build()
+    t_synth, vocab, hf_files, hf_dir = torch_build()
+    o_synth, o_from_ph, onnx_files, onnx_paths = onnx_build()
+    direct = DirectKokoro(onnx_paths[0], onnx_paths[1], hf_dir / "config.json", VOICE, THREADS)
     t_synth("Bonjour, virgule, les enfants. Point.", 1.0, 0)   # warm-up, not timed
     o_synth("Bonjour, virgule, les enfants. Point.", 1.0)
+    direct.synth("Bonjour, virgule, les enfants. Point.", 1.0)
     rows = []
     for line in lines():
         lid, text, speed = line["id"], line["text"], line["speed"]
@@ -173,9 +235,10 @@ def main() -> None:
         tb, _ = t_synth(text, speed, 1)
         t = time.perf_counter(); oa, oph = o_synth(text, speed); o_gen = time.perf_counter() - t
         fed = np.concatenate([o_from_ph(p, speed) for p in tph])
-        for name, audio in (("torch", ta), ("onnx", oa), ("onnx-fed", fed)):
+        t = time.perf_counter(); da, dph = direct.synth(text, speed); d_gen = time.perf_counter() - t
+        for name, audio in (("torch", ta), ("onnx", oa), ("onnx-fed", fed), ("onnx-direct", da)):
             write_wav(OUT / f"{name}-{lid}.wav", audio)
-        t_s, o_s, f_s = len(ta) / SR, len(oa) / SR, len(fed) / SR
+        t_s, o_s, f_s, d_s = len(ta) / SR, len(oa) / SR, len(fed) / SR, len(da) / SR
         tol = max(MAX_LEN_DIFF_S, MAX_LEN_DIFF_REL * t_s)
         floor = similarity(tb, ta)
         need = min(floor, SIM_FLOOR_CAP) - SIM_MARGIN
@@ -187,25 +250,37 @@ def main() -> None:
             "noise_floor": round(floor, 4), "needed": round(need, 4),
             "similarity": round(similarity(oa, ta), 4), "similarity_fed": round(similarity(fed, ta), 4),
             "torch_rtf": round(t_gen / t_s, 3), "onnx_rtf": round(o_gen / o_s, 3),
+            "phonemes_direct": " | ".join(dph),
+            "phonemes_direct_equal": vocab_only(" ".join(dph), vocab) == vocab_only(" ".join(tph), vocab),
+            "direct_s": round(d_s, 3), "similarity_direct": round(similarity(da, ta), 4),
+            "direct_rtf": round(d_gen / d_s, 3),
         }
         row["onnx_ok"] = row["phonemes_equal"] and abs(o_s - t_s) <= tol and row["similarity"] >= need
         row["onnx_fed_ok"] = abs(f_s - t_s) <= tol and row["similarity_fed"] >= need
+        row["onnx_direct_ok"] = (row["phonemes_direct_equal"] and abs(d_s - t_s) <= tol
+                                 and row["similarity_direct"] >= need)
         rows.append(row)
-        print(f"  {lid:14} phonemes {'=' if row['phonemes_equal'] else '≠'}  len {t_s:6.2f}/{o_s:6.2f}/{f_s:6.2f} s"
-              f"  sim {row['similarity']:.3f}/{row['similarity_fed']:.3f} (need {need:.3f})"
-              f"  ok {row['onnx_ok']}/{row['onnx_fed_ok']}", flush=True)
+        print(f"  {lid:14} phonemes {'=' if row['phonemes_equal'] else '≠'}/{'=' if row['phonemes_direct_equal'] else '≠'}"
+              f"  len {t_s:6.2f}/{o_s:6.2f}/{f_s:6.2f}/{d_s:6.2f} s"
+              f"  sim {row['similarity']:.3f}/{row['similarity_fed']:.3f}/{row['similarity_direct']:.3f}"
+              f" (need {need:.3f})  ok {row['onnx_ok']}/{row['onnx_fed_ok']}/{row['onnx_direct_ok']}", flush=True)
     if all(r["onnx_ok"] for r in rows):
         verdict = "onnx"
     elif all(r["onnx_fed_ok"] for r in rows):
         verdict = "onnx-misaki"
+    elif all(r["onnx_direct_ok"] for r in rows):
+        verdict = "onnx-direct"
     else:
         verdict = "torch"
     result = {
         "verdict": verdict,
-        "versions": {p: md.version(p) for p in ("torch", "kokoro", "misaki", "kokoro-onnx", "onnxruntime", "soundfile")},
+        "verdict_order": ["onnx", "onnx-misaki", "onnx-direct", "torch"],
+        "versions": {p: md.version(p) for p in
+                     ("torch", "kokoro", "misaki", "kokoro-onnx", "onnxruntime", "soundfile", "numpy")},
         "threads": THREADS,
         "criteria": {"max_len_diff_s": MAX_LEN_DIFF_S, "max_len_diff_rel": MAX_LEN_DIFF_REL,
                      "sim_margin": SIM_MARGIN, "sim_floor_cap": SIM_FLOOR_CAP},
+        # onnx-direct (DirectKokoro) reads files.onnx's two files and files.torch's config.json (the vocab).
         "files": {"onnx": onnx_files, "torch": hf_files},
         "lines": rows,
     }

@@ -1,12 +1,19 @@
 {
- "verdict": "torch",
+ "verdict": "onnx-direct",
+ "verdict_order": [
+  "onnx",
+  "onnx-misaki",
+  "onnx-direct",
+  "torch"
+ ],
  "versions": {
   "torch": "2.8.0+cpu",
   "kokoro": "0.9.4",
   "misaki": "0.9.4",
   "kokoro-onnx": "0.4.9",
   "onnxruntime": "1.22.1",
-  "soundfile": "0.14.0"
+  "soundfile": "0.14.0",
+  "numpy": "2.5.3"
  },
  "threads": 4,
  "criteria": {
@@ -61,10 +68,16 @@
    "needed": 0.95,
    "similarity": 0.9293,
    "similarity_fed": 0.9293,
-   "torch_rtf": 0.28,
-   "onnx_rtf": 0.243,
+   "torch_rtf": 0.312,
+   "onnx_rtf": 0.228,
+   "phonemes_direct": "œ̃ matˈɛ̃, viʁɡˈyl, lˈœf sə fɑ̃dˈit ɑ̃ kʁakˈɑ̃, viʁɡˈyl, e œ̃ pətˈi dʁaɡˈɔ̃ oz ekˈaj vˈɛʁtz ɑ̃ sɔʁtˈi, viʁɡˈyl, lez ˈɛlz ɑ̃kˌɔʁ fʁwasˈe, pwˈɛ̃.",
+   "phonemes_direct_equal": true,
+   "direct_s": 9.25,
+   "similarity_direct": 0.9682,
+   "direct_rtf": 0.23,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "b1",
@@ -80,10 +93,16 @@
    "needed": 0.95,
    "similarity": 0.9339,
    "similarity_fed": 0.9339,
-   "torch_rtf": 0.225,
-   "onnx_rtf": 0.236,
+   "torch_rtf": 0.214,
+   "onnx_rtf": 0.227,
+   "phonemes_direct": "œ̃ matˈɛ̃, viʁɡˈyl, lˈœf sə fɑ̃dˈit ɑ̃ kʁakˈɑ̃, viʁɡˈyl.",
+   "phonemes_direct_equal": true,
+   "direct_s": 3.825,
+   "similarity_direct": 0.9697,
+   "direct_rtf": 0.224,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "b2",
@@ -99,10 +118,16 @@
    "needed": 0.95,
    "similarity": 0.9252,
    "similarity_fed": 0.9252,
-   "torch_rtf": 0.23,
-   "onnx_rtf": 0.212,
+   "torch_rtf": 0.221,
+   "onnx_rtf": 0.228,
+   "phonemes_direct": "e œ̃ pətˈi dʁaɡˈɔ̃ oz ekˈaj vˈɛʁtz ɑ̃ sɔʁtˈi, viʁɡˈyl.",
+   "phonemes_direct_equal": true,
+   "direct_s": 3.75,
+   "similarity_direct": 0.968,
+   "direct_rtf": 0.221,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "c",
@@ -118,10 +143,16 @@
    "needed": 0.95,
    "similarity": 0.9694,
    "similarity_fed": 0.9694,
-   "torch_rtf": 0.219,
-   "onnx_rtf": 0.208,
+   "torch_rtf": 0.212,
+   "onnx_rtf": 0.212,
+   "phonemes_direct": "ɔbʒɛktˈif də la səmˈɛn atˈɛ̃ ! mˈɛm eʁˈi la ʁəmaʁkˈe, e sa laɡˈas.",
+   "phonemes_direct_equal": true,
+   "direct_s": 4.6,
+   "similarity_direct": 0.9694,
+   "direct_rtf": 0.211,
    "onnx_ok": false,
-   "onnx_fed_ok": true
+   "onnx_fed_ok": true,
+   "onnx_direct_ok": true
   },
   {
    "id": "a-slow",
@@ -137,10 +168,16 @@
    "needed": 0.95,
    "similarity": 0.6161,
    "similarity_fed": 0.6161,
-   "torch_rtf": 0.305,
-   "onnx_rtf": 0.241,
+   "torch_rtf": 0.293,
+   "onnx_rtf": 0.235,
+   "phonemes_direct": "œ̃ matˈɛ̃, viʁɡˈyl, lˈœf sə fɑ̃dˈit ɑ̃ kʁakˈɑ̃, viʁɡˈyl, e œ̃ pətˈi dʁaɡˈɔ̃ oz ekˈaj vˈɛʁtz ɑ̃ sɔʁtˈi, viʁɡˈyl, lez ˈɛlz ɑ̃kˌɔʁ fʁwasˈe, pwˈɛ̃.",
+   "phonemes_direct_equal": true,
+   "direct_s": 12.65,
+   "similarity_direct": 0.9664,
+   "direct_rtf": 0.239,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "r2-a-C",
@@ -156,10 +193,16 @@
    "needed": 0.95,
    "similarity": 0.9316,
    "similarity_fed": 0.9316,
-   "torch_rtf": 0.301,
-   "onnx_rtf": 0.237,
+   "torch_rtf": 0.288,
+   "onnx_rtf": 0.226,
+   "phonemes_direct": "œ̃ matˈɛ̃, viʁɡˈyl, lˈœf sə fɑ̃dˈit ɑ̃ kʁakˈɑ̃, viʁɡˈyl, e œ̃ pətˈi dʁaɡˈɔ̃ oz ekˈaj vˈɛʁtz ɑ̃ sɔʁtˈi, viʁɡˈyl, lez ˈɛlz ɑ̃kˌɔʁ fʁwasˈe. pwˈɛ̃.",
+   "phonemes_direct_equal": true,
+   "direct_s": 9.2,
+   "similarity_direct": 0.9682,
+   "direct_rtf": 0.223,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "r2-q-C",
@@ -175,10 +218,16 @@
    "needed": 0.95,
    "similarity": 0.7148,
    "similarity_fed": 0.7148,
-   "torch_rtf": 0.243,
-   "onnx_rtf": 0.222,
+   "torch_rtf": 0.212,
+   "onnx_rtf": 0.23,
+   "phonemes_direct": "ɛs kə ty sˈɛ lœʁ nˈɔ̃, viʁɡˈyl, bɛʁʒˈe ? pwˌɛ̃ dɛ̃tɛʁoɡasjˈɔ̃.",
+   "phonemes_direct_equal": true,
+   "direct_s": 4.05,
+   "similarity_direct": 0.9712,
+   "direct_rtf": 0.227,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "r2-x-C",
@@ -194,10 +243,16 @@
    "needed": 0.95,
    "similarity": 0.7552,
    "similarity_fed": 0.7552,
-   "torch_rtf": 0.223,
-   "onnx_rtf": 0.206,
+   "torch_rtf": 0.219,
+   "onnx_rtf": 0.231,
+   "phonemes_direct": "kə la kɑ̃pˈaɲ etˈɛ bˈɛl ! pwˌɛ̃ dɛksklamasjˈɔ̃.",
+   "phonemes_direct_equal": true,
+   "direct_s": 3.1,
+   "similarity_direct": 0.9702,
+   "direct_rtf": 0.204,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "r2-el-C",
@@ -213,10 +268,16 @@
    "needed": 0.95,
    "similarity": 0.7359,
    "similarity_fed": 0.7359,
-   "torch_rtf": 0.243,
-   "onnx_rtf": 0.225,
+   "torch_rtf": 0.227,
+   "onnx_rtf": 0.209,
+   "phonemes_direct": "ʒamˌɛ ʒə nɑ̃n avˈɛ tɑ̃ vˈy… pwˌɛ̃ də syspɑ̃sjˈɔ̃.",
+   "phonemes_direct_equal": true,
+   "direct_s": 3.15,
+   "similarity_direct": 0.9703,
+   "direct_rtf": 0.237,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "r2-sc-C",
@@ -232,10 +293,16 @@
    "needed": 0.95,
    "similarity": 0.5616,
    "similarity_fed": 0.5616,
-   "torch_rtf": 0.25,
-   "onnx_rtf": 0.232,
+   "torch_rtf": 0.262,
+   "onnx_rtf": 0.233,
+   "phonemes_direct": "a la lˈiɲ. tiʁˈɛ, deʒˈa ! pwˌɛ̃ dɛksklamasjˈɔ̃, dˈi la pətˈit ʃˈɛvʁ ; pwˌɛ̃viʁɡˈyl, e ɛl saʁɛtˈa fˈɔʁ etɔnˈe. pwˈɛ̃.",
+   "phonemes_direct_equal": true,
+   "direct_s": 7.075,
+   "similarity_direct": 0.9699,
+   "direct_rtf": 0.227,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "r2-co-C",
@@ -251,10 +318,16 @@
    "needed": 0.95,
    "similarity": 0.9287,
    "similarity_fed": 0.9287,
-   "torch_rtf": 0.249,
-   "onnx_rtf": 0.22,
+   "torch_rtf": 0.26,
+   "onnx_rtf": 0.24,
+   "phonemes_direct": "syʁ la pˈɔm, viʁɡˈyl, kˌɛlkə mˈoz etˈɛ ɡʁavˈe : dˈøpwˈɛ̃, uvʁˈe le ɡijmˈɛ, a la ply bˈɛl. pwˈɛ̃, fɛʁmˈe le ɡijmˈɛ.",
+   "phonemes_direct_equal": true,
+   "direct_s": 7.15,
+   "similarity_direct": 0.9683,
+   "direct_rtf": 0.229,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "r2-a-C-0.75",
@@ -270,10 +343,16 @@
    "needed": 0.95,
    "similarity": 0.9269,
    "similarity_fed": 0.9269,
-   "torch_rtf": 0.311,
-   "onnx_rtf": 0.323,
+   "torch_rtf": 0.316,
+   "onnx_rtf": 0.246,
+   "phonemes_direct": "œ̃ matˈɛ̃, viʁɡˈyl, lˈœf sə fɑ̃dˈit ɑ̃ kʁakˈɑ̃, viʁɡˈyl, e œ̃ pətˈi dʁaɡˈɔ̃ oz ekˈaj vˈɛʁtz ɑ̃ sɔʁtˈi, viʁɡˈyl, lez ˈɛlz ɑ̃kˌɔʁ fʁwasˈe. pwˈɛ̃.",
+   "phonemes_direct_equal": true,
+   "direct_s": 12.625,
+   "similarity_direct": 0.965,
+   "direct_rtf": 0.238,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   },
   {
    "id": "r2-a-C-0.85",
@@ -289,10 +368,16 @@
    "needed": 0.95,
    "similarity": 0.8552,
    "similarity_fed": 0.8552,
-   "torch_rtf": 0.268,
-   "onnx_rtf": 0.255,
+   "torch_rtf": 0.293,
+   "onnx_rtf": 0.252,
+   "phonemes_direct": "œ̃ matˈɛ̃, viʁɡˈyl, lˈœf sə fɑ̃dˈit ɑ̃ kʁakˈɑ̃, viʁɡˈyl, e œ̃ pətˈi dʁaɡˈɔ̃ oz ekˈaj vˈɛʁtz ɑ̃ sɔʁtˈi, viʁɡˈyl, lez ˈɛlz ɑ̃kˌɔʁ fʁwasˈe. pwˈɛ̃.",
+   "phonemes_direct_equal": true,
+   "direct_s": 10.625,
+   "similarity_direct": 0.9666,
+   "direct_rtf": 0.267,
    "onnx_ok": false,
-   "onnx_fed_ok": false
+   "onnx_fed_ok": false,
+   "onnx_direct_ok": true
   }
  ]
 }
