@@ -54,7 +54,6 @@ Greek mythology (public domain), inspired by what she loves (Percy Jackson, Wing
 
 ### 3.3 Dictation
 - Audio through the Web Speech API (`speechSynthesis`, fr-FR/fr-CH voice; prefer voices whose name contains "Natural"/"Premium"/"Enhanced"; the player or a parent can choose the voice in settings). Punctuation is spoken ("virgule", "point", "point d'interrogation", "deux-points", "ouvrez les guillemets"…), as a teacher would. Numbers must be written as words in texts.
-- Later option: an uploaded audio recording per text (a parent recording), played instead of TTS.
 - Text is segmented into sentences and then *groupes de souffle* (chunks of ~4–10 words split at punctuation and natural boundaries).
 - **Pace levels** (part of difficulty; the player can always lower it in free practice, rewards scale):
   1. Sentence by sentence, slow rate (~0.75), the player advances manually, unlimited replays.
@@ -99,9 +98,6 @@ After the dictation, the player's draft is frozen as a snapshot and she enters p
 - Weekly goal (e.g. 3 sessions per week) instead of daily streaks; no guilt messaging, no push notifications, no timers unless opted in.
 - Session length: chapters ~10 minutes; after ~25 minutes, the dragon suggests a break.
 
-### 3.7 Social (sub-project 4)
-- Challenge between profiles: one player plants traps in a text (reverse mode), another proofreads it; then they swap. Optional co-op relic. No leaderboard.
-
 ## 4. Architecture
 
 ```
@@ -118,7 +114,7 @@ After the dictation, the player's draft is frozen as a snapshot and she enters p
 ```
 
 - **Single container**, multi-stage Dockerfile (node build of the SPA → python runtime serving it). `compose.yaml` with one service, port `8080`, volume for `/data`. Target: **TrueNAS SCALE 25.10** (Apps → Discover → ⋮ → *Install via YAML*), and Docker Desktop on Windows for development.
-- **Plain HTTP on the LAN** is the baseline; everything must work without HTTPS. Features that need a secure context (service worker offline cache, `getUserMedia` recording) are progressive enhancements only (SP4). Camera capture uses `<input type="file" accept="image/*" capture="environment">`, which works over HTTP.
+- **Plain HTTP on the LAN** is the deployment; everything must work without HTTPS, and no feature needs a secure context (no service worker, no `getUserMedia`). Camera capture uses `<input type="file" accept="image/*" capture="environment">`, which works over HTTP.
 - **Server-authoritative data.** Profiles, texts, sessions and stats live in SQLite on the server. The client keeps only transient state (and may cache the current session in `localStorage` to survive a reload).
 - **Grading runs client-side** in a pure TypeScript module (instant feedback, unit-testable); the client submits the session (draft, final, per-token results) and the server recomputes and stores stats. The server stores the raw texts too, so stats can be recomputed if the grading logic changes.
 - **Text analysis runs server-side** when a text is saved: spaCy `fr_core_news_lg` → tokens with POS, morphological features, dependency head/relation, and derived categories (`verb`, `nominal_group`, `homophone`) and, from SP2, agreement chains with a confidence flag. Stored as JSON alongside the text. Seed texts are annotated by the same code at startup/import.
@@ -167,10 +163,7 @@ The dev machine is Windows 11 with Docker Desktop, Git Bash, **no Node.js instal
 - Camp hub, Delphi/Oracle weekly scrolls, quest board, lieutenants and boss fights, Éris's file with her voice lines, taunts and reactions, dragon companion (naming, colour, growth), rewards, bestiary with myth facts, mastery rules, weekly goal, break suggestion.
 - Art generated locally with the `krea2` skill (`.claude/skills/krea2/`), consistent style file(s), background removal for sprites; "juice" (animations, sounds, particles).
 
-### SP4 — Social, parents, deployment polish
-- Challenges between profiles (reverse mode), co-op relic.
-- Parent area (PIN): dashboard per profile (categories, catch-rate trends, mots-pièges), voice upload per text, settings.
-- Optional HTTPS (Caddy + own domain, or Tailscale) documentation and service worker offline mode when secure.
+### SP4 — Deployment documentation
 - README: dev setup, deployment on TrueNAS 25.10, iPad "Add to Home Screen" instructions (Safari → Share → *Sur l'écran d'accueil*), backups of the data volume.
 
 ## 6. Quality gates after every sub-project
