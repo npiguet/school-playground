@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createRunner, unitStart } from './runner';
-import type { Step } from './script';
+import { createRunner, unitStart, type RunnerDeps } from './runner';
+import { buildPlan, buildScript, type SayStep, type Step } from './script';
 
 const say = (i: number, repeat: 1 | 2 = 1): Step => ({ kind: 'say', text: `t${i}`, spoken: `s${i}`, rate: 0.85, label: 'chunk', unit: 'chunk', index: i, repeat });
 const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -134,6 +134,90 @@ describe('createRunner', () => {
     expect(cancel).not.toHaveBeenCalled();
     runner.stop();
     expect(cancel).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Fix wave A, Ruling R-A1: pace 4's full readings are said a sentence at a time.
+describe("pace 4's full readings, a sentence at a time", () => {
+  const plan = buildPlan('Le loup arriva. Les brebis dormaient. Le berger veillait.');
+  const steps = buildScript(plan, 4);
+  const firstChunk = steps.findIndex((s) => s.kind === 'say' && s.unit === 'chunk');
+  const closing = steps.findIndex((s, i) => i > firstChunk && s.kind === 'say' && s.unit === 'full');
+  const say4 = (i: number) => steps[i] as SayStep;
+  function run(speak: RunnerDeps['speak'], from = 0) {
+    const resumes: number[] = [];
+    const runner = createRunner(steps, { pace: 4, speak, sleep: async () => {}, cancel: () => {}, onChange: (s) => resumes.push(s.resumeAt) }, from);
+    return { runner, resumes };
+  }
+
+  it("only a reading's first sentence opens its unit: the resume point never moves inside a reading", async () => {
+    const releases: (() => void)[] = [];
+    const { runner, resumes } = run(() => new Promise<void>((r) => releases.push(r)));
+    runner.start();
+    await flush();
+    expect(runner.state()).toMatchObject({ index: 0, resumeAt: 0, done: 0, total: plan.chunks.length });
+    releases.shift()!();
+    await flush();
+    releases.shift()!();
+    await flush();
+    expect(runner.state()).toMatchObject({ index: 2, resumeAt: 0, done: 0 }); // the third sentence
+    expect(new Set(resumes)).toEqual(new Set([0]));
+    // Every step of the opening reading resumes at its first sentence; so does the closing one's.
+    for (let i = 0; i < 3; i++) expect(unitStart(steps, i)).toBe(0);
+    for (let i = closing; i < steps.length; i++) expect(unitStart(steps, i)).toBe(closing);
+    expect([0, 1, 2].map((i) => say4(closing + i).index)).toEqual([0, 1, 2]);
+    runner.stop();
+  });
+
+  it('a dictation saved inside a reading reads the whole text again, its groups before it counted', async () => {
+    const spoken: string[] = [];
+    const { runner } = run(async (s) => void spoken.push(s), closing + 2);
+    expect(runner.state()).toMatchObject({ index: closing, resumeAt: closing, done: plan.chunks.length });
+    runner.start();
+    await flush();
+    await flush();
+    expect(spoken).toEqual([0, 1, 2].map((i) => say4(closing + i).spoken));
+    expect(runner.state().status).toBe('finished');
+  });
+
+  it('a pause inside a reading resumes at the sentence it cut, not the reading\'s start', async () => {
+    const releases: (() => void)[] = [];
+    const spoken: string[] = [];
+    const { runner } = run((s) => {
+      spoken.push(s);
+      return new Promise<void>((r) => releases.push(r));
+    });
+    runner.start();
+    await flush();
+    releases.shift()!();
+    await flush();
+    expect(runner.state().index).toBe(1);
+    runner.pause();
+    runner.resume();
+    await flush();
+    expect(spoken).toEqual([say4(0).spoken, say4(1).spoken, say4(1).spoken]);
+    expect(runner.state().resumeAt).toBe(0);
+    runner.stop();
+  });
+
+  it('« Réessayer » inside a reading says the sentence that failed, then carries on', async () => {
+    let down = false;
+    const spoken: string[] = [];
+    let failed = false;
+    const { runner } = run(async (s) => {
+      if (down) throw Object.assign(new Error('voice'), { failure: 'unreachable' });
+      spoken.push(s);
+      if (!failed) down = failed = true; // the voice falls silent once, after the first sentence
+    });
+    runner.start();
+    await flush();
+    expect(runner.state()).toMatchObject({ status: 'silenced', index: 1, resumeAt: 0 });
+    down = false;
+    runner.retry();
+    await flush();
+    await flush();
+    expect(spoken.slice(0, 3)).toEqual([say4(0).spoken, say4(1).spoken, say4(2).spoken]);
+    expect(runner.state().status).toBe('finished');
   });
 });
 

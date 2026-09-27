@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CROSSFADE_MS, DUCK_GAIN, FADE_MS, SETTINGS_FADE_MS, SFX_REPEAT_MS, createEngine } from './engine';
+import { CROSSFADE_MS, DUCK_GAIN, FADE_MS, SETTINGS_FADE_MS, SFX_REPEAT_MS, VOICE_RELEASE_MS, createEngine } from './engine';
 import { RECORDED_LINE_MS, recordingBackend } from './recordingBackend';
 import { DEFAULT_AUDIO, type AudioSettings } from './settings';
 
@@ -173,7 +173,55 @@ describe('the voice channel (spec 2026-09-27 §5.1: the dictation plays through 
     expect(engine.snapshot()).toMatchObject({ ducks: ['voice'], voiceSpeaking: true });
     await vi.advanceTimersByTimeAsync(RECORDED_LINE_MS);
     await line.ended;
+    await vi.advanceTimersByTimeAsync(VOICE_RELEASE_MS);
     expect(engine.snapshot()).toMatchObject({ ducks: [], voiceSpeaking: false });
+  });
+
+  // Fix wave A, Ruling R-A2: pace 4's sentences come back to back.
+  it('holds the duck a moment after a line ends: the next line keeps the music down, and no effect slips in', async () => {
+    vi.useFakeTimers();
+    const { backend, engine } = setup();
+    engine.unlock();
+    engine.music('battle');
+    const full = 0.5 * 0.9;
+    const first = engine.say(clip('Un.'));
+    await vi.advanceTimersByTimeAsync(RECORDED_LINE_MS);
+    await first.ended;
+    await vi.advanceTimersByTimeAsync(VOICE_RELEASE_MS - 1);
+    expect(engine.snapshot().ducks).toEqual(['voice']);
+    engine.sfx('tap');
+    expect(backend.log.sfx).toEqual([]);
+    const second = engine.say(clip('Deux.')); // the next sentence, within the hold
+    await vi.advanceTimersByTimeAsync(1);
+    expect(engine.snapshot().ducks).toEqual(['voice']);
+    await vi.advanceTimersByTimeAsync(RECORDED_LINE_MS);
+    await second.ended;
+    expect(engine.snapshot().ducks).toEqual(['voice']);
+    // The music never came up between the two sentences: one fade down, then one up after the last.
+    expect(backend.log.calls.filter((c) => c.startsWith('fade'))).toEqual([`fade battle ${full * DUCK_GAIN} ${FADE_MS}`]);
+    await vi.advanceTimersByTimeAsync(VOICE_RELEASE_MS);
+    expect(engine.snapshot().ducks).toEqual([]);
+    expect(backend.log.calls.at(-1)).toBe(`fade battle ${full} ${FADE_MS}`);
+    engine.sfx('tap');
+    expect(backend.log.sfx.map((s) => s.id)).toEqual(['tap']);
+  });
+
+  it('lets the music up at once when a line is stopped (a pause), and a place drops the hold', async () => {
+    vi.useFakeTimers();
+    const { engine } = setup();
+    engine.unlock();
+    const line = engine.say(clip());
+    line.stop();
+    await line.ended;
+    expect(engine.snapshot().ducks).toEqual([]);
+    const next = engine.say(clip('Deux.'));
+    await vi.advanceTimersByTimeAsync(RECORDED_LINE_MS);
+    await next.ended;
+    engine.scene('camp');
+    expect(engine.snapshot().ducks).toEqual([]);
+    engine.duck('dictation', true);
+    await vi.advanceTimersByTimeAsync(VOICE_RELEASE_MS);
+    expect(engine.snapshot().ducks).toEqual(['dictation']);
   });
 
   it('drops effects while a line plays (Ruling E6)', () => {
@@ -195,6 +243,7 @@ describe('the voice channel (spec 2026-09-27 §5.1: the dictation plays through 
     expect(engine.snapshot().ducks).toEqual(['voice']);
     await vi.advanceTimersByTimeAsync(RECORDED_LINE_MS);
     await second.ended;
+    await vi.advanceTimersByTimeAsync(VOICE_RELEASE_MS);
     expect(engine.snapshot().ducks).toEqual([]);
   });
 

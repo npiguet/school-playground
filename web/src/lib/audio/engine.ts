@@ -15,6 +15,10 @@ export const FADE_MS = 400;
 export const CROSSFADE_MS = 1200;
 export const SETTINGS_FADE_MS = 150;
 export const SFX_REPEAT_MS = 80;
+/** How long the music stays ducked after a line of the voice ends (fix wave A, Ruling R-A2): the next
+ *  line, if it comes by then, keeps it down, so pace 4's sentences said back to back do not make the
+ *  music pump, and no effect slips into the gap between them. */
+export const VOICE_RELEASE_MS = 300;
 
 export interface TrackHandle {
   /** Starts the loop silent and fades it up to `gain` (at once if it is still loading: when ready). */
@@ -86,6 +90,7 @@ export function createEngine(backend: AudioBackend, now: () => number = () => Da
   let current: { id: TrackId; handle: TrackHandle } | null = null;
   const ducks = new Set<DuckReason>();
   let line: LineHandle | null = null;
+  let release: ReturnType<typeof setTimeout> | null = null;
   const played: SfxId[] = [];
   const lastPlayed = new Map<SfxId, number>();
 
@@ -105,6 +110,12 @@ export function createEngine(backend: AudioBackend, now: () => number = () => Da
       current = { id: target, handle: backend.track(target) };
       current.handle.start(gainFor(target), CROSSFADE_MS);
     }
+  }
+
+  /** Drops the voice's pending release (a new line, or the ducks cleared). */
+  function holdVoice(): void {
+    if (release !== null) clearTimeout(release);
+    release = null;
   }
 
   function duck(reason: DuckReason, on: boolean): void {
@@ -162,6 +173,7 @@ export function createEngine(backend: AudioBackend, now: () => number = () => Da
     /** A place takes over (SceneStage): its loop, and no leftover duck from a battle or a speech. */
     scene(id: TrackId | null): void {
       const hadDucks = ducks.size > 0;
+      holdVoice();
       ducks.clear();
       if (id !== wanted) {
         wanted = id;
@@ -172,22 +184,40 @@ export function createEngine(backend: AudioBackend, now: () => number = () => Da
     },
     duck,
     /** One line of the dictation's voice (spec 2026-09-27 §5.1): at the voice channel's gain, the music
-     *  ducked and effects held while it plays; a new line stops the last. Before the unlock it is
-     *  silent and takes its length (Ruling K14). */
+     *  ducked and effects held while it plays; a new line stops the last. The duck outlasts a line that
+     *  ends by VOICE_RELEASE_MS, unless the next line comes (Ruling R-A2); a line stopped (a pause, a
+     *  finish, « Quitter ») lets the music up at once. Before the unlock it is silent and takes its
+     *  length (Ruling K14). */
     say(clip: VoiceClip): LineHandle {
       line?.stop();
       if (!unlocked) return silentLine(clip.ms);
+      holdVoice();
       const h = backend.line(clip, gainOf(settings.voice));
-      line = h;
+      let stopped = false;
+      const handle: LineHandle = {
+        ended: h.ended,
+        stop() {
+          stopped = true;
+          h.stop();
+        },
+        volume: (gain) => h.volume(gain),
+      };
+      line = handle;
       duck('voice', true);
       void h.ended.then(() => {
         // A stopped line ending late must not let the music up under the next one.
-        if (line === h) {
-          line = null;
+        if (line !== handle) return;
+        line = null;
+        if (stopped) {
           duck('voice', false);
+        } else {
+          release = setTimeout(() => {
+            release = null;
+            duck('voice', false);
+          }, VOICE_RELEASE_MS);
         }
       });
-      return h;
+      return handle;
     },
     sfx(id: SfxId): void {
       if (!unlocked || settings.sfx.muted || ducks.has('voice')) return;

@@ -36,12 +36,33 @@ describe('buildScript', () => {
     expect(steps.at(-1)).toEqual({ kind: 'done' });
     expect(steps.filter((s) => s.kind === 'manual')).toHaveLength(0);
   });
-  it('pace 4: full reading, chunks twice, final full reading', () => {
+  it('pace 4: full reading a sentence at a time, chunks twice, final full reading (Ruling R-A1)', () => {
     const steps = buildScript(plan, 4);
-    expect(steps[0]).toMatchObject({ kind: 'say', label: 'full', rate: 1.0, repeat: 1 });
-    expect(steps[1]).toEqual({ kind: 'wait', ms: 2000 });
-    expect(steps.at(-2)).toMatchObject({ kind: 'say', label: 'full', rate: 0.95, repeat: 2 });
+    const reading = (rate: number, repeat: 1 | 2) =>
+      plan.sentences.map((s, i) => ({
+        kind: 'say',
+        text: s.text,
+        spoken: spokenForm(s.text, { newParagraph: s.newParagraph }),
+        rate,
+        label: 'full',
+        unit: 'full',
+        index: i,
+        repeat,
+      }));
+    // The sentences back to back: no wait between them, only the voice's own gap.
+    expect(steps.slice(0, 2)).toEqual(reading(1.0, 1));
+    expect(steps[2]).toEqual({ kind: 'wait', ms: 2000 });
+    expect(steps.slice(-4, -1)).toEqual([{ kind: 'wait', ms: 1000 }, ...reading(0.95, 2)]);
     expect(steps.at(-1)).toEqual({ kind: 'done' });
+    // The same words as the whole text read as one line.
+    expect(reading(1.0, 1).map((s) => s.spoken).join(' ')).toBe(plan.full);
+  });
+  it("pace 4: a reading's paragraph break stays on its sentence", () => {
+    const p = buildPlan('Le loup arriva.\n\nLes brebis dormaient.');
+    const spoken = buildScript(p, 4).filter((s) => s.kind === 'say' && s.label === 'full').map((s) => (s as { spoken: string }).spoken);
+    expect(spoken).toHaveLength(4);
+    expect(spoken[1]).toBe(spokenForm('Les brebis dormaient.', { newParagraph: true }));
+    expect(spoken[1]).toMatch(/^À la ligne/);
   });
   it('pace 4: only chunk steps count as progress units, not the bookend full reads', () => {
     const sayLabels = buildScript(plan, 4)
@@ -49,12 +70,14 @@ describe('buildScript', () => {
       .map((s) => [s.label, (s as { unit: string }).unit]);
     expect(sayLabels).toEqual([
       ['full', 'full'],
+      ['full', 'full'],
       ['chunk', 'chunk'],
       ['chunk', 'chunk'],
       ['chunk', 'chunk'],
       ['chunk', 'chunk'],
       ['chunk', 'chunk'],
       ['chunk', 'chunk'],
+      ['full', 'full'],
       ['full', 'full'],
     ]);
   });
@@ -83,21 +106,31 @@ describe('sayLines (spec 2026-09-27 §5.2: what the dictation sends ahead)', () 
     // Pace 3 reads each chunk twice: once in the list.
     expect(sayLines(buildScript(plan, 3))).toEqual(plan.chunks.map((c) => ({ spoken: c.spoken, rate: 0.9 })));
   });
-  it("keeps pace 4's two full readings apart: they are said at different rates", () => {
+  it("sends pace 4's sentences first, in order, and keeps its two full readings apart: different rates", () => {
+    const sentences = plan.sentences.map((s) => spokenForm(s.text, { newParagraph: s.newParagraph }));
     expect(sayLines(buildScript(plan, 4))).toEqual([
-      { spoken: plan.full, rate: 1.0 },
+      ...sentences.map((spoken) => ({ spoken, rate: 1.0 })),
       ...plan.chunks.map((c) => ({ spoken: c.spoken, rate: 0.9 })),
-      { spoken: plan.full, rate: 0.95 },
+      ...sentences.map((spoken) => ({ spoken, rate: 0.95 })),
     ]);
+  });
+  it('says a sentence repeated in the text once in the list: the same line, from the same clip', () => {
+    const p = buildPlan('Il pleut. Le loup attend. Il pleut.');
+    const lines = sayLines(buildScript(p, 4)).filter((l) => l.rate === 1.0);
+    expect(lines.map((l) => l.spoken)).toEqual([spokenForm('Il pleut.'), spokenForm('Le loup attend.')]);
   });
 });
 
-describe("the voice's limit (Kokoro plan Ruling K1)", () => {
-  it("fits every seed text's longest line, pace 4's full reading", () => {
+describe("the voice's limit (Kokoro plan Ruling K1, a guard since Ruling R-A1)", () => {
+  it("fits every seed text's longest line at every pace: a sentence", () => {
     expect(MAX_LINE_CHARS).toBe(10_000); // tts/app/text.py MAX_CHARS
     for (const f of readdirSync('../content/seed').filter((n) => n.endsWith('.json'))) {
       const body = (JSON.parse(readFileSync(`../content/seed/${f}`, 'utf-8')) as { body: string }).body;
-      expect(buildPlan(body).full.length, f).toBeLessThanOrEqual(MAX_LINE_CHARS);
+      const plan = buildPlan(body);
+      const longest = Math.max(...([1, 2, 3, 4] as const).flatMap((pace) => sayLines(buildScript(plan, pace)).map((l) => l.spoken.length)));
+      const sentence = Math.max(...plan.sentences.map((s) => spokenForm(s.text, { newParagraph: s.newParagraph }).length));
+      expect(longest, f).toBe(sentence);
+      expect(longest, f).toBeLessThanOrEqual(MAX_LINE_CHARS);
     }
   });
 });

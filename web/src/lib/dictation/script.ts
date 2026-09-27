@@ -39,6 +39,8 @@ export type Step =
       // paces 2-4), 'full' for pace 4's whole-text bookend reads, which are
       // not part of the "Groupe X sur Y" count.
       unit: 'chunk' | 'full';
+      // The sentence (pace 1), the chunk (paces 2-4), or, in pace 4's full readings, the sentence of
+      // the reading (fix wave A, Ruling R-A1: the reading's first sentence, 0, opens its unit).
       index: number;
       repeat: 1 | 2;
     }
@@ -55,8 +57,9 @@ export interface SayLine {
   rate: number;
 }
 
-/** The voice's limit on one line (tts/app/text.py MAX_CHARS, Kokoro plan Ruling K1): pace 4's full
- *  reading of the longest text must fit. */
+/** The voice's limit on one line (tts/app/text.py MAX_CHARS, Kokoro plan Ruling K1), kept as a guard:
+ *  the longest line the game says is one sentence (pace 1, and pace 4's full readings, which are said
+ *  a sentence at a time since fix wave A's Ruling R-A1). */
 export const MAX_LINE_CHARS = 10_000;
 
 /** What makes two lines the same line: its rate and its spoken form (sayLines' dedupe and the voice's
@@ -146,35 +149,35 @@ export function buildScript(plan: DictationPlan, pace: Pace): Step[] {
       pushChunkTwice(steps, chunk, i, PACE_RATES[3]);
     });
   } else {
-    steps.push({
-      kind: 'say',
-      text: plan.sentences.map((s) => s.text).join(' '),
-      spoken: plan.full,
-      rate: PACE_RATES[4],
-      label: 'full',
-      unit: 'full',
-      index: 0,
-      repeat: 1,
-    });
+    pushFullReading(steps, plan, PACE_RATES[4], 1);
     steps.push({ kind: 'wait', ms: 2000 });
     plan.chunks.forEach((chunk, i) => {
       pushChunkTwice(steps, chunk, i, PACE_RATES[3]);
     });
     steps.push({ kind: 'wait', ms: 1000 });
-    steps.push({
-      kind: 'say',
-      text: plan.sentences.map((s) => s.text).join(' '),
-      spoken: plan.full,
-      rate: 0.95,
-      label: 'full',
-      unit: 'full',
-      index: 0,
-      repeat: 2,
-    });
+    pushFullReading(steps, plan, 0.95, 2);
   }
 
   steps.push({ kind: 'done' });
   return steps;
+}
+
+/** Pace 4's whole-text reading (fix wave A, Ruling R-A1): its sentences back to back, each its own line
+ *  at the reading's rate, with no gap but the voice's own. The first is ready in about a second, where
+ *  the whole text as one line took 23 to 26 s. The same words as `plan.full`, which joins them. */
+function pushFullReading(steps: Step[], plan: DictationPlan, rate: number, repeat: 1 | 2): void {
+  plan.sentences.forEach((sentence, i) => {
+    steps.push({
+      kind: 'say',
+      text: sentence.text,
+      spoken: spokenForm(sentence.text, { newParagraph: sentence.newParagraph }),
+      rate,
+      label: 'full',
+      unit: 'full',
+      index: i,
+      repeat,
+    });
+  });
 }
 
 function pushChunkTwice(steps: Step[], chunk: Chunk, index: number, rate: number): void {

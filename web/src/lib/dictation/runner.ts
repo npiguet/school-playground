@@ -23,9 +23,12 @@ export interface RunnerState {
   failure: VoiceFailure | null;
 }
 
-/** Whether `step` opens a unit of the reading (its first say; a chunk's second say belongs to it). */
+/** Whether `step` opens a unit of the reading: a sentence's or a chunk's first say (its second say
+ *  belongs to it), or the first sentence of one of pace 4's full readings (fix wave A, Ruling R-A1:
+ *  the reading's other sentences belong to it, so a resumed dictation reads the whole text again). */
 function opensUnit(step: Step | undefined): boolean {
-  return step?.kind === 'say' && (step.repeat === 1 || step.unit === 'full');
+  if (step?.kind !== 'say') return false;
+  return step.unit === 'full' ? step.index === 0 : step.repeat === 1;
 }
 
 /** UI4 Ruling M20: the first step of the unit that `index` lies in (0 before the first one), so a
