@@ -1,11 +1,11 @@
-// The camp's sounds (scenes UI spec §7): five quiet loops and nine short effects, all CC0
+// The camp's sounds (scenes UI spec §7): six quiet loops and nine short effects, all CC0
 // (ASSETS-LICENSES.md), AAC in .m4a for the iPad. The paths are fixed here (UI5 Task 1) so the
 // sourcing lane produces exactly these files and the engine lane plays them without waiting for it.
 // `mix` is each sound's level inside its channel, set by ear in Task 3b.
 import type { SceneId } from '../scene/types';
 import type { BackdropId } from '../battle/battle';
 
-export type TrackId = 'sea' | 'camp' | 'temple' | 'lair' | 'battle';
+export type TrackId = 'sea' | 'camp' | 'temple' | 'war' | 'lair' | 'battle';
 export type SfxId = 'tap' | 'seal' | 'unroll' | 'chime' | 'growth' | 'hmpf' | 'laurel' | 'strike' | 'fanfare';
 
 export interface SoundDef {
@@ -20,6 +20,8 @@ export const TRACKS: Record<TrackId, SoundDef> = {
   sea: track('sea'),
   camp: track('camp'),
   temple: track('temple'),
+  // The war tent's own loop, wind on its canvas (the user found the lair's drone irritating there).
+  war: track('war'),
   lair: track('lair'),
   battle: track('battle', 0.9),
 };
@@ -47,7 +49,7 @@ export const SCENE_MUSIC: Record<SceneId, TrackId> = {
   cabin: 'camp',
   library: 'temple',
   delphi: 'temple',
-  war: 'lair',
+  war: 'war',
 };
 
 /** Ruling E4: every battle ground plays the battle loop; Éris in her lair plays hers. */

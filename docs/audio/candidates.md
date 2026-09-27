@@ -195,3 +195,15 @@ each case; the searches turned up little else that both fit the brief and wasn't
 3. `sfx/tap` and `sfx/strike`'s Kenney files, being pack-level CC0 (not individually described), are
    matched by category/filename rather than a per-file "sounds like" quote — flagged in case the
    controller wants a stricter per-file source for those two slots.
+
+## music/war — the war tent's own loop (2026-09-27)
+
+The war tent used to play `music/lair`. The user found that loop irritating there: measured with
+`tools/audio/run_docker.sh analyze`, it is a static mid-register drone (55 % of its energy at
+300 Hz–1 kHz) that swells every ~6 s. A listening round of five CC0 candidates
+(`tools/audio/candidates/war-tent.json`, built with `--sources … --out assets/audio/war-candidates`)
+gave the pick **war-canvas**: [windy tent.wav](https://freesound.org/people/bruno.auzet/sounds/527434/)
+(bruno.auzet, CC0 deed read 2026-09-27: "You can copy, modify, distribute and perform the sound, even
+for commercial purposes, all without the need of asking permission to the author."). This is desert
+wind on an old fabric tent, recorded from inside it at Palmyra, low-passed at 1.6 kHz and gently
+compressed. It is now its own track, `music/war`. `music/lair` stays the lair battle's loop.

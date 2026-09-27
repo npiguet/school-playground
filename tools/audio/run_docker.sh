@@ -20,7 +20,16 @@ IMAGE=discorde-audio-tools:$(sha256sum "$HERE/Dockerfile" | cut -c1-12)
 docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -t "$IMAGE" "$REPO/tools/audio"
 # shellcheck source=../../scripts/lib.sh
 source "$HERE/../../scripts/lib.sh"
-if [ "${1:-}" = "fetch" ]; then
+#   tools/audio/run_docker.sh analyze <file ...>                     # band shares, onsets, flicker, periodicity
+#   tools/audio/run_docker.sh --sources <json> --out <dir> fetch|build   # a staging round (candidates):
+#       another sources file, built into <dir> (+ measurements.json); web/public/audio untouched
+cmd=""
+skip=0
+for a in "$@"; do
+  if [ "$skip" = 1 ]; then skip=0; continue; fi
+  case "$a" in --sources|--out) skip=1 ;; *) cmd="$a"; break ;; esac
+done
+if [ "$cmd" = "fetch" ]; then
   # Network only, no ffmpeg: no need to hold the Playwright lock.
   docker run --rm -v "$REPO:/work" -w /work "$IMAGE" python tools/audio/process.py "$@"
 else
