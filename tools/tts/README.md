@@ -19,3 +19,16 @@ node container):
     scripts/npm.sh exec -- esbuild ../tools/tts/lines.ts --bundle --platform=node --format=esm \
       '--alias:$lib=./src/lib' --alias:@content=../content --outfile=.cache/tts-lines.mjs
     scripts/npm.sh exec -- node .cache/tts-lines.mjs ../tools/tts/lines.json
+
+## Round 2: Kokoro only
+
+Kokoro-82M (`ff_siwis`) was the pick. Round 2 compares ways of speaking the final punctuation, voice
+blends and other Kokoro voices through the French phonemiser, and the two slower paces (native speed vs
+ffmpeg atempo). Its page is `assets/tts-bakeoff/kokoro/index.html`; round 1's page is left as it is.
+
+    tools/tts/run_docker.sh round2-bake     # Kokoro container: samples + results.json
+    tools/tts/run_docker.sh round2-post     # ffmpeg container: atempo, silences, index.html
+
+`round2.json` is made by `round2.ts` (bundled and run like `lines.ts`, with `.cache/tts-round2.mjs`
+and `../tools/tts/round2.json`). Variant A is the game's `spokenForm`; B to E are a transform of it in
+`round2.ts` only, the game code is unchanged.

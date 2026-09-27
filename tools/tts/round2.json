@@ -1,0 +1,80 @@
+{
+  "paces": [
+    0.75,
+    0.85
+  ],
+  "sentences": {
+    "a": {
+      "source": "028-muses-dragon-des-muses (round-1 line a)",
+      "text": "Un matin, l'œuf se fendit en craquant, et un petit dragon aux écailles vertes en sortit, les ailes encore froissées.",
+      "newParagraph": false,
+      "variants": {
+        "A": "Un matin, virgule, l'œuf se fendit en craquant, virgule, et un petit dragon aux écailles vertes en sortit, virgule, les ailes encore froissées, point.",
+        "B": "Un matin, virgule, l'œuf se fendit en craquant, virgule, et un petit dragon aux écailles vertes en sortit, virgule, les ailes encore froissées. point.",
+        "C": "Un matin, virgule, l'œuf se fendit en craquant, virgule, et un petit dragon aux écailles vertes en sortit, virgule, les ailes encore froissées. Point.",
+        "D": "Un matin, virgule, l'œuf se fendit en craquant, virgule, et un petit dragon aux écailles vertes en sortit, virgule, les ailes encore froissées… point.",
+        "E": "Un matin, virgule, l'œuf se fendit en craquant, virgule, et un petit dragon aux écailles vertes en sortit, virgule, les ailes encore froissées.\npoint."
+      }
+    },
+    "q": {
+      "source": "010-daudet-etoiles",
+      "text": "Est-ce que tu sais leurs noms, berger ?",
+      "newParagraph": false,
+      "variants": {
+        "A": "Est-ce que tu sais leurs noms, virgule, berger, point d'interrogation.",
+        "B": "Est-ce que tu sais leurs noms, virgule, berger ? point d'interrogation.",
+        "C": "Est-ce que tu sais leurs noms, virgule, berger ? Point d'interrogation.",
+        "D": "Est-ce que tu sais leurs noms, virgule, berger ? point d'interrogation.",
+        "E": "Est-ce que tu sais leurs noms, virgule, berger ?\npoint d'interrogation."
+      }
+    },
+    "x": {
+      "source": "002-andersen-vilain-petit-canard",
+      "text": "Que la campagne était belle !",
+      "newParagraph": false,
+      "variants": {
+        "A": "Que la campagne était belle, point d'exclamation.",
+        "B": "Que la campagne était belle ! point d'exclamation.",
+        "C": "Que la campagne était belle ! Point d'exclamation.",
+        "D": "Que la campagne était belle ! point d'exclamation.",
+        "E": "Que la campagne était belle !\npoint d'exclamation."
+      }
+    },
+    "el": {
+      "source": "010-daudet-etoiles",
+      "text": "Jamais je n'en avais tant vu…",
+      "newParagraph": false,
+      "variants": {
+        "A": "Jamais je n'en avais tant vu, points de suspension.",
+        "B": "Jamais je n'en avais tant vu… points de suspension.",
+        "C": "Jamais je n'en avais tant vu… Points de suspension.",
+        "D": "Jamais je n'en avais tant vu… points de suspension.",
+        "E": "Jamais je n'en avais tant vu…\npoints de suspension."
+      }
+    },
+    "sc": {
+      "source": "009-daudet-chevre-loup",
+      "text": "— Déjà ! dit la petite chèvre ; et elle s'arrêta fort étonnée.",
+      "newParagraph": true,
+      "variants": {
+        "A": "À la ligne. tiret, Déjà, point d'exclamation, dit la petite chèvre, point-virgule, et elle s'arrêta fort étonnée, point.",
+        "B": "À la ligne. tiret, Déjà ! point d'exclamation, dit la petite chèvre ; point-virgule, et elle s'arrêta fort étonnée. point.",
+        "C": "À la ligne. tiret, Déjà ! Point d'exclamation, dit la petite chèvre ; point-virgule, et elle s'arrêta fort étonnée. Point.",
+        "D": "À la ligne. tiret, Déjà ! point d'exclamation, dit la petite chèvre ; point-virgule, et elle s'arrêta fort étonnée… point.",
+        "E": "À la ligne. tiret, Déjà !\npoint d'exclamation, dit la petite chèvre ; point-virgule, et elle s'arrêta fort étonnée.\npoint."
+      }
+    },
+    "co": {
+      "source": "027-muses-pomme-or",
+      "text": "Sur la pomme, quelques mots étaient gravés : « À la plus belle. »",
+      "newParagraph": false,
+      "variants": {
+        "A": "Sur la pomme, virgule, quelques mots étaient gravés, deux-points, ouvrez les guillemets, À la plus belle, point, fermez les guillemets.",
+        "B": "Sur la pomme, virgule, quelques mots étaient gravés : deux-points, ouvrez les guillemets, À la plus belle. point, fermez les guillemets.",
+        "C": "Sur la pomme, virgule, quelques mots étaient gravés : deux-points, ouvrez les guillemets, À la plus belle. Point, fermez les guillemets.",
+        "D": "Sur la pomme, virgule, quelques mots étaient gravés : deux-points, ouvrez les guillemets, À la plus belle… point, fermez les guillemets.",
+        "E": "Sur la pomme, virgule, quelques mots étaient gravés : deux-points, ouvrez les guillemets, À la plus belle.\npoint, fermez les guillemets."
+      }
+    }
+  }
+}
