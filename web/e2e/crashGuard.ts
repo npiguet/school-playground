@@ -8,7 +8,7 @@ import { test as base, expect } from '@playwright/test';
 // (guarded by src/e2eCrashGuard.test.ts). The error's name lives in crashClassify.ts, with the
 // other crashes the retry counts (Ruling U4-b: a worker or browser segfault).
 import type { BrowserContext } from '@playwright/test';
-import { BROWSER_CRASHED, DURING_BODY } from './crashClassify';
+import { BROWSER_CRASHED, crashNote } from './crashClassify';
 
 export { BROWSER_CRASHED };
 
@@ -24,12 +24,13 @@ export const test = base.extend<{ tours: boolean }>({
   // crash, and the browser for a disconnect. Checked after the test body, whether it passed or not:
   // a crash makes the body fail on whatever it was doing ("Target crashed", a closed page, a
   // timeout), and this error names the cause next to it.
-  // A crash seen before the `page` fixture's teardown began (the body still ran) is marked
-  // DURING_BODY: the classifier then counts every failure of the body as its aftermath.
-  context: async ({ context, browser }, use) => {
+  // A crash seen while the body still ran (the `page` fixture's teardown has not begun) and before
+  // any failure was recorded (final review I4: `testInfo.errors` still empty) is marked DURING_BODY:
+  // the classifier then counts every failure of the body as its aftermath (crashNote).
+  context: async ({ context, browser }, use, testInfo) => {
     const crashes: string[] = [];
     const watch = (page: import('@playwright/test').Page) =>
-      page.on('crash', () => crashes.push(`page crashed at ${page.url()}${bodyEnded.has(context) ? '' : ` ${DURING_BODY}`}`));
+      page.on('crash', () => crashes.push(`page crashed at ${page.url()}${crashNote(bodyEnded.has(context), testInfo.errors.length)}`));
     context.pages().forEach(watch);
     context.on('page', watch);
     const onDisconnect = () => crashes.push('browser disconnected');

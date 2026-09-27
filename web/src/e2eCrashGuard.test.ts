@@ -16,6 +16,36 @@ function bareImports(files: Record<string, string>): string[] {
     .map(([name]) => name);
 }
 
+/** The files that make a soft assertion (`expect.soft`, or `expect.configure({ soft: true })`). */
+function softAssertions(files: Record<string, string>): string[] {
+  return Object.entries(files)
+    .filter(([, text]) => /\bexpect\s*\.\s*soft\b|\bsoft\s*:\s*true\b/.test(text))
+    .map(([name]) => name);
+}
+
+// Ruling F3b: the crash-only retry counts every failure of a body that crashed as the crash's
+// aftermath, because a body stops at its first failure. A soft assertion would let a real failure
+// come first and the body run on into a crash, and the retry would turn it green.
+describe('no e2e source makes a soft assertion (Ruling F3b)', () => {
+  it('uses no expect.soft anywhere under e2e, nor in the Playwright configs', () => {
+    const e2eFiles = readdirSync(E2E).filter((n) => n.endsWith('.ts')).map((n) => join(E2E, n));
+    const configs = readdirSync(join(E2E, '..')).filter((n) => /^playwright.*\.config\.ts$/.test(n)).map((n) => join(E2E, '..', n));
+    expect(configs.length).toBeGreaterThan(0);
+    const files = Object.fromEntries([...e2eFiles, ...configs].map((p) => [p, readFileSync(p, 'utf8')]));
+    expect(softAssertions(files)).toEqual([]);
+  });
+
+  it('flags expect.soft and a soft expect.configure (self-test)', () => {
+    expect(
+      softAssertions({
+        'a.spec.ts': 'await expect.soft(page).toHaveURL(/x/);\n',
+        'b.spec.ts': 'const e = expect.configure({ soft: true });\n',
+        'c.spec.ts': "await expect(page).toHaveURL(/x/); // a soft landing is not an assertion\n",
+      }),
+    ).toEqual(['a.spec.ts', 'b.spec.ts']);
+  });
+});
+
 describe('every e2e spec runs under the crash guard', () => {
   it('takes test and expect from ./crashGuard, never from @playwright/test', () => {
     expect(specs.length).toBeGreaterThan(10);

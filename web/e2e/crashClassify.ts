@@ -22,9 +22,17 @@ const AFTERMATH = /Target crashed|Page crashed|(?:Target page, context or browse
 
 // crashGuard.ts appends this to its named error when the page crashed while the test body still ran
 // (UI5 Task 9: a pending `expect` then fails at once with an empty call log, not « Target crashed »).
-// The body stops at its first failure (the specs use no soft assertions), so whatever failed it came
-// at or after the crash: the crash explains it.
+// The body stops at its first failure (the specs use no soft assertions, guarded by
+// src/e2eCrashGuard.test.ts, Ruling F3b), and the mark is only set while no failure was recorded
+// (crashNote), so whatever failed the body came at or after the crash: the crash explains it.
 export const DURING_BODY = '(while the test body ran)';
+
+/** What crashGuard.ts appends to a crash seen now: DURING_BODY only while the body still runs and no
+ *  failure has been recorded yet (`testInfo.errors` empty; final review I4). Playwright records a
+ *  failed assertion, then takes the failure screenshot and the trace and runs the hooks before any
+ *  fixture teardown: a crash in that window comes after the real failure and explains nothing. */
+export const crashNote = (bodyEnded: boolean, errorsSoFar: number): string =>
+  !bodyEnded && errorsSoFar === 0 ? ` ${DURING_BODY}` : '';
 
 /** A test crashed when one of its errors is a crash and every other one is only what the crash did
  *  to the body (final review M21): a real assertion failure followed by a teardown segfault stays a

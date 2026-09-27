@@ -1,7 +1,7 @@
 // Ruling F3(b) + U4-b: the crash-only retry counts crashGuard's named browser crash and a Playwright
 // worker or browser segfault as crashes; every other failure stays a failure (never retried).
 import { describe, expect, it } from 'vitest';
-import { BROWSER_CRASHED, DURING_BODY, crashedWith, isCrash } from '../e2e/crashClassify';
+import { BROWSER_CRASHED, DURING_BODY, crashNote, crashedWith, isCrash } from '../e2e/crashClassify';
 
 describe('the crash-only retry classifier', () => {
   it("counts crashGuard's named error", () => {
@@ -43,6 +43,27 @@ describe('the crash-only retry classifier', () => {
     expect(crashedWith([{ message: 'expect(locator).toHaveAttribute(expected) failed' }, after])).toBe(false);
     // The marker alone, in a message that is no crash, counts for nothing.
     expect(crashedWith([{ message: `expect(received).toContain(expected): ${DURING_BODY}` }])).toBe(false);
+  });
+
+  // Final review I4: the order of the crash and the body's first failure, as crashGuard.ts sees it
+  // (crashNote), then what the retry makes of the test's errors.
+  it('retries a crash that came before any failure, never one that came after a real failure (I4)', () => {
+    const assertion = { message: 'expect(locator).toHaveText(expected) failed' };
+    const crashAt = (bodyEnded: boolean, errorsSoFar: number) => ({
+      message: `${BROWSER_CRASHED}: page crashed at http://app/#/camp${crashNote(bodyEnded, errorsSoFar)}`,
+    });
+    // Crash first (no error recorded yet), then the body's pending expect fails: a crash, retried.
+    expect(crashNote(false, 0)).toBe(` ${DURING_BODY}`);
+    expect(crashedWith([assertion, crashAt(false, 0)])).toBe(true);
+    // The assertion failed first (recorded), then the page crashed during the failure screenshot,
+    // the trace or a hook, before any fixture teardown: a real failure, never retried into a green.
+    expect(crashNote(false, 1)).toBe('');
+    expect(crashedWith([assertion, crashAt(false, 1)])).toBe(false);
+    // After the body (teardown): unmarked, so M21's rule holds.
+    expect(crashNote(true, 0)).toBe('');
+    expect(crashedWith([assertion, crashAt(true, 0)])).toBe(false);
+    // A crash alone after the body passed is still a crash (its only error).
+    expect(crashedWith([crashAt(true, 0)])).toBe(true);
   });
 
   it('never retries a real failure that a crash happened to follow (final review M21)', () => {
