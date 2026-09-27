@@ -1,5 +1,10 @@
-// Turns a chunk of text into the words a teacher would say aloud while
-// dictating, including spoken punctuation names. Spec §3.3.
+// Turns a chunk of text into the words a teacher would say aloud while dictating, the punctuation said
+// by name. Spec §3.3; the Kokoro voice's endings (spec 2026-09-27 §2, bake-off variant C, Kokoro plan
+// Ruling K2): a mark that ends a sentence (. ? ! …) is kept as the mark itself and followed by its name,
+// capitalised - « froissées. Point. », « berger ? Point d'interrogation. » - so the voice closes the
+// sentence before naming it; « ; » and « : » are kept too, their name in lower case - « chèvre ;
+// point-virgule, »; the comma and every other mark are said as before - « , virgule, ». This string is
+// the voice's input, never shown: the space before « ? ! ; : » is a plain one.
 import { tokenize } from '$lib/grading/tokenize';
 
 const PUNCT_NAMES: Record<string, string> = {
@@ -22,10 +27,15 @@ const PUNCT_NAMES: Record<string, string> = {
   "'": 'apostrophe',
 };
 
-interface Unit {
-  isWord: boolean;
-  text: string;
-}
+/** Marks that end a sentence: the mark, then its capitalised name. */
+const CLOSING = new Set(['.', '?', '!', '…', '...']);
+/** Marks kept before their name, in lower case (they do not end the sentence). */
+const KEPT = new Set([';', ':']);
+const SPACE = ' ';
+
+type Unit = { kind: 'word'; text: string } | { kind: 'name'; text: string } | { kind: 'mark'; mark: string; text: string };
+
+const capitalise = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Title abbreviations that must be read as the full word they stand for,
 // never spelled out letter by letter. Two shapes: a bare word ("Mme",
@@ -49,36 +59,39 @@ export function spokenForm(chunk: string, opts?: { newParagraph?: boolean }): st
     const t = tokens[i];
     if (t.kind === 'word') {
       if (ABBREVIATION_WORDS[t.text]) {
-        units.push({ isWord: true, text: ABBREVIATION_WORDS[t.text] });
+        units.push({ kind: 'word', text: ABBREVIATION_WORDS[t.text] });
         continue;
       }
       const expanded = ABBREVIATION_WITH_PERIOD[t.text];
       if (expanded && tokens[i + 1]?.kind === 'punct' && tokens[i + 1].text === '.') {
-        units.push({ isWord: true, text: expanded });
+        units.push({ kind: 'word', text: expanded });
         i++; // swallow the abbreviation period, it is not spoken as "point"
         continue;
       }
-      units.push({ isWord: true, text: t.text });
+      units.push({ kind: 'word', text: t.text });
     } else {
       const name = PUNCT_NAMES[t.text];
-      if (name) units.push({ isWord: false, text: name });
-      // Unknown punctuation tokens are silently skipped (never spoken).
+      if (!name) continue; // Unknown punctuation tokens are silently skipped (never spoken).
+      if (CLOSING.has(t.text)) units.push({ kind: 'mark', mark: t.text === '...' ? '…' : t.text, text: capitalise(name) });
+      else if (KEPT.has(t.text)) units.push({ kind: 'mark', mark: t.text, text: name });
+      else units.push({ kind: 'name', text: name });
     }
   }
 
-  // Words next to each other are joined with a plain space; whenever a
-  // punctuation name is involved (on either side), the join is ", " so it
-  // reads as an aside, as a teacher would say it.
+  // Words next to each other are joined by a space; a name is set off by commas, as an aside; a kept
+  // mark sits against the word before it (« . », « … ») or after a space (« ? ! ; : »), then its name.
+  // A mark with nothing before it is said by its name alone.
   let out = '';
-  for (let i = 0; i < units.length; i++) {
+  units.forEach((u, i) => {
     if (i > 0) {
       const prev = units[i - 1];
-      out += prev.isWord && units[i].isWord ? ' ' : ', ';
+      if (u.kind === 'mark') out += (u.mark === '.' || u.mark === '…' ? '' : SPACE) + u.mark + SPACE;
+      else out += prev.kind === 'word' && u.kind === 'word' ? SPACE : ', ';
     }
-    out += units[i].text;
-  }
+    out += u.text;
+  });
   out += '.';
 
-  if (opts?.newParagraph) out = 'À la ligne. ' + out;
+  if (opts?.newParagraph) out = 'À la ligne. ' + (units[0] && units[0].kind !== 'word' ? capitalise(out) : out);
   return out;
 }

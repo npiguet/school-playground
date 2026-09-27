@@ -49,6 +49,31 @@ export type Step =
 // Task 10's runner.ts imports this for RunnerState.lastSay.
 export type SayStep = Extract<Step, { kind: 'say' }>;
 
+/** One line the voice says: its spoken form and its rate (the cache and the prefetch key on both). */
+export interface SayLine {
+  spoken: string;
+  rate: number;
+}
+
+/** The voice's limit on one line (tts/app/text.py MAX_CHARS, Kokoro plan Ruling K1): pace 4's full
+ *  reading of the longest text must fit. */
+export const MAX_LINE_CHARS = 10_000;
+
+/** The lines a script says, each once, in the order it first says them (spec 2026-09-27 §5.2: what the
+ *  dictation sends ahead to be recorded). */
+export function sayLines(steps: Step[]): SayLine[] {
+  const seen = new Set<string>();
+  const out: SayLine[] = [];
+  for (const s of steps) {
+    if (s.kind !== 'say') continue;
+    const key = `${s.rate}|${s.spoken}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ spoken: s.spoken, rate: s.rate });
+  }
+  return out;
+}
+
 export function buildPlan(text: string): DictationPlan {
   const sentences = splitSentences(text);
   const chunks: Chunk[] = [];

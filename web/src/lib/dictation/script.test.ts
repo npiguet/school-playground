@@ -1,5 +1,7 @@
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { buildPlan, buildScript, replayLimit, pauseMs, defaultPace, PACE_LABELS } from './script';
+import { buildPlan, buildScript, replayLimit, pauseMs, defaultPace, PACE_LABELS, sayLines, MAX_LINE_CHARS } from './script';
+import { spokenForm } from './spoken';
 
 const TEXT = 'Le loup, affamé, arriva près de la bergerie. Les brebis dormaient.';
 
@@ -70,5 +72,32 @@ describe('parameters', () => {
     expect(PACE_LABELS[3]).toEqual({ title: "D'un bon pas", description: 'Chaque groupe est lu deux fois, puis la voix enchaîne.' });
     expect(PACE_LABELS[4]).toEqual({ title: "D'une traite", description: 'Le texte entier est lu, puis dicté, puis relu une dernière fois. Pas de réécoute.' });
     expect([PACE_LABELS[1].title, PACE_LABELS[2].title]).toEqual(['Pas à pas', 'Par groupes']);
+  });
+});
+
+describe('sayLines (spec 2026-09-27 §5.2: what the dictation sends ahead)', () => {
+  const plan = buildPlan(TEXT);
+  it('lists each line once, in the order the script first says it, at its pace', () => {
+    expect(sayLines(buildScript(plan, 1))).toEqual(plan.sentences.map((s) => ({ spoken: spokenForm(s.text, { newParagraph: s.newParagraph }), rate: 0.75 })));
+    expect(sayLines(buildScript(plan, 2))).toEqual(plan.chunks.map((c) => ({ spoken: c.spoken, rate: 0.85 })));
+    // Pace 3 reads each chunk twice: once in the list.
+    expect(sayLines(buildScript(plan, 3))).toEqual(plan.chunks.map((c) => ({ spoken: c.spoken, rate: 0.9 })));
+  });
+  it("keeps pace 4's two full readings apart: they are said at different rates", () => {
+    expect(sayLines(buildScript(plan, 4))).toEqual([
+      { spoken: plan.full, rate: 1.0 },
+      ...plan.chunks.map((c) => ({ spoken: c.spoken, rate: 0.9 })),
+      { spoken: plan.full, rate: 0.95 },
+    ]);
+  });
+});
+
+describe("the voice's limit (Kokoro plan Ruling K1)", () => {
+  it("fits every seed text's longest line, pace 4's full reading", () => {
+    expect(MAX_LINE_CHARS).toBe(10_000); // tts/app/text.py MAX_CHARS
+    for (const f of readdirSync('../content/seed').filter((n) => n.endsWith('.json'))) {
+      const body = (JSON.parse(readFileSync(`../content/seed/${f}`, 'utf-8')) as { body: string }).body;
+      expect(buildPlan(body).full.length, f).toBeLessThanOrEqual(MAX_LINE_CHARS);
+    }
   });
 });

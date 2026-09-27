@@ -25,6 +25,9 @@ node container):
 Kokoro-82M (`ff_siwis`) was the pick. Round 2 compares ways of speaking the final punctuation, voice
 blends and other Kokoro voices through the French phonemiser, and the two slower paces (native speed vs
 ffmpeg atempo). Its page is `assets/tts-bakeoff/kokoro/index.html`; round 1's page is left as it is.
+Since the Kokoro plan's Task 6 the game's `spokenForm` produces variant C itself (with the spec's
+capital after « À la ligne. »: « Tiret, »); `round2.json` is the frozen record of what the user
+listened to: do not regenerate it with `round2.ts`.
 
     tools/tts/run_docker.sh round2-bake     # Kokoro container: samples + results.json
     tools/tts/run_docker.sh round2-post     # ffmpeg container: atempo, silences, index.html
