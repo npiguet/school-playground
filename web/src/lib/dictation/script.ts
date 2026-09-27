@@ -1,17 +1,31 @@
 // Builds the sequence of speech/wait steps a dictation runs through for a
-// given pace level. Pure TypeScript, spec §3.3.
+// given pace level. Pure TypeScript, spec §3.3, as redesigned on 2026-09-27
+// (pace-redesign-brief.md): three paces, all in breath groups, each group
+// read twice, the whole text read once at the end.
 import { splitSentences, splitChunks, countWords, type Sentence } from './segment';
 import { spokenForm } from './spoken';
 
-export type Pace = 1 | 2 | 3 | 4;
+/** I « Pas à pas », II « Par groupes », III « D'un bon pas ». Pace IV (« D'une traite ») was retired by
+ *  the pace redesign: a save or a setting that still holds it reads as III (`toPace`); the server keeps
+ *  4 valid for the sessions recorded at it. */
+export type Pace = 1 | 2 | 3;
 
-export const PACE_RATES: Record<Pace, number> = { 1: 0.75, 2: 0.85, 3: 0.9, 4: 1.0 };
+export const PACES: readonly Pace[] = [1, 2, 3];
+
+/** The pace a saved state holds: 1-3 as they are, the retired 4 as 3, anything else null (corrupt). */
+export function toPace(value: unknown): Pace | null {
+  if (value === 1 || value === 2 || value === 3) return value;
+  return value === 4 ? 3 : null;
+}
+
+/** Every line of every pace is said at this rate (the pace redesign: the paces differ in their groups
+ *  and their stops, not in the voice's speed). */
+export const DICTATION_RATE = 0.85;
 
 export const PACE_LABELS: Record<Pace, { title: string; description: string }> = {
-  1: { title: 'Pas à pas', description: 'Une phrase à la fois, lentement. Tu réécoutes autant que tu veux.' },
-  2: { title: 'Par groupes', description: 'Des groupes de mots, trois réécoutes pour tout le texte.' },
-  3: { title: "D'un bon pas", description: 'Chaque groupe est lu deux fois, puis la voix enchaîne.' },
-  4: { title: "D'une traite", description: 'Le texte entier est lu, puis dicté, puis relu une dernière fois. Pas de réécoute.' },
+  1: { title: 'Pas à pas', description: "Chaque groupe est lu deux fois, puis la Pythie t'attend. Une réécoute par groupe." },
+  2: { title: 'Par groupes', description: 'Chaque groupe est lu deux fois, puis la Pythie enchaîne. Tu peux faire une pause.' },
+  3: { title: "D'un bon pas", description: "Des groupes plus longs, lus deux fois. La Pythie ne s'arrête pas." },
 };
 
 export interface Chunk {
@@ -34,14 +48,12 @@ export type Step =
       text: string;
       spoken: string;
       rate: number;
-      label: 'full' | 'sentence' | 'chunk';
-      // Whether this step counts toward the runner's done/total progress:
-      // 'chunk' for the countable units (sentences at pace 1, chunks at
-      // paces 2-4), 'full' for pace 4's whole-text bookend reads, which are
-      // not part of the "Groupe X sur Y" count.
+      label: 'full' | 'chunk';
+      // Whether this step counts toward the runner's done/total progress: 'chunk' for the breath
+      // groups, 'full' for the final whole-text reading, which is not part of the "Groupe X sur Y" count.
       unit: 'chunk' | 'full';
-      // The sentence (pace 1), the chunk (paces 2-4), or, in pace 4's full readings, the sentence of
-      // the reading (fix wave A, Ruling R-A1: the reading's first sentence, 0, opens its unit).
+      // The group, or, in the final reading, its sentence (fix wave A, Ruling R-A1: the reading's first
+      // sentence, 0, opens its unit).
       index: number;
       repeat: 1 | 2;
     }
@@ -59,8 +71,8 @@ export interface SayLine {
 }
 
 /** The voice's limit on one line (tts/app/text.py MAX_CHARS, Kokoro plan Ruling K1), kept as a guard:
- *  the longest line the game says is one sentence (pace 1, and pace 4's full readings, which are said
- *  a sentence at a time since fix wave A's Ruling R-A1). */
+ *  the longest line the game says is one sentence (the final reading, said a sentence at a time since
+ *  fix wave A's Ruling R-A1). */
 export const MAX_LINE_CHARS = 10_000;
 
 /** What makes two lines the same line: its rate and its spoken form (sayLines' dedupe and the voice's
@@ -104,12 +116,48 @@ export function buildPlan(text: string): DictationPlan {
   return { sentences, chunks, full };
 }
 
-export function replayLimit(pace: Pace): number {
-  return { 1: Infinity, 2: 3, 3: 0, 4: 0 }[pace];
+/** The most words a pace III group holds once its neighbours are merged in. */
+const LONG_GROUP_WORDS = 20;
+
+/** Pace III's breath groups, about twice as long (the pace redesign): the plan's groups, each merged
+ *  with the next, left to right, while the merged group stays at 20 words or fewer. Never across a
+ *  sentence. The merged group keeps the second group's ending: a group that goes on still ends on a
+ *  comma, a sentence's last still ends « . Point. ». */
+export function longGroups(chunks: Chunk[]): Chunk[] {
+  const out: Chunk[] = [];
+  let current: Chunk | null = null;
+  const flush = (lastOfSentence: boolean) => {
+    if (!current) return;
+    out.push({ ...current, spoken: spokenForm(current.text, { newParagraph: current.newParagraph, continues: !lastOfSentence }) });
+    current = null;
+  };
+  chunks.forEach((chunk, i) => {
+    if (current && countWords(current.text) + countWords(chunk.text) <= LONG_GROUP_WORDS) {
+      current = { ...current, text: `${current.text} ${chunk.text}` };
+    } else {
+      flush(false);
+      current = { ...chunk };
+    }
+    const next = chunks[i + 1];
+    if (!next || next.sentenceIndex !== chunk.sentenceIndex) flush(true);
+  });
+  return out;
 }
 
-export function pauseMs(chunkText: string): number {
-  return Math.max(3000, 1800 * countWords(chunkText));
+/** « Réécouter »: one extra reading of the group at pace I, given back at each new group; none at II
+ *  and III, which move on by themselves. */
+export function replayLimit(pace: Pace): number {
+  return pace === 1 ? 1 : 0;
+}
+
+/** The pause after a group's first reading: she has only just started writing it. */
+export function longPauseMs(groupText: string): number {
+  return Math.max(3000, 1600 * countWords(groupText));
+}
+
+/** The pause after its second reading: she finishes it, and checks it. */
+export function shortPauseMs(groupText: string): number {
+  return Math.max(2000, 800 * countWords(groupText));
 }
 
 export function defaultPace(level: string): Pace {
@@ -118,76 +166,44 @@ export function defaultPace(level: string): Pace {
   return 3;
 }
 
+/** The pace redesign: each group twice (the long pause, then the short one); pace I then waits for
+ *  « Suivant »; II and III move on. III reads longer groups. The whole text once at the end. */
 export function buildScript(plan: DictationPlan, pace: Pace): Step[] {
   const steps: Step[] = [];
-
-  if (pace === 1) {
-    plan.sentences.forEach((sentence, i) => {
-      steps.push({
-        kind: 'say',
-        text: sentence.text,
-        spoken: spokenForm(sentence.text, { newParagraph: sentence.newParagraph }),
-        rate: PACE_RATES[1],
-        label: 'sentence',
-        unit: 'chunk',
-        index: i,
-        repeat: 1,
-      });
-      steps.push({ kind: 'manual', index: i });
+  const groups = pace === 3 ? longGroups(plan.chunks) : plan.chunks;
+  groups.forEach((group, i) => {
+    const say = (repeat: 1 | 2): Step => ({
+      kind: 'say',
+      text: group.text,
+      spoken: group.spoken,
+      rate: DICTATION_RATE,
+      label: 'chunk',
+      unit: 'chunk',
+      index: i,
+      repeat,
     });
-  } else if (pace === 2) {
-    plan.chunks.forEach((chunk, i) => {
-      steps.push({
-        kind: 'say',
-        text: chunk.text,
-        spoken: chunk.spoken,
-        rate: PACE_RATES[2],
-        label: 'chunk',
-        unit: 'chunk',
-        index: i,
-        repeat: 1,
-      });
-      steps.push({ kind: 'manual', index: i });
-    });
-  } else if (pace === 3) {
-    plan.chunks.forEach((chunk, i) => {
-      pushChunkTwice(steps, chunk, i, PACE_RATES[3]);
-    });
-  } else {
-    pushFullReading(steps, plan, PACE_RATES[4], 1);
-    steps.push({ kind: 'wait', ms: 2000 });
-    plan.chunks.forEach((chunk, i) => {
-      pushChunkTwice(steps, chunk, i, PACE_RATES[3]);
-    });
-    steps.push({ kind: 'wait', ms: 1000 });
-    pushFullReading(steps, plan, 0.95, 2);
-  }
-
+    steps.push(say(1), { kind: 'wait', ms: longPauseMs(group.text) }, say(2), { kind: 'wait', ms: shortPauseMs(group.text) });
+    if (pace === 1) steps.push({ kind: 'manual', index: i });
+  });
+  pushFullReading(steps, plan);
   steps.push({ kind: 'done' });
   return steps;
 }
 
-/** Pace 4's whole-text reading (fix wave A, Ruling R-A1): its sentences back to back, each its own line
- *  at the reading's rate, with no gap but the voice's own. The first is ready in about a second, where
- *  the whole text as one line took 23 to 26 s. The same words as `plan.full`, which joins them. */
-function pushFullReading(steps: Step[], plan: DictationPlan, rate: number, repeat: 1 | 2): void {
+/** The final whole-text reading (fix wave A, Ruling R-A1): its sentences back to back, each its own
+ *  line, with no gap but the voice's own. The first is ready in about a second, where the whole text as
+ *  one line took 23 to 26 s. The same words as `plan.full`, which joins them. */
+function pushFullReading(steps: Step[], plan: DictationPlan): void {
   plan.sentences.forEach((sentence, i) => {
     steps.push({
       kind: 'say',
       text: sentence.text,
       spoken: spokenForm(sentence.text, { newParagraph: sentence.newParagraph }),
-      rate,
+      rate: DICTATION_RATE,
       label: 'full',
       unit: 'full',
       index: i,
-      repeat,
+      repeat: 1,
     });
   });
-}
-
-function pushChunkTwice(steps: Step[], chunk: Chunk, index: number, rate: number): void {
-  steps.push({ kind: 'say', text: chunk.text, spoken: chunk.spoken, rate, label: 'chunk', unit: 'chunk', index, repeat: 1 });
-  steps.push({ kind: 'wait', ms: 600 });
-  steps.push({ kind: 'say', text: chunk.text, spoken: chunk.spoken, rate, label: 'chunk', unit: 'chunk', index, repeat: 2 });
-  steps.push({ kind: 'wait', ms: pauseMs(chunk.text) });
 }

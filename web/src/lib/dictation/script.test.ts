@@ -1,6 +1,21 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { buildPlan, buildScript, replayLimit, pauseMs, defaultPace, PACE_LABELS, sayLines, MAX_LINE_CHARS } from './script';
+import {
+  buildPlan,
+  buildScript,
+  replayLimit,
+  longPauseMs,
+  shortPauseMs,
+  longGroups,
+  defaultPace,
+  toPace,
+  DICTATION_RATE,
+  PACES,
+  PACE_LABELS,
+  sayLines,
+  MAX_LINE_CHARS,
+} from './script';
+import { countWords } from './segment';
 import { spokenForm } from './spoken';
 
 const TEXT = 'Le loup, affamé, arriva près de la bergerie. Les brebis dormaient.';
@@ -40,109 +55,149 @@ describe('buildPlan', () => {
   });
 });
 
-describe('buildScript', () => {
+// The pace redesign (2026-09-27, pace-redesign-brief.md): three paces, all in breath groups, each group
+// read twice (the long pause after the first reading, the short one after the second), the text read
+// once in full at the end, a sentence at a time (Ruling R-A1), every line at one rate.
+describe('buildScript (the pace redesign)', () => {
   const plan = buildPlan(TEXT);
-  it('pace 1: one sentence, then wait for the player', () => {
-    const kinds = buildScript(plan, 1).map((s) => s.kind);
-    expect(kinds).toEqual(['say', 'manual', 'say', 'manual', 'done']);
-    const first = buildScript(plan, 1)[0];
-    expect(first).toMatchObject({ kind: 'say', label: 'sentence', rate: 0.75, index: 0, repeat: 1 });
+  const [g0, g1, g2] = plan.chunks;
+  const say = (text: string, spoken: string, index: number, repeat: 1 | 2) =>
+    ({ kind: 'say', text, spoken, rate: 0.85, label: 'chunk', unit: 'chunk', index, repeat }) as const;
+  const twice = (text: string, spoken: string, index: number) => [
+    say(text, spoken, index, 1),
+    { kind: 'wait', ms: longPauseMs(text) },
+    say(text, spoken, index, 2),
+    { kind: 'wait', ms: shortPauseMs(text) },
+  ];
+  const fullReading = plan.sentences.map((s, i) => ({
+    kind: 'say',
+    text: s.text,
+    spoken: spokenForm(s.text, { newParagraph: s.newParagraph }),
+    rate: 0.85,
+    label: 'full',
+    unit: 'full',
+    index: i,
+    repeat: 1,
+  }));
+
+  it('the pauses: the long one after the first reading, the short one after the second, both per word', () => {
+    expect(longPauseMs('un')).toBe(3000);
+    expect(longPauseMs('un deux')).toBe(3200);
+    expect(longPauseMs('arriva près de la bergerie.')).toBe(8000);
+    expect(shortPauseMs('un')).toBe(2000);
+    expect(shortPauseMs('un deux trois')).toBe(2400);
+    expect(shortPauseMs('arriva près de la bergerie.')).toBe(4000);
+    expect(DICTATION_RATE).toBe(0.85);
   });
-  it('pace 2: one chunk, then wait', () => {
-    expect(buildScript(plan, 2).map((s) => s.kind)).toEqual(['say', 'manual', 'say', 'manual', 'say', 'manual', 'done']);
-    expect(buildScript(plan, 2)[0]).toMatchObject({ label: 'chunk', rate: 0.85 });
-  });
-  it('pace 3: each chunk twice, then a pause proportional to its length', () => {
-    const steps = buildScript(plan, 3);
-    expect(steps.slice(0, 4)).toEqual([
-      expect.objectContaining({ kind: 'say', repeat: 1, rate: 0.9 }), { kind: 'wait', ms: 600 },
-      expect.objectContaining({ kind: 'say', repeat: 2 }), { kind: 'wait', ms: pauseMs('Le loup, affamé,') },
+  it('pace I: each group twice, then waits for « Suivant »; the whole text once at the end', () => {
+    expect(buildScript(plan, 1)).toEqual([
+      ...twice(g0.text, g0.spoken, 0), { kind: 'manual', index: 0 },
+      ...twice(g1.text, g1.spoken, 1), { kind: 'manual', index: 1 },
+      ...twice(g2.text, g2.spoken, 2), { kind: 'manual', index: 2 },
+      ...fullReading,
+      { kind: 'done' },
     ]);
-    expect(steps.at(-1)).toEqual({ kind: 'done' });
-    expect(steps.filter((s) => s.kind === 'manual')).toHaveLength(0);
   });
-  it('pace 4: full reading a sentence at a time, chunks twice, final full reading (Ruling R-A1)', () => {
-    const steps = buildScript(plan, 4);
-    const reading = (rate: number, repeat: 1 | 2) =>
-      plan.sentences.map((s, i) => ({
-        kind: 'say',
-        text: s.text,
-        spoken: spokenForm(s.text, { newParagraph: s.newParagraph }),
-        rate,
-        label: 'full',
-        unit: 'full',
-        index: i,
-        repeat,
-      }));
-    // The sentences back to back: no wait between them, only the voice's own gap.
-    expect(steps.slice(0, 2)).toEqual(reading(1.0, 1));
-    expect(steps[2]).toEqual({ kind: 'wait', ms: 2000 });
-    expect(steps.slice(-4, -1)).toEqual([{ kind: 'wait', ms: 1000 }, ...reading(0.95, 2)]);
-    expect(steps.at(-1)).toEqual({ kind: 'done' });
-    // The same words as the whole text read as one line.
-    expect(reading(1.0, 1).map((s) => s.spoken).join(' ')).toBe(plan.full);
+  it('pace II: the same groups, twice each, moving on by itself; the whole text once at the end', () => {
+    expect(buildScript(plan, 2)).toEqual([
+      ...twice(g0.text, g0.spoken, 0),
+      ...twice(g1.text, g1.spoken, 1),
+      ...twice(g2.text, g2.spoken, 2),
+      ...fullReading,
+      { kind: 'done' },
+    ]);
   });
-  it("pace 4: a reading's paragraph break stays on its sentence", () => {
+  it("pace III: pace II's steps on longer groups (neighbours merged within a sentence)", () => {
+    const merged = 'Le loup, affamé, arriva près de la bergerie.';
+    expect(buildScript(plan, 3)).toEqual([
+      ...twice(merged, 'Le loup, virgule, affamé, virgule, arriva près de la bergerie. Point.', 0),
+      ...twice(g2.text, g2.spoken, 1),
+      ...fullReading,
+      { kind: 'done' },
+    ]);
+  });
+  it('the final reading is the same words as the whole text, a paragraph break kept on its sentence', () => {
+    expect(fullReading.map((s) => s.spoken).join(' ')).toBe(plan.full);
     const p = buildPlan('Le loup arriva.\n\nLes brebis dormaient.');
-    const spoken = buildScript(p, 4).filter((s) => s.kind === 'say' && s.label === 'full').map((s) => (s as { spoken: string }).spoken);
-    expect(spoken).toHaveLength(4);
-    expect(spoken[1]).toBe(spokenForm('Les brebis dormaient.', { newParagraph: true }));
-    expect(spoken[1]).toMatch(/^À la ligne/);
+    for (const pace of [1, 2, 3] as const) {
+      const full = buildScript(p, pace).filter((s) => s.kind === 'say' && s.label === 'full').map((s) => (s as { spoken: string }).spoken);
+      expect(full, String(pace)).toEqual([spokenForm('Le loup arriva.'), spokenForm('Les brebis dormaient.', { newParagraph: true })]);
+    }
   });
-  it('pace 4: only chunk steps count as progress units, not the bookend full reads', () => {
-    const sayLabels = buildScript(plan, 4)
-      .filter((s) => s.kind === 'say')
-      .map((s) => [s.label, (s as { unit: string }).unit]);
-    expect(sayLabels).toEqual([
-      ['full', 'full'],
-      ['full', 'full'],
-      ['chunk', 'chunk'],
-      ['chunk', 'chunk'],
-      ['chunk', 'chunk'],
-      ['chunk', 'chunk'],
-      ['chunk', 'chunk'],
-      ['chunk', 'chunk'],
-      ['full', 'full'],
-      ['full', 'full'],
+});
+
+describe('longGroups (pace III: breath groups about twice as long)', () => {
+  const body = (JSON.parse(readFileSync('../content/seed/035-muses-circe.json', 'utf-8')) as { body: string }).body;
+  it("merges text 35's neighbouring groups while they stay at 20 words or fewer, never across a sentence", () => {
+    const groups = longGroups(buildPlan(body).chunks);
+    expect(groups.map((g) => [g.sentenceIndex, g.spoken])).toEqual([
+      [0, "Quand les marins d'Ulysse débarquèrent sur l'île boisée où régnait la magicienne Circé, virgule, ils furent accueillis par des lions,"],
+      [0, 'et des loups étrangement dociles, virgule, qui les frôlaient sans jamais montrer les crocs. Point.'],
+      [1, "Circé, virgule, vêtue d'une robe tissée de fils d'argent, virgule, les invita dans son palais et leur offrit un vin doré, virgule."],
+      [1, "parfumé d'herbes qu'elle seule connaissait. Point."],
+      [2, 'Les hommes, virgule, affamés par leur longue traversée, virgule, burent sans méfiance. Point.'],
+      [3, 'Aussitôt, virgule, leurs bras se couvrirent de soies rudes, virgule, leurs voix se changèrent en grognements, virgule.'],
+      [3, 'et ils se retrouvèrent transformés en pourceaux, virgule, trottinant piteusement entre les colonnes du palais. Point.'],
+      [4, 'Seul Euryloque, virgule, resté en arrière par prudence, virgule, échappa au sortilège et courut avertir Ulysse. Point.'],
+      [5, "Celui-ci, virgule, protégé par une herbe magique que lui avait donnée le dieu Hermès, virgule, entra chez Circé sans crainte et exigea,"],
+      [5, 'que ses compagnons retrouvent aussitôt leur forme humaine. Point.'],
     ]);
+    expect(groups.map((g) => g.text)[0]).toBe("Quand les marins d'Ulysse débarquèrent sur l'île boisée où régnait la magicienne Circé, ils furent accueillis par des lions");
+  });
+  it('every seed text: at most 20 words a group, all the words kept in order, no group across a sentence', () => {
+    for (const f of readdirSync('../content/seed').filter((n) => n.endsWith('.json'))) {
+      const plan = buildPlan((JSON.parse(readFileSync(`../content/seed/${f}`, 'utf-8')) as { body: string }).body);
+      const groups = longGroups(plan.chunks);
+      expect(groups.length, f).toBeLessThanOrEqual(plan.chunks.length);
+      for (const g of groups) expect(countWords(g.text), `${f}: ${g.text}`).toBeLessThanOrEqual(20);
+      plan.sentences.forEach((s, i) => {
+        expect(groups.filter((g) => g.sentenceIndex === i).map((g) => g.text).join(' '), f).toBe(plan.chunks.filter((c) => c.sentenceIndex === i).map((c) => c.text).join(' '));
+      });
+      // « À la ligne » stays on the first group of its sentence only.
+      expect(groups.filter((g) => g.newParagraph).length, f).toBe(plan.chunks.filter((c) => c.newParagraph).length);
+    }
   });
 });
 
 describe('parameters', () => {
-  it('replay limits and pauses', () => {
-    expect(replayLimit(1)).toBe(Infinity); expect(replayLimit(2)).toBe(3); expect(replayLimit(3)).toBe(0); expect(replayLimit(4)).toBe(0);
-    expect(pauseMs('un deux')).toBe(3600); expect(pauseMs('un')).toBe(3000);
+  it('« Réécouter »: one per group at pace I, none at II and III', () => {
+    expect([replayLimit(1), replayLimit(2), replayLimit(3)]).toEqual([1, 0, 0]);
   });
   it('default pace by level', () => {
-    expect(defaultPace('5H')).toBe(1); expect(defaultPace('8H')).toBe(2); expect(defaultPace('10H')).toBe(3);
+    expect(defaultPace('5H')).toBe(1); expect(defaultPace('6H')).toBe(1);
+    expect(defaultPace('7H')).toBe(2); expect(defaultPace('8H')).toBe(2);
+    expect(defaultPace('9H')).toBe(3); expect(defaultPace('10H')).toBe(3); expect(defaultPace('11H')).toBe(3);
   });
-  it("names the paces in the camp's words (UI4 Ruling C8)", () => {
-    expect(PACE_LABELS[3]).toEqual({ title: "D'un bon pas", description: 'Chaque groupe est lu deux fois, puis la voix enchaîne.' });
-    expect(PACE_LABELS[4]).toEqual({ title: "D'une traite", description: 'Le texte entier est lu, puis dicté, puis relu une dernière fois. Pas de réécoute.' });
-    expect([PACE_LABELS[1].title, PACE_LABELS[2].title]).toEqual(['Pas à pas', 'Par groupes']);
+  it('a saved pace: 1-3 as it is, the retired pace IV as III, anything else none', () => {
+    expect([1, 2, 3, 4].map(toPace)).toEqual([1, 2, 3, 3]);
+    for (const bad of [undefined, null, 0, 5, 2.5, '3']) expect(toPace(bad), String(bad)).toBeNull();
+  });
+  it("names the three paces in the camp's words (UI4 Ruling C8), pace IV gone", () => {
+    expect(PACES).toEqual([1, 2, 3]);
+    expect(PACE_LABELS).toEqual({
+      1: { title: 'Pas à pas', description: "Chaque groupe est lu deux fois, puis la Pythie t'attend. Une réécoute par groupe." },
+      2: { title: 'Par groupes', description: 'Chaque groupe est lu deux fois, puis la Pythie enchaîne. Tu peux faire une pause.' },
+      3: { title: "D'un bon pas", description: "Des groupes plus longs, lus deux fois. La Pythie ne s'arrête pas." },
+    });
   });
 });
 
 describe('sayLines (spec 2026-09-27 §5.2: what the dictation sends ahead)', () => {
   const plan = buildPlan(TEXT);
-  it('lists each line once, in the order the script first says it, at its pace', () => {
-    expect(sayLines(buildScript(plan, 1))).toEqual(plan.sentences.map((s) => ({ spoken: spokenForm(s.text, { newParagraph: s.newParagraph }), rate: 0.75 })));
-    expect(sayLines(buildScript(plan, 2))).toEqual(plan.chunks.map((c) => ({ spoken: c.spoken, rate: 0.85 })));
-    // Pace 3 reads each chunk twice: once in the list.
-    expect(sayLines(buildScript(plan, 3))).toEqual(plan.chunks.map((c) => ({ spoken: c.spoken, rate: 0.9 })));
-  });
-  it("sends pace 4's sentences first, in order, and keeps its two full readings apart: different rates", () => {
-    const sentences = plan.sentences.map((s) => spokenForm(s.text, { newParagraph: s.newParagraph }));
-    expect(sayLines(buildScript(plan, 4))).toEqual([
-      ...sentences.map((spoken) => ({ spoken, rate: 1.0 })),
-      ...plan.chunks.map((c) => ({ spoken: c.spoken, rate: 0.9 })),
-      ...sentences.map((spoken) => ({ spoken, rate: 0.95 })),
-    ]);
+  const sentences = plan.sentences.map((s) => ({ spoken: spokenForm(s.text, { newParagraph: s.newParagraph }), rate: 0.85 }));
+  it('lists each line once, in the order the script first says it: the groups, then the final reading', () => {
+    const groups = plan.chunks.map((c) => ({ spoken: c.spoken, rate: 0.85 }));
+    // « Les brebis dormaient. » is a group and a sentence of the reading: the same line, sent once.
+    expect(groups[2]).toEqual(sentences[1]);
+    expect(sayLines(buildScript(plan, 1))).toEqual([...groups, sentences[0]]);
+    expect(sayLines(buildScript(plan, 2))).toEqual([...groups, sentences[0]]);
+    // Pace III's two groups are the two sentences: the final reading adds no new line.
+    expect(sayLines(buildScript(plan, 3))).toEqual(sentences);
   });
   it('says a sentence repeated in the text once in the list: the same line, from the same clip', () => {
     const p = buildPlan('Il pleut. Le loup attend. Il pleut.');
-    const lines = sayLines(buildScript(p, 4)).filter((l) => l.rate === 1.0);
-    expect(lines.map((l) => l.spoken)).toEqual([spokenForm('Il pleut.'), spokenForm('Le loup attend.')]);
+    const lines = sayLines(buildScript(p, 2)).map((l) => l.spoken);
+    expect(lines).toEqual([spokenForm('Il pleut.'), spokenForm('Le loup attend.')]);
   });
 });
 
@@ -152,7 +207,7 @@ describe("the voice's limit (Kokoro plan Ruling K1, a guard since Ruling R-A1)",
     for (const f of readdirSync('../content/seed').filter((n) => n.endsWith('.json'))) {
       const body = (JSON.parse(readFileSync(`../content/seed/${f}`, 'utf-8')) as { body: string }).body;
       const plan = buildPlan(body);
-      const longest = Math.max(...([1, 2, 3, 4] as const).flatMap((pace) => sayLines(buildScript(plan, pace)).map((l) => l.spoken.length)));
+      const longest = Math.max(...([1, 2, 3] as const).flatMap((pace) => sayLines(buildScript(plan, pace)).map((l) => l.spoken.length)));
       const sentence = Math.max(...plan.sentences.map((s) => spokenForm(s.text, { newParagraph: s.newParagraph }).length));
       expect(longest, f).toBe(sentence);
       expect(longest, f).toBeLessThanOrEqual(MAX_LINE_CHARS);

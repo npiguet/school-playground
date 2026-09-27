@@ -19,6 +19,8 @@ const FILES = [
   ...walk('src/lib/world'),
   ...walk('src/lib/battle'),
   'src/lib/library/shelf.ts',
+  // The pace medallions' names and descriptions (PACE_LABELS).
+  'src/lib/dictation/script.ts',
 ];
 
 function walk(dir: string, out: string[] = []): string[] {

@@ -17,8 +17,8 @@ import { lineKey, type SayLine } from './script';
  * (task-10-report.md, `ff_siwis`, onnx-direct, Ryzen 9 5950X) as ms a character times the rate:
  * short lines 74.6 at 0.75, 69.0 at 0.85, 66.0 at 0.90, 58.3 at 0.95 and 60.1 at 1.0; one
  * 1557-character line 53.6 at 1.0. So a muted slow line waits about 13 % less than Kokoro takes,
- * and a muted long line about 20 % more. Pace 4 now reads its full readings a sentence at a
- * time, so no line is that long any more.
+ * and a muted long line about 20 % more. The full reading is now said a sentence at a time
+ * (Ruling R-A1), so no line is that long any more.
  */
 export const SPEECH_MS_PER_CHAR = 65;
 
@@ -185,8 +185,8 @@ export function createVoice(deps: VoiceDeps): Voice {
     prefetch,
     prepare(lines) {
       if (disposed || muted() || lines.length === 0) return;
-      // A text within the server's 4 000-character limit gives far fewer lines, even at pace 4
-      // (each sentence twice, each chunk once). Past MAX_PREPARE_LINES the tail would be left out,
+      // A text within the server's 4 000-character limit gives far fewer lines (each group once, each
+      // sentence at most once more). Past MAX_PREPARE_LINES the tail would be left out,
       // and the one-ahead prefetch would still fetch each of those lines while the one before it
       // plays.
       const body = { profile_id: deps.profileId, lines: lines.slice(0, MAX_PREPARE_LINES).map((l) => ({ text: l.spoken, speed: l.rate })) };

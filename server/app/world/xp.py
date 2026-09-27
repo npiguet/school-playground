@@ -2,6 +2,8 @@
 from __future__ import annotations
 from app.world.catalog import RANKS
 
+# Pace 4 was retired by the pace redesign (2026-09-27): the game offers 1-3 and loads a save at 4 as 3,
+# but a session played at 4 (or submitted by a page opened before the redesign) keeps its multiplier.
 PACE_MULT = {1: 1.0, 2: 1.25, 3: 1.5, 4: 2.0}
 
 

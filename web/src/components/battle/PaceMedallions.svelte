@@ -1,13 +1,13 @@
 <script lang="ts">
-  // The four paces as bronze medallions (UI4 Task 3; Ruling C8's names): real radios, the label is
-  // the tap target. `minPace` (SP3 Task 7): in a boss fight the slower paces stay visible, locked,
-  // with the reason, rather than disappearing (never take an option away silently).
-  import { PACE_LABELS, type Pace } from '../../lib/dictation/script';
+  // The three paces as bronze medallions (UI4 Task 3; Ruling C8's names; pace IV retired by the pace
+  // redesign): real radios, the label is the tap target. `minPace` (SP3 Task 7): in a boss fight the
+  // slower paces stay visible, locked, with the reason, rather than disappearing (never take an option
+  // away silently).
+  import { PACES, PACE_LABELS, type Pace } from '../../lib/dictation/script';
   import { MUSTER } from '../../lib/battle/lines';
 
   let { pace = $bindable(), minPace = 1 }: { pace: Pace; minPace?: Pace } = $props();
-  const PACES: Pace[] = [1, 2, 3, 4];
-  const ROMAN = ['', 'I', 'II', 'III', 'IV'];
+  const ROMAN = ['', 'I', 'II', 'III'];
 </script>
 
 <fieldset class="paces">
@@ -44,10 +44,12 @@
     text-transform: uppercase;
     color: var(--bronze-dark);
   }
+  /* Three paces, one under the other (I to III, the order they quicken in): each description on a line
+     or two, where two columns left the third medallion alone on its row. */
   .grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
   }
   .pace {
     position: relative;

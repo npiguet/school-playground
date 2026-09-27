@@ -177,7 +177,7 @@ describe('the voice channel (spec 2026-09-27 §5.1: the dictation plays through 
     expect(engine.snapshot()).toMatchObject({ ducks: [], voiceSpeaking: false });
   });
 
-  // Fix wave A, Ruling R-A2: pace 4's sentences come back to back.
+  // Fix wave A, Ruling R-A2: the final reading's sentences come back to back.
   it('holds the duck a moment after a line ends: the next line keeps the music down, and no effect slips in', async () => {
     vi.useFakeTimers();
     const { backend, engine } = setup();

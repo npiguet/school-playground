@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+  DICTATION_SCRIPT,
   battleContext,
   clearPlayState,
   loadPlayState,
@@ -93,10 +94,41 @@ describe('savePlayState / loadPlayState', () => {
       localStorage.setItem(playKey(1, 2), JSON.stringify({ ...s, pace }));
       expect(loadPlayState(1, 2), String(pace)).toBeNull();
     }
-    for (const pace of [1, 2, 3, 4]) {
+    for (const pace of [1, 2, 3]) {
       localStorage.setItem(playKey(1, 2), JSON.stringify({ ...s, pace }));
       expect(loadPlayState(1, 2)?.pace).toBe(pace);
     }
+  });
+
+  // The pace redesign retired pace IV: a dictation saved at it resumes at III, from its start (its
+  // saved step was a step of pace IV's script, not of III's).
+  it('loads a dictation saved at the retired pace IV as pace III, its reading from the start', () => {
+    const s = { ...newPlayState(1, 2, 3), pace: 4, phase: 'dictation', draft: 'Les fées', dictationStep: 9, dictationReplaysLeft: 0 };
+    delete (s as Partial<PlayState>).dictationScript;
+    localStorage.setItem(playKey(1, 2), JSON.stringify(s));
+    const loaded = loadPlayState(1, 2)!;
+    expect(loaded).toMatchObject({ pace: 3, phase: 'dictation', draft: 'Les fées' });
+    expect(loaded.dictationStep).toBeUndefined();
+    expect(loaded.dictationReplaysLeft).toBeUndefined();
+  });
+
+  // Every pace's script changed with the redesign: a step saved in an older script points elsewhere in
+  // the new one, so an older save's reading starts again (her draft is kept).
+  it("drops a reading position saved in the older scripts, and keeps the current script's", () => {
+    const old = { ...newPlayState(1, 2, 2), phase: 'dictation', dictationStep: 6, dictationReplaysLeft: 2 };
+    delete (old as Partial<PlayState>).dictationScript;
+    localStorage.setItem(playKey(1, 2), JSON.stringify(old));
+    const loaded = loadPlayState(1, 2)!;
+    expect(loaded.dictationStep).toBeUndefined();
+    expect(loaded.dictationReplaysLeft).toBeUndefined();
+    expect(loaded.dictationScript).toBe(DICTATION_SCRIPT);
+
+    const current = newPlayState(1, 2, 2);
+    current.phase = 'dictation';
+    current.dictationStep = 8;
+    current.dictationReplaysLeft = 0;
+    savePlayState(current);
+    expect(loadPlayState(1, 2)).toMatchObject({ dictationStep: 8, dictationReplaysLeft: 0, dictationScript: DICTATION_SCRIPT });
   });
 
   it('saves a grimoire state under its own key, coexisting with a dictation state', () => {

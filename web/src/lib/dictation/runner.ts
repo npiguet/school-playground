@@ -17,15 +17,15 @@ export interface RunnerState {
   done: number;
   total: number;
   /** UI4 Ruling M20: the step a resumed dictation starts from, the first step of the unit (a
-   *  sentence, a chunk, or pace 4's whole-text read) read last. */
+   *  group, or the final whole-text reading) read last. */
   resumeAt: number;
   /** Spec 2026-09-27 §5.3: why the voice fell silent (the card's cause line), while `silenced`. */
   failure: VoiceFailure | null;
 }
 
-/** Whether `step` opens a unit of the reading: a sentence's or a chunk's first say (its second say
- *  belongs to it), or the first sentence of one of pace 4's full readings (fix wave A, Ruling R-A1:
- *  the reading's other sentences belong to it, so a resumed dictation reads the whole text again). */
+/** Whether `step` opens a unit of the reading: a group's first say (its second say belongs to it), or
+ *  the first sentence of the final full reading (fix wave A, Ruling R-A1: the reading's other sentences
+ *  belong to it, so a resumed dictation reads the whole text again). */
 function opensUnit(step: Step | undefined): boolean {
   if (step?.kind !== 'say') return false;
   return step.unit === 'full' ? step.index === 0 : step.repeat === 1;
@@ -66,8 +66,9 @@ function failureOf(e: unknown): VoiceFailure {
 }
 
 /** `from` (M20): a resumed dictation starts at that step's unit, its earlier units counted done.
- *  `fromReplaysLeft` (closing item 1): a resumed dictation keeps the replays it had spent, instead
- *  of the pace's full allowance - undefined (a fresh dictation) still starts from `replayLimit`. */
+ *  `fromReplaysLeft` (closing item 1): a resumed dictation keeps the replay its group had spent,
+ *  instead of the pace's full allowance - undefined (a fresh dictation) still starts from
+ *  `replayLimit`. « Suivant » gives the allowance back for the next group (the pace redesign). */
 export function createRunner(steps: Step[], deps: RunnerDeps, from = 0, fromReplaysLeft?: number) {
   const counted = (s: Step): s is SayStep => s.kind === 'say' && s.repeat === 1 && s.unit === 'chunk';
   const total = steps.filter(counted).length;
@@ -164,6 +165,8 @@ export function createRunner(steps: Step[], deps: RunnerDeps, from = 0, fromRepl
     },
     next() {
       if (stopped || status !== 'waiting') return;
+      // The pace redesign: « Réécouter » is the group's (one at pace I), given back for the next one.
+      replaysLeft = replayLimit(deps.pace);
       void runLoop();
     },
     replay() {

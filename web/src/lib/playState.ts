@@ -4,7 +4,7 @@
 // purely a resume aid. All storage access wrapped in try/catch (private
 // mode, quota errors).
 import type { OpponentId } from './battle/battle';
-import type { Pace } from './dictation/script';
+import { toPace, type Pace } from './dictation/script';
 import type { Plant, PlayMode } from './types';
 import type { Progression } from './world/types';
 
@@ -65,7 +65,14 @@ export interface PlayState {
    *  never refills it. No version bump: absent means the pace's full allowance (an older save, or
    *  a dictation never replayed). */
   dictationReplaysLeft?: number;
+  /** The dictation script `dictationStep` and `dictationReplaysLeft` belong to (DICTATION_SCRIPT). No
+   *  version bump: absent in a save from before the pace redesign, whose reading position is dropped. */
+  dictationScript?: number;
 }
+
+/** The dictation script a saved reading position indexes: 2 since the pace redesign (2026-09-27), which
+ *  changed every pace's steps, so a step saved by an older script points elsewhere in the new one. */
+export const DICTATION_SCRIPT = 2;
 
 /** What a battle runs under (Rulings C2c, C2d): the encounter, the quest and the imposed help stage. */
 export interface BattleUnder {
@@ -112,8 +119,18 @@ export function loadPlayState(profileId: number, textId: number, mode: PlayMode 
     const parsed = JSON.parse(raw);
     if (!parsed || parsed.version !== VERSION) return null;
     // The pace scripts the dictation and is named on the resume ribbon (PACE_LABELS): a saved state
-    // without a valid one is corrupt, and dropped like one of another version.
-    if (![1, 2, 3, 4].includes(parsed.pace)) return null;
+    // without a valid one is corrupt, and dropped like one of another version. The retired pace IV
+    // reads as III (the pace redesign).
+    const pace = toPace(parsed.pace);
+    if (pace === null) return null;
+    parsed.pace = pace;
+    // A reading position saved by an older script (or at pace IV) is not a step of this one: the
+    // reading starts again, her draft kept.
+    if (parsed.dictationScript !== DICTATION_SCRIPT) {
+      delete parsed.dictationStep;
+      delete parsed.dictationReplaysLeft;
+      parsed.dictationScript = DICTATION_SCRIPT;
+    }
     return parsed as PlayState;
   } catch {
     return null;
@@ -162,5 +179,6 @@ export function newPlayState(
     bouclier: false,
     submitted: false,
     sessionId: null,
+    dictationScript: DICTATION_SCRIPT,
   };
 }

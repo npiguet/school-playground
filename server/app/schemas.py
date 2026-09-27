@@ -100,6 +100,8 @@ class TextFull(TextSummaryWithHistory):
 class SessionCreate(BaseModel):
     profile_id: int
     text_id: int
+    # 1-3 since the pace redesign (2026-09-27); 4, the retired pace, stays valid for a page opened
+    # before it (its session is not lost), as the rows recorded at 4 stay in the history and stats.
     pace_level: int = Field(ge=1, le=4)
     help_stage: int = Field(ge=1, le=4)
     mode: Literal["dictation", "grimoire"] = "dictation"

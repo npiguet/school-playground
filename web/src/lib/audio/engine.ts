@@ -16,7 +16,7 @@ export const CROSSFADE_MS = 1200;
 export const SETTINGS_FADE_MS = 150;
 export const SFX_REPEAT_MS = 80;
 /** How long the music stays ducked after a line of the voice ends (fix wave A, Ruling R-A2): the next
- *  line, if it comes by then, keeps it down, so pace 4's sentences said back to back do not make the
+ *  line, if it comes by then, keeps it down, so the final reading's sentences said back to back do not make the
  *  music pump, and no effect slips into the gap between them. */
 export const VOICE_RELEASE_MS = 300;
 

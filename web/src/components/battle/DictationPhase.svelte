@@ -2,7 +2,7 @@
   // The dictation on the battle parchment (UI4 Task 4): « Quitter » and its confirm, the progress,
   // the status as a small seal and words, the bronze controls, and the textarea in Literata on the
   // ruled text zone. While the keyboard is open (Ruling C4, `layout === 'compact'`) everything but
-  // the textarea folds into one bar under the stage's band. A flowing pace pauses itself when the
+  // the textarea folds into one bar under the stage's band. The dictation pauses itself when the
   // iPad turns to portrait (Ruling C11) or the page is hidden (final review I1); « Reprendre » shows
   // whenever the runner is paused.
   // The voice is Kokoro on the server (spec 2026-09-27): a late line shows the waiting line, a silenced
@@ -25,6 +25,11 @@
 
   /** How long the Pythia's « the voice is back » line holds the status (playability #8). */
   const VOICE_BACK_MS = 1_500;
+  /** The script's pauses at their length in the game. An e2e page sets a fraction (e2e/helpers.ts
+   *  installFastPauses), as its recorded lines last 20 ms, so walking a dictation through its groups
+   *  keeps the suite's pace; the game never sets it. */
+  const pauseScale = (): number =>
+    (globalThis as { __discordePauseScale?: number }).__discordePauseScale ?? 1;
 
   let {
     plan,
@@ -126,7 +131,7 @@
             .speak(spoken, rate, { next, onSlow: () => waitLine.slow(), onStart: lineStarts })
             .finally(() => waitLine.done());
         },
-        sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+        sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms * pauseScale())),
         cancel: () => voice.cancel(),
         onChange: (s) => {
           runnerState = s;
@@ -195,17 +200,17 @@
     clearTimeout(backTimer);
   });
 
-  // Ruling C11: turning the iPad to portrait hides the text behind the rotate screen; a flowing
-  // dictation (pace 3-4 never waits for a tap) must not keep reading words she cannot write. The
-  // runner's own snapshot is read inside `check`, so this effect never re-subscribes on a status.
+  // Ruling C11: turning the iPad to portrait hides the text behind the rotate screen; the dictation
+  // must not keep reading words she cannot write. Since the pace redesign every pace reads a group
+  // twice, pauses included, without a tap, so every pace pauses itself. The runner's own snapshot is
+  // read inside `check`, so this effect never re-subscribes on a status.
   // The window's own size decides: at a `resize` WebKit has not updated the media query yet
   // (`mq.matches` still false), and a quick turn back may never deliver its `change` at all.
   $effect(() => {
     if (typeof matchMedia !== 'function') return;
-    const flowing = untrack(() => pace >= 3);
     const mq = matchMedia('(orientation: portrait)');
     const check = () => {
-      if (flowing && window.innerWidth < window.innerHeight && runner.state().status === 'playing') runner.pause();
+      if (window.innerWidth < window.innerHeight && runner.state().status === 'playing') runner.pause();
     };
     check();
     mq.addEventListener('change', check);
@@ -217,13 +222,12 @@
   });
 
   // Final review I1: a hidden page (another app, the iPad locked) suspends the mixer, so a line
-  // playing freezes and its watchdog gives it up; a flowing dictation would read on into the silence,
-  // and pace 3-4 have no « Réécouter ». It pauses as in portrait (C11): « Reprendre » is her tap, and
-  // says the cut line again.
+  // playing freezes and its watchdog gives it up; the dictation would read on into the silence (every
+  // pace reads a group twice without a tap, and II and III have no « Réécouter »). It pauses as in
+  // portrait (C11): « Reprendre » is her tap, and says the cut line again.
   $effect(() => {
-    const flowing = untrack(() => pace >= 3);
     const onVisibility = () => {
-      if (flowing && document.hidden && runner.state().status === 'playing') runner.pause();
+      if (document.hidden && runner.state().status === 'playing') runner.pause();
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
@@ -231,17 +235,9 @@
 
   const compact = $derived(layout === 'compact');
 
-  // Header/progress line: which unit is currently being said (defaults to
-  // the pace's usual unit before the first step reports in).
-  const currentLabel = $derived(
-    runnerState.lastSay?.label ?? (pace === 1 ? 'sentence' : pace === 4 ? 'full' : 'chunk'),
-  );
+  // Header/progress line: the group being said, or the final reading.
   const progress = $derived(
-    currentLabel === 'sentence'
-      ? DICTATION.sentence(runnerState.done, runnerState.total)
-      : currentLabel === 'chunk'
-        ? DICTATION.chunk(runnerState.done, runnerState.total)
-        : DICTATION.full,
+    runnerState.lastSay?.label === 'full' ? DICTATION.full : DICTATION.chunk(runnerState.done, runnerState.total),
   );
   // Éris's card is up while the voice is silenced, and while « Réessayer » asks again (playability #5).
   const cardUp = $derived(runnerState.status === 'silenced' || retrying);
@@ -267,13 +263,11 @@
     return reduced ? fade(node, { duration: 160 }) : slide(node, { duration: 320 });
   }
 
-  // pace 1-2: she can finish as soon as she reaches the last manual wait,
-  // even before tapping "Suivant" once more.
+  // Pace I: she can finish as soon as she reaches the last manual wait,
+  // even before tapping "Suivant" for the final reading.
   const showFinishButton = $derived(
     runnerState.status === 'finished' ||
-      ((pace === 1 || pace === 2) &&
-        runnerState.status === 'waiting' &&
-        runnerState.done === runnerState.total),
+      (pace === 1 && runnerState.status === 'waiting' && runnerState.done === runnerState.total),
   );
 
   let textareaEl = $state<HTMLTextAreaElement | undefined>(undefined);
@@ -320,7 +314,10 @@
 
 {#snippet controls()}
   <div class="controls" data-testid="dictation-controls">
-    {#if pace === 1 || pace === 2}
+    <!-- The pace redesign: pace I waits for « Suivant », with one « Réécouter » per group; II moves on
+         and has « Pause »; III has neither. « Reprendre » shows at every pace after a pause, her own or
+         the automatic one (portrait, a hidden page). -->
+    {#if pace === 1}
       <button
         type="button"
         class="kit-bronze is-quiet"
@@ -328,7 +325,7 @@
         onclick={() => runner.replay()}
         disabled={runnerState.status !== 'waiting' || runnerState.replaysLeft <= 0}
       >
-        {DICTATION.replay}{#if pace === 2}&nbsp;({runnerState.replaysLeft}){/if}
+        {DICTATION.replay}
       </button>
       <button type="button" class="kit-bronze" data-testid="btn-next" onclick={() => runner.next()} disabled={runnerState.status !== 'waiting'}>
         {DICTATION.next}
@@ -336,7 +333,7 @@
     {/if}
     {#if runnerState.status === 'paused'}
       <button type="button" class="kit-bronze" data-testid="btn-resume" onclick={() => runner.resume()}>{DICTATION.resume}</button>
-    {:else if pace >= 3}
+    {:else if pace === 2}
       <button type="button" class="kit-bronze is-quiet" data-testid="btn-pause" onclick={() => runner.pause()} disabled={runnerState.status !== 'playing'}>
         {DICTATION.pause}
       </button>

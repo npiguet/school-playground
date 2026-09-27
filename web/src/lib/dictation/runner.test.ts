@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createRunner, unitStart, type RunnerDeps } from './runner';
-import { buildPlan, buildScript, type SayStep, type Step } from './script';
+import { buildPlan, buildScript, type Pace, type SayStep, type Step } from './script';
 
 const say = (i: number, repeat: 1 | 2 = 1): Step => ({ kind: 'say', text: `t${i}`, spoken: `s${i}`, rate: 0.85, label: 'chunk', unit: 'chunk', index: i, repeat });
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function harness(steps: Step[], pace: 1 | 2 | 3 | 4) {
+function harness(steps: Step[], pace: Pace) {
   const spoken: string[] = []; const states: string[] = [];
   const cancel = vi.fn();
   const runner = createRunner(steps, {
@@ -17,26 +17,47 @@ function harness(steps: Step[], pace: 1 | 2 | 3 | 4) {
 
 describe('createRunner', () => {
   it('speaks, waits for the player on manual steps, and finishes', async () => {
-    const { runner, spoken } = harness([say(0), { kind: 'manual', index: 0 }, say(1), { kind: 'manual', index: 1 }, { kind: 'done' }], 2);
+    const { runner, spoken } = harness([say(0), { kind: 'manual', index: 0 }, say(1), { kind: 'manual', index: 1 }, { kind: 'done' }], 1);
     runner.start(); await flush();
     expect(spoken).toEqual(['s0']);
-    expect(runner.state()).toMatchObject({ status: 'waiting', done: 1, total: 2, replaysLeft: 3 });
+    expect(runner.state()).toMatchObject({ status: 'waiting', done: 1, total: 2, replaysLeft: 1 });
     runner.next(); await flush();
     expect(spoken).toEqual(['s0', 's1']);
     runner.next(); await flush();
     expect(runner.state().status).toBe('finished');
   });
-  it('replays the last utterance within the limit', async () => {
-    const { runner, spoken } = harness([say(0), { kind: 'manual', index: 0 }, { kind: 'done' }], 2);
+  // The pace redesign: pace I's « Réécouter » is one extra reading of the group, spent after one use
+  // and given back for the next group.
+  it('pace I: one replay per group, spent after one use, back at the next group', async () => {
+    const { runner, spoken } = harness([say(0), { kind: 'manual', index: 0 }, say(1), { kind: 'manual', index: 1 }, { kind: 'done' }], 1);
     runner.start(); await flush();
-    runner.replay(); await flush(); runner.replay(); await flush(); runner.replay(); await flush(); runner.replay(); await flush();
-    expect(spoken).toEqual(['s0', 's0', 's0', 's0']);
+    runner.replay(); await flush(); runner.replay(); await flush();
+    expect(spoken).toEqual(['s0', 's0']);
+    expect(runner.state().replaysLeft).toBe(0);
+    runner.next(); await flush();
+    expect(runner.state()).toMatchObject({ status: 'waiting', replaysLeft: 1 });
+    runner.replay(); await flush(); runner.replay(); await flush();
+    expect(spoken).toEqual(['s0', 's0', 's1', 's1']);
     expect(runner.state().replaysLeft).toBe(0);
   });
-  it('pace 1 has unlimited replays', async () => {
-    const { runner } = harness([say(0), { kind: 'manual', index: 0 }, { kind: 'done' }], 1);
+  it('pace I: the replay is the group heard last, once its two readings and its pauses are over', async () => {
+    const steps = buildScript(buildPlan('Le loup, affamé, arriva près de la bergerie.'), 1);
+    const { runner, spoken } = harness(steps, 1);
     runner.start(); await flush();
-    expect(runner.state().replaysLeft).toBe(Infinity);
+    expect(runner.state()).toMatchObject({ status: 'waiting', index: 5, done: 1 });
+    expect(spoken).toEqual(['Le loup, virgule, affamé, virgule.', 'Le loup, virgule, affamé, virgule.']);
+    runner.replay(); await flush();
+    expect(spoken.at(-1)).toBe('Le loup, virgule, affamé, virgule.');
+    expect(spoken).toHaveLength(3);
+  });
+  it('paces II and III give no replay', async () => {
+    for (const pace of [2, 3] as const) {
+      const spoken: string[] = [];
+      const runner = createRunner([say(0), { kind: 'wait', ms: 3000 }, say(0, 2), { kind: 'done' }], {
+        pace, speak: async (s) => void spoken.push(s), sleep: async () => {}, cancel: () => {}, onChange: () => {},
+      });
+      expect(runner.state().replaysLeft, String(pace)).toBe(0);
+    }
   });
   it('runs automatic paces to the end and can pause/resume', async () => {
     let release: (() => void) | null = null;
@@ -111,21 +132,28 @@ describe('createRunner', () => {
     expect(spoken).toEqual(['s1']);
   });
   // Closing item 1: a resumed dictation must not get its « Réécouter » back.
-  it('a resumed runner keeps the replays already spent, instead of the pace\'s full allowance', async () => {
-    const steps: Step[] = [say(0), { kind: 'manual', index: 0 }, say(1), { kind: 'manual', index: 1 }, { kind: 'done' }];
-    const { runner } = harness(steps, 2);
+  // The pace redesign: the replay is the group's, so a resume inside the group keeps it spent, and the
+  // next group gives it back.
+  it("a resumed runner keeps the group's replay spent, instead of the pace's full allowance", async () => {
+    const steps: Step[] = [say(0), { kind: 'manual', index: 0 }, say(1), { kind: 'manual', index: 1 }, say(2), { kind: 'manual', index: 2 }, { kind: 'done' }];
+    const { runner } = harness(steps, 1);
     runner.start(); await flush();
-    expect(runner.state().replaysLeft).toBe(3);
+    runner.next(); await flush();
+    expect(runner.state().replaysLeft).toBe(1);
     runner.replay(); await flush();
-    expect(runner.state().replaysLeft).toBe(2);
+    expect(runner.state().replaysLeft).toBe(0);
 
-    // Saved with 2 replays left, at the second unit: the resumed runner starts there, not refilled.
-    const resumed = createRunner(steps, { pace: 2, speak: async () => {}, sleep: async () => {}, cancel: () => {}, onChange: () => {} }, 2, 2);
-    expect(resumed.state()).toMatchObject({ index: 2, replaysLeft: 2 });
+    // Saved with the replay spent, at the second group: the resumed runner starts there, not refilled.
+    const resumed = createRunner(steps, { pace: 1, speak: async () => {}, sleep: async () => {}, cancel: () => {}, onChange: () => {} }, 2, 0);
+    expect(resumed.state()).toMatchObject({ index: 2, replaysLeft: 0 });
+    resumed.start(); await flush();
+    expect(resumed.state()).toMatchObject({ status: 'waiting', replaysLeft: 0 });
+    resumed.next(); await flush();
+    expect(resumed.state()).toMatchObject({ status: 'waiting', index: 6, replaysLeft: 1 });
 
     // No override (an older save, or never replayed): the pace's full allowance, as before.
-    const fresh = createRunner(steps, { pace: 2, speak: async () => {}, sleep: async () => {}, cancel: () => {}, onChange: () => {} }, 2);
-    expect(fresh.state().replaysLeft).toBe(3);
+    const fresh = createRunner(steps, { pace: 1, speak: async () => {}, sleep: async () => {}, cancel: () => {}, onChange: () => {} }, 2);
+    expect(fresh.state().replaysLeft).toBe(1);
   });
 
   it('stop() silences the in-flight utterance via cancel()', async () => {
@@ -137,33 +165,32 @@ describe('createRunner', () => {
   });
 });
 
-// Fix wave A, Ruling R-A1: pace 4's full readings are said a sentence at a time.
-describe("pace 4's full readings, a sentence at a time", () => {
+// Fix wave A, Ruling R-A1: the full reading is said a sentence at a time; since the pace redesign it is
+// read once, at the end, at every pace.
+describe('the final reading, a sentence at a time', () => {
   const plan = buildPlan('Le loup arriva. Les brebis dormaient. Le berger veillait.');
-  const steps = buildScript(plan, 4);
-  const firstChunk = steps.findIndex((s) => s.kind === 'say' && s.unit === 'chunk');
-  const closing = steps.findIndex((s, i) => i > firstChunk && s.kind === 'say' && s.unit === 'full');
+  const steps = buildScript(plan, 2);
+  const closing = steps.findIndex((s) => s.kind === 'say' && s.unit === 'full');
   const say4 = (i: number) => steps[i] as SayStep;
-  function run(speak: RunnerDeps['speak'], from = 0) {
+  function run(speak: RunnerDeps['speak'], from = closing) {
     const resumes: number[] = [];
-    const runner = createRunner(steps, { pace: 4, speak, sleep: async () => {}, cancel: () => {}, onChange: (s) => resumes.push(s.resumeAt) }, from);
+    const runner = createRunner(steps, { pace: 2, speak, sleep: async () => {}, cancel: () => {}, onChange: (s) => resumes.push(s.resumeAt) }, from);
     return { runner, resumes };
   }
 
-  it("only a reading's first sentence opens its unit: the resume point never moves inside a reading", async () => {
+  it("only the reading's first sentence opens its unit: the resume point never moves inside it", async () => {
+    expect(steps.slice(closing).map((s) => s.kind)).toEqual(['say', 'say', 'say', 'done']);
     const releases: (() => void)[] = [];
     const { runner, resumes } = run(() => new Promise<void>((r) => releases.push(r)));
     runner.start();
     await flush();
-    expect(runner.state()).toMatchObject({ index: 0, resumeAt: 0, done: 0, total: plan.chunks.length });
+    expect(runner.state()).toMatchObject({ index: closing, resumeAt: closing, done: plan.chunks.length, total: plan.chunks.length });
     releases.shift()!();
     await flush();
     releases.shift()!();
     await flush();
-    expect(runner.state()).toMatchObject({ index: 2, resumeAt: 0, done: 0 }); // the third sentence
-    expect(new Set(resumes)).toEqual(new Set([0]));
-    // Every step of the opening reading resumes at its first sentence; so does the closing one's.
-    for (let i = 0; i < 3; i++) expect(unitStart(steps, i)).toBe(0);
+    expect(runner.state()).toMatchObject({ index: closing + 2, resumeAt: closing }); // the third sentence
+    expect(new Set(resumes)).toEqual(new Set([closing]));
     for (let i = closing; i < steps.length; i++) expect(unitStart(steps, i)).toBe(closing);
     expect([0, 1, 2].map((i) => say4(closing + i).index)).toEqual([0, 1, 2]);
     runner.stop();
@@ -191,12 +218,12 @@ describe("pace 4's full readings, a sentence at a time", () => {
     await flush();
     releases.shift()!();
     await flush();
-    expect(runner.state().index).toBe(1);
+    expect(runner.state().index).toBe(closing + 1);
     runner.pause();
     runner.resume();
     await flush();
-    expect(spoken).toEqual([say4(0).spoken, say4(1).spoken, say4(1).spoken]);
-    expect(runner.state().resumeAt).toBe(0);
+    expect(spoken).toEqual([say4(closing).spoken, say4(closing + 1).spoken, say4(closing + 1).spoken]);
+    expect(runner.state().resumeAt).toBe(closing);
     runner.stop();
   });
 
@@ -211,12 +238,12 @@ describe("pace 4's full readings, a sentence at a time", () => {
     });
     runner.start();
     await flush();
-    expect(runner.state()).toMatchObject({ status: 'silenced', index: 1, resumeAt: 0 });
+    expect(runner.state()).toMatchObject({ status: 'silenced', index: closing + 1, resumeAt: closing });
     down = false;
     runner.retry();
     await flush();
     await flush();
-    expect(spoken.slice(0, 3)).toEqual([say4(0).spoken, say4(1).spoken, say4(2).spoken]);
+    expect(spoken.slice(0, 3)).toEqual([say4(closing).spoken, say4(closing + 1).spoken, say4(closing + 2).spoken]);
     expect(runner.state().status).toBe('finished');
   });
 });
@@ -272,7 +299,7 @@ describe('when the voice fails (spec 2026-09-27 §5.3)', () => {
     let down = false;
     const spoken: string[] = [];
     const runner = createRunner([say(0), { kind: 'manual', index: 0 }, { kind: 'done' }], {
-      pace: 2,
+      pace: 1,
       speak: async (s) => {
         if (down) throw failing('server');
         spoken.push(s);
@@ -284,12 +311,12 @@ describe('when the voice fails (spec 2026-09-27 §5.3)', () => {
     down = true;
     runner.replay();
     await flush();
-    expect(runner.state()).toMatchObject({ status: 'silenced', failure: 'server', replaysLeft: 2 });
+    expect(runner.state()).toMatchObject({ status: 'silenced', failure: 'server', replaysLeft: 0 });
     down = false;
     runner.retry();
     await flush();
     expect(spoken).toEqual(['s0', 's0']);
-    expect(runner.state()).toMatchObject({ status: 'waiting', failure: null, replaysLeft: 2 });
+    expect(runner.state()).toMatchObject({ status: 'waiting', failure: null, replaysLeft: 0 });
   });
 
   it('a pause wins over a failure that lands after it; a stopped runner says nothing more', async () => {

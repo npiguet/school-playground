@@ -81,7 +81,6 @@ export const DICTATION = {
   resume: 'Reprendre',
   finish: "J'ai fini d'écrire",
   placeholder: 'Écris ici ce que tu entends…',
-  sentence: (done: number, total: number) => `Phrase ${done} sur ${total}`,
   chunk: (done: number, total: number) => `Groupe ${done} sur ${total}`,
   full: 'Lecture complète',
 } as const;
