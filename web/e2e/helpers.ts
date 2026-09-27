@@ -2,6 +2,9 @@ import { expect, type APIRequestContext, type Locator, type Page, type TestInfo 
 import { readFileSync } from 'node:fs';
 // The loader's own typography (Ruling E15), so the variants read exactly as the app shows them.
 import { frenchSpacing } from '../src/lib/text/french';
+// The script a seeded reading position belongs to, the app's own (a bump there must not silently drop
+// every seeded step).
+import { DICTATION_SCRIPT } from '../src/lib/dictation/scriptVersion';
 
 // Taps (iPad) or clicks (desktop) a locator - a finger on the iPad project, a mouse on the desktop
 // one (final review M9): there is no touch device to tap with on `desktop`, and WebKit's mouse
@@ -714,7 +717,7 @@ export async function seedPlay(page: Page, s: PlaySeed) {
         bouclier: false,
         submitted: !!seed.progression,
         sessionId: seed.progression ? 1 : null,
-        ...(seed.dictationScript === null ? {} : { dictationScript: seed.dictationScript ?? 2 }),
+        ...(seed.dictationScript === null ? {} : { dictationScript: seed.dictationScript }),
         ...(seed.opponent ? { opponent: seed.opponent } : {}),
         ...(seed.encounter !== undefined ? { encounter: seed.encounter } : {}),
         ...(seed.quest !== undefined ? { quest: seed.quest } : {}),
@@ -724,7 +727,8 @@ export async function seedPlay(page: Page, s: PlaySeed) {
         ...(seed.progression ? { progression: seed.progression } : {}),
       }),
     );
-  }, s);
+    // The seed crosses into the page as data: the app's script version is filled in here, in node.
+  }, { ...s, dictationScript: s.dictationScript === undefined ? DICTATION_SCRIPT : s.dictationScript });
 }
 
 /** A seeded dictation or proofreading comes back behind the resume ribbon: continue it. */

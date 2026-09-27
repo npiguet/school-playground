@@ -5,6 +5,7 @@
 // mode, quota errors).
 import type { OpponentId } from './battle/battle';
 import { toPace, type Pace } from './dictation/script';
+import { DICTATION_SCRIPT } from './dictation/scriptVersion';
 import type { Plant, PlayMode } from './types';
 import type { Progression } from './world/types';
 
@@ -70,9 +71,7 @@ export interface PlayState {
   dictationScript?: number;
 }
 
-/** The dictation script a saved reading position indexes: 2 since the pace redesign (2026-09-27), which
- *  changed every pace's steps, so a step saved by an older script points elsewhere in the new one. */
-export const DICTATION_SCRIPT = 2;
+export { DICTATION_SCRIPT };
 
 /** What a battle runs under (Rulings C2c, C2d): the encounter, the quest and the imposed help stage. */
 export interface BattleUnder {
