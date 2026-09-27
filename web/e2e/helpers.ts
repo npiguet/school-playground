@@ -217,13 +217,9 @@ export function makeResult(o: { words?: number; draft?: number; caught?: number;
   };
 }
 
-/** The Swiss local day (YYYY-MM-DD), `daysAgo` days back: the server's days and weeks are Europe/Zurich
- *  ones (server/app/clock.py, plan Decision 4). A UTC date is the day before from local midnight to
- *  01:00 or 02:00, and on a Monday that is last week: a session posted for it misses this week's goal
- *  (paces fix round: world step 8 failed a gate run just after midnight). */
-export function swissDay(daysAgo = 0): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' }).format(new Date(Date.now() - daysAgo * 86_400_000));
-}
+/** The Swiss local day, `daysAgo` calendar days back (src/testing/swissDay.ts, unit-tested there): a
+ *  UTC date misses this week's goal just after a Monday's midnight (paces fix round: world step 8). */
+export { swissDay } from '../src/testing/swissDay';
 
 // Posts a session straight to the API (bypassing dictation/proofreading), for specs that need to
 // drive quest/mastery/boss progression across many sessions or specific days (SP3 Decision 5's
