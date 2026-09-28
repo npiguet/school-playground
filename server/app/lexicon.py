@@ -9,9 +9,14 @@ from __future__ import annotations
 
 import csv
 import gzip
+import hashlib
+import threading
+from collections import OrderedDict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from types import MappingProxyType
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,22 +149,28 @@ def verb_code(morph: dict) -> str | None:
     return f"{base}:{pn}"
 
 
-class Lexicon:
-    def __init__(self, by_ortho: dict[str, list[Entry]], by_lemme: dict[str, list[Entry]],
-                 by_phon: dict[str, list[Entry]]) -> None:
-        self.by_ortho = by_ortho
-        self.by_lemme = by_lemme
-        self.by_phon = by_phon
+def _frozen(index: Mapping[str, Sequence[Entry]]) -> Mapping[str, tuple[Entry, ...]]:
+    return MappingProxyType({k: tuple(v) for k, v in index.items()})
 
-    def lookup(self, word: str) -> list[Entry]:
+
+class Lexicon:
+    """Read-only: one instance is shared by every caller (and every test) that loads the same file."""
+
+    def __init__(self, by_ortho: Mapping[str, Sequence[Entry]], by_lemme: Mapping[str, Sequence[Entry]],
+                 by_phon: Mapping[str, Sequence[Entry]]) -> None:
+        self.by_ortho = _frozen(by_ortho)
+        self.by_lemme = _frozen(by_lemme)
+        self.by_phon = _frozen(by_phon)
+
+    def lookup(self, word: str) -> tuple[Entry, ...]:
         w = _fold(word)
         hit = self.by_ortho.get(w)
         if hit:
             return hit
         for p in ELISIONS:
             if w.startswith(p):
-                return self.by_ortho.get(w[len(p):], [])
-        return []
+                return self.by_ortho.get(w[len(p):], ())
+        return ()
 
     def is_known(self, word: str) -> bool:
         return bool(self.lookup(word))
@@ -442,9 +453,40 @@ class Lexicon:
         return {o for o in out if _fold(o) != w}
 
 
-@lru_cache(maxsize=2)
+@lru_cache(maxsize=16)
+def _file_digest(resolved: str, size: int, mtime_ns: int) -> str:
+    """The content hash of one file version (size and mtime are in the key so an edit rehashes)."""
+    with open(resolved, "rb") as f:
+        return hashlib.file_digest(f, "sha256").hexdigest()
+
+
+_lexicons: OrderedDict[str, Lexicon] = OrderedDict()
+_LEXICONS_KEPT = 4   # the real one plus a test's small hand-written ones, without evicting it
+_lexicons_lock = threading.Lock()
+
+
 def load_lexicon(content_dir: Path) -> Lexicon:
-    path = content_dir / "lexique" / "lexique383-trimmed.tsv.gz"
+    """The lexicon of content_dir/lexique, built once per distinct file content and shared read-only.
+
+    Keyed on the file's content hash, not on content_dir: every server test copies the same file into
+    its own tmp_path, and a build is ~1M objects (the process's largest allocate-and-free burst, see
+    the segfault report). A test that needs another lexicon writes another file, or builds a Lexicon."""
+    path = Path(content_dir) / "lexique" / "lexique383-trimmed.tsv.gz"
+    resolved = path.resolve()
+    st = resolved.stat()
+    digest = _file_digest(str(resolved), st.st_size, st.st_mtime_ns)
+    with _lexicons_lock:   # two cold requests at once build it once, not twice
+        lexicon = _lexicons.get(digest)
+        if lexicon is None:
+            lexicon = _build_lexicon(resolved)
+            _lexicons[digest] = lexicon
+            while len(_lexicons) > _LEXICONS_KEPT:
+                _lexicons.popitem(last=False)
+        _lexicons.move_to_end(digest)
+        return lexicon
+
+
+def _build_lexicon(path: Path) -> Lexicon:
     by_ortho: dict[str, list[Entry]] = {}
     by_lemme: dict[str, list[Entry]] = {}
     by_phon: dict[str, list[Entry]] = {}

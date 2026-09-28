@@ -1,4 +1,53 @@
-from app.lexicon import Entry, Lexicon, verb_code
+import gzip
+import shutil
+from pathlib import Path
+
+import pytest
+
+from app.lexicon import Entry, Lexicon, load_lexicon, verb_code
+
+REPO_LEXIQUE = Path(__file__).resolve().parents[2] / "content" / "lexique" / "lexique383-trimmed.tsv.gz"
+HEADER = "ortho\tphon\tlemme\tcgram\tgenre\tnombre\tinfover\tfreq\n"
+
+
+def _write_lexique(content_dir: Path, rows: list[str]) -> Path:
+    (content_dir / "lexique").mkdir(parents=True, exist_ok=True)
+    with gzip.open(content_dir / "lexique" / "lexique383-trimmed.tsv.gz", "wt", encoding="utf-8", newline="") as f:
+        f.write(HEADER + "".join(rows))
+    return content_dir
+
+
+def test_a_copy_of_the_lexicon_file_shares_the_lexicon_already_built(tmp_path, lexicon):
+    # Every test's settings copy the lexicon into its own tmp_path: the copy is the same content, so it
+    # must not cost another build of ~1M objects (segfault report, lexcache report).
+    content = tmp_path / "content"
+    (content / "lexique").mkdir(parents=True)
+    shutil.copy(REPO_LEXIQUE, content / "lexique" / "lexique383-trimmed.tsv.gz")
+    assert load_lexicon(content) is lexicon
+
+
+def test_a_different_lexicon_file_gets_a_lexicon_of_its_own(tmp_path, lexicon):
+    content = _write_lexique(tmp_path / "content", ["griffon\tgRif§\tgriffon\tNOM\tm\ts\t\t1.5\n"])
+    own = load_lexicon(content)
+    assert own is not lexicon and own.is_known("griffon") and not own.is_known("chevaux")
+    assert load_lexicon(content) is own
+    _write_lexique(content, ["hydre\tidR\thydre\tNOM\tf\ts\t\t2.5\n", "hydres\tidR\thydre\tNOM\tf\tp\t\t0.5\n"])
+    changed = load_lexicon(content)
+    assert changed.is_known("hydres") and not changed.is_known("griffon")
+    assert lexicon.is_known("chevaux")
+
+
+def test_the_shared_lexicon_is_read_only(lexicon):
+    with pytest.raises(TypeError):
+        lexicon.by_ortho["griffon"] = []
+    with pytest.raises(TypeError):
+        lexicon.by_lemme["cheval"] = []
+    with pytest.raises(TypeError):
+        lexicon.by_phon["S@val"] = []
+    with pytest.raises(AttributeError):
+        lexicon.lookup("chevaux").append(Entry("x", "x", "x", "NOM", "", "", "", 0.0))
+    with pytest.raises(AttributeError):
+        lexicon.by_lemme["cheval"].append(Entry("x", "x", "x", "NOM", "", "", "", 0.0))
 
 
 def test_lookup_and_known(lexicon):
