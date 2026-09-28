@@ -70,6 +70,22 @@ def test_a_sentence_too_long_for_the_model_is_split_never_cut(engine):
     assert len(text) * 0.03 <= seconds <= len(text) * 0.15, seconds
 
 
+@pytest.mark.parametrize("joined, first, second, linked", [
+    ("et elles ont regardé les bateaux. Point.", "et elles,", "ont regardé les bateaux. Point.", "ɛlz ɔ̃"),
+    ("Les enfants sont allés à l'école. Point.", "Les,", "enfants sont allés à l'école. Point.", "lez ɑ̃"),
+    ("C'est très important. Point.", "C'est très,", "important. Point.", "tʁɛz ɛ̃"),
+])
+def test_a_liaison_cut_between_two_groups_is_dropped_never_moved(engine, joined, first, second, linked):
+    """Liaison report 2026-09-28: the game never cuts a breath group inside a liaison, and when it must, the
+    first group ends on a bare comma. Its liaison consonant is then dropped, and the second group, read on
+    its own, starts on its own vowel: no /z/, /t/ or /n/ moved to its start."""
+    assert linked in " ".join(engine.phonemes(joined))    # read whole, the words are linked
+    end = engine.phonemes(first)[-1]
+    assert end.endswith(",") and end[-2] not in "zntd", end           # the first group drops it
+    start = engine.phonemes(second)[0]
+    assert start.lstrip("ˈˌ")[0] not in "zntd", start                  # the second does not pick it up
+
+
 def test_a_line_with_nothing_to_pronounce_is_the_muted_line_s_silence(engine):
     from app.audio import stub_ms
 

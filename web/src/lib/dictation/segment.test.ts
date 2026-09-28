@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
-import { splitSentences, splitChunks, countWords } from './segment';
+import { splitSentences, splitChunks, countWords, liaisonAcross } from './segment';
+import { buildPlan, longGroups } from './script';
 
 describe('splitSentences', () => {
   it('splits on terminal punctuation followed by space', () => {
@@ -245,5 +246,100 @@ describe('splitChunks: where a long piece of a seed text is halved', () => {
   it('never cuts after « tous » when a determiner follows', () => {
     expect(splitChunks('Les enfants du village cueillirent tous les fruits mûrs du grand verger'))
       .toEqual(['Les enfants du village cueillirent', 'tous les fruits mûrs du grand verger']);
+  });
+});
+
+// Liaison report 2026-09-28: a breath group never ends inside an obligatory liaison (« elles | ont »
+// was heard as « elle… zont »), at any pace. A group that ends on a word ends on a bare comma, which
+// makes the voice drop the liaison consonant; the next group, sent alone, starts on its own vowel.
+describe('splitChunks: never inside a liaison', () => {
+  const firstWord = (chunk: string): string => chunk.match(/[\p{L}\p{N}'’-]+/u)?.[0] ?? '';
+  /** Each cut of `groups` that falls between two words carrying a liaison, as « left | right ». */
+  const liaisonCuts = (groups: string[]): string[] =>
+    groups.slice(0, -1).flatMap((g, i) =>
+      endsOnWord(g) && liaisonAcross(lastWord(g), firstWord(groups[i + 1])) ? [`${g} | ${groups[i + 1]}`] : []);
+
+  it('knows the obligatory liaisons, and the h aspiré that has none', () => {
+    const yes: [string, string][] = [
+      ['elles', 'ont'], ['ils', 'ont'], ["qu'elles", 'ont'], ['nous', 'avons'], ['on', 'a'], ['vous', 'êtes'],
+      ['les', 'enfants'], ['des', 'hommes'], ['un', 'ami'], ["d'un", 'homme'], ['mon', 'ami'], ['aux', 'officiers'],
+      ['deux', 'yeux'], ['trois', 'enfants'], ['petits', 'enfants'], ['grand', 'arbre'], ['vieux', 'homme'],
+      ['très', 'important'], ['plus', 'ancien'], ['bien', 'aimé'], ['tout', 'entier'], ['tout', 'au'],
+      ['quand', 'il'], ['dont', 'il'], ['en', 'avant'], ['dans', 'un'], ['chez', 'eux'], ['sans', 'elle'], ['sous', 'un'],
+      ['sont', 'allés'], ['est', 'arrivé'], ['fus', 'arrivé'], ['avaient', 'eu'], ['les', 'uns'], ['les', 'autres'],
+    ];
+    for (const [a, b] of yes) expect(liaisonAcross(a, b), `${a} | ${b}`).toBe(true);
+    const no: [string, string][] = [
+      ['les', 'héros'], ['les', 'haricots'], ['les', 'hiboux'], ['des', 'hauteurs'], ['les', 'onze'], ['les', 'yaourts'],
+      // not a liaison consonant, a consonant next, or the elided « l' » next
+      ['elle', 'a'], ['les', 'loups'], ['ils', "l'ont"],
+      // not an obligatory context: a noun, a verb, a stressed pronoun or an attribute before a clause or a phrase
+      ['lions', 'et'], ['autres', 'au'], ['paysans', 'étaient'], ['souffrent', 'au'], ['grands', 'avec'], ['plus', 'au'],
+      ['tous', 'et'], ['assis', 'au'],
+    ];
+    for (const [a, b] of no) expect(liaisonAcross(a, b), `${a} | ${b}`).toBe(false);
+  });
+
+  it('never cuts « elles ont », « les enfants », « très important », « nous avons », « ils sont allés »', () => {
+    const cases: [string, string[]][] = [
+      ['Les deux sœurs restèrent longtemps au bord de la mer grise et elles ont regardé les bateaux',
+        ['Les deux sœurs restèrent longtemps', 'au bord de la mer grise', 'et elles ont regardé les bateaux']],
+      ['Au bout du long chemin poussiéreux attendaient patiemment les enfants du village voisin',
+        ['Au bout du long chemin poussiéreux', 'attendaient patiemment les enfants du village voisin']],
+      ['Le vieux berger trouvait ce travail du soir très important pour son grand troupeau',
+        ['Le vieux berger trouvait ce travail', 'du soir très important pour son grand troupeau']],
+      ['Le vieux berger répétait souvent que nous avons tous besoin de repos le soir',
+        ['Le vieux berger répétait souvent', 'que nous avons tous besoin de repos le soir']],
+      ['Les bergers du village voisin disent que ils sont allés vers la montagne',
+        ['Les bergers du village voisin disent', 'que ils sont allés vers la montagne']],
+    ];
+    for (const [s, groups] of cases) {
+      expect(splitChunks(s), s).toEqual(groups);
+      expect(liaisonCuts(splitChunks(s)), s).toEqual([]);
+    }
+  });
+
+  it('never cuts after a numeral or « tout » before a vowel (« deux | agneaux », « tout | au fond »)', () => {
+    // Both were cut there before the liaison rule: « les deux | agneaux », « moutons tout | au fond ».
+    expect(splitChunks('Le berger savait bien que les deux agneaux dormaient déjà sous le grand chêne'))
+      .toEqual(['Le berger savait bien que les deux agneaux', 'dormaient déjà sous le grand chêne']);
+    expect(splitChunks('Les jeunes bergers du village voisin gardaient leurs moutons tout au fond de la vallée verte'))
+      .toEqual(['Les jeunes bergers du village voisin gardaient', 'leurs moutons tout au fond de la vallée verte']);
+  });
+
+  it('when every cut is blocked, takes the one nearest the middle that splits no liaison; « les | héros » is one', () => {
+    // Every word capitalised: no cut is allowed, so the least bad is taken. The middle, « Les | Enfants »,
+    // is a liaison: the next nearest is taken. « Les | Héros » (h aspiré) is none, so the middle is kept.
+    expect(splitChunks('Le Grand Livre De Tous Les Enfants Du Vieux Monde Entier Réunis'))
+      .toEqual(['Le Grand Livre De Tous', 'Les Enfants Du Vieux Monde Entier Réunis']);
+    expect(splitChunks('Le Grand Livre De Tous Les Héros Du Vieux Monde Entier Réunis'))
+      .toEqual(['Le Grand Livre De Tous Les', 'Héros Du Vieux Monde Entier Réunis']);
+  });
+
+  it('pins the seed sentences whose liaison the word-count middle once split (« les | uns », « je fus | arrivé »…)', () => {
+    const sentenceOf = (file: string, start: string): string =>
+      splitSentences(seedBody(file)).find((s) => s.text.startsWith(start))?.text ?? `${file}: no « ${start} »`;
+    expect(splitChunks(sentenceOf('003-andersen-petite-sirene.json', 'Bien loin dans la mer'))).toEqual([
+      'Bien loin dans la mer,', "l'eau est bleue comme les feuilles des bluets,", 'pure comme le verre le plus transparent,',
+      "mais si profonde qu'il serait inutile d'y jeter l'ancre,", "et qu'il faudrait y entasser",
+      "une quantité infinie de tours d'églises", 'les unes sur les autres pour mesurer', 'la distance du fond à la surface.',
+    ]);
+    expect(splitChunks(sentenceOf('004-perrault-chat-botte.json', 'Le roi ordonna aussitôt'))).toEqual([
+      'Le roi ordonna aussitôt', "aux officiers de sa garde-robe d'aller quérir", 'un de ses plus beaux habits',
+      'pour monsieur le marquis de Carabas.',
+    ]);
+    expect(splitChunks(sentenceOf('025-topffer-col-anterne.json', "C'est pourquoi, dès que"))).toEqual([
+      "C'est pourquoi, dès que je fus arrivé", 'dans la petite hôtellerie de Servoz,', "je m'informai de la nature des cols et passages.",
+    ]);
+  });
+
+  it('splits no liaison in any seed text, at paces I and II (breath groups) or III (merged groups)', () => {
+    for (const f of readdirSync('../content/seed').filter((n) => n.endsWith('.json'))) {
+      const body = seedBody(f);
+      for (const s of splitSentences(body)) expect(liaisonCuts(splitChunks(s.text)), f).toEqual([]);
+      const long = longGroups(buildPlan(body).chunks);
+      const sentences = [...new Set(long.map((c) => c.sentenceIndex))];
+      for (const i of sentences) expect(liaisonCuts(long.filter((c) => c.sentenceIndex === i).map((c) => c.text)), f).toEqual([]);
+    }
   });
 });

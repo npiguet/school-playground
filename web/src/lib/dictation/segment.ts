@@ -104,9 +104,12 @@ export function countWords(s: string): number {
 // The auxiliaries: the forms of « avoir » and « être » that take a participle (« avait donnée »,
 // « n'était pas passé »). No cut after one, nor after its negation (AFTER_NEGATION).
 const AUXILIARIES = new Set([
-  'ai', 'as', 'a', 'avons', 'avez', 'ont', 'avais', 'avait', 'avions', 'aviez', 'avaient', 'eut', 'eurent',
-  'aura', 'auront', 'aurait', 'auraient', 'eût', 'suis', 'es', 'est', 'sommes', 'êtes', 'sont', 'étais', 'était',
-  'étions', 'étiez', 'étaient', 'fut', 'furent', 'sera', 'seront', 'serait', 'seraient', 'soit', 'fût',
+  'ai', 'as', 'a', 'avons', 'avez', 'ont', 'avais', 'avait', 'avions', 'aviez', 'avaient',
+  'eus', 'eut', 'eûmes', 'eûtes', 'eurent', 'aurai', 'auras', 'aura', 'aurons', 'aurez', 'auront',
+  'aurais', 'aurait', 'aurions', 'auriez', 'auraient', 'aie', 'aies', 'ait', 'ayons', 'ayez', 'aient', 'eût',
+  'suis', 'es', 'est', 'sommes', 'êtes', 'sont', 'étais', 'était', 'étions', 'étiez', 'étaient',
+  'fus', 'fut', 'fûmes', 'fûtes', 'furent', 'serai', 'seras', 'sera', 'serons', 'serez', 'seront',
+  'serais', 'serait', 'serions', 'seriez', 'seraient', 'sois', 'soit', 'soyons', 'soyez', 'soient', 'fût',
 ]);
 // A determiner: never the last word of a group; after « tous », « toute », « toutes », it makes them
 // a determiner too (« tous les fruits »), where alone they end their clause (« se
@@ -192,6 +195,67 @@ const CUT_BEFORE_PHRASE = new Set([
 const parts = (text: string): string[] => text.toLowerCase().split(/['’ʼ]/);
 const firstPart = (text: string): string => parts(text)[0];
 const lastPart = (text: string): string => parts(text).at(-1) ?? '';
+
+// Liaisons (liaison report 2026-09-28). A cut between two words that carry an obligatory liaison was
+// heard badly: the voice reads each group on its own, so « elles | ont » loses its /z/ and the child
+// hears two words that do not belong together. So no cut there, at any pace.
+//
+// A liaison is obligatory after a word of LIAISON_ALWAYS, and after one of LIAISON_BEFORE_NOUN unless
+// a clause or a phrase starts next (« de grands | arbres » is one, « ils étaient grands | avec… » is
+// none), when the next word starts with a vowel or a mute h. Both lists hold only words that end on a
+// sounded liaison consonant (s, x, z, t, d, n). A liaison across a hyphen (« vont-ils », « allez-y »)
+// needs no rule: `tokenize` keeps the hyphenated word whole.
+//
+// LIAISON_ALWAYS: the determiners and numerals before their noun, the pronouns before their verb
+// (« elles ont », « on a », « les avait »), the prepositions and adverbs the liaison always follows
+// (« dans un », « chez eux », « très important », « tout entier »), « quand » and « dont », and the
+// auxiliaries before their participle (« sont allés », « est arrivé »).
+const LIAISON_ALWAYS = new Set([
+  'les', 'des', 'ces', 'mes', 'tes', 'ses', 'nos', 'vos', 'leurs', 'aux', 'un', 'aucun', 'mon', 'ton', 'son',
+  'quels', 'quelles', 'certains', 'certaines', 'plusieurs', 'quelques',
+  'deux', 'trois', 'six', 'dix', 'vingt', 'vingts', 'cent', 'cents',
+  'nous', 'vous', 'ils', 'elles', 'on', 'en',
+  'dans', 'chez', 'sans', 'sous', 'dès', 'très', 'trop', 'tout', 'quand', 'dont',
+  ...[...AUXILIARIES].filter((w) => /[sxztdn]$/.test(w)),
+]);
+// LIAISON_BEFORE_NOUN: the pre-noun adjectives of LEANS_ON_NEXT that end on a liaison consonant
+// (« petit ami », « grands arbres »; « bel », « vieil » only run on, with no liaison) and the adverbs of
+// degree before their adjective (« plus ancien », « bien aimé »).
+const LIAISON_BEFORE_NOUN = new Set([
+  'petit', 'petits', 'petites', 'grand', 'grands', 'grandes', 'bon', 'bons', 'bonnes', 'beaux', 'belles',
+  'vieux', 'vieilles', 'jeunes', 'jolis', 'jolies', 'gros', 'grosses', 'longs', 'longues', 'mauvais', 'mauvaises',
+  'nouveaux', 'nouvelles', 'premiers', 'premières', 'derniers', 'dernières', 'mêmes',
+  'plus', 'moins', 'bien',
+]);
+// A vowel or h that takes no liaison: the h aspiré (by the start of the word, so « haut » covers
+// « hauteur », « hautes », and « huit » is one; « héros » but not « héroïne », whose h is mute),
+// « et » (never linked to), « onze », « oui », and the words of English origin in « y ».
+const H_ASPIRE = [
+  'hache', 'haie', 'haill', 'hain', 'haïr', 'hall', 'halte', 'hamac', 'hameau', 'hanche', 'handicap', 'hangar', 'hant',
+  'harce', 'hardi', 'hareng', 'hargn', 'haricot', 'harnais', 'harpe', 'hasard', 'hâte', 'haut', 'hauss', 'havre',
+  'hennir', 'hérisson', 'hernie', 'héron', 'héros', 'hêtre', 'heurt', 'hibou', 'hideu', 'hiérarchie', 'hisse',
+  'hocher', 'hockey', 'homard', 'honte', 'hoquet', 'horde', 'hors', 'hotte', 'houle', 'housse', 'houx', 'hublot',
+  'huer', 'huit', 'hurl', 'hutte',
+];
+const NO_LIAISON_BEFORE = new Set(['et', 'onze', 'onzième', 'onzièmes', 'oui']);
+const NO_LIAISON_START = [...H_ASPIRE, 'yacht', 'yaourt', 'yoga'];
+const VOWEL_START = /^[aàâäeéèêëiîïoôöuùûüyœæh]/;
+
+/**
+ * Whether the word `before` and the word `next` (the tokens around a cut, elided words included:
+ * « qu'elles » is read as « elles », « l'ont » starts on « l' ») carry an obligatory liaison, which a cut
+ * between them would break.
+ */
+export function liaisonAcross(before: string, next: string): boolean {
+  const last = lastPart(before);
+  const word = next.toLowerCase();
+  if (!VOWEL_START.test(word)) return false; // an elided « l' », « d' », « qu' » starts on its consonant
+  const head = firstPart(word);
+  if (NO_LIAISON_START.some((h) => word.startsWith(h)) || NO_LIAISON_BEFORE.has(head)) return false;
+  if (LIAISON_ALWAYS.has(last)) return true;
+  return LIAISON_BEFORE_NOUN.has(last) && !CUT_BEFORE_CLAUSE.has(head) && !CUT_BEFORE_PHRASE.has(head);
+}
+
 /** Each group of a halved piece keeps at least this many words; a group under MIN_GOOD is penalised. */
 const MIN_SIDE = 3;
 const MIN_GOOD = 4;
@@ -203,7 +267,7 @@ const CAPITALISED = /^\p{Lu}/u;
  * the « . » of a title (« M. | Seguin »), between two capitalised words (« Maréchal | Niel »), after
  * a word of NO_CUT_AFTER, after « toute(s) » or « tous » before a determiner, after a word of
  * LEANS_ON_NEXT unless a clause or a phrase starts next, between a form of « venir » and its « de »,
- * or between an auxiliary's negation and the participle.
+ * between an auxiliary's negation and the participle, or inside an obligatory liaison (liaisonAcross).
  */
 function blocked(toks: Token[], at: number): boolean {
   const before = toks[at - 1];
@@ -215,6 +279,7 @@ function blocked(toks: Token[], at: number): boolean {
     return before.text === '.' && title?.kind === 'word' && TITLES.has(title.text);
   }
   if (CAPITALISED.test(before.text) && CAPITALISED.test(nextText)) return true;
+  if (liaisonAcross(before.text, nextText)) return true;
   const last = lastPart(before.text);
   if (NO_CUT_AFTER.has(last)) return true;
   if (TOUT.has(last) && DETERMINERS.has(next)) return true;
@@ -232,13 +297,19 @@ function blocked(toks: Token[], at: number): boolean {
  * group starts on: the cut with the lowest cost, where the cost is the distance from the middle (in
  * words), plus 2 for a cut before an ordinary word, 0.5 before a preposition, 0 before a relative or
  * conjunction, plus 1 before a capitalised word (a name in apposition, « la magicienne | Circé »),
- * plus 2 when a group would have fewer than MIN_GOOD words. A cut `blocked` is never taken; if every
- * cut is, the middle is. Ties go to the cut closer to the middle, then to the earlier one.
+ * plus 2 when a group would have fewer than MIN_GOOD words. A cut `blocked` is never taken. Ties go to
+ * the cut closer to the middle, then to the earlier one.
+ *
+ * If every cut is blocked, the least bad is taken: the cut nearest the middle that splits no liaison,
+ * first among those leaving MIN_SIDE words a side, then among any; only when every cut splits a liaison
+ * is the middle taken. Even then the liaison is dropped, not moved (liaison report 2026-09-28): the
+ * first group ends on a bare comma (spokenForm), so the voice ends it without the liaison consonant,
+ * and the second group, sent alone, starts on its own vowel.
  */
 function bestCut(toks: Token[], words: number[]): number {
   const n = words.length;
   const middle = n / 2;
-  let best = Math.floor(middle);
+  let best = leastBadCut(toks, words);
   let bestCost = Infinity;
   for (let k = MIN_SIDE; k <= n - MIN_SIDE; k++) {
     if (blocked(toks, words[k])) continue;
@@ -256,6 +327,24 @@ function bestCut(toks: Token[], words: number[]): number {
     }
   }
   return best;
+}
+
+/** bestCut's fallback when every cut is blocked (see there). */
+function leastBadCut(toks: Token[], words: number[]): number {
+  const n = words.length;
+  const middle = n / 2;
+  const splitsLiaison = (k: number) => {
+    const before = toks[words[k] - 1];
+    return before.kind === 'word' && liaisonAcross(before.text, toks[words[k]].text);
+  };
+  for (const [from, to] of [[MIN_SIDE, n - MIN_SIDE], [1, n - 1]]) {
+    let best = -1;
+    for (let k = from; k <= to; k++) {
+      if (!splitsLiaison(k) && (best < 0 || Math.abs(k - middle) < Math.abs(best - middle))) best = k;
+    }
+    if (best >= 0) return best;
+  }
+  return Math.floor(middle);
 }
 
 /**
