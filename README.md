@@ -87,8 +87,9 @@ deleting it only means the lines are made again.
 
 ## 2. Deploy on TrueNAS SCALE 25.10
 
-The NAS runs the same two images as the PC. TrueNAS can't build them from its Apps screen, so you
-build them on the PC, copy them over, and install them as a custom app from YAML.
+The NAS runs the same two images as the PC, with plain Docker (`docker compose` in a shell on the
+NAS), not through the TrueNAS Apps screen. You build the images on the PC, copy them over, load
+them, and start them with a small compose file kept next to the game's data.
 
 ### Build the images and copy them to the NAS
 
@@ -121,49 +122,66 @@ sudo docker load -i /mnt/<pool>/<share>/discorde-2026-09-27.tar
 sudo docker image ls 'discorde*'
 ```
 
-### Choose the data dataset and the port
+### The game's folder and the port
 
-- **Data:** create a dataset for the game's data, e.g. `/mnt/<pool>/apps/discorde` (**Datasets →
-  Add Dataset**). It holds the whole state of the game (§4) and is what you snapshot and back up.
-  The container runs as root, so no special permissions are needed on it.
+- **Folder:** create a dataset for the game, e.g. `/mnt/<pool>/apps/discorde` (**Datasets → Add
+  Dataset**). It holds the compose file, its `.env`, and the game's data in `data/`: the whole
+  state of the game (§4), so this dataset is what you snapshot and back up. The container runs as
+  root, so no special permissions are needed.
 - **Port:** the game listens on 8080 inside the container. The left-hand side of `ports` is the
   port the iPad uses: `38417`, an uncommon port picked so the game sits beside the NAS's other
-  apps. If something else already uses it, pick another free one (e.g. `"38418:8080"` and then
+  services. If something else already uses it, pick another free one (e.g. `"38418:8080"` and then
   `http://<nas-ip>:38418`); never change the right-hand `8080`.
 
-### Install via YAML
+### Start it with docker compose
 
-In the TrueNAS UI: **Apps → Discover Apps → ⋮ (top right) → Install via YAML**, give the app a
-name (e.g. `discorde`), and paste:
+In that folder, create two files. `compose.yaml`:
 
 ```yaml
+name: discorde
 services:
   discorde:
-    image: discorde:2026-09-27
+    image: discorde:${DISCORDE_VERSION}
     pull_policy: never
     container_name: discorde
     ports:
       - "38417:8080"
     volumes:
-      - /mnt/<pool>/apps/discorde:/data
+      - ./data:/data
     depends_on:
       - tts
     restart: unless-stopped
   tts:
-    image: discorde-tts:2026-09-27
+    image: discorde-tts:${DISCORDE_VERSION}
     pull_policy: never
     container_name: discorde-tts
     volumes:
-      - discorde-tts-cache:/cache
+      - tts-cache:/cache
     restart: unless-stopped
 volumes:
-  discorde-tts-cache:
+  tts-cache:
 ```
 
-This is `compose.yaml` from the repo with the named data volume swapped for the dataset and the
-build lines removed. The voice has no port: only the game talks to it. Its cache stays a named
-volume (nothing in it needs a backup). `pull_policy: never` tells Docker to use the images you
-loaded instead of looking for them on Docker Hub. Everything else comes from the images:
+and `.env`, which names the version to run:
+
+```bash
+DISCORDE_VERSION=2026-09-27
+```
+
+Then start it (and check it's up) from a shell on the NAS:
+
+```bash
+cd /mnt/<pool>/apps/discorde
+sudo docker compose up -d
+sudo docker compose ps
+```
+
+This is `compose.yaml` from the repo with the build lines removed, the images named by the version
+in `.env`, and the named data volume swapped for the `data/` folder next to the file. The voice has
+no port: only the game talks to it. Its cache is a named Docker volume (`discorde_tts-cache`;
+nothing in it needs a backup). `pull_policy: never` tells Docker to use the images you loaded
+instead of looking for them on Docker Hub. `restart: unless-stopped` brings both back after a NAS
+reboot. Everything else comes from the images:
 
 - **Health check:** built into the image (`GET /api/health` every 10 s, 90 s allowed for startup).
   The app shows as healthy once the language model is loaded and the seed texts are imported. The
@@ -192,15 +210,16 @@ loaded instead of looking for them on Docker Hub. Everything else comes from the
 
 ### Update to a new version
 
-The data lives in the dataset, not in the container, so an update keeps everything:
+The data lives in `data/`, not in the container, so an update keeps everything:
 
-1. Build and load the new images under a new tag, as above (e.g. `discorde:2026-10-15` and
+1. Build, copy and load the new images under a new tag, as above (e.g. `discorde:2026-10-15` and
    `discorde-tts:2026-10-15`).
-2. **Apps → discorde → Edit**, change both `image:` lines to the new tag and save. TrueNAS recreates
-   the containers on the new images; database changes (migrations) are applied at startup.
+2. Set `DISCORDE_VERSION=2026-10-15` in `.env`, then `cd /mnt/<pool>/apps/discorde` and
+   `sudo docker compose up -d`. Compose recreates both containers on the new images; database
+   changes (migrations) are applied at startup.
 3. Once it's healthy and the game works, remove the old images (`sudo docker image rm
-   discorde:2026-09-27 discorde-tts:2026-09-27`). Until then, going back is the same edit with the
-   old tag.
+   discorde:2026-09-27 discorde-tts:2026-09-27`). Until then, going back is the same two steps
+   with the old version in `.env`.
 
 Take a snapshot of the dataset before updating (§4) so you can roll the data back too.
 
@@ -222,11 +241,9 @@ Then:
    « Réessayer » on the card. `{"voice":"loading"}`: wait a minute and try again.
    `{"voice":"unreachable"}`: the container is not running. `{"voice":"error"}`: it could not load
    its model; its logs say why.
-2. Check the container: on TrueNAS, **Apps → discorde**, the `tts` container's state (restart the
-   app if it is stopped or crash-looping); with Docker Desktop, `docker compose ps` and
-   `docker compose restart tts`.
-3. Read its logs: TrueNAS, the app's **Logs** for the `tts` container; Docker Desktop,
-   `docker compose logs --tail 100 tts`. A line such as
+2. Check the container: `docker compose ps` in the game's folder (with `sudo` on the NAS), and
+   `docker compose restart tts` if it is stopped or crash-looping.
+3. Read its logs: `docker compose logs --tail 100 tts` (with `sudo` on the NAS). A line such as
    `tts: 104 characters at 1.00: 6.25 s of speech in 1.53 s` is a line made; `the voice could not
    load` is followed by the reason.
 4. Once the health answers `ready`, « Réessayer » on the card carries on where the dictation
@@ -280,7 +297,8 @@ proofreading fields. If word suggestions still show above the keyboard, turn off
 
 ## 4. Backups
 
-All state lives in `/data` (the dataset on TrueNAS, the Docker volume on the PC):
+All state lives in `/data` (the `data/` folder in the game's dataset on the NAS, the Docker volume
+on the PC):
 
 - `discorde.sqlite3` — the database: heroes, progress, texts, rewards, settings. It runs in WAL
   mode, so while the game is running there may also be `discorde.sqlite3-wal` and
@@ -302,8 +320,9 @@ miss what's still in the `-wal` file). Let SQLite write a consistent copy, then 
 sudo docker exec discorde python -c "import sqlite3; s = sqlite3.connect('/data/discorde.sqlite3'); d = sqlite3.connect('/data/discorde-backup.sqlite3'); s.backup(d); d.close()"
 ```
 
-`discorde-backup.sqlite3` then sits in the dataset, next to the database. Or stop the app first
-(**Apps → discorde → Stop**) and copy the whole folder: once stopped, the files are consistent.
+`discorde-backup.sqlite3` then sits in `data/`, next to the database. Or stop the game first
+(`sudo docker compose stop` in its folder) and copy the whole `data/` folder: once stopped, the
+files are consistent; `sudo docker compose start` starts it again.
 
 On the Windows PC, in PowerShell (no `sudo`), make the same consistent copy, or copy the whole
 volume out:
@@ -315,12 +334,12 @@ docker cp discorde:/data .\discorde-data-backup
 
 **Restore:**
 
-1. Stop the app.
+1. Stop the game: `sudo docker compose stop` in its folder.
 2. Either roll the dataset back to a snapshot (**Datasets → the dataset → Snapshots → Rollback**;
-   this discards everything written after it), or replace the files: put the saved database back
-   as `discorde.sqlite3`, **delete any `discorde.sqlite3-wal` and `discorde.sqlite3-shm`** left
-   from the current database, and put back `scans/`.
-3. Start the app.
+   this discards everything written after it), or replace the files in `data/`: put the saved
+   database back as `discorde.sqlite3`, **delete any `discorde.sqlite3-wal` and
+   `discorde.sqlite3-shm`** left from the current database, and put back `scans/`.
+3. Start it again: `sudo docker compose start`.
 
 ## 5. Development
 
