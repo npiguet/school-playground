@@ -15,7 +15,7 @@
     "ffmpeg": "7.1.5-0+deb13u1",
     "priming": 1024,
     "rate": 44100,
-    "samples": 2954700
+    "samples": 3130806
   },
   "sea": {
     "ffmpeg": "7.1.5-0+deb13u1",
@@ -33,6 +33,6 @@
     "ffmpeg": "7.1.5-0+deb13u1",
     "priming": 1024,
     "rate": 44100,
-    "samples": 3087000
+    "samples": 3131100
   }
 }

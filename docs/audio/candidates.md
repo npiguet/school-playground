@@ -196,14 +196,27 @@ each case; the searches turned up little else that both fit the brief and wasn't
    matched by category/filename rather than a per-file "sounds like" quote — flagged in case the
    controller wants a stricter per-file source for those two slots.
 
-## music/war — the war tent's own loop (2026-09-27)
+## music/war and music/lair — replacing the lair drone (2026-09-27/28)
 
-The war tent used to play `music/lair`. The user found that loop irritating there: measured with
+The war tent and Éris's lair battle both used to play `music/lair`, which is the drone above
+(candidate 2) plus the Witches Brew bubbling layer. The user found it irritating. Measured with
 `tools/audio/run_docker.sh analyze`, it is a static mid-register drone (55 % of its energy at
-300 Hz–1 kHz) that swells every ~6 s. A listening round of five CC0 candidates
-(`tools/audio/candidates/war-tent.json`, built with `--sources … --out assets/audio/war-candidates`)
-gave the pick **war-canvas**: [windy tent.wav](https://freesound.org/people/bruno.auzet/sounds/527434/)
-(bruno.auzet, CC0 deed read 2026-09-27: "You can copy, modify, distribute and perform the sound, even
-for commercial purposes, all without the need of asking permission to the author."). This is desert
-wind on an old fabric tent, recorded from inside it at Palmyra, low-passed at 1.6 kHz and gently
-compressed. It is now its own track, `music/war`. `music/lair` stays the lair battle's loop.
+300 Hz–1 kHz) that swells every ~6 s. Two listening rounds followed, both built with `--sources …
+--out …`:
+
+1. `tools/audio/candidates/war-tent.json`: calm ambiences for the war tent. The first pick, wind on
+   a tent's canvas, was briefly wired in as `music/war` and then replaced by round 2's djembe.
+2. `tools/audio/candidates/lair-battle.json`: battle drums. The user asked for battle drums, with no
+   drone, rumble or thunder. Drone- and sub-heavy sources were rejected with `analyze` before this
+   round was offered. The user picked two of its loops:
+   - **`music/lair`** (the lair battle): [Some Militaristic Tune](https://opengameart.org/content/some-militaristic-tune)
+     by Spring Spring (OpenGameArt; its licence field reads "CC0", the only licence listed, read
+     2026-09-27). This is an orchestral march: snare and bass drum under a brass tune.
+   - **`music/war`** (the war tent, its own track since 2026-09-27):
+     [African tribal drums, beat 1](https://freesound.org/people/peridactyloptrix/sounds/198491/) by
+     peridactyloptrix (Freesound, CC0 deed read 2026-09-27: "You can copy, modify, distribute and
+     perform the sound, even for commercial purposes, all without the need of asking permission to
+     the author."). This is a live djembe ensemble (Drum Africa, London).
+
+The old drone, the bubbling layer and the tent wind are no longer used by the game. They stay above
+only as the history of the first round.

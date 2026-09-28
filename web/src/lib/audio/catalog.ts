@@ -20,7 +20,8 @@ export const TRACKS: Record<TrackId, SoundDef> = {
   sea: track('sea'),
   camp: track('camp'),
   temple: track('temple'),
-  // The war tent's own loop, wind on its canvas (the user found the lair's drone irritating there).
+  // The war tent's own loop, a hand-drum ensemble; the lair battle's is a march (both picked by the
+  // user in 2026-09 listening rounds, replacing a drone they found irritating).
   war: track('war'),
   lair: track('lair'),
   battle: track('battle', 0.9),

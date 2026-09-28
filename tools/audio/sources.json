@@ -42,48 +42,32 @@
     "xfade": 3.0
   },
   "music/lair": {
-    "file": "assets/audio/staging/fs_lair_drone1_kkenny.mp3",
-    "sha256": "58c1e811218661c8f28f8b83efa3c930d3ea3eb660fe739e11acc95861d1db36",
-    "title": "Dark Atmospheric Drone (Time-Stretched, Seamless Loop)",
-    "author": "kkenny101",
-    "url": "https://freesound.org/people/kkenny101/sounds/865550/",
-    "download": "https://cdn.freesound.org/previews/865/865550_17997500-hq.mp3",
+    "file": "assets/audio/staging/oga_lair_march_spring.ogg",
+    "sha256": "1aaa16e158d1407048783cc17832d70a6e6f47b25d638ca6b37ee5a002f47b92",
+    "title": "Some Militaristic Tune",
+    "author": "Spring Spring",
+    "url": "https://opengameart.org/content/some-militaristic-tune",
+    "download": "https://opengameart.org/sites/default/files/march2_0.ogg",
     "license": "CC0 1.0",
     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "evidence": "Freesound CC0 deed confirmed on the sound's page, read 2026-09-26. Page: 'A subtle, dark atmospheric drone created from a lightly processed audio source', explicitly a seamless loop.",
-    "start": 30,
-    "duration": 70,
-    "xfade": 3.0,
-    "layers": [
-      {
-        "file": "assets/audio/staging/fs_lair_bubble_optical.mp3",
-        "sha256": "5f84228f33989fb904e6ca9672d6e7906799ee3fbe3994a3ed676561f2aef094",
-        "title": "Witches Brew.wav",
-        "author": "opticaillusions",
-        "url": "https://freesound.org/people/opticaillusions/sounds/614866/",
-        "download": "https://cdn.freesound.org/previews/614/614866_7363906-hq.mp3",
-        "license": "CC0 1.0",
-        "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
-        "evidence": "Freesound CC0 deed confirmed on the sound's page, read 2026-09-26. Page: 'Bubbling boiling witches brew.'",
-        "gain_db": -13,
-        "loop": true
-      }
-    ]
+    "evidence": "OpenGameArt page, read 2026-09-27: licence field 'CC0' (links the CC0 1.0 deed, the only licence listed). Tags: militaristic, orchestral, brass. Picked by the user for the lair battle from the listening round (tools/audio/candidates/lair-battle.json, music/lair-march), 2026-09-28: it replaces the earlier drone and bubbling layer.",
+    "start": 20,
+    "duration": 74,
+    "xfade": 3.0
   },
   "music/war": {
-    "file": "assets/audio/staging/fs_war_tent_bruno.mp3",
-    "sha256": "66ace0255bc51beead3f3b8bcf7d580879610b3bc0afd6ebc697072c1ff26867",
-    "title": "windy tent.wav",
-    "author": "bruno.auzet",
-    "url": "https://freesound.org/people/bruno.auzet/sounds/527434/",
-    "download": "https://cdn.freesound.org/previews/527/527434_11519060-hq.mp3",
+    "file": "assets/audio/staging/fs_war_djembe_peridactyloptrix.mp3",
+    "sha256": "b0d7139b8e8e903b035b3f292b3e0d10e278ff81130464123f817f5ca95678bc",
+    "title": "African tribal drums, beat 1",
+    "author": "peridactyloptrix",
+    "url": "https://freesound.org/people/peridactyloptrix/sounds/198491/",
+    "download": "https://cdn.freesound.org/previews/198/198491_2737063-hq.mp3",
     "license": "CC0 1.0",
     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "evidence": "Freesound CC0 deed confirmed on the sound's page, read 2026-09-27: 'You can copy, modify, distribute and perform the sound, even for commercial purposes, all without the need of asking permission to the author.' Page: microphone inside an old fabric tent with wooden tent pegs, vibrations under the desert wind, recorded in Palmyra, Syria, 2007. Picked by the user from the war tent listening round (tools/audio/candidates/war-tent.json, music/war-canvas), 2026-09-27: the war tent no longer plays the lair's drone and bubbling layer, which the user found irritating.",
-    "start": 6,
+    "evidence": "Freesound CC0 deed confirmed on the sound's page, read 2026-09-27: 'You can copy, modify, distribute and perform the sound, even for commercial purposes, all without the need of asking permission to the author.' Page: 'Recorded on Zoom H4n. Tribal drum beat performed by Drum Africa, London, UK.' Picked by the user for the war tent from the lair battle listening round (tools/audio/candidates/lair-battle.json, music/lair-djembe), 2026-09-28: it replaces the wind on the tent's canvas.",
+    "start": 40,
     "duration": 74,
-    "xfade": 4.0,
-    "filter": "lowpass=f=1600,lowpass=f=1600,acompressor=threshold=-38dB:ratio=4:attack=60:release=1200:makeup=1"
+    "xfade": 3.0
   },
   "music/battle": {
     "file": "assets/audio/staging/oga_krakatoa.ogg",
