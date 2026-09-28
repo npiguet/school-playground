@@ -53,13 +53,14 @@ Run the game on your Windows PC, for trying it out or playing on the home networ
    The first build takes several minutes (it downloads Tesseract, the large French spaCy
    language model and the voice's model, Kokoro-82M). Later builds reuse the cache. The images are
    tagged `discorde:local` and `discorde-tts:local`.
-3. Open <http://localhost:8080> in Edge or Chrome. The 35 seed texts are loaded on the first start.
+3. Open <http://localhost:38417> in Edge or Chrome. The 35 seed texts are loaded on the first start.
+   The game uses port 38417 on purpose, an uncommon one, so it doesn't clash with other services.
 4. **Play from the iPad** on the same Wi-Fi: find the PC's IP address (`ipconfig`, "IPv4
-   Address", e.g. `192.168.1.20`) and open `http://192.168.1.20:8080` in Safari. If it doesn't
+   Address", e.g. `192.168.1.20`) and open `http://192.168.1.20:38417` in Safari. If it doesn't
    load, allow the port through the Windows firewall once (PowerShell **as administrator**):
 
    ```powershell
-   New-NetFirewallRule -DisplayName "La Discorde 8080" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Private
+   New-NetFirewallRule -DisplayName "La Discorde 38417" -Direction Inbound -Protocol TCP -LocalPort 38417 -Action Allow -Profile Private
    ```
 
    Your Wi-Fi network must be set to *Private* in Windows for this rule to apply.
@@ -72,8 +73,8 @@ Everyday commands (from the repository folder):
 | Start it again | `docker compose start` |
 | Update after pulling new code | `docker compose up -d --build` |
 | See the logs | `docker compose logs -f` (both containers), or `docker compose logs -f tts` for the voice alone |
-| Check it's healthy | open <http://localhost:8080/api/health> (answers `{"status":"ok",...}`) |
-| Check the voice | open <http://localhost:8080/api/tts/health> (answers `{"voice":"ready",...}`; see "If the voice goes silent") |
+| Check it's healthy | open <http://localhost:38417/api/health> (answers `{"status":"ok",...}`) |
+| Check the voice | open <http://localhost:38417/api/tts/health> (answers `{"voice":"ready",...}`; see "If the voice goes silent") |
 
 Heroes, progress, custom texts and scans are stored in a Docker volume named after the folder,
 e.g. `school-playground_discorde-data`, so they survive stops, rebuilds and restarts.
@@ -117,8 +118,9 @@ sudo docker image ls 'discorde*'
   Add Dataset**). It holds the whole state of the game (§4) and is what you snapshot and back up.
   The container runs as root, so no special permissions are needed on it.
 - **Port:** the game listens on 8080 inside the container. The left-hand side of `ports` is the
-  port the iPad uses; keep `8080` if nothing else on the NAS uses it, otherwise pick another one
-  (e.g. `"8090:8080"` and then `http://<nas-ip>:8090`).
+  port the iPad uses: `38417`, an uncommon port picked so the game sits beside the NAS's other
+  apps. If something else already uses it, pick another free one (e.g. `"38418:8080"` and then
+  `http://<nas-ip>:38418`); never change the right-hand `8080`.
 
 ### Install via YAML
 
@@ -132,7 +134,7 @@ services:
     pull_policy: never
     container_name: discorde
     ports:
-      - "8080:8080"
+      - "38417:8080"
     volumes:
       - /mnt/<pool>/apps/discorde:/data
     depends_on:
@@ -206,7 +208,7 @@ tap « Réessayer », then to fetch a parent if the voice stays silent. The card
 
 Then:
 
-1. Open `http://<server>:8080/api/tts/health`.
+1. Open `http://<server>:38417/api/tts/health`.
    `{"voice":"ready","engine":"kokoro-82m-v1.0-onnx-direct"}` means the voice is fine again: tap
    « Réessayer » on the card. `{"voice":"loading"}`: wait a minute and try again.
    `{"voice":"unreachable"}`: the container is not running. `{"voice":"error"}`: it could not load
@@ -230,7 +232,7 @@ works then, since the voice finished the line meanwhile and kept it in its cache
 
 ## 3. Play on the iPad
 
-Open `http://<nas-ip>:8080` in Safari.
+Open `http://<nas-ip>:38417` in Safari.
 
 **Add to Home Screen** (the iPad in French): tap the **Partager** button (the square with an
 upward arrow, at the top right of Safari), then **« Sur l'écran d'accueil »**, then **Ajouter**.
@@ -320,8 +322,8 @@ Windows, run the scripts from **Git Bash** (it comes with Git for Windows). Wrap
 - `scripts/py.sh <cmd...>` — any command inside the server dev image, in `server/`
 - `scripts/dev.sh` — the dev stack: Vite on <http://localhost:5173> (hot reload, proxying `/api`)
   and `uvicorn --reload` on port 8080, and the voice (`tts`, the real model). It uses the small
-  spaCy model (`fr_core_news_sm`) and its own data volume, separate from the game's. Stop the
-  quick-start container first, or set `DEV_API_PORT`, since both want port 8080.
+  spaCy model (`fr_core_news_sm`) and its own data volume, separate from the game's. It runs
+  beside the quick-start container (that one is on 38417); set `DEV_API_PORT` if 8080 is taken.
 - `scripts/playwright.sh [npx playwright args]` — builds the production images, starts them with an
   empty data folder (so the seed import runs) and the voice as its stub (silent lines as long as
   the real ones, no model), runs the Playwright e2e suite against them, and tears them down. E.g.

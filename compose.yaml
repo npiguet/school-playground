@@ -3,7 +3,9 @@ services:
     image: discorde:local
     build: .
     container_name: discorde
-    ports: ["8080:8080"]
+    # The host side is an uncommon port so the game sits beside other services; inside the
+    # container it stays 8080.
+    ports: ["38417:8080"]
     volumes: ["discorde-data:/data"]
     # The voice (spec 2026-09-27 §6): started with the game, but no health condition, so the game
     # starts even while the voice is still loading its model.
