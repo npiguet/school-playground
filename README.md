@@ -44,9 +44,9 @@ rewards. The whole game is a set of painted scenes with places to tap (see §8).
 Run the game on your Windows PC, for trying it out or playing on the home network.
 
 1. Start **Docker Desktop** and wait until it reports "Engine running".
-2. Open **PowerShell** or **Git Bash** in the repository folder and build + start the server:
+2. Open **PowerShell** in the repository folder and build + start the server:
 
-   ```bash
+   ```powershell
    docker compose up -d --build
    ```
 
@@ -92,20 +92,30 @@ build them on the PC, copy them over, and install them as a custom app from YAML
 
 ### Build the images and copy them to the NAS
 
-On the Windows PC with Docker Desktop, from the repo root, build with a tag that names the version
-(a date works well, and makes rolling back easy):
+On the Windows PC with Docker Desktop, in PowerShell from the repo root, build with a tag that
+names the version (a date works well, and makes rolling back easy), save both images into one file
+and compress it (Windows has no `gzip`, so a throwaway Alpine container does it):
 
-```bash
-docker build -t discorde:2026-09-27 .
-docker build -t discorde-tts:2026-09-27 tts
-docker save discorde:2026-09-27 discorde-tts:2026-09-27 | gzip > discorde-2026-09-27.tar.gz
+```powershell
+$v = "2026-09-27"
+docker build -t "discorde:$v" .
+docker build -t "discorde-tts:$v" tts
+docker save -o "discorde-$v.tar" "discorde:$v" "discorde-tts:$v"
+docker run --rm -v "${PWD}:/w" alpine gzip -f "/w/discorde-$v.tar"
 ```
 
-The game's image takes about 3.2 GB on disk once loaded (mostly the `fr_core_news_lg` spaCy model
-and Tesseract), and the voice's image takes about 1.3 GB (its model and the ONNX runtime); the
-compressed file is much smaller. Copy the `.tar.gz` onto the NAS, e.g. into an SMB
-share or with `scp`, then load it from a shell on the NAS (**System → Shell**, or SSH as the admin
-user):
+(Don't pipe `docker save` in Windows PowerShell 5.1: its pipes re-encode binary data and corrupt the
+file; `-o` writes it directly.) The game's image takes about 3.2 GB on disk once loaded (mostly the
+`fr_core_news_lg` spaCy model and Tesseract), and the voice's image takes about 1.3 GB (its model
+and the ONNX runtime); the compressed file is much smaller. Copy the `.tar.gz` onto the NAS, into an
+SMB share or over SSH with Windows' built-in `scp`:
+
+```powershell
+scp "discorde-$v.tar.gz" admin@<nas-ip>:/mnt/<pool>/<share>/
+```
+
+then load it from a shell on the NAS (**System → Shell**, or `ssh admin@<nas-ip>`); these commands
+run on the NAS, not on Windows:
 
 ```bash
 sudo docker load -i /mnt/<pool>/<share>/discorde-2026-09-27.tar.gz
@@ -296,9 +306,13 @@ sudo docker exec discorde python -c "import sqlite3; s = sqlite3.connect('/data/
 `discorde-backup.sqlite3` then sits in the dataset, next to the database. Or stop the app first
 (**Apps → discorde → Stop**) and copy the whole folder: once stopped, the files are consistent.
 
-On the Windows PC, the same `docker exec` command works (without `sudo`; in Git Bash run
-`export MSYS_NO_PATHCONV=1` first), and `docker cp discorde:/data ./discorde-data-backup` copies
-the whole volume out.
+On the Windows PC, in PowerShell (no `sudo`), make the same consistent copy, or copy the whole
+volume out:
+
+```powershell
+docker exec discorde python -c "import sqlite3; s = sqlite3.connect('/data/discorde.sqlite3'); d = sqlite3.connect('/data/discorde-backup.sqlite3'); s.backup(d); d.close()"
+docker cp discorde:/data .\discorde-data-backup
+```
 
 **Restore:**
 
@@ -311,8 +325,9 @@ the whole volume out.
 
 ## 5. Development
 
-Everything runs in Docker; nothing else needs installing on the host but **Docker Desktop**. On
-Windows, run the scripts from **Git Bash** (it comes with Git for Windows). Wrapper scripts:
+Everything runs in Docker; nothing else needs installing on the host but **Docker Desktop**. The
+wrapper scripts are shell scripts, so on Windows they run from **Git Bash** (it comes with Git for
+Windows), not PowerShell; the commands in this section are Git Bash commands. Wrapper scripts:
 
 - `scripts/npm.sh <args>` — npm inside `web/` (e.g. `scripts/npm.sh run test`). The first run
   installs `node_modules` into a Docker volume, and again whenever `web/package-lock.json` changes.
