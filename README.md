@@ -93,32 +93,31 @@ build them on the PC, copy them over, and install them as a custom app from YAML
 ### Build the images and copy them to the NAS
 
 On the Windows PC with Docker Desktop, in PowerShell from the repo root, build with a tag that
-names the version (a date works well, and makes rolling back easy), save both images into one file
-and compress it (Windows has no `gzip`, so a throwaway Alpine container does it):
+names the version (a date works well, and makes rolling back easy), and save both images into one
+`.tar` file:
 
 ```powershell
 $v = "2026-09-27"
 docker build -t "discorde:$v" .
 docker build -t "discorde-tts:$v" tts
 docker save -o "discorde-$v.tar" "discorde:$v" "discorde-tts:$v"
-docker run --rm -v "${PWD}:/w" alpine gzip -f "/w/discorde-$v.tar"
 ```
 
 (Don't pipe `docker save` in Windows PowerShell 5.1: its pipes re-encode binary data and corrupt the
 file; `-o` writes it directly.) The game's image takes about 3.2 GB on disk once loaded (mostly the
 `fr_core_news_lg` spaCy model and Tesseract), and the voice's image takes about 1.3 GB (its model
-and the ONNX runtime); the compressed file is much smaller. Copy the `.tar.gz` onto the NAS, into an
-SMB share or over SSH with Windows' built-in `scp`:
+and the ONNX runtime). Copy the `.tar` onto the NAS, into an SMB share or over SSH with Windows'
+built-in `scp`:
 
 ```powershell
-scp "discorde-$v.tar.gz" admin@<nas-ip>:/mnt/<pool>/<share>/
+scp "discorde-$v.tar" admin@<nas-ip>:/mnt/<pool>/<share>/
 ```
 
 then load it from a shell on the NAS (**System → Shell**, or `ssh admin@<nas-ip>`); these commands
 run on the NAS, not on Windows:
 
 ```bash
-sudo docker load -i /mnt/<pool>/<share>/discorde-2026-09-27.tar.gz
+sudo docker load -i /mnt/<pool>/<share>/discorde-2026-09-27.tar
 sudo docker image ls 'discorde*'
 ```
 
