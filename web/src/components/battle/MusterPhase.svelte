@@ -184,9 +184,13 @@
 </div>
 
 <style>
-  /* The parchment has a fixed height (the stage's); the muster scrolls inside it. */
+  /* The parchment has a fixed height (the stage's); the muster scrolls inside it. A hugging
+     parchment (BattleStage `hug`) is as tall as its muster (`height: fit-content`), so the muster's
+     flex basis is its content (`auto`), never `flex: 1`'s 0 %: iPad Safari resolved that 0 % against
+     the parchment's insets, to 0, and the parchment collapsed to a strip thinner than its title
+     (iPad report 2026-09-28). It still grows into a fixed parchment and shrinks to scroll inside. */
   .muster {
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     display: flex;
@@ -341,7 +345,7 @@
     color: var(--ink-soft);
   }
   .resume {
-    flex: 1;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     align-items: center;

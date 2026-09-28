@@ -270,7 +270,9 @@
   }
   /* UI4 playability #14: a short muster's parchment hugs its content, centred between its top and
      bottom lines (an absolute box with both insets, a content height and auto margins), and scrolls
-     inside once it would pass them. */
+     inside once it would pass them. Its height is its phase's, so that phase's flex basis must be
+     its content (`flex: 1 1 auto`), never a 0 % that iPad Safari resolves to 0 (iPad report
+     2026-09-28: the grimoire's parchment collapsed to a strip thinner than its title). */
   .battle-parchment.hug {
     height: fit-content;
     max-height: calc(100% - var(--top) - 12px - env(safe-area-inset-bottom));

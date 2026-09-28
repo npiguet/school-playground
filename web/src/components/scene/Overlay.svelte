@@ -8,10 +8,16 @@
   // Final review I5: while open, the scene stage behind is `inert` (overlayState), Tab stays inside
   // the panel, and closing hands focus back to `returnFocus` (the control that opened it).
   // Final review M7: backdrop and panel leave together, and neither catches a tap while leaving.
+  // iPad report 2026-09-28: the on-screen keyboard hides the bottom ~45 % of a landscape iPad, and
+  // iOS shrinks the visual viewport, not the layout one. While it is up the panel follows the visual
+  // viewport (its --vvh and --vv-top, from `watchViewport`, as the battle stage does, Ruling C4) and
+  // the focused text box fits the body's view, its caret line shown (lib/scene/keyboardField.svelte.ts).
   import type { Snippet } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { reducedMotion } from '../../lib/juice/motion';
   import { modal } from '../../lib/scene/overlayState.svelte';
+  import { viewport } from '../../lib/battle/viewport.svelte';
+  import { keepFocusedFieldAboveKeyboard } from '../../lib/scene/keyboardField.svelte';
   import Icon from '../ui/Icon.svelte';
   import OverlayVoice from './OverlayVoice.svelte';
   import type { DialogueLine } from '../../lib/scene/types';
@@ -76,6 +82,10 @@
     closing = false;
     (e.currentTarget as HTMLElement).style.pointerEvents = '';
   }
+
+  // --- The on-screen keyboard ---------------------------------------------------------------
+  let panel = $state<HTMLDivElement | undefined>(undefined);
+  const kb = keepFocusedFieldAboveKeyboard(() => panel);
 </script>
 
 <svelte:window onkeydown={onKey} />
@@ -92,8 +102,12 @@
 ></button>
 <div
   use:modal={{ returnFocus }}
+  bind:this={panel}
   class="overlay-panel overlay-{variant}"
   class:overlay-wide={size === 'wide' || variant === 'codex'}
+  class:keyboard={kb.keyboard}
+  style:--vvh={kb.keyboard ? `${viewport.height}px` : undefined}
+  style:--vv-top={kb.keyboard ? `${viewport.top}px` : undefined}
   role="dialog"
   aria-modal="true"
   aria-label={title}
@@ -142,12 +156,16 @@
     position: fixed;
     z-index: var(--z-overlay);
     left: 50%;
-    /* Centred in the part of the screen below the HUD band (playability #21, Ruling W11). */
+    /* Centred in the part of the screen below the HUD band (playability #21, Ruling W11). The max
+       height keeps a tall panel whole on screen (its body scrolls), so the centring never pushes its
+       top out of reach. `vh` first, for a WebKit without `dvh` (before iOS 15.4). */
+    top: calc(var(--hud-band) + (100vh - var(--hud-band)) / 2);
     top: calc(var(--hud-band) + (100dvh - var(--hud-band)) / 2);
     transform: translate(-50%, -50%);
     /* 40 px each side: the scroll's rods (18 px) and their knobs (14 px more) stay on screen
        down to the narrowest landscape iPad (review fix round 1 #2). */
     width: min(640px, calc(100vw - 80px));
+    max-height: calc(100vh - var(--hud-band) - 36px);
     max-height: calc(100dvh - var(--hud-band) - 36px);
     display: flex;
     flex-direction: column;
@@ -155,6 +173,16 @@
     outline: none;
     isolation: isolate;
     color: var(--ink);
+  }
+  /* The on-screen keyboard is up (iPad report 2026-09-28): the panel is centred in the visual
+     viewport, the band above the keyboard (a pan included), and no taller than it; the rods keep
+     18 px each side. The HUD lies dimmed under the backdrop, so the band is the panel's whole. */
+  .overlay-panel.keyboard {
+    top: calc(var(--vv-top) + var(--vvh) / 2);
+    max-height: calc(var(--vvh) - 36px);
+  }
+  .overlay-codex.keyboard {
+    height: calc(var(--vvh) - 36px);
   }
   /* UI3: the scan's verify step, the three Oracle scrolls and the dossier need room. */
   .overlay-wide {
@@ -329,6 +357,7 @@
 
   /* --- codex: an open book, two pages and a gutter; always wide, fixed height ---------------- */
   .overlay-codex {
+    height: calc(100vh - var(--hud-band) - 36px);
     height: calc(100dvh - var(--hud-band) - 36px);
     padding: 30px 44px 26px;
   }

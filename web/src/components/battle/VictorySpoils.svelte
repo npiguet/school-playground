@@ -23,6 +23,7 @@
   import { ApiError } from '../../lib/api';
   import { playSfx, unlockAudio } from '../../lib/juice/sfx';
   import { reducedMotion } from '../../lib/juice/motion';
+  import { keepFocusedFieldAboveKeyboard } from '../../lib/scene/keyboardField.svelte';
   import type { DragonOut, LieutenantKey, Progression } from '../../lib/world/types';
   import type { Profile } from '../../lib/types';
 
@@ -167,6 +168,10 @@
   let dragonNameError = $state('');
   let dragonNameSaved = $state(false);
   let savingDragonName = $state(false);
+  // iPad report 2026-09-28: her dragon's name line stays whole above the on-screen keyboard (the
+  // stage folds, the sheet scrolls it into view).
+  let nameForm = $state<HTMLDivElement | undefined>(undefined);
+  keepFocusedFieldAboveKeyboard(() => nameForm);
 
   async function saveDragonName() {
     dragonNameError = '';
@@ -377,7 +382,7 @@
           <!-- UI4 playability #9: a question, and her answer inked on the parchment's line. -->
           <p class="name-ask" id="reveal-name-ask">{VICTORY.nameAsk}</p>
           <!-- Not a kit-form field: her dragon's name is written on the parchment's line. -->
-          <div class="name-form">
+          <div class="name-form" bind:this={nameForm}>
             <input
               data-testid="reveal-name-input"
               aria-label={VICTORY.dragonName}

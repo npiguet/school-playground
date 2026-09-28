@@ -8,10 +8,12 @@ import {
   expectLineOf,
   expectOverlayClearsScene,
   expectOverlayTapTargets,
+  installKeyboardSim,
   LEGACY_UI,
   nextLine,
   redScan,
   seedPlay,
+  setKeyboard,
   tap,
   uniqueName,
 } from './helpers';
@@ -415,6 +417,24 @@ test('the egg hatches: « Comment vas-tu l\'appeler ? », and her answer is inke
   await expect(field).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(field).toHaveCSS('border-top-width', '0px');
   expect((await field.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+});
+
+// iPad report 2026-09-28: no text box of the game lies under the on-screen keyboard; the dragon's
+// name is written on the victory sheet, which folds with the stage (Ruling C4).
+test('the egg hatches under the keyboard: her dragon\'s name line stays above it', async ({ page, request }, testInfo) => {
+  await installKeyboardSim(page);
+  const sheet = await counted(page, request, `Vic17-${testInfo.project.name}`, progression({ dragon: { stage_before: 'egg', stage_after: 'hatchling', needs_name: true } }));
+  const field = sheet.getByTestId('reveal-name-input');
+  await field.click();
+  const band = await setKeyboard(page, Math.round((await page.evaluate(() => window.innerHeight)) * 0.45));
+  await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
+  await expect
+    .poll(async () => {
+      const b = (await field.boundingBox())!;
+      return b.y >= band.top - 1 && b.y + b.height <= band.bottom + 1;
+    }, 'the name line above the keyboard')
+    .toBe(true);
+  await expect(field).toBeFocused();
 });
 
 test("Éris's lair: her challenge, the fight's stakes and the rules on the parchment", async ({ page, request }, testInfo) => {

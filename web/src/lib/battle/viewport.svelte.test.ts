@@ -1,7 +1,7 @@
 // Final review M12/M13: the watcher keeps the visual viewport's height, offset and scale, writes a
 // value only when it changed (a pan that moves nothing notifies nobody), and leaves :root alone.
 import { afterEach, describe, expect, it } from 'vitest';
-import { viewport, watchViewport } from './viewport.svelte';
+import { keyboardOpen, viewport, watchViewport } from './viewport.svelte';
 
 function fakeWindow() {
   const vv = Object.assign(new EventTarget(), { height: 820, offsetTop: 0, scale: 1 });
@@ -59,5 +59,16 @@ describe('the visual viewport watcher', () => {
     } finally {
       Object.defineProperty(viewport, 'top', { configurable: true, enumerable: true, writable: true, value: top });
     }
+  });
+});
+
+// iPad report 2026-09-28: an overlay follows the visual viewport only while the keyboard is up.
+describe('keyboardOpen', () => {
+  it('is the on-screen keyboard, not its shortcut bar, a pinch-zoom or a watcher not started', () => {
+    expect(keyboardOpen({ height: 451, inner: 820, scale: 1 }), 'an iPad landscape keyboard').toBe(true);
+    expect(keyboardOpen({ height: 765, inner: 820, scale: 1 }), 'a hardware keyboard shortcut bar').toBe(false);
+    expect(keyboardOpen({ height: 410, inner: 820, scale: 2 }), 'a pinch-zoom').toBe(false);
+    expect(keyboardOpen({ height: 820, inner: 820, scale: 1 }), 'nothing hidden').toBe(false);
+    expect(keyboardOpen({ height: 0, inner: 0, scale: 1 }), 'not watched yet').toBe(false);
   });
 });

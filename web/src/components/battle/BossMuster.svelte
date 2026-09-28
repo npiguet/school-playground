@@ -55,9 +55,12 @@
 </div>
 
 <style>
-  /* The parchment has a fixed height (the stage's); the muster scrolls inside it. */
+  /* The parchment hugs this muster (BattleStage `hug`) and it scrolls inside once it would pass the
+     stage's lines. Its flex basis is its content (`auto`), never `flex: 1`'s 0 %, which iPad Safari
+     resolved to 0: the hugging parchment collapsed to a strip (MusterPhase.svelte, iPad report
+     2026-09-28). */
   .boss-muster {
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     display: flex;

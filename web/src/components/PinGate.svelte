@@ -9,9 +9,16 @@
   import { de } from '../lib/text/french';
   import SealSlots from './ui/SealSlots.svelte';
   import { ART, MARK_ICONS } from '../lib/world/art';
+  import { viewport } from '../lib/battle/viewport.svelte';
+  import { keepFocusedFieldAboveKeyboard } from '../lib/scene/keyboardField.svelte';
   import type { Profile } from '../lib/types';
 
   let { profile, onUnlocked }: { profile: Profile; onUnlocked: () => void } = $props();
+
+  // iPad report 2026-09-28: while the keypad is up the gate fills the visual viewport (the band
+  // above it, a pan included), as an overlay does, and the seal's slots are kept in its view.
+  let gate = $state<HTMLDivElement | undefined>(undefined);
+  const kb = keepFocusedFieldAboveKeyboard(() => gate);
 
   let pin = $state('');
   // « d'Élise-Marguerite » -> « d' » + « Élise-Marguerite », « de Yann » -> « de » + « Yann ».
@@ -50,7 +57,14 @@
   }
 </script>
 
-<div class="pin-gate" data-testid="pin-gate">
+<div
+  class="pin-gate"
+  data-testid="pin-gate"
+  bind:this={gate}
+  style:top={kb.keyboard ? `${viewport.top}px` : undefined}
+  style:bottom={kb.keyboard ? 'auto' : undefined}
+  style:height={kb.keyboard ? `${viewport.height}px` : undefined}
+>
   <img class="pin-backdrop" src={ART.scenes.titleGates} alt="" aria-hidden="true" />
   <div class="pin-seal kit-sheet kit-form">
     <img class="pin-lock" src={MARK_ICONS.lock} alt="" />
@@ -66,15 +80,18 @@
 </div>
 
 <style>
+  /* The seal is centred by its auto margins, which never go below zero: a seal taller than the
+     screen (the keypad up) starts at the top and scrolls, never cut above (a flex `center` would
+     push its top out of reach, and `safe center` is too recent for the iPads this runs on). */
   .pin-gate {
     position: fixed;
     inset: 0;
     display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 24px;
     background: var(--night);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
   /* Playability #14: `inset: -16px` pushes the blur's dark edge halo off screen. */
   .pin-backdrop {
@@ -92,6 +109,7 @@
     align-items: center;
     gap: 16px;
     width: min(420px, 100%);
+    margin: auto;
     padding: 28px 24px;
     text-align: center;
   }
