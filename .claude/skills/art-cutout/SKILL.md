@@ -63,3 +63,18 @@ and regenerate before touching the cut-out method.
 Isolating one object inside a picture (e.g. an accessory painted onto the dragon by inpainting)
 is a different problem: background removal keeps the whole foreground. See the "Inpainting and
 object extraction" section of the krea2 skill.
+
+## Staging while the code is being wired (2026-09-30)
+
+The web app's tests (`art.test.ts`, the `artReferenced` guard) fail on any file in
+`web/public/art/` that no code references yet, and code agents run them in the same worktree. So
+the art track never writes into `web/public/art/` itself: every web export goes to the same
+relative path under **`assets/art/export/`** (e.g. `assets/art/export/emblems/palamede_cut.webp`,
+`assets/art/export/icons/tool-palamede.webp`, `assets/art/export/dragon/dragon_illustre_cut.webp`),
+and the code task that wires an asset moves it into `web/public/art/` (git mv). Even a redrawn
+asset that replaces a referenced one (the adult dragon) is staged there, not overwritten in place.
+
+- Emblem / sprite WebP (1024 px, q82, alpha, as webify.py does) straight from a `_cut.png` with
+  Pillow: `Image.open(cut).convert("RGBA").save(dst, "WEBP", quality=82, method=6)`.
+- One icon without rewriting the others: `tools/art/run_docker.sh icons webp --dst
+  assets/art/export/icons --only tool-palamede` (`icons.py` gained `--dst` and `--only`).

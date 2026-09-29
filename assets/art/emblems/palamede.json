@@ -1,0 +1,35 @@
+{
+  "prompt": "subject: an emblem of Palamedes' counting tokens, a large neat heap of thick round counters filling the middle of the medallion: polished bronze discs and pale ivory bone discs, each disc engraved with one single simple geometric mark, a straight line, a cross or a small triangle, mixed with a few smooth grey and terracotta river pebbles, and leaning upright behind the heap an ancient Greek wax writing tablet, a rectangular wooden frame around a recessed panel of dark honey-coloured wax scratched with a few straight tally strokes, clever and orderly, a plain burnished bronze field behind them, a clean dark ink outline around the medallion's outer rim with a crisp edge, (faces:-3) (buttons with holes:-3) (text letters:-3) (scenery:-3) (soft glow:-2) (shadow:-2).\n\nStyle: a single game UI emblem, a round bronze-and-gold medallion with bold simple shapes, thick clean outlines, flat cel shading with a soft metallic sheen, Greek key meander border, terracotta and Aegean blue enamel accents, readable at small icon size, centered, isolated on a flat plain white background.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 1024,
+  "height": 1024,
+  "seed": 518,
+  "tiling": false,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-emblem"
+}

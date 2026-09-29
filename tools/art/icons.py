@@ -34,6 +34,7 @@ REUSE = {
     "tool-athena": Path("assets/art/emblems/athena_cut.png"),
     "tool-ariane": Path("assets/art/emblems/ariane_cut.png"),
     "tool-argus": Path("assets/art/emblems/argus_cut.png"),
+    "tool-palamede": Path("assets/art/emblems/palamede_cut.png"),
 }
 APP_ID = "app-apple"            # home-screen icon: goes to web/public/icons, not to art/icons
 APP_DST = Path("web/public/icons")
@@ -71,12 +72,14 @@ def square(img: Image.Image) -> Image.Image:
     return canvas
 
 
-def webp():
-    DST.mkdir(parents=True, exist_ok=True)
+def webp(dst_dir: Path = DST, only: list[str] | None = None):
+    dst_dir.mkdir(parents=True, exist_ok=True)
     largest = 0
     for icon_id, src in sources():
+        if only and icon_id not in only:
+            continue
         img = square(Image.open(src)).resize((SIZE, SIZE), Image.LANCZOS)
-        dst = DST / f"{icon_id}.webp"
+        dst = dst_dir / f"{icon_id}.webp"
         for q in range(80, 45, -5):
             img.save(dst, "WEBP", quality=q, method=6)
             if dst.stat().st_size <= BUDGET:
@@ -146,9 +149,13 @@ def app_icon():
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("what", choices=["webp", "sheet", "app", "all"])
+    # Staging while the code that uses a new icon is being written (the art-cutout skill):
+    # `webp --dst assets/art/export/icons --only tool-palamede` exports just that icon outside web/.
+    ap.add_argument("--dst", type=Path, default=DST, help="webp: output folder (default web/public/art/icons)")
+    ap.add_argument("--only", nargs="+", help="webp: export only these icon ids")
     a = ap.parse_args()
     if a.what in ("webp", "all"):
-        webp()
+        webp(a.dst, a.only)
     if a.what in ("sheet", "all"):
         sheet()
     if a.what in ("app", "all"):
