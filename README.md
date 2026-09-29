@@ -114,18 +114,24 @@ built-in `scp`:
 scp "discorde-$v.tar" admin@<nas-ip>:/mnt/<pool>/<share>/
 ```
 
-then load it from a shell on the NAS (**System → Shell**, or `ssh admin@<nas-ip>`); these commands
-run on the NAS, not on Windows:
+then, from a shell on the NAS (**System → Shell**, or `ssh admin@<nas-ip>`), load it and point
+`latest` at the new version, which is the tag the compose file runs; these commands run on the
+NAS, not on Windows:
 
 ```bash
-sudo docker load -i /mnt/<pool>/<share>/discorde-2026-09-27.tar
+v=2026-09-27
+sudo docker load -i /mnt/<pool>/<share>/discorde-$v.tar
+sudo docker tag discorde:$v discorde:latest
+sudo docker tag discorde-tts:$v discorde-tts:latest
 sudo docker image ls 'discorde*'
 ```
+
+The dated tags stay too: they are what you roll back to (see "Update to a new version").
 
 ### The game's folder and the port
 
 - **Folder:** create a dataset for the game, e.g. `/mnt/<pool>/apps/discorde` (**Datasets → Add
-  Dataset**). It holds the compose file, its `.env`, and the game's data in `data/`: the whole
+  Dataset**). It holds the compose file and the game's data in `data/`: the whole
   state of the game (§4), so this dataset is what you snapshot and back up. The container runs as
   root, so no special permissions are needed.
 - **Port:** the game listens on 8080 inside the container. The left-hand side of `ports` is the
@@ -135,13 +141,13 @@ sudo docker image ls 'discorde*'
 
 ### Start it with docker compose
 
-In that folder, create two files. `compose.yaml`:
+In that folder, create `compose.yaml`:
 
 ```yaml
 name: discorde
 services:
   discorde:
-    image: discorde:${DISCORDE_VERSION}
+    image: discorde:latest
     pull_policy: never
     container_name: discorde
     ports:
@@ -152,7 +158,7 @@ services:
       - tts
     restart: unless-stopped
   tts:
-    image: discorde-tts:${DISCORDE_VERSION}
+    image: discorde-tts:latest
     pull_policy: never
     container_name: discorde-tts
     volumes:
@@ -160,12 +166,6 @@ services:
     restart: unless-stopped
 volumes:
   tts-cache:
-```
-
-and `.env`, which names the version to run:
-
-```bash
-DISCORDE_VERSION=2026-09-27
 ```
 
 Then start it (and check it's up) from a shell on the NAS:
@@ -176,8 +176,9 @@ sudo docker compose up -d
 sudo docker compose ps
 ```
 
-This is `compose.yaml` from the repo with the build lines removed, the images named by the version
-in `.env`, and the named data volume swapped for the `data/` folder next to the file. The voice has
+This is `compose.yaml` from the repo with the build lines removed, the images taken at their
+`latest` tag (the one you point at each new version after loading it), and the named data volume
+swapped for the `data/` folder next to the file. The voice has
 no port: only the game talks to it. Its cache is a named Docker volume (`discorde_tts-cache`;
 nothing in it needs a backup). `pull_policy: never` tells Docker to use the images you loaded
 instead of looking for them on Docker Hub. `restart: unless-stopped` brings both back after a NAS
@@ -212,14 +213,20 @@ reboot. Everything else comes from the images:
 
 The data lives in `data/`, not in the container, so an update keeps everything:
 
-1. Build, copy and load the new images under a new tag, as above (e.g. `discorde:2026-10-15` and
-   `discorde-tts:2026-10-15`).
-2. Set `DISCORDE_VERSION=2026-10-15` in `.env`, then `cd /mnt/<pool>/apps/discorde` and
-   `sudo docker compose up -d`. Compose recreates both containers on the new images; database
-   changes (migrations) are applied at startup.
-3. Once it's healthy and the game works, remove the old images (`sudo docker image rm
-   discorde:2026-09-27 discorde-tts:2026-09-27`). Until then, going back is the same two steps
-   with the old version in `.env`.
+1. Build, copy and load the new images under a new dated tag, and tag them `latest`, as above
+   (e.g. `v=2026-10-15`).
+2. Restart on them: `cd /mnt/<pool>/apps/discorde` and `sudo docker compose up -d`. Compose sees
+   that `latest` now points at different images and recreates both containers; database changes
+   (migrations) are applied at startup.
+3. Once it's healthy and the game works, remove the previous version's dated images
+   (`sudo docker image rm discorde:2026-09-27 discorde-tts:2026-09-27`). Until then, going back is
+   pointing `latest` at them again and restarting:
+
+   ```bash
+   sudo docker tag discorde:2026-09-27 discorde:latest
+   sudo docker tag discorde-tts:2026-09-27 discorde-tts:latest
+   sudo docker compose up -d
+   ```
 
 Take a snapshot of the dataset before updating (§4) so you can roll the data back too.
 
