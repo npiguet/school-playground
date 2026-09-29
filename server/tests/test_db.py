@@ -1,5 +1,5 @@
 import sqlite3
-from app.db import connect, migrate
+from app.db import MIGRATIONS_DIR, connect, migrate
 
 
 def table_names(conn):
@@ -89,9 +89,6 @@ def test_a_write_waits_out_a_lock_held_longer_than_sqlites_default(tmp_path):
     assert time.monotonic() - started >= 5.0
     release.join()
     assert tuple(second.execute("SELECT name, level FROM profile WHERE id = 1").fetchone()) == ("B", "9H")
-
-
-from app.db import MIGRATIONS_DIR
 
 
 def _pre_005_db(path):

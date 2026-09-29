@@ -50,6 +50,19 @@ def test_nan_and_infinity_are_refused(tmp_path):
     assert load_rules(write(tmp_path, '{"aid_bonus": NaN, "fight_max_per_100": Infinity}')).as_dict() == DEFAULTS
 
 
+def test_an_integer_too_large_for_a_float_is_refused_and_start_up_works(settings, caplog):
+    huge = "1" + "0" * 400
+    text = ('{"aid_bonus": %s, "fight_max_per_100": %s, "chouette_hints": %s, "quest_min_chances": %s, '
+            '"pace_bonus": {"2": %s}}' % (huge, huge, huge, huge, huge))
+    assert load_rules(write(settings.data_dir.parent, text)).as_dict() == DEFAULTS
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    (settings.data_dir / RULES_FILENAME).write_text(text, encoding="utf-8")
+    with caplog.at_level(logging.WARNING), TestClient(create_app(settings)) as c:
+        assert c.get("/api/world").json()["rules"] == DEFAULTS
+    for key in ("aid_bonus", "fight_max_per_100", "chouette_hints", "quest_min_chances", "pace_bonus"):
+        assert key in caplog.text, key
+
+
 def test_a_pace_bonus_that_is_not_an_object_keeps_the_built_in_one(tmp_path):
     assert load_rules(write(tmp_path, '{"pace_bonus": 0.3}')).as_dict() == DEFAULTS
 

@@ -12,6 +12,7 @@ from typing import Any, Callable
 
 RULES_FILENAME = "regles.json"
 PACES = ("1", "2", "3")
+MAX_COUNT = 1_000_000
 log = logging.getLogger("uvicorn.error")
 
 
@@ -37,12 +38,19 @@ class Rules:
 
 def _count(v: Any) -> bool:
     # bool is an int in Python: « true » is not a count.
-    return isinstance(v, int) and not isinstance(v, bool) and v >= 0
+    # Bounded: json.loads accepts integers of any length, and none of these counts needs a huge one.
+    return isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= MAX_COUNT
 
 
 def _number(v: Any) -> bool:
-    # json.loads accepts NaN and Infinity: neither is a threshold.
-    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and v >= 0
+    # json.loads accepts NaN and Infinity: neither is a threshold. An int too large for a float
+    # (a 400-digit literal) would make float()/isfinite() raise OverflowError: refused the same way.
+    if not isinstance(v, (int, float)) or isinstance(v, bool):
+        return False
+    try:
+        return math.isfinite(float(v)) and v >= 0
+    except OverflowError:
+        return False
 
 
 def _share(v: Any) -> bool:
