@@ -20,6 +20,7 @@
   import { router } from '../../lib/router.svelte';
   import { tilt } from '../../lib/scene/tiltState.svelte';
   import { tiltToNorm, type TiltSample } from '../../lib/scene/tilt';
+  import { warm } from '../../lib/scene/warm';
   import type { SceneContext, SceneDef } from '../../lib/scene/types';
 
   let {
@@ -92,12 +93,10 @@
   });
 
   onMount(() => {
-    // Warm the cache for the scenes the player is likely to open next (spec §4 performance).
+    // Fetch ahead the scenes the player is likely to open next (spec §4 performance; lib/scene/warm.ts
+    // keeps them, since the browser's cache does not).
     const t = setTimeout(() => {
-      for (const src of scene.preload) {
-        const img = new Image();
-        img.src = src;
-      }
+      for (const src of scene.preload) warm(src);
     }, 800);
     return () => clearTimeout(t);
   });

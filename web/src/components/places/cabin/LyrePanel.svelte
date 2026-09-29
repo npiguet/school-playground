@@ -17,6 +17,7 @@
   import { resetTours } from '../../../lib/tours/seen.svelte';
   import { frenchSpacing } from '../../../lib/text/french';
   import { sayKey } from '../../../lib/dialogue/select';
+  import { buildLine } from '../../../lib/version';
   import type { Profile } from '../../../lib/types';
 
   let { profile }: { profile: Profile } = $props();
@@ -122,6 +123,14 @@
     }
   }
 
+  // The credits' last line: the build the server runs (README troubleshooting: which version the iPad
+  // runs). Nothing shown if the server does not say.
+  let build = $state<string | null>(null);
+  api
+    .health()
+    .then((h) => (build = buildLine(h.build)))
+    .catch(() => {});
+
   // UI5 Ruling E13: every tour can be replayed, so nothing a tour says is lost.
   async function replayTours() {
     replaying = true;
@@ -220,6 +229,9 @@
     <p>Les musiques et les bruitages du camp ont été offerts à tous par leurs auteurs, sous la licence Creative Commons Zéro.</p>
     <p>Les livres d'Alexandrie viennent de Wikisource et du Projet Gutenberg. Chaque œuvre garde le nom de son auteur et de son traducteur.</p>
     <p>Les peintures du camp ont été faites pour lui.</p>
+    {#if build}
+      <p class="lyre-build" data-testid="lyre-build">{build}</p>
+    {/if}
   </details>
 </div>
 
@@ -249,5 +261,10 @@
   .lyre-credits p {
     margin: 8px 0 0;
     font-size: 15px;
+  }
+  .lyre-credits .lyre-build {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--ink-soft);
   }
 </style>

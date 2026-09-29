@@ -9,8 +9,9 @@ echo "== tts: pytest";           scripts/tts-pytest.sh -q
 # the main tsconfig excludes e2e, and Playwright only transpiles, so nothing else type-checks them).
 echo "== web: svelte-check + e2e type-check"; scripts/npm.sh run check
 echo "== web: vitest";           scripts/npm.sh run test
-echo "== docker build";          docker build -t "$APP_IMAGE" .
-echo "== docker build tts";      docker build -t "$TTS_IMAGE" tts
+STAMP=(--build-arg "GIT_COMMIT=$GIT_COMMIT" --build-arg "BUILD_DATE=$BUILD_DATE")   # scripts/lib.sh
+echo "== docker build";          docker build "${STAMP[@]}" -t "$APP_IMAGE" .
+echo "== docker build tts";      docker build "${STAMP[@]}" -t "$TTS_IMAGE" tts
 echo "== e2e: playwright";       scripts/playwright.sh
 # The real voice (spec 2026-09-27 §7, Kokoro plan Ruling K8): one spec against Kokoro itself.
 echo "== e2e: the real voice";   TTS_STUB=0 scripts/playwright.sh --config playwright.voice.config.ts voice-real

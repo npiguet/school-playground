@@ -51,6 +51,13 @@ export SERVER_DEV_IMAGE="$STACK_NAME-server-dev"
 # app's. compose*.yaml read TTS_IMAGE; scripts/tts-pytest.sh builds and runs the test image.
 export TTS_IMAGE="$STACK_NAME-tts:local"
 TTS_TEST_IMAGE="$STACK_NAME-tts-test"
+# The build stamp both images carry (GET /api/health, /api/tts/health, the lyre's credits): the
+# checkout's short commit and today's date, unless the caller set them. compose.e2e.yaml and
+# scripts/check.sh pass them as the GIT_COMMIT and BUILD_DATE build args.
+# $HOST_ROOT, not $ROOT: with MSYS_NO_PATHCONV set, Git for Windows cannot open a /c/... path.
+GIT_COMMIT="${GIT_COMMIT:-$(git -C "$HOST_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)}"
+BUILD_DATE="${BUILD_DATE:-$(date +%Y-%m-%d)}"
+export GIT_COMMIT BUILD_DATE
 NPM_CACHE_VOLUME="discorde-npm-cache"
 
 # The install records which package-lock.json it came from (its sha256, in the volume), so a lockfile

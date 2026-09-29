@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    # The build stamp: scripts/lib.sh exports GIT_COMMIT and BUILD_DATE.
+    build:
+      context: .
+      args: { GIT_COMMIT: "${GIT_COMMIT:-unknown}", BUILD_DATE: "${BUILD_DATE:-unknown}" }
     # scripts/lib.sh sets APP_IMAGE, NODE_MODULES_VOLUME and PLAYWRIGHT_VERSION per STACK (README,
     # "Development"); the defaults are the main checkout's names.
     image: ${APP_IMAGE:-discorde:local}
@@ -26,7 +29,9 @@ services:
   # The dictation's voice (Kokoro plan): the stub (silent MP3s, no model) unless TTS_STUB=0, as the
   # real-voice run does (scripts/check.sh, Ruling K8). The app reaches it as http://tts:8000.
   tts:
-    build: ./tts
+    build:
+      context: ./tts
+      args: { GIT_COMMIT: "${GIT_COMMIT:-unknown}", BUILD_DATE: "${BUILD_DATE:-unknown}" }
     image: ${TTS_IMAGE:-discorde-tts:local}
     environment: { TTS_STUB: "${TTS_STUB:-1}", TTS_THREADS: "4" }
     healthcheck:

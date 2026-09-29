@@ -148,7 +148,7 @@ test("the journal tells Éris's tricks by their monster, and each text once", as
   expect(await redScan(page)).toEqual([]);
 });
 
-test('the lyre holds the settings, the three sound channels, the goal as medallions, the credits', async ({ page, request }, testInfo) => {
+test('the lyre holds the settings, the three sound channels, the goal as medallions, the credits and the build',async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCabin(page, id);
   await tap(page.getByTestId('cabin-lyre'), testInfo);
@@ -177,6 +177,14 @@ test('the lyre holds the settings, the three sound channels, the goal as medalli
   await lyre.getByTestId('lyre-credits').locator('summary').click();
   await expect(lyre.getByTestId('lyre-credits')).toContainText('Wikisource');
   await expect(lyre.getByTestId('lyre-credits')).toContainText('Kokoro');
+  // The build stamp (scripts/lib.sh passes GIT_COMMIT and BUILD_DATE to the image build): the
+  // credits' last line names the build the server says it runs.
+  const { build } = await (await request.get('/api/health')).json();
+  expect(build.commit).toMatch(/^[0-9a-f]{7,}$/);
+  expect(build.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  const [y, m, d] = build.date.split('-').map(Number);
+  const month = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'][m - 1];
+  await expect(lyre.getByTestId('lyre-build')).toHaveText(`version ${build.commit} · ${d === 1 ? '1er' : d} ${month} ${y}`);
   expect(await redScan(page)).toEqual([]);
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/cabane$/);

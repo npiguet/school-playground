@@ -4,11 +4,12 @@ import mimetypes
 from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from app.alexandria.flights import AnnotationLimiter, RefreshFlights
 from app.config import Settings
 from app.db import connect, migrate, DB_FILENAME
 from app.routers import profiles, texts, sessions, stats, scan, alexandria, world, tts
+from app.static import serve
 
 VERSION = "0.1.0"
 
@@ -58,9 +59,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="La Discorde", version=VERSION, lifespan=lifespan)
 
+    # The build stamp (README troubleshooting; the lyre's credits read it here, so the page and the
+    # server always name the same build).
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "version": VERSION}
+        return {"status": "ok", "build": {"commit": settings.build_commit, "date": settings.build_date}}
 
     app.include_router(profiles.router)
     app.include_router(texts.router)
@@ -77,15 +80,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def api_not_found(rest: str):
         raise HTTPException(status_code=404, detail="Not found")
 
+    # Nothing it serves is kept by the browser (app/static.py).
     @app.get("/{path:path}")
     def spa(path: str):
         static = settings.static_dir.resolve()
         candidate = (static / path).resolve() if path else None
         if candidate and candidate.is_file() and candidate.is_relative_to(static):
-            return FileResponse(candidate)
+            return serve(candidate)
         index = static / "index.html"
         if index.is_file():
-            return FileResponse(index)
+            return serve(index)
         return JSONResponse({"detail": "SPA not built"}, status_code=404)
 
     return app

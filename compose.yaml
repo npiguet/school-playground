@@ -1,7 +1,11 @@
 services:
   discorde:
     image: discorde:local
-    build: .
+    # The build stamp (GET /api/health, the lyre's credits), from the environment: README, "Quick
+    # start". Unset, the stamp says "unknown".
+    build:
+      context: .
+      args: { GIT_COMMIT: "${GIT_COMMIT:-unknown}", BUILD_DATE: "${BUILD_DATE:-unknown}" }
     container_name: discorde
     # The host side is an uncommon port so the game sits beside other services; inside the
     # container it stays 8080.
@@ -13,7 +17,9 @@ services:
     restart: unless-stopped
   tts:
     image: discorde-tts:local
-    build: tts
+    build:
+      context: tts
+      args: { GIT_COMMIT: "${GIT_COMMIT:-unknown}", BUILD_DATE: "${BUILD_DATE:-unknown}" }
     container_name: discorde-tts
     # Every line it has made (no backup needed: each one can be made again).
     volumes: ["discorde-tts-cache:/cache"]

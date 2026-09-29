@@ -17,6 +17,7 @@ import type {
   AlexandriaChunk,
   RefreshResult,
 } from './types';
+import type { BuildStamp } from './version';
 
 export class ApiError extends Error {
   status: number;
@@ -64,6 +65,8 @@ export async function request<T>(method: string, url: string, body?: unknown, ti
 }
 
 export const api = {
+  /** The server is up, and which build it runs (the lyre's credits). */
+  health: () => request<{ status: string; build?: BuildStamp }>('GET', '/api/health'),
   profiles: {
     list: () => request<Profile[]>('GET', '/api/profiles'),
     create: (body: ProfileCreateBody) => request<Profile>('POST', '/api/profiles', body),

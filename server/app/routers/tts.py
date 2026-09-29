@@ -73,7 +73,7 @@ def prepare(body: PrepareBody, request: Request, db: sqlite3.Connection = Depend
 
 @router.get("/health")
 def health(request: Request):
-    """For the README's troubleshooting (Ruling K9): is the voice there, and which one."""
+    """For the README's troubleshooting (Ruling K9): is the voice there, which one, and which build."""
     client: httpx.Client = request.app.state.tts_client
     try:
         r = client.get("/health", timeout=httpx.Timeout(3.0))
@@ -85,6 +85,14 @@ def health(request: Request):
         body = None
     if not isinstance(body, dict):   # not the voice's health answer (not a JSON object): an error
         return JSONResponse({"voice": "error"}, status_code=503)
+    # The voice's build stamp (its image's GIT_COMMIT and BUILD_DATE), when it sent one shaped like one.
+    build = body.get("build")
+    stamp = {"build": build} if _is_stamp(build) else {}
     if r.status_code == 200:
-        return {"voice": "ready", "engine": body.get("engine")}
-    return JSONResponse({"voice": "loading" if body.get("status") == "loading" else "error"}, status_code=503)
+        return {"voice": "ready", "engine": body.get("engine"), **stamp}
+    return JSONResponse({"voice": "loading" if body.get("status") == "loading" else "error", **stamp}, status_code=503)
+
+
+def _is_stamp(build: object) -> bool:
+    return (isinstance(build, dict) and set(build) == {"commit", "date"}
+            and all(isinstance(v, str) for v in build.values()))

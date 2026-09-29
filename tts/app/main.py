@@ -97,16 +97,19 @@ def create_app(
             raise HTTPException(422, "nothing to say")
         return Line(text=text, speed=round(body.speed, 3))
 
+    # Every answer names the build (the game's /api/tts/health passes it on).
+    build = {"commit": config.build_commit, "date": config.build_date}
+
     @app.get("/health")
     def health(request: Request):
         state = request.app.state
         if state.worker is not None:
             if not state.worker.alive():
-                return JSONResponse({"status": "error", "detail": STOPPED}, status_code=503)
-            return {"status": "ready", "engine": state.engine_id}
+                return JSONResponse({"status": "error", "detail": STOPPED, "build": build}, status_code=503)
+            return {"status": "ready", "engine": state.engine_id, "build": build}
         if state.error:
-            return JSONResponse({"status": "error", "detail": state.error}, status_code=503)
-        return JSONResponse({"status": "loading"}, status_code=503)
+            return JSONResponse({"status": "error", "detail": state.error, "build": build}, status_code=503)
+        return JSONResponse({"status": "loading", "build": build}, status_code=503)
 
     @app.post("/speak")
     async def speak(body: SpeakBody, request: Request):

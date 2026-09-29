@@ -51,6 +51,14 @@ export function weekdayOf(iso: string): string | null {
   return WEEKDAYS[date.getUTCDay()];
 }
 
+/** « 29 septembre 2026 », « 1er octobre 2026 », always with the year; null when `iso` is not a real
+ *  YYYY-MM-DD date. */
+export function dayMonthYear(iso: string): string | null {
+  if (!weekdayOf(iso)) return null;
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  return `${d === 1 ? '1er' : d} ${MONTHS[m - 1]} ${y}`;
+}
+
 /** « lundi 28 septembre », « jeudi 1er janvier 2099 »: the year only when it is not this one. Input
  *  that is not a real YYYY-MM-DD date comes back as it was, never « undefined NaN ». */
 export function longDate(iso: string, today: Date = new Date()): string {

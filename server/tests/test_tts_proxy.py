@@ -104,6 +104,24 @@ def test_the_voice_s_health(client, answer, status, body):
     assert r.status_code == status and r.json() == body
 
 
+BUILD = {"commit": "b68ecc8", "date": "2026-09-29"}
+
+
+@pytest.mark.parametrize("answer, status, body", [
+    ({"status": "ready", "engine": "stub", "build": BUILD}, 200, {"voice": "ready", "engine": "stub", "build": BUILD}),
+    ({"status": "loading", "build": BUILD}, 503, {"voice": "loading", "build": BUILD}),
+    ({"status": "error", "detail": "x", "build": BUILD}, 503, {"voice": "error", "build": BUILD}),
+    # Only a stamp shaped like one passes.
+    ({"status": "ready", "engine": "stub", "build": "b68ecc8"}, 200, {"voice": "ready", "engine": "stub"}),
+    ({"status": "ready", "engine": "stub", "build": {"commit": 1, "date": "2026-09-29"}}, 200,
+     {"voice": "ready", "engine": "stub"}),
+])
+def test_the_voice_s_health_names_its_build(client, answer, status, body):
+    voice(client, lambda _: httpx.Response(200 if answer["status"] == "ready" else 503, json=answer))
+    r = client.get("/api/tts/health")
+    assert r.status_code == status and r.json() == body
+
+
 def test_the_voice_is_reached_directly_whatever_proxy_the_environment_names(monkeypatch, settings):
     # Final review M8: the behaviour, not httpx's internals. A voice on this host answers `ready`; the
     # environment names a proxy that refuses every connection, which a default client would go through.

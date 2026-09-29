@@ -28,6 +28,11 @@ RUN pip install --no-cache-dir -r requirements-dev.txt
 FROM base AS runtime
 COPY app app
 COPY respell.json ./
+# The build stamp (/health, and the game's /api/tts/health), as the root Dockerfile's: "unknown"
+# without the build args.
+ARG GIT_COMMIT=unknown
+ARG BUILD_DATE=unknown
+ENV TTS_BUILD_COMMIT=$GIT_COMMIT TTS_BUILD_DATE=$BUILD_DATE
 VOLUME ["/cache"]
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=120s --retries=5 \

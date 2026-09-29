@@ -23,6 +23,12 @@ RUN pip install --no-cache-dir -r requirements.txt \
 COPY server/app app
 COPY content content
 COPY --from=web /work/web/dist static
+# The build stamp (GET /api/health, the lyre's credits): scripts/lib.sh, compose*.yaml and the
+# README's `docker build` pass the short commit and the build day; without them it says "unknown".
+# Last, so a new commit rebuilds only this layer.
+ARG GIT_COMMIT=unknown
+ARG BUILD_DATE=unknown
+ENV DISCORDE_BUILD_COMMIT=$GIT_COMMIT DISCORDE_BUILD_DATE=$BUILD_DATE
 VOLUME ["/data"]
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --start-period=90s --retries=5 \

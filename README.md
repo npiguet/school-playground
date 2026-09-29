@@ -47,10 +47,14 @@ Run the game on your Windows PC, for trying it out or playing on the home networ
 2. Open **PowerShell** in the repository folder and build + start the server:
 
    ```powershell
+   $env:GIT_COMMIT = git rev-parse --short HEAD
+   $env:BUILD_DATE = Get-Date -Format yyyy-MM-dd
    docker compose up -d --build
    ```
 
-   The first build takes several minutes (it downloads Tesseract, the large French spaCy
+   The first two lines stamp the build with its commit and date, which the lyre's credits and
+   `/api/health` show ("Which version is running?" in §2); without them the stamp says `unknown`
+   and the game works the same. The first build takes several minutes (it downloads Tesseract, the large French spaCy
    language model and the voice's model, Kokoro-82M). Later builds reuse the cache. The images are
    tagged `discorde:local` and `discorde-tts:local`.
 3. Open <http://localhost:38417> in Edge or Chrome. The 35 seed texts are loaded on the first start.
@@ -71,9 +75,9 @@ Everyday commands (from the repository folder):
 |---|---|
 | Stop the server | `docker compose stop` |
 | Start it again | `docker compose start` |
-| Update after pulling new code | `docker compose up -d --build` |
+| Update after pulling new code | the three lines of step 2 (the stamp, then `docker compose up -d --build`) |
 | See the logs | `docker compose logs -f` (both containers), or `docker compose logs -f tts` for the voice alone |
-| Check it's healthy | open <http://localhost:38417/api/health> (answers `{"status":"ok",...}`) |
+| Check it's healthy | open <http://localhost:38417/api/health> (answers `{"status":"ok","build":{"commit":"b68ecc8","date":"2026-09-29"}}`) |
 | Check the voice | open <http://localhost:38417/api/tts/health> (answers `{"voice":"ready",...}`; see "If the voice goes silent") |
 
 Heroes, progress, custom texts and scans are stored in a Docker volume named after the folder,
@@ -99,10 +103,16 @@ names the version (a date works well, and makes rolling back easy), and save bot
 
 ```powershell
 $v = "2026-09-27"
-docker build -t "discorde:$v" .
-docker build -t "discorde-tts:$v" tts
+$c = git rev-parse --short HEAD
+$d = Get-Date -Format yyyy-MM-dd
+docker build --build-arg GIT_COMMIT=$c --build-arg BUILD_DATE=$d -t "discorde:$v" .
+docker build --build-arg GIT_COMMIT=$c --build-arg BUILD_DATE=$d -t "discorde-tts:$v" tts
 docker save -o "discorde-$v.tar" "discorde:$v" "discorde-tts:$v"
 ```
+
+The two `--build-arg`s stamp both images with the commit and the day they were built, which the
+game shows ("Which version is running?" below). Leave them out and the stamp says `unknown`; the
+images work the same.
 
 (Don't pipe `docker save` in Windows PowerShell 5.1: its pipes re-encode binary data and corrupt the
 file; `-o` writes it directly.) The game's image takes about 3.2 GB on disk once loaded (mostly the
@@ -200,7 +210,8 @@ reboot. Everything else comes from the images:
 
   The others (`DISCORDE_DATA_DIR=/data`, `DISCORDE_CONTENT_DIR=/app/content`,
   `DISCORDE_STATIC_DIR=/app/static`, `SPACY_MODEL=fr_core_news_lg`) describe the image's layout;
-  leave them alone. `DISCORDE_ALEXANDRIA_OFFLINE_DIR` and `DISCORDE_TEST_HOOKS` are for the test
+  leave them alone, like the build stamp (`DISCORDE_BUILD_COMMIT`, `DISCORDE_BUILD_DATE`, and
+  `TTS_BUILD_COMMIT`, `TTS_BUILD_DATE` on `tts`), which the build args set. `DISCORDE_ALEXANDRIA_OFFLINE_DIR` and `DISCORDE_TEST_HOOKS` are for the test
   suite only; never set them in production. `TTS_STUB` is for the test suite only.
 - **RAM:** the game's container uses about 1.1 GB once started (measured at rest, with the language
   model loaded). Analysing a new text, a scan or an Alexandria adoption runs that model again, so
@@ -230,6 +241,22 @@ The data lives in `data/`, not in the container, so an update keeps everything:
 
 Take a snapshot of the dataset before updating (§4) so you can roll the data back too.
 
+### Which version is running?
+
+To see which version the iPad runs, open the lyre's credits (the hero's cabin, « La lyre », « Merci
+à ceux qui ont aidé le camp »): their last line reads e.g. « version b68ecc8 · 29 septembre 2026 »,
+the commit and the day the image was built. The page reads it from the server, so it is the
+server's version too; `http://<server>:38417/api/health` gives the same
+(`{"status":"ok","build":{"commit":"b68ecc8","date":"2026-09-29"}}`), and
+`/api/tts/health` the voice's. « version inconnue » (`unknown`) means the image was built without
+the stamp's build args.
+
+The game tells browsers not to cache it (`Cache-Control: no-store` on the page and every file), so
+a new version shows at the next page load, with no reload tricks needed. Should the iPad ever still
+show an older version than `/api/health` names, reload the page in Safari, or, for the Home Screen
+icon, close the game from the app switcher and open it again; as a last resort remove the icon and
+add it to the Home Screen again (§3).
+
 ### If the voice goes silent
 
 The game never falls back to the device's own voice. When it cannot get a line from its voice, the
@@ -244,7 +271,8 @@ tap « Réessayer », then to fetch a parent if the voice stays silent. The card
 Then:
 
 1. Open `http://<server>:38417/api/tts/health`.
-   `{"voice":"ready","engine":"kokoro-82m-v1.0-onnx-direct"}` means the voice is fine again: tap
+   `{"voice":"ready","engine":"kokoro-82m-v1.0-onnx-direct","build":{...}}` means the voice is fine again (`build`
+   names the voice's version, see "Which version is running?"): tap
    « Réessayer » on the card. `{"voice":"loading"}`: wait a minute and try again.
    `{"voice":"unreachable"}`: the container is not running. `{"voice":"error"}`: it could not load
    its model; its logs say why.

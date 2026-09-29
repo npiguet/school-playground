@@ -2,19 +2,44 @@ import io
 import threading
 import time
 
+from dataclasses import replace
+
 import pytest
 import soundfile as sf
 from fastapi.testclient import TestClient
 
 from app.audio import stub_ms
+from app.config import Config
 from app.main import MAX_PREPARE_LINES, create_app
 from tests.conftest import SpyEngine, wait_ready
+
+
+UNKNOWN = {"commit": "unknown", "date": "unknown"}
 
 
 def test_health_says_ready_and_names_its_engine(client):
     r = client.get("/health")
     assert r.status_code == 200
-    assert r.json() == {"status": "ready", "engine": "stub"}
+    assert r.json() == {"status": "ready", "engine": "stub", "build": UNKNOWN}
+
+
+def test_health_names_the_build(config):
+    stamped = replace(config, build_commit="b68ecc8", build_date="2026-09-29")
+    with TestClient(create_app(stamped)) as c:
+        wait_ready(c)
+        assert c.get("/health").json()["build"] == {"commit": "b68ecc8", "date": "2026-09-29"}
+
+
+def test_the_stamp_comes_from_the_environment(monkeypatch):
+    for name in ("TTS_BUILD_COMMIT", "TTS_BUILD_DATE"):
+        monkeypatch.delenv(name, raising=False)
+    assert (Config.from_env().build_commit, Config.from_env().build_date) == ("unknown", "unknown")
+    monkeypatch.setenv("TTS_BUILD_COMMIT", "")
+    monkeypatch.setenv("TTS_BUILD_DATE", " ")
+    assert (Config.from_env().build_commit, Config.from_env().build_date) == ("unknown", "unknown")
+    monkeypatch.setenv("TTS_BUILD_COMMIT", "b68ecc8")
+    monkeypatch.setenv("TTS_BUILD_DATE", "2026-09-29")
+    assert (Config.from_env().build_commit, Config.from_env().build_date) == ("b68ecc8", "2026-09-29")
 
 
 def test_speak_returns_a_silent_mp3_as_long_as_the_line(client):
@@ -95,7 +120,7 @@ def test_a_voice_still_loading_answers_503(config):
 
     with TestClient(create_app(config, engine_factory=slow_factory)) as c:
         r = c.get("/health")
-        assert r.status_code == 503 and r.json() == {"status": "loading"}
+        assert r.status_code == 503 and r.json() == {"status": "loading", "build": UNKNOWN}
         assert c.post("/speak", json={"text": "a", "speed": 1.0}).status_code == 503
         assert c.post("/prepare", json={"lines": []}).status_code == 503
         gate.set()
@@ -114,7 +139,7 @@ def test_a_voice_that_cannot_load_says_so(config):
             time.sleep(0.02)
             r = c.get("/health")
         assert r.status_code == 503
-        assert r.json() == {"status": "error", "detail": "RuntimeError: no model here"}
+        assert r.json() == {"status": "error", "detail": "RuntimeError: no model here", "build": UNKNOWN}
 
 
 def test_a_line_that_fails_is_a_500_and_is_tried_again_next_time(config):
@@ -132,7 +157,7 @@ def test_a_voice_whose_worker_stopped_is_not_ready(config):
         c.app.state.worker.stop()
         r = c.get("/health")
         assert r.status_code == 503
-        assert r.json() == {"status": "error", "detail": "the voice's worker stopped"}
+        assert r.json() == {"status": "error", "detail": "the voice's worker stopped", "build": UNKNOWN}
         assert c.post("/speak", json={"text": "a", "speed": 1.0}).status_code == 503
         assert c.post("/prepare", json={"lines": [{"text": "a", "speed": 1.0}]}).status_code == 503
     assert spy.said == []
