@@ -103,6 +103,12 @@ shelves of goods and a winged-sandal sign. Plus `characters/hermes` (768×1344, 
 cheerful travelling merchant, winged sandals and cap, caduceus) and `icons/drachme` (a silver
 drachma with an owl, 1024² → 256 px icon).
 
+**Shop decor** (sub-project 4): four icons like the existing decor ones (`discorde-inked-clean`,
+1024², seeds near the decor range in the style guide, cut, 256 px WebP `decor-<id>.webp`):
+`decor-amphore` (a painted Greek amphora), `decor-chouette` (a small marble owl statue),
+`decor-mosaique` (a framed mosaic panel of the Muses), `decor-bouclier` (a ceremonial bronze
+shield). They hang on the cabin/villa/palais walls like the current decor.
+
 ## Phase 4: the accessories
 
 24 items × 4 wearing stages = 96 overlays (sub-project 4), each made with the Phase 2 pipeline on the
