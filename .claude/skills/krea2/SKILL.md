@@ -1,6 +1,6 @@
 ---
 name: krea2
-description: Generate images (game art, illustrations, backgrounds, character/creature art) with the local Krea 2 Turbo model through the sd-webui-forge-neo API on localhost:7860. Use whenever the project needs a new image asset or a visual concept.
+description: Generate images (game art, illustrations, backgrounds, character/creature art) with the local Krea 2 Turbo model through the sd-webui-forge-neo API on localhost:7860. Use whenever the project needs a new image asset or a visual concept, or needs to paint something onto an existing picture (img2img inpainting, e.g. dragon accessories) and extract it as an overlay.
 ---
 
 # Krea 2 Turbo image generation (local Forge Neo)
@@ -10,7 +10,7 @@ description: Generate images (game art, illustrations, backgrounds, character/cr
 - Server: **sd-webui-forge-neo** (`Version: neo-2.29`) at `http://127.0.0.1:7860`, A1111-compatible REST API (`/sdapi/v1/*`) is enabled. Interactive docs: `http://127.0.0.1:7860/docs`.
 - If the server does not respond, ask the user to start Forge (launched with `--api`). Do not try to start it yourself.
 - Model: **`krea2_turbo-Q3_K_M.gguf`** (user's choice; the official Krea 2 Turbo, 12B DiT, GGUF Q3). Do **not** use the `DasiwaKrea2Turbo…cutedisaster` checkpoint: it is an NSFW-leaning fine-tune and this project is a game for a child.
-- Forge preset `krea` supplies the text encoder (`qwen3vl_4b_fp8_scaled`) and VAE (`qwen_image_vae`) automatically; selecting the checkpoint via `override_settings.sd_model_checkpoint` is enough. The switch persists after the call.
+- Forge preset `krea` supplies the text encoder (`qwen3vl_4b_fp8_scaled`) and VAE (`qwen_image_vae`) automatically; selecting the checkpoint via `override_settings.sd_model_checkpoint` is enough. The switch does **not** persist: the API defaults to `override_settings_restore_afterwards: true`, and Forge's own Krea checkpoint setting (`forge_checkpoint_krea`) points at the forbidden Dasiwa model (checked 2026-09-29), so **every** txt2img/img2img call must pass the override (`generate.py` does).
 - Speed: ~45–60 s per 1024×1024 image. Generate one image, look at it, then iterate. Don't batch dozens blindly.
 
 ## How to generate
@@ -87,10 +87,74 @@ proportions and gentle wonder, suitable for a young-adult adventure novel cover.
 ## Game asset recipes
 
 - **Backgrounds/scenes:** 1344×768, describe the depth layers (foreground, midground, sky) and leave calm space where UI will go: `(busy details:-2)` plus "open empty sky in the upper third".
-- **Characters, creatures, items (sprites):** the model has no alpha channel. Prompt `isolated on a flat plain white background, centered, full body, soft even lighting` and add `(shadow:-2)(scenery:-3)`. Then remove the background (e.g. `pip install rembg` in a venv) before using it as a sprite.
+- **Characters, creatures, items (sprites):** the model has no alpha channel. Prompt `isolated on a flat plain white background, centered, full body, soft even lighting` and add `(shadow:-2)(scenery:-3)`. Then remove the background with the `art-cutout` skill (`tools/art/run_docker.sh cutout <file>`) before using it as a sprite.
 - **Icons/badges:** 1024×1024, "a single emblem centered, bold simple shapes, readable at small size", then downscale.
 - **Portrait cards (monsters, lieutenants):** 768×1344, character centered, dramatic rim light, simple background.
 - **Audience:** the player is 13 and likes Percy Jackson / Wings of Fire. Aim for YA-novel-cover fantasy: not babyish, not gory, not scary-horror. Keep creatures expressive rather than frightening.
+
+## Inpainting and object extraction (researched and tested 2026-09-29)
+
+Use case: paint something *onto* an existing picture (an accessory on a dragon stage) and keep the
+rest pixel-identical. Background removal (`art-cutout` skill) keeps the whole foreground, so it
+cannot isolate one object inside a picture; that needs a text-prompted segmentation step.
+
+**Inpainting works on Krea 2 Turbo through the plain A1111 API** (tested on
+`assets/art/dragon/dragon_young.png`, a gold collar on the neck, seed 4242: mean pixel change 51
+inside the mask, 0.01 outside). `POST /sdapi/v1/img2img`, schema `StableDiffusionProcessingImg2Img`:
+
+```json
+{"prompt": "a young bronze dragon wearing an ornate ancient Greek golden amulet collar ...",
+ "init_images": ["<b64 png>"], "mask": "<b64 png, white = repaint>",
+ "mask_blur": 4, "inpainting_fill": 1, "inpaint_full_res": true, "inpaint_full_res_padding": 48,
+ "denoising_strength": 0.9, "steps": 9, "cfg_scale": 1, "sampler_name": "Euler", "scheduler": "Simple",
+ "seed": 4242, "width": 1024, "height": 1024,
+ "override_settings": {"sd_model_checkpoint": "krea2_turbo-Q3_K_M"}}
+```
+
+- `inpainting_fill`: 0 fill, 1 original, 2 latent noise, 3 latent nothing. To add a new object use 1
+  with denoise 0.85–1.0. Turbo has only ~8 steps, so at low denoise raise `steps` to about 8/denoise.
+  API defaults: `mask_blur` 4, `inpainting_fill` 0, `inpaint_full_res` true with padding 0,
+  denoise 0.75, `mask_round` true. Forge's img2img defaults for Krea: 8 steps, CFG 1, Euler/Simple.
+- Describe the whole subject plus the new object and end with the style words; the prompt is read
+  for the masked crop only.
+- **Everything inside the mask is repainted, not just the object.** In the test the neck skin above
+  the collar came back darker and hatched. So: keep the mask tight around the slot, and use only the
+  object's pixels from the result, never the whole masked area.
+- Known upstream bug (Haoming02/sd-webui-forge-classic issue #1033, closed "not planned"): in the
+  UI, inpainting silently changes nothing when mask blur is above 4 or the mask is small. Through
+  the API, blur 8 on a 270×150 px mask worked fine here; small masks are untested. If a result comes
+  back unchanged, check the mean diff inside the mask, lower `mask_blur` to 0–4 and feather the mask
+  yourself.
+- Soft Inpainting is available as an img2img script (`soft inpainting`), untried.
+
+**No dedicated Krea 2 inpaint/edit/ControlNet models are usable here.** Krea publishes only Raw and
+Turbo. Community inpaint LoRAs (`yijunwang2/krea2-anypaint`, `Cierpliwy/krea2-inpaint-edit`) need
+ComfyUI nodes. The Krea 2 "Identity Edit" reference editing exists in Neo (option
+`krea2_do_reference`, off) but its reference inputs are not exposed through the API. Neo's ControlNet
+covers SDXL/Anima only (`/controlnet/model_list` is empty here). Kontext / Qwen-Image-Edit would
+work via img2img but are other models with another style. Plain inpainting is the route.
+
+**Isolating the painted object: a local Python script, not a Forge extension.**
+`sd-webui-segment-anything` has known Forge problems and Neo does not support third-party extension
+issues. Use `transformers` in a separate venv (Neo wants its own Python; don't share it):
+- SAM 3 (`facebook/sam3`, `Sam3Model`/`Sam3Processor`, text prompt directly, e.g. "gold collar").
+  Gated on Hugging Face: the user must accept Meta's licence and provide a token first.
+- Ungated fallback: Grounding DINO (`IDEA-Research/grounding-dino-base`,
+  `AutoModelForZeroShotObjectDetection`) for a box, then SAM 2.1 (`facebook/sam2.1-hiera-large`,
+  `Sam2Model`) with `input_boxes` for the mask.
+- Neither is tested yet in this project. GPU recommended (it shares VRAM with Forge; run it while
+  Forge is idle).
+
+**Pipeline for an aligned overlay** (the object alone, so the dragon's CSS tint does not recolour it
+and repainted skin is not kept):
+1. Mask the slot tightly on the stage picture (by hand, or segment "neck"/"head" and dilate).
+2. Inpaint as above with a fixed seed.
+3. Segment the object in the result, intersect with the inpaint mask, and also with the pixels that
+   actually changed versus the original.
+4. Write an RGBA layer the size of the stage picture: the result's pixels where the object is, alpha
+   0 elsewhere, edge softened 1–2 px. It lines up with the stage picture pixel for pixel.
+5. Check it composited on the stage picture and on a tinted copy (the CSS `hue-rotate` filters in
+   `web/src/lib/world/dragon.ts`).
 
 ## Style files
 
