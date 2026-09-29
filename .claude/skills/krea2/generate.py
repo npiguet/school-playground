@@ -7,6 +7,7 @@ import argparse
 import base64
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -20,6 +21,28 @@ def post(url, payload):
     req = urllib.request.Request(url, json.dumps(payload).encode("utf-8"), {"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=1800) as resp:
         return json.load(resp)
+
+
+def wait_idle(url, max_down=600):
+    """Wait until Forge has no job running (the user's own generations come first), and ride out a
+    Forge that is briefly unreachable (up to max_down seconds) before giving up."""
+    down = 0
+    said = False
+    while True:
+        try:
+            with urllib.request.urlopen(url + "/sdapi/v1/progress?skip_current_image=true", timeout=30) as resp:
+                state = json.load(resp)
+            down = 0
+            if not state.get("state", {}).get("job_count"):
+                return
+            if not said:
+                print("Forge is busy; waiting until it is idle...", file=sys.stderr)
+                said = True
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            down += 10
+            if down > max_down:
+                sys.exit(f"Forge API not reachable at {url}. Is sd-webui-forge-neo running with --api?")
+        time.sleep(10)
 
 
 def main():
@@ -70,6 +93,7 @@ def main():
                 "krea2 variance": {"args": [a.variance > 0, 1.0, 1.0, 0.3, 0, 49, a.variance or 1.2, 1]},
             },
         }
+        wait_idle(a.url)
         try:
             result = post(a.url + "/sdapi/v1/txt2img", payload)
         except urllib.error.URLError as e:
