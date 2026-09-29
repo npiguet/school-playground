@@ -1,0 +1,38 @@
+{
+  "prompt": "a sunny grassy hillside in warm late-afternoon light, the lower part of a sunlit white-washed wall behind. subject: a small ancient Greek travelling merchant's market stall standing on the grass, the stall of the god Hermes: a wooden stall frame with a bold red-and-cream striped cloth awning with a scalloped edge held up by two wooden poles, a wooden counter below it laden with painted clay amphorae, woven baskets, rolled cloth and little bronze treasures, a small shelf of goods at the back, two tall amphorae standing on the grass beside it, and a small round wooden sign hanging from the front of the awning painted with a pair of golden winged sandals. The stall stands firmly on the grass with its feet on the ground, the same light and colours as the surrounding picture, (people:-3) (text:-3) (letters:-3) (writing:-3) (roof tiles:-2)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "denoising_strength": 0.95,
+  "steps": 9,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "Simple",
+  "seed": 4323,
+  "width": 1024,
+  "height": 1024,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    }
+  },
+  "mask_blur": 8,
+  "inpainting_fill": 1,
+  "inpaint_full_res": true,
+  "inpaint_full_res_padding": 160,
+  "style": "discorde-illustration",
+  "init_image": "assets/art/scenes/hub_camp.png",
+  "mask_image": "assets/art/scenes/masks/hub_camp_stall_inpaint.png",
+  "endpoint": "img2img",
+  "raw_inpaint_result": "assets/art/scenes/masks/hub_camp_stall_raw.png",
+  "composite": {
+    "tool": "tools/art/inpaint_paste.py",
+    "command": "python tools/art/inpaint_paste.py assets/art/scenes/hub_camp.png assets/art/scenes/masks/hub_camp_stall_raw.png assets/art/scenes/masks/hub_camp_stall_paste.png assets/art/scenes/masks/hub_camp_stall_inpaint.png assets/art/scenes/hub_camp_stall.png 0",
+    "paste_mask": "assets/art/scenes/masks/hub_camp_stall_paste.png",
+    "why": "the inpaint repaints the wall inside the mask lighter (it drops the tree shade), so only the stall itself, traced by hand as polygons on the raw result, is pasted onto the untouched original",
+    "verified": "0 px differ outside the inpaint mask; changed box x 216-445, y 240-515 px"
+  }
+}
