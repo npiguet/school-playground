@@ -78,3 +78,22 @@ asset that replaces a referenced one (the adult dragon) is staged there, not ove
   Pillow: `Image.open(cut).convert("RGBA").save(dst, "WEBP", quality=82, method=6)`.
 - One icon without rewriting the others: `tools/art/run_docker.sh icons webp --dst
   assets/art/export/icons --only tool-palamede` (`icons.py` gained `--dst` and `--only`).
+
+## Phase 3 exports: trophies, scene variants, enclosed holes (2026-09-30)
+
+- **Trophies**: `python tools/art/trophies.py all` (host Python or the container) reads
+  `assets/art/trophies/trophy-<lt>-<L>_cut.png` and writes the icon treatment of `icons.py`
+  (trimmed, 6 % margin) at 256 px (`assets/art/export/trophies/`, under 25 KB) and 512 px for the
+  shelf's close view (`assets/art/export/trophies/large/`, under 60 KB), plus the 6 x 5 contact sheet
+  `docs/art/trophies-sheet.png` at 128 and 64 px on dark, mid and parchment. 30 + 30 files, 890 KiB.
+- **Scenes** (villa, palais, hub_camp_stall): copy only the new PNGs to a staging folder under the
+  gitignored `assets/art/web/` and run `tools/art/run_docker.sh webify --src assets/art/web/<stage>
+  --dst assets/art/export/scenes --max-px 2048 --quality 88` (249-315 KiB each).
+- **A character** (Hermès): the same webify call with the default 1024 px / q82 on a staging folder
+  holding only `<name>_cut.png` -> `assets/art/export/characters/<name>_cut.webp` (like the Pythia).
+- **Enclosed white holes**: the cut-out can keep a small white gap that the figure encloses (between
+  Hermès's hand, the caduceus and a snake coil). `python tools/art/clear_holes.py <x>_cut.png
+  --dry-run` lists near-white opaque regions up to 2000 px; then run it without `--dry-run`
+  (optionally `--box x0 y0 x1 y1` around the hole) and re-export. On pale or silver subjects the dry
+  run lists dozens of highlights (the silver drachma: 34, the marble owl: 18), so never run it
+  unrestricted there. Re-running `cutout --force` undoes it; run it again after any re-cut.

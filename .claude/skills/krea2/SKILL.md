@@ -286,6 +286,28 @@ Seeds and asset lists are in `docs/art/style-guide.md` ("Progression redesign, p
    repainted wall. A busy painted object on a painted background does not segment cleanly; hand
    polygons took five minutes and are exact.
 
+### Hermès and the shop icons
+
+- Hermès (768x1344, `discorde-inked-clean`, the Pythia's framing sentence "full body portrait,
+  centered, soft even lighting, the whole figure visible from ... down to ... with room above and
+  below"): "a cheerful travelling merchant ... a big friendly mischievous grin and one eyebrow raised
+  as if offering a bargain", winged cap, saffron tunic, blue cloak, "a bulging brown leather satchel
+  of goods", "holding up the caduceus in one hand, a short golden herald's staff with two small
+  snakes twined around it and two little wings at its top, the other hand open in a welcoming
+  gesture", winged sandals, `(beard:-2) (glow:-2)`. One seed in two drew a second caduceus in the
+  open hand; check.
+- **Silver and polished bronze get multicolour blotches** (blue, green, orange patches) from the
+  style's "warm and cool colour variation inside every shape", at every seed, even with
+  `(patina:-3) (blotches:-3) (colourful patches:-3) (multicoloured:-3)` and "one even metal colour
+  all over". For bronze the patches read as reflections and were accepted (decor-bouclier). For
+  silver, which is nearly neutral, desaturate the generated PNG (`ImageEnhance.Color(0.3)`, then
+  `Contrast(1.08)`) before the cut-out and say so in the sidecar (`postprocess`): the relief stays
+  and it reads as silver (drachme). The trophies' silver level did not need it (small engraved
+  objects); a large flat coin face shows the patches most.
+- Mosaic vs fresco: "made of many small square coloured stone tiles clearly visible ... in a carved
+  wooden frame" gives a mosaic that reads differently from the existing plaster fresco
+  (decor-fresque) at 64 px.
+
 ## Dragon accessories: see the art-overlays skill (2026-09-30)
 
 The "Pipeline for an aligned overlay" above is now proven and scripted: slot masks, the

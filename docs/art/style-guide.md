@@ -443,3 +443,77 @@ ecume, braise and argent tints (`docs/art/overlay-test.png`):
 
 Slot masks: `assets/art/dragon/slots/{young,adult,illustre,ancestral}_{cou,queue,dos,tete}.png`,
 contact sheet `docs/art/slot-masks.png`, all 16 checked by eye.
+
+### Progression redesign, phase 3 (2026-09-29)
+
+Trophies, house interiors, Hermès's stall, Hermès and the shop icons (art spec Phase 3). Recipes and
+what was rejected: `krea2` skill "Phase 3 recipes (progression redesign)", `art-cutout` skill
+"Phase 3 exports". The web copies are staged under `assets/art/export/` (not `web/public/art/`);
+the code task that wires each asset moves it. Contact sheets: `docs/art/trophies-sheet.png`,
+`docs/art/phase3-sheet.png`.
+
+**Trophies** `assets/art/trophies/trophy-<lt>-<L>.png` (+ `_cut`, sidecar), 1024², style
+`discorde-inked-clean`, `--vscale 1.0`, 8 steps. Prompt: the icon composition sentence (§5 Icons)
+with "subject: a treasured trophy statuette, <object>, <material>, <base>", one fixed object
+sentence per relic and one material sentence per level (the sidecars hold the exact text).
+
+| Relic (object) | L1 bois | L2 bronze | L3 argent | L4 or | L5 orichalque |
+|---|---|---|---|---|---|
+| hydre (a kite-shaped serpent scale standing on its tip) | 1100 | 1100 | 1100 | 1100 | 1100 |
+| echo (an upright spiral conch shell) | 1110 | 1110 | 1110 | 1110 | 1110 |
+| chimere (three mane locks bound like a bouquet of flames) | 1120 | 1120 | 1121 | 1122 | 1120 |
+| protee (an open scallop shell holding a pearl) | 1131 | 1130 | 1130 | 1132 | 1131 |
+| sirenes (one long upright feather) | 1140 | 1140 | 1140 | 1140 | 1140 |
+| lethe (one open poppy with a seed head, two leaves) | 1150 | 1150 | 1150 | 1150 | 1150 |
+
+Bases: plain wooden block, small round bronze base, three-tier stepped silver base, fluted gold
+column, sculpted rose-gold base with a laurel garland. Gems from level 4: emerald, aquamarine, red,
+sea-blue, sapphire, ruby. 45 generations, 15 rejected (the material sentences were tightened along
+the way: brown wood, "every surface silver", gold leading the subject, rose-gold orichalcum; see
+the skill). Known weak spot, accepted: at 64 px wood and bronze are both brown and differ mostly by
+the base (block vs round) and the shine.
+
+**Interiors** `assets/art/scenes/villa.png` (seed 4401) and `palais.png` (seed 4501), 2048×1152,
+`discorde-illustration`: img2img of `scenes/cabin.png`, denoise 0.72, 12 steps, V-scale 1 (villa
+at 0.60 was rejected: busier, closer to the cabin's clutter). Landmarks (percent of the picture,
+by eye, ±2 %, like `docs/art/scenes.md`):
+
+| Landmark | villa x, y, w, h | palais x, y, w, h |
+|---|---|---|
+| Trophy shelf with hooks and medals (left wall) | 10, 13, 30, 50 | 4, 23, 30, 43 |
+| Second shelf | 31, 28, 9, 16 (right of the main shelf, a few books and a vase) | 16, 8, 17, 23 (above the main shelf, bare) |
+| Journal on the desk | 43, 50, 9, 6 (desk 37, 47, 21, 31) | 44, 53, 10, 7 (desk 39, 52, 20, 29) |
+| Lamp and lyre table | 59, 41, 15, 31 | 59, 43, 13, 33 |
+| Bed | 73, 53, 15, 37 | 72, 22, 16, 73 (canopy bed) |
+| Back windows / arch | two arched windows 47, 22, 9, 28 and 72, 22, 9, 28 | arch onto the courtyard 40, 20, 18, 40 |
+
+Bare wall for decor: villa, the left wall below the medals (x 10-38, y 63-80) and the back wall
+between and under the two windows; palais, the marble wall below the shelf (x 4-34, y 66-85), the
+bare upper shelf, and the wall panels beside the arch between the columns. Both WebPs 249 / 315 KiB (`assets/art/export/scenes/`).
+
+**Hermès's stall** `assets/art/scenes/hub_camp_stall.png` (the original `hub_camp.png` untouched):
+inpaint seed 4323 (mask `scenes/masks/hub_camp_stall_inpaint.png`, padding 160, blur 8, denoise
+0.95, 9 steps, 1024² crop), then only the hand-traced stall (`masks/hub_camp_stall_paste.png`)
+pasted onto the original with `tools/art/inpaint_paste.py`: **0 px differ outside the inpaint mask**
+(checked by the script; the raw inpaint result is kept as `masks/hub_camp_stall_raw.png`, and
+re-running the command reproduces the PNG exactly). Striped red-and-cream awning, a round wooden
+sign with golden winged sandals, amphorae, baskets and rolled cloth on a counter, no text.
+**Stall bounding box: x 0.105-0.218, y 0.208-0.448 of the picture** (px 216-445, 240-515); it
+stands in front of the right end of the white wall, above the nest (nest hotspot from y 0.44). The
+left 2 % falls outside the iPad safe zone, so clip the hotspot to x 0.125-0.218. Rejected: seeds
+4301-4303 (mask at x 0.015-0.17, mostly outside the safe zone, and its top edge cut the wall's
+tiles, painting a second roofline) and 4311-4313 (same place, lower mask). WebP 297 KiB.
+
+**Hermès** `assets/art/characters/hermes.png` + `_cut` (seed 707, 768×1344, `discorde-inked-clean`;
+seed 708 rejected, two caduceuses), a cheerful young merchant god: winged brimmed cap, saffron tunic,
+blue cloak, satchel of goods, the caduceus raised, the other hand open in welcome, winged sandals.
+A small enclosed white gap by the caduceus hand was cleared with `tools/art/clear_holes.py`.
+Export `assets/art/export/characters/hermes_cut.webp` (1024 px high, 63 KiB).
+
+**Icons** (icon composition sentence, `discorde-inked-clean`, 1024², cut, 256 px via `icons.py
+webp --dst assets/art/export/icons --only ...`): drachme 1065 (a silver drachma with Athena's owl
+and an olive sprig; desaturated to 30 % after generation, see its sidecar; 1061-1064 and 1066
+rejected, blotchy multicolour silver), decor-amphore 1015 (black-figure amphora with a running
+hero), decor-chouette 1017 (a small white marble owl on a plinth), decor-mosaique 1020 (a framed
+tile mosaic of three Muses with lyre, scroll and mask), decor-bouclier 1026 (a polished bronze
+hoplite shield with a Pegasus relief; 1021 and 1027 rejected, blotchier). All under 17 KiB.
