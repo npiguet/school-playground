@@ -1,0 +1,26 @@
+{
+  "prompt": "wide interior shot, eye level, warm golden evening light. subject: the inside of a grand ancient Greek palace bedchamber for a young hero: polished white marble walls with slender white marble columns with gilded capitals standing along them, a colourful floor mosaic of terracotta, Aegean blue and gold patterns; on the left wall a long gilded wooden trophy shelf with bronze hooks under it holding a golden laurel crown, a trophy cup and bronze medals, and a second gilded shelf higher up on the same wall; in the centre a fine carved desk inlaid with gold with an open leather journal and a quill; behind the desk, in the back wall, a wide open marble arch looking out onto a sunlit palace courtyard with a fountain, cypress trees and a blue evening sky; on the right a small marble table with a glowing bronze oil lamp and a golden lyre leaning beside it; a grand bed with blue and gold drapes and cushions at the right edge; wide stretches of bare marble wall between the columns. Composition: a wide 16:9 game background seen from a little distance, all the important objects are grouped in the middle of the picture, the outer eighth on the far left and on the far right holds only soft background scenery such as plain wall, foliage or sky; the ground in the lower part of the picture continues naturally with the same texture and light but with few small details; the top edge is calm. (people:-2) (text:-3) (letters:-3) (signs:-3) (busy details:-2)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "denoising_strength": 0.72,
+  "steps": 12,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "Simple",
+  "seed": 4501,
+  "width": 2048,
+  "height": 1152,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    }
+  },
+  "style": "discorde-illustration",
+  "init_image": "assets/art/scenes/cabin.png",
+  "mask_image": null,
+  "endpoint": "img2img"
+}
