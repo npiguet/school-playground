@@ -1,0 +1,35 @@
+{
+  "prompt": "full body portrait, centered, soft even lighting, the whole figure visible from the tips of the wings on his cap down to his sandalled feet with room above and below. subject: Hermes, the Greek messenger god as a cheerful travelling merchant, a lean agile young man with warm olive-brown skin, short curly chestnut hair drawn as thick solid locks, a big friendly mischievous grin and one eyebrow raised as if offering a bargain, a round brimmed traveller's cap with two small white wings on its sides, a short knee-length tunic in saffron yellow with a terracotta border under a short blue travelling cloak pinned at one shoulder, a bulging brown leather satchel of goods on a strap across his chest, holding up the caduceus in one hand, a short golden herald's staff with two small snakes twined around it and two little wings at its top, the other hand open in a welcoming gesture, golden sandals with small white wings at the ankles, standing lightly on one foot as if just landed. (cast shadow on the ground:-3) (scenery:-3) (glow:-2) (beard:-2)\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 768,
+  "height": 1344,
+  "seed": 707,
+  "tiling": false,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-inked-clean"
+}
