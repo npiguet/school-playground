@@ -6,6 +6,9 @@ import type { Avatar } from './levels';
 export type { ArgusPass, Annotation } from './grading/types';
 
 export interface ProfileSettings {
+  /** Spec 2026-09-29 §3: the review aids taken last, pre-selected at the next muster (written by the
+   *  server with each session). Absent: all five. */
+  aids?: string[];
   /** Before UI5: one switch for the music and the effects. Read once to seed `audio` (Ruling E2); no longer written. */
   mute?: boolean;
   /** UI5 (spec §7): the three channels, always saved whole. */
@@ -207,6 +210,10 @@ export interface RecentSession {
   pace_level: number;
   help_stage: number;
   mode: PlayMode;
+  /** Spec 2026-09-29 §3: the aids taken for this defence, null before the aids existed. */
+  aids: string[] | null;
+  /** Mistakes left per 100 words in the handed-in copy; null for a text without words. */
+  per_100: number | null;
 }
 
 export interface TrapWord {

@@ -2,6 +2,7 @@
 // additions (Task 3) and the plan's "Shared contracts" block verbatim. Kept apart
 // from `../types` (SP1/SP2 domain types) so this lane and the server lane can land
 // independently.
+import type { GameRules } from '../rules';
 import type { Profile } from '../types';
 
 export const LIEUTENANT_ORDER = ['hydre', 'echo', 'chimere', 'protee', 'sirenes', 'lethe'] as const;
@@ -33,6 +34,8 @@ export interface WorldCatalog {
   boss_rewards: Record<string, string>;
   mastery: { min_days: number; min_traps: number; rate: number };
   quest_bonus: Record<string, number>;
+  /** Spec 2026-09-29 §7: the rules file's values (server/app/rules.py), defaults in lib/rules.ts. */
+  rules: GameRules;
 }
 
 export interface RewardOut {
@@ -123,6 +126,9 @@ export interface CampResponse {
 export interface Progression {
   xp: {
     session: number;
+    /** Spec 2026-09-29 §4: the session XP broken down for the victory's chips (they add up to `session`).
+     *  Absent from a victory saved before the change. */
+    parts?: { text: number; pace: number; aids: number; prophecy: number };
     bonuses: { reason: string; amount: number }[];
     total_before: number;
     total_after: number;
