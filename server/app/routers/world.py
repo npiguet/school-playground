@@ -61,6 +61,9 @@ def _week_today() -> tuple[str, str]:
 def quest_out(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
     goal = json.loads(row["goal_json"])
     texts = goal.pop("texts", [])
+    # Keys of goals stored before sub-project 1: the rule no longer reads them (spec 2026-09-29 §2).
+    for legacy in ("min_rate", "min_draft", "mode", "help_stage"):
+        goal.pop(legacy, None)
     progress = json.loads(row["progress_json"] or "{}")
     progress.setdefault("sessions", 0); progress.setdefault("log", [])
     reward = json.loads(row["reward_json"])
@@ -170,7 +173,7 @@ def create_board_quest(conn: sqlite3.Connection, profile: sqlite3.Row, target: s
         raise HTTPException(409, TWO_QUESTS_MESSAGE)
     played = {r[0] for r in conn.execute("SELECT DISTINCT text_id FROM session WHERE profile_id = ?", (pid,))}
     texts = recommend_texts(text_rows_with_density(conn, target), target, profile["level"], played)
-    goal = {"sessions": 3, "min_rate": 0.5, "texts": texts}
+    goal = {"sessions": 3, "texts": texts}
     reward = {"xp": QUEST_BONUS["board"], "reward_id": None, "bestiary": True}
     return create_quest(conn, profile, "board", target, None, goal, reward, now)
 
@@ -215,7 +218,7 @@ def create_boss_quest(conn: sqlite3.Connection, profile: sqlite3.Row, now: str) 
     # Decision 8: "clamp(profile.help_stage + 1, 2, 4)" — a boss fight starts one help stage above
     # the profile's current adaptive stage (SP3 batch review I1; controller ruling).
     help_stage = max(2, min(4, profile["help_stage"] + 1))
-    goal = {"tier": tier, "min_rate": 0.7, "min_draft": 3, "text_id": text_id, "help_stage": help_stage}
+    goal = {"tier": tier, "text_id": text_id, "help_stage": help_stage}
     reward = {"xp": QUEST_BONUS["boss"], "reward_id": BOSS_REWARDS[tier], "bestiary": False}
     quest = create_quest(conn, profile, "boss", "eris", None, goal, reward, now)
     return {"quest": quest, "text_id": text_id, "tier": tier, "help_stage": help_stage}, True
@@ -264,7 +267,7 @@ def consult(conn: sqlite3.Connection, profile: sqlite3.Row, week: str, scroll: s
     played = {r[0] for r in conn.execute("SELECT DISTINCT text_id FROM session WHERE profile_id = ?", (pid,))}
     texts = recommend_texts(text_rows_with_density(conn, target), target, profile["level"], played)
     reward = {"xp": QUEST_BONUS["oracle"], "reward_id": oracle_mod.oracle_reward_for(conn, pid), "bestiary": True}
-    goal = {"sessions": 3, "min_rate": 0.5, "texts": texts}
+    goal = {"sessions": 3, "texts": texts}
     quest = create_quest(conn, profile, "oracle", target, week, goal, reward, now)
     conn.execute("UPDATE oracle SET chosen = ?, quest_id = ?, consulted_at = ? WHERE profile_id = ? AND week = ?",
                  (scroll, quest["id"], now, pid, week))

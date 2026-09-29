@@ -196,17 +196,19 @@ export async function createText(request: APIRequestContext, body: TextCreateInp
 // error attributed to a single category, so SP3 world.spec.ts can drive quest/mastery progression
 // from the API without replaying a full dictation. `category` is a StatKey (e.g. 'agreement:verb',
 // 'homophone') - the one lieutenant category the caller wants to move.
-export function makeResult(o: { words?: number; draft?: number; caught?: number; category?: string }): object {
+export function makeResult(o: { words?: number; draft?: number; caught?: number; left?: number; category?: string }): object {
   const words = o.words ?? 120;
   const draft = o.draft ?? 0;
   const caught = o.caught ?? 0;
+  // The mistakes left in the handed-in copy (spec 2026-09-29 §1): by default the draft's uncaught ones.
+  const left = o.left ?? draft - caught;
   const category = o.category ?? 'agreement:verb';
   const draftError = { refIndex: 0, typedIndex: 0, expected: 'x', typed: 'y', category: 'agreement', sub: 'verb', anchor: -1 };
   return {
     version: 1,
     byCategory: { [category]: { opportunities: 10, draft, caught, missed: draft - caught, introduced: 0 } },
     draftErrors: Array(draft).fill(draftError),
-    finalErrors: [],
+    finalErrors: Array(left).fill(draftError),
     caught: Array(caught).fill(draftError),
     missed: [],
     introduced: [],

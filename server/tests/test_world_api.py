@@ -44,7 +44,7 @@ def test_dragon_patch_validation(client):
 def test_board_quest_lifecycle(client):
     pid = make_profile(client, level="10H"); tid = make_text(client)
     q = client.post(f"/api/profiles/{pid}/quests", json={"target": "hydre"})
-    assert q.status_code == 201 and q.json()["goal"] == {"sessions": 3, "min_rate": 0.5} and q.json()["reward"]["xp"] == 60
+    assert q.status_code == 201 and q.json()["goal"] == {"sessions": 3} and q.json()["reward"]["xp"] == 60
     assert client.post(f"/api/profiles/{pid}/quests", json={"target": "hydre"}).status_code == 409
     client.post(f"/api/profiles/{pid}/quests", json={"target": "echo"})
     r = client.post(f"/api/profiles/{pid}/quests", json={"target": "chimere"})
@@ -125,7 +125,7 @@ def test_boss_requires_tier(client):
     assert client.post(f"/api/profiles/{pid}/boss").status_code == 409
 
 
-def test_boss_flow(client):
+def test_boss_flow(client, settings):
     pid = make_profile(client, level="10H")
     long_text = make_text(client, body=" ".join(["Les fées dansent dans la clairière et les oiseaux les écoutent."] * 16))   # ≥ 150 words
     # neutralise hydre and echo via the test clock
@@ -140,26 +140,20 @@ def test_boss_flow(client):
     # after the neutralisation prep sessions, so the boss fight starts one stage above it, at 3.
     assert b["tier"] == 1 and b["text_id"] == long_text and b["help_stage"] == 3 and b["quest"]["kind"] == "boss"
     assert client.post(f"/api/profiles/{pid}/boss").json()["quest"]["id"] == b["quest"]["id"]   # idempotent while active
-    lost = post(client, pid, long_text, hydre_result(draft=5, caught=2), quest_id=b["quest"]["id"], encounter="eris", help_stage=3)["progression"]
-    assert lost["boss"] == {"tier": 1, "won": False, "too_easy": False}
+    # Spec 2026-09-29 §2: the fight is judged on the copy. 6 mistakes left in 120 words (5 per 100) lose.
+    lost = post(client, pid, long_text, hydre_result(draft=6, caught=0, left=6), quest_id=b["quest"]["id"], encounter="eris")["progression"]
+    assert lost["boss"] == {"tier": 1, "won": False}
     assert client.get(f"/api/profiles/{pid}/quests?status=active").json()[0]["kind"] == "boss"     # nothing lost
-    # P1-5: a perfect dictation (no draft errors at all) is a draw, not a win - it must not hand
-    # over the tier's XP/gear, and the quest must stay active (nothing lost) just like a real loss.
-    too_easy = post(client, pid, long_text, hydre_result(draft=0, caught=0), quest_id=b["quest"]["id"], encounter="eris", help_stage=3)["progression"]
-    assert too_easy["boss"] == {"tier": 1, "won": False, "too_easy": True} and too_easy["rewards"] == []
-    active_after_too_easy = client.get(f"/api/profiles/{pid}/quests?status=active").json()
-    assert active_after_too_easy[0]["kind"] == "boss"     # still nothing lost
-    # Controller ruling (P1-5 follow-up): "reviens avec un texte plus long" was false - the boss
-    # text is already the longest candidate. A too_easy draw instead flags the quest for a
-    # Grimoire corrompu retry on the SAME text; re-fetching the boss (idempotent branch) must
-    # surface that flag and the same text so the client routes to the grimoire, not dictation.
-    assert active_after_too_easy[0]["goal"]["mode"] == "grimoire"
-    b2 = client.post(f"/api/profiles/{pid}/boss").json()
-    assert b2["quest"]["id"] == b["quest"]["id"] and b2["quest"]["goal"]["mode"] == "grimoire" and b2["text_id"] == long_text
-    # Winning the grimoire session (planted errors count as draft errors, same win condition)
-    # grants the tier exactly like an ordinary boss win.
-    won = post(client, pid, long_text, hydre_result(draft=5, caught=4), quest_id=b["quest"]["id"], encounter="eris", help_stage=3, mode="grimoire")["progression"]
-    assert won["boss"] == {"tier": 1, "won": True, "too_easy": False} and [r["id"] for r in won["rewards"]] == ["sandales_hermes"]
+    # A quest stored before the change (an old "too easy" draw flagged it for the Grimoire) is judged
+    # by the new rule, and its legacy keys never reach the client.
+    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
+    legacy = {"tier": 1, "min_rate": 0.7, "min_draft": 3, "text_id": long_text, "help_stage": 3, "mode": "grimoire"}
+    conn.execute("UPDATE quest SET goal_json = ? WHERE id = ?", (json.dumps(legacy), b["quest"]["id"]))
+    conn.commit(); conn.close()
+    assert client.post(f"/api/profiles/{pid}/boss").json()["quest"]["goal"] == {"tier": 1, "text_id": long_text}
+    # A clean copy simply wins: no more "too easy" draw, even with nothing caught.
+    won = post(client, pid, long_text, hydre_result(draft=0, caught=0), quest_id=b["quest"]["id"], encounter="eris")["progression"]
+    assert won["boss"] == {"tier": 1, "won": True} and [r["id"] for r in won["rewards"]] == ["sandales_hermes"]
     rewards = client.get(f"/api/profiles/{pid}/rewards").json()
     assert {r["id"] for r in rewards} == {"ecaille_hydre", "voix_echo", "sandales_hermes"}
     # I2: a done boss quest can't be shelved either (only an active board quest can).

@@ -1,10 +1,13 @@
 import json
+import sqlite3
+from app.db import DB_FILENAME
 from tests.test_sessions import make_profile, make_text, make_result   # SP1 helpers (reused/added for SP3)
 
 
-def hydre_result(draft=4, caught=4, words=120):
+def hydre_result(draft=4, caught=4, words=120, left=0):
     r = make_result()                       # SP1 helper returns a valid SessionResult dict
     r["totalWords"] = words; r["draftErrors"] = [{}] * draft; r["caught"] = [{}] * caught
+    r["finalErrors"] = [{}] * left
     r["catchRate"] = caught / draft if draft else None
     r["byCategory"] = {"agreement:verb": {"opportunities": 10, "draft": draft, "caught": caught, "missed": draft - caught, "introduced": 0}}
     return r
@@ -22,7 +25,9 @@ def post(client, pid, tid, result, day=None, **extra):
 def test_session_grants_xp_and_reports_rank(client):
     pid = make_profile(client, level="10H"); tid = make_text(client)
     p = post(client, pid, tid, hydre_result())["progression"]
-    assert p["xp"]["session"] == 10 + 12 + 20 + 30 and p["xp"]["total_after"] == p["xp"]["session"]
+    # 120 words, 0 left, 4 caught, pace 1: effort 22, accuracy 24, rereading 8 (spec 2026-09-29 §4).
+    assert p["xp"]["session"] == 22 + 24 + 8 and p["xp"]["parts"] == {"text": 54, "pace": 0, "aids": 0, "prophecy": 0}
+    assert p["xp"]["total_after"] == p["xp"]["session"]
     assert p["xp"]["rank_before"] == 1 and p["xp"]["title_after"] == "Recrue du camp"
     assert p["dragon"] == {"stage_before": "egg", "stage_after": "egg", "needs_name": False}
     assert p["neutralised"] == [] and p["rewards"] == [] and p["boss"] is None
@@ -91,13 +96,13 @@ def test_weekly_goal_bonus_once(client):
 
 
 def test_prophecy_bonus_applies_strictly_before_the_due_date(client):
-    # M9 / Decision 10: "before its date" - the ×1.5 must not apply on the due date itself.
+    # M9 / Decision 10: "before its date" - the +50 % must not apply on the due date itself.
     pid = make_profile(client, level="10H")
     tid = make_text(client, due_date="2026-09-24")
     on_due_date = post(client, pid, tid, hydre_result(), day="2026-09-24")["progression"]
     before_due_date = post(client, pid, tid, hydre_result(), day="2026-09-23")["progression"]
-    assert on_due_date["xp"]["session"] == 72        # 10 + 12 + 20 + 30, no bonus
-    assert before_due_date["xp"]["session"] == 108   # same base × 1.5
+    assert on_due_date["xp"]["session"] == 54        # 22 + 24 + 8, no bonus
+    assert before_due_date["xp"]["session"] == 70    # 22 + 32 × 1.5 (the effort takes no bonus)
 
 
 def test_derived_categories_are_hidden_from_generic_stats(client):
@@ -143,3 +148,28 @@ def test_dragon_stage_is_persisted_monotonically(client):
     # computed from scratch (5 of 6 neutralised) would be "young", strictly lower than the stored "adult"
     assert p2["dragon"]["stage_before"] == "adult"
     assert p2["dragon"]["stage_after"] == "adult"
+
+
+def test_the_aids_left_at_the_camp_pay_their_bonus(client):
+    pid = make_profile(client, level="10H"); tid = make_text(client)
+    p = post(client, pid, tid, hydre_result(), aids=["argus", "ariane", "persee"])["progression"]
+    assert p["xp"]["session"] == 22 + round(32 * 1.4) and p["xp"]["parts"]["aids"] == 13
+
+
+def test_quests_created_before_the_new_rule_are_judged_by_it(client, settings):
+    pid = make_profile(client, level="10H"); tid = make_text(client)
+    q = client.post(f"/api/profiles/{pid}/quests", json={"target": "hydre"}).json()
+    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
+    conn.execute("UPDATE quest SET goal_json = ? WHERE id = ?", (json.dumps({"sessions": 3, "min_rate": 0.9, "texts": []}), q["id"]))
+    conn.commit(); conn.close()
+    # Caught 1 of 2 (the old rule's rate 0.5 < 0.9), but 9 of 10 chances right in the copy (0.9 >= 0.85).
+    p = post(client, pid, tid, hydre_result(draft=2, caught=1))["progression"]
+    assert next(x for x in p["quests"] if x["target"] == "hydre")["counted"] is True
+    assert client.get(f"/api/profiles/{pid}/quests?status=active").json()[0]["goal"] == {"sessions": 3}
+
+
+def test_the_session_keeps_its_xp_as_its_score(client):
+    pid = make_profile(client, level="10H"); tid = make_text(client)
+    xp = post(client, pid, tid, hydre_result())["progression"]["xp"]["session"]
+    history = next(t for t in client.get(f"/api/texts?profile_id={pid}").json() if t["id"] == tid)["history"]
+    assert history["best_score"] == xp

@@ -68,12 +68,14 @@ def test_session_updates_stats_history_and_trap_words(client):
     stats = client.get(f"/api/profiles/{p['id']}/stats").json()
     verb = next(c for c in stats["categories"] if c["category"] == "agreement:verb")
     assert verb == {"category": "agreement:verb", "occurrences": 3, "errors_in_draft": 2, "caught": 1, "missed": 1, "catch_rate": 0.5}
-    assert stats["totals"] == {"sessions": 1, "score": 100, "caught": 1}
+    # Spec 2026-09-29 §4: the session's score is its XP (the score 100 the body posts is ignored).
+    xp = session["progression"]["xp"]["session"]
+    assert xp != 100 and stats["totals"] == {"sessions": 1, "score": xp, "caught": 1}
     assert stats["recent_sessions"][0]["title"] == "Fées"
     assert stats["trap_words"] == [{"word": "clairière", "box": 1, "misses": 1, "last_seen": stats["trap_words"][0]["last_seen"]}]
     assert client.get(f"/api/profiles/{p['id']}/trap-words").json()[0]["word"] == "clairière"
     listed = client.get(f"/api/texts?profile_id={p['id']}").json()[0]
-    assert listed["history"] == {"times_played": 1, "best_score": 100, "best_catch_rate": 0.5}
+    assert listed["history"] == {"times_played": 1, "best_score": xp, "best_catch_rate": 0.5}
     # a later session where the trap word is present and correct promotes it
     post_session(client, p, t, 0.5)
     assert client.get(f"/api/profiles/{p['id']}/trap-words").json()[0]["box"] == 2

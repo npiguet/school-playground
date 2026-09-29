@@ -24,6 +24,7 @@ def now() -> str:
 def create_session(body: SessionCreate, request: Request, db: sqlite3.Connection = Depends(get_db),
                     x_discorde_day: str | None = Header(default=None)):
     settings = request.app.state.settings
+    rules = request.app.state.rules
     profile = fetch_profile(db, body.profile_id)
     text = db.execute("SELECT id, body, due_date FROM text WHERE id = ?", (body.text_id,)).fetchone()
     if text is None:
@@ -38,9 +39,11 @@ def create_session(body: SessionCreate, request: Request, db: sqlite3.Connection
                                 draft, final, result_json, score, catch_rate, encounter, quest_id, aids)
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (body.profile_id, body.text_id, body.pace_level, body.help_stage or 0, body.mode, body.started_at, finished_at,
-         body.draft, body.final, json.dumps(body.result, ensure_ascii=False), body.score or 0, body.catch_rate,
+         body.draft, body.final, json.dumps(body.result, ensure_ascii=False), 0, body.catch_rate,
          body.encounter, body.quest_id, json.dumps(body.aids) if body.aids is not None else None))
     session_id = cur.lastrowid
+    # `score` starts at 0 and becomes the session's XP once it is known (below): a stale page's posted
+    # `score` is never stored (spec 2026-09-29 §4; plan Global Constraints, stale pages).
 
     # Spec 2026-09-29 §3: the hero's choice of aids is remembered and pre-selected next time (plan
     # Ruling R1: written with the session; a page opened before the aids leaves it alone).
@@ -73,7 +76,10 @@ def create_session(body: SessionCreate, request: Request, db: sqlite3.Connection
             message = UP_MESSAGE if help_stage_after > help_stage_before else DOWN_MESSAGE
 
     prophecy = bool(text["due_date"]) and text["due_date"] > day   # Decision 10: "before its date" (SP3 batch review M9)
-    progression = apply_progression(db, profile, session_id, body, body.result, day, finished_at, prophecy)
+    progression = apply_progression(db, profile, session_id, body, body.result, day, finished_at, prophecy, rules)
+    # Spec 2026-09-29 §4: the session's score is its XP, so the history and the library's best scores
+    # keep a meaningful number.
+    db.execute("UPDATE session SET score = ? WHERE id = ?", (progression["xp"]["session"], session_id))
 
     db.commit()
     return {"id": session_id, "help_stage_before": help_stage_before,

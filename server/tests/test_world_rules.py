@@ -1,8 +1,12 @@
 import pytest
 from app.world.mastery import (Window, boss_tiers, dragon_stage, is_neutralised, lieutenants_for_level, mastery_window,
                                next_stage_at, tier_available)
+from app.rules import Rules
 from app.world.xp import rank_for, session_xp
-from app.world.quests import density, evaluate_boss, lieutenant_totals, recommend_texts, session_counts_for
+from app.world.quests import density, fight_won, recommend_texts, session_counts_for
+
+R = Rules()
+ODD = Rules(aid_bonus=0.33, pace_bonus={"1": 0.1, "2": 0.37, "3": 0.71}, prophecy_bonus=0.29)
 
 
 def rows(*triples):  # (day, draft, caught)
@@ -52,17 +56,52 @@ def test_dragon_stage_and_tiers():
     assert tier_available(4, 6, set()) == 1   # tiers are fought in order
 
 
-def result(words=100, draft=4, caught=3, rate=0.75):
-    return {"totalWords": words, "catchRate": rate, "caught": [{}] * caught, "draftErrors": [{}] * draft,
-            "byCategory": {"agreement:verb": {"opportunities": 12, "draft": draft, "caught": caught, "missed": draft - caught, "introduced": 0}}}
+def xp_result(words=150, left=3, caught=4):
+    return {"totalWords": words, "finalErrors": [{}] * left, "caught": [{}] * caught}
 
 
-def test_session_xp():
-    assert session_xp(result(), 1, "dictation", False) == 10 + 10 + 15 + 23          # 58
-    assert session_xp(result(), 3, "dictation", False) == 87                          # 58 × 1.5
-    assert session_xp(result(), 3, "grimoire", False) == 58                          # grimoire: no pace multiplier
-    assert session_xp(result(draft=0, caught=0, rate=None), 1, "dictation", False) == 10 + 10 + 0 + 15
-    assert session_xp(result(), 1, "dictation", True) == 87                          # prophecy ×1.5
+def test_session_xp_the_worked_example():
+    # Spec §4: 150 words, 3 mistakes left (m = 2), 4 caught, pace 2, two aids left:
+    # effort 25, accuracy 24, rereading 8, bonus 65 % -> 25 + 32 × 1.65 = 78 XP.
+    xp = session_xp(xp_result(), 2, "dictation", False, 2, R)
+    assert xp.total == 78
+    assert xp.parts == {"text": 57, "pace": 8, "aids": 13, "prophecy": 0}
+
+
+def test_a_stale_pace_4_pays_as_pace_3_and_the_grimoire_has_no_pace_bonus():
+    three = session_xp(xp_result(), 3, "dictation", False, 0, R)
+    assert session_xp(xp_result(), 4, "dictation", False, 0, R) == three
+    assert three.total == 73 and three.parts == {"text": 57, "pace": 16, "aids": 0, "prophecy": 0}
+    grimoire = session_xp(xp_result(), 3, "grimoire", False, 0, R)
+    assert grimoire.total == 57 and grimoire.parts["pace"] == 0
+
+
+def test_the_prophecy_adds_its_bonus():
+    xp = session_xp(xp_result(), 1, "dictation", True, 0, R)
+    assert xp.total == 73 and xp.parts == {"text": 57, "pace": 0, "aids": 0, "prophecy": 16}
+
+
+def test_the_bonus_never_multiplies_the_effort():
+    # 15 left of 150 words is m = 10: no accuracy left, only the rereading takes the bonus.
+    xp = session_xp(xp_result(left=15), 3, "dictation", True, 5, R)
+    assert xp.total == 25 + 8 * 3 and xp.parts == {"text": 33, "pace": 4, "aids": 8, "prophecy": 4}
+    bare = session_xp(xp_result(left=15, caught=0), 3, "dictation", True, 5, R)
+    assert bare.total == 25 and bare.parts == {"text": 25, "pace": 0, "aids": 0, "prophecy": 0}
+
+
+def test_the_parts_always_add_up_to_the_session_xp():
+    for rules in (R, ODD):
+        for words in (0, 7, 13, 120, 151, 333):
+            for left in (0, 1, 4, 9):
+                for caught in (0, 1, 5):
+                    for pace in (1, 2, 3, 4):
+                        for mode in ("dictation", "grimoire"):
+                            for prophecy in (False, True):
+                                for aids_left in range(6):
+                                    xp = session_xp(xp_result(words, left, caught), pace, mode, prophecy, aids_left, rules)
+                                    case = (words, left, caught, pace, mode, prophecy, aids_left)
+                                    assert sum(xp.parts.values()) == xp.total, case
+                                    assert min(xp.parts.values()) >= 0, case
 
 
 def test_rank_for():
@@ -72,45 +111,24 @@ def test_rank_for():
     assert rank_for(9999) == (10, "Légende du camp", 8000, None)
 
 
-def test_lieutenant_totals_and_session_counts():
-    bc = {"agreement:number": {"opportunities": 5, "draft": 2, "caught": 1, "missed": 1, "introduced": 0},
-          "agreement:verb": {"opportunities": 7, "draft": 2, "caught": 1, "missed": 1, "introduced": 0}}
-    assert lieutenant_totals(bc, ["agreement:number", "agreement:verb"]) == {"opportunities": 12, "draft": 4, "caught": 2, "missed": 2}
-    assert session_counts_for(bc, ["agreement:number", "agreement:verb"], 0.5) is True
-    assert session_counts_for(bc, ["agreement:number", "agreement:verb"], 0.6) is False
-    # P1-4 controller ruling: 3 opportunities with 0 draft errors no longer counts on its own - a
-    # 13-word text could offer exactly 3 clean opportunities and finish a quest without the monster
-    # ever tripping the player. It now needs >= 6 occurrences to count with a clean draft.
-    assert session_counts_for({"homophone": {"opportunities": 3, "draft": 0, "caught": 0, "missed": 0, "introduced": 0}}, ["homophone"], 0.5) is False
-    assert session_counts_for({"homophone": {"opportunities": 2, "draft": 0, "caught": 0, "missed": 0, "introduced": 0}}, ["homophone"], 0.5) is False
-    assert session_counts_for({}, ["homophone"], 0.5) is False
+def test_a_quest_session_counts_on_the_final_text():
+    def bc(opportunities, missed=0, introduced=0):
+        return {"homophone": {"opportunities": opportunities, "draft": 5, "caught": 5 - missed, "missed": missed, "introduced": introduced}}
+
+    assert session_counts_for(bc(3), ["homophone"], R) is True                        # 3 chances, all right
+    assert session_counts_for(bc(2), ["homophone"], R) is False                       # too few chances
+    assert session_counts_for(bc(20, missed=3), ["homophone"], R) is True             # 85 % exactly
+    assert session_counts_for(bc(20, missed=2, introduced=2), ["homophone"], R) is False   # 80 %: introduced count too
+    assert session_counts_for({}, ["homophone"], R) is False
+    assert session_counts_for(bc(3), ["homophone"], Rules(quest_min_chances=4)) is False
+    assert session_counts_for(bc(20, missed=3), ["homophone"], Rules(quest_min_correct=0.9)) is False
 
 
-def test_session_counts_for_p1_4_farming_rule():
-    # The new rule (>= 3 opportunities AND (draft errors >= 1 OR opportunities >= 6)) in full:
-    def bc(opportunities, draft, caught):
-        return {"homophone": {"opportunities": opportunities, "draft": draft, "caught": caught, "missed": 0, "introduced": 0}}
-
-    # Below the opportunity floor: never counts, even with a perfect catch rate on what little there was.
-    assert session_counts_for(bc(2, 1, 1), ["homophone"], 0.5) is False
-    # >= 3 opportunities and >= 1 real draft error: judged on catch rate, as before (the monster
-    # showed up and tripped the player at least once).
-    assert session_counts_for(bc(3, 1, 1), ["homophone"], 0.5) is True
-    assert session_counts_for(bc(3, 1, 0), ["homophone"], 0.5) is False
-    # >= 3 but < 6 opportunities, 0 draft errors: still too trivial to count on its own.
-    assert session_counts_for(bc(5, 0, 0), ["homophone"], 0.5) is False
-    # >= 6 opportunities, 0 draft errors: a long enough clean run counts (the monster had a real
-    # chance to trip the player and didn't - that is the skill being trained).
-    assert session_counts_for(bc(6, 0, 0), ["homophone"], 0.5) is True
-
-
-def test_evaluate_boss():
-    assert evaluate_boss(result(draft=5, caught=4, rate=0.8)) == "won"
-    assert evaluate_boss(result(draft=5, caught=3, rate=0.6)) == "lost"
-    # P1-5 fix: fewer than min_draft errors in the draft is no longer an outright win ("nothing to
-    # sabotage" must not hand over the tier's XP/gear for zero proofreading) - it is a draw.
-    assert evaluate_boss(result(draft=2, caught=0, rate=0.0)) == "too_easy"
-    assert evaluate_boss(result(draft=0, caught=0, rate=None)) == "too_easy"   # a perfect dictation
+def test_a_fight_is_won_on_the_whole_text():
+    assert fight_won({"totalWords": 100, "finalErrors": [{}] * 4}, R) is True
+    assert fight_won({"totalWords": 100, "finalErrors": [{}] * 5}, R) is False
+    assert fight_won({"totalWords": 150, "finalErrors": [], "draftErrors": []}, R) is True    # a clean copy simply wins
+    assert fight_won({"totalWords": 100, "finalErrors": [{}] * 4}, Rules(fight_max_per_100=3)) is False
 
 
 def tok(i, pos, **kw):

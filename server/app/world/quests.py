@@ -1,44 +1,22 @@
 """Quest evaluation, boss verdict and text recommendation by category density (plan Decisions 7, 8)."""
 from __future__ import annotations
 from app.levels import level_index
+from app.rules import Rules
+from app.world.measures import lieutenant_measure, mistakes_per_100
 
 
-def lieutenant_totals(by_category: dict, categories: list[str]) -> dict:
-    t = {"opportunities": 0, "draft": 0, "caught": 0, "missed": 0}
-    for c in categories:
-        row = by_category.get(c) or {}
-        for k in t: t[k] += int(row.get(k, 0))
-    return t
+def session_counts_for(by_category: dict, categories: list[str], rules: Rules) -> bool:
+    """Spec 2026-09-29 §2: a quest session (board or Oracle) counts when the text gave the target
+    lieutenant enough chances and its correct share of the handed-in copy is high enough. Active
+    quests created before the change are judged by this rule too (their stored min_rate is ignored)."""
+    m = lieutenant_measure(by_category, categories)
+    return m["chances"] >= rules.quest_min_chances and m["correct"] is not None and m["correct"] >= rules.quest_min_correct
 
 
-# P1-4 fix (SP3 playability, controller ruling - see plan Decision 7 addendum below): the original
-# rule ("0 draft errors while the text offered >= 3 opportunities" counts) let a board/Oracle quest
-# be finished in three 1-minute texts, without the monster ever tripping the player once ("Tenir
-# Écho en échec" advanced on a 13-word text with no homophone error). A session must now show the
-# monster actually contested the text: >= 3 opportunities always, AND either a real draft error
-# (>= 1, judged on catch rate as before) or a meaningful number of occurrences even without a
-# mistake (>= 6) - a short, easy text with 3-5 clean opportunities no longer farms progress.
-MIN_OPPORTUNITIES = 3
-MIN_OPPORTUNITIES_WITHOUT_ERROR = 6
-
-
-def session_counts_for(by_category: dict, categories: list[str], min_rate: float) -> bool:
-    t = lieutenant_totals(by_category, categories)
-    if t["opportunities"] < MIN_OPPORTUNITIES: return False
-    if t["draft"] > 0: return t["caught"] / t["draft"] >= min_rate
-    return t["opportunities"] >= MIN_OPPORTUNITIES_WITHOUT_ERROR
-
-
-def evaluate_boss(result: dict, min_rate: float = 0.7, min_draft: int = 3) -> str:
-    """Boss verdict: 'won', 'lost' or 'too_easy' (plan Decision 8; P1-5 fix). A draft with too few
-    errors to judge fairly (< min_draft) used to win the tier outright - the single biggest reward
-    in the game for a fight that then exercised no proofreading at all. It is now a draw
-    ('too_easy'): not a win (no XP/gear granted, the quest stays active exactly like a real loss -
-    "nothing lost"), but distinct from 'lost' so the reveal can show its own encouragement
-    ("reviens avec un texte plus long") instead of Éris's mocking loss line, which would not fit a
-    fight she never got to fight."""
-    if len(result.get("draftErrors", [])) < min_draft: return "too_easy"
-    return "won" if (result.get("catchRate") or 0.0) >= min_rate else "lost"
+def fight_won(result: dict, rules: Rules) -> bool:
+    """Spec 2026-09-29 §2: an Éris fight is won on the whole copy, at most `fight_max_per_100` mistakes
+    left per 100 words. A clean copy simply wins (the old "too easy" draw is gone)."""
+    return mistakes_per_100(result) <= rules.fight_max_per_100
 
 
 def _pron_between(tokens: list[dict], a: int, b: int) -> bool:

@@ -3,9 +3,11 @@ Runs after app.stats.apply_session_to_stats so profile_stat_day already includes
 from __future__ import annotations
 import json, sqlite3
 from app.clock import iso_week, week_bounds_utc
+from app.rules import Rules
+from app.schemas import AID_KEYS
 from app.world.catalog import BOSS_REWARDS, DECOR_ORDER, LIEUTENANTS, ORACLE_REWARDS, QUEST_BONUS, REWARDS
 from app.world.mastery import dragon_stage, is_neutralised, lieutenants_for_level, mastery_window, boss_tiers
-from app.world.quests import evaluate_boss, session_counts_for
+from app.world.quests import fight_won, session_counts_for
 from app.world.xp import rank_for, session_xp
 
 
@@ -70,15 +72,17 @@ def _complete_quest(conn, q, profile_id, now, bonuses, rewards):
                 r = REWARDS[rid]; rewards.append({"id": rid, "kind": r["kind"], "name": r["name"]})
 
 
-def apply_progression(conn, profile, session_id, body, result, day, now, prophecy) -> dict:
+def apply_progression(conn, profile, session_id, body, result, day, now, prophecy, rules: Rules) -> dict:
     pid = profile["id"]; level = profile["level"]; week = iso_week(day)
     mode = getattr(body, "mode", "dictation")
     total_before = xp_total(conn, pid)
     rank_before = rank_for(total_before)[0]
     bonuses: list[dict] = []; rewards: list[dict] = []
-    # 1. session XP
-    xp = session_xp(result, body.pace_level, mode, prophecy)
-    add_xp(conn, pid, xp, "session", now, session_id=session_id, week=week)
+    # 1. session XP (spec 2026-09-29 §4): a page opened before the aids sends none, and leaves none.
+    aids = getattr(body, "aids", None)
+    aids_left = len(AID_KEYS) - len(aids) if aids is not None else 0
+    xp = session_xp(result, body.pace_level, mode, prophecy, aids_left, rules)
+    add_xp(conn, pid, xp.total, "session", now, session_id=session_id, week=week)
     # 2. quests
     quest_out = []; boss_out = None
     by_cat = result.get("byCategory", {})
@@ -87,25 +91,16 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
         progress.setdefault("sessions", 0); progress.setdefault("log", [])
         if q["kind"] == "boss":
             if body.quest_id != q["id"]: continue
-            outcome = evaluate_boss(result, goal["min_rate"], goal["min_draft"])
-            won = outcome == "won"
+            won = fight_won(result, rules)
             progress["log"].append({"session_id": session_id, "ok": won})
-            boss_out = {"tier": goal["tier"], "won": won, "too_easy": outcome == "too_easy"}
-            # Controller ruling (re-review, P1-5 follow-up): "reviens avec un texte plus long" was
-            # false - the boss text is already the longest candidate, fixed for the quest. A
-            # too_easy draw instead flags the quest for a Grimoire corrompu retry (Éris plants
-            # errors herself on the SAME text), so a skilled player always has something to catch.
-            # Sticky once set: a later grimoire-mode loss must not fall back to plain dictation.
-            if outcome == "too_easy" and goal.get("mode") != "grimoire":
-                goal["mode"] = "grimoire"
-                conn.execute("UPDATE quest SET goal_json = ? WHERE id = ?", (json.dumps(goal), q["id"]))
+            boss_out = {"tier": goal["tier"], "won": won}
             if won: _complete_quest(conn, q, pid, now, bonuses, rewards)
             conn.execute("UPDATE quest SET progress_json = ? WHERE id = ?", (json.dumps(progress), q["id"]))
             quest_out.append({"id": q["id"], "kind": "boss", "target": "eris", "counted": won, "progress": 1 if won else 0, "goal": 1,
                               "completed": won, "reward_id": json.loads(q["reward_json"]).get("reward_id")})
             continue
         cats = LIEUTENANTS[q["target"]]["categories"]
-        ok = session_counts_for(by_cat, cats, goal["min_rate"])
+        ok = session_counts_for(by_cat, cats, rules)
         if ok: progress["sessions"] += 1
         progress["log"].append({"session_id": session_id, "ok": ok})
         completed = progress["sessions"] >= goal["sessions"]
@@ -147,7 +142,7 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
         bonuses.append({"reason": "weekly", "amount": QUEST_BONUS["weekly"]}); reached_now = True
     total_after = xp_total(conn, pid)
     rank_after, title_after, _, _ = rank_for(total_after)
-    return {"xp": {"session": xp, "bonuses": bonuses, "total_before": total_before, "total_after": total_after,
+    return {"xp": {"session": xp.total, "parts": xp.parts, "bonuses": bonuses, "total_before": total_before, "total_after": total_after,
                    "rank_before": rank_before, "rank_after": rank_after, "title_after": title_after},
             "quests": quest_out, "neutralised": newly, "rewards": rewards,
             "dragon": {"stage_before": stage_before, "stage_after": stage_after, "needs_name": needs_name},

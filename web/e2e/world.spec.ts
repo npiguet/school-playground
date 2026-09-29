@@ -255,9 +255,9 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     page,
     request,
   }) => {
-    test.setTimeout(120_000); // a real (fast-timer) boss dictation is added below, P1-5 follow-up
+    test.setTimeout(120_000); // a real (fast-timer) boss dictation is played below
     // Must be registered before this test's first navigation (an SPA route change afterwards
-    // never re-runs init scripts) - only takes effect for the too_easy dictation further down.
+    // never re-runs init scripts) - only takes effect for the winning dictation further down.
     // `page` is a fresh fixture per test even inside describe.serial, so the fast pauses need to
     // be installed here too.
     await installFastPauses(page);
@@ -294,10 +294,21 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     const bossTextId = bossQuest.goal.text_id as number;
     const today = swissDay();
 
-    // P1-5 follow-up (controller ruling): a perfect dictation ("nothing to catch") must not win
-    // the boss - it's a draw, and "reviens avec un texte plus long" would be false (the boss text
-    // is already the longest candidate). Play the boss text for real, unmodified, and check the
-    // reveal's too_easy card and its exact message.
+    // Spec 2026-09-29 §2: the fight is judged on the copy. 6 mistakes left in 120 words lose, and
+    // nothing is lost: the quest stays active.
+    const lost = await postSession(request, {
+      profileId: Number(profileId),
+      textId: bossTextId,
+      day: today,
+      result: makeResult({ words: 120, draft: 6, caught: 0, left: 6, category: 'agreement:verb' }),
+      questId: bossQuest.id,
+      encounter: 'eris',
+    });
+    expect(lost.progression.boss).toEqual({ tier: 1, won: false });
+    const stillActive = await (await request.get(`/api/profiles/${profileId}/quests?status=active`)).json();
+    expect(stillActive.some((q: { id: number }) => q.id === bossQuest.id)).toBe(true);
+
+    // A clean copy simply wins (no more "too easy" draw): play the boss text for real, unmodified.
     const bossBody = ((await (await request.get(`/api/texts/${bossTextId}`)).json()) as { body: string }).body;
     await page.locator('[data-testid^="pace-option-"]:not(.disabled)').first().click();
     await page.getByRole('button', { name: 'Commencer la dictée' }).click();
@@ -305,50 +316,11 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await page.getByTestId('btn-finish-writing').click();
     await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-phase', 'proofreading');
     await page.getByTestId('btn-done-proofreading').click();
-    const perfectConfirm = page.getByRole('button', { name: 'Oui, valider' });
-    await expect(perfectConfirm.or(page.getByTestId('victory-title'))).toBeVisible();
-    if (await perfectConfirm.isVisible()) await perfectConfirm.click();
-    await expect(page.getByTestId('reveal-boss-too-easy')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId('reveal-boss-too-easy')).toContainText(
-      "Dictée parfaite\u202f: Éris n'a rien pu saboter\u202f! Furieuse, elle va corrompre le parchemin elle-même. Relance le combat pour démasquer ses pièges.",
-    );
+    const confirm = page.getByRole('button', { name: 'Oui, valider' });
+    await expect(confirm.or(page.getByTestId('victory-title'))).toBeVisible();
+    if (await confirm.isVisible()) await confirm.click();
+    await expect(page.getByTestId('reveal-boss-reward')).toHaveText("Ta récompense\u202f: Sandales d'Hermès\u202f!", { timeout: 15_000 });
     await page.getByTestId('reveal-continue').click();
-    await expect(page.getByTestId('results-catch-rate')).toBeVisible();
-
-    // Nothing lost: the quest is still active, now flagged for a Grimoire corrompu retry on the
-    // same text, and the boss screen's button/label reflects it.
-    const afterTooEasy = await (await request.get(`/api/profiles/${profileId}/quests?status=active`)).json();
-    const bossAfterTooEasy = afterTooEasy.find((q: { kind: string }) => q.kind === 'boss');
-    expect(bossAfterTooEasy.id).toBe(bossQuest.id);
-    expect(bossAfterTooEasy.goal.mode).toBe('grimoire');
-    await page.goto(`/#/p/${profileId}/eris`);
-    await expect(page.getByTestId('boss-start')).toContainText('Relancer le combat');
-    await expect(page.getByTestId('boss-reward').locator('img[src="/art/icons/sandales_hermes.webp"]')).toBeVisible();
-
-    const lost = await postSession(request, {
-      profileId: Number(profileId),
-      textId: bossTextId,
-      day: today,
-      result: makeResult({ draft: 5, caught: 2, category: 'agreement:verb' }),
-      questId: bossQuest.id,
-      encounter: 'eris',
-      helpStage: 2,
-    });
-    expect(lost.progression.boss.won).toBe(false);
-    const stillActive = await (await request.get(`/api/profiles/${profileId}/quests?status=active`)).json();
-    expect(stillActive.some((q: { id: number }) => q.id === bossQuest.id)).toBe(true);
-
-    const won = await postSession(request, {
-      profileId: Number(profileId),
-      textId: bossTextId,
-      day: today,
-      result: makeResult({ draft: 5, caught: 4, category: 'agreement:verb' }),
-      questId: bossQuest.id,
-      encounter: 'eris',
-      helpStage: 2,
-    });
-    expect(won.progression.boss.won).toBe(true);
-    expect(won.progression.rewards.some((r: { id: string }) => r.id === 'sandales_hermes')).toBe(true);
 
     await page.goto(`/#/p/${profileId}/cabane?panel=tresors`);
     await expect(page.getByTestId('cabin-reward-sandales_hermes')).toHaveAttribute('data-owned', 'true');
