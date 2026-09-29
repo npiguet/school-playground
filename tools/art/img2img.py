@@ -66,6 +66,9 @@ def main():
     p.add_argument("--whole", action="store_true", help="inpaint at whole-picture resolution instead of 'only masked'")
     p.add_argument("--soft", action="store_true", help="enable the Soft Inpainting script (default args)")
     p.add_argument("--vscale", type=float, default=1.0)
+    p.add_argument("--size", help="WIDTHxHEIGHT to render at (default: the init picture's size); with "
+                   "'only masked' inpainting this is the resolution of the masked crop, e.g. 1024x1024 "
+                   "for a small object in a 2048x1152 scene (Hermes's stall)")
     p.add_argument("--url", default=URL)
     p.add_argument("--out", type=Path, required=True)
     a = p.parse_args()
@@ -76,6 +79,8 @@ def main():
     from struct import unpack
     head = a.init.read_bytes()[16:24]
     width, height = unpack(">II", head)
+    if a.size:
+        width, height = (int(v) for v in a.size.lower().split("x"))
     steps = a.steps or max(9, round(8 / a.denoise))
     a.out.parent.mkdir(parents=True, exist_ok=True)
     for i in range(a.count):

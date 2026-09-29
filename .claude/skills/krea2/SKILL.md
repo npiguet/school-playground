@@ -273,7 +273,11 @@ Seeds and asset lists are in `docs/art/style-guide.md` ("Progression redesign, p
    surroundings first ("a sunny grassy hillside ..., the lower part of a sunlit white-washed wall
    behind"), then the object, then "the same light and colours as the surrounding picture" and
    `(people:-3) (text:-3) (letters:-3) (writing:-3) (roof tiles:-2)`. Padding 64 gave too little
-   context (a lighter, different wall); 160 matches better but still not perfectly.
+   context (a lighter, different wall); 160 matches better but still not perfectly. Command:
+   `tools/art/with_lock.sh python tools/art/img2img.py --init assets/art/scenes/hub_camp.png
+   --mask assets/art/scenes/masks/hub_camp_stall_inpaint.png --prompt-file stall.txt --style
+   discorde-illustration --size 1024x1024 --denoise 0.95 --steps 9 --padding 160 --mask-blur 8
+   --seed 4321 --count 3 --out <scratch>/stall.png` (the prompt is in `scenes/hub_camp_stall.json`).
 3. **Paste only the object**: the model always repaints the background inside the mask slightly
    differently (here it dropped the tree's shade on the wall), which shows as a pale rectangle. Trace
    the object by hand as a few polygons on the raw result (view a 3x crop with a 20 px grid; follow
