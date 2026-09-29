@@ -16,9 +16,12 @@ need only Pillow and numpy.
             (web/src/lib/world/dragon.ts TINT_FILTERS applied to the dragon only, overlay unfiltered,
             the CSS filter matrices reproduced exactly), on dark, mid and parchment grounds, plus a
             2x zoom on the overlay's area.
-  crop      OVERLAY.png --webp out.webp [--manifest m.json --item ID --stage KEY]
+  crop      OVERLAY.png --webp out.webp [--manifest m.json --item ID --stage KEY] [--pixels]
             Crops to the alpha bounding box (+2 px), saves WebP (q88, alpha) and records
-            {"src", "x", "y", "w", "h"} in the manifest under item -> stage (offsets in stage px).
+            {"src", "x", "y", "w", "h"} in the manifest under item -> stage. x/y/w/h are fractions
+            (0-1, 5 decimals) of the overlay's (= the stage picture's) width and height, so the game
+            scales them with the dragon (drachmes-shop spec section 4); --pixels records stage px
+            instead. Other items and stages already in the manifest are kept.
 """
 import argparse
 import json
@@ -255,15 +258,26 @@ def check(stage_cut_p, overlays, out, zoom_box=None):
     print(out)
 
 
-def crop(overlay_p, webp, manifest=None, item=None, stage=None, quality=88):
+def crop(overlay_p, webp, manifest=None, item=None, stage=None, quality=88, pixels=False):
     im = Image.open(overlay_p).convert("RGBA")
-    l, t, r, b = im.getchannel("A").getbbox()
+    bbox = im.getchannel("A").getbbox()
+    if bbox is None:
+        sys.exit(f"{overlay_p}: the overlay is fully transparent")
+    l, t, r, b = bbox
     l, t, r, b = max(0, l - 2), max(0, t - 2), min(im.width, r + 2), min(im.height, b + 2)
     Path(webp).parent.mkdir(parents=True, exist_ok=True)
     im.crop((l, t, r, b)).save(webp, "WEBP", quality=quality, method=6)
-    entry = {"src": Path(webp).name, "x": l, "y": t, "w": r - l, "h": b - t}
-    print(f"{webp}  {entry}  {Path(webp).stat().st_size / 1024:.1f} KiB")
+    px = {"x": l, "y": t, "w": r - l, "h": b - t}
+    if pixels:
+        entry = {"src": Path(webp).name, **px}
+    else:
+        W, H = im.size
+        entry = {"src": Path(webp).name, "x": round(l / W, 5), "y": round(t / H, 5),
+                 "w": round((r - l) / W, 5), "h": round((b - t) / H, 5)}
+    print(f"{webp}  {entry}  (px {px} of {im.width}x{im.height})  {Path(webp).stat().st_size / 1024:.1f} KiB")
     if manifest:
+        if not item or not stage:
+            sys.exit("--manifest needs --item and --stage")
         mp = Path(manifest)
         data = json.loads(mp.read_text(encoding="utf-8")) if mp.exists() else {}
         data.setdefault(item, {})[stage] = entry
@@ -293,13 +307,14 @@ def main():
     k = sub.add_parser("crop")
     k.add_argument("overlay"); k.add_argument("--webp", required=True)
     k.add_argument("--manifest"); k.add_argument("--item"); k.add_argument("--stage")
+    k.add_argument("--pixels", action="store_true", help="record x/y/w/h in stage px, not fractions")
     a = ap.parse_args()
     if a.cmd == "extract":
         extract(a.stage, a.result, a.mask, a.out, a.diff, a.novelty, a.grow, a.debug, a.cpu, a.pos, a.neg, a.box)
     elif a.cmd == "check":
         check(a.stage_cut, a.overlays, a.out)
     else:
-        crop(a.overlay, a.webp, a.manifest, a.item, a.stage)
+        crop(a.overlay, a.webp, a.manifest, a.item, a.stage, pixels=a.pixels)
 
 
 if __name__ == "__main__":
