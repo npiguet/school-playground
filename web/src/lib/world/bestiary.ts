@@ -134,7 +134,7 @@ export const BESTIARY: BestiaryEntry[] = [
       'Héra plaça ses yeux sur la queue du paon, son oiseau\u202f: c\'est pour cela que les plumes du paon ont des «\u202fyeux\u202f».',
     ],
     sources: 'Ovide, Métamorphoses, I\u202f; Apollodore, Bibliothèque, II, 1.',
-    inGame: "Les Yeux d'Argus éclairent une seule catégorie de mots à la fois pendant la relecture.",
+    inGame: "Les Yeux d'Argus éclairent une seule catégorie de mots à la fois pendant la relecture\u202f; avant chaque combat, tu choisis de les emporter ou de les laisser au camp.",
   },
   {
     key: 'ariane',
@@ -190,7 +190,7 @@ export const BESTIARY: BestiaryEntry[] = [
       'Les poètes grecs commencent leurs chants en invoquant les Muses\u202f: «\u202fChante, déesse…\u202f» ouvre l\'Iliade.',
     ],
     sources: 'Hésiode, Théogonie\u202f; Homère, Iliade, I.',
-    inGame: "Au camp, les Muses te confient la garde des textes\u202f; elles allument et éteignent les aides à la relecture.",
+    inGame: "Au camp, les Muses te confient la garde des textes\u202f; avant chaque combat, tu choisis toi-même les aides que tu emportes.",
   },
   {
     key: 'delphes',

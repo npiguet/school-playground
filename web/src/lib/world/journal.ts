@@ -7,8 +7,10 @@ import { genderFor, lieutenantName } from './eris';
 import { LIEUTENANT_ORDER, type LieutenantKey } from './types';
 import { longDate } from '../text/french';
 
-/** Which aids were taken last (the hero's remembered choice, `settings.aids`, plan Ruling R1). */
-export function aidsJournalLine(aids: readonly AidKey[]): string {
+/** Which aids were taken last (the hero's remembered choice, `settings.aids`, plan Ruling R1); null when
+ *  the hero has none yet (never fought): all five go along. */
+export function aidsJournalLine(aids: readonly AidKey[] | null): string {
+  if (aids === null) return 'Tu emportes toutes les aides.';
   if (aids.length === AID_KEYS.length) return 'Au dernier combat, tu as emporté toutes les aides.';
   if (aids.length === 0) return 'Au dernier combat, tu as laissé toutes les aides au camp.';
   return `Au dernier combat, tu as emporté ${listFr(aids.map((k) => AID_LABELS[k].the))}.`;

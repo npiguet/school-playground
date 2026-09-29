@@ -450,7 +450,7 @@ test("Éris's lair: her challenge, the fight's stakes and the rules on the parch
   await expect(sheet.getByTestId('boss-tier')).toHaveText('Combat I');
   await expect(sheet.getByTestId('boss-reward')).toContainText('Récompense si tu gagnes');
   await expect(sheet.getByTestId('boss-start')).toHaveText('Affronter Éris');
-  await expect(sheet).toContainText("Un long texte, sans les Yeux d'Argus. Chaque piège que tu trouves reste acquis\u202f: si Éris s'enfuit, tu pourras revenir l'affronter.");
+  await expect(sheet).toContainText("Un long texte. Si ta copie garde 4 fautes au plus pour 100 mots, Éris s'enfuit\u202f; sinon, tu pourras revenir l'affronter.");
   // UI4 playability #14: the « Combat I » banner above her plate, and the parchment hugs its content,
   // centred, so her lair shows around it.
   const tierBox = (await sheet.getByTestId('boss-tier').boundingBox())!;

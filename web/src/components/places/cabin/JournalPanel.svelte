@@ -51,7 +51,7 @@
     {:else if stats}
       <h3 class="kit-section">Tes aides</h3>
       <div class="aids" data-testid="journal-aids">
-        <p class="aids-line">{aidsJournalLine(normalizeAids(stats.profile.settings.aids))}</p>
+        <p class="aids-line">{aidsJournalLine(stats.profile.settings.aids === undefined ? null : normalizeAids(stats.profile.settings.aids))}</p>
         <p class="aids-rule">{aidBonusLine(rulesOf(campStore.catalog).aid_bonus)}</p>
       </div>
       <h3 class="kit-section">Les ruses d'Éris, une à une</h3>

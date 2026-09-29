@@ -40,7 +40,8 @@ export const MUSTER = {
   words: (n: number) => plural(n, 'mot', 'mots'),
   prophecy: (when: string) => `La Pythie a vu cette dictée pour ${when}.`,
   quest: 'Ce texte compte pour ta quête.',
-  boss: "Combat contre Éris\u202f: les Yeux d'Argus restent éteints.",
+  /** Spec 2026-09-29 §2: the fight is won on the copy (`fight_max_per_100`, the rules file). */
+  boss: (max: number) => `Combat contre Éris\u202f: elle s'enfuit si ta copie garde ${plural(max, 'faute', 'fautes')} au plus pour 100 mots.`,
   showSheet: 'Voir la feuille',
   hideSheet: 'Cacher la feuille',
   sheetAlt: (n: number) => `Page ${n} de la feuille`,
@@ -260,6 +261,7 @@ export const CHALLENGE_LINES: Record<number, string> = {
 export const BOSS = {
   tier: (roman: string) => `Combat ${roman}`,
   reward: (xp: number, name: string) => `Récompense si tu gagnes\u202f: ${xp} XP · ${name}`,
-  rules: "Un long texte, sans les Yeux d'Argus. Chaque piège que tu trouves reste acquis\u202f: si Éris s'enfuit, tu pourras revenir l'affronter.",
+  rules: (max: number) =>
+    `Un long texte. Si ta copie garde ${plural(max, 'faute', 'fautes')} au plus pour 100 mots, Éris s'enfuit\u202f; sinon, tu pourras revenir l'affronter.`,
   start: 'Affronter Éris',
 } as const;

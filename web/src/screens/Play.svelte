@@ -472,6 +472,7 @@
           {mode}
           bind:playState
           {minPace}
+          {rules}
           {questId}
           {encounter}
           resume={showResumeBanner}

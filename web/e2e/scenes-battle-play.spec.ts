@@ -64,7 +64,7 @@ test('a boss dictation locks the slower paces and says why', async ({ page, requ
   await page.goto(`/#/p/${id}/play/${text.id}?encounter=eris&quest=1`);
   await expectBattle(page, 'muster');
   const sheet = page.getByTestId('battle-parchment');
-  await expect(sheet.getByTestId('play-boss-banner')).toHaveText("Combat contre Éris\u202f: les Yeux d'Argus restent éteints.");
+  await expect(sheet.getByTestId('play-boss-banner')).toHaveText("Combat contre Éris\u202f: elle s'enfuit si ta copie garde 4 fautes au plus pour 100 mots.");
   await expect(sheet.getByTestId('play-quest-banner')).toHaveText('Ce texte compte pour ta quête.');
   await expect(sheet.locator('[data-testid^="pace-option-"].disabled').first()).toContainText('Pas pendant un combat');
 });

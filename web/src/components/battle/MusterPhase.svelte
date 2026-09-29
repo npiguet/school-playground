@@ -14,6 +14,7 @@
   import { isProphecy } from '../../lib/dates';
   import { PACE_LABELS, type Pace } from '../../lib/dictation/script';
   import type { PlayState } from '../../lib/playState';
+  import type { GameRules } from '../../lib/rules';
   import { go } from '../../lib/scene/panelNav';
   import { href } from '../../lib/routes';
   import type { DialogueLine } from '../../lib/scene/types';
@@ -26,6 +27,7 @@
     mode,
     playState = $bindable(),
     minPace,
+    rules,
     questId,
     encounter,
     resume,
@@ -44,6 +46,8 @@
     /** Bound for the pace choice. */
     playState: PlayState;
     minPace: Pace;
+    /** The camp's rules (spec 2026-09-29 §7): the fight's threshold, the bonuses. */
+    rules: GameRules;
     questId: number | null;
     encounter: string | null;
     /** A saved dictation or proofreading waits: the resume ribbon instead of the order of battle. */
@@ -117,7 +121,7 @@
         {/if}
       </div>
       {#if encounter === 'eris'}
-        <p class="kit-note" data-tone="eris" data-testid="play-boss-banner">{MUSTER.boss}</p>
+        <p class="kit-note" data-tone="eris" data-testid="play-boss-banner">{MUSTER.boss(rules.fight_max_per_100)}</p>
       {/if}
     </header>
 

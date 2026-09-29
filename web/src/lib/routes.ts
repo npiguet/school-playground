@@ -32,7 +32,7 @@ export interface Route {
   name: RouteName;
   params: Record<string, string>;
   /** Parsed from a trailing `?k=v&...` (SP3 decision 14): `play`/`grimoire` carry `quest`,
-   *  `encounter`, `focus`, `help` this way. Empty object when the hash has no query string. */
+   *  `encounter`, `focus` this way. Empty object when the hash has no query string. */
   query: Record<string, string>;
 }
 

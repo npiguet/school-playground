@@ -152,4 +152,11 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   it('walks the Bouclier in text order, naming the directions on the page', () => {
     expect([L.PROOF.prevSentence, L.PROOF.nextSentence, L.PROOF.sentencePos(24, 24)]).toEqual(['Plus haut', 'Plus bas', 'Phrase 24 sur 24']);
   });
+
+  it("states the fight's rule from the rules file, and nothing of Argus (spec 2026-09-29 §2, §3)", () => {
+    expect(L.MUSTER.boss(4)).toBe("Combat contre Éris\u202f: elle s'enfuit si ta copie garde 4 fautes au plus pour 100 mots.");
+    expect(L.MUSTER.boss(1)).toBe("Combat contre Éris\u202f: elle s'enfuit si ta copie garde 1 faute au plus pour 100 mots.");
+    expect(L.BOSS.rules(4)).toBe("Un long texte. Si ta copie garde 4 fautes au plus pour 100 mots, Éris s'enfuit\u202f; sinon, tu pourras revenir l'affronter.");
+    for (const s of [L.MUSTER.boss(4), L.BOSS.rules(4)]) expect(s).not.toMatch(/Argus/);
+  });
 });

@@ -107,7 +107,7 @@ test('the journal opens as a codex: the aids taken last, the tricks, the words, 
   await expect(journal.getByRole('heading', { name: 'Tes aides' })).toBeVisible();
   // Spec 2026-09-29 §3: the aids taken last (all five for a new hero) and what one left is worth, in
   // words, no numbered steps to tap (UI3b playability #2).
-  await expect(journal.getByTestId('journal-aids')).toContainText('Au dernier combat, tu as emporté toutes les aides.');
+  await expect(journal.getByTestId('journal-aids')).toContainText('Tu emportes toutes les aides.');
   await expect(journal.getByTestId('journal-aids')).toContainText('Chaque aide laissée au camp\u202f: +20\u202f% de gloire.');
   await expect(journal.getByTestId('journal-aids').locator('li, .kit-medallion')).toHaveCount(0);
   for (const h of ["Les ruses d'Éris, une à une", 'Mots-pièges', 'Tes dernières défenses', 'Depuis le début']) {

@@ -739,13 +739,16 @@ export async function seedPlay(page: Page, s: PlaySeed) {
 /** Rewrites the aids of an already saved battle (the playability walks re-open the same seeded
  *  proofreading with different aids; `seedPlay` seeds once per tab). The page must be on the game. */
 export async function setSavedAids(page: Page, profileId: number, textId: number, aids: string[]) {
-  await page.evaluate(
+  const found = await page.evaluate(
     ({ key, aids }) => {
       const saved = JSON.parse(localStorage.getItem(key) ?? 'null');
-      if (saved) localStorage.setItem(key, JSON.stringify({ ...saved, aids }));
+      if (!saved) return false;
+      localStorage.setItem(key, JSON.stringify({ ...saved, aids }));
+      return true;
     },
     { key: `discorde.play.${profileId}.${textId}`, aids },
   );
+  if (!found) throw new Error(`setSavedAids: no saved battle under discorde.play.${profileId}.${textId}`);
 }
 
 /** A seeded dictation or proofreading comes back behind the resume ribbon: continue it. */

@@ -4,6 +4,7 @@ import { aidBonusLine, aidsJournalLine, defenceGroups, journalRuses, localDay, r
 describe("the journal's aids (spec 2026-09-29 §3)", () => {
   it('says which aids were taken last, in words', () => {
     expect(aidsJournalLine(['argus', 'ariane', 'persee', 'athena', 'palamede'])).toBe('Au dernier combat, tu as emporté toutes les aides.');
+    expect(aidsJournalLine(null)).toBe('Tu emportes toutes les aides.');
     expect(aidsJournalLine([])).toBe('Au dernier combat, tu as laissé toutes les aides au camp.');
     expect(aidsJournalLine(['athena'])).toBe('Au dernier combat, tu as emporté la chouette.');
     expect(aidsJournalLine(['argus', 'persee', 'palamede'])).toBe(

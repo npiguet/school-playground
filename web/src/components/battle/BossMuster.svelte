@@ -16,6 +16,7 @@
     rewardId,
     rewardXp,
     rewardName,
+    fightMax,
     starting,
     startError,
     taunt,
@@ -25,6 +26,8 @@
     rewardId: string | null;
     rewardXp: number;
     rewardName: string;
+    /** The fight's threshold, mistakes left per 100 words (the rules file). */
+    fightMax: number;
     starting: boolean;
     startError: string;
     /** Éris's challenge for this tier. */
@@ -44,7 +47,7 @@
     {#if rewardId}<Medallion {rewardId} size={40} />{/if}
     <span>{BOSS.reward(rewardXp, rewardName)}</span>
   </p>
-  <p class="rules">{BOSS.rules}</p>
+  <p class="rules">{BOSS.rules(fightMax)}</p>
   {#if startError}<p class="kit-note" data-tone="eris" role="alert">{startError}</p>{/if}
   <button type="button" class="kit-bronze start" data-testid="boss-start" disabled={starting} onclick={onStart}>
     {BOSS.start}
