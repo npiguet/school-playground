@@ -1,0 +1,26 @@
+{
+  "prompt": "full body, centered, three-quarter side view, whole creature visible in frame with room around it, soft even lighting. subject: a renowned mature dragon of the Discorde species in its prime, the size of an elephant, heavier and more powerful than an ordinary adult, with a broad deep chest, thick strong neck and massive muscular legs, burnished bronze-gold scales grown large and overlapping like polished armour plates, bright amber eyes, a pale cream belly of broad ridged plates, two very long sweeping curved ivory horns with a second smaller pair behind them, large leathery wings with copper-coloured membranes half spread, the wing membranes opaque with inked edges, a row of tall ivory spines down its back, a long thick tail, standing proudly on all four legs with chest out and legs straight, the head and neck toward the right of the picture and the tail curving behind it toward the left, its neck, back, side, tail and both wings clearly visible, head held high, proud confident and friendly expression, a famous hero not a monster, (menacing:-2) (sitting:-2) (translucent faded parts:-3) (scenery:-3) (cast shadow on the ground:-3), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+  "denoising_strength": 0.85,
+  "steps": 9,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "Simple",
+  "width": 1024,
+  "height": 1024,
+  "seed": 621,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    }
+  },
+  "style": "discorde-inked-clean",
+  "init": "assets/art/dragon/dragon_adult.png",
+  "mask_file": null,
+  "method": "img2img from assets/art/dragon/dragon_adult.png (tools/art/img2img.py) so the stage keeps the young dragon's pose"
+}

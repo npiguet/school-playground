@@ -378,3 +378,51 @@ No text is baked into images; the game adds all text in HTML.
 `run_docker.sh` resolves the repo path with `pwd -W` under Git Bash. Before UI2, a precedence
 slip made it print two paths, so `docker run -v` failed. That's fixed now, and `props/` is among
 the default cut-out targets.
+
+## Progression redesign (2026-09-29)
+
+The art track of `docs/superpowers/specs/2026-09-29-art-design.md`. Settings everywhere: model
+`krea2_turbo-Q3_K_M`, CFG 1, Euler/Simple, NegPiP V-scale 1.0. Sidecars hold the full prompts.
+
+### Phase 1: Palamède and the dragon stages
+
+**Palamède** (`emblems/palamede.png`, `discorde-emblem`, 1024², 8 steps): **seed 518** (12 tried,
+510-521). Subject: *a large neat heap of thick round counters filling the middle of the medallion:
+polished bronze discs and pale ivory bone discs, each engraved with one single simple geometric
+mark (a line, a cross or a small triangle), a few grey and terracotta river pebbles, and leaning
+upright behind the heap an ancient Greek wax writing tablet, a rectangular wooden frame around a
+recessed panel of dark honey-coloured wax scratched with a few straight tally strokes*, plus
+`(faces:-3) (buttons with holes:-3)`. Lessons: "counters engraved with dots and strokes" drew dots
+that read as little faces or buttons (seeds 510-513); "one single simple geometric mark" fixed it.
+"A small open wax tablet" gave a wooden tag or a scroll; "a rectangular wooden frame around a
+recessed panel of dark honey-coloured wax" gives the tablet. Exports (staged, see the art-cutout
+skill): `assets/art/export/emblems/palamede_cut.webp` (1024 px, q82, 109 KB) and
+`assets/art/export/icons/tool-palamede.webp` (256 px, reads at 48 px as a heap of tokens and a
+tablet).
+
+**Dragon stages** (`discorde-inked-clean`, 1024², isolated on white). All three were made by
+**img2img from the previous stage** (`tools/art/img2img.py`, no mask), which keeps the young
+dragon's three-quarter pose (head toward the right, back, side, tail and both wings visible), its
+colours and its framing, so slot masks and accessories line up from stage to stage:
+
+| Stage | From | Denoise / steps | Seed | Subject change |
+|---|---|---|---|---|
+| `dragon_adult` (redrawn) | `dragon_young.png` | 0.78 / 10 | 614 | the size of a horse, long curved ivory horns, large wings raised and swept back, longer neck, calm protective confident |
+| `dragon_illustre` | `dragon_adult.png` | 0.85 / 9 | 621 | the size of an elephant, broad deep chest, thick neck, massive legs, scales "grown large and overlapping like polished armour plates", very long sweeping horns with a second smaller pair, tall spines, "a famous hero not a monster", `(menacing:-2)` |
+| `dragon_ancestral` | `dragon_illustre.png` | 0.80 / 10, then far-wing inpaint 0.75 / 11 | 630, then 640 | silvered muzzle and horn tips, long silver-white whiskers like a beard, heavy brows, calm wise kind eyes, "standing on three legs and holding up an open parchment scroll in its raised right front claw", "a venerable sage not frail" |
+
+The ancestral's far wing came out slate blue at every seed; it was repainted copper by inpainting a
+SAM 2.1 mask of that wing (prompt: "the far wing ... warm copper-coloured and rust-orange membranes
+... the same warm copper as the near wing, (blue:-2) (grey:-2) (violet:-3)"). The small far-wing
+sliver below the scroll claw stays slate blue (accepted, it reads as shadow).
+
+Rejected: **txt2img for the adult** (seeds 600-607) gave a good side pose, but the far wing, the
+far legs and the tail tip came out pale and translucent (atmospheric perspective) at every seed,
+even with "the far wing as solid and richly painted as the near one" and `(translucent faded
+parts:-3)`: bad for the cut-out and for accessories. img2img at 0.7 kept the young's gangly
+proportions; 0.78-0.85 is the band where the new stage matures but keeps the pose.
+
+Exports (staged): `assets/art/export/dragon/dragon_{adult,illustre,ancestral}_cut.webp` (1024 px,
+q82, 116-136 KB). Contact sheet of the six stages on dark, mid and parchment:
+`docs/art/progression-stages.png` (`python tools/art/stages_sheet.py`). The old adult (seed 204,
+head-on) stays in git history.

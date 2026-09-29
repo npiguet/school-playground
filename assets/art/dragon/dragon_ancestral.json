@@ -1,0 +1,58 @@
+{
+  "method": "two steps with tools/art/img2img.py: (1) img2img from assets/art/dragon/dragon_illustre.png, (2) inpaint the far wing, which came out slate blue, back to copper",
+  "step1": {
+    "prompt": "full body, centered, three-quarter side view, whole creature visible in frame with room around it, soft even lighting. subject: an ancient wise dragon of the Discorde species, an old scholar still strong and powerful, the size of an elephant, a broad deep chest and massive legs, burnished bronze-gold scales grown large and overlapping like polished armour plates, the scales around the muzzle and the tips of the horns turned silvery white with age, calm wise kind amber eyes under heavy brows, a pale cream belly of broad ridged plates, two very long sweeping curved ivory horns with silver tips, long flowing silver-white whiskers from the chin and jaw like a long beard, large leathery wings with copper-coloured membranes folded half open, the wing membranes opaque with inked edges, a row of tall ivory spines down its back, a long thick tail, standing on three legs and holding up an open parchment scroll in its raised right front claw, the head and neck toward the right of the picture and the tail curving behind it toward the left, its neck, back, side, tail and both wings clearly visible, head held high, serene thoughtful expression, a venerable sage not frail, (menacing:-2) (sitting:-2) (translucent faded parts:-3) (scenery:-3) (cast shadow on the ground:-3), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.8,
+    "steps": 10,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 630,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "style": "discorde-inked-clean",
+    "init": "assets/art/dragon/dragon_illustre.png",
+    "mask_file": null
+  },
+  "step2_far_wing_inpaint": {
+    "prompt": "subject: the far wing of a bronze-gold dragon seen behind its shoulder, a large leathery wing with warm copper-coloured and rust-orange membranes and burnished bronze-gold wing bones ending in an ivory claw, the membrane opaque with clean inked edges, the same warm copper as the near wing, (blue:-2) (grey:-2) (violet:-3), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.75,
+    "steps": 11,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 640,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "step 1 result",
+    "mask_file": "SAM 2.1 mask of the far wing (box 790,160,980,420; points +900,260 +850,330 -900,470 -800,560), dilated 4 px"
+  }
+}

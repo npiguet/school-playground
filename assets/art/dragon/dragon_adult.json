@@ -1,12 +1,13 @@
 {
-  "prompt": "full body, centered, three-quarter view, whole creature visible in frame with room around it, soft even lighting. subject: a majestic adult dragon of the Discorde species, burnished bronze-gold scales, glowing amber eyes, a pale cream belly, two long curved ivory horns, huge leathery wings with copper-coloured membranes spread wide, the wing membranes fully opaque with clean inked edges, a row of ivory spines down its back, a long tail, noble powerful stance with head raised high, calm protective expression, (scenery:-3) (cast shadow on the ground:-3), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
-  "steps": 8,
+  "prompt": "full body, centered, three-quarter side view, whole creature visible in frame with room around it, soft even lighting. subject: a strong adult dragon of the Discorde species, the size of a horse, burnished bronze-gold scales, bright amber eyes, a pale cream belly, two long curved ivory horns, large leathery wings with copper-coloured membranes, a row of ivory spines down its back, a long tail, standing proudly on all four legs with chest out and legs straight, the body seen from the side in three-quarter view with the head and neck toward the right of the picture and the long tail curving behind it toward the left, both wings raised high and swept back above the body so the whole back between the shoulders and the hips stays clearly visible, the far wing as solid and richly painted as the near one, the wing membranes opaque with inked edges, head raised, calm protective confident expression, (sitting:-2) (facing the viewer:-2) (translucent faded parts:-3) (scenery:-3) (cast shadow on the ground:-3), isolated on a flat plain white background.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+  "denoising_strength": 0.78,
+  "steps": 10,
   "cfg_scale": 1.0,
   "sampler_name": "Euler",
-  "scheduler": "simple",
+  "scheduler": "Simple",
   "width": 1024,
   "height": 1024,
-  "seed": 204,
+  "seed": 614,
   "override_settings": {
     "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
   },
@@ -16,19 +17,10 @@
         true,
         1.0
       ]
-    },
-    "krea2 variance": {
-      "args": [
-        false,
-        1.0,
-        1.0,
-        0.3,
-        0,
-        49,
-        1.2,
-        1
-      ]
     }
   },
-  "style": "discorde-inked-clean"
+  "style": "discorde-inked-clean",
+  "init": "assets/art/dragon/dragon_young.png",
+  "mask_file": null,
+  "method": "img2img from assets/art/dragon/dragon_young.png (tools/art/img2img.py) so the stage keeps the young dragon's pose"
 }

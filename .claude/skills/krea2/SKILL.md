@@ -164,3 +164,40 @@ and repainted skin is not kept):
 
 - Final assets: in the project's asset folder (e.g. `assets/art/…`), with the sidecar JSON committed next to them.
 - Throwaway experiments: the session scratchpad, not the repo.
+
+## Machine rules for every Forge batch (2026-09-30)
+
+- Wrap each batch in the machine-wide e2e lock so it never overlaps a Playwright run:
+  `tools/art/with_lock.sh python .claude/skills/krea2/generate.py ...` (or several commands in
+  `tools/art/with_lock.sh sh -c '...; ...'`). Keep a locked batch short (about 6 images).
+- `generate.py` and `tools/art/img2img.py` wait until Forge's `/sdapi/v1/progress` shows no job
+  (the user's own work comes first) and ride out a Forge that is down for up to 10 minutes.
+- `with_lock.sh` sources `scripts/lib.sh`, which exports `MSYS_NO_PATHCONV=1`: inside it, pass
+  Windows-style paths (`C:/Users/...`), not Git Bash ones (`/c/Users/...`).
+
+## img2img: a new stage of an existing character in the same pose (proven 2026-09-29)
+
+To make the next stage of the dragon (or any "same character, older/richer" variant) that must line
+up with the previous picture, **img2img from the previous stage beats txt2img**: it keeps the pose,
+the framing and the colours, so slot masks and overlays line up from stage to stage.
+
+```bash
+tools/art/with_lock.sh python tools/art/img2img.py --init assets/art/dragon/dragon_adult.png \
+  --prompt-file illustre.txt --style discorde-inked-clean --denoise 0.85 --seed 620 --count 3 \
+  --out <scratch>/ill.png
+```
+
+- `tools/art/img2img.py` (stdlib only) = the `/sdapi/v1/img2img` call with the checkpoint override,
+  NegPiP V-scale 1.0, Euler/Simple, CFG 1, steps `max(9, round(8/denoise))`; writes PNG + sidecar.
+  With `--mask` it inpaints (defaults below).
+- Denoise **0.78-0.85**: the new stage matures (horns, bulk, neck) and keeps the pose. 0.7 keeps the
+  old proportions; above 0.9 the pose drifts.
+- The prompt is the full txt2img prompt of the new stage (character-sheet sentence, pose sentence,
+  `(sitting:-2) (translucent faded parts:-3) (scenery:-3) (cast shadow on the ground:-3)`), not a
+  diff. A prop held in a claw ("holding up an open parchment scroll in its raised right front claw")
+  appears at 0.8 with the leg re-posed.
+- txt2img in a side view paints the far wing, far legs and tail tip pale and translucent at every
+  seed (atmospheric perspective); img2img from a picture where they are solid avoids it.
+- A wrong colour on one part (a slate-blue far wing) is fixed by inpainting that part: SAM 2.1 mask
+  of the part (`tools/art/segment.py`, box + positive/negative points), dilated 4 px, denoise 0.75,
+  a prompt that describes only that part in the right colours plus `(blue:-2) (grey:-2)`.
