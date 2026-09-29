@@ -201,3 +201,94 @@ tools/art/with_lock.sh python tools/art/img2img.py --init assets/art/dragon/drag
 - A wrong colour on one part (a slate-blue far wing) is fixed by inpainting that part: SAM 2.1 mask
   of the part (`tools/art/segment.py`, box + positive/negative points), dilated 4 px, denoise 0.75,
   a prompt that describes only that part in the right colours plus `(blue:-2) (grey:-2)`.
+
+## Phase 3 recipes (progression redesign)
+
+Proven 2026-09-30 on the trophies, the house interiors, Hermès's stall, Hermès and the shop icons.
+Seeds and asset lists are in `docs/art/style-guide.md` ("Progression redesign, phase 3").
+
+### A set of one object in a ladder of materials (the 30 trophies)
+
+- One **fixed object sentence per object** (e.g. "a spiral conch sea shell ... standing upright with
+  its wide flared opening turned toward the viewer") and one **fixed material + base sentence per
+  level**; only the material/base part changes. Same seed for all five levels of one object: the
+  composition then stays close from level to level, which is what makes the object recognisable.
+- Template (icon composition sentence of the style guide, `discorde-inked-clean`, 1024², `--vscale 1`):
+  `... subject: a treasured trophy statuette, <PREFIX><object>, <material>, <base>, <object negatives>
+  <material negatives>.` + the icon tail sentence. The exact prompts are in the sidecars of
+  `assets/art/trophies/`.
+- Material sentences that work:
+  - wood: "simply carved from warm brown olive wood with visible wood grain lines, a rough
+    hand-whittled wooden figure with only a few carved lines, the whole thing the same warm brown
+    natural wood colour, very plain and humble" + "standing on a plain square block of the same
+    wood" + `(gold:-3) (metal:-3) (paint:-2) (gems:-3) (white:-2) (marble:-2)`. Without "brown" and
+    `(white:-2)` a naturally pale object (a shell) comes out as pale stone.
+  - bronze: "cast in smooth polished warm golden-brown bronze, clean even metal with a few simple
+    engraved lines" + "a small plain round bronze base" + `(patina:-3) (rust:-3) (gems:-3)`.
+  - silver: "made entirely of bright polished shining silver, every surface cool white silver metal,
+    engraved all over with delicate swirling patterns" + "a stepped silver base of three tiers" +
+    `(gold:-3) (bronze:-2) (green:-2) (dark metal:-2)`. Plain "made of silver" gave a dark blue-green
+    metal once.
+  - gold: the material must **also lead the subject** (`PREFIX` = "cast entirely in solid gleaming
+    yellow gold, ") plus "made entirely of solid gleaming yellow gold, every surface gold" and
+    `(white:-3) (mother of pearl:-3) (silver:-2) (wood:-2) (marble:-2)`. With the material only at the
+    end, a shell and a feather kept their natural white.
+  - orichalcum: "made entirely of orichalcum, the legendary metal of Atlantis, a gleaming reddish
+    rose-gold like polished copper mixed with gold, every surface covered in intricate fine golden
+    filigree scrollwork, with a few small sparkling <colour> gems set into the metal like jewels" +
+    "an ornate sculpted rose-gold base wreathed with a golden laurel garland, a masterpiece, the whole
+    trophy visible from its top down to the bottom of its base with empty white room below" +
+    `(stone:-2) (green metal:-2)`. "Set with many emerald gems" turned the whole object green and
+    the tall base got cropped until the "whole trophy visible" clause was added.
+- Gem colours per object keep the lieutenant's identity (emerald, aquamarine, red, sea-blue,
+  sapphire, ruby). For a fiery-red object add `(green:-3)`: the palette's olive otherwise stains gold.
+- Rewording one part of a working object sentence can break it: "the round pearl always clearly
+  visible" made the pearls vanish and the shells go natural white. Change one thing at a time.
+- Export: `python tools/art/trophies.py all` (256 px icon treatment + 512 px close-ups + the
+  6 x 5 contact sheet on dark, mid and parchment).
+
+### Richer variant of an existing scene, same room plan (villa and palais from the cabin)
+
+- img2img of the whole scene, `--init assets/art/scenes/cabin.png`, size 2048x1152,
+  `discorde-illustration`, V-scale 1, the **full new scene prompt** (not a diff) that names every
+  landmark in the old places ("on the left wall a long ... trophy shelf with bronze hooks under it
+  ...; in the centre a ... desk ...; on the right a small table with a glowing bronze oil lamp and a
+  golden lyre ...; a bed ... at the right edge") plus the new richness and "wide stretches of bare
+  wall between the objects", plus the scene composition sentence of the style guide.
+- **Denoise 0.72, 12 steps** kept every landmark within a few percent of the cabin's positions while
+  replacing the materials (plastered walls, Greek-key frieze, arched windows, tiled floor; for the
+  palais marble columns, a mosaic floor, a back-wall arch onto a courtyard, a canopy bed). Denoise
+  0.6 (14 steps) also kept the plan but stayed busier and closer to the cabin's clutter.
+
+### Adding a building to a scene without moving anything else (Hermès's stall in the camp)
+
+1. **Mask**: a rounded rectangle on the empty spot (`assets/art/scenes/masks/hub_camp_stall_inpaint.png`).
+   Keep its top edge **below** any roofline or ridge of what stands behind: a mask cutting through
+   the wall's tile coping made the model paint a second roof line inside the mask. Keep the object
+   inside the iPad safe zone (x 12.5-87.5 %, `docs/art/scenes.md`); the first placement at x 2-17 %
+   was mostly outside it.
+2. **Inpaint**: `/sdapi/v1/img2img` with the mask, `inpaint_full_res` true, **padding 160**,
+   `mask_blur` 8, `inpainting_fill` 1, denoise 0.95, 9 steps, width/height 1024x1024 (the "only
+   masked" crop is rendered at that size), `discorde-illustration`, 3 seeds. The prompt describes the
+   surroundings first ("a sunny grassy hillside ..., the lower part of a sunlit white-washed wall
+   behind"), then the object, then "the same light and colours as the surrounding picture" and
+   `(people:-3) (text:-3) (letters:-3) (writing:-3) (roof tiles:-2)`. Padding 64 gave too little
+   context (a lighter, different wall); 160 matches better but still not perfectly.
+3. **Paste only the object**: the model always repaints the background inside the mask slightly
+   differently (here it dropped the tree's shade on the wall), which shows as a pale rectangle. Trace
+   the object by hand as a few polygons on the raw result (view a 3x crop with a 20 px grid; follow
+   the awning scallops, leave open gaps under the awning to the original), save it as a paste mask,
+   and composite with `python tools/art/inpaint_paste.py ORIG RAW PASTE_MASK INPAINT_MASK OUT 0`.
+   It prints the pixels changed outside the inpaint mask (must be 0) and the changed box in
+   fractions, for the hotspot.
+4. **Rejected**: Grounding DINO + SAM 2.1 on the painted stall ("market stall. amphora. basket.",
+   union, or a SAM box prompt): the masks missed the amphorae, had holes and took in patches of the
+   repainted wall. A busy painted object on a painted background does not segment cleanly; hand
+   polygons took five minutes and are exact.
+
+## Dragon accessories: see the art-overlays skill (2026-09-30)
+
+The "Pipeline for an aligned overlay" above is now proven and scripted: slot masks, the
+inpainting settings per item type (0.75 for items that wrap the body, 0.85 for items that stand
+out), the horn exclusion, the extraction and its rejected variants are in
+`.claude/skills/art-overlays/SKILL.md`.

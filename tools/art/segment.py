@@ -64,11 +64,12 @@ def detect(img: Image.Image, prompt: str, box_threshold=0.3, text_threshold=0.25
     return sorted(found, key=lambda f: -f[0])
 
 
-def sam_mask(img: Image.Image, box, points=None, labels=None) -> np.ndarray:
-    """Boolean mask (H, W) of the object in `box`, SAM 2.1's best-scoring of its three masks.
+def sam_mask(img: Image.Image, box, points=None, labels=None, all_masks=False):
+    """Boolean mask (H, W) of the object in `box`, SAM 2.1's best-scoring of its three masks
+    (all_masks=True: the three masks, small to large part, and their scores).
     Optional extra `points` [(x, y), ...] with `labels` [1 = inside, 0 = outside]."""
     m = load()
-    kw = {"input_boxes": [[list(box)]]}
+    kw = {"input_boxes": [[list(box)]]} if box is not None else {}
     if points:
         kw["input_points"] = [[[list(p) for p in points]]]
         kw["input_labels"] = [[list(labels)]]
@@ -77,8 +78,31 @@ def sam_mask(img: Image.Image, box, points=None, labels=None) -> np.ndarray:
         out = m["sam"](**inputs, multimask_output=True)
     masks = m["sam_p"].post_process_masks(out.pred_masks.cpu(), inputs["original_sizes"])[0]
     scores = out.iou_scores.cpu()[0, 0]
+    if all_masks:
+        return [masks[0, i].numpy().astype(bool) for i in range(masks.shape[1])], scores.tolist()
     best = int(scores.argmax())
     return masks[0, best].numpy().astype(bool)
+
+
+def sam_point_masks(img: Image.Image, points, batch=64):
+    """SAM 2.1 masks for many single-point prompts at once: (masks bool [N, 3, H, W], scores [N, 3]),
+    the three levels of each point (part, object, whole). One image embedding for all points."""
+    m = load()
+    emb_inputs = m["sam_p"](images=img, return_tensors="pt").to(m["dev"])
+    with torch.no_grad():
+        emb = m["sam"].get_image_embeddings(emb_inputs["pixel_values"])
+    all_masks, all_scores = [], []
+    for i in range(0, len(points), batch):
+        chunk = points[i:i + batch]
+        inputs = m["sam_p"](images=img, input_points=[[[list(p)] for p in chunk]],
+                            input_labels=[[[1] for _ in chunk]], return_tensors="pt").to(m["dev"])
+        with torch.no_grad():
+            out = m["sam"](input_points=inputs["input_points"], input_labels=inputs["input_labels"],
+                           image_embeddings=emb, multimask_output=True)
+        masks = m["sam_p"].post_process_masks(out.pred_masks.cpu(), emb_inputs["original_sizes"])[0]
+        all_masks.append(masks.numpy().astype(bool))
+        all_scores.append(out.iou_scores.cpu()[0].numpy())
+    return np.concatenate(all_masks), np.concatenate(all_scores)
 
 
 def main():

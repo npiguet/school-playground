@@ -426,3 +426,20 @@ Exports (staged): `assets/art/export/dragon/dragon_{adult,illustre,ancestral}_cu
 q82, 116-136 KB). Contact sheet of the six stages on dark, mid and parchment:
 `docs/art/progression-stages.png` (`python tools/art/stages_sheet.py`). The old adult (seed 204,
 head-on) stays in git history.
+
+### Phase 2: extraction test and slot masks (2026-09-30)
+
+The pipeline is written up in the `art-overlays` skill (scripts under `tools/art/`: `img2img.py`,
+`segment.py`, `overlay.py`, `slots.py` + `slots.json`; segmentation venv `tools/art/seg/.venv`,
+SAM 2.1 large, Grounding DINO base). Throwaway test, four items, all passing on bronze and on the
+ecume, braise and argent tints (`docs/art/overlay-test.png`):
+
+| Item | Stage | Seed | Denoise | Notes |
+|---|---|---|---|---|
+| gold Greek-key collar, carnelian gem | young | 701 | 0.75 | 0.8-0.9 drew the collar on a neck narrower than the real one |
+| gold Greek-key collar, carnelian gem | adult | 721 | 0.85 | |
+| bronze dome helmet, red horsehair crest | young | 713 | 0.85 | needed the horns cut out of the head slot, and the "solid dome ... no scales showing through" prompt |
+| bronze helmet, red crest | adult | 733 | 0.85 | |
+
+Slot masks: `assets/art/dragon/slots/{young,adult,illustre,ancestral}_{cou,queue,dos,tete}.png`,
+contact sheet `docs/art/slot-masks.png`, all 16 checked by eye.
