@@ -12,7 +12,9 @@ no spaCy objects, so the logic is testable on hand-built tokens.
 """
 from __future__ import annotations
 
-SUBJECT_DEPS = {"nsubj", "nsubj:pass"}
+# « expl:subj » is the parser's label for an impersonal « il » / « c' » (« il y a », « c'est vrai »):
+# still the verb's grammatical subject, never a high-confidence one.
+SUBJECT_DEPS = {"nsubj", "nsubj:pass", "expl:subj"}
 NOMINAL_DEPS = {"det", "amod", "nummod", "det:poss"}
 AUX_DEPS = {"aux", "aux:pass", "aux:tense", "cop"}
 # A word with one of these children is a compound-tense / passive participle whatever its POS tag:
@@ -179,6 +181,7 @@ class _Controller:
         self.via = via
         self.via_token = via_token
         self.impersonal = impersonal
+        self.shared = False  # set when a coordinated verb borrows its first verb's subject
         conj = sorted(c["i"] for c in _children(tokens, controller) if c["dep"] == "conj")
         if conj:
             self.via = via or "conj"
@@ -187,12 +190,16 @@ class _Controller:
         else:
             self.group = nominal_group(tokens, controller) if ctrl["pos"] in NOMINAL_POS else [controller]
             self.features = _feat(ctrl, ["Gender", "Number", "Person"])
+            if ctrl["pos"] == "PROPN":
+                # The tagger gives most proper names no Number; alone, a name is one person or place.
+                self.features.setdefault("Number", "Sing")
         if ctrl["pos"] in NOMINAL_POS:
             self.features.setdefault("Person", "3")
 
     def cap(self, confidence: str) -> str:
-        """An impersonal or indefinite subject is never a high-confidence controller."""
-        return "medium" if self.impersonal and confidence == "high" else confidence
+        """An impersonal or indefinite subject, or one borrowed by a coordinated verb, is never a
+        high-confidence controller."""
+        return "medium" if (self.impersonal or self.shared) and confidence == "high" else confidence
 
     def confidence(self, consistent: bool, distance: int, via: str | None = None) -> str:
         via = via or self.via
@@ -205,6 +212,8 @@ class _Controller:
 
 
 def _impersonal_subject(tokens: list[dict], h: dict, s: dict) -> bool:
+    if s["dep"] == "expl:subj":
+        return True
     if s["pos"] != "PRON":
         return False
     low = _lower(s["text"])
@@ -224,6 +233,26 @@ def _subject_controller(tokens: list[dict], h: dict, s: dict) -> _Controller:
     if _lower(s["text"]) == "qui" and s["pos"] == "PRON" and h["dep"] == "acl:relcl":
         return _Controller(tokens, h["head"], "qui", s["i"])
     return _Controller(tokens, s["i"], None, None, impersonal=_impersonal_subject(tokens, h, s))
+
+
+def _is_predicate(tokens: list[dict], t: dict) -> bool:
+    return t["pos"] in {"VERB", "AUX"} or any(a["dep"] in AUX_DEPS for a in _children(tokens, t["i"]))
+
+
+def _shared_subject(tokens: list[dict], h: dict) -> tuple[dict, dict] | None:
+    """(first verb, its subject) for a coordinated verb with no subject of its own: in « Le chat
+    goûta l'avis et partit », « partit » (conj of « goûta ») has the subject « chat »."""
+    by_i = {t["i"]: t for t in tokens}
+    t = h
+    while t["dep"] == "conj" and _is_predicate(tokens, t):
+        head = by_i.get(t["head"])
+        if head is None or head["i"] == t["i"] or not _is_predicate(tokens, head):
+            return None
+        s = next((c for c in _children(tokens, head["i"]) if c["dep"] in SUBJECT_DEPS), None)
+        if s is not None:
+            return head, s
+        t = head
+    return None
 
 
 def _subject_verb_chain(tokens: list[dict], h: dict, ctrl: _Controller) -> dict | None:
@@ -279,9 +308,14 @@ def _predicate_chains(tokens: list[dict]) -> list[dict]:
     for h in tokens:
         kids = _children(tokens, h["i"])
         s = next((c for c in kids if c["dep"] in SUBJECT_DEPS), None)
-        if s is None:
-            continue
-        ctrl = _subject_controller(tokens, h, s)
+        if s is not None:
+            ctrl = _subject_controller(tokens, h, s)
+        else:
+            shared = _shared_subject(tokens, h)
+            if shared is None:
+                continue
+            ctrl = _subject_controller(tokens, *shared)
+            ctrl.shared = True
         sv = _subject_verb_chain(tokens, h, ctrl)
         if sv is not None:
             chains.append(sv)

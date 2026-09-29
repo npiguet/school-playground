@@ -331,3 +331,87 @@ def test_on_and_ce_never_high():
          tok(2, "des", "DET", {"Number": "Plur"}, 3, "det"),
          tok(3, "fées", "NOUN", {"Gender": "Fem", "Number": "Plur"}, 3, "ROOT")]
     assert _no_high(c for c in build_chains(t) if c["kind"] != "nominal")
+
+
+FIN3S = {"VerbForm": "Fin", "Number": "Sing", "Person": "3"}
+FIN3P = {"VerbForm": "Fin", "Number": "Plur", "Person": "3"}
+
+
+def test_proper_name_subject_is_singular():
+    # Éris lança une pomme .  The tagger gives a proper name no Number: it is one person.
+    t = [tok(0, "Éris", "PROPN", {}, 1, "nsubj"),
+         tok(1, "lança", "VERB", FIN3S, 1, "ROOT"),
+         tok(2, "une", "DET", {"Gender": "Fem", "Number": "Sing"}, 3, "det"),
+         tok(3, "pomme", "NOUN", {"Gender": "Fem", "Number": "Sing"}, 1, "obj")]
+    sv = by_kind(build_chains(t), "subject_verb")[0]
+    assert sv["confidence"] == "high" and sv["features"] == {"Number": "Sing", "Person": "3"}
+    # a plural verb on a bare proper name disagrees: never high
+    t[1] = tok(1, "lancèrent", "VERB", FIN3P, 1, "ROOT")
+    assert by_kind(build_chains(t), "subject_verb")[0]["confidence"] == "low"
+
+
+def test_coordinated_verb_shares_its_first_verb_subject():
+    # Le chat goûta l' avis et partit .
+    t = [tok(0, "Le", "DET", {"Gender": "Masc", "Number": "Sing"}, 1, "det"),
+         tok(1, "chat", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 2, "nsubj"),
+         tok(2, "goûta", "VERB", FIN3S, 2, "ROOT"),
+         tok(3, "l'", "DET", {"Number": "Sing"}, 4, "det"),
+         tok(4, "avis", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 2, "obj"),
+         tok(5, "et", "CCONJ", {}, 6, "cc"),
+         tok(6, "partit", "VERB", FIN3S, 2, "conj")]
+    sv = next(c for c in by_kind(build_chains(t), "subject_verb") if c["targets"] == [6])
+    assert sv["controller"] == 1 and sv["controller_group"] == [0, 1] and sv["via"] is None
+    assert sv["confidence"] == "medium"  # the shared subject is a longer, parse-dependent link
+
+
+def test_coordinated_verb_chain_follows_the_first_verb_through_qui_and_auxiliaries():
+    # les canards qui vivaient et ont tendu leur cou
+    t = [tok(0, "les", "DET", {"Number": "Plur"}, 1, "det"),
+         tok(1, "canards", "NOUN", {"Gender": "Masc", "Number": "Plur"}, 1, "ROOT"),
+         tok(2, "qui", "PRON", {"PronType": "Rel"}, 3, "nsubj"),
+         tok(3, "vivaient", "VERB", FIN3P, 1, "acl:relcl"),
+         tok(4, "et", "CCONJ", {}, 6, "cc"),
+         tok(5, "ont", "AUX", FIN3P, 6, "aux:tense", lemma="avoir"),
+         tok(6, "tendu", "VERB", {"VerbForm": "Part", "Gender": "Masc", "Number": "Sing"}, 3, "conj")]
+    sv = next(c for c in by_kind(build_chains(t), "subject_verb") if c["targets"] == [5])
+    assert sv["controller"] == 1 and sv["via"] == "qui" and sv["via_token"] == 2 and sv["confidence"] == "medium"
+
+
+def test_coordinated_verb_with_a_disagreeing_inherited_subject_is_low():
+    # dès que tombait la nuit et cherchaient : a mis-attached conj inherits « nuit » (singular)
+    t = [tok(0, "tombait", "VERB", FIN3S, 0, "ROOT"),
+         tok(1, "la", "DET", {"Gender": "Fem", "Number": "Sing"}, 2, "det"),
+         tok(2, "nuit", "NOUN", {"Gender": "Fem", "Number": "Sing"}, 0, "nsubj"),
+         tok(3, "et", "CCONJ", {}, 4, "cc"),
+         tok(4, "cherchaient", "VERB", FIN3P, 0, "conj")]
+    sv = next(c for c in by_kind(build_chains(t), "subject_verb") if c["targets"] == [4])
+    assert sv["confidence"] == "low"
+
+
+def test_coordinated_noun_is_not_a_coordinated_verb():
+    # un chat et un chien dorment : « chien » is conj of « chat », not a verb with a subject
+    t = [tok(0, "un", "DET", {"Number": "Sing"}, 1, "det"),
+         tok(1, "chat", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 5, "nsubj"),
+         tok(2, "et", "CCONJ", {}, 4, "cc"),
+         tok(3, "un", "DET", {"Number": "Sing"}, 4, "det"),
+         tok(4, "chien", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 1, "conj"),
+         tok(5, "dorment", "VERB", FIN3P, 5, "ROOT")]
+    svs = by_kind(build_chains(t), "subject_verb")
+    assert [c["targets"] for c in svs] == [[5]]
+
+
+def test_expletive_subject_is_an_impersonal_subject():
+    # Il y a un chêne .  (the parser labels this « il » expl:subj)
+    t = [tok(0, "Il", "PRON", {"Gender": "Masc", "Number": "Sing", "Person": "3"}, 2, "expl:subj"),
+         tok(1, "y", "PRON", {}, 2, "expl:comp"),
+         tok(2, "a", "VERB", FIN3S, 2, "ROOT", lemma="avoir"),
+         tok(3, "un", "DET", {"Gender": "Masc", "Number": "Sing"}, 4, "det"),
+         tok(4, "chêne", "NOUN", {"Gender": "Masc", "Number": "Sing"}, 2, "obj")]
+    sv = by_kind(build_chains(t), "subject_verb")[0]
+    assert sv["controller"] == 0 and sv["targets"] == [2] and sv["confidence"] == "medium"
+    # C' est vrai .
+    t = [tok(0, "C'", "PRON", {"Number": "Sing", "Person": "3"}, 2, "expl:subj"),
+         tok(1, "est", "AUX", FIN3S, 2, "cop", lemma="être"),
+         tok(2, "vrai", "ADJ", {"Gender": "Masc", "Number": "Sing"}, 2, "ROOT")]
+    chains = build_chains(t)
+    assert by_kind(chains, "subject_verb")[0]["targets"] == [1] and _no_high(chains)

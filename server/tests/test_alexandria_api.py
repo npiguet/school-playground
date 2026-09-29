@@ -6,6 +6,7 @@ from app.alexandria.allowlist import Work
 from app.alexandria.service import adopt_chunk, refresh_work
 from app.db import connect, migrate
 from app.lexicon import load_lexicon
+from app.nlp.annotate import ANNOTATION_VERSION
 from app.main import create_app
 
 PROSE = ("Le vieux marin regardait la mer. Les vagues grises montaient lentement vers la plage, et les mouettes criaient au-dessus des rochers. "
@@ -58,7 +59,7 @@ def test_chunks_and_adopt(settings):
         assert r.status_code == 201, r.text
         t = r.json()
         assert t["source"] == "online" and t["author"] == "Jules Verne" and t["title"].startswith("Vingt mille lieues") and t["level"] == c["level"]
-        assert t["annotation"]["version"] == 3 and t["added_by_profile_id"] == p["id"]
+        assert t["annotation"]["version"] == ANNOTATION_VERSION and t["added_by_profile_id"] == p["id"]
         again = client.post(f"/api/alexandria/chunks/{c['id']}/adopt", json={"profile_id": p["id"]})
         assert again.status_code == 200 and again.json()["id"] == t["id"]
         assert client.get("/api/alexandria/works/verne/chunks").json()[0]["text_id"] == t["id"]
@@ -161,6 +162,38 @@ def test_refresh_stops_fetching_once_the_total_budget_is_spent(settings):
     assert stats["pages_ok"] == 3 and stats["stopped_early"] is True
 
 
+def test_refresh_stops_annotating_once_the_refresh_budget_is_spent(settings):
+    # The transformer parser is slow on a small CPU: at 10 s a chunk, a 40-chunk cap would hold the
+    # refresh past the client's 120 s timeout. Annotation stops once the whole refresh has run
+    # `refresh_budget_s`; the chunks already annotated are kept and the note counts them.
+    clock = _FakeClock()
+    calls = []
+
+    def slow_annotate(body):
+        calls.append(body)
+        clock.advance(10.0)
+        return _fake_annotate(body)
+
+    class ManyPages:
+        def wikisource_page(self, title):
+            return '<div class="mw-parser-output">' + f"<p>{PROSE * 2}</p>" * 60 + "</div>"
+
+    work = Work(id="w", title="T", author="A", author_death=1900, translator=None, translator_death=None,
+                source="wikisource", pages=("P",), ebook_id=None, level_hint="8H", note="")
+    conn = connect(settings.data_dir / "budget3.sqlite3")
+    migrate(conn)
+    result = refresh_work(conn, work, ManyPages(), slow_annotate, load_lexicon(settings.content_dir),
+                          refresh_budget_s=105.0, clock=clock)
+    assert len(calls) == 11 and result["chunk_count"] == 11  # started at 0, 10, … 100 s; none at 110 s
+    assert "après 11 rouleaux" in result["error"]
+    # one scroll is « un rouleau », never « 1 rouleaux »
+    clock.now = 0.0
+    calls.clear()
+    result = refresh_work(conn, work, ManyPages(), slow_annotate, load_lexicon(settings.content_dir),
+                          refresh_budget_s=5.0, clock=clock)
+    assert len(calls) == 1 and "après un rouleau :" in result["error"]
+
+
 def test_refresh_reports_a_timeout_when_the_budget_is_spent_before_any_page(settings):
     # The budget is exhausted before even the first page is attempted: no chunks, a clear (not
     # "(None)") error, and the fetcher is never called.
@@ -185,7 +218,7 @@ class _ThreeChunks:
 
 
 def _fake_annotate(body):
-    return {"version": 3, "tokens": [], "chains": [], "sentences": []}
+    return {"version": ANNOTATION_VERSION, "tokens": [], "chains": [], "sentences": []}
 
 
 _WORK = Work(id="w", title="T", author="A", author_death=1900, translator=None, translator_death=None,

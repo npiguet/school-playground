@@ -43,10 +43,18 @@ MAX_CHUNKS = 40
 # the response itself.
 FETCH_BUDGET_S = 90.0
 
+# Total wall-clock budget for the whole refresh, fetches and spaCy together: no chunk starts being
+# annotated past it. The transformer parser takes a second or more per chunk on a small CPU, so 40
+# chunks after a slow fetch would outlast the client's 120 s REFRESH_TIMEOUT_MS; the chunks already
+# annotated are kept and the note counts them.
+REFRESH_BUDGET_S = 105.0
+
 
 def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lexicon, max_pages: int = 40,
                  max_chunks: int = MAX_CHUNKS, fetch_budget_s: float = FETCH_BUDGET_S,
+                 refresh_budget_s: float = REFRESH_BUDGET_S,
                  clock: Callable[[], float] = time.monotonic) -> dict:
+    started = clock()
     pages_ok = 0
     failed = 0
     last_error: str | None = None
@@ -95,7 +103,7 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
         if reason is not None:
             rejected[reason] += 1
             continue
-        if len(kept) >= max_chunks:
+        if len(kept) >= max_chunks or clock() - started >= refresh_budget_s:
             truncated += 1
             continue
         annotation = annotate_fn(chunk["body"])
@@ -112,7 +120,8 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
     if stopped_early:
         notes.append("Le jour a baissé et les scribes ont posé leurs calames\u202f: la suite de l'œuvre attend d'être recopiée.")
     if truncated:
-        notes.append(f"Les scribes se sont arrêtés après {max_chunks} rouleaux\u202f: la suite de l'œuvre n'a pas été recopiée.")
+        scrolls = "un rouleau" if len(kept) == 1 else f"{len(kept)} rouleaux"
+        notes.append(f"Les scribes se sont arrêtés après {scrolls}\u202f: la suite de l'œuvre n'a pas été recopiée.")
     note = " ".join(notes) or None
     stats = {"pages_ok": pages_ok, "failed": failed, "rejected": dict(rejected), "truncated": truncated,
              "stopped_early": stopped_early}

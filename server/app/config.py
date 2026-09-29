@@ -12,7 +12,7 @@ class Settings:
     data_dir: Path = Path("/data")
     content_dir: Path = Path("/app/content")
     static_dir: Path = Path("/app/static")
-    spacy_model: str = "fr_core_news_lg"
+    spacy_model: str = "fr_dep_news_trf"
     seed_on_startup: bool = True
     alexandria_offline_dir: Path | None = None
     test_hooks: bool = False
@@ -29,7 +29,7 @@ class Settings:
             data_dir=Path(os.environ.get("DISCORDE_DATA_DIR", "/data")),
             content_dir=Path(os.environ.get("DISCORDE_CONTENT_DIR", "/app/content")),
             static_dir=Path(os.environ.get("DISCORDE_STATIC_DIR", "/app/static")),
-            spacy_model=os.environ.get("SPACY_MODEL", "fr_core_news_lg"),
+            spacy_model=os.environ.get("SPACY_MODEL", "fr_dep_news_trf"),
             seed_on_startup=os.environ.get("DISCORDE_SEED", "1") == "1",
             alexandria_offline_dir=Path(offline_dir) if offline_dir else None,
             test_hooks=os.environ.get("DISCORDE_TEST_HOOKS") == "1",

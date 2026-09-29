@@ -13,13 +13,18 @@ RUN cd web && npm run build
 FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     DISCORDE_DATA_DIR=/data DISCORDE_STATIC_DIR=/app/static \
-    DISCORDE_CONTENT_DIR=/app/content SPACY_MODEL=fr_core_news_lg
+    DISCORDE_CONTENT_DIR=/app/content SPACY_MODEL=fr_dep_news_trf
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-fra \
  && rm -rf /var/lib/apt/lists/*
 COPY server/requirements.txt ./requirements.txt
+# The parser is spaCy's French transformer model (CamemBERT): on the game's texts it finds the
+# subject of far more verbs, and far fewer wrong ones, than fr_core_news_lg (the Fil d'Ariane and the
+# verb spotlight live on it). CPU-only torch first, so spacy-transformers does not pull the CUDA build.
 RUN pip install --no-cache-dir -r requirements.txt \
- && python -m spacy download fr_core_news_lg
+ && pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu "torch>=2.4,<3" \
+ && pip install --no-cache-dir "spacy-transformers>=1.3,<1.4" \
+ && python -m spacy download fr_dep_news_trf
 COPY server/app app
 COPY content content
 COPY --from=web /work/web/dist static
@@ -31,7 +36,9 @@ ARG BUILD_DATE=unknown
 ENV DISCORDE_BUILD_COMMIT=$GIT_COMMIT DISCORDE_BUILD_DATE=$BUILD_DATE
 VOLUME ["/data"]
 EXPOSE 8080
-HEALTHCHECK --interval=10s --timeout=3s --start-period=90s --retries=5 \
+# start-period: the server answers only once startup has (re-)annotated every text, which after an
+# ANNOTATION_VERSION bump takes the transformer a few minutes on a small CPU.
+HEALTHCHECK --interval=10s --timeout=3s --start-period=300s --retries=5 \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/api/health').status==200 else 1)"
 # uvicorn's default --timeout-keep-alive is 5s. There is no reverse proxy in front of this
 # process (compose.yaml exposes it to browsers directly), and any HTTP/1.1 client that pools

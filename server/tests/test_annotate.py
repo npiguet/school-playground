@@ -1,6 +1,6 @@
 from pathlib import Path
 import pytest
-from app.nlp.annotate import annotate, derive, derive_all
+from app.nlp.annotate import ANNOTATION_VERSION, annotate, derive, derive_all
 from app.nlp.homophones import load_homophones
 
 CONTENT = Path(__file__).resolve().parents[2] / "content"
@@ -105,7 +105,7 @@ def test_derive_all_with_lexicon(lexicon):
 def test_annotate_with_real_model(nlp, lexicon):
     h = load_homophones(CONTENT)
     a = annotate("Les fées dansent dans la clairière. Il a chanté.", nlp, h, lexicon)
-    assert a["version"] == 3 and a["model"]
+    assert a["version"] == ANNOTATION_VERSION and a["model"]
     assert isinstance(a["chains"], list)
     fees = next(t for t in a["tokens"] if t["text"] == "fées")
     assert "fée" in fees["forms"]

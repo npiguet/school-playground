@@ -1,5 +1,6 @@
 import json
 from app.db import connect, migrate
+from app.nlp.annotate import ANNOTATION_VERSION
 from app.reannotate import reannotate_outdated
 
 INSERT = "INSERT INTO text(title, body, source, level, annotation_json, created_at) VALUES (?, ?, 'custom', '8H', ?, 'now')"
@@ -52,4 +53,4 @@ def test_startup_reannotates_outdated_texts(settings):
         pass
     again = connect(settings.data_dir / DB_FILENAME)
     stored = json.loads(again.execute("SELECT annotation_json FROM text WHERE title = 'old'").fetchone()[0])
-    assert stored["version"] == 3 and stored["chains"] is not None and stored["tokens"][0]["text"] == "Il"
+    assert stored["version"] == ANNOTATION_VERSION and stored["chains"] is not None and stored["tokens"][0]["text"] == "Il"

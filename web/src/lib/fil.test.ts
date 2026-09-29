@@ -79,6 +79,8 @@ function ann(): Annotation {
 }
 
 const ANN = ann();
+// The same text where the parse could not vouch for « chantent »'s subject (a low chain).
+const ANN_LOW: Annotation = { ...ANN, chains: CHAINS.map((c) => (c.id === 1 ? { ...c, confidence: 'low' } : c)) };
 
 // This fixture never introduces a typo, so the typed word and the reference word are always
 // identical — a lookup straight into the fixture's own annotation tokens is a faithful stand-in
@@ -92,7 +94,7 @@ describe('filTap', () => {
     s = filTap(s, 0, ANN, identityTypedTextOf); // "Les" is not a verb
     expect(s.step).toBe('pick-verb');
     expect(s.message).toMatch(/ne semble pas être un verbe/);
-    s = filTap(s, 3, ANN, identityTypedTextOf); // "chantent": verb but only a medium chain
+    s = filTap(s, 3, ANN_LOW, identityTypedTextOf); // "chantent": verb but only a low chain
     expect(s.step).toBe('pick-verb');
     expect(s.message).toMatch(/s'emmêle/);
     s = filTap(s, 4, ANN, identityTypedTextOf); // "dansent": high chain
@@ -106,6 +108,43 @@ describe('filTap', () => {
     expect(s.drawn).toBe(1);
     expect(s.highlightSubject).toEqual([0, 1]);
     expect(s.message).toBe('Le fil est tendu entre « dansent » et « Les fées » (pluriel). Vérifie la terminaison du verbe.');
+  });
+
+  // The Fil trusts the same medium chains the explanations do (a subject reached through « qui »,
+  // far away, coordinated, or shared with a coordinated verb): only high was far too few verbs.
+  it('threads a verb whose subject is reached through « qui » (a medium chain)', () => {
+    let s = filTap(filStart(), 3, ANN, identityTypedTextOf); // "chantent"
+    expect(s.step).toBe('pick-subject');
+    expect(s.highlightVerb).toBe(3);
+    s = filTap(s, 2, ANN, identityTypedTextOf); // "qui", the relay, counts as the subject
+    expect(s.step).toBe('done');
+    expect(s.correct).toBe(1);
+    expect(s.message).toBe(
+      '« qui » reprend « Les fées ». Le fil est tendu entre « chantent » et « Les fées » (pluriel). Vérifie la terminaison du verbe.',
+    );
+  });
+
+  // A coordinated subject the server could not quote as one span (bare heads, P1-2) is never named:
+  // « souci réaction » would read as nonsense, and a mis-parsed coordination as a false subject list.
+  it('tangles on a subject group that is not one written span', () => {
+    const split: Annotation = {
+      ...ANN,
+      chains: CHAINS.map((c) => (c.id === 2 ? { ...c, via: 'conj', controller_group: [1, 3] } : c)),
+    };
+    const s = filTap(filStart(), 4, split, identityTypedTextOf);
+    expect(s.step).toBe('pick-verb');
+    expect(s.message).toMatch(/s'emmêle/);
+  });
+
+  it('says an imperative has no written subject instead of tangling', () => {
+    const imperative: Annotation = {
+      ...ANN_LOW,
+      chains: CHAINS.filter((c) => c.id !== 1),
+      tokens: ANN.tokens.map((t) => (t.i === 3 ? { ...t, morph: { VerbForm: 'Fin', Mood: 'Imp' } } : t)),
+    };
+    const s = filTap(filStart(), 3, imperative, identityTypedTextOf);
+    expect(s.step).toBe('pick-verb');
+    expect(s.message).toBe("« chantent » est à l'impératif : il n'a pas de sujet écrit. Essaie un autre verbe.");
   });
 
   it('reveals the subject after two wrong taps and counts the thread as drawn but not correct', () => {
@@ -128,11 +167,11 @@ describe('filTap', () => {
     let s = filTap(filStart(), 4, ANN, identityTypedTextOf);
     s = filTap(s, 1, ANN, identityTypedTextOf); // "fées" → done
     expect(s.step).toBe('done');
-    expect(filDoneAction(s, 3, ANN)).toBe('thread'); // another verb (even a medium one: the pick decides)
+    expect(filDoneAction(s, 3, ANN_LOW)).toBe('thread'); // another verb (even a low one: the pick decides)
     expect(filDoneAction(s, 4, ANN)).toBe('edit'); // the threaded verb: fix it
     expect(filDoneAction(s, 0, ANN)).toBe('edit'); // a non-verb
     expect(filDoneAction(s, undefined, ANN)).toBe('edit');
-    const next = filTap(s, 3, ANN, identityTypedTextOf); // "chantent": a new pick, refused as medium
+    const next = filTap(s, 3, ANN_LOW, identityTypedTextOf); // "chantent": a new pick, refused as low
     expect(next.step).toBe('pick-verb');
     expect(next.message).toMatch(/s'emmêle/);
     expect(next.drawn).toBe(1);

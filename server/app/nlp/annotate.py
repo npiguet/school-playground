@@ -7,14 +7,16 @@ startup by app.reannotate.
 """
 from __future__ import annotations
 from app.lexicon import Lexicon
-from app.nlp.chains import build_chains, has_own_auxiliary
+from app.nlp.chains import SUBJECT_DEPS, build_chains, has_own_auxiliary
 from app.nlp.homophones import Homophones
+from app.nlp.retag import retag
 
 # 3 (SP2 playability P1-2/P1-3): a word with its own auxiliary is a `participle` (never a
 # `nominal_group` member) even when tagged ADJ; coordinated subject groups are quotable spans.
-ANNOTATION_VERSION = 3
+# 4: the lexicon overrules a VERB tag the word cannot carry (« pubère », « leur estime »), and more
+# verbs reach their subject (coordinated verbs, proper names, impersonal « il »).
+ANNOTATION_VERSION = 4
 VERB_POS = {"VERB", "AUX"}
-SUBJECT_DEPS = {"nsubj", "nsubj:pass"}
 AUX_DEPS = {"aux", "aux:pass", "aux:tense", "cop"}
 ADJ_PARTICIPLE_DEPS = {"amod", "acl", "acl:relcl"}
 LEXICON_POS = {"NOUN", "ADJ", "DET", "VERB", "AUX", "PRON", "PROPN"}
@@ -38,7 +40,10 @@ def _lexical_fields(t: dict, homophones: Homophones, lexicon: Lexicon | None) ->
 def derive_all(tokens: list[dict], homophones: Homophones,
                lexicon: Lexicon | None = None) -> tuple[list[dict], list[dict]]:
     """Fill the SP1 fields (categories / homophone / subject), the v2 lexical fields (forms /
-    sound_alikes) and the agreement chains on a list of raw token dicts. Pure, model-free."""
+    sound_alikes) and the agreement chains on a list of raw token dicts. Pure, model-free.
+    With a lexicon, the tagger's VERB calls are checked first (app.nlp.retag)."""
+    if lexicon is not None:
+        tokens = retag(tokens, lexicon)
     out = []
     for t in tokens:
         pos, morph, dep = t["pos"], t.get("morph", {}), t["dep"]

@@ -621,6 +621,8 @@ def _values(lexicon, t: dict, form: str, feature: str) -> set[str]:
         return {v} if v else _ANY[feature]
     if t["pos"] in {"NOUN", "PROPN"} and feature == "Person":
         return {"3"}
+    if t["pos"] == "PROPN" and feature == "Number" and _values_from_lexicon(lexicon, t, w, feature) == _ANY[feature]:
+        return {"s"}   # « Phileas », « Argus » (Lexique's « argus » is invariable): a name is one person
     if t["pos"] == "DET" and feature != "Person":
         first, second = _DET_VALUES[feature]
         names = ("s", "p") if feature == "Number" else ("m", "f")
@@ -727,13 +729,28 @@ def _parse_groups(tokens: list[dict]) -> list[dict]:
                                    and not any(a["dep"] in _ORACLE_AUX_DEPS for a in kids.get(d["i"], [])))
                 if d["dep"] in _ORACLE_NOMINAL_DEPS or bare_participle:
                     group(n["i"]).add(d["i"])
+    by_i = {t["i"]: t for t in tokens}
+
+    def subject_of(h: dict) -> tuple[dict, dict] | None:
+        """(verb, subject): the verb's own, or for a coordinated verb its first verb's (« Il parlait
+        peu et semblait mystérieux »)."""
+        while True:
+            s = next((s for s in kids.get(h["i"], []) if s["dep"] in ("nsubj", "nsubj:pass")), None)
+            if s is not None:
+                return h, s
+            if h["dep"] != "conj" or by_i[h["head"]]["pos"] not in {"VERB", "AUX"}:
+                return None
+            h = by_i[h["head"]]
+
     for h in tokens:
         hk = kids.get(h["i"], [])
-        subject = next((s for s in hk if s["dep"] in ("nsubj", "nsubj:pass")), None)
-        if subject is None:
+        found = subject_of(h) if h["pos"] in {"VERB", "AUX"} or any(
+            a["dep"] in _ORACLE_AUX_DEPS for a in hk) else None
+        if found is None:
             continue
-        relative = subject["text"].lower() == "qui" and h["dep"] == "acl:relcl"
-        ctrl = h["head"] if relative else subject["i"]
+        head_verb, subject = found
+        relative = subject["text"].lower() == "qui" and head_verb["dep"] == "acl:relcl"
+        ctrl = head_verb["head"] if relative else subject["i"]
         members = group(ctrl, any(k["dep"] == "conj" for k in kids.get(ctrl, [])))
         auxes = [a for a in hk if a["dep"] in _ORACLE_AUX_DEPS]
         members |= {x["i"] for x in [h, *auxes] if finite(x)}

@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from app.alexandria.allowlist import load_allowlist
 from app.alexandria.flights import AnnotationLimiter, RefreshFlights
 from app.main import create_app
+from app.nlp.annotate import ANNOTATION_VERSION
 
 
 def test_concurrent_runs_of_one_key_share_a_single_run():
@@ -181,7 +182,7 @@ def test_many_refresh_presses_run_once_and_do_not_starve_other_endpoints(setting
     fetcher = _GatedFetcher()
     with TestClient(create_app(settings)) as client:
         client.app.state.fetcher = fetcher
-        client.app.state.annotator = lambda body: {"version": 3, "tokens": [], "chains": [], "sentences": []}
+        client.app.state.annotator = lambda body: {"version": ANNOTATION_VERSION, "tokens": [], "chains": [], "sentences": []}
         flights = client.app.state.alexandria_refreshes
         work = next(w for w in load_allowlist(settings.content_dir) if w.source == "wikisource")
         work_id = work.id

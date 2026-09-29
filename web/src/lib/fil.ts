@@ -1,9 +1,10 @@
-// Fil d'Ariane (spec §3.4): "tap a verb, then its subject; checked against the dependency parse
-// only when the parse is high-confidence." A pure state machine — ProofPhase.svelte owns the
-// `$state<FilState>` and calls `filTap` on every token tap while the tool is active; nothing
-// here touches the DOM or the player's text. Only `explainChain(..., 'high')` chains are ever
-// used to judge a tap (spec §1.3): a verb whose only chain is medium/low confidence is refused
-// with "s'emmêle" rather than silently guessed at.
+// Fil d'Ariane (spec §3.4): "tap a verb, then its subject; checked against the dependency parse."
+// A pure state machine — ProofPhase.svelte owns the `$state<FilState>` and calls `filTap` on every
+// token tap while the tool is active; nothing here touches the DOM or the player's text. A tap is
+// judged against the same high- or medium-confidence chains the explanations trust (`explainChain`'s
+// default, spec §1.3): high alone left most verbs of a real text refused (a subject through « qui »,
+// far away, or shared by coordinated verbs is medium). A verb whose only chain is low confidence is
+// refused with "s'emmêle" rather than guessed at; an imperative, which has no written subject, says so.
 //
 // Fix round 1 (Fable review, critical): messages must quote the PLAYER's typed words, never the
 // reference spelling — this tool runs live during proofreading, before mistakes are revealed, so
@@ -12,7 +13,7 @@
 // the text of the typed token it's currently aligned to, or `undefined` when unaligned); the
 // annotation itself is only ever read for structure (POS/categories, chains, features), never
 // for a word to display.
-import { explainChain, numberWord } from './chains';
+import { explainChain, isContiguousGroup, numberWord } from './chains';
 import type { Annotation, Chain } from './grading/types';
 
 export type FilStep = 'idle' | 'pick-verb' | 'pick-subject' | 'done';
@@ -91,11 +92,17 @@ function pickVerb(
       message: 'Ce mot ne semble pas être un verbe conjugué. Cherche un mot qui dit ce que fait quelqu\'un.',
     };
   }
-  const chain = explainChain(annotation, annotIndex, 'high');
-  if (!chain || chain.kind !== 'subject_verb') {
+  const chain = explainChain(annotation, annotIndex);
+  const verbText = typedTextOf(annotIndex) ?? '';
+  if (!chain || chain.kind !== 'subject_verb' || !isContiguousGroup(chain.controller_group)) {
+    if (!chain && token.morph.Mood === 'Imp') {
+      return {
+        ...state,
+        message: `« ${verbText} » est à l'impératif : il n'a pas de sujet écrit. Essaie un autre verbe.`,
+      };
+    }
     return { ...state, message: "Le fil d'Ariane s'emmêle sur ce verbe. Essaie un autre verbe." };
   }
-  const verbText = typedTextOf(annotIndex) ?? '';
   return {
     ...state,
     step: 'pick-subject',

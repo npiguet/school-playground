@@ -11,7 +11,7 @@ test('image serves API, SPA assets, PWA files and seed texts', async ({ request 
   expect(seed.some((t: { credits: string }) => /trad\. /.test(t.credits))).toBeTruthy();
   const full = await (await request.get(`/api/texts/${seed[0].id}`)).json();
   expect(full.annotation.tokens.length).toBeGreaterThan(50);
-  expect(full.annotation.model).toBe('core_news_lg');
+  expect(full.annotation.model).toBe('dep_news_trf');
 
   // Controller verification: the server annotates exactly the stored body served to the
   // client, so every token's [start, end) offsets must slice `full.body` back to its own text.

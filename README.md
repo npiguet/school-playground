@@ -54,8 +54,8 @@ Run the game on your Windows PC, for trying it out or playing on the home networ
 
    The first two lines stamp the build with its commit and date, which the lyre's credits and
    `/api/health` show ("Which version is running?" in §2); without them the stamp says `unknown`
-   and the game works the same. The first build takes several minutes (it downloads Tesseract, the large French spaCy
-   language model and the voice's model, Kokoro-82M). Later builds reuse the cache. The images are
+   and the game works the same. The first build takes several minutes (it downloads Tesseract, the
+   French transformer spaCy language model and the voice's model, Kokoro-82M). Later builds reuse the cache. The images are
    tagged `discorde:local` and `discorde-tts:local`.
 3. Open <http://localhost:38417> in Edge or Chrome. The 35 seed texts are loaded on the first start.
    The game uses port 38417 on purpose, an uncommon one, so it doesn't clash with other services.
@@ -115,9 +115,9 @@ game shows ("Which version is running?" below). Leave them out and the stamp say
 images work the same.
 
 (Don't pipe `docker save` in Windows PowerShell 5.1: its pipes re-encode binary data and corrupt the
-file; `-o` writes it directly.) The game's image takes about 3.2 GB on disk once loaded (mostly the
-`fr_core_news_lg` spaCy model and Tesseract), and the voice's image takes about 1.3 GB (its model
-and the ONNX runtime). Copy the `.tar` onto the NAS, into an SMB share or over SSH with Windows'
+file; `-o` writes it directly.) The game's image takes about 3.9 GB on disk once loaded (mostly the
+`fr_dep_news_trf` spaCy model with its CPU build of PyTorch, and Tesseract), and the voice's image
+takes about 1.3 GB (its model and the ONNX runtime). Copy the `.tar` onto the NAS, into an SMB share or over SSH with Windows'
 built-in `scp`:
 
 ```powershell
@@ -209,11 +209,11 @@ reboot. Everything else comes from the images:
   | `TTS_CACHE_MB` | `2048` | (on `tts`) the voice's cache size, least recently used lines dropped first |
 
   The others (`DISCORDE_DATA_DIR=/data`, `DISCORDE_CONTENT_DIR=/app/content`,
-  `DISCORDE_STATIC_DIR=/app/static`, `SPACY_MODEL=fr_core_news_lg`) describe the image's layout;
+  `DISCORDE_STATIC_DIR=/app/static`, `SPACY_MODEL=fr_dep_news_trf`) describe the image's layout;
   leave them alone, like the build stamp (`DISCORDE_BUILD_COMMIT`, `DISCORDE_BUILD_DATE`, and
   `TTS_BUILD_COMMIT`, `TTS_BUILD_DATE` on `tts`), which the build args set. `DISCORDE_ALEXANDRIA_OFFLINE_DIR` and `DISCORDE_TEST_HOOKS` are for the test
   suite only; never set them in production. `TTS_STUB` is for the test suite only.
-- **RAM:** the game's container uses about 1.1 GB once started (measured at rest, with the language
+- **RAM:** the game's container uses about 0.95 GB once started (measured at rest, with the language
   model loaded). Analysing a new text, a scan or an Alexandria adoption runs that model again, so
   leave it some room above that. The voice's container uses about 0.59 GB at rest and up to 0.89 GB
   while it makes a dictation's lines (measured with the default `TTS_THREADS` of 4, on an AMD
