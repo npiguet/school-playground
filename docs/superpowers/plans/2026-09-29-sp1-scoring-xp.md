@@ -30,7 +30,7 @@ Execution is subagent-driven and **sequential**, all in the worktree `C:\Users\n
 | 9 | Palamède (LAST code task): verify the art files, `TOOL_ICONS.palamede`, `ART.emblems.palamede`, the bestiary entry, the aid toggle's painted emblem, art and bestiary tests | sonnet | Needs the art track merged first. |
 | 10 | README (the rules file in the NAS section, the aids in the feature list) and the full gate | opus | The gate may surface cross-task fixes that need judgment. |
 
-**Palamède ordering (controller):** the art track (another branch, `art-track`) produces `web/public/art/emblems/palamede_cut.webp` and `web/public/art/icons/tool-palamede.webp`. **Merge `art-track` into this branch immediately before dispatching Task 9, never earlier**: `web/src/lib/world/art.test.ts` requires the icons on disk to equal the mapped icons, so an early merge turns Tasks 3-8's vitest red. Until Task 9, `aidIcon('palamede')` returns `null` and the aid's toggle shows a plain bronze coin (no glyph, no text); nothing else needs Palamède's art (his count in the proofreading never had an icon). Task 9 makes every aid's emblem a painted one and removes the fallback.
+**Palamède ordering (controller):** the art track (art agents working in this same worktree) stages Palamède's web exports at `assets/art/export/emblems/palamede_cut.webp` and `assets/art/export/icons/tool-palamede.webp`, never in `web/public/art` before the wiring task, because `web/src/lib/world/art.test.ts` requires the icons on disk to equal the mapped icons. Task 9 moves the two files into `web/public/art`. Until Task 9, `aidIcon('palamede')` returns `null` and the aid's toggle shows a plain bronze coin (no glyph, no text); nothing else needs Palamède's art (his count in the proofreading never had an icon). Task 9 makes every aid's emblem a painted one and removes the fallback.
 
 Playwright runs are serialised machine-wide by the lock in `scripts/playwright.sh` (`with_playwright_lock`, `scripts/lib.sh`); the parallel art agent's Forge and segmentation batches take the same lock (`tools/art/with_lock.sh`), so a queued e2e run is waiting for them, not hanging. Never read Forge's files.
 
@@ -2821,13 +2821,13 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- server/
 - Modify: `web/src/lib/world/art.ts` (+ `art.test.ts`), `web/src/lib/world/bestiary.ts` (+ `bestiary.test.ts`), `web/src/lib/aids.ts` (+ `aids.test.ts`), `web/src/components/battle/AidToggles.svelte`
 
 **Interfaces:**
-- Consumes: `web/public/art/emblems/palamede_cut.webp`, `web/public/art/icons/tool-palamede.webp` (the art track, merged by the controller just before this task).
+- Consumes: `web/public/art/emblems/palamede_cut.webp`, `web/public/art/icons/tool-palamede.webp` (moved in Step 1 from the art track's staging folder `assets/art/export/`).
 - Produces: `TOOL_ICONS.palamede`, `ART.emblems.palamede`, the bestiary entry `palamede` (after `athena`), `AID_ICONS: Record<AidKey, string>`, `aidIcon(key: AidKey): string`.
 
 - [ ] **Step 1: Verify the art is here**
 
-Run: `ls -l web/public/art/emblems/palamede_cut.webp web/public/art/icons/tool-palamede.webp`
-Expected: both files listed. **If either is missing, stop and report to the controller** ("merge `art-track` first"); do not create placeholder art. (While the icon is on disk but unmapped, `art.test.ts` fails: that is expected until Step 4.)
+Run: `ls -l assets/art/export/emblems/palamede_cut.webp assets/art/export/icons/tool-palamede.webp`
+Expected: both files listed (the art track stages its web exports there). **If either is missing, stop and report to the controller**; do not create placeholder art. Then move them into place: `mkdir -p web/public/art/emblems web/public/art/icons`, `git mv` (or `mv` if untracked) each file to `web/public/art/emblems/palamede_cut.webp` and `web/public/art/icons/tool-palamede.webp`, and include both old and new paths in this task's commit. (While the icon is on disk but unmapped, `art.test.ts` fails: that is expected until Step 4.)
 
 - [ ] **Step 2: Write the failing tests**
 
