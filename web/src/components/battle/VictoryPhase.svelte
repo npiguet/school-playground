@@ -36,7 +36,6 @@
     mode,
     opponent,
     encounter,
-    helpMessage,
     submitError,
     submitting,
     revealDone = $bindable(),
@@ -58,7 +57,6 @@
     opponent: OpponentId;
     /** `eris` is the boss fight: its final pose waits for the server's verdict. */
     encounter: string | null;
-    helpMessage: string | null;
     submitError: string | null;
     submitting: boolean;
     /** The spoils play once, then fold away (a replay needs a fresh one). */
@@ -129,16 +127,11 @@
   const showDialogue = $derived(!showSpoils && (dialogueStarted || !pending));
 
   // Ruling C7, UI5 Ruling E14: Éris answers the reckoning from her lines, then the dragon: the tally, up
-  // to two traps still standing (the word, then its explanation), the help-stage message, the « Revoir »
-  // hint. Built when the dialogue starts (a pick is remembered), never in a $derived. Snapshotted
-  // when it first shows, so nothing restarts the typewriter mid-line; the help message is the one
-  // exception (fix round 1 #1): it arrives with a successful submission, which after a failed one
-  // comes later, so the lines are taken again then and the dialogue plays again, help included.
-  // Once read, the box closes and the actions stay. "Caught" and "missed" are said here, at the
-  // reckoning, never live (Ruling C3).
+  // to two traps still standing (the word, then its explanation), the « Revoir » hint. Built when the
+  // dialogue starts (a pick is remembered), never in a $derived. Once read, the box closes and the
+  // actions stay. "Caught" and "missed" are said here, at the reckoning, never live (Ruling C3).
   const speaker = $derived(camp?.dragon ?? EGG);
-  // Éris's answer, the tally and the explanations, picked once: the help message's second take
-  // keeps them word for word.
+  // Éris's answer, the tally and the explanations, picked once.
   let picked: DialogueLine[] | null = null;
   function victoryLines(): DialogueLine[] {
     if (!result) return [];
@@ -154,28 +147,16 @@
       }
     }
     const lines = [...picked];
-    if (helpMessage) lines.push(dragonSays(speaker, helpMessage));
     if (draft + introduced > 0) lines.push(dragonSays(speaker, DRAGON_REVIEW_HINT));
     return lines;
   }
   let spoken = $state<DialogueLine[] | null>(null);
-  let spokenHelp: string | null = null;
   let talked = $state(false);
   $effect(() => {
     if (!showDialogue || spoken) return;
     untrack(() => {
       spoken = victoryLines();
-      spokenHelp = helpMessage;
       dialogueStarted = true;
-    });
-  });
-  $effect(() => {
-    const help = helpMessage;
-    if (!spoken || help === spokenHelp) return;
-    untrack(() => {
-      spoken = victoryLines();
-      spokenHelp = help;
-      talked = false;
     });
   });
 </script>

@@ -7,7 +7,7 @@ import { profileStore } from '../profileStore.svelte';
 import type { Profile } from '../types';
 import { giveUpTour, markTourSeen, resetSeenForTests, resetTours, shouldTour } from './seen.svelte';
 
-const hero = (settings: object) => ({ id: 9, name: 'Io', avatar: 'chouette', level: '10H', has_pin: false, help_stage: 1, created_at: '', settings }) as unknown as Profile;
+const hero = (settings: object) => ({ id: 9, name: 'Io', avatar: 'chouette', level: '10H', has_pin: false, created_at: '', settings }) as unknown as Profile;
 
 beforeEach(() => {
   patch.mockClear();

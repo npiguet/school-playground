@@ -28,7 +28,6 @@ export interface Profile {
   avatar: Avatar;
   level: string;
   has_pin: boolean;
-  help_stage: number;
   created_at: string;
   settings: ProfileSettings;
 }
@@ -166,7 +165,8 @@ export interface SessionCreate {
   profile_id: number;
   text_id: number;
   pace_level: number;
-  help_stage: number;
+  /** Spec 2026-09-29 §3: the review aids taken along (the server remembers them for the next muster). */
+  aids: import('./aids').AidKey[];
   mode: PlayMode;
   started_at: string;
   draft: string;
@@ -183,9 +183,6 @@ export interface SessionCreate {
 
 export interface SessionCreated {
   id: number;
-  help_stage_before: number;
-  help_stage_after: number;
-  help_stage_message: string | null;
   /** SP3 Task 7: the progression this session earned (XP, quests, neutralisations, dragon stage,
    *  weekly goal, boss outcome) - `undefined` until the server lane lands. */
   progression?: import('./world/types').Progression;
@@ -208,7 +205,6 @@ export interface RecentSession {
   score: number;
   catch_rate: number | null;
   pace_level: number;
-  help_stage: number;
   mode: PlayMode;
   /** Spec 2026-09-29 §3: the aids taken for this defence, null before the aids existed. */
   aids: string[] | null;

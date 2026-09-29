@@ -120,8 +120,8 @@ test('a boss battle reopened from the shelves is still the boss fight, and is se
   const id = await createProfileApi(request, uniqueName(`Bat12-${testInfo.project.name}`), '10H');
   const text = await createText(request, { title: uniqueName('Combat repris'), body: BODY, level: '10H' });
   const draft = BODY.replace('dansent', 'danse');
-  // Ruling C2d: the boss link's help stage (3) is kept with the battle; the shelves' link has none.
-  await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft, pace: 3, opponent: 'eris', encounter: 'eris', quest: 4242, help: 3 });
+  // The battle's own aids, kept with it (spec 2026-09-29 §3).
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft, pace: 3, opponent: 'eris', encounter: 'eris', quest: 4242, aids: ['palamede'] });
   // The submission is caught and answered here: only what the battle sends matters.
   let sent: Record<string, unknown> | null = null;
   await page.route('**/api/sessions', async (route) => {
@@ -134,13 +134,14 @@ test('a boss battle reopened from the shelves is still the boss fight, and is se
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-backdrop', 'lair');
   await resumeSeeded(page);
   await expectBattle(page, 'proofreading');
-  // The boss's help stage, not the profile's own: stage 3's frozen count, no Argus passes.
+  // Palamède's count, no Argus passes.
   await expect(page.getByTestId('battle-parchment')).toContainText('1 piège est caché dans ce texte.');
   await expect(page.getByTestId('btn-next-pass')).toHaveCount(0);
   await tap(page.getByTestId('btn-done-proofreading'), testInfo);
   await expectBattle(page, 'victory');
   await expect.poll(() => sent).not.toBeNull();
-  expect(sent).toMatchObject({ encounter: 'eris', quest_id: 4242, pace_level: 3, help_stage: 3 });
+  expect(sent).toMatchObject({ encounter: 'eris', quest_id: 4242, pace_level: 3, aids: ['palamede'] });
+  expect(sent).not.toHaveProperty('help_stage');
   await page.unrouteAll({ behavior: 'ignoreErrors' });
 });
 

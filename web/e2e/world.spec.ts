@@ -349,10 +349,11 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
       (seed) => sessionStorage.setItem(seed.key, seed.value),
       { key: 'discorde.playClock', value: JSON.stringify({ activeMs: 26 * 60000, running: false, lastTick: null, lastStop: Date.now() }) },
     );
-    // Help stage 3 for this session (the `help` override): a frozen count, no Argus passes, so the
-    // « J'ai terminé » tap validates at once, with no « passes left » confirm (Task 2 fix round 1
-    // #5: the step no longer depends on the hero's adaptive stage).
-    await page.goto(`/#/p/${profileId}/play/${textId}?help=3`);
+    // Spec 2026-09-29 §3: Argus left at the camp (the hero's remembered aids), so « J'ai terminé »
+    // validates at once, with no « passes left » confirm.
+    const patched = await page.request.patch(`/api/profiles/${profileId}`, { data: { settings: { aids: ['palamede'] } } });
+    expect(patched.ok()).toBeTruthy();
+    await page.goto(`/#/p/${profileId}/play/${textId}`);
     await page.reload();
 
     // Each test has its own browser context: step 4's saved play state is not here, so this is a

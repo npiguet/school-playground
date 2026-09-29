@@ -136,9 +136,7 @@ def test_boss_flow(client, settings):
     camp = client.get(f"/api/profiles/{pid}/camp").json()
     assert camp["boss"]["tier_available"] == 1 and camp["dragon"]["stage"] == "hatchling"
     b = client.post(f"/api/profiles/{pid}/boss").json()
-    # Decision 8: clamp(profile.help_stage + 1, 2, 4) - the profile's adaptive help_stage is 2
-    # after the neutralisation prep sessions, so the boss fight starts one stage above it, at 3.
-    assert b["tier"] == 1 and b["text_id"] == long_text and b["help_stage"] == 3 and b["quest"]["kind"] == "boss"
+    assert b["tier"] == 1 and b["text_id"] == long_text and set(b) == {"quest", "text_id", "tier"} and b["quest"]["kind"] == "boss"
     assert client.post(f"/api/profiles/{pid}/boss").json()["quest"]["id"] == b["quest"]["id"]   # idempotent while active
     # Spec 2026-09-29 §2: the fight is judged on the copy. 6 mistakes left in 120 words (5 per 100) lose.
     lost = post(client, pid, long_text, hydre_result(draft=6, caught=0, left=6), quest_id=b["quest"]["id"], encounter="eris")["progression"]

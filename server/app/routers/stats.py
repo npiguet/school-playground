@@ -32,7 +32,7 @@ def get_stats(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
     # Spec 2026-09-29 §3: the muster's suggestion reads each defence's aids and its copy.
     recent_sessions = []
     for r in db.execute(
-            "SELECT s.id, s.text_id, t.title, s.finished_at, s.score, s.catch_rate, s.pace_level, s.help_stage, s.mode, "
+            "SELECT s.id, s.text_id, t.title, s.finished_at, s.score, s.catch_rate, s.pace_level, s.mode, "
             "s.aids, s.result_json FROM session s JOIN text t ON t.id = s.text_id WHERE s.profile_id = ? "
             "ORDER BY s.finished_at DESC, s.id DESC LIMIT 20", (profile_id,)):
         row = dict(r)

@@ -1,8 +1,9 @@
 <script lang="ts">
   // The proofreading on the battle parchment (spec §3.4, §5; UI4 Task 5) — the main game. The
   // player's text is the only text on screen; the reference is used silently for spotlight
-  // mapping, hints and the stage-3 count. Help stages: 1 spotlight passes, 2 named passes, 3 error
-  // count, 4 nothing. Legibility first (Ruling C12): the text zone is nearly opaque, Literata at
+  // mapping, hints and Palamède's count. The aids taken along (spec 2026-09-29 §3) decide what shows:
+  // Argus's passes and spotlight, Ariane's thread, Persée's shield, the owl's hints, Palamède's count;
+  // an aid left at the camp is absent. Legibility first (Ruling C12): the text zone is nearly opaque, Literata at
   // 22 px or more. While the keyboard is open (Ruling C4) the header, the Argus strip, the tools
   // and the footer fold into one bar of 48 px icon buttons, so the text keeps its lines. The stage
   // reacts to the tools, and to an edit only with the same neutral nod whatever it did (Ruling C3,
@@ -12,11 +13,13 @@
   import WordEditor from './WordEditor.svelte';
   import Icon from '../ui/Icon.svelte';
   import { TOOL_ICONS } from '../../lib/world/art';
-  import { PROOF } from '../../lib/battle/lines';
+  import { PROOF, proofSentence } from '../../lib/battle/lines';
+  import { proofAids } from '../../lib/battle/proofAids';
+  import type { AidKey } from '../../lib/aids';
   import { react } from '../../lib/battle/stage.svelte';
   import { emitBattle } from '../../lib/battle/events';
   import { focusOnMount } from '../../lib/battle/focus';
-  import { activePasses, ARGUS_LABELS, HINTS_PER_STAGE, typedPassSets } from '../../lib/argus';
+  import { ARGUS_LABELS, activePasses, typedPassSets } from '../../lib/argus';
   import { mapAnnotation, reverseAnnotationMap } from '../../lib/grading/annotationMap';
   import { errorKey, gradeText } from '../../lib/grading/grade';
   import type { Annotation, ArgusPass, GradeResult, TokenError } from '../../lib/grading/types';
@@ -29,7 +32,8 @@
   let {
     reference,
     state: play = $bindable(), // renamed locally: a `state` binding would shadow the $state rune
-    helpStage,
+    aids,
+    hints,
     argusOrder,
     trapWords,
     level,
@@ -40,12 +44,15 @@
   }: {
     reference: TextFull;
     state: PlayState;
-    helpStage: 1 | 2 | 3 | 4;
+    /** Spec 2026-09-29 §3: the review aids taken along; the others are absent for the whole session. */
+    aids: readonly AidKey[];
+    /** La chouette d'Athéna's hints per session (`chouette_hints`, the rules file). */
+    hints: number;
     argusOrder: ArgusPass[];
     trapWords: string[];
     level: string;
     /** SP2 Task 9: 'grimoire' swaps the header title and prefixes the stage sentence with Éris's
-     *  framing line; the stage-3 count itself is unchanged (always `gradeText`'s own count, never
+     *  framing line; Palamède's count itself is unchanged (always `gradeText`'s own count, never
      *  the plant count - see `freezeInitialErrors` below). */
     mode?: PlayMode;
     /** The stage's layout (UI4 Ruling C4): `compact` folds the controls into one bar. */
@@ -60,12 +67,11 @@
 
   const grade = $derived(gradeText(reference.body, play.current, annotation));
   const passSets = $derived(typedPassSets(grade, annotation, trapWords, level));
-  const activePass = $derived(helpStage <= 2 ? passes[play.passIndex] : null);
-  // P1-6 (spec §3.4): stage 2 is "named passes without spotlight" — the chips and hint above
-  // still name the current pass (`activePass`), but the text itself must not light up. Only
-  // stage 1 spotlights; `null` here means TokenText's `.lit`/`.dim` never apply.
-  const spotlightPass = $derived(helpStage === 1 ? activePass : null);
-  const hintsLeft = $derived(HINTS_PER_STAGE[helpStage] - play.hintsUsed);
+  const tools = $derived(proofAids(aids, { hints, hintsUsed: play.hintsUsed, initialErrors: play.initialErrors }));
+  const activePass = $derived(tools.passes ? passes[play.passIndex] : null);
+  // Les yeux d'Argus light their pass and dim the rest of the text (the old stage 1).
+  const spotlightPass = $derived(activePass);
+  const hintsLeft = $derived(tools.hintsLeft);
   const spans = $derived(sentenceSpans(play.current));
 
   // --- Fil d'Ariane (spec §3.4: "tap a verb, then its subject") -----------------------
@@ -99,7 +105,7 @@
 
   // Fix round 1 (critical): the Fil's messages must quote the PLAYER's typed words, never the
   // reference spelling — reading `reference.body`/`annotation.tokens[...].text` would hand out
-  // the correct answer at every help stage. This resolves an annotation token id to the text of
+  // the correct answer, whatever the aids. This resolves an annotation token id to the text of
   // whatever the player actually typed for it right now (or `undefined` if unaligned/deleted).
   const typedTextOf: TypedTextLookup = (annotIndex) => {
     const t = annotToTyped(annotIndex);
@@ -141,7 +147,7 @@
   // The threaded verb's typed spelling, for the done-state hint (never the reference's).
   const filVerbText = $derived(fil.highlightVerb === null ? '' : typedTextOf(fil.highlightVerb) ?? '');
 
-  // The stage-3 count is frozen at the start of proofreading (plan decision #6): a live
+  // Palamède's count is frozen at the start of proofreading (plan decision #6): a live
   // count would grade every edit.
   function freezeInitialErrors() {
     if (play.initialErrors === undefined) play.initialErrors = grade.errors.length;
@@ -222,19 +228,8 @@
     };
   });
 
-  const stageSentence = $derived.by(() => {
-    switch (helpStage) {
-      case 1:
-        return PROOF.stage1;
-      case 2:
-        return PROOF.stage2;
-      case 3:
-        return PROOF.count(play.initialErrors ?? 0);
-      default:
-        return PROOF.stage4;
-    }
-  });
-  // SP2 Task 9: the grimoire flow frames every stage sentence with Éris's own line first. UI4
+  const stageSentence = $derived(proofSentence(tools.passes, tools.count));
+  // SP2 Task 9: the grimoire flow frames the aids' sentence with Éris's own line first. UI4
   // playability #11: the heading is the text's title; the phase is told in the fiction, first.
   const subtitle = $derived(`${mode === 'grimoire' ? PROOF.grimoirePrefix : PROOF.cue} ${stageSentence}`);
 
@@ -254,7 +249,9 @@
 
   // --- Bouclier de Persée (one sentence at a time, last to first) ----------------------
 
-  const range = $derived(play.bouclier && spans.length > 0 ? spans[clampSentence(sentenceIndex)] : null);
+  // A save whose shield was up, resumed with Persée left at the camp, never walks sentence by sentence
+  // without a way back.
+  const range = $derived(tools.bouclier && play.bouclier && spans.length > 0 ? spans[clampSentence(sentenceIndex)] : null);
 
   function clampSentence(i: number): number {
     return Math.max(0, Math.min(spans.length - 1, i));
@@ -324,7 +321,7 @@
     emitBattle({ kind: 'tool', tool: 'chouette' });
     // In Bouclier mode, jump to the sentence that holds the hinted token.
     const i = hintTypedIndex(next, grade);
-    if (play.bouclier && i !== null) {
+    if (range !== null && i !== null) {
       const start = grade.typedTokens[i].start;
       const k = spans.findIndex((s) => start >= s.start && start < s.end);
       if (k >= 0) sentenceIndex = k;
@@ -390,7 +387,7 @@
   // --- Done, and the way out (Ruling C15) ------------------------------------------------
 
   function finish() {
-    if (helpStage <= 2 && !isLastPass) {
+    if (tools.passes && !isLastPass) {
       confirmQuit = false;
       confirmDone = true;
       return;
@@ -418,23 +415,27 @@
   <span class="edit-hint" id="proof-editor-hint" data-testid="editor-hint">{PROOF.editorHint}</span>
 {/snippet}
 
-<!-- The four tools. Full layout: a painted emblem and its name. Compact: the emblem alone in a 48 px
+<!-- The tools of the aids taken, and the whole text. Full layout: a painted emblem and its name. Compact: the emblem alone in a 48 px
      button, its name read out (sr-only, not aria-label, so « Tout le texte » labels one field only). -->
-{#snippet tools()}
+{#snippet toolButtons()}
   <div class="tools" data-testid="proof-tools">
-    <button type="button" class="kit-bronze is-quiet tool" class:on={play.bouclier} data-testid="btn-bouclier" aria-pressed={play.bouclier} title={compact ? PROOF.bouclier : undefined} onclick={toggleBouclier}>
-      <img class="tool-icon" src={TOOL_ICONS.persee} alt="" /><span class:sr-only={compact}>{PROOF.bouclier}</span>
-    </button>
-    {#if helpStage < 4 && hintsLeft > 0}
+    {#if tools.bouclier}
+      <button type="button" class="kit-bronze is-quiet tool" class:on={play.bouclier} data-testid="btn-bouclier" aria-pressed={play.bouclier} title={compact ? PROOF.bouclier : undefined} onclick={toggleBouclier}>
+        <img class="tool-icon" src={TOOL_ICONS.persee} alt="" /><span class:sr-only={compact}>{PROOF.bouclier}</span>
+      </button>
+    {/if}
+    {#if tools.chouette}
       <!-- The hints left on the emblem's coin, in both layouts (UI4 playability #19). -->
       <button type="button" class="kit-bronze is-quiet tool" data-testid="btn-chouette" title={compact ? PROOF.chouette : undefined} onclick={useChouette}>
         <img class="tool-icon" src={TOOL_ICONS.athena} alt="" /><span class:sr-only={compact}>{PROOF.chouette}</span><span class="sr-only">, {PROOF.chouetteLeft(hintsLeft)}</span>
         <span class="count" data-testid="chouette-count" aria-hidden="true">{hintsLeft}</span>
       </button>
     {/if}
-    <button type="button" class="kit-bronze is-quiet tool" class:on={fil.step !== 'idle'} data-testid="btn-fil" aria-pressed={fil.step !== 'idle'} title={compact ? PROOF.fil : undefined} onclick={toggleFil}>
-      <img class="tool-icon" src={TOOL_ICONS.ariane} alt="" /><span class:sr-only={compact}>{PROOF.fil}</span>
-    </button>
+    {#if tools.fil}
+      <button type="button" class="kit-bronze is-quiet tool" class:on={fil.step !== 'idle'} data-testid="btn-fil" aria-pressed={fil.step !== 'idle'} title={compact ? PROOF.fil : undefined} onclick={toggleFil}>
+        <img class="tool-icon" src={TOOL_ICONS.ariane} alt="" /><span class:sr-only={compact}>{PROOF.fil}</span>
+      </button>
+    {/if}
     <button type="button" class="kit-bronze is-quiet tool" class:on={wholeText} data-testid="btn-whole" aria-pressed={wholeText} title={compact ? PROOF.whole : undefined} onclick={toggleWholeText}>
       <Icon name="pencil" size={26} /><span class:sr-only={compact}>{PROOF.whole}</span>
     </button>
@@ -464,7 +465,7 @@
       </button>
       <h2 class="sr-only">{reference.title}</h2>
       <!-- While a word is edited, its hint takes the pass's name or the count (UI4 playability #5). -->
-      {#if helpStage <= 2 && activePass}
+      {#if activePass}
         <div class="bar-group" role="group" aria-label={PROOF.passes}>
           <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-prev-pass" aria-label={PROOF.prevPass} title={PROOF.prevPass} disabled={play.passIndex === 0} onclick={() => goToPass(play.passIndex - 1)}>
             <Icon name="arrow-left" size={22} />
@@ -478,11 +479,11 @@
         </div>
       {:else if editing !== null}
         {@render editHint()}
-      {:else if helpStage === 3}
-        <span class="bar-count" data-testid="bar-count">{PROOF.countShort(play.initialErrors ?? 0)}</span>
+      {:else if tools.count !== null}
+        <span class="bar-count" data-testid="bar-count">{PROOF.countShort(tools.count)}</span>
       {/if}
-      {@render tools()}
-      {#if play.bouclier && spans.length > 0 && !wholeText}
+      {@render toolButtons()}
+      {#if tools.bouclier && play.bouclier && spans.length > 0 && !wholeText}
         <div class="bar-group">
           <button type="button" class="kit-bronze is-quiet icon-only" data-testid="btn-sentence-up" aria-label={PROOF.prevSentence} title={PROOF.prevSentence} disabled={clampSentence(sentenceIndex) === 0} onclick={() => moveSentence(-1)}>
             <Icon name="arrow-up" size={22} />
@@ -520,7 +521,7 @@
       </div>
     </header>
 
-    {#if helpStage <= 2 && activePass}
+    {#if activePass}
       <div class="argus" role="group" aria-label={PROOF.passes}>
         <div class="argus-row">
           <img class="argus-mark" src={TOOL_ICONS.argus} alt="" />
@@ -547,7 +548,7 @@
       </div>
     {/if}
 
-    {@render tools()}
+    {@render toolButtons()}
   {/if}
 
   {#if confirmQuit}
@@ -572,7 +573,7 @@
     </div>
   {/if}
 
-  {#if !compact && play.bouclier && spans.length > 0 && !wholeText}
+  {#if !compact && tools.bouclier && play.bouclier && spans.length > 0 && !wholeText}
     <div class="sentence-nav">
       <button type="button" class="kit-bronze is-quiet" data-testid="btn-sentence-up" disabled={clampSentence(sentenceIndex) === 0} onclick={() => moveSentence(-1)}>
         <Icon name="arrow-up" size={18} />{PROOF.prevSentence}

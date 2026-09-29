@@ -108,11 +108,12 @@ export const PROOF = {
   /** Screen readers' name of the parchment's section; the heading is the text's own title. */
   title: 'Relecture',
   grimoirePrefix: 'Éris a corrompu ce grimoire.',
-  /** UI4 playability #11: the phase, in the fiction, before the help stage's sentence. */
+  /** UI4 playability #11: the phase, in the fiction, before the aids' sentence. */
   cue: "Traque les pièges d'Éris.",
-  stage1: "Les Yeux d'Argus éclairent une catégorie à la fois.",
-  stage2: "Relis une catégorie à la fois, comme Argus te l'a appris.",
-  stage4: 'À toi de jouer. Quand tout te semble juste, dis-le.',
+  /** Spec 2026-09-29 §3: what Les yeux d'Argus do, under the title, when they were taken along. */
+  argusLine: "Les Yeux d'Argus éclairent une catégorie à la fois.",
+  /** No aid under the title to speak of (neither Argus nor Palamède). */
+  noAids: 'À toi de jouer. Quand tout te semble juste, dis-le.',
   count: (n: number) =>
     n === 0
       ? "Éris n'a rien trouvé à saboter cette fois. Relis une dernière fois, puis valide."
@@ -150,10 +151,16 @@ export const PROOF = {
   editorOk: 'OK',
   tokenEdit: (w: string) => `Modifier «\u202f${w}\u202f»`,
   tokenFil: (w: string) => `Fil d'Ariane\u202f: choisir «\u202f${w}\u202f»`,
-  // Lane P fix round 1: the compact bar's short stage-3 count, and its tools' hover titles.
+  // Lane P fix round 1: the compact bar's short count (Palamède's), and its tools' hover titles.
   countShort: (n: number) => plural(n, 'piège', 'pièges'),
   prevPass: 'Passe précédente',
 } as const;
+
+/** The proofreading's sentence under its title: what the aids taken will do, never a help stage. */
+export function proofSentence(passes: boolean, count: number | null): string {
+  const parts = [passes ? PROOF.argusLine : null, count === null ? null : PROOF.count(count)].filter((s): s is string => s !== null);
+  return parts.length > 0 ? parts.join(' ') : PROOF.noAids;
+}
 
 // ===== Victory (Task 6) =====
 export function victoryTitle(outcome: Outcome, opponent: OpponentId): string {
@@ -255,5 +262,4 @@ export const BOSS = {
   reward: (xp: number, name: string) => `Récompense si tu gagnes\u202f: ${xp} XP · ${name}`,
   rules: "Un long texte, sans les Yeux d'Argus. Chaque piège que tu trouves reste acquis\u202f: si Éris s'enfuit, tu pourras revenir l'affronter.",
   start: 'Affronter Éris',
-  restart: 'Relancer le combat',
 } as const;

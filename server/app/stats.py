@@ -1,4 +1,4 @@
-"""Per-profile statistics derived from submitted session results (spec §3.4 help stages, §3.5 mots-pièges)."""
+"""Per-profile statistics derived from submitted session results (spec §3.5 mots-pièges)."""
 from __future__ import annotations
 import sqlite3
 from app.textutil import words, WORD_RE
@@ -18,14 +18,6 @@ def stat_key(error: dict) -> str:
     if error.get("category") == "agreement":
         return f"agreement:{error.get('sub') or 'other'}"
     return error["category"]
-
-
-def next_help_stage(current: int, recent_rates: list[float]) -> int:
-    if len(recent_rates) >= 3 and all(r >= 0.7 for r in recent_rates[:3]):
-        return min(4, current + 1)
-    if len(recent_rates) >= 2 and all(r <= 0.3 for r in recent_rates[:2]):
-        return max(1, current - 1)
-    return current
 
 
 def argus_order(category_rows: list[dict]) -> list[str]:

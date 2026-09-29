@@ -37,7 +37,7 @@ export interface Route {
 }
 
 /** Which battle a play/grimoire route is (UI4 Task 2 fix round 1 #2): App keys Play on it, so another
- *  text, mode, quest, encounter, help stage or focus mounts a fresh battle, while the « Revoir »
+ *  text, mode, quest, encounter or focus mounts a fresh battle, while the « Revoir »
  *  panel (`?panel=revoir`, Ruling C1) stays inside the same one. */
 export function battleKey(route: Route): string {
   const query = Object.entries(route.query)

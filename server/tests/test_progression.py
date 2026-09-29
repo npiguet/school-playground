@@ -14,7 +14,7 @@ def hydre_result(draft=4, caught=4, words=120, left=0):
 
 
 def post(client, pid, tid, result, day=None, **extra):
-    body = {"profile_id": pid, "text_id": tid, "pace_level": 1, "help_stage": 1, "started_at": "2026-09-24T10:00:00+00:00",
+    body = {"profile_id": pid, "text_id": tid, "pace_level": 1, "started_at": "2026-09-24T10:00:00+00:00",
             "draft": "x", "final": "x", "result": result, "score": 10, "catch_rate": result["catchRate"], **extra}
     headers = {"X-Discorde-Day": day} if day else {}
     r = client.post("/api/sessions", json=body, headers=headers)

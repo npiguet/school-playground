@@ -2,19 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { FULL_HP, hpDuringPlay, hpPercent, outcomeOf, reckoningSteps, reckoningVerdict } from './hp';
 
 describe("the opponent's hold on the text (Ruling C3)", () => {
-  it('stays full while she plays, notched only by the count stage 3 already shows', () => {
-    expect(hpDuringPlay(1, 4)).toEqual(FULL_HP);
-    expect(hpDuringPlay(2, 4)).toEqual(FULL_HP);
-    expect(hpDuringPlay(3, 4)).toEqual({ value: 1, segments: 4 });
-    expect(hpDuringPlay(3, 0)).toEqual(FULL_HP);
-    expect(hpDuringPlay(3, undefined)).toEqual(FULL_HP);
-    expect(hpDuringPlay(4, 4)).toEqual(FULL_HP);
+  it("stays full while she plays, notched only by Palamède's count when his tokens were taken", () => {
+    expect(hpDuringPlay(null)).toEqual(FULL_HP);
+    expect(hpDuringPlay(4)).toEqual({ value: 1, segments: 4 });
+    expect(hpDuringPlay(0)).toEqual(FULL_HP);
   });
 
-  it('never drops during play, whatever the help stage (user decision: the drop waits for the reckoning)', () => {
-    for (const stage of [1, 2, 3, 4] as const) {
-      for (const errors of [undefined, 0, 1, 7, 30]) expect(hpDuringPlay(stage, errors).value, `stage ${stage}, ${errors}`).toBe(1);
-    }
+  it('never drops during play (user decision: the drop waits for the reckoning)', () => {
+    for (const count of [null, 0, 1, 7, 30]) expect(hpDuringPlay(count).value, String(count)).toBe(1);
   });
 
   it('drops one strike per trap caught at the reckoning, at most eight strikes', () => {

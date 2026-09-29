@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The opponent's hold on the text (UI4 Ruling C3): full while she plays, notched at help stage 3,
+  // The opponent's hold on the text (UI4 Ruling C3): full while she plays, notched by Palamède's count,
   // dropping only at the reckoning. Éris's violet, never red; a meter for assistive tech.
   import { hpPercent, type HpView } from '../../lib/battle/hp';
 

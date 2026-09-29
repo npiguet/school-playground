@@ -15,7 +15,7 @@ def now() -> str:
 
 def to_out(row: sqlite3.Row) -> ProfileOut:
     return ProfileOut(id=row["id"], name=row["name"], avatar=row["avatar"], level=row["level"],
-                      has_pin=row["pin_hash"] is not None, help_stage=row["help_stage"],
+                      has_pin=row["pin_hash"] is not None,
                       created_at=row["created_at"], settings=json.loads(row["settings_json"] or "{}"))
 
 

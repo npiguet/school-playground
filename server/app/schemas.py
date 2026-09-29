@@ -43,7 +43,6 @@ class ProfileOut(BaseModel):
     avatar: str
     level: str
     has_pin: bool
-    help_stage: int
     created_at: str
     settings: dict[str, Any]
 

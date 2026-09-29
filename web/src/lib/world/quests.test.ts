@@ -10,7 +10,7 @@ const q = (o: object) =>
     target: 'hydre',
     week: null,
     status: 'active',
-    goal: { sessions: 3, min_rate: 0.5 },
+    goal: { sessions: 3 },
     progress: { sessions: 2, log: [] },
     reward: { xp: 60, reward_id: null, bestiary: true },
     texts: [],
@@ -24,14 +24,14 @@ describe('quest labels', () => {
   it('titles', () => {
     expect(questTitle(q({}), names)).toBe("Tenir l'Hydre en échec");
     expect(questTitle(q({ kind: 'oracle', target: 'echo' }), names)).toBe("Rouleau de l'Oracle\u202f: Écho");
-    expect(questTitle(q({ kind: 'boss', target: 'eris', goal: { tier: 2, min_rate: 0.7, min_draft: 3 } }), names)).toBe(
+    expect(questTitle(q({ kind: 'boss', target: 'eris', goal: { tier: 2 } }), names)).toBe(
       'Combat contre Éris (II)',
     );
   });
 
   it('progress and rewards', () => {
     expect(questProgressLabel(q({}))).toBe('2 / 3 textes');
-    expect(questProgressLabel(q({ kind: 'boss', goal: { tier: 1, min_rate: 0.7, min_draft: 3 } }))).toBe('Un combat');
+    expect(questProgressLabel(q({ kind: 'boss', goal: { tier: 1 } }))).toBe('Un combat');
     expect(rewardLabel(q({}), catalog)).toBe('60 XP · page du bestiaire');
     expect(rewardLabel(q({ kind: 'oracle', reward: { xp: 150, reward_id: 'tint:ecume', bestiary: true } }), catalog)).toBe(
       '150 XP · Teinte Écume · page du bestiaire',

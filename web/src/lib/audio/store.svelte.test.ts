@@ -16,7 +16,7 @@ import {
   setChannels,
 } from './store.svelte';
 
-const hero = (settings: object = {}) => ({ id: 4, name: 'Io', avatar: 'chouette', level: '10H', has_pin: false, help_stage: 1, created_at: '', settings }) as never;
+const hero = (settings: object = {}) => ({ id: 4, name: 'Io', avatar: 'chouette', level: '10H', has_pin: false, created_at: '', settings }) as never;
 
 beforeEach(() => {
   patch.mockClear();

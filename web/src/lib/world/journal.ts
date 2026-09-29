@@ -1,28 +1,21 @@
-// The journal's words (UI3 Ruling B6): what the Muses do at each help stage, Éris's tricks told by
-// the monster that plays them, and the texts defended, said the camp's way (the old Stats said
+// The journal's words (UI3 Ruling B6): the aids taken last (spec 2026-09-29 §3), Éris's tricks told
+// by the monster that plays them, and the texts defended, said the camp's way (the old Stats said
 // « niveau N sur 4 », « Comme en classe », a « Réussite » column and points, school and scoreboard
 // register; UI3b playability #1, #2, #14).
+import { AID_KEYS, AID_LABELS, listFr, type AidKey } from '../aids';
 import { genderFor, lieutenantName } from './eris';
 import { LIEUTENANT_ORDER, type LieutenantKey } from './types';
 import { longDate } from '../text/french';
 
-export const HELP_STAGES = [1, 2, 3, 4] as const;
-
-// Playability #2: one sentence in the Muses' voice per stage, never a numbered step (« niveau N sur
-// 4 » in another form), and never « seule » (no adjective agreeing with the player).
-const LINES: Record<number, string> = {
-  1: "Les yeux d'Argus te montrent chaque piège.",
-  2: 'Les Muses te disent quelles ruses chercher, mais pas où elles se cachent.',
-  3: 'Les Muses te disent seulement combien de pièges se cachent.',
-  4: "Tu relis sans l'aide des Muses.",
-};
-
-/** How the help changes, under the stage's line. */
-export const HELP_RULE = "Plus tu déjoues de pièges, moins les Muses t'aident.";
-
-export function helpStageLine(stage: number): string {
-  return LINES[stage] ?? '';
+/** Which aids were taken last (the hero's remembered choice, `settings.aids`, plan Ruling R1). */
+export function aidsJournalLine(aids: readonly AidKey[]): string {
+  if (aids.length === AID_KEYS.length) return 'Au dernier combat, tu as emporté toutes les aides.';
+  if (aids.length === 0) return 'Au dernier combat, tu as laissé toutes les aides au camp.';
+  return `Au dernier combat, tu as emporté ${listFr(aids.map((k) => AID_LABELS[k].the))}.`;
 }
+
+/** What each aid left at the camp is worth (`aid_bonus`, the rules file). */
+export const aidBonusLine = (bonus: number) => `Chaque aide laissée au camp\u202f: +${Math.round(bonus * 100)}\u202f% de gloire.`;
 
 /** Who plays each of Éris's tricks, and the rule it bends in plain words (the grammar term is the
  *  small print under the monster, playability #1). A trick no lieutenant owns is one of Éris's own

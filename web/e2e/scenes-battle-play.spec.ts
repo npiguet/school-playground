@@ -679,11 +679,12 @@ const SENTENCES = [
 const LONG_REF = Array.from({ length: 24 }, (_, i) => SENTENCES[i % SENTENCES.length]).join(' ');
 const LONG_DRAFT = LONG_REF.replace('Les fées dansent', 'Les fées danse').replace(/La nuit est douce(?![\s\S]*La nuit est douce)/, 'La nuit et douce');
 
-async function seededProof(page: Page, request: APIRequestContext, testInfo: TestInfo, help: 1 | 2 | 3 | 4) {
+/** A seeded proofreading of the long text, with the aids the battle was started with (spec 2026-09-29 §3). */
+async function seededProof(page: Page, request: APIRequestContext, testInfo: TestInfo, aids: string[]) {
   const id = await createProfileApi(request, uniqueName(`Pro-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Relecture longue'), body: LONG_REF, level: '10H' });
-  await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft: LONG_DRAFT, opponent: 'chimere' });
-  await page.goto(`/#/p/${id}/play/${text.id}?help=${help}`);
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft: LONG_DRAFT, opponent: 'chimere', aids });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
   await resumeSeeded(page);
   await expectBattle(page, 'proofreading');
@@ -709,7 +710,7 @@ async function visibleLines(page: Page): Promise<number> {
 }
 
 test('a long proofreading text reads comfortably: size, measure, height, an opaque page, a quiet stage', async ({ page, request }, testInfo) => {
-  await seededProof(page, request, testInfo, 4);
+  await seededProof(page, request, testInfo, []);
   const zone = page.getByTestId('proof-text');
   const m = await zone.evaluate((el) => {
     const p = el.querySelector('.tokens') as HTMLElement;
@@ -787,7 +788,7 @@ test('a long proofreading text reads comfortably: size, measure, height, an opaq
 });
 
 test('the Argus passes and the four tools work from their painted controls; the hold never grades', async ({ page, request }, testInfo) => {
-  await seededProof(page, request, testInfo, 1);
+  await seededProof(page, request, testInfo, ['argus', 'ariane', 'persee', 'athena']);
   const hp = page.getByTestId('battle-hp');
   await expect(hp).toHaveAttribute('aria-valuenow', '100');
   await expect(page.getByTestId('argus-pass-verbes')).toHaveAttribute('aria-pressed', 'true');
@@ -872,9 +873,9 @@ test('the boss muster offers no way out of the fight; a lieutenant muster keeps 
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-opponent', 'hydre');
 });
 
-test('help stage 3 notches the hold with the count it already shows', async ({ page, request }, testInfo) => {
+test("Palamède's tokens notch the hold with the count they show", async ({ page, request }, testInfo) => {
   await installKeyboardSim(page);
-  await seededProof(page, request, testInfo, 3);
+  await seededProof(page, request, testInfo, ['ariane', 'persee', 'athena', 'palamede']);
   await expect(page.getByText('2 pièges sont cachés dans ce texte.')).toBeVisible();
   await expect(page.getByTestId('battle-hp')).toHaveAttribute('data-segments', '2');
   // The compact bar keeps the count, short (fix round 1 #6).
@@ -888,7 +889,7 @@ test('help stage 3 notches the hold with the count it already shows', async ({ p
 // one line of notes leave four lines of text in sight; the passes go back as well as forward.
 test('all three notes open under the keyboard still leave four lines of text', async ({ page, request }, testInfo) => {
   await installKeyboardSim(page);
-  await seededProof(page, request, testInfo, 1);
+  await seededProof(page, request, testInfo, ['argus', 'ariane', 'persee', 'athena']);
   await tap(page.getByTestId('btn-chouette'), testInfo);
   await tap(page.getByTestId('btn-bouclier'), testInfo);
   await tap(page.getByTestId('btn-fil'), testInfo);
@@ -937,7 +938,7 @@ test('all three notes open under the keyboard still leave four lines of text', a
 for (const pan of [0, 120]) {
   test(`the keyboard folds the proofreading: the word editor stays above it, the band stays visible (pan ${pan})`, async ({ page, request }, testInfo) => {
     await installKeyboardSim(page);
-    await seededProof(page, request, testInfo, 1);
+    await seededProof(page, request, testInfo, ['argus', 'ariane', 'persee', 'athena']);
     // The owl's note stays in compact: a note and the bar and four lines must all fit.
     await tap(page.getByTestId('btn-chouette'), testInfo);
     await expect(page.getByTestId('chouette-note')).toBeVisible();
@@ -984,7 +985,7 @@ for (const pan of [0, 120]) {
 // takes the count's place in the bar. Scrolled to a mid-line offset first, so the snap is exercised.
 test('editing a word under the keyboard: no row moves, the top line is whole, the hint is in the bar', async ({ page, request }, testInfo) => {
   await installKeyboardSim(page);
-  await seededProof(page, request, testInfo, 3);
+  await seededProof(page, request, testInfo, ['ariane', 'persee', 'athena', 'palamede']);
   const inner = await page.evaluate(() => window.innerHeight);
   const view = await setKeyboard(page, inner - 420);
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
@@ -1042,7 +1043,7 @@ test('editing a word under the keyboard: no row moves, the top line is whole, th
 // UI4 playability #13: in compact, the lines stay near 80 characters (the full layout keeps 44-72).
 test('compact lines stay near 80 characters', async ({ page, request }, testInfo) => {
   await installKeyboardSim(page);
-  await seededProof(page, request, testInfo, 4);
+  await seededProof(page, request, testInfo, []);
   const inner = await page.evaluate(() => window.innerHeight);
   await setKeyboard(page, inner - 420);
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'compact');
@@ -1059,7 +1060,7 @@ test('compact lines stay near 80 characters', async ({ page, request }, testInfo
 
 test('« Modifier tout le texte » folds under the keyboard too', async ({ page, request }, testInfo) => {
   await installKeyboardSim(page);
-  await seededProof(page, request, testInfo, 4);
+  await seededProof(page, request, testInfo, []);
   await tap(page.getByTestId('btn-whole'), testInfo);
   const ta = page.getByLabel('Tout le texte');
   await tap(ta, testInfo);
@@ -1072,9 +1073,31 @@ test('« Modifier tout le texte » folds under the keyboard too', async ({ page,
   expect(await visibleLines(page)).toBeGreaterThanOrEqual(4);
 });
 
+// Spec 2026-09-29 §3: an aid left at the camp is absent from the proofreading for the whole session.
+const AID_CONTROLS: Record<string, string> = { argus: 'btn-next-pass', ariane: 'btn-fil', persee: 'btn-bouclier', athena: 'btn-chouette' };
+for (const only of ['argus', 'ariane', 'persee', 'athena', 'palamede', null] as const) {
+  test(`the proofreading shows ${only ? `only ${only}'s tool` : 'no aid at all'}`, async ({ page, request }, testInfo) => {
+    await seededProof(page, request, testInfo, only ? [only] : []);
+    for (const [aid, testId] of Object.entries(AID_CONTROLS)) {
+      await expect(page.getByTestId(testId), `${aid}'s control`).toHaveCount(aid === only ? 1 : 0);
+    }
+    await expect(page.getByTestId('battle-parchment').getByText('2 pièges sont cachés dans ce texte.')).toHaveCount(only === 'palamede' ? 1 : 0);
+    // HpBar writes `data-segments={hp.segments ?? ''}`: empty when the hold has no notches.
+    await expect(page.getByTestId('battle-hp')).toHaveAttribute('data-segments', only === 'palamede' ? '2' : '');
+    await expect(page.getByTestId('btn-whole')).toHaveCount(1);
+  });
+}
+
+test('without Argus, « J\'ai terminé » validates at once: no passes left to confirm', async ({ page, request }, testInfo) => {
+  await seededProof(page, request, testInfo, ['athena']);
+  await tap(page.getByTestId('btn-done-proofreading'), testInfo);
+  await expect(page.getByRole('button', { name: 'Oui, valider' })).toHaveCount(0);
+  await expectBattle(page, 'victory');
+});
+
 test('the proofreading has a way out: Quitter asks, then the resume ribbon keeps everything', async ({ page, request }, testInfo) => {
-  const { text } = await seededProof(page, request, testInfo, 4);
-  // UI4 playability #11: the text's title heads the proofreading; stage 4 asks her to say so.
+  const { text } = await seededProof(page, request, testInfo, []);
+  // UI4 playability #11: the text's title heads the proofreading; with no aid she is asked to say so.
   await expect(page.getByTestId('battle-parchment').getByRole('heading', { name: text.title })).toBeVisible();
   await expect(page.getByTestId('battle-parchment')).toContainText("Traque les pièges d'Éris. À toi de jouer. Quand tout te semble juste, dis-le.");
   await tap(page.getByTestId('btn-quit-proof'), testInfo);

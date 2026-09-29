@@ -77,12 +77,9 @@ export interface QuestOut {
   target: string;
   week: string | null;
   status: QuestStatus;
-  // `tier` is present only on boss quests (server's `create_boss_quest` stores it in `goal_json`
-  // alongside `text_id`/`help_stage`, which the client never needs to read here - `worldApi.boss()`
-  // returns those at the top level instead). `mode` is set to 'grimoire' server-side after a
-  // too_easy boss draw (P1-5 follow-up): the next attempt runs as a Grimoire corrompu session on
-  // the same text instead of plain dictation (Boss.svelte reads it to route "Relancer le combat").
-  goal: { sessions?: number; min_rate: number; min_draft?: number; tier?: number; mode?: 'grimoire' };
+  // `tier` and `text_id` are present only on boss quests (spec 2026-09-29 §2: the rule reads no
+  // threshold from a goal).
+  goal: { sessions?: number; tier?: number; text_id?: number };
   progress: { sessions: number; log: { session_id: number; ok: boolean }[] };
   reward: { xp: number; reward_id: string | null; bestiary: boolean };
   texts: { id: number; title: string; level: string; word_count: number }[];

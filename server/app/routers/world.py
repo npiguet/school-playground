@@ -210,18 +210,14 @@ def create_boss_quest(conn: sqlite3.Connection, profile: sqlite3.Row, now: str) 
     existing = conn.execute("SELECT * FROM quest WHERE profile_id = ? AND kind = 'boss' AND status = 'active'", (pid,)).fetchone()
     if existing is not None:
         goal = json.loads(existing["goal_json"])
-        return {"quest": quest_out(conn, existing), "text_id": goal["text_id"], "tier": goal["tier"],
-                "help_stage": goal["help_stage"]}, False
+        return {"quest": quest_out(conn, existing), "text_id": goal["text_id"], "tier": goal["tier"]}, False
     text_id = _pick_boss_text(conn, profile)
     if text_id is None:
         raise HTTPException(409, "Éris ne trouve pas de texte assez long pour ce combat.")
-    # Decision 8: "clamp(profile.help_stage + 1, 2, 4)" — a boss fight starts one help stage above
-    # the profile's current adaptive stage (SP3 batch review I1; controller ruling).
-    help_stage = max(2, min(4, profile["help_stage"] + 1))
-    goal = {"tier": tier, "text_id": text_id, "help_stage": help_stage}
+    goal = {"tier": tier, "text_id": text_id}
     reward = {"xp": QUEST_BONUS["boss"], "reward_id": BOSS_REWARDS[tier], "bestiary": False}
     quest = create_quest(conn, profile, "boss", "eris", None, goal, reward, now)
-    return {"quest": quest, "text_id": text_id, "tier": tier, "help_stage": help_stage}, True
+    return {"quest": quest, "text_id": text_id, "tier": tier}, True
 
 
 def oracle_out(conn: sqlite3.Connection, profile: sqlite3.Row, row: dict, day: str) -> dict:

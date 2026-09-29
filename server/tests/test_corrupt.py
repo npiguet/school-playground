@@ -297,14 +297,14 @@ def test_api_corrupt_and_grimoire_session(client, settings):
     short = client.post("/api/texts", json={"title": "S", "body": "Il dort ici et maintenant.", "level": "8H", "source": "custom"}).json()
     r = client.post(f"/api/texts/{short['id']}/corrupt", json={"profile_id": p["id"]})
     assert r.status_code == 422 and "Éris" in r.text
-    # grimoire sessions never move the help stage, even with three perfect catch rates
+    # grimoire sessions are recorded like any other and feed the category stats
     result = {"version": 1, "byCategory": {"homophone": {"opportunities": 5, "draft": 2, "caught": 2, "missed": 0, "introduced": 0}},
               "draftErrors": [], "finalErrors": [], "caught": [], "missed": [], "introduced": [], "correctWords": 30, "totalWords": 30, "catchRate": 1.0, "score": 100}
     for _ in range(3):
-        s = client.post("/api/sessions", json={"profile_id": p["id"], "text_id": t["id"], "pace_level": 1, "help_stage": 1, "mode": "grimoire",
+        s = client.post("/api/sessions", json={"profile_id": p["id"], "text_id": t["id"], "pace_level": 1, "mode": "grimoire",
                                                 "started_at": "2026-09-24T10:00:00+00:00", "draft": d["corrupted"], "final": BODY,
-                                                "result": result, "score": 100, "catch_rate": 1.0}).json()
-        assert s["help_stage_after"] == 1 and s["help_stage_message"] is None
+                                                "result": result, "score": 100, "catch_rate": 1.0})
+        assert s.status_code == 201, s.text
     stats = client.get(f"/api/profiles/{p['id']}/stats").json()
     assert stats["recent_sessions"][0]["mode"] == "grimoire" and stats["categories"][0]["caught"] == 6
     # a pre-SP2 annotation (no chains) is refused politely instead of crashing

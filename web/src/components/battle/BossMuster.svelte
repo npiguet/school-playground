@@ -16,7 +16,6 @@
     rewardId,
     rewardXp,
     rewardName,
-    retry,
     starting,
     startError,
     taunt,
@@ -26,8 +25,6 @@
     rewardId: string | null;
     rewardXp: number;
     rewardName: string;
-    /** A grimoire-flagged retry (P1-5 follow-up): « Relancer le combat ». */
-    retry: boolean;
     starting: boolean;
     startError: string;
     /** Éris's challenge for this tier. */
@@ -50,7 +47,7 @@
   <p class="rules">{BOSS.rules}</p>
   {#if startError}<p class="kit-note" data-tone="eris" role="alert">{startError}</p>{/if}
   <button type="button" class="kit-bronze start" data-testid="boss-start" disabled={starting} onclick={onStart}>
-    {retry ? BOSS.restart : BOSS.start}
+    {BOSS.start}
   </button>
 </div>
 

@@ -14,6 +14,7 @@ import {
   redScan,
   resumeSeeded,
   seedPlay,
+  setSavedAids,
   setKeyboard,
 } from './helpers';
 
@@ -203,11 +204,14 @@ async function dictationSection(w: Walk) {
 
 async function proofSection(w: Walk) {
   const { page } = w;
-  for (const [help, name] of [
-    [1, 'c06-proof-stage1-argus-long'],
-    [3, 'c07-proof-stage3-notched-hold'],
+  // Spec 2026-09-29 §3: the same seeded proofreading, re-opened with Argus's passes, then with
+  // Palamède's count (Argus left at the camp).
+  for (const [aids, name] of [
+    [['argus', 'ariane', 'persee', 'athena'], 'c06-proof-argus-long'],
+    [['ariane', 'persee', 'athena', 'palamede'], 'c07-proof-palamede-notched-hold'],
   ] as const) {
-    await page.goto(`/#/p/${w.profileId}/play/${w.texts.long}?help=${help}&encounter=chimere`);
+    await setSavedAids(page, w.profileId, w.texts.long, [...aids]);
+    await page.goto(`/#/p/${w.profileId}/play/${w.texts.long}?encounter=chimere`);
     await expectBattle(page, 'muster');
     // The seeded proofreading waits behind the resume ribbon each time (it saves itself as it goes);
     // never sampled once (final review M16).
@@ -398,7 +402,9 @@ async function wideSection(w: Walk) {
     [{ width: 1180, height: 480 }, 'c22-short-window-compact-proof'],
   ] as const) {
     await page.setViewportSize(size);
-    await page.goto(`/#/p/${w.profileId}/play/${w.texts.long}?help=4`);
+    // No aid at all (spec 2026-09-29 §3): the text alone and « Modifier tout le texte ».
+    await setSavedAids(page, w.profileId, w.texts.long, []);
+    await page.goto(`/#/p/${w.profileId}/play/${w.texts.long}`);
     await expectBattle(page, 'muster');
     // The seeded proofreading waits behind the resume ribbon each time (it saves itself as it goes);
     // never sampled once (final review M16).

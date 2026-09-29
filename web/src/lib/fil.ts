@@ -9,7 +9,7 @@
 // Fix round 1 (Fable review, critical): messages must quote the PLAYER's typed words, never the
 // reference spelling — this tool runs live during proofreading, before mistakes are revealed, so
 // reading `annotation.tokens[...].text` (or slicing the reference body) would hand out the
-// answer at every help stage. Every caller passes a `typedTextOf` lookup (annotation token id ->
+// answer, whatever the aids. Every caller passes a `typedTextOf` lookup (annotation token id ->
 // the text of the typed token it's currently aligned to, or `undefined` when unaligned); the
 // annotation itself is only ever read for structure (POS/categories, chains, features), never
 // for a word to display.

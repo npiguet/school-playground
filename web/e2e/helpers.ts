@@ -229,7 +229,7 @@ export { swissDay } from '../src/testing/swissDay';
 // compose.e2e.yaml). Returns the parsed JSON response (with its `progression` block).
 export async function postSession(
   request: APIRequestContext,
-  o: { profileId: number; textId: number; day: string; result: object; questId?: number; encounter?: string; helpStage?: number; aids?: string[] },
+  o: { profileId: number; textId: number; day: string; result: object; questId?: number; encounter?: string; aids?: string[] },
 ): Promise<any> {
   const result = o.result as { catchRate: number | null };
   const res = await request.post('/api/sessions', {
@@ -238,12 +238,10 @@ export async function postSession(
       profile_id: o.profileId,
       text_id: o.textId,
       pace_level: 1,
-      help_stage: o.helpStage ?? 1,
       started_at: o.day + 'T10:00:00+00:00',
       draft: 'x',
       final: 'x',
       result: o.result,
-      score: 10,
       catch_rate: result.catchRate,
       quest_id: o.questId,
       encounter: o.encounter,
@@ -688,8 +686,8 @@ export interface PlaySeed {
   /** Ruling C2c: the encounter and quest the battle was started under (absent: an older save). */
   encounter?: string | null;
   quest?: number | null;
-  /** Ruling C2d: the help stage the battle's link imposed (absent: an older save). */
-  help?: number | null;
+  /** Spec 2026-09-29 §3: the aids the battle was started with. */
+  aids?: string[];
   /** Ruling M20: the script step a saved dictation resumes from. */
   dictationStep?: number;
   /** Closing item 1: the « Réécouter » count left, saved next to `dictationStep`. */
@@ -728,7 +726,7 @@ export async function seedPlay(page: Page, s: PlaySeed) {
         ...(seed.opponent ? { opponent: seed.opponent } : {}),
         ...(seed.encounter !== undefined ? { encounter: seed.encounter } : {}),
         ...(seed.quest !== undefined ? { quest: seed.quest } : {}),
-        ...(seed.help !== undefined ? { help: seed.help } : {}),
+        ...(seed.aids !== undefined ? { aids: seed.aids } : {}),
         ...(seed.dictationStep !== undefined ? { dictationStep: seed.dictationStep } : {}),
         ...(seed.dictationReplaysLeft !== undefined ? { dictationReplaysLeft: seed.dictationReplaysLeft } : {}),
         ...(seed.progression ? { progression: seed.progression } : {}),
@@ -736,6 +734,18 @@ export async function seedPlay(page: Page, s: PlaySeed) {
     );
     // The seed crosses into the page as data: the app's script version is filled in here, in node.
   }, { ...s, dictationScript: s.dictationScript === undefined ? DICTATION_SCRIPT : s.dictationScript });
+}
+
+/** Rewrites the aids of an already saved battle (the playability walks re-open the same seeded
+ *  proofreading with different aids; `seedPlay` seeds once per tab). The page must be on the game. */
+export async function setSavedAids(page: Page, profileId: number, textId: number, aids: string[]) {
+  await page.evaluate(
+    ({ key, aids }) => {
+      const saved = JSON.parse(localStorage.getItem(key) ?? 'null');
+      if (saved) localStorage.setItem(key, JSON.stringify({ ...saved, aids }));
+    },
+    { key: `discorde.play.${profileId}.${textId}`, aids },
+  );
 }
 
 /** A seeded dictation or proofreading comes back behind the resume ribbon: continue it. */

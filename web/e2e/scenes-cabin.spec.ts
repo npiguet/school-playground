@@ -97,18 +97,19 @@ test('cabin: ?debug outlines three places; no red; rotate screen', async ({ page
   await expect(page.getByTestId('rotate-screen')).toBeVisible();
 });
 
-test('the journal opens as a codex: the Muses\' help, the tricks, the words, the defences', async ({ page, request }, testInfo) => {
+test('the journal opens as a codex: the aids taken last, the tricks, the words, the defences', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCabin(page, id);
   await tap(page.getByTestId('cabin-journal'), testInfo);
   await expect(page).toHaveURL(/\/stats$/);
   const journal = page.getByTestId('overlay-journal');
   await expect(journal.getByRole('heading', { name: 'Ton journal', level: 2 })).toBeVisible();
-  await expect(journal.getByRole('heading', { name: "L'aide des Muses" })).toBeVisible();
-  // UI3b playability #2: the Muses' help in their words, no numbered steps to tap.
-  await expect(journal.getByTestId('journal-help')).toContainText("Les yeux d'Argus te montrent chaque piège.");
-  await expect(journal.getByTestId('journal-help')).toContainText("Plus tu déjoues de pièges, moins les Muses t'aident.");
-  await expect(journal.getByTestId('journal-help').locator('li, .kit-medallion')).toHaveCount(0);
+  await expect(journal.getByRole('heading', { name: 'Tes aides' })).toBeVisible();
+  // Spec 2026-09-29 §3: the aids taken last (all five for a new hero) and what one left is worth, in
+  // words, no numbered steps to tap (UI3b playability #2).
+  await expect(journal.getByTestId('journal-aids')).toContainText('Au dernier combat, tu as emporté toutes les aides.');
+  await expect(journal.getByTestId('journal-aids')).toContainText('Chaque aide laissée au camp\u202f: +20\u202f% de gloire.');
+  await expect(journal.getByTestId('journal-aids').locator('li, .kit-medallion')).toHaveCount(0);
   for (const h of ["Les ruses d'Éris, une à une", 'Mots-pièges', 'Tes dernières défenses', 'Depuis le début']) {
     await expect(journal.getByRole('heading', { name: h })).toBeVisible();
   }
@@ -144,7 +145,11 @@ test("the journal tells Éris's tricks by their monster, and each text once", as
   await expect(journal.getByTestId('journal-defence')).toContainText(title);
   await expect(journal.getByTestId('journal-defence')).toContainText(/^.*2 défenses, la dernière le \S+ \d/);
   await expect(journal.getByTestId('journal-totals')).toHaveText('2 textes défendus · 3 pièges déjoués');
-  await expect(journal).not.toContainText(/point|%|réussite/i);
+  await expect(journal).not.toContainText(/point|réussite/i);
+  // No « Réussite » percentage on the tricks, the words or the defences; the one « % » of the journal is
+  // the aids' rule, what an aid left at the camp is worth (spec 2026-09-29 §3).
+  for (const part of [journal.locator('.ruses'), journal.locator('.page-right')]) await expect(part).not.toContainText('%');
+  await expect(journal.getByTestId('journal-aids')).toContainText('%');
   expect(await redScan(page)).toEqual([]);
 });
 

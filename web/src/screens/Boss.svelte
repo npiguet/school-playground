@@ -39,12 +39,6 @@
   const camp = $derived(campFor(profile.id));
   const activeBossQuest = $derived(camp?.quests.find((q) => q.kind === 'boss' && q.status === 'active') ?? null);
   const tier = $derived(camp?.boss.tier_available ?? activeBossQuest?.goal.tier ?? 1);
-  // P1-5 follow-up (controller ruling): after a too_easy draw the active boss quest is flagged
-  // 'grimoire' server-side - the retry has to run as a Grimoire corrompu session on the same
-  // (already-longest) text instead of plain dictation, since "reviens avec un texte plus long"
-  // was never actually possible.
-  const isGrimoireRetry = $derived(activeBossQuest?.goal.mode === 'grimoire');
-
   const bossRewardId = $derived(rewardIdFor(tier, campStore.catalog));
   const battle = battleFor('eris', { mode: 'boss', encounter: 'eris' });
 
@@ -55,13 +49,10 @@
     starting = true;
     startError = '';
     try {
-      const { quest, text_id, help_stage } = await worldApi.boss(profile.id);
+      const { quest, text_id } = await worldApi.boss(profile.id);
       const params = { profileId: String(profile.id), textId: String(text_id) };
-      const query = { quest: String(quest.id), encounter: 'eris', help: String(help_stage) };
-      // A grimoire-flagged retry (P1-5 follow-up) opens the 'grimoire' route instead of 'play':
-      // Play.svelte then corrupts the same text server-side (POST /corrupt) rather than dictating
-      // it, so there's always something real to catch.
-      navigate(href(quest.goal.mode === 'grimoire' ? 'grimoire' : 'play', params, query));
+      // Spec 2026-09-29 §2: always the dictation; a clean copy simply wins (the old Grimoire retry is gone).
+      navigate(href('play', params, { quest: String(quest.id), encounter: 'eris' }));
     } catch (e) {
       startError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
@@ -77,7 +68,6 @@
       rewardId={bossRewardId}
       rewardXp={campStore.catalog?.quest_bonus.boss ?? 300}
       rewardName={bossRewardName(tier, campStore.catalog)}
-      retry={isGrimoireRetry}
       {starting}
       {startError}
       taunt={erisSays(CHALLENGE_LINES[tier] ?? CHALLENGE_LINES[1])}

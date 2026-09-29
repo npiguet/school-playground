@@ -1,17 +1,4 @@
-from app.stats import next_help_stage, argus_order, stat_key
-
-
-def test_help_stage_moves_up_after_three_good_texts():
-    assert next_help_stage(1, [0.8, 0.75, 0.7]) == 2
-    assert next_help_stage(1, [0.8, 0.75]) == 1
-    assert next_help_stage(1, [0.8, 0.6, 0.9]) == 1
-    assert next_help_stage(4, [1.0, 1.0, 1.0]) == 4
-
-
-def test_help_stage_moves_down_after_two_bad_texts():
-    assert next_help_stage(3, [0.2, 0.3]) == 2
-    assert next_help_stage(3, [0.2, 0.5]) == 3
-    assert next_help_stage(1, [0.0, 0.0]) == 1
+from app.stats import argus_order, stat_key
 
 
 def test_stat_key():

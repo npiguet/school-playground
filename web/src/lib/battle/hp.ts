@@ -1,19 +1,20 @@
 // hp.ts — the opponent's hold on the text (UI4 Ruling C3, decided by the user on 2026-09-26): the bar
-// never grades live. It stays full through the muster, the dictation and the proofreading (at help
-// stage 3 it only carries the notches of the frozen count she already sees) and drops at the
+// never grades live. It stays full through the muster, the dictation and the proofreading (with
+// Palamède's tokens it only carries the notches of the frozen count she already sees) and drops at the
 // reckoning, after the proofreading: one strike per trap caught. Pure.
 export interface HpView {
   /** 1 = full hold, 0 = routed. */
   value: number;
-  /** Notches on the bar: the stage-3 frozen count, else null. */
+  /** Notches on the bar: Palamède's frozen count, else null. */
   segments: number | null;
 }
 export const FULL_HP: HpView = { value: 1, segments: null };
 export type Outcome = 'rout' | 'push' | 'standoff';
 
-/** The bar during play: always full; never a function of her edits. */
-export function hpDuringPlay(helpStage: 1 | 2 | 3 | 4, initialErrors: number | undefined): HpView {
-  return helpStage === 3 && (initialErrors ?? 0) > 0 ? { value: 1, segments: initialErrors! } : FULL_HP;
+/** The bar during play: always full; never a function of her edits. Les jetons de Palamède notch it with
+ *  the frozen count she already sees (spec 2026-09-29 §3); `count` is null when they stayed at the camp. */
+export function hpDuringPlay(count: number | null): HpView {
+  return count !== null && count > 0 ? { value: 1, segments: count } : FULL_HP;
 }
 
 const MAX_STRIKES = 8;

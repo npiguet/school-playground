@@ -1,18 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { HELP_RULE, HELP_STAGES, defenceGroups, helpStageLine, journalRuses, localDay, ruseLine } from './journal';
+import { aidBonusLine, aidsJournalLine, defenceGroups, journalRuses, localDay, ruseLine } from './journal';
 
-describe("the journal's words (UI3 Ruling B6; the register guard's « niveau » carry)", () => {
-  it("says what the Muses do at each of the four stages in their own voice, with no school word or step number (playability #2)", () => {
-    expect(HELP_STAGES).toEqual([1, 2, 3, 4]);
-    expect(HELP_STAGES.map(helpStageLine)).toEqual([
-      "Les yeux d'Argus te montrent chaque piège.",
-      'Les Muses te disent quelles ruses chercher, mais pas où elles se cachent.',
-      'Les Muses te disent seulement combien de pièges se cachent.',
-      "Tu relis sans l'aide des Muses.",
-    ]);
-    expect(HELP_RULE).toBe("Plus tu déjoues de pièges, moins les Muses t'aident.");
-    expect(helpStageLine(9)).toBe('');
-    for (const s of HELP_STAGES) expect(helpStageLine(s)).not.toMatch(/niveau|classe|école|étape|\d|\bseule\b/i);
+describe("the journal's aids (spec 2026-09-29 §3)", () => {
+  it('says which aids were taken last, in words', () => {
+    expect(aidsJournalLine(['argus', 'ariane', 'persee', 'athena', 'palamede'])).toBe('Au dernier combat, tu as emporté toutes les aides.');
+    expect(aidsJournalLine([])).toBe('Au dernier combat, tu as laissé toutes les aides au camp.');
+    expect(aidsJournalLine(['athena'])).toBe('Au dernier combat, tu as emporté la chouette.');
+    expect(aidsJournalLine(['argus', 'persee', 'palamede'])).toBe(
+      "Au dernier combat, tu as emporté les yeux d'Argus, le bouclier de Persée et les jetons de Palamède.",
+    );
+  });
+
+  it('says what each aid left at the camp is worth, from the rules', () => {
+    expect(aidBonusLine(0.2)).toBe('Chaque aide laissée au camp : +20 % de gloire.');
+    expect(aidBonusLine(0.35)).toBe('Chaque aide laissée au camp : +35 % de gloire.');
   });
 });
 

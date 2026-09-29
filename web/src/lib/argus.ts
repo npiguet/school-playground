@@ -17,9 +17,6 @@ export const ARGUS_LABELS: Record<ArgusPass, { title: string; hint: string }> = 
   mots_pieges: { title: 'Mots-pièges', hint: "Les mots qui t'ont déjà joué des tours. Regarde chaque lettre." },
 };
 
-/** Chouette d'Athéna hints per help stage (plan decision #6). */
-export const HINTS_PER_STAGE: Record<1 | 2 | 3 | 4, number> = { 1: 3, 2: 2, 3: 1, 4: 0 };
-
 /**
  * For each typed token, the set of Argus passes that light it. A typed token aligned to a
  * reference token inherits that token's annotation categories; an unaligned (extra) typed

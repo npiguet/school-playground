@@ -25,10 +25,10 @@ describe('matchRoute', () => {
       query: {},
     });
     expect(matchRoute('#/p/3/play/12')).toEqual({ name: 'play', params: { profileId: '3', textId: '12' }, query: {} });
-    expect(matchRoute('#/p/3/play/12?quest=7&encounter=eris&help=3')).toEqual({
+    expect(matchRoute('#/p/3/play/12?quest=7&encounter=eris')).toEqual({
       name: 'play',
       params: { profileId: '3', textId: '12' },
-      query: { quest: '7', encounter: 'eris', help: '3' },
+      query: { quest: '7', encounter: 'eris' },
     });
     expect(matchRoute('#/p/3/stats')).toEqual({ name: 'stats', params: { profileId: '3' }, query: {} });
     expect(matchRoute('#/p/3/settings')).toEqual({ name: 'settings', params: { profileId: '3' }, query: {} });
@@ -79,7 +79,7 @@ describe('matchRoute', () => {
 
 describe('battleKey (UI4 Task 2 fix round 1 #2)', () => {
   const key = (hash: string) => battleKey(matchRoute(hash));
-  it('is another battle for another text, mode, quest, encounter, help or focus', () => {
+  it('is another battle for another text, mode, quest, encounter or focus', () => {
     const keys = [
       '#/p/1/play/5',
       '#/p/1/play/6',
@@ -87,7 +87,6 @@ describe('battleKey (UI4 Task 2 fix round 1 #2)', () => {
       '#/p/1/play/5?encounter=hydre',
       '#/p/1/play/5?encounter=eris',
       '#/p/1/play/5?quest=3&encounter=hydre',
-      '#/p/1/play/5?encounter=eris&help=2',
       '#/p/1/grimoire/5?focus=homophone',
     ].map(key);
     expect(new Set(keys).size).toBe(keys.length);

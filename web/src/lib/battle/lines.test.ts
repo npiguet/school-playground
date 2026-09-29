@@ -142,6 +142,13 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
     expect(L.VICTORY.words(13, 13)).toBe('Pas un mot de travers\u202f!');
   });
 
+  it('says under the title what the aids taken will do, and nothing of the ones left (spec 2026-09-29 §3)', () => {
+    expect(L.proofSentence(true, null)).toBe("Les Yeux d'Argus éclairent une catégorie à la fois.");
+    expect(L.proofSentence(false, 2)).toBe('2 pièges sont cachés dans ce texte.');
+    expect(L.proofSentence(true, 1)).toBe("Les Yeux d'Argus éclairent une catégorie à la fois. 1 piège est caché dans ce texte.");
+    expect(L.proofSentence(false, null)).toBe('À toi de jouer. Quand tout te semble juste, dis-le.');
+  });
+
   it('walks the Bouclier in text order, naming the directions on the page', () => {
     expect([L.PROOF.prevSentence, L.PROOF.nextSentence, L.PROOF.sentencePos(24, 24)]).toEqual(['Plus haut', 'Plus bas', 'Phrase 24 sur 24']);
   });

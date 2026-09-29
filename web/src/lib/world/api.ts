@@ -40,7 +40,7 @@ export const worldApi = {
     request<{ oracle: OracleOut; quest: QuestOut }>('POST', `/api/profiles/${profileId}/oracle`, body),
 
   boss: (profileId: number) =>
-    request<{ quest: QuestOut; text_id: number; tier: number; help_stage: number }>(
+    request<{ quest: QuestOut; text_id: number; tier: number }>(
       'POST',
       `/api/profiles/${profileId}/boss`,
     ),

@@ -1,14 +1,17 @@
 <script lang="ts">
   // The hero's journal (UI3 Ruling B6, was the Stats screen; spec §3.6): a two-page codex on the
-  // cabin desk, the one place for the all-time counts (UI3b playability #3). Left page: what the
-  // Muses do at the hero's help stage, in their words, and Éris's tricks one by one, each told by the
-  // monster that plays it with laurels for what was foiled (playability #1, #2: no gradebook, no
+  // cabin desk, the one place for the all-time counts (UI3b playability #3). Left page: the aids
+  // taken last (spec 2026-09-29 §3) and what one left at the camp is worth, then Éris's tricks one
+  // by one, each told by the monster that plays it with laurels for what was foiled (playability #1, #2: no gradebook, no
   // numbered steps); right page: the trap words (laurel leaves for their box), the texts last
   // defended, one line per text (playability #14), and the totals, loaded from the server. The
   // dragon speaks from the overlay's voice plate (CabinRoom.svelte, playability #7).
   import LieutenantBadge from '../../LieutenantBadge.svelte';
   import { api, ApiError } from '../../../lib/api';
-  import { HELP_RULE, defenceGroups, helpStageLine, journalRuses } from '../../../lib/world/journal';
+  import { aidBonusLine, aidsJournalLine, defenceGroups, journalRuses } from '../../../lib/world/journal';
+  import { normalizeAids } from '../../../lib/aids';
+  import { rulesOf } from '../../../lib/rules';
+  import { campStore, loadCatalog } from '../../../lib/world/campStore.svelte';
   import { plural } from '../../../lib/text/french';
   import type { Profile, StatsResponse } from '../../../lib/types';
 
@@ -31,6 +34,8 @@
   }
 
   load();
+  // The aid bonus is the rules file's (served with the world catalog); a no-op once loaded.
+  void loadCatalog();
 
   const ruses = $derived(journalRuses(stats?.categories ?? []));
   const defences = $derived(defenceGroups(stats?.recent_sessions ?? []));
@@ -44,10 +49,10 @@
     {:else if error}
       <p class="kit-note" data-tone="eris">Impossible d'ouvrir ton journal{'\u202f: '}{error}</p>
     {:else if stats}
-      <h3 class="kit-section">L'aide des Muses</h3>
-      <div class="help" data-testid="journal-help">
-        <p class="help-line">{helpStageLine(stats.profile.help_stage)}</p>
-        <p class="help-rule">{HELP_RULE}</p>
+      <h3 class="kit-section">Tes aides</h3>
+      <div class="aids" data-testid="journal-aids">
+        <p class="aids-line">{aidsJournalLine(normalizeAids(stats.profile.settings.aids))}</p>
+        <p class="aids-rule">{aidBonusLine(rulesOf(campStore.catalog).aid_bonus)}</p>
       </div>
       <h3 class="kit-section">Les ruses d'Éris, une à une</h3>
       {#if ruses.length === 0}
@@ -112,18 +117,18 @@
   .page-right > :first-child {
     margin-top: 0;
   }
-  .help {
+  .aids {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-  .help p {
+  .aids p {
     margin: 0;
   }
-  .help-line {
+  .aids-line {
     font-size: 18px;
   }
-  .help-rule {
+  .aids-rule {
     font-style: italic;
     color: var(--form-ink-soft);
   }

@@ -2,7 +2,7 @@ def test_create_and_list_profile(client):
     r = client.post("/api/profiles", json={"name": "Léa", "avatar": "chouette", "level": "10H", "pin": None})
     assert r.status_code == 201, r.text
     p = r.json()
-    assert p["name"] == "Léa" and p["level"] == "10H" and p["has_pin"] is False and p["help_stage"] == 1
+    assert p["name"] == "Léa" and p["level"] == "10H" and p["has_pin"] is False and "help_stage" not in p
     assert "pin_hash" not in p
     assert [x["id"] for x in client.get("/api/profiles").json()] == [p["id"]]
 

@@ -4,7 +4,6 @@ import sqlite3
 from pytest import approx
 
 from app.db import DB_FILENAME
-from app.routers.sessions import DOWN_MESSAGE, UP_MESSAGE
 
 FEES = "Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent."
 
@@ -51,9 +50,8 @@ def result(catch_rate, caught=1, missed=1, lexical_expected=None):
             "correctWords": 11, "totalWords": 13, "catchRate": catch_rate, "score": 100}
 
 
-def post_session(client, p, t, catch_rate, help_stage=None, **kw):
+def post_session(client, p, t, catch_rate, **kw):
     body = {"profile_id": p["id"], "text_id": t["id"], "pace_level": 2,
-            "help_stage": help_stage or client.get(f"/api/profiles/{p['id']}").json()["help_stage"],
             "started_at": "2026-09-23T10:00:00+00:00", "draft": "x", "final": "y",
             "result": result(catch_rate, **kw), "score": 100, "catch_rate": catch_rate}
     r = client.post("/api/sessions", json=body)
@@ -98,7 +96,7 @@ def test_grimoire_session_never_creates_or_resets_trap_words(client):
     assert [(w["word"], w["box"], w["misses"]) for w in trap] == [("clairière", 1, 1)]
 
     def grimoire(result):
-        body = {"profile_id": p["id"], "text_id": t["id"], "pace_level": 2, "help_stage": 1, "mode": "grimoire",
+        body = {"profile_id": p["id"], "text_id": t["id"], "pace_level": 2, "mode": "grimoire",
                 "started_at": "2026-09-23T10:00:00+00:00", "draft": "x", "final": "y", "result": result, "score": 100, "catch_rate": 0.5}
         assert client.post("/api/sessions", json=body).status_code == 201
 
@@ -116,29 +114,6 @@ def test_grimoire_session_never_creates_or_resets_trap_words(client):
     assert accent["errors_in_draft"] == 1 + 2 + 1
 
 
-def test_help_stage_adapts(client):
-    p, t = setup(client)
-    assert post_session(client, p, t, 0.8)["help_stage_after"] == 1
-    assert post_session(client, p, t, 0.9)["help_stage_after"] == 1
-    r = post_session(client, p, t, 0.7)
-    assert (r["help_stage_before"], r["help_stage_after"]) == (1, 2)
-    assert r["help_stage_message"] == UP_MESSAGE
-    assert client.get(f"/api/profiles/{p['id']}").json()["help_stage"] == 2
-    # sessions at the previous stage do not count toward the next change
-    r = post_session(client, p, t, 0.1)
-    assert r["help_stage_after"] == 2
-    r = post_session(client, p, t, 0.2)
-    assert (r["help_stage_before"], r["help_stage_after"]) == (2, 1)
-    assert r["help_stage_message"] == DOWN_MESSAGE
-
-
-def test_null_catch_rate_is_ignored_for_adaptation(client):
-    p, t = setup(client)
-    post_session(client, p, t, 0.8); post_session(client, p, t, 0.8)
-    assert post_session(client, p, t, None)["help_stage_after"] == 1
-    assert post_session(client, p, t, 0.8)["help_stage_after"] == 2
-
-
 def test_missing_word_error_does_not_create_trap_word(client):
     p, t = setup(client)
     result = {"version": 1, "byCategory": {},
@@ -151,7 +126,6 @@ def test_missing_word_error_does_not_create_trap_word(client):
               "finalErrors": [], "caught": [], "missed": [], "introduced": [],
               "correctWords": 10, "totalWords": 13, "catchRate": 0.5, "score": 100}
     body = {"profile_id": p["id"], "text_id": t["id"], "pace_level": 2,
-            "help_stage": client.get(f"/api/profiles/{p['id']}").json()["help_stage"],
             "started_at": "2026-09-23T10:00:00+00:00", "draft": "x", "final": "y",
             "result": result, "score": 100, "catch_rate": 0.5}
     r = client.post("/api/sessions", json=body)
@@ -173,7 +147,7 @@ def test_write_then_immediate_read_sees_the_write(client):
 
 def test_session_404s(client):
     p, t = setup(client)
-    body = {"profile_id": 999, "text_id": t["id"], "pace_level": 1, "help_stage": 1, "started_at": "x",
+    body = {"profile_id": 999, "text_id": t["id"], "pace_level": 1, "started_at": "x",
             "draft": "", "final": "", "result": {"version": 1}, "score": 0, "catch_rate": None}
     assert client.post("/api/sessions", json=body).status_code == 404
 
@@ -212,6 +186,18 @@ def test_a_page_opened_before_the_aids_still_saves_its_session(client, settings)
     assert client.get(f"/api/profiles/{p['id']}").json()["settings"]["aids"] == ["ariane"]
     conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
     assert conn.execute("SELECT aids FROM session WHERE id = ?", (r.json()["id"],)).fetchone()[0] is None
+    conn.close()
+
+
+def test_the_help_stage_is_gone_but_its_columns_stay(client, settings):
+    p, t = setup(client)
+    r = client.post("/api/sessions", json=body_for(p, t, aids=["argus"], help_stage=4))
+    assert r.status_code == 201 and set(r.json()) == {"id", "progression"}
+    assert "help_stage" not in client.get(f"/api/profiles/{p['id']}").json()
+    assert "help_stage" not in client.get(f"/api/profiles/{p['id']}/stats").json()["recent_sessions"][0]
+    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
+    assert conn.execute("SELECT help_stage FROM session WHERE id = ?", (r.json()["id"],)).fetchone()[0] == 0
+    assert conn.execute("SELECT help_stage FROM profile WHERE id = ?", (p["id"],)).fetchone()[0] == 1
     conn.close()
 
 

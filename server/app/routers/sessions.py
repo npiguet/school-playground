@@ -1,4 +1,4 @@
-"""Sessions API: records a played dictation and updates stats, trap words and the adaptive help stage."""
+"""Sessions API: records a played dictation and updates stats, trap words and the world."""
 from __future__ import annotations
 import json, re, sqlite3
 from datetime import datetime, timezone
@@ -7,13 +7,10 @@ from app.clock import local_day
 from app.db import get_db
 from app.routers.profiles import fetch_profile
 from app.schemas import SessionCreate
-from app.stats import apply_session_to_stats, next_help_stage, update_trap_words
+from app.stats import apply_session_to_stats, update_trap_words
 from app.world.progression import apply_progression
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
-
-UP_MESSAGE = "Les Muses te font confiance\u202f: les Yeux d'Argus s'éteignent un peu."
-DOWN_MESSAGE = "Éris a été retorse. Les Muses rallument les Yeux d'Argus pour t'aider."
 
 
 def now() -> str:
@@ -34,11 +31,12 @@ def create_session(body: SessionCreate, request: Request, db: sqlite3.Connection
     day = local_day(finished_at)
     if settings.test_hooks and x_discorde_day and re.fullmatch(r"\d{4}-\d{2}-\d{2}", x_discorde_day):
         day = x_discorde_day; finished_at = f"{day}T12:00:00+00:00"
+    # help_stage: the column stays, new sessions write 0 (spec 2026-09-29 §3).
     cur = db.execute(
         """INSERT INTO session(profile_id, text_id, pace_level, help_stage, mode, started_at, finished_at,
                                 draft, final, result_json, score, catch_rate, encounter, quest_id, aids)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (body.profile_id, body.text_id, body.pace_level, body.help_stage or 0, body.mode, body.started_at, finished_at,
+           VALUES (?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)""",
+        (body.profile_id, body.text_id, body.pace_level, body.mode, body.started_at, finished_at,
          body.draft, body.final, json.dumps(body.result, ensure_ascii=False), 0, body.catch_rate,
          body.encounter, body.quest_id, json.dumps(body.aids) if body.aids is not None else None))
     session_id = cur.lastrowid
@@ -58,23 +56,6 @@ def create_session(body: SessionCreate, request: Request, db: sqlite3.Connection
     # so counting plants as misses would pin it in box 1 forever).
     update_trap_words(db, body.profile_id, body.result, text["body"], finished_at, record_misses=not grimoire)
 
-    # Grimoire corrompu sessions are deliberately weighted toward the profile's weaknesses,
-    # so they never move the adaptive help stage (plan decision 8); they still feed stats
-    # above. Recent-rate history for the help stage only ever looks at dictation sessions,
-    # so a grimoire round never counts toward a dictation-mode change either.
-    help_stage_before = profile["help_stage"]
-    help_stage_after = help_stage_before
-    message = None
-    if not grimoire:
-        rates = [r["catch_rate"] for r in db.execute(
-            "SELECT catch_rate FROM session WHERE profile_id = ? AND help_stage = ? AND mode = 'dictation' "
-            "AND encounter IS NULL AND catch_rate IS NOT NULL ORDER BY finished_at DESC, id DESC LIMIT 3",
-            (body.profile_id, help_stage_before))]
-        help_stage_after = next_help_stage(help_stage_before, rates)
-        if help_stage_after != help_stage_before:
-            db.execute("UPDATE profile SET help_stage = ? WHERE id = ?", (help_stage_after, body.profile_id))
-            message = UP_MESSAGE if help_stage_after > help_stage_before else DOWN_MESSAGE
-
     prophecy = bool(text["due_date"]) and text["due_date"] > day   # Decision 10: "before its date" (SP3 batch review M9)
     progression = apply_progression(db, profile, session_id, body, body.result, day, finished_at, prophecy, rules)
     # Spec 2026-09-29 §4: the session's score is its XP, so the history and the library's best scores
@@ -82,6 +63,4 @@ def create_session(body: SessionCreate, request: Request, db: sqlite3.Connection
     db.execute("UPDATE session SET score = ? WHERE id = ?", (progression["xp"]["session"], session_id))
 
     db.commit()
-    return {"id": session_id, "help_stage_before": help_stage_before,
-            "help_stage_after": help_stage_after, "help_stage_message": message,
-            "progression": progression}
+    return {"id": session_id, "progression": progression}

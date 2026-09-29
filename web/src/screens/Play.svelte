@@ -39,7 +39,9 @@
   import { href } from '../lib/routes';
   import { withDerivedCategories } from '../lib/world/derived';
   import { bandFor } from '../lib/world/eris';
-  import { campFor, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
+  import { campFor, campStore, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
+  import { normalizeAids } from '../lib/aids';
+  import { rulesOf } from '../lib/rules';
   import { clockStart, clockStop, clockTick } from '../lib/world/playClock.svelte';
   import type { PlayMode, Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
 
@@ -54,24 +56,21 @@
   // This hero's camp snapshot only (final review I2): the store is shared across heroes.
   const camp = $derived(campFor(profile.id));
   // Quest-aware Play (SP3 Task 7): `quest`/`encounter` come from a QuestCard/lieutenant/boss link
-  // (`?quest=...&encounter=...`); `help` overrides the profile's adaptive help stage for a single
-  // session (boss fights force it a stage down, never up the aids).
-  const urlUnder = $derived({
-    encounter: query.encounter ?? null,
-    quest: query.quest ? Number(query.quest) : null,
-    help: query.help ? Number(query.help) : null,
-  });
+  // (`?quest=...&encounter=...`).
+  const urlUnder = $derived({ encounter: query.encounter ?? null, quest: query.quest ? Number(query.quest) : null });
   let playState = $state<PlayState | null>(null);
   // Ruling C2c: the battle runs under the encounter and quest it was started with (saved in its play
   // state), not the URL's: a boss fight reopened from the shelves is still the boss fight, and a free
-  // save never becomes one. Before the state exists, the URL's. Ruling C2d: its help stage too.
+  // save never becomes one. Before the state exists, the URL's; its quest too.
   const under = $derived(battleContext(playState, urlUnder));
   const questId = $derived(under.quest);
   const encounter = $derived(under.encounter);
   // An encounter that names an opponent decides the battle, whatever was saved (fix round 1 #1).
   const pinned = $derived<OpponentId | null>(encounter && isOpponentId(encounter) ? encounter : null);
-  const helpOverride = $derived(under.help);
-  const helpStage = $derived(Math.min(4, Math.max(1, Math.round(helpOverride ?? profile.help_stage))) as 1 | 2 | 3 | 4);
+  // Spec 2026-09-29 §3: the aids this battle runs with. A fresh battle starts from the hero's remembered
+  // choice (all five for a new hero); once it exists, the battle's own.
+  const aids = $derived(playState?.aids ?? normalizeAids(profile.settings.aids));
+  const rules = $derived(rulesOf(campStore.catalog));
   // Grimoire corrompu has no pace selector (plan decision #8: session.pace_level is always 1).
   const initialPace = $derived(mode === 'grimoire' ? 1 : defaultPace(profile.level));
   // A boss fight never slows down below the profile's own default pace (Decision 8: fewer aids,
@@ -86,7 +85,6 @@
   let loading = $state(true);
   let error = $state('');
   let result = $state<SessionResult | null>(null);
-  let helpMessage = $state<string | null>(null);
   let submitError = $state<string | null>(null);
   let submitting = $state(false);
   // The victory's spoils (VictorySpoils: XP, quests, dragon growth...) play once on the victory
@@ -128,7 +126,7 @@
         playState = saved;
         showResumeBanner = saved.phase !== 'results';
       } else {
-        playState = newPlayState(profile.id, id, initialPace, mode, urlUnder);
+        playState = newPlayState(profile.id, id, initialPace, mode, urlUnder, normalizeAids(profile.settings.aids));
       }
       if (playState.phase === 'results') void ensureResults();
       // M3: « Revoir » lives in the victory only; a deep link to it elsewhere drops the panel.
@@ -162,7 +160,7 @@
     const opponent = playState?.opponent;
     clearPlayState(profile.id, id, mode);
     // A replay is the same battle: the same opponent and encounter, fresh combatants, a full hold.
-    playState = newPlayState(profile.id, id, initialPace, mode, under);
+    playState = newPlayState(profile.id, id, initialPace, mode, under, aids);
     if (opponent) playState.opponent = opponent;
     resetBattleStage();
     emitBattle({ kind: 'retry' });
@@ -171,7 +169,6 @@
     retried = true;
     showResumeBanner = false;
     result = null;
-    helpMessage = null;
     submitError = null;
     corruptError = null;
     revealDone = false;
@@ -326,7 +323,7 @@
         profile_id: profile.id,
         text_id: id,
         pace_level: mode === 'grimoire' ? 1 : stateAtSubmit.pace,
-        help_stage: helpStage,
+        aids: stateAtSubmit.aids,
         mode,
         started_at: stateAtSubmit.startedAt,
         draft: stateAtSubmit.draft,
@@ -341,9 +338,8 @@
       stateAtSubmit.submitted = true;
       stateAtSubmit.sessionId = created.id;
       stateAtSubmit.progression = created.progression;
-      helpMessage = created.help_stage_message;
       save();
-      // Refreshes profileStore's help_stage so the next play session uses it, and campStore so
+      // Refreshes profileStore (the aids the server remembered for the next muster) and campStore so
       // the dragon/XP/quests the victory's spoils read (and the camp screen on return) are
       // fresh with this session's progression already applied server-side.
       await Promise.all([loadProfile(profile.id), refreshCamp(profile.id)]);
@@ -407,11 +403,11 @@
         : playState.phase,
   );
 
-  // Ruling C3 (the user's decision): the hold is full while she plays, notched by the stage-3
-  // count; it drops only at the reckoning (the victory phase, Task 6).
+  // Ruling C3 (the user's decision): the hold is full while she plays, notched by Palamède's count
+  // when his tokens were taken along; it drops only at the reckoning (the victory phase, Task 6).
   $effect(() => {
     if (phase === 'dictation' || phase === 'proofreading' || phase === 'muster') {
-      setHp(hpDuringPlay(helpStage, playState?.initialErrors));
+      setHp(hpDuringPlay(aids.includes('palamede') ? (playState?.initialErrors ?? null) : null));
     }
   });
 
@@ -513,7 +509,8 @@
         <ProofPhase
           reference={text}
           bind:state={playState}
-          {helpStage}
+          {aids}
+          hints={rules.chouette_hints}
           argusOrder={stats?.argus_order ?? []}
           trapWords={trapWords.map((t) => t.word)}
           level={profile.level}
@@ -531,7 +528,6 @@
           {mode}
           opponent={playState.opponent ?? 'eris'}
           {encounter}
-          {helpMessage}
           {submitError}
           {submitting}
           bind:revealDone
