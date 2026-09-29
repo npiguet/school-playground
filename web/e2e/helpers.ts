@@ -227,7 +227,7 @@ export { swissDay } from '../src/testing/swissDay';
 // compose.e2e.yaml). Returns the parsed JSON response (with its `progression` block).
 export async function postSession(
   request: APIRequestContext,
-  o: { profileId: number; textId: number; day: string; result: object; questId?: number; encounter?: string; helpStage?: number },
+  o: { profileId: number; textId: number; day: string; result: object; questId?: number; encounter?: string; helpStage?: number; aids?: string[] },
 ): Promise<any> {
   const result = o.result as { catchRate: number | null };
   const res = await request.post('/api/sessions', {
@@ -245,6 +245,7 @@ export async function postSession(
       catch_rate: result.catchRate,
       quest_id: o.questId,
       encounter: o.encounter,
+      aids: o.aids,
     },
   });
   expect(res.ok()).toBeTruthy();

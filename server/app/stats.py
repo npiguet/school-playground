@@ -45,20 +45,22 @@ def argus_order(category_rows: list[dict]) -> list[str]:
 
 def apply_session_to_stats(conn: sqlite3.Connection, profile_id: int, result: dict, day: str, now: str) -> None:
     for key, c in result.get("byCategory", {}).items():
-        vals = (c.get("opportunities", 0), c.get("draft", 0), c.get("caught", 0), c.get("missed", 0))
-        conn.execute("""INSERT INTO profile_stat(profile_id, category, occurrences, errors_in_draft, caught, missed, updated_at)
-                        VALUES (?,?,?,?,?,?,?)
+        vals = (c.get("opportunities", 0), c.get("draft", 0), c.get("caught", 0), c.get("missed", 0), c.get("introduced", 0))
+        conn.execute("""INSERT INTO profile_stat(profile_id, category, occurrences, errors_in_draft, caught, missed, introduced, updated_at)
+                        VALUES (?,?,?,?,?,?,?,?)
                         ON CONFLICT(profile_id, category) DO UPDATE SET
                           occurrences = occurrences + excluded.occurrences,
                           errors_in_draft = errors_in_draft + excluded.errors_in_draft,
                           caught = caught + excluded.caught, missed = missed + excluded.missed,
+                          introduced = introduced + excluded.introduced,
                           updated_at = excluded.updated_at""", (profile_id, key, *vals, now))
-        conn.execute("""INSERT INTO profile_stat_day(profile_id, day, category, occurrences, errors_in_draft, caught, missed)
-                        VALUES (?,?,?,?,?,?,?)
+        conn.execute("""INSERT INTO profile_stat_day(profile_id, day, category, occurrences, errors_in_draft, caught, missed, introduced)
+                        VALUES (?,?,?,?,?,?,?,?)
                         ON CONFLICT(profile_id, day, category) DO UPDATE SET
                           occurrences = occurrences + excluded.occurrences,
                           errors_in_draft = errors_in_draft + excluded.errors_in_draft,
-                          caught = caught + excluded.caught, missed = missed + excluded.missed""",
+                          caught = caught + excluded.caught, missed = missed + excluded.missed,
+                          introduced = introduced + excluded.introduced""",
                      (profile_id, day, key, *vals))
 
 

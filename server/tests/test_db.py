@@ -89,3 +89,38 @@ def test_a_write_waits_out_a_lock_held_longer_than_sqlites_default(tmp_path):
     assert time.monotonic() - started >= 5.0
     release.join()
     assert tuple(second.execute("SELECT name, level FROM profile WHERE id = 1").fetchone()) == ("B", "9H")
+
+
+from app.db import MIGRATIONS_DIR
+
+
+def _pre_005_db(path):
+    """A database as the game left it before sub-project 1: migrations 001-004 only."""
+    conn = connect(path)
+    conn.execute("CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
+    for f in sorted(MIGRATIONS_DIR.glob("*.sql")):
+        version = int(f.name.split("_", 1)[0])
+        if version >= 5:
+            break
+        conn.executescript(f.read_text(encoding="utf-8"))
+        conn.execute("INSERT INTO schema_version(version, applied_at) VALUES (?, 'then')", (version,))
+    conn.commit()
+    return conn
+
+
+def test_migration_005_upgrades_a_pre_005_database_in_place(tmp_path):
+    conn = _pre_005_db(tmp_path / "old.sqlite3")
+    conn.execute("INSERT INTO profile(id, name, avatar, level, help_stage, created_at) VALUES (1, 'Io', 'chouette', '8H', 3, 'now')")
+    conn.execute("INSERT INTO text(id, title, body, source, level, created_at) VALUES (1, 'T', 'Un texte.', 'custom', '8H', 'now')")
+    conn.execute("INSERT INTO session(profile_id, text_id, pace_level, help_stage, started_at, finished_at, draft, final, "
+                 "result_json, score, catch_rate) VALUES (1, 1, 2, 3, 'a', 'b', 'x', 'y', '{}', 40, 0.5)")
+    conn.execute("INSERT INTO profile_stat(profile_id, category, occurrences, errors_in_draft, caught, missed, updated_at) "
+                 "VALUES (1, 'homophone', 5, 2, 1, 1, 'now')")
+    conn.execute("INSERT INTO profile_stat_day(profile_id, day, category, occurrences) VALUES (1, '2026-09-01', 'homophone', 5)")
+    conn.commit()
+    assert migrate(conn) >= 5
+    s = conn.execute("SELECT help_stage, score, aids FROM session").fetchone()
+    assert (s["help_stage"], s["score"], s["aids"]) == (3, 40, None)
+    assert conn.execute("SELECT help_stage FROM profile").fetchone()[0] == 3        # the column stays
+    assert conn.execute("SELECT introduced FROM profile_stat").fetchone()[0] == 0
+    assert conn.execute("SELECT introduced FROM profile_stat_day").fetchone()[0] == 0

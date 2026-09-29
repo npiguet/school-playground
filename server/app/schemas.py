@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field, field_validator
 from app.levels import LEVELS, AVATARS
 
 PIN_RE = r"^\d{4}$"
+# Spec 2026-09-29 §3: the five review aids, in the camp's order.
+AID_KEYS = ("argus", "ariane", "persee", "athena", "palamede")
 
 
 class ProfileCreate(BaseModel):
@@ -103,16 +105,31 @@ class SessionCreate(BaseModel):
     # 1-3 since the pace redesign (2026-09-27); 4, the retired pace, stays valid for a page opened
     # before it (its session is not lost), as the rows recorded at 4 stay in the history and stats.
     pace_level: int = Field(ge=1, le=4)
-    help_stage: int = Field(ge=1, le=4)
+    # Sub-project 1 removed the adaptive help stage and the client-side score: a page opened before
+    # the change still sends them, accepted and ignored (the session's score is its XP, server-side).
+    help_stage: int | None = None
     mode: Literal["dictation", "grimoire"] = "dictation"
     started_at: str
     draft: str
     final: str
     result: dict[str, Any]
-    score: int = Field(ge=0)
+    score: int | None = None
     catch_rate: float | None = Field(default=None, ge=0, le=1)
     encounter: str | None = None
     quest_id: int | None = None
+    # The review aids taken along (spec 2026-09-29 §3); None from a page opened before them.
+    aids: list[str] | None = None
+
+    @field_validator("aids")
+    @classmethod
+    def _aids(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        if any(a not in AID_KEYS for a in v):
+            raise ValueError("unknown aid")
+        if len(set(v)) != len(v):
+            raise ValueError("an aid listed twice")
+        return [a for a in AID_KEYS if a in v]
 
 
 class CorruptRequest(BaseModel):

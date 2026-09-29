@@ -35,12 +35,18 @@ def create_session(body: SessionCreate, request: Request, db: sqlite3.Connection
         day = x_discorde_day; finished_at = f"{day}T12:00:00+00:00"
     cur = db.execute(
         """INSERT INTO session(profile_id, text_id, pace_level, help_stage, mode, started_at, finished_at,
-                                draft, final, result_json, score, catch_rate, encounter, quest_id)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (body.profile_id, body.text_id, body.pace_level, body.help_stage, body.mode, body.started_at, finished_at,
-         body.draft, body.final, json.dumps(body.result, ensure_ascii=False), body.score, body.catch_rate,
-         body.encounter, body.quest_id))
+                                draft, final, result_json, score, catch_rate, encounter, quest_id, aids)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (body.profile_id, body.text_id, body.pace_level, body.help_stage or 0, body.mode, body.started_at, finished_at,
+         body.draft, body.final, json.dumps(body.result, ensure_ascii=False), body.score or 0, body.catch_rate,
+         body.encounter, body.quest_id, json.dumps(body.aids) if body.aids is not None else None))
     session_id = cur.lastrowid
+
+    # Spec 2026-09-29 §3: the hero's choice of aids is remembered and pre-selected next time (plan
+    # Ruling R1: written with the session; a page opened before the aids leaves it alone).
+    if body.aids is not None:
+        remembered = {**json.loads(profile["settings_json"] or "{}"), "aids": body.aids}
+        db.execute("UPDATE profile SET settings_json = ? WHERE id = ?", (json.dumps(remembered, ensure_ascii=False), body.profile_id))
 
     grimoire = body.mode == "grimoire"
     apply_session_to_stats(db, body.profile_id, body.result, day, finished_at)

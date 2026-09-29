@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from app.clock import iso_week, local_day, now_utc
 from app.db import begin_write, get_db
 from app.levels import LEVELS, level_index
@@ -275,7 +275,7 @@ def consult(conn: sqlite3.Connection, profile: sqlite3.Row, week: str, scroll: s
 # --- Endpoints ---------------------------------------------------------
 
 @router.get("/world")
-def get_world():
+def get_world(request: Request):
     return {
         "lieutenants": [{"key": k, **LIEUTENANTS[k]} for k in LIEUTENANT_ORDER],
         "rewards": REWARDS,
@@ -285,6 +285,8 @@ def get_world():
         "boss_rewards": {str(k): v for k, v in BOSS_REWARDS.items()},
         "mastery": MASTERY,
         "quest_bonus": QUEST_BONUS,
+        # Spec 2026-09-29 §7: what the client needs of the rules file (the copy line, the bonuses, the owl).
+        "rules": request.app.state.rules.as_dict(),
     }
 
 

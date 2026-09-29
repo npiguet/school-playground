@@ -1,3 +1,9 @@
+import json
+import sqlite3
+
+from pytest import approx
+
+from app.db import DB_FILENAME
 from app.routers.sessions import DOWN_MESSAGE, UP_MESSAGE
 
 FEES = "Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent."
@@ -168,3 +174,60 @@ def test_session_404s(client):
     body = {"profile_id": 999, "text_id": t["id"], "pace_level": 1, "help_stage": 1, "started_at": "x",
             "draft": "", "final": "", "result": {"version": 1}, "score": 0, "catch_rate": None}
     assert client.post("/api/sessions", json=body).status_code == 404
+
+
+def body_for(p, t, **kw):
+    """Sub-project 1: a session body as today's client sends it (no help stage, no score)."""
+    body = {"profile_id": p["id"], "text_id": t["id"], "pace_level": 2, "started_at": "2026-09-23T10:00:00+00:00",
+            "draft": "x", "final": "y", "result": result(0.5), "catch_rate": 0.5}
+    body.update(kw)
+    return body
+
+
+def test_a_session_records_the_aids_taken_and_the_hero_keeps_them(client, settings):
+    p, t = setup(client)
+    r = client.post("/api/sessions", json=body_for(p, t, aids=["palamede", "argus"]))
+    assert r.status_code == 201, r.text
+    assert client.get(f"/api/profiles/{p['id']}").json()["settings"]["aids"] == ["argus", "palamede"]
+    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
+    assert json.loads(conn.execute("SELECT aids FROM session WHERE id = ?", (r.json()["id"],)).fetchone()[0]) == ["argus", "palamede"]
+    conn.close()
+    assert client.post("/api/sessions", json=body_for(p, t, aids=[])).status_code == 201
+    assert client.get(f"/api/profiles/{p['id']}").json()["settings"]["aids"] == []
+
+
+def test_unknown_or_repeated_aids_are_refused(client):
+    p, t = setup(client)
+    for aids in (["argus", "argus"], ["loupe"], "argus"):
+        assert client.post("/api/sessions", json=body_for(p, t, aids=aids)).status_code == 422, aids
+
+
+def test_a_page_opened_before_the_aids_still_saves_its_session(client, settings):
+    p, t = setup(client)
+    client.patch(f"/api/profiles/{p['id']}", json={"settings": {"aids": ["ariane"]}})
+    r = client.post("/api/sessions", json=body_for(p, t, help_stage=3, score=120))
+    assert r.status_code == 201, r.text
+    assert client.get(f"/api/profiles/{p['id']}").json()["settings"]["aids"] == ["ariane"]
+    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
+    assert conn.execute("SELECT aids FROM session WHERE id = ?", (r.json()["id"],)).fetchone()[0] is None
+    conn.close()
+
+
+def test_recent_sessions_carry_the_aids_and_the_mistakes_left_per_100(client):
+    p, t = setup(client)
+    client.post("/api/sessions", json=body_for(p, t, aids=["athena"]))
+    client.post("/api/sessions", json=body_for(p, t, help_stage=1, score=5))
+    recent = client.get(f"/api/profiles/{p['id']}/stats").json()["recent_sessions"]
+    # result(): one mistake left in 13 words
+    assert [(s["aids"], s["per_100"]) for s in recent] == [(None, approx(100 / 13)), (["athena"], approx(100 / 13))]
+
+
+def test_the_stats_keep_the_mistakes_introduced_while_proofreading(client, settings):
+    p, t = setup(client)
+    res = result(0.5)
+    res["byCategory"]["agreement:verb"]["introduced"] = 2
+    assert client.post("/api/sessions", json=body_for(p, t, result=res)).status_code == 201
+    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
+    assert conn.execute("SELECT introduced FROM profile_stat WHERE category = 'agreement:verb'").fetchone()[0] == 2
+    assert conn.execute("SELECT introduced FROM profile_stat_day WHERE category = 'agreement:verb'").fetchone()[0] == 2
+    conn.close()
