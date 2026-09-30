@@ -218,13 +218,45 @@ async function titleSection(w: Walk) {
   await deleteHeroes(page.request, MORE_HEROES);
 }
 
+/** The walk's prophecy is stored far ahead: a prophecy due within a week is every hero's next step at
+ *  the camp (prophecies are global), so a near date would leak into any other run on the stack, and
+ *  into the functional suite for days if the walk's cleanup never ran. The walk's own browser sees it
+ *  due in 3 days (the shelf's « dans 3 jours », the oracle's glow): every JSON answer is rewritten on
+ *  this context, which outlives the page-level routes the sections add and remove. */
+const PROPHECY_STORED_DUE = '2099-09-30';
+const PROPHECY_SHOWN_DAYS = 3;
+
+async function nearProphecy(page: Page) {
+  const shown = swissDay(-PROPHECY_SHOWN_DAYS);
+  const rewrite = (v: unknown): void => {
+    if (Array.isArray(v)) return v.forEach(rewrite);
+    if (!v || typeof v !== 'object') return;
+    const o = v as Record<string, unknown>;
+    if (o.due_date === PROPHECY_STORED_DUE) {
+      o.due_date = shown;
+      if ('days_left' in o) o.days_left = PROPHECY_SHOWN_DAYS;
+    }
+    Object.values(o).forEach(rewrite);
+  };
+  await page.context().route('**/api/**', async (route) => {
+    const res = await route.fetch();
+    const body = await res.text();
+    if (!body.includes(PROPHECY_STORED_DUE) || !(res.headers()['content-type'] ?? '').includes('json')) {
+      return route.fulfill({ response: res });
+    }
+    const json: unknown = JSON.parse(body);
+    rewrite(json);
+    await route.fulfill({ response: res, json });
+  });
+}
+
 async function librarySection(w: Walk) {
   const { page } = w;
   // Re-review N15: the prophecy exists before the shelves (a07 shows it on its own shelf), and a
   // defended scroll - one finished defence posted through the API - shows its broken seal (a07; UI3b
   // playability #24: it is already in view there, so a07c, the same frame again, is gone).
-  const due = swissDay(-3);
-  await createText(page.request, { title: PROPHECY_TITLE, body: BODY, level: '10H', due_date: due });
+  await nearProphecy(page);
+  await createText(page.request, { title: PROPHECY_TITLE, body: BODY, level: '10H', due_date: PROPHECY_STORED_DUE });
   const defended = await createText(page.request, { title: DEFENDED_TITLE, body: BODY, level: '10H' });
   await postSession(page.request, {
     profileId: w.profileId,
@@ -571,8 +603,8 @@ test('UI3 playability walk', async ({ page }, testInfo) => {
     }
   } finally {
     // Re-review N15, final review I3: the walk's global fixtures leave with it, even when a section
-    // failed (a prophecy due in 3 days would be every other hero's next step, and the functional
-    // suite's glow checks would fail for days); clearEarlierWalk above also removes any a crashed
+    // failed (the prophecy is stored far ahead, see nearProphecy, but it still sits on the shelves
+    // of every hero); clearEarlierWalk above also removes any a crashed
     // run left. The heroes stay for a look until the next walk clears them. A failed delete is
     // noted, never allowed to hide the walk's own failure.
     try {
