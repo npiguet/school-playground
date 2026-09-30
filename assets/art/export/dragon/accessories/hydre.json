@@ -1,0 +1,52 @@
+{
+  "hydre-cou": {
+    "young": {
+      "src": "hydre-cou_young.webp",
+      "x": 0.49023,
+      "y": 0.32227,
+      "w": 0.2002,
+      "h": 0.09082
+    },
+    "adult": {
+      "src": "hydre-cou_adult.webp",
+      "x": 0.48926,
+      "y": 0.23047,
+      "w": 0.15234,
+      "h": 0.0957
+    }
+  },
+  "hydre-queue": {
+    "young": {
+      "src": "hydre-queue_young.webp",
+      "x": 0.12305,
+      "y": 0.72852,
+      "w": 0.13965,
+      "h": 0.10254
+    }
+  },
+  "hydre-dos": {
+    "young": {
+      "src": "hydre-dos_young.webp",
+      "x": 0.30078,
+      "y": 0.43457,
+      "w": 0.24707,
+      "h": 0.20703
+    }
+  },
+  "hydre-tete": {
+    "young": {
+      "src": "hydre-tete_young.webp",
+      "x": 0.50293,
+      "y": 0.02344,
+      "w": 0.20996,
+      "h": 0.1416
+    },
+    "adult": {
+      "src": "hydre-tete_adult.webp",
+      "x": 0.56543,
+      "y": 0.02734,
+      "w": 0.14648,
+      "h": 0.125
+    }
+  }
+}
