@@ -121,6 +121,14 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
     expect(L.MUSTER.continueAt('Pas à pas')).toBe('Continuer — Pas à pas');
   });
 
+  it('tells the muster its bonuses and its suggestion (spec 2026-09-29 §5)', () => {
+    expect([L.MUSTER.bonusTag(0.25), L.MUSTER.total(0.65), L.MUSTER.prophecyTag(0.5)]).toEqual(['+25\u202f%', 'Gloire de ce combat\u202f: +65\u202f%', 'Prophétie +50\u202f%']);
+    expect(L.MUSTER.suggestLeave('la chouette')).toBe('Tu pourrais laisser la chouette au camp.');
+    expect(L.MUSTER.suggestTake("les yeux d'Argus")).toBe("Tu pourrais reprendre les yeux d'Argus avec toi.");
+    expect(L.MUSTER.aidsReminder(['la chouette', "le fil d'Ariane"])).toBe("Tes aides\u202f: la chouette et le fil d'Ariane.");
+    expect(L.MUSTER.aidsReminder([])).toBe('Aucune aide\u202f: toutes sont restées au camp.');
+  });
+
   // UI4 playability #1: the victory tally is the game's, not a marked test.
   it('tells the tally without a score, a percentage or a fraction', () => {
     const tally = [

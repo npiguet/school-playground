@@ -473,6 +473,7 @@
           bind:playState
           {minPace}
           {rules}
+          recent={stats?.recent_sessions ?? []}
           {questId}
           {encounter}
           resume={showResumeBanner}

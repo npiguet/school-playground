@@ -1,20 +1,24 @@
 <script lang="ts">
-  // The muster (UI4 Task 3): the order of battle on the parchment before the fight. The resume
-  // ribbon when a dictation or a proofreading waits; otherwise the text's title, its length in
-  // words (no grade code, no « ≈ », Ruling C8), the quest, boss and prophecy ribbons, Éris's taunt
-  // on her voice plate (Ruling C7), the sheet fold, then the pace medallions and « Commencer la
-  // dictée » - or, for the grimoire, Éris's rule and « Ouvrir le grimoire ».
+  // The muster (UI4 Task 3; spec 2026-09-29 §5, the pace-and-aids screen): the order of battle on the
+  // parchment. The resume ribbon when a dictation or a proofreading waits, with a one-line reminder of
+  // the aids taken; otherwise the title over one line of tags, Éris's taunt on her voice plate (Ruling
+  // C7), then « Ton rythme » and « Tes aides » side by side on a wide parchment (one column on a narrow
+  // one), and a start bar that stays in view (plan Ruling R7): the glory this battle is worth, the
+  // suggestion if any, « Commencer la dictée » and the grimoire's way (Ruling R8). The grimoire shows
+  // only the aids and « Ouvrir le grimoire ». One screen, no scrolling, at 1280×800 and on the iPad.
   import { untrack } from 'svelte';
   import OverlayVoice from '../scene/OverlayVoice.svelte';
+  import AidToggles from './AidToggles.svelte';
   import PaceMedallions from './PaceMedallions.svelte';
+  import { AID_LABELS, bonusParts, suggestion, type RecentDefence } from '../../lib/aids';
   import { api } from '../../lib/api';
   import { audioSettings, setChannel } from '../../lib/audio/store.svelte';
   import { MUSTER } from '../../lib/battle/lines';
   import { battleStage, react } from '../../lib/battle/stage.svelte';
   import { isProphecy } from '../../lib/dates';
-  import { PACE_LABELS, type Pace } from '../../lib/dictation/script';
+  import { PACES, PACE_LABELS, type Pace } from '../../lib/dictation/script';
   import type { PlayState } from '../../lib/playState';
-  import type { GameRules } from '../../lib/rules';
+  import { paceBonus, prophecyBonusApplies, type GameRules } from '../../lib/rules';
   import { go } from '../../lib/scene/panelNav';
   import { href } from '../../lib/routes';
   import type { DialogueLine } from '../../lib/scene/types';
@@ -28,6 +32,7 @@
     playState = $bindable(),
     minPace,
     rules,
+    recent,
     questId,
     encounter,
     resume,
@@ -43,11 +48,13 @@
   }: {
     text: TextFull;
     mode: PlayMode;
-    /** Bound for the pace choice. */
+    /** Bound for the pace and the aids' choice. */
     playState: PlayState;
     minPace: Pace;
     /** The camp's rules (spec 2026-09-29 §7): the fight's threshold, the bonuses. */
     rules: GameRules;
+    /** The last defences (the stats' recent sessions), for the suggestion (spec §3). */
+    recent: readonly RecentDefence[];
     questId: number | null;
     encounter: string | null;
     /** A saved dictation or proofreading waits: the resume ribbon instead of the order of battle. */
@@ -76,6 +83,25 @@
   // 2026-09-27, open item 1); « Recommencer » is the way to another. A grimoire has no pace.
   const continueLabel = $derived(mode === 'dictation' ? MUSTER.continueAt(PACE_LABELS[playState.pace].title) : MUSTER.continue);
 
+  // Spec §5: two columns from a 40 rem parchment (1280×800, the iPad in landscape), one below it (Ruling R6).
+  const REM = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  let width = $state(0);
+  const wide = $derived(width >= 40 * REM);
+
+  const paceBonuses = $derived(Object.fromEntries(PACES.map((p) => [p, paceBonus(p, mode, rules)])) as Record<Pace, number>);
+  const bonus = $derived(
+    bonusParts({ pace: playState.pace, mode, aids: playState.aids, prophecy: prophecyBonusApplies(text.due_date) }, rules),
+  );
+  // Only ever suggested (spec §3): the toggles stay as the child set them.
+  const suggested = $derived(suggestion(recent, playState.aids, rules));
+  const suggestionLine = $derived(
+    suggested === null
+      ? null
+      : suggested.kind === 'leave'
+        ? MUSTER.suggestLeave(AID_LABELS[suggested.aid].the)
+        : MUSTER.suggestTake(AID_LABELS[suggested.aid].the),
+  );
+
   function credits(t: TextFull): string {
     if (t.credits) return t.credits;
     if (t.source === 'custom' && t.added_by_name) return `Ajouté par ${t.added_by_name}`;
@@ -93,7 +119,15 @@
   });
 </script>
 
-<div class="muster" class:short={mode === 'grimoire' && !resume}>
+<div
+  class="muster"
+  class:short={mode === 'grimoire' && !resume}
+  class:with-bar={!resume}
+  class:wide
+  data-testid="muster"
+  data-layout={wide ? 'wide' : 'narrow'}
+  bind:clientWidth={width}
+>
   {#if resume}
     <div class="resume">
       <h2 class="muster-title">{text.title}</h2>
@@ -103,12 +137,12 @@
           <button type="button" class="kit-bronze" data-testid="battle-resume-continue" onclick={onContinue}>{continueLabel}</button>
           <button type="button" class="kit-bronze is-quiet" data-testid="battle-resume-restart" onclick={onRestart}>{MUSTER.restart}</button>
         </div>
+        <p class="aids-reminder" data-testid="muster-aids-reminder">{MUSTER.aidsReminder(playState.aids.map((k) => AID_LABELS[k].the))}</p>
       </div>
     </div>
   {:else}
     <header class="head">
       <h2 class="muster-title">{mode === 'grimoire' ? MUSTER.grimoire : text.title}</h2>
-      {#if credits(text)}<p class="credits">{credits(text)}</p>{/if}
       <div class="tags">
         <span class="kit-tag" data-testid="muster-words">{MUSTER.words(text.word_count)}</span>
         {#if questId}
@@ -119,6 +153,7 @@
         {#if text.due_date && isProphecy(text.due_date)}
           <span class="kit-prophecy" data-testid="play-prophecy">{MUSTER.prophecy(longDate(text.due_date))}</span>
         {/if}
+        {#if credits(text)}<span class="credits">{credits(text)}</span>{/if}
       </div>
       {#if encounter === 'eris'}
         <p class="kit-note" data-tone="eris" data-testid="play-boss-banner">{MUSTER.boss(rules.fight_max_per_100)}</p>
@@ -153,36 +188,56 @@
 
     {#if mode === 'grimoire'}
       <p class="rule">{MUSTER.grimoireRule}</p>
-      {#if corruptError}
-        <div class="kit-note" data-tone="eris" role="alert">
-          <p>{corruptError}</p>
-          <button type="button" class="kit-bronze is-quiet" data-testid="btn-back-library" onclick={onToLibrary}>{MUSTER.backToShelves}</button>
+      <AidToggles bind:aids={playState.aids} {rules} {wide} highlight={suggested?.aid ?? null} />
+      <div class="start-bar">
+        <div class="bar-words">
+          <p class="total" data-testid="muster-bonus">
+            {MUSTER.total(bonus.total)}
+            {#if bonus.prophecy > 0}<span class="kit-tag prophecy-bonus" data-testid="muster-prophecy-bonus">{MUSTER.prophecyTag(bonus.prophecy)}</span>{/if}
+          </p>
+          {#if suggestionLine}<p class="suggestion" data-testid="muster-suggestion">{suggestionLine}</p>{/if}
         </div>
-      {:else if corrupting}
-        <p class="kit-ribbon waiting">{MUSTER.corrupting}</p>
-      {:else}
-        <button type="button" class="kit-bronze grand" data-testid="btn-open-grimoire" onclick={onOpenGrimoire}>{MUSTER.openGrimoire}</button>
-      {/if}
+        {#if corruptError}
+          <div class="kit-note" data-tone="eris" role="alert">
+            <p>{corruptError}</p>
+            <button type="button" class="kit-bronze is-quiet" data-testid="btn-back-library" onclick={onToLibrary}>{MUSTER.backToShelves}</button>
+          </div>
+        {:else if corrupting}
+          <p class="kit-ribbon waiting">{MUSTER.corrupting}</p>
+        {:else}
+          <button type="button" class="kit-bronze grand" data-testid="btn-open-grimoire" onclick={onOpenGrimoire}>{MUSTER.openGrimoire}</button>
+        {/if}
+      </div>
     {:else}
-      <PaceMedallions bind:pace={playState.pace} {minPace} />
-      <p class="glory">{MUSTER.paceGlory}</p>
-      <button type="button" class="kit-bronze grand" onclick={onStart}>{MUSTER.start}</button>
-
-      <!-- UI4 playability #8: the fight against Éris has one way in and no side door; a lieutenant's
-           grimoire keeps its encounter, so it is still that lieutenant's battle. -->
-      {#if encounter !== 'eris'}
-        <div class="grimoire-way">
-          <button
-            type="button"
-            class="kit-bronze is-quiet"
-            data-testid="btn-grimoire"
-            onclick={() => go(href('grimoire', { profileId: String(profileId), textId: String(text.id) }, grimoireQuery))}
-          >
-            {MUSTER.grimoire}
-          </button>
-          <p class="caption">{MUSTER.grimoireCaption}</p>
+      <div class="choices">
+        <PaceMedallions bind:pace={playState.pace} {minPace} bonuses={paceBonuses} row={!wide} />
+        <AidToggles bind:aids={playState.aids} {rules} {wide} highlight={suggested?.aid ?? null} />
+      </div>
+      <div class="start-bar">
+        <div class="bar-words">
+          <p class="total" data-testid="muster-bonus">
+            {MUSTER.total(bonus.total)}
+            {#if bonus.prophecy > 0}<span class="kit-tag prophecy-bonus" data-testid="muster-prophecy-bonus">{MUSTER.prophecyTag(bonus.prophecy)}</span>{/if}
+          </p>
+          {#if suggestionLine}<p class="suggestion" data-testid="muster-suggestion">{suggestionLine}</p>{/if}
         </div>
-      {/if}
+        <div class="start-row">
+          <button type="button" class="kit-bronze grand" data-testid="btn-start" onclick={onStart}>{MUSTER.start}</button>
+          <!-- UI4 playability #8: the fight against Éris has one way in and no side door; a lieutenant's
+               grimoire keeps its encounter, so it is still that lieutenant's battle. -->
+          {#if encounter !== 'eris'}
+            <button
+              type="button"
+              class="kit-bronze is-quiet"
+              data-testid="btn-grimoire"
+              onclick={() => go(href('grimoire', { profileId: String(profileId), textId: String(text.id) }, grimoireQuery))}
+            >
+              {MUSTER.grimoire}
+            </button>
+          {/if}
+        </div>
+      </div>
+      {#if encounter !== 'eris'}<p class="caption">{MUSTER.grimoireCaption}</p>{/if}
     {/if}
   {/if}
 </div>
@@ -199,8 +254,8 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    padding: 18px 22px;
+    gap: 10px;
+    padding: 14px 20px;
     color: var(--ink);
     font-family: var(--font-body);
     /* UI5 playability #22: the foot of the parchment fades out, so a line cut by its edge reads as
@@ -227,8 +282,18 @@
   .muster.short > :global(:last-child) {
     margin-bottom: auto;
   }
+  /* Éris's plate, a notch smaller on the order of battle, so the choices and the start bar fit. */
   .muster :global(.overlay-voice) {
     margin: 0;
+    padding: 4px 14px 4px 6px;
+  }
+  .muster :global(.voice-portrait) {
+    width: 52px;
+    height: 52px;
+  }
+  .muster :global(.voice-text) {
+    font-size: 17px;
+    line-height: 1.3;
   }
   .voice-muted {
     margin: 0;
@@ -241,32 +306,26 @@
     margin: 0;
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 26px;
+    font-size: 22px;
     line-height: 1.2;
     color: var(--ink);
   }
   .head {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-  }
-  .credits {
-    margin: -4px 0 0;
-    font-size: 16px;
-    font-style: italic;
-    color: var(--ink-soft);
+    gap: 8px;
   }
   .tags {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px 14px;
+    gap: 6px 12px;
   }
   .tags .kit-tag {
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 600;
-    padding-top: 6px;
-    padding-bottom: 6px;
+    padding-top: 3px;
+    padding-bottom: 3px;
   }
   /* Nothing to tie the tag to on the parchment: the punched hole stays, the cord goes. */
   .tags .kit-tag::after {
@@ -279,15 +338,24 @@
     --tag-tilt: 1deg;
   }
   .quest .kit-seal {
-    --seal-size: 28px;
+    --seal-size: 22px;
   }
   .tags .kit-prophecy {
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
   }
   .kit-note {
     margin: 0;
     font-weight: 600;
+  }
+  /* Éris's fight rule under the tags: one line where the parchment allows it. */
+  .head .kit-note {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 16px;
+  }
+  .head .kit-note::before {
+    top: 10px;
   }
   .kit-note p {
     margin: 0 0 10px;
@@ -317,12 +385,6 @@
     font-size: 18px;
     line-height: 1.45;
   }
-  .glory {
-    margin: 0;
-    font-size: 16px;
-    font-style: italic;
-    color: var(--ink-soft);
-  }
   .grand {
     align-self: center;
     min-width: min(100%, 320px);
@@ -332,19 +394,163 @@
   .waiting {
     align-self: center;
   }
-  .grimoire-way {
+  /* Plan Ruling R7: the start bar is the muster's foot, so the fade that says "more below" goes. */
+  .muster.with-bar {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .muster.with-bar::after {
+    display: none;
+  }
+  .choices {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  /* Narrow (1024×768): a notch tighter, so Éris's fight (its rule and a quest tag more) fits too. */
+  .muster:not(.wide) {
+    gap: 8px;
+    padding-top: 10px;
+  }
+  .muster:not(.wide) .head .kit-note {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .muster:not(.wide) .head .kit-note::before {
+    top: 8px;
+  }
+  .muster:not(.wide) :global(.voice-text) {
+    font-size: 16px;
+    line-height: 1.25;
+  }
+  .muster:not(.wide) .choices {
+    gap: 8px;
+  }
+  .muster:not(.wide) .head {
+    gap: 6px;
+  }
+  .muster.wide .choices {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  /* Spec §5: « Commencer la dictée » stays in view, sticky at the bottom of the parchment. */
+  .start-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    margin-top: 6px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(138, 90, 40, 0.45);
+    gap: 4px;
+    margin: 0 -20px;
+    padding: 6px 20px 4px;
+    background:
+      linear-gradient(var(--battle-parchment-edge), var(--battle-parchment-edge)),
+      var(--tex-parchment);
+    box-shadow: 0 -8px 12px -10px rgba(60, 35, 10, 0.45);
+  }
+  .total {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px 10px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .prophecy-bonus {
+    font-size: 15px;
+    padding: 2px 10px 2px 20px;
+    --tag-tilt: -1deg;
+  }
+  .prophecy-bonus::before {
+    left: 7px;
+    top: calc(50% - 3px);
+    width: 6px;
+    height: 6px;
+  }
+  .prophecy-bonus::after {
+    display: none;
+  }
+  .suggestion {
+    margin: 0;
+    font-size: 16px;
+    font-style: italic;
     text-align: center;
+  }
+  .start-row {
+    align-self: stretch;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
   }
   .caption {
     margin: 0;
-    max-width: 34em;
+    align-self: center;
+    max-width: 48em;
+    font-size: 14px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .credits {
+    font-size: 15px;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+  .bar-words {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  /* A phone in landscape (the compact stage, under 560 px tall): the bar is one slim row, the total
+     and the suggestion on the left, the buttons on the right, so the choices keep most of the
+     parchment. */
+  @media (max-height: 559px) {
+    .start-bar {
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 20px;
+    }
+    .bar-words {
+      flex: 1 1 auto;
+      min-width: 0;
+      align-items: flex-start;
+      gap: 2px;
+    }
+    .total {
+      justify-content: flex-start;
+      gap: 2px 8px;
+      font-size: 14px;
+    }
+    .prophecy-bonus {
+      font-size: 12px;
+    }
+    .suggestion {
+      font-size: 14px;
+      text-align: left;
+    }
+    .start-row {
+      flex: none;
+      align-self: auto;
+      flex-wrap: nowrap;
+      gap: 6px;
+    }
+    .start-bar .kit-bronze {
+      flex: none;
+      min-width: 0;
+      min-height: 48px;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+  }
+  .aids-reminder {
+    margin: 0;
     font-size: 16px;
     color: var(--ink-soft);
   }

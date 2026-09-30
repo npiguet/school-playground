@@ -5,7 +5,7 @@
 import { AID_KEYS, AID_LABELS, listFr, type AidKey } from '../aids';
 import { genderFor, lieutenantName } from './eris';
 import { LIEUTENANT_ORDER, type LieutenantKey } from './types';
-import { longDate } from '../text/french';
+import { longDate, rateText } from '../text/french';
 
 /** Which aids were taken last (the hero's remembered choice, `settings.aids`, plan Ruling R1); null when
  *  the hero has none yet (never fought): all five go along. */
@@ -17,7 +17,7 @@ export function aidsJournalLine(aids: readonly AidKey[] | null): string {
 }
 
 /** What each aid left at the camp is worth (`aid_bonus`, the rules file). */
-export const aidBonusLine = (bonus: number) => `Chaque aide laissée au camp\u202f: +${Math.round(bonus * 100)}\u202f% de gloire.`;
+export const aidBonusLine = (bonus: number) => `Chaque aide laissée au camp\u202f: +${rateText(bonus)} de gloire.`;
 
 /** Who plays each of Éris's tricks, and the rule it bends in plain words (the grammar term is the
  *  small print under the monster, playability #1). A trick no lieutenant owns is one of Éris's own

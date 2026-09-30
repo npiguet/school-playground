@@ -4,7 +4,8 @@
 // the dragon's explanation intros) live in content/dialogue since UI5 (spec §8). Each section is
 // fenced by the task that renders it; a lane edits only its own fence.
 import { genderFor, lieutenantName } from '../world/eris';
-import { plural } from '../text/french';
+import { listFr } from '../aids';
+import { plural, rateText } from '../text/french';
 import type { PlayMode } from '../types';
 import type { OpponentId } from './battle';
 import type { Outcome } from './hp';
@@ -45,9 +46,8 @@ export const MUSTER = {
   showSheet: 'Voir la feuille',
   hideSheet: 'Cacher la feuille',
   sheetAlt: (n: number) => `Page ${n} de la feuille`,
-  paceHeading: 'Choisis ton rythme',
+  paceHeading: 'Ton rythme',
   paceLocked: 'Pas pendant un combat',
-  paceGlory: 'Plus le rythme est vif, plus la gloire est grande.',
   start: 'Commencer la dictée',
   grimoire: 'Grimoire corrompu',
   grimoireCaption: 'Éris a déjà recopié ce texte… avec ses dés-accords. Pas de dictée\u202f: relis et répare.',
@@ -58,6 +58,16 @@ export const MUSTER = {
   // UI5 Ruling E7: a muted voice keeps the dictation's pace but reads nothing aloud.
   voiceMuted: 'La voix de la Pythie est en sourdine.',
   voiceBack: 'Rendre la voix',
+  // Spec 2026-09-29 §5: the aids' column, the bonuses, the suggestion, the resume ribbon's reminder.
+  aidsHeading: 'Tes aides',
+  take: 'Emporter',
+  leave: 'Laisser au camp',
+  bonusTag: (x: number) => `+${rateText(x)}`,
+  total: (x: number) => `Gloire de ce combat\u202f: +${rateText(x)}`,
+  prophecyTag: (x: number) => `Prophétie +${rateText(x)}`,
+  suggestLeave: (the: string) => `Tu pourrais laisser ${the} au camp.`,
+  suggestTake: (the: string) => `Tu pourrais reprendre ${the} avec toi.`,
+  aidsReminder: (names: readonly string[]) => (names.length > 0 ? `Tes aides\u202f: ${listFr(names)}.` : 'Aucune aide\u202f: toutes sont restées au camp.'),
 } as const;
 
 // ===== Dictation (Task 4) =====
@@ -184,7 +194,7 @@ export const VICTORY = {
     c === 0
       ? `${mode === 'grimoire' ? 'Ses dés-accords' : 'Ses pièges'} se sont bien cachés cette fois`
       : `${mode === 'grimoire' ? 'Dés-accords retrouvés' : 'Pièges déjoués'}\u202f: ${c} sur ${d}`,
-  /** The score is the glory the muster promised (« Plus le rythme est vif, plus la gloire est grande »). */
+  /** The score is the glory the muster promised (its « Gloire de ce combat » line). */
   score: (s: number) => `Gloire gagnée\u202f: ${s}`,
   words: (ok: number, all: number) =>
     ok === all

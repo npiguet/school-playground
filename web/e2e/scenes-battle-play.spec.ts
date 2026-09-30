@@ -48,7 +48,8 @@ test('the muster is an order of battle: Éris taunts, three pace medallions, no 
     await expect(sheet.getByTestId(`pace-option-${i + 1}`).locator('.desc')).toHaveText(desc);
   }
   await expect(sheet.getByTestId('pace-option-4')).toHaveCount(0);
-  await expect(sheet.getByText('Plus le rythme est vif, plus la gloire est grande.')).toBeVisible();
+  await expect(sheet.getByTestId('muster-bonus')).toContainText('Gloire de ce combat');
+  await expect(sheet.getByTestId('muster-aids').getByRole('button')).toHaveCount(5);
   await expect(sheet.locator(LEGACY_UI)).toHaveCount(0);
   await expectOverlayTapTargets(page, 'battle-parchment');
   expect(await redScan(page)).toEqual([]);

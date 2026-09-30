@@ -46,8 +46,9 @@ describe('the camp snapshot is read through campFor only (final review I2)', () 
 
 describe('one percent formatter (final review M1)', () => {
   const SPACES = ' ' + String.fromCharCode(0xa0, 0x202f);
-  const TEMPLATE_PERCENT = new RegExp(`}[${SPACES}]+%`);
-  // A space, a no-break space or a narrow no-break space between a template's `}` and « % ».
+  const TEMPLATE_PERCENT = new RegExp(`}(?:[${SPACES}]|\\\\u202f|\\\\u00a0)+%`);
+  // A space, a no-break space or a narrow no-break space (typed, or as its `\u202f` / `\u00a0` escape)
+  // between a template's `}` and « % ».
   it('builds no « n % » outside rateText', () => {
     expect(hits(SOURCES.filter((f) => !f.endsWith('lib/text/french.ts')), TEMPLATE_PERCENT)).toEqual([]);
   });
@@ -55,6 +56,7 @@ describe('one percent formatter (final review M1)', () => {
   it('catches a planted one', () => {
     expect(TEMPLATE_PERCENT.test('`${Math.round(r * 100)}' + String.fromCharCode(0x202f) + '%`')).toBe(true);
     expect(TEMPLATE_PERCENT.test('({pct} %)')).toBe(true);
+    expect(TEMPLATE_PERCENT.test('`+${Math.round(b * 100)}\\u202f% de gloire`')).toBe(true);
     expect(TEMPLATE_PERCENT.test('{rateText(rate)}')).toBe(false);
   });
 });
