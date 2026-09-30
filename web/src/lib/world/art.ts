@@ -46,7 +46,7 @@ export const LIEUTENANT_ICONS: Record<LieutenantKey, string> = {
   lethe: icon('lt-lethe'),
 };
 
-/** The proofreading help tools (Bouclier de Persée, Chouette d'Athéna, Fil d'Ariane, Argus). */
+/** The proofreading's review aids (Persée, Athéna, Ariane, Argus, Palamède). */
 export const TOOL_ICONS = {
   persee: icon('tool-persee'),
   athena: icon('tool-athena'),
