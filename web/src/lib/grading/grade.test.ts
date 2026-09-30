@@ -21,7 +21,7 @@ vi.mock('@content/homophones.json', () => ({
   },
 }));
 
-import { gradeText, gradeSession, computeScore, errorKey } from './grade';
+import { gradeText, gradeSession, errorKey } from './grade';
 import type { Annotation } from './types';
 
 import { tokenize } from './tokenize';
@@ -91,28 +91,11 @@ describe('errorKey', () => {
   });
 });
 
-describe('computeScore', () => {
-  it('follows the formula and pace multiplier', () => {
-    expect(computeScore(10, 0, null, 1)).toBe(70);          // 20 + 50 bonus
-    expect(computeScore(10, 2, 0.5, 1)).toBe(110);          // 20 + 40 + 50
-    expect(computeScore(10, 2, 0.5, 4)).toBe(220);
-    expect(computeScore(0, 0, 0, 2)).toBe(0);
-  });
-  it('clamps paceLevel into 1-4 and never produces NaN', () => {
-    expect(computeScore(10, 0, null, 0)).toBe(computeScore(10, 0, null, 1));
-    expect(computeScore(10, 0, null, -3)).toBe(computeScore(10, 0, null, 1));
-    expect(computeScore(10, 0, null, 5)).toBe(computeScore(10, 0, null, 4));
-    expect(computeScore(10, 0, null, 99)).toBe(computeScore(10, 0, null, 4));
-    expect(computeScore(10, 0, null, NaN)).toBe(computeScore(10, 0, null, 1));
-    expect(Number.isNaN(computeScore(10, 0, null, NaN))).toBe(false);
-  });
-});
-
 describe('gradeSession', () => {
   const draft = 'Les fée danse dans la clairiere. Elles chantent est les oiseaux les écoutent.';
   it('splits draft errors into caught, missed and introduced', () => {
     const final = 'Les fées dansent dans la clairiere. Elles chante est les oiseaux les écoutent.';
-    const s = gradeSession(REF, draft, final, ann(), { paceLevel: 2 });
+    const s = gradeSession(REF, draft, final, ann());
     expect(s.draftErrors).toHaveLength(4);
     expect(s.caught.map((e) => e.expected)).toEqual(['fées', 'dansent']);
     expect(s.missed.map((e) => e.expected)).toEqual(['clairière', 'et']);
@@ -120,7 +103,6 @@ describe('gradeSession', () => {
     expect(s.catchRate).toBeCloseTo(0.5);
     expect(s.finalErrors).toHaveLength(3);
     expect(s.correctWords).toBe(10);
-    expect(s.score).toBe(computeScore(10, 2, 0.5, 2));
     expect(s.byCategory['agreement:verb']).toEqual({ opportunities: 3, draft: 1, caught: 1, missed: 0, introduced: 1 });
     expect(s.byCategory['agreement:number']).toEqual({ opportunities: 6, draft: 1, caught: 1, missed: 0, introduced: 0 });
     expect(s.byCategory['homophone']).toEqual({ opportunities: 3, draft: 1, caught: 0, missed: 1, introduced: 0 });
@@ -129,14 +111,13 @@ describe('gradeSession', () => {
     expect(s.version).toBe(1);
   });
   it('returns a null catch rate when the draft had no errors', () => {
-    const s = gradeSession(REF, REF, REF, ann(), { paceLevel: 1 });
+    const s = gradeSession(REF, REF, REF, ann());
     expect(s.catchRate).toBeNull();
     expect(s.caught).toEqual([]);
-    expect(s.score).toBe(computeScore(13, 0, null, 1));
   });
   it('counts a wrong word changed into another wrong word as missed', () => {
     const final = draft.replace('danse ', 'dansant ');
-    const s = gradeSession(REF, draft, final, ann(), { paceLevel: 1 });
+    const s = gradeSession(REF, draft, final, ann());
     expect(s.missed.some((e) => e.expected === 'dansent' && e.typed === 'dansant')).toBe(true);
     expect(s.caught.map((e) => e.expected)).not.toContain('dansent');
   });

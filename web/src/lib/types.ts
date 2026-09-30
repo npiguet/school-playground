@@ -172,7 +172,6 @@ export interface SessionCreate {
   draft: string;
   final: string;
   result: unknown;
-  score: number;
   catch_rate: number | null;
   /** SP3 Task 7: which lieutenant/boss this session was played against, if any (world/quests.ts'
    *  quest-aware Play). */

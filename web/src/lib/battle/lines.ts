@@ -7,6 +7,7 @@ import { genderFor, lieutenantName } from '../world/eris';
 import { listFr } from '../aids';
 import { plural, rateText } from '../text/french';
 import type { PlayMode } from '../types';
+import type { CopyVerdict } from '../rules';
 import type { OpponentId } from './battle';
 import type { Outcome } from './hp';
 
@@ -181,6 +182,12 @@ export function victoryTitle(outcome: Outcome, opponent: OpponentId): string {
   }
   return 'Le combat continue';
 }
+const COPY_VERDICT: Record<CopyVerdict, string> = {
+  belle: 'Une belle copie.',
+  correcte: 'Une copie correcte.',
+  reprendre: 'Une copie à reprendre.',
+};
+
 export const VICTORY = {
   counting: 'Les Muses comptent les pièges déjoués…',
   submitError: (e: string) => `Les Muses n'ont pas pu noter cette partie (${e}).`,
@@ -193,8 +200,9 @@ export const VICTORY = {
     c === 0
       ? `${mode === 'grimoire' ? 'Ses dés-accords' : 'Ses pièges'} se sont bien cachés cette fois`
       : `${mode === 'grimoire' ? 'Dés-accords retrouvés' : 'Pièges déjoués'}\u202f: ${c} sur ${d}`,
-  /** The score is the glory the muster promised (its « Gloire de ce combat » line). */
-  score: (s: number) => `Gloire gagnée\u202f: ${s}`,
+  /** Spec 2026-09-29 §2: the handed-in copy, in the camp's voice, with the count; never a grade. */
+  copy: (mistakes: number, words: number, verdict: CopyVerdict) =>
+    `Ta copie\u202f: ${mistakes === 0 ? 'pas une faute' : plural(mistakes, 'faute', 'fautes')} sur ${plural(words, 'mot', 'mots')}. ${COPY_VERDICT[verdict]}`,
   words: (ok: number, all: number) =>
     ok === all
       ? 'Pas un mot de travers\u202f!'
@@ -240,8 +248,6 @@ export const VICTORY = {
   bossWon: 'Impossible\u202f! Garde ta pomme, je reviendrai avec de nouvelles ruses.',
   // UI4 playability #10: her exit, in her own voice on her plate (it was a narrator's note).
   bossLost: "Ha\u202f! Je garde ma pomme… pour cette fois. Le combat reste ouvert\u202f: reviens m'affronter quand tu veux.",
-  bossTooEasy:
-    "Dictée parfaite\u202f: Éris n'a rien pu saboter\u202f! Furieuse, elle va corrompre le parchemin elle-même. Relance le combat pour démasquer ses pièges.",
 } as const;
 export function dragonTally(o: { draft: number; caught: number; mode: PlayMode }): string {
   if (o.draft === 0) return "Pas un piège dans ta dictée\u202f: Éris n'a rien pu glisser\u202f!";

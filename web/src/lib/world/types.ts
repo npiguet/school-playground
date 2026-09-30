@@ -147,9 +147,7 @@ export interface Progression {
   rewards: { id: string; kind: RewardKind; name: string }[];
   dragon: { stage_before: DragonStage; stage_after: DragonStage; needs_name: boolean };
   weekly: { target: number; done: number; reached_now: boolean };
-  // P1-5: a draft with too few errors to judge (< min_draft) is a draw ('too_easy'), not a win -
-  // distinct from a real loss so the reveal shows its own encouragement instead of Éris's mocking
-  // loss line for a fight she never got to fight.
-  boss: { tier: number; won: boolean; too_easy: boolean } | null;
+  // Spec 2026-09-29 §2: the fight is won on the copy (no more « too easy » draw).
+  boss: { tier: number; won: boolean } | null;
   encounter: string | null;
 }

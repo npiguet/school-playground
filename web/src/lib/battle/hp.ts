@@ -34,9 +34,9 @@ export function reckoningSteps(draft: number, caught: number): number[] {
 // (a lieutenant "on the back foot", partway to a rout) reads as ground won; the boss's win/loss is
 // binary (the server's `boss.won`), and a real loss must never borrow that half-victory title
 // ("Éris recule !") while her own line says she keeps the apple. 'standoff' ("Le combat continue")
-// fits either kind of loss: too_easy (undefeated - she'll try harder) or a genuine defeat (she keeps
+// fits a genuine defeat (she keeps
 // the apple, but stays open to a rematch), and its opponent reaction is a taunt, not a retreat.
-export function outcomeOf(r: { draft: number; caught: number }, boss: { won: boolean; too_easy: boolean } | null): Outcome {
+export function outcomeOf(r: { draft: number; caught: number }, boss: { won: boolean } | null): Outcome {
   if (boss) return boss.won ? 'rout' : 'standoff';
   if (r.draft === 0 || r.caught >= r.draft) return 'rout';
   return r.caught > 0 ? 'push' : 'standoff';
@@ -47,7 +47,7 @@ export function outcomeOf(r: { draft: number; caught: number }, boss: { won: boo
  *  provisional outcome that a retry would then replace (UI5 hears one outcome per battle). */
 export function reckoningVerdict(
   r: { draft: number; caught: number },
-  o: { bossFight: boolean; progression: { boss: { won: boolean; too_easy: boolean } | null } | null },
+  o: { bossFight: boolean; progression: { boss: { won: boolean } | null } | null },
 ): Outcome | null {
   if (o.bossFight && !o.progression) return null;
   return outcomeOf(r, o.progression?.boss ?? null);

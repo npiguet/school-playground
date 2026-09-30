@@ -14,6 +14,7 @@
   let {
     title,
     result,
+    copy,
     mode,
     reduced,
     showActions,
@@ -29,6 +30,8 @@
   }: {
     title: string;
     result: SessionResult;
+    /** The copy line (spec 2026-09-29 §2), in place of the old score. */
+    copy: string;
     mode: PlayMode;
     reduced: boolean;
     /** False only while the Muses count: no flow waits on the spoils or the dialogue. */
@@ -62,7 +65,7 @@
     </header>
     <div class="tally">
       <p class="tally-line" data-testid="results-catch-rate">{draft === 0 ? VICTORY.perfect : VICTORY.caught(caught, draft, mode)}</p>
-      <p class="tally-small" data-testid="results-score">{VICTORY.score(result.score)}</p>
+      <p class="tally-small" data-testid="results-copy">{copy}</p>
       <p class="tally-small">{VICTORY.words(result.correctWords, result.totalWords)}</p>
       {#if result.tools && result.tools.threadsDrawn > 0}<p class="tally-small" data-testid="results-threads">{VICTORY.threads(result.tools.threadsCorrect, result.tools.threadsDrawn)}</p>{/if}
       {#if introduced > 0}<p class="tally-note">{VICTORY.introduced(introduced)}</p>{/if}

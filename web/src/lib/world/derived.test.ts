@@ -67,7 +67,7 @@ describe('withDerivedCategories', () => {
 
   it('adds derived:lethe from the last third and leaves the original categories intact', () => {
     const draft = ref.replace('mot75', 'moX75').replace('mot3', 'moX3');
-    const base = gradeSession(ref, draft, draft, null, { paceLevel: 1 });
+    const base = gradeSession(ref, draft, draft, null);
     const out = withDerivedCategories(base, ref, draft, null);
     expect(out.byCategory.lexical).toEqual(base.byCategory.lexical);
     expect(out.byCategory['derived:lethe' as never]).toMatchObject({ draft: 1, caught: 0, missed: 1 });
@@ -76,7 +76,7 @@ describe('withDerivedCategories', () => {
 
   it('skips lethe on short texts and sirenes without annotation', () => {
     const short = 'Les fées dansent dans la clairière.';
-    const out = withDerivedCategories(gradeSession(short, short, short, null, { paceLevel: 1 }), short, short, null);
+    const out = withDerivedCategories(gradeSession(short, short, short, null), short, short, null);
     expect(out.byCategory['derived:lethe' as never]).toBeUndefined();
     expect(out.byCategory['derived:sirenes' as never]).toBeUndefined();
   });

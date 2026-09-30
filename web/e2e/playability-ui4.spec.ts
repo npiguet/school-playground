@@ -316,7 +316,7 @@ async function bossSection(w: Walk) {
       if (route.request().method() !== 'POST') return route.fallback();
       const res = await route.fetch();
       const json = await res.json();
-      json.progression.boss = { tier: 1, won, too_easy: false };
+      json.progression.boss = { tier: 1, won };
       if (won) json.progression.rewards = [...json.progression.rewards, { id: 'sandales_hermes', kind: 'gear', name: "Sandales d'Hermès" }];
       await route.fulfill({ response: res, json });
     });

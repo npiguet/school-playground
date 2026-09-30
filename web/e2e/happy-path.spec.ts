@@ -60,7 +60,7 @@ test('create profile → add text → dictation → proofreading → results →
   // Nor the rate as it used to read (with its narrow no-break space): the journal keeps it.
   await expect(page.getByTestId('results-catch-rate')).not.toContainText('50\u202f%');
   expect(await page.getByTestId('results-catch-rate').textContent()).not.toContain('50\u202f%');
-  await expect(page.getByTestId('results-score')).toHaveText(/^Gloire gagnée\u202f: \d+$/);
+  await expect(page.getByTestId('results-copy')).toHaveText('Ta copie\u202f: 1 faute sur 13 mots. Une copie correcte.');
   await page.getByTestId('battle-revoir').click();
   await expect(page.getByTestId('overlay-revoir').getByText(/chantent/).first()).toBeVisible();
   await closeOverlay(page);

@@ -215,7 +215,6 @@ export function makeResult(o: { words?: number; draft?: number; caught?: number;
     correctWords: words - draft,
     totalWords: words,
     catchRate: draft ? caught / draft : null,
-    score: 10,
   };
 }
 

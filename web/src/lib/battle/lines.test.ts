@@ -43,7 +43,6 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
       ...Object.values(L.CHALLENGE_LINES),
       L.VICTORY.bossWon,
       L.VICTORY.bossLost,
-      L.VICTORY.bossTooEasy,
       L.VICTORY.erisIntroduced(2),
       ...LIEUTENANT_ORDER.flatMap((k) => BANDS.map((b) => dossierLine(k, b))),
       ...[[0, 0], [10, 1], [10, 5], [10, 9]].map(([t, c]) => smallTricksLine(t, c)),
@@ -83,17 +82,13 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   // and both kinds of loss (too easy, or a genuine defeat) share a title that never claims she was
   // pushed back, matching her own line about the fight staying open.
   it('gives each boss outcome a title and a line that agree with each other', () => {
-    const won = outcomeOf({ draft: 5, caught: 5 }, { won: true, too_easy: false });
+    const won = outcomeOf({ draft: 5, caught: 5 }, { won: true });
     expect(L.victoryTitle(won, 'eris')).toBe('Victoire\u202f!');
     expect(L.VICTORY.bossWon).not.toMatch(/recule|reculent/);
 
-    const tooEasy = outcomeOf({ draft: 0, caught: 0 }, { won: false, too_easy: true });
-    expect(L.victoryTitle(tooEasy, 'eris')).toBe('Le combat continue');
-    expect(L.VICTORY.bossTooEasy).not.toMatch(/recule|reculent/);
-
     // A genuine loss, whatever she caught along the way (never the "push" half-victory title).
     for (const caught of [0, 3, 5]) {
-      const lost = outcomeOf({ draft: 5, caught }, { won: false, too_easy: false });
+      const lost = outcomeOf({ draft: 5, caught }, { won: false });
       expect(L.victoryTitle(lost, 'eris'), `caught ${caught}`).toBe('Le combat continue');
     }
     // Her line keeps the apple - the title must never say she was pushed back.
@@ -135,7 +130,7 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
       L.VICTORY.caught(0, 2, 'dictation'),
       L.VICTORY.caught(0, 3, 'grimoire'),
       L.VICTORY.caught(1, 2, 'dictation'),
-      L.VICTORY.score(94),
+      L.VICTORY.copy(3, 150, 'belle'),
       L.VICTORY.words(12, 13),
       L.VICTORY.words(1, 13),
       L.VICTORY.words(13, 13),
@@ -144,7 +139,12 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
     for (const s of tally) expect(s, s).not.toMatch(/Score|%|\d\s*\/\s*\d|\b0 sur\b/);
     expect(L.VICTORY.caught(0, 2, 'dictation')).toBe('Ses pièges se sont bien cachés cette fois');
     expect(L.VICTORY.caught(0, 3, 'grimoire')).toBe('Ses dés-accords se sont bien cachés cette fois');
-    expect(L.VICTORY.score(94)).toBe('Gloire gagnée\u202f: 94');
+    expect(L.VICTORY.copy(3, 150, 'belle')).toBe('Ta copie\u202f: 3 fautes sur 150 mots. Une belle copie.');
+    expect(L.VICTORY.copy(0, 120, 'belle')).toBe('Ta copie\u202f: pas une faute sur 120 mots. Une belle copie.');
+    expect(L.VICTORY.copy(1, 13, 'correcte')).toBe('Ta copie\u202f: 1 faute sur 13 mots. Une copie correcte.');
+    expect(L.VICTORY.copy(12, 100, 'reprendre')).toBe('Ta copie\u202f: 12 fautes sur 100 mots. Une copie à reprendre.');
+    // Never a grade out of 6 (spec 2026-09-29 §2).
+    for (const v of ['belle', 'correcte', 'reprendre'] as const) expect(L.VICTORY.copy(2, 60, v)).not.toMatch(/\bsur 6\b|\/\s*6\b|note/);
     expect(L.VICTORY.words(12, 13)).toBe('12 mots sur 13 tiennent bon');
     expect(L.VICTORY.words(1, 13)).toBe('1 mot sur 13 tient bon');
     expect(L.VICTORY.words(13, 13)).toBe('Pas un mot de travers\u202f!');

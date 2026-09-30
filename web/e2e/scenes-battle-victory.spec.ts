@@ -56,7 +56,7 @@ test('the reckoning strikes once per trap caught, then the lieutenant falls back
   // UI4 playability #1: the tally in the game's words - no percentage (the rate as rateText wrote
   // it, narrow no-break space and all), no « Score », no « x / y ».
   await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués\u202f: 1 sur 2');
-  await expect(page.getByTestId('results-score')).toHaveText(/^Gloire gagnée\u202f: \d+$/);
+  await expect(page.getByTestId('results-copy')).toHaveText('Ta copie\u202f: 1 faute sur 13 mots. Une copie correcte.');
   await expect(page.getByTestId('victory')).toContainText('12 mots sur 13 tiennent bon');
   await expect(page.getByTestId('victory')).not.toContainText(/Score|%|\d\s*\/\s*\d/);
   expect(await page.getByTestId('results-catch-rate').textContent()).not.toContain('50\u202f%');
@@ -359,6 +359,32 @@ async function counted(page: import('@playwright/test').Page, request: import('@
   return page.getByTestId('victory');
 }
 
+// Spec 2026-09-29 §4: the session XP broken down, then the quest's.
+test('the XP chips break the session down: text, pace, aids, prophecy, then the quest', async ({ page, request }, testInfo) => {
+  const sheet = await counted(
+    page,
+    request,
+    `Vic20-${testInfo.project.name}`,
+    progression({
+      xp: { session: 94, parts: { text: 57, pace: 8, aids: 13, prophecy: 16 }, bonuses: [{ reason: 'board', amount: 60 }], total_before: 487, total_after: 641, rank_before: 3, rank_after: 3, title_after: 'Sentinelle des textes' },
+      quests: [{ id: 3, kind: 'board', target: 'hydre', counted: true, progress: 3, goal: 3, completed: true, reward_id: null }],
+    }),
+  );
+  await expect(sheet.getByTestId('xp-chip')).toHaveText(['Texte +57', 'Rythme +8', 'Sans aides +13', 'Prophétie +16', 'Quête +60']);
+});
+
+test('a bonus part at zero shows no chip, and a victory saved before the parts keeps its one text chip', async ({ page, request }, testInfo) => {
+  const sheet = await counted(
+    page,
+    request,
+    `Vic21-${testInfo.project.name}`,
+    progression({ xp: { session: 70, parts: { text: 57, pace: 0, aids: 13, prophecy: 0 }, bonuses: [], total_before: 487, total_after: 557, rank_before: 3, rank_after: 3, title_after: 'Sentinelle des textes' } }),
+  );
+  await expect(sheet.getByTestId('xp-chip')).toHaveText(['Texte +57', 'Sans aides +13']);
+  const old = await counted(page, request, `Vic22-${testInfo.project.name}`, progression());
+  await expect(old.getByTestId('xp-chip')).toHaveText(['Texte +51']);
+});
+
 // UI4 playability #4: the biggest win of the game - Éris's defeat line, her treasure once, on the
 // scroll's own paper, brought into view as it is revealed.
 test('beating Éris: her defeat line and her treasure, once, in the parchment style, in view', async ({ page, request }, testInfo) => {
@@ -370,7 +396,7 @@ test('beating Éris: her defeat line and her treasure, once, in the parchment st
       xp: { session: 51, bonuses: [{ reason: 'boss', amount: 300 }], total_before: 487, total_after: 838, rank_before: 3, rank_after: 4, title_after: 'Garde des Parchemins' },
       quests: [{ id: 9, kind: 'boss', target: 'eris', counted: true, progress: 1, goal: 1, completed: true, reward_id: 'sandales_hermes' }],
       rewards: [{ id: 'sandales_hermes', kind: 'gear', name: "Sandales d'Hermès" }],
-      boss: { tier: 1, won: true, too_easy: false },
+      boss: { tier: 1, won: true },
       encounter: 'eris',
     }),
     true,
@@ -401,7 +427,7 @@ test('beating Éris: her defeat line and her treasure, once, in the parchment st
 });
 
 test('Éris escaping speaks for herself, on her plate', async ({ page, request }, testInfo) => {
-  const sheet = await counted(page, request, `Vic15-${testInfo.project.name}`, progression({ boss: { tier: 1, won: false, too_easy: false }, encounter: 'eris' }), true);
+  const sheet = await counted(page, request, `Vic15-${testInfo.project.name}`, progression({ boss: { tier: 1, won: false }, encounter: 'eris' }), true);
   const boss = sheet.getByTestId('reveal-boss');
   await expect(boss.getByTestId('boss-voice')).toHaveAttribute('data-speaker', 'eris');
   await expect(boss).toContainText("Ha\u202f! Je garde ma pomme… pour cette fois. Le combat reste ouvert\u202f: reviens m'affronter quand tu veux.");

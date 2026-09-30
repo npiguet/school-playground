@@ -14,7 +14,6 @@ import type {
   TokenError,
 } from './types';
 
-const PACE_MULTIPLIERS = [1, 1.25, 1.5, 2];
 
 const STAT_KEYS: StatKey[] = [
   'agreement:verb',
@@ -60,18 +59,6 @@ export function errorKey(e: TokenError): string {
 export function statKey(e: TokenError): StatKey {
   if (e.category === 'agreement') return `agreement:${e.sub ?? 'other'}` as StatKey;
   return e.category;
-}
-
-/** Clamps to a valid pace level (1-4); a non-finite input (e.g. NaN) defaults to 1. */
-function clampPaceLevel(paceLevel: number): number {
-  if (!Number.isFinite(paceLevel)) return 1;
-  return Math.min(4, Math.max(1, Math.round(paceLevel)));
-}
-
-export function computeScore(correctWords: number, caughtCount: number, catchRate: number | null, paceLevel: number): number {
-  const bonus = catchRate === null ? 50 : Math.round(100 * catchRate);
-  const multiplier = PACE_MULTIPLIERS[clampPaceLevel(paceLevel) - 1];
-  return Math.round((2 * correctWords + 20 * caughtCount + bonus) * multiplier);
 }
 
 function computeOpportunities(refTokens: Token[], annots: (AnnotToken | undefined)[]): Record<StatKey, number> {
@@ -131,7 +118,6 @@ export function gradeSession(
   draft: string,
   final: string,
   annotation: Annotation | null,
-  { paceLevel }: { paceLevel: number },
 ): SessionResult {
   const draftGrade = gradeText(reference, draft, annotation);
   const finalGrade = gradeText(reference, final, annotation);
@@ -168,6 +154,5 @@ export function gradeSession(
     correctWords: finalGrade.correctWords,
     totalWords: finalGrade.totalWords,
     catchRate,
-    score: computeScore(finalGrade.correctWords, caught.length, catchRate, paceLevel),
   };
 }

@@ -295,9 +295,7 @@
   function computeResult() {
     if (!text || !playState) return;
     result = withDerivedCategories(
-      gradeSession(text.body, playState.draft, playState.current, text.annotation as Annotation, {
-        paceLevel: playState.pace,
-      }),
+      gradeSession(text.body, playState.draft, playState.current, text.annotation as Annotation),
       text.body,
       playState.draft,
       text.annotation as Annotation,
@@ -329,7 +327,6 @@
         draft: stateAtSubmit.draft,
         final: stateAtSubmit.current,
         result: resultAtSubmit,
-        score: resultAtSubmit.score,
         catch_rate: resultAtSubmit.catchRate,
         encounter,
         quest_id: questId,

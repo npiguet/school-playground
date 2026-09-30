@@ -20,6 +20,8 @@
   import { erisVictoryLine, explainIntro, stillStanding } from '../../lib/dialogue/battle';
   import { EGG } from '../../lib/dialogue/speakers';
   import { frenchSpacing } from '../../lib/text/french';
+  import { copyVerdict, per100, rulesOf } from '../../lib/rules';
+  import { campStore } from '../../lib/world/campStore.svelte';
   import type { SessionResult } from '../../lib/grading/types';
   import type { PlayState } from '../../lib/playState';
   import { clockReset, playClock } from '../../lib/world/playClock.svelte';
@@ -81,6 +83,12 @@
   // submission leaves it pending, never provisional (reckoningVerdict).
   const draft = $derived(result?.draftErrors.length ?? 0);
   const caught = $derived(result?.caught.length ?? 0);
+  // Spec 2026-09-29 §2: the copy line, from the mistakes left in the handed-in text.
+  const copy = $derived.by(() => {
+    if (!result) return '';
+    const left = result.finalErrors.length;
+    return VICTORY.copy(left, result.totalWords, copyVerdict(per100(left, result.totalWords), rulesOf(campStore.catalog)));
+  });
   const verdict = $derived(
     reckoningVerdict({ draft, caught }, { bossFight: encounter === 'eris', progression: playState.progression ?? null }),
   );
@@ -165,6 +173,7 @@
   <VictorySheet
     {title}
     {result}
+    {copy}
     {mode}
     {reduced}
     showActions={!pending}

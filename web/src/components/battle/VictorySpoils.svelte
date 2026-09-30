@@ -39,13 +39,19 @@
   void loadCatalog();
 
   const BONUS_LABELS: Record<string, string> = {
+    // Spec 2026-09-29 §4: the session's parts, then the existing bonuses.
+    text: 'Texte',
     session: 'Texte',
+    pace: 'Rythme',
+    aids: 'Sans aides',
+    prophecy: 'Prophétie',
     board: 'Quête',
     oracle: 'Oracle',
     boss: 'Éris vaincue',
     mastery: 'Ruse neutralisée',
     weekly: 'Objectif de la semaine',
   };
+  const XP_PARTS = ['text', 'pace', 'aids', 'prophecy'] as const;
 
   // Boss card: the treasure Éris leaves behind, shown once, in her defeat's block.
   const bossReward = $derived(progression.boss?.won ? (progression.rewards.find((r) => r.kind === 'gear') ?? null) : null);
@@ -116,7 +122,15 @@
       xpValue = quick ? Math.max(0, progression.xp.total_after - rankAfterFloor) : Math.max(0, progression.xp.total_before - gaugeFloor);
     }
   });
-  const bonusChips = $derived([{ reason: 'session', amount: progression.xp.session }, ...progression.xp.bonuses]);
+  // The text's chip always; a bonus's chip when it paid something. A victory saved before the parts has
+  // its one « Texte » chip, the whole session.
+  const bonusChips = $derived.by(() => {
+    const parts = progression.xp.parts;
+    const session = parts
+      ? XP_PARTS.filter((k) => k === 'text' || parts[k] > 0).map((k) => ({ reason: k, amount: parts[k] }))
+      : [{ reason: 'session', amount: progression.xp.session }];
+    return [...session, ...progression.xp.bonuses];
+  });
   // UI4 playability #2: the headline is all she earned (the laurel's own move), the tags its breakdown.
   const xpEarned = $derived(
     Math.max(0, progression.xp.total_after - progression.xp.total_before) ||
@@ -261,9 +275,8 @@
       );
       t += 300;
     }
-    // Éris's "hmpf" is her mocking a real loss - it doesn't fit a fight she never got to fight
-    // (P1-5's 'too_easy' draw), so it only plays on an actual loss.
-    if (progression.boss && !progression.boss.won && !progression.boss.too_easy) {
+    // Éris's « hmpf » is her mocking a real loss.
+    if (progression.boss && !progression.boss.won) {
       const at = t;
       timers.push(setTimeout(() => playSfx('hmpf'), at));
     }
@@ -305,7 +318,7 @@
       </div>
       <div class="bonuses">
         {#each bonusChips as b, i (i)}
-          <span class="kit-tag bonus" style:--tag-tilt="{i % 2 ? 1.2 : -1.2}deg">{BONUS_LABELS[b.reason] ?? b.reason} +{b.amount}</span>
+          <span class="kit-tag bonus" data-testid="xp-chip" style:--tag-tilt="{i % 2 ? 1.2 : -1.2}deg">{BONUS_LABELS[b.reason] ?? b.reason} +{b.amount}</span>
         {/each}
       </div>
       {#if rankedUp}
@@ -431,8 +444,6 @@
             <p class="spoil-title boss-reward" data-testid="reveal-boss-reward">{VICTORY.bossReward(bossReward.name)}</p>
           {/if}
         </div>
-      {:else if progression.boss.too_easy}
-        <p class="kit-note" data-testid="reveal-boss-too-easy">{VICTORY.bossTooEasy}</p>
       {:else}
         <!-- Her exit is her own voice (UI4 playability #10), not a note. -->
         <div class="boss-lost" data-testid="reveal-boss" use:revealInView={bossDelay}>
