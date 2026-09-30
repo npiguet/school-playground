@@ -31,6 +31,10 @@ need only Pillow and numpy.
             (0-1, 5 decimals) of the overlay's (= the stage picture's) width and height, so the game
             scales them with the dragon (drachmes-shop spec section 4); --pixels records stage px
             instead. Other items and stages already in the manifest are kept.
+  sheet     LT --out docs/art/accessories-LT.png
+            Contact sheet of a lieutenant's set (assets/art/dragon/accessories/LT-<slot>_<stage>.png):
+            a row per stage with each item zoomed on the bronze stage, and a last row with the whole
+            set worn on every stage under a tint.
 """
 import argparse
 import json
@@ -340,6 +344,59 @@ def check(stage_cut_p, overlays, out, zoom_box=None):
     print(out)
 
 
+STAGES = ("young", "adult", "illustre", "ancestral")
+SLOTS = ("queue", "dos", "cou", "tete")  # the game's draw order (drachmes-shop spec section 4)
+
+
+def sheet(lt, out, tints=("ecume", "braise", "argent", "olivier")):
+    """Contact sheet of one lieutenant's set: per stage a row of the four items, each zoomed on the
+    bronze stage (mid ground), then a last row with the whole set worn on every stage, each stage
+    under one tint. Missing overlays are left grey."""
+    from PIL import ImageDraw
+    root = Path(__file__).resolve().parents[2] / "assets/art/dragon"
+    cell = 300
+    W, H = cell * 4, cell * (len(STAGES) + 1) + 24 * (len(STAGES) + 1)
+    im = Image.new("RGB", (W, H), (40, 36, 44))
+    d = ImageDraw.Draw(im)
+    y = 0
+    for st in STAGES:
+        stage = Image.open(root / f"dragon_{st}_cut.png").convert("RGBA")
+        d.text((6, y + 6), f"{lt} / {st}", fill=(236, 223, 193))
+        y += 24
+        for c, slot in enumerate(("cou", "queue", "dos", "tete")):
+            p = root / "accessories" / f"{lt}-{slot}_{st}.png"
+            if not p.exists():
+                continue
+            ov = Image.open(p).convert("RGBA")
+            l, t, r, b = ov.getchannel("A").getbbox()
+            side = max(r - l, b - t) + 80
+            cx, cy = (l + r) // 2, (t + b) // 2
+            box = (cx - side // 2, cy - side // 2, cx + side // 2, cy + side // 2)
+            tile = Image.new("RGBA", stage.size, GROUNDS["mid"] + (255,))
+            tile.alpha_composite(stage)
+            tile.alpha_composite(ov)
+            big = Image.new("RGBA", (stage.width + 2 * side, stage.height + 2 * side), GROUNDS["mid"] + (255,))
+            big.paste(tile, (side, side))
+            z = big.crop(tuple(v + side for v in box)).convert("RGB").resize((cell, cell), Image.LANCZOS)
+            im.paste(z, (c * cell, y))
+            d.text((c * cell + 6, y + cell - 16), slot, fill=(236, 223, 193))
+        y += cell
+    d.text((6, y + 6), f"{lt}: the whole set, tinted ({', '.join(tints)})", fill=(236, 223, 193))
+    y += 24
+    for c, (st, tn) in enumerate(zip(STAGES, tints)):
+        stage = tint(Image.open(root / f"dragon_{st}_cut.png").convert("RGBA"), tn)
+        tile = Image.new("RGBA", stage.size, GROUNDS["parchment"] + (255,))
+        tile.alpha_composite(stage)
+        for slot in SLOTS:
+            p = root / "accessories" / f"{lt}-{slot}_{st}.png"
+            if p.exists():
+                tile.alpha_composite(Image.open(p).convert("RGBA"))
+        im.paste(tile.convert("RGB").resize((cell, cell), Image.LANCZOS), (c * cell, y))
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
+    im.save(out)
+    print(out)
+
+
 def crop(overlay_p, webp, manifest=None, item=None, stage=None, quality=88, pixels=False):
     im = Image.open(overlay_p).convert("RGBA")
     bbox = im.getchannel("A").getbbox()
@@ -398,6 +455,9 @@ def main():
     k.add_argument("overlay"); k.add_argument("--webp", required=True)
     k.add_argument("--manifest"); k.add_argument("--item"); k.add_argument("--stage")
     k.add_argument("--pixels", action="store_true", help="record x/y/w/h in stage px, not fractions")
+    s = sub.add_parser("sheet")
+    s.add_argument("lieutenant", help="item id prefix, e.g. hydre")
+    s.add_argument("--out", required=True)
     a = ap.parse_args()
     if a.cmd == "extract":
         extract(a.stage, a.result, a.mask, a.out, a.diff, a.novelty, a.grow, a.debug, a.cpu, a.pos, a.neg, a.box, a.keep_white, a.max_hole, a.cut)
@@ -405,6 +465,8 @@ def main():
         merge(a.out, a.parts)
     elif a.cmd == "check":
         check(a.stage_cut, a.overlays, a.out)
+    elif a.cmd == "sheet":
+        sheet(a.lieutenant, a.out)
     else:
         crop(a.overlay, a.webp, a.manifest, a.item, a.stage, pixels=a.pixels)
 
