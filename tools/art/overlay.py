@@ -13,6 +13,9 @@ need only Pillow and numpy.
             stage, result with SAM's box and points, slot, changed, novel, SAM, object, novelty map.
             Also writes the sidecar <out>.json: the result's generation sidecar (prompt, seed,
             settings), the SAM points, box and mask chosen, the thresholds.
+            --max-hole N fills only enclosed holes up to N px (a ring of coils: the tail seen
+            between the coils stays out); --cut 'X,Y X,Y ...' (repeatable) subtracts a hand-traced
+            polygon (repainted skin SAM keeps taking in).
   merge     OUT.png PART.png [PART2 ...]
             One overlay from several extracts of the same RESULT (an item SAM cannot take in one
             mask: a helmet's dome and its serpent crest, each extracted with its own points and
@@ -94,9 +97,18 @@ def erode(mask: np.ndarray, px: int) -> np.ndarray:
     return np.asarray(im) > 127
 
 
-def fill_holes(mask: np.ndarray) -> np.ndarray:
+def fill_holes(mask: np.ndarray, max_px=None) -> np.ndarray:
+    """Fill enclosed holes; with max_px only holes up to that size (a gap between the coils of a
+    ring is a hole too, and must stay open)."""
     from scipy import ndimage
-    return ndimage.binary_fill_holes(mask)
+    filled = ndimage.binary_fill_holes(mask)
+    if max_px is None:
+        return filled
+    lab, n = ndimage.label(filled & ~mask)
+    if not n:
+        return filled
+    sizes = ndimage.sum(filled & ~mask, lab, range(1, n + 1))
+    return mask | np.isin(lab, [i + 1 for i, s in enumerate(sizes) if s <= max_px])
 
 
 def keep_big(mask: np.ndarray, min_frac=0.02) -> np.ndarray:
@@ -149,7 +161,7 @@ def peaks(mask: np.ndarray, n: int, spacing: int):
 
 
 def extract(stage_p, result_p, mask_p, out, diff_t=28, nov_t=45, grow=2, debug=None, cpu=False,
-            pos_pts=None, neg_pts=None, box_in=None, keep_white=False):
+            pos_pts=None, neg_pts=None, box_in=None, keep_white=False, max_hole=None, cuts=None):
     import segment
     segment.load(cpu)
     stage = Image.open(stage_p).convert("RGB")
@@ -207,8 +219,10 @@ def extract(stage_p, result_p, mask_p, out, diff_t=28, nov_t=45, grow=2, debug=N
     # ground inside a coiled serpent crest, a horn seen through a loop) is cut out again: it is not
     # the item (kept, it would be a white patch or an untinted horn). Any patch of 40+ px inside the
     # object nearly identical to the original (max channel difference < 8) goes; single coincident
-    # pixels of an item painted in the dragon's colours stay.
-    obj = fill_holes(obj)
+    # pixels of an item painted in the dragon's colours stay. --max-hole: only holes up to that size
+    # are filled (a ring of coils: the repainted tail between the coils must stay out, give negative
+    # points on it too).
+    obj = fill_holes(obj, max_hole)
     from scipy import ndimage
     same = obj & (np.abs(a - b).max(axis=2) < 8)
     lab, n = ndimage.label(same)
@@ -226,6 +240,14 @@ def extract(stage_p, result_p, mask_p, out, diff_t=28, nov_t=45, grow=2, debug=N
         if n:
             sizes = ndimage.sum(near_white, lab, range(1, n + 1))
             obj &= ~np.isin(lab, [i + 1 for i, s in enumerate(sizes) if s >= 30])
+    # --cut: hand-traced polygons of what is not the item (repainted skin between the coils of a
+    # ring that SAM keeps taking in), subtracted last.
+    if cuts:
+        from PIL import ImageDraw
+        cut_im = Image.new("L", stage.size, 0)
+        for poly in cuts:
+            ImageDraw.Draw(cut_im).polygon([tuple(p) for p in poly], fill=255)
+        obj &= ~(np.asarray(cut_im) > 127)
     # Parts under 10 % of the largest: flecks of repainted skin SAM attached to the item.
     obj = keep_big(obj, 0.10)
     # Edge: 1 px soft ramp inside the object's outline, so no repainted skin rim is kept.
@@ -241,7 +263,7 @@ def extract(stage_p, result_p, mask_p, out, diff_t=28, nov_t=45, grow=2, debug=N
             "extract": {"stage": Path(stage_p).name, "slot_mask": Path(mask_p).name,
                         "pos": [list(p) for p in pos], "neg": [list(p) for p in neg], "box": [int(v) for v in box],
                         "hand_points": bool(pos_pts), "sam_mask": k, "diff": diff_t, "novelty": nov_t,
-                        "grow": grow, "keep_white": keep_white}}
+                        "grow": grow, "keep_white": keep_white, "max_hole": max_hole, "cuts": cuts}}
     Path(out).with_suffix(".json").write_text(json.dumps(side, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{out}  object {int(obj.sum())} px, slot {int(slot.sum())} px, changed {int(changed_s.sum())} px, sam {int(seg.sum())} px")
     if debug:
@@ -363,6 +385,10 @@ def main():
                    help="with --pos: SAM's box (default: the slot's bounding box)")
     e.add_argument("--keep-white", action="store_true",
                    help="keep near-white patches (a white item); by default painted white ground is dropped")
+    e.add_argument("--max-hole", type=int, help="fill only holes up to this many px (default: all)")
+    e.add_argument("--cut", action="append", metavar="'X,Y X,Y X,Y ...'",
+                   type=lambda s: [[int(v) for v in p.split(",")] for p in s.split()],
+                   help="a polygon (stage px) to remove from the item; repeatable")
     m = sub.add_parser("merge")
     m.add_argument("out"); m.add_argument("parts", nargs="+")
     c = sub.add_parser("check")
@@ -374,7 +400,7 @@ def main():
     k.add_argument("--pixels", action="store_true", help="record x/y/w/h in stage px, not fractions")
     a = ap.parse_args()
     if a.cmd == "extract":
-        extract(a.stage, a.result, a.mask, a.out, a.diff, a.novelty, a.grow, a.debug, a.cpu, a.pos, a.neg, a.box, a.keep_white)
+        extract(a.stage, a.result, a.mask, a.out, a.diff, a.novelty, a.grow, a.debug, a.cpu, a.pos, a.neg, a.box, a.keep_white, a.max_hole, a.cut)
     elif a.cmd == "merge":
         merge(a.out, a.parts)
     elif a.cmd == "check":
