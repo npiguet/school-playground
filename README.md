@@ -20,10 +20,12 @@ rewards. The whole game is a set of painted scenes with places to tap (see §8).
   a group), « Par groupes » (moves on by itself, with a pause button) and « D'un bon pas » (longer
   groups, no pause button). A French voice (Kokoro-82M) reads it, synthesised by the server in its
   second container.
-- **Proofreading** — *Les Yeux d'Argus* (a spotlight over one word category at a time: verbs,
-  nominal groups, homophones, trap words), *Le Bouclier de Persée* (sentence by sentence, last to
-  first), *La Chouette d'Athéna* (limited hints) and *Le Fil d'Ariane* (tap a verb, then its
-  subject).
+- **Proofreading** — five review aids, each taken along or left at the camp before the battle (the
+  choice is remembered per hero, and each aid left adds 20 % to the battle's XP bonus): *Les yeux
+  d'Argus* (a spotlight over one word category at a time: verbs, nominal groups, homophones, trap
+  words), *Le fil d'Ariane* (tap a verb, then its subject), *Le bouclier de Persée* (sentence by
+  sentence, last to first), *La chouette d'Athéna* (a few hints) and *Les jetons de Palamède* (how
+  many traps hide in the text). The copy is judged as at school, on the mistakes left in it.
 - **Scan a handout** — photograph a printed page (camera or photo library), OCR it with Tesseract,
   and check the recognised text against the photo before it becomes the answer key.
 - **Dictée préparée** — a text can carry the date of a class test; until that date it shows as the
@@ -220,6 +222,38 @@ reboot. Everything else comes from the images:
   Ryzen 9 5950X, while it made the lines of the longest seed text, a sentence at a time, at the
   retired pace 4, the heaviest script there was).
 
+### The rules file (`data/regles.json`)
+
+The scoring rules have built-in defaults, so the file is optional. To change one, create
+`regles.json` in the game's `data/` folder (next to `discorde.sqlite3`) with only the keys you want
+to change, then restart the game (`sudo docker compose restart discorde`): the file is read once, at
+start-up. The full file with its defaults:
+
+```json
+{
+  "quest_min_chances": 3, "quest_min_correct": 0.85,
+  "fight_max_per_100": 4,
+  "copy_belle_max_per_100": 2, "copy_correcte_max_per_100": 8,
+  "aid_bonus": 0.20, "pace_bonus": {"1": 0, "2": 0.25, "3": 0.5}, "prophecy_bonus": 0.5,
+  "chouette_hints": 3
+}
+```
+
+| Key | What it decides |
+|---|---|
+| `quest_min_chances`, `quest_min_correct` | A quest session counts when the text gives the quest's lieutenant at least this many chances and at least this share of them is right in the handed-in copy |
+| `fight_max_per_100` | An Éris fight is won with at most this many mistakes left per 100 words |
+| `copy_belle_max_per_100`, `copy_correcte_max_per_100` | The victory's copy line: « belle copie » up to the first, « copie correcte » up to the second, « copie à reprendre » above |
+| `aid_bonus` | The XP bonus for each review aid left at the camp |
+| `pace_bonus` | The XP bonus of each pace (`"1"` to `"3"`; a partial object keeps the other paces' defaults) |
+| `prophecy_bonus` | The XP bonus of a text played before its due date |
+| `chouette_hints` | The owl's hints per battle |
+
+A key you leave out keeps its default. A file that is not valid JSON, or a value of the wrong type
+(e.g. `"0.3"` in quotes, a negative number, a share above 1), is ignored with a warning in the game's
+log (`sudo docker compose logs discorde | grep regles.json`) and the defaults apply: a typo never
+stops the game. The file lives in `data/`, so the backups (§4) keep it.
+
 ### Update to a new version
 
 The data lives in `data/`, not in the container, so an update keeps everything:
@@ -339,6 +373,7 @@ on the PC):
   mode, so while the game is running there may also be `discorde.sqlite3-wal` and
   `discorde.sqlite3-shm` next to it; they are part of the database.
 - `scans/` — the photos of scanned handouts, one folder per scan.
+- `regles.json` — the scoring rules, only if you created one (§2, "The rules file").
 
 Nothing else needs backing up: the seed texts, art and sounds are in the image.
 
@@ -373,7 +408,8 @@ docker cp discorde:/data .\discorde-data-backup
 2. Either roll the dataset back to a snapshot (**Datasets → the dataset → Snapshots → Rollback**;
    this discards everything written after it), or replace the files in `data/`: put the saved
    database back as `discorde.sqlite3`, **delete any `discorde.sqlite3-wal` and
-   `discorde.sqlite3-shm`** left from the current database, and put back `scans/`.
+   `discorde.sqlite3-shm`** left from the current database, and put back `scans/` (and
+   `regles.json` if you had one).
 3. Start it again: `sudo docker compose start`.
 
 ## 5. Development
@@ -490,8 +526,9 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
     channels, class, weekly goal, seal, tours, credits).
   - « Le sentier de la bataille » — the way to Éris herself, once she shows up.
 - **Battles.** A text opens the battle stage (`#/p/:id/play/:textId`; the Grimoire at
-  `#/p/:id/grimoire/:textId`): choose a pace, write the dictation, proofread it with the heroes'
-  tools, then the victory count and « Revoir » to go over each trap.
+  `#/p/:id/grimoire/:textId`): choose a pace and the review aids to take along, write the
+  dictation, proofread it with the aids taken, then the victory (the copy's mistakes and the XP
+  earned) and « Revoir » to go over each trap.
 - **Oracle week** — Delphi's three scrolls reset every ISO week (Monday–Sunday, local time in
   `Europe/Zurich`, configurable via `DISCORDE_TZ`). The week's reward is shown before any scroll is
   opened (no gamble), and a chosen quest stays open until the *next* consultation actually replaces
