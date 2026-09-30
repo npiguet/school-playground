@@ -11,6 +11,12 @@ need only Pillow and numpy.
             RGBA PNG the size of STAGE (RESULT's colours, alpha 0 elsewhere, edge softened 1 px), so
             it lines up with the stage picture pixel for pixel. --debug writes a sheet of the steps:
             stage, result with SAM's box and points, slot, changed, novel, SAM, object, novelty map.
+            Also writes the sidecar <out>.json: the result's generation sidecar (prompt, seed,
+            settings), the SAM points, box and mask chosen, the thresholds.
+  merge     OUT.png PART.png [PART2 ...]
+            One overlay from several extracts of the same RESULT (an item SAM cannot take in one
+            mask: a helmet's dome and its serpent crest, each extracted with its own points and
+            --box): per pixel the part with the highest alpha. Sidecar: the parts' sidecars.
   check     STAGE_cut.png OVERLAY.png [OVERLAY2 ...] --out sheet.png
             The overlay composited on the cut-out stage, untinted and under the game's CSS tints
             (web/src/lib/world/dragon.ts TINT_FILTERS applied to the dragon only, overlay unfiltered,
@@ -143,7 +149,7 @@ def peaks(mask: np.ndarray, n: int, spacing: int):
 
 
 def extract(stage_p, result_p, mask_p, out, diff_t=28, nov_t=45, grow=2, debug=None, cpu=False,
-            pos_pts=None, neg_pts=None, box_in=None):
+            pos_pts=None, neg_pts=None, box_in=None, keep_white=False):
     import segment
     segment.load(cpu)
     stage = Image.open(stage_p).convert("RGB")
@@ -179,8 +185,14 @@ def extract(stage_p, result_p, mask_p, out, diff_t=28, nov_t=45, grow=2, debug=N
     masks, scores = segment.sam_mask(result, box, pos + neg, [1] * len(pos) + [0] * len(neg), all_masks=True)
     if pos_pts:
         # Hand-placed points: SAM's own best score, restricted to masks that contain every point.
-        ok = [all(m[y, x] for x, y in pos) and not any(m[y, x] for x, y in neg) for m in masks]
-        ious = [float(s) if o else -1 for s, o in zip(scores, ok)]
+        # When none does, the one that breaks the fewest points (then the best score), and say which
+        # points it breaks: a positive left out or a negative taken in needs a look at --debug.
+        bad = [[("+", p) for p in pos if not m[p[1], p[0]]] + [("-", p) for p in neg if m[p[1], p[0]]]
+               for m in masks]
+        ious = [float(s) - 10 * len(b) for s, b in zip(scores, bad)]
+        if all(bad):
+            k = int(np.argmax(ious))
+            print(f"  WARNING: no SAM mask fits every point; mask {k} breaks {bad[k]} (check --debug)")
     else:
         # Of SAM's three masks (part, object, whole) keep the one closest to the novel region
         # (IoU): SAM's own score prefers a crisp part (the crest without its helmet); the largest
@@ -191,8 +203,31 @@ def extract(stage_p, result_p, mask_p, out, diff_t=28, nov_t=45, grow=2, debug=N
           f"score {[round(v, 2) for v in scores]} -> mask {k}")
     seg = masks[k]
     obj = seg & dilate(slot, grow) & dilate(changed_s, grow)
+    # Holes filled, then a gap enclosed by the item that still shows the original picture (the white
+    # ground inside a coiled serpent crest, a horn seen through a loop) is cut out again: it is not
+    # the item (kept, it would be a white patch or an untinted horn). Any patch of 40+ px inside the
+    # object nearly identical to the original (max channel difference < 8) goes; single coincident
+    # pixels of an item painted in the dragon's colours stay.
+    obj = fill_holes(obj)
+    from scipy import ndimage
+    same = obj & (np.abs(a - b).max(axis=2) < 8)
+    lab, n = ndimage.label(same)
+    if n:
+        sizes = ndimage.sum(same, lab, range(1, n + 1))
+        obj &= ~np.isin(lab, [i + 1 for i, s in enumerate(sizes) if s >= 40])
+    # White ground painted by the inpainting (the stage pictures stand on white): where an item stands
+    # out of the silhouette (a crest), the model paints white between its parts, sometimes over a
+    # small part of the dragon (a spine behind a coiled serpent). Kept, it would be a white patch on
+    # the game's ground or over the dragon. Near-white, grey-neutral patches of 30+ px go (a smaller
+    # specular highlight on polished metal stays); --keep-white turns it off for a white item.
+    if not keep_white:
+        near_white = obj & (b.min(axis=2) > 225) & (b.max(axis=2) - b.min(axis=2) < 20)
+        lab, n = ndimage.label(dilate(near_white, 1) & obj)
+        if n:
+            sizes = ndimage.sum(near_white, lab, range(1, n + 1))
+            obj &= ~np.isin(lab, [i + 1 for i, s in enumerate(sizes) if s >= 30])
     # Parts under 10 % of the largest: flecks of repainted skin SAM attached to the item.
-    obj = keep_big(fill_holes(obj), 0.10)
+    obj = keep_big(obj, 0.10)
     # Edge: 1 px soft ramp inside the object's outline, so no repainted skin rim is kept.
     alpha = Image.fromarray((erode(obj, 1) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.8))
     alpha = Image.fromarray(np.minimum(np.asarray(alpha), obj * 255).astype(np.uint8))
@@ -200,6 +235,14 @@ def extract(stage_p, result_p, mask_p, out, diff_t=28, nov_t=45, grow=2, debug=N
     rgba.putalpha(alpha)
     Path(out).parent.mkdir(parents=True, exist_ok=True)
     rgba.save(out)
+    gen = Path(result_p).with_suffix(".json")
+    side = {"result": Path(result_p).name,
+            "generation": json.loads(gen.read_text(encoding="utf-8")) if gen.exists() else None,
+            "extract": {"stage": Path(stage_p).name, "slot_mask": Path(mask_p).name,
+                        "pos": [list(p) for p in pos], "neg": [list(p) for p in neg], "box": [int(v) for v in box],
+                        "hand_points": bool(pos_pts), "sam_mask": k, "diff": diff_t, "novelty": nov_t,
+                        "grow": grow, "keep_white": keep_white}}
+    Path(out).with_suffix(".json").write_text(json.dumps(side, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{out}  object {int(obj.sum())} px, slot {int(slot.sum())} px, changed {int(changed_s.sum())} px, sam {int(seg.sum())} px")
     if debug:
         pts = result.copy()
@@ -220,6 +263,23 @@ def extract(stage_p, result_p, mask_p, out, diff_t=28, nov_t=45, grow=2, debug=N
         for i, t in enumerate(tiles):
             sheet.paste(t, ((i % 4) * w, (i // 4) * h))
         sheet.save(debug)
+
+
+def merge(out, parts):
+    arrs = [np.asarray(Image.open(p).convert("RGBA")) for p in parts]
+    res = arrs[0].copy()
+    for a in arrs[1:]:
+        take = a[..., 3] > res[..., 3]
+        res[take] = a[take]
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(res, "RGBA").save(out)
+    sides = []
+    for p in parts:
+        sp = Path(p).with_suffix(".json")
+        sides.append(json.loads(sp.read_text(encoding="utf-8")) if sp.exists() else {"part": Path(p).name})
+    Path(out).with_suffix(".json").write_text(json.dumps({"merged_parts": sides}, indent=2, ensure_ascii=False) + "\n",
+                                              encoding="utf-8")
+    print(f"{out}  {int((res[..., 3] > 0).sum())} px from {len(parts)} parts")
 
 
 def check(stage_cut_p, overlays, out, zoom_box=None):
@@ -301,6 +361,10 @@ def main():
                    help="hand-placed points on what is not the item (skin, horn, eye)")
     e.add_argument("--box", type=int, nargs=4, metavar=("X0", "Y0", "X1", "Y1"),
                    help="with --pos: SAM's box (default: the slot's bounding box)")
+    e.add_argument("--keep-white", action="store_true",
+                   help="keep near-white patches (a white item); by default painted white ground is dropped")
+    m = sub.add_parser("merge")
+    m.add_argument("out"); m.add_argument("parts", nargs="+")
     c = sub.add_parser("check")
     c.add_argument("stage_cut"); c.add_argument("overlays", nargs="+")
     c.add_argument("--out", required=True)
@@ -310,7 +374,9 @@ def main():
     k.add_argument("--pixels", action="store_true", help="record x/y/w/h in stage px, not fractions")
     a = ap.parse_args()
     if a.cmd == "extract":
-        extract(a.stage, a.result, a.mask, a.out, a.diff, a.novelty, a.grow, a.debug, a.cpu, a.pos, a.neg, a.box)
+        extract(a.stage, a.result, a.mask, a.out, a.diff, a.novelty, a.grow, a.debug, a.cpu, a.pos, a.neg, a.box, a.keep_white)
+    elif a.cmd == "merge":
+        merge(a.out, a.parts)
     elif a.cmd == "check":
         check(a.stage_cut, a.overlays, a.out)
     else:
