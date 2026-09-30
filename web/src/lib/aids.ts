@@ -37,9 +37,17 @@ export function aidDesc(key: AidKey, rules: GameRules): string {
   return key === 'athena' ? `${plural(rules.chouette_hints, 'indice', 'indices')} pour repérer un piège.` : AID_LABELS[key].desc;
 }
 
-/** The aid's painted emblem. Palamède's comes with the art track (plan Task 9): null until then. */
-export function aidIcon(key: AidKey): string | null {
-  return (TOOL_ICONS as Record<string, string>)[key] ?? null;
+/** The aids' painted emblems (spec 2026-09-29 §5: the existing TOOL_ICONS plus tool-palamede). */
+export const AID_ICONS: Record<AidKey, string> = {
+  argus: TOOL_ICONS.argus,
+  ariane: TOOL_ICONS.ariane,
+  persee: TOOL_ICONS.persee,
+  athena: TOOL_ICONS.athena,
+  palamede: TOOL_ICONS.palamede,
+};
+
+export function aidIcon(key: AidKey): string {
+  return AID_ICONS[key];
 }
 
 /** The glory this battle is worth on top of the text (spec §4): the pace, +20 % per aid left, the prophecy. */

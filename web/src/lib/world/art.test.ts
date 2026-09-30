@@ -72,16 +72,17 @@ describe('art map', () => {
     expect(PLACE_ICONS).toEqual({ portal: '/art/icons/portal-arch.webp' });
   });
 
-  it('maps the 36 painted icons, each within its own budget (UI3 Ruling A12)', () => {
+  it('maps the 37 painted icons, each within its own budget (UI3 Ruling A12)', () => {
     const icons = flat(ART.icons);
-    expect(icons).toHaveLength(36);
+    expect(icons).toHaveLength(37);
     for (const p of icons) expect(statSync('public' + p).size, p).toBeLessThanOrEqual(60 * 1024);
     expect(icons.reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThanOrEqual(1.5 * 1024 * 1024);
     const onDisk = readdirSync('public/art/icons').filter((f) => f.endsWith('.webp')).map((f) => `/art/icons/${f}`);
     expect([...onDisk].sort()).toEqual([...icons].sort());
     expect(Object.keys(AVATAR_ICONS)).toHaveLength(6);
     expect(Object.keys(LIEUTENANT_ICONS)).toHaveLength(6);
-    expect(Object.keys(TOOL_ICONS)).toEqual(['persee', 'athena', 'ariane', 'argus']);
+    expect(Object.keys(TOOL_ICONS)).toEqual(['persee', 'athena', 'ariane', 'argus', 'palamede']);
+    expect(ART.emblems.palamede).toBe('/art/emblems/palamede_cut.webp');
     expect(Object.keys(ADD_ICONS)).toEqual(['text', 'scan', 'alexandria']);
     expect(MARK_ICONS).toEqual({ oracleSeal: '/art/icons/seal-oracle.webp', lock: '/art/icons/lock.webp' });
   });

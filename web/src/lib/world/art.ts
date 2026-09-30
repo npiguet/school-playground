@@ -52,6 +52,7 @@ export const TOOL_ICONS = {
   athena: icon('tool-athena'),
   ariane: icon('tool-ariane'),
   argus: icon('tool-argus'),
+  palamede: icon('tool-palamede'),
 } as const;
 
 /** The three ways to bring a text into the library (desk, lens, portal). */
@@ -106,6 +107,7 @@ export const ART = {
     ariane: '/art/emblems/ariane_cut.webp',
     persee: '/art/emblems/persee_cut.webp',
     athena: '/art/emblems/athena_cut.webp',
+    palamede: '/art/emblems/palamede_cut.webp',
     apple: '/art/emblems/apple_cut.webp',
   },
   // UI2 cut-outs (docs/art/scenes.md): the Pythia on her tripod, Athena's owl, three props.

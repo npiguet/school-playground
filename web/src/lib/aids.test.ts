@@ -16,7 +16,7 @@ describe('the five review aids (spec 2026-09-29 §3)', () => {
     expect(AID_LABELS.palamede.name).toBe('Les jetons de Palamède');
     expect(aidDesc('athena', R)).toBe('3 indices pour repérer un piège.');
     expect(aidDesc('athena', { ...R, chouette_hints: 1 })).toBe('1 indice pour repérer un piège.');
-    for (const k of ['argus', 'ariane', 'persee', 'athena'] as const) expect(aidIcon(k), k).toMatch(/^\/art\/icons\/tool-/);
+    for (const k of AID_KEYS) expect(aidIcon(k), k).toBe(`/art/icons/tool-${k}.webp`);
   });
 
   it('reads a remembered or saved choice: all five when there is none, only the valid ones once each', () => {

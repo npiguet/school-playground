@@ -31,7 +31,6 @@
   <div class="list">
     {#each AID_KEYS as key (key)}
       {@const taken = aids.includes(key)}
-      {@const icon = aidIcon(key)}
       <button
         type="button"
         class="aid"
@@ -46,7 +45,7 @@
         onfocus={() => (focused = key)}
         onpointerenter={() => (focused = key)}
       >
-        {#if icon}<img class="emblem" src={icon} alt="" />{:else}<span class="emblem kit-medallion" aria-hidden="true"></span>{/if}
+        <img class="emblem" src={aidIcon(key)} alt="" />
         <span class="name">{AID_LABELS[key].name}</span>
         <span class="side" aria-hidden="true">
           {#if !taken}<span class="kit-tag bonus" data-testid="aid-bonus-{key}">{MUSTER.bonusTag(rules.aid_bonus)}</span>

@@ -3,7 +3,7 @@ import { BESTIARY, entry } from './bestiary';
 import { LIEUTENANT_ORDER } from './types';
 
 describe('bestiary', () => {
-  it('has an entry per lieutenant plus Éris, four tools, the Muses, Delphes and the dragon', () => {
+  it('has an entry per lieutenant plus Éris, five tools, the Muses, Delphes and the dragon', () => {
     for (const k of LIEUTENANT_ORDER) expect(entry(k)?.kind).toBe('monster');
     expect(BESTIARY.map((e) => e.key)).toEqual([
       ...LIEUTENANT_ORDER,
@@ -12,6 +12,7 @@ describe('bestiary', () => {
       'ariane',
       'persee',
       'athena',
+      'palamede',
       'muses',
       'delphes',
       'dragon',
