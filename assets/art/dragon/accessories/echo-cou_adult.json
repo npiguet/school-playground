@@ -1,0 +1,107 @@
+{
+  "item": "echo-cou",
+  "stage": "adult",
+  "inpainting": {
+    "prompt": "the neck and throat of an adult dragon with burnished bronze-gold scales, wearing a conch-shell pendant necklace: a wide snug band of thickly braided deep sea-blue cords strung with round turquoise beads and small cream cowrie shells, wrapped closely around the whole neck and following its curve from one edge of the neck to the other, and hanging from the front of the band one large spiral conch seashell as big as the dragon's eye, pale pink and cream with a glossy rose-pink inner lip, held by a small bronze cap, clean dark ink outline around the band and the shell, (gold collar:-2) (metal plates:-2) (thin string:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.75,
+    "steps": 11,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 1241,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_adult.png",
+    "mask_file": "assets\\art\\dragon\\slots\\adult_cou.png"
+  },
+  "extraction": {
+    "tool": "tools/art/overlay.py extract --cpu",
+    "stage": "assets/art/dragon/dragon_adult.png",
+    "mask": "assets/art/dragon/slots/adult_cou.png",
+    "pos": [
+      [
+        563,
+        262
+      ],
+      [
+        613,
+        272
+      ],
+      [
+        540,
+        249
+      ],
+      [
+        630,
+        289
+      ],
+      [
+        516,
+        265
+      ],
+      [
+        541,
+        282
+      ],
+      [
+        610,
+        319
+      ],
+      [
+        641,
+        319
+      ],
+      [
+        573,
+        319
+      ],
+      [
+        561,
+        277
+      ]
+    ],
+    "neg": [
+      [
+        530,
+        305
+      ],
+      [
+        603,
+        340
+      ],
+      [
+        596,
+        238
+      ],
+      [
+        488,
+        300
+      ]
+    ]
+  },
+  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): --poly \"480,255 510,258 515,276 528,280 532,300 530,330 480,330\" --poly \"525,296 548,296 552,292 568,292 570,300 562,306 550,312 543,318 530,322 522,310\" --poly \"652,298 670,298 670,322 655,322\" --poly \"550,290 565,290 570,293 572,300 567,303 553,303\" --poly \"590,302 606,302 606,312 598,312 592,308\" --poly \"500,245 513,245 513,256 500,258\" --poly \"620,308 632,308 632,330 620,330\" --poly \"652,300 662,300 662,322 652,322\" --poly \"520,277 533,280 533,302 520,302\" --poly \"542,300 562,300 558,307 546,316 540,314\" --poly \"525,262 537,265 538,272 527,272\" (repainted neck skin around the cowries and the conch)",
+  "raw_crop": [
+    459,
+    208,
+    736,
+    364
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+}

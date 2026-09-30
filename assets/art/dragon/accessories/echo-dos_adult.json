@@ -1,0 +1,106 @@
+{
+  "item": "echo-dos",
+  "stage": "adult",
+  "inpainting": {
+    "prompt": "the back and shoulder of an adult dragon with burnished bronze-gold scales, wearing a short cape the colour of cave rock: a draped cloak of heavy matte woollen cloth in an even cool slate grey with smooth lilac-grey shadows in the folds, the colour of the rock of a sea cave, draped over its back behind the wing and hanging down its side in a few broad clean folds, its hem edged with a row of round turquoise beads and small cream cowrie shells, the grey cloth completely covers the scales beneath it, clean dark ink outline around the cape, (scales showing through:-2) (transparent:-2) (bronze cloth:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.8,
+    "steps": 10,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 1231,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_adult.png",
+    "mask_file": "assets\\art\\dragon\\slots\\adult_dos.png"
+  },
+  "extraction": {
+    "tool": "tools/art/overlay.py extract --cpu",
+    "stage": "assets/art/dragon/dragon_adult.png",
+    "mask": "assets/art/dragon/slots/adult_dos.png",
+    "pos": [
+      [
+        419,
+        569
+      ],
+      [
+        359,
+        581
+      ],
+      [
+        459,
+        529
+      ],
+      [
+        515,
+        497
+      ],
+      [
+        515,
+        569
+      ],
+      [
+        539,
+        501
+      ],
+      [
+        391,
+        529
+      ],
+      [
+        431,
+        621
+      ],
+      [
+        339,
+        617
+      ],
+      [
+        443,
+        621
+      ]
+    ],
+    "neg": [
+      [
+        483,
+        581
+      ],
+      [
+        539,
+        569
+      ],
+      [
+        463,
+        621
+      ],
+      [
+        431,
+        493
+      ]
+    ]
+  },
+  "raw_crop": [
+    290,
+    440,
+    591,
+    671
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+}

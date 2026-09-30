@@ -1,0 +1,111 @@
+{
+  "item": "echo-cou",
+  "stage": "young",
+  "inpainting": {
+    "prompt": "the neck and throat of a young dragon with burnished bronze-gold scales, wearing a conch-shell pendant necklace: a wide snug band of thickly braided deep sea-blue cords strung with round turquoise beads and small cream cowrie shells, wrapped closely around the whole neck and following its curve from one edge of the neck to the other, and hanging from the front of the band one large spiral conch seashell as big as the dragon's eye, pale pink and cream with a glossy rose-pink inner lip, held by a small bronze cap, clean dark ink outline around the band and the shell, (gold collar:-2) (metal plates:-2) (thin string:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.75,
+    "steps": 11,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 1141,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_young.png",
+    "mask_file": "assets\\art\\dragon\\slots\\young_cou.png"
+  },
+  "extraction": {
+    "tool": "tools/art/overlay.py extract --cpu",
+    "stage": "assets/art/dragon/dragon_young.png",
+    "mask": "assets/art/dragon/slots/young_cou.png",
+    "pos": [
+      [
+        535,
+        363
+      ],
+      [
+        595,
+        359
+      ],
+      [
+        643,
+        367
+      ],
+      [
+        599,
+        387
+      ],
+      [
+        555,
+        401
+      ],
+      [
+        523,
+        405
+      ],
+      [
+        667,
+        407
+      ],
+      [
+        663,
+        391
+      ],
+      [
+        585,
+        409
+      ],
+      [
+        693,
+        393
+      ],
+      [
+        671,
+        367
+      ]
+    ],
+    "neg": [
+      [
+        623,
+        415
+      ],
+      [
+        607,
+        327
+      ],
+      [
+        711,
+        395
+      ],
+      [
+        555,
+        421
+      ]
+    ]
+  },
+  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): second extract with --pos 585,409 583,416 693,393 697,403 --neg 599,387 555,401 623,415 671,367 for the two cowrie charms SAM left out, united (max alpha) inside boxes 574,393,600,428 and 682,378,710,412",
+  "raw_crop": [
+    456,
+    296,
+    743,
+    451
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+}

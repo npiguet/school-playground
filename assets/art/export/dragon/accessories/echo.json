@@ -1,0 +1,101 @@
+{
+  "echo-cou": {
+    "young": {
+      "src": "echo-cou_young.webp",
+      "x": 0.49023,
+      "y": 0.32031,
+      "w": 0.20215,
+      "h": 0.09863
+    },
+    "adult": {
+      "src": "echo-cou_adult.webp",
+      "x": 0.49707,
+      "y": 0.23242,
+      "w": 0.14355,
+      "h": 0.09766
+    },
+    "illustre": {
+      "src": "echo-cou_illustre.webp",
+      "x": 0.54883,
+      "y": 0.27344,
+      "w": 0.15918,
+      "h": 0.0918
+    },
+    "ancestral": {
+      "src": "echo-cou_ancestral.webp",
+      "x": 0.53613,
+      "y": 0.27148,
+      "w": 0.15234,
+      "h": 0.1084
+    }
+  },
+  "echo-dos": {
+    "young": {
+      "src": "echo-dos_young.webp",
+      "x": 0.30176,
+      "y": 0.43359,
+      "w": 0.25195,
+      "h": 0.20996
+    },
+    "adult": {
+      "src": "echo-dos_adult.webp",
+      "x": 0.30469,
+      "y": 0.4541,
+      "w": 0.25098,
+      "h": 0.17676
+    },
+    "illustre": {
+      "src": "echo-dos_illustre.webp",
+      "x": 0.32812,
+      "y": 0.46387,
+      "w": 0.25977,
+      "h": 0.21387
+    }
+  },
+  "echo-queue": {
+    "young": {
+      "src": "echo-queue_young.webp",
+      "x": 0.12598,
+      "y": 0.73145,
+      "w": 0.13281,
+      "h": 0.1084
+    },
+    "adult": {
+      "src": "echo-queue_adult.webp",
+      "x": 0.12305,
+      "y": 0.71875,
+      "w": 0.09863,
+      "h": 0.10645
+    }
+  },
+  "echo-tete": {
+    "young": {
+      "src": "echo-tete_young.webp",
+      "x": 0.51465,
+      "y": 0.08301,
+      "w": 0.19824,
+      "h": 0.06934
+    },
+    "adult": {
+      "src": "echo-tete_adult.webp",
+      "x": 0.57227,
+      "y": 0.04297,
+      "w": 0.12402,
+      "h": 0.08398
+    },
+    "illustre": {
+      "src": "echo-tete_illustre.webp",
+      "x": 0.61426,
+      "y": 0.09473,
+      "w": 0.16211,
+      "h": 0.07422
+    },
+    "ancestral": {
+      "src": "echo-tete_ancestral.webp",
+      "x": 0.6416,
+      "y": 0.06934,
+      "w": 0.13574,
+      "h": 0.09277
+    }
+  }
+}
