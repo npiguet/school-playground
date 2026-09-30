@@ -373,7 +373,9 @@ test('the XP chips break the session down: text, pace, aids, prophecy, then the 
   await expect(sheet.getByTestId('xp-chip')).toHaveText(['Texte +57', 'Rythme +8', 'Sans aides +13', 'Prophétie +16', 'Quête +60']);
 });
 
-test('a bonus part at zero shows no chip, and a victory saved before the parts keeps its one text chip', async ({ page, request }, testInfo) => {
+// One seeded battle per test: seedPlay's init script runs on a new document only, and a second
+// page.goto that changes only the hash would open the second battle unseeded (at its muster).
+test('a bonus part at zero shows no chip', async ({ page, request }, testInfo) => {
   const sheet = await counted(
     page,
     request,
@@ -381,6 +383,9 @@ test('a bonus part at zero shows no chip, and a victory saved before the parts k
     progression({ xp: { session: 70, parts: { text: 57, pace: 0, aids: 13, prophecy: 0 }, bonuses: [], total_before: 487, total_after: 557, rank_before: 3, rank_after: 3, title_after: 'Sentinelle des textes' } }),
   );
   await expect(sheet.getByTestId('xp-chip')).toHaveText(['Texte +57', 'Sans aides +13']);
+});
+
+test('a victory saved before the parts keeps its one text chip', async ({ page, request }, testInfo) => {
   const old = await counted(page, request, `Vic22-${testInfo.project.name}`, progression());
   await expect(old.getByTestId('xp-chip')).toHaveText(['Texte +51']);
 });

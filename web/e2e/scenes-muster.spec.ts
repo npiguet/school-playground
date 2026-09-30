@@ -7,6 +7,11 @@ import { createProfileApi, createText, expectBattle, makeResult, postSession, sw
 
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const ALL = ['argus', 'ariane', 'persee', 'athena', 'palamede'];
+/** A prophecy's due date. Prophecies are global and one due within a week becomes every hero's next
+ *  step at the camp, so a near date would leak into the camp's greeting in parallel specs; far ahead,
+ *  it still pays the prophecy bonus (due after today) and is the longest date to print (a Wednesday
+ *  in September, with its year). */
+const FAR_DUE = '2099-09-30';
 
 async function muster(page: Page, request: APIRequestContext, testInfo: TestInfo, o: { level?: string; due?: string; query?: string } = {}) {
   const id = await createProfileApi(request, uniqueName(`Mst-${testInfo.project.name}`), o.level ?? '10H');
@@ -58,7 +63,7 @@ async function fullestMuster(page: Page, request: APIRequestContext, testInfo: T
     Math.random = () => 0;
   });
   const id = await createProfileApi(request, uniqueName(`MstW-${testInfo.project.name}`), '10H');
-  const due = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
+  const due = FAR_DUE;
   const text = await createText(request, { title: uniqueName('Les fées de la clairière'), body: BODY, level: '10H', due_date: due });
   for (let i = 0; i < 2; i++) {
     await postSession(request, { profileId: id, textId: text.id, day: swissDay(), result: makeResult({ draft: 12, caught: 0 }), aids: [] });
@@ -114,7 +119,7 @@ test('at phone width the start button stays in view while the muster scrolls', a
 
 test('each aid left at the camp adds its bonus to the glory of the battle, pace and prophecy included', async ({ page, request }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  const due = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
+  const due = FAR_DUE;
   await muster(page, request, testInfo, { due });
   await tap(page.getByTestId('pace-option-1'), testInfo);
   await expect(page.getByTestId('muster-bonus')).toContainText('Gloire de ce combat\u202f: +50\u202f%');
