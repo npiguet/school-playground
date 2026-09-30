@@ -1,0 +1,36 @@
+{
+  "chimere-cou": {
+    "young": {
+      "src": "chimere-cou_young.webp",
+      "x": 0.48535,
+      "y": 0.32617,
+      "w": 0.19336,
+      "h": 0.08789
+    }
+  },
+  "chimere-queue": {
+    "young": {
+      "src": "chimere-queue_young.webp",
+      "x": 0.12109,
+      "y": 0.72266,
+      "w": 0.12012,
+      "h": 0.10449
+    },
+    "adult": {
+      "src": "chimere-queue_adult.webp",
+      "x": 0.13086,
+      "y": 0.71484,
+      "w": 0.0752,
+      "h": 0.0918
+    }
+  },
+  "chimere-dos": {
+    "young": {
+      "src": "chimere-dos_young.webp",
+      "x": 0.30957,
+      "y": 0.43262,
+      "w": 0.24121,
+      "h": 0.21094
+    }
+  }
+}
