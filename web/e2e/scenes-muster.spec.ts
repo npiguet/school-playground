@@ -42,6 +42,64 @@ for (const [width, height, layout] of [
   });
 }
 
+/** How tall the muster's content is against the room it has (px), so the headroom shows in a failure. */
+const heights = (page: Page) =>
+  page.getByTestId('muster').evaluate((el) => {
+    const last = el.lastElementChild as HTMLElement;
+    const pad = parseFloat(getComputedStyle(el).paddingBottom) || 0;
+    return { content: Math.ceil(last.getBoundingClientRect().bottom - el.getBoundingClientRect().top + el.scrollTop + pad), room: el.clientHeight };
+  });
+
+/** The fullest muster: every aid left at the camp, a take-back suggestion (two copies « à reprendre »),
+ *  a quest tag, the Pythie's prophecy, the Hydra's longest dossier line (her « strong » band) or Éris's
+ *  fight rule and her longest taunt (the draw pinned to the first of `battle.start`). */
+async function fullestMuster(page: Page, request: APIRequestContext, testInfo: TestInfo, eris: boolean) {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
+  const id = await createProfileApi(request, uniqueName(`MstW-${testInfo.project.name}`), '10H');
+  const due = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
+  const text = await createText(request, { title: uniqueName('Les fées de la clairière'), body: BODY, level: '10H', due_date: due });
+  for (let i = 0; i < 2; i++) {
+    await postSession(request, { profileId: id, textId: text.id, day: swissDay(), result: makeResult({ draft: 12, caught: 0 }), aids: [] });
+  }
+  await page.goto(`/#/p/${id}/play/${text.id}?quest=1&encounter=${eris ? 'eris' : 'hydre'}`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('muster-suggestion')).toHaveText("Tu pourrais reprendre le fil d'Ariane avec toi.");
+  for (const aid of ALL) await expect(page.getByTestId(`aid-toggle-${aid}`)).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('play-quest-banner')).toBeVisible();
+  await expect(page.getByTestId('play-prophecy')).toBeVisible();
+  await expect(page.getByTestId('muster-prophecy-bonus')).toBeVisible();
+  if (eris) {
+    await expect(page.getByTestId('play-boss-banner')).toBeVisible();
+    await expect(page.getByTestId('battle-voice')).toContainText('Un parchemin de plus pour mes dés-accords.');
+  } else {
+    await expect(page.getByTestId('battle-voice')).toContainText('Les têtes de mon Hydre se glissent dans les pluriels');
+  }
+}
+
+for (const [width, height, layout] of [
+  [1280, 800, 'wide'],
+  [1180, 820, 'wide'],
+  [1024, 768, 'narrow'],
+] as const) {
+  for (const eris of [false, true]) {
+    test(`at ${width}×${height} the fullest muster${eris ? " of Éris's fight" : ''} still fits, in its ${layout} layout`, async ({ page, request }, testInfo) => {
+      await page.setViewportSize({ width, height });
+      await fullestMuster(page, request, testInfo, eris);
+      await expect(page.getByTestId('muster')).toHaveAttribute('data-layout', layout);
+      await expect
+        .poll(async () => {
+          const h = await heights(page);
+          return h.content <= h.room ? 'fits' : `${h.content} px of content for ${h.room} px`;
+        })
+        .toBe('fits');
+      await expect.poll(() => fits(page)).toBe(true);
+      await expect.poll(() => startInView(page)).toBe(true);
+    });
+  }
+}
+
 test('at phone width the start button stays in view while the muster scrolls', async ({ page, request }, testInfo) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await muster(page, request, testInfo);
@@ -89,25 +147,43 @@ test('the aids chosen go with the battle and come back with its resume ribbon', 
 test('the aids taken last are chosen again, and a suggestion only suggests', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Mst7-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Trois belles copies'), body: BODY, level: '10H' });
-  // Three belles copies with all five aids: the server remembers them and the camp suggests leaving the owl.
+  // Three belles copies with the same three aids: the server remembers them (not the default five) and
+  // the camp suggests leaving the owl, the first of its order that the run took.
+  const TAKEN = ['ariane', 'persee', 'athena'];
   for (let i = 0; i < 3; i++) {
-    await postSession(request, { profileId: id, textId: text.id, day: swissDay(), result: makeResult({ draft: 2, caught: 2 }), aids: ALL });
+    await postSession(request, { profileId: id, textId: text.id, day: swissDay(), result: makeResult({ draft: 2, caught: 2 }), aids: TAKEN });
   }
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
+  for (const aid of ALL) await expect(page.getByTestId(`aid-toggle-${aid}`)).toHaveAttribute('aria-pressed', String(TAKEN.includes(aid)));
   await expect(page.getByTestId('muster-suggestion')).toHaveText('Tu pourrais laisser la chouette au camp.');
   const owl = page.getByTestId('aid-toggle-athena');
   await expect(owl).toHaveAttribute('data-suggested', 'true');
-  await expect(owl).toHaveAttribute('aria-pressed', 'true');
-  for (const aid of ALL) await expect(page.getByTestId(`aid-toggle-${aid}`)).toHaveAttribute('aria-pressed', 'true');
   // The child follows it: the owl stays at the camp, and the camp now names the next aid of its order
   // that the run took and this muster still takes (plan Ruling R3), without touching any toggle.
   await tap(owl, testInfo);
   await expect(owl).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.getByTestId('muster-suggestion')).toHaveText("Tu pourrais laisser les yeux d'Argus au camp.");
-  await expect(page.getByTestId('aid-toggle-argus')).toHaveAttribute('data-suggested', 'true');
-  await expect(page.getByTestId('aid-toggle-argus')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('muster-suggestion')).toHaveText('Tu pourrais laisser le bouclier de Persée au camp.');
+  await expect(page.getByTestId('aid-toggle-persee')).toHaveAttribute('data-suggested', 'true');
+  await expect(page.getByTestId('aid-toggle-persee')).toHaveAttribute('aria-pressed', 'true');
   await expect(owl).not.toHaveAttribute('data-suggested', 'true');
+  for (const aid of ['argus', 'palamede']) await expect(page.getByTestId(`aid-toggle-${aid}`)).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('each aid toggle is named by its aid alone, whatever its state, and described by its own line', async ({ page, request }, testInfo) => {
+  for (const [width, height] of [
+    [1280, 800],
+    [1024, 768],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await muster(page, request, testInfo);
+    const owl = page.getByRole('button', { name: "La chouette d'Athéna", exact: true });
+    await expect(owl).toHaveAttribute('aria-pressed', 'true');
+    await expect(owl).toHaveAccessibleDescription('3 indices pour repérer un piège.');
+    await tap(owl, testInfo);
+    await expect(page.getByRole('button', { name: "La chouette d'Athéna", exact: true })).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByRole('button', { name: "Le fil d'Ariane", exact: true })).toHaveAccessibleDescription('Relie un verbe à son sujet.');
+  }
 });
 
 test("the grimoire's muster shows only the aids and its own button; Éris's fight keeps its pace floor", async ({ page, request }, testInfo) => {

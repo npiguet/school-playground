@@ -3,7 +3,7 @@
   // redesign): real radios, the label is the tap target. `minPace` (SP3 Task 7): in a boss fight the
   // slower paces stay visible, locked, with the reason. Spec 2026-09-29 §5: each shows its bonus tag;
   // `row` (the narrow muster, plan Ruling R6) puts the three side by side with the chosen one's
-  // description under them; a locked pace there shows its reason instead of a bonus it cannot pay.
+  // description under them. A locked pace shows its reason, never a bonus it cannot pay.
   import { PACES, PACE_LABELS, type Pace } from '../../lib/dictation/script';
   import { MUSTER } from '../../lib/battle/lines';
 
@@ -27,7 +27,7 @@
         <span class="words">
           <span class="title-line">
             <span class="title">{PACE_LABELS[p].title}</span>
-            {#if bonuses[p] > 0 && !(row && disabled)}<span class="kit-tag bonus" data-testid="pace-bonus-{p}">{MUSTER.bonusTag(bonuses[p])}</span>{/if}
+            {#if bonuses[p] > 0 && !disabled}<span class="kit-tag bonus" data-testid="pace-bonus-{p}">{MUSTER.bonusTag(bonuses[p])}</span>{/if}
           </span>
           {#if !row || disabled}<span class="desc">{disabled ? MUSTER.paceLocked : PACE_LABELS[p].description}</span>{/if}
         </span>

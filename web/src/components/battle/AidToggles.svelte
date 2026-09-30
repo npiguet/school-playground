@@ -1,9 +1,11 @@
 <script lang="ts">
   // The five review aids on the muster (spec 2026-09-29 §3, §5): each taken along or left at the camp.
-  // Wide: five compact rows (a 40 px emblem, the name with the choice and the « +20 % » tag when left on
-  // its line, one line of description under it). Narrow: one row of five 48 px emblem toggles with their
-  // names under them, the tag in the corner, the focused one's line below. A suggested aid is ringed;
-  // the choice is always the child's (never changed from here).
+  // Wide: five compact rows (a 40 px emblem, the name with, on its line, « Emporter » while taken or the
+  // « +20 % » tag while left, one line of description under it). Narrow: one row of five 48 px emblem
+  // toggles with their names under them, the tag in the corner, the focused one's line below. A
+  // suggested aid is ringed; the choice is always the child's (never changed from here). Plan Ruling
+  // R4: the toggle's accessible name is the aid's name alone, `aria-pressed` says taken, and its
+  // description is its own line (`aid-desc-<key>`), in both layouts.
   import { untrack } from 'svelte';
   import { AID_KEYS, AID_LABELS, aidDesc, aidIcon, type AidKey } from '../../lib/aids';
   import { MUSTER } from '../../lib/battle/lines';
@@ -37,23 +39,24 @@
         class:suggested={highlight === key}
         data-testid="aid-toggle-{key}"
         data-suggested={highlight === key ? 'true' : undefined}
+        aria-label={AID_LABELS[key].name}
         aria-pressed={taken}
-        aria-describedby={wide ? undefined : 'aid-desc'}
+        aria-describedby="aid-desc-{key}"
         onclick={() => toggle(key)}
         onfocus={() => (focused = key)}
         onpointerenter={() => (focused = key)}
       >
         {#if icon}<img class="emblem" src={icon} alt="" />{:else}<span class="emblem kit-medallion" aria-hidden="true"></span>{/if}
         <span class="name">{AID_LABELS[key].name}</span>
-        <span class="side">
-          {#if wide}<span class="state" aria-hidden="true">{taken ? MUSTER.take : MUSTER.leave}</span>{/if}
-          {#if !taken}<span class="kit-tag bonus" data-testid="aid-bonus-{key}">{MUSTER.bonusTag(rules.aid_bonus)}</span>{/if}
+        <span class="side" aria-hidden="true">
+          {#if !taken}<span class="kit-tag bonus" data-testid="aid-bonus-{key}">{MUSTER.bonusTag(rules.aid_bonus)}</span>
+          {:else if wide}<span class="state">{MUSTER.take}</span>{/if}
         </span>
-        {#if wide}<span class="desc">{aidDesc(key, rules)}</span>{/if}
+        <span class="desc" id="aid-desc-{key}" hidden={!wide}>{aidDesc(key, rules)}</span>
       </button>
     {/each}
   </div>
-  {#if !wide}<p class="focused-desc" id="aid-desc" data-testid="aid-desc">{aidDesc(focused, rules)}</p>{/if}
+  {#if !wide}<p class="focused-desc" data-testid="aid-desc" aria-hidden="true">{aidDesc(focused, rules)}</p>{/if}
 </fieldset>
 
 <style>

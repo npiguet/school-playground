@@ -61,7 +61,6 @@ export const MUSTER = {
   // Spec 2026-09-29 §5: the aids' column, the bonuses, the suggestion, the resume ribbon's reminder.
   aidsHeading: 'Tes aides',
   take: 'Emporter',
-  leave: 'Laisser au camp',
   bonusTag: (x: number) => `+${rateText(x)}`,
   total: (x: number) => `Gloire de ce combat\u202f: +${rateText(x)}`,
   prophecyTag: (x: number) => `Prophétie +${rateText(x)}`,
