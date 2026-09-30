@@ -1,0 +1,103 @@
+{
+  "result": "r_cou_illustre_s1301_3.png",
+  "generation": {
+    "prompt": "the thick strong neck of a mighty renowned bronze-gold dragon with large armour-plate scales and a pale cream throat, wearing a snug ancient Greek collar around its neck: a wide band of overlapping glossy bright emerald-green scales like the scales of a marsh serpent, edged top and bottom with a thin rim of polished bronze, a small bronze serpent-head clasp at the front, the collar wraps closely around the neck and follows its curve, clean dark ink outline around the collar.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.75,
+    "steps": 11,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 1303,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_illustre.png",
+    "mask_file": "assets\\art\\dragon\\slots\\illustre_cou.png"
+  },
+  "extract": {
+    "stage": "dragon_illustre.png",
+    "slot_mask": "illustre_cou.png",
+    "pos": [
+      [
+        611,
+        320
+      ],
+      [
+        661,
+        330
+      ],
+      [
+        571,
+        340
+      ],
+      [
+        636,
+        355
+      ],
+      [
+        713,
+        350
+      ],
+      [
+        636,
+        307
+      ],
+      [
+        661,
+        367
+      ]
+    ],
+    "neg": [
+      [
+        636,
+        290
+      ],
+      [
+        636,
+        390
+      ],
+      [
+        546,
+        330
+      ],
+      [
+        741,
+        290
+      ],
+      [
+        741,
+        360
+      ]
+    ],
+    "box": [
+      539,
+      275,
+      777,
+      380
+    ],
+    "hand_points": true,
+    "sam_mask": 2,
+    "diff": 28,
+    "novelty": 45,
+    "grow": 2,
+    "keep_white": true,
+    "max_hole": null,
+    "cuts": null
+  }
+}
