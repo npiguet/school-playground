@@ -318,3 +318,16 @@ The "Pipeline for an aligned overlay" above is now proven and scripted: slot mas
 inpainting settings per item type (0.75 for items that wrap the body, 0.85 for items that stand
 out), the horn exclusion, the extraction and its rejected variants are in
 `.claude/skills/art-overlays/SKILL.md`.
+
+## Lock rule addendum: wait for Forge outside the lock (2026-09-30)
+
+The machine lock (`tools/art/with_lock.sh`) is shared with code tasks' e2e runs. An art batch that
+took the lock and then let `img2img.py` / `generate.py` wait for Forge (busy with the user's own
+job) held it for 35+ minutes and starved the e2e runs. So:
+
+- **Wait for Forge idle OUTSIDE `with_lock.sh`** (poll `/sdapi/v1/progress` until no job, twice in a
+  row), then take the lock for **one short job only** (about 3-6 images, a few minutes) and release it.
+  The scripts' own wait-for-Forge must never be what runs inside the lock.
+- Never wrap a loop over many items, a wait, segmentation, extraction or a review step in the lock.
+- Pattern (a driver that runs outside the lock, one lock per job):
+  `for job: poll progress until idle; sh tools/art/with_lock.sh python tools/art/img2img.py ... --count 3`.
