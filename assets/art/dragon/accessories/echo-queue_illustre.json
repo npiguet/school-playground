@@ -1,0 +1,98 @@
+{
+  "item": "echo-queue",
+  "stage": "illustre",
+  "inpainting": {
+    "prompt": "the tail of a mighty mature dragon with large burnished bronze-gold scales, wearing a tail ornament of bronze bells: a snug band of thick braided deep sea-blue rope with small turquoise beads wrapped tightly around the tail, and hanging from it three small round bells of bright shining polished yellow bronze, each bell with a dark slit and a tiny pale pink seashell charm, clean dark ink outline around the band and every bell, (scales on the band:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.75,
+    "steps": 11,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 1344,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_illustre.png",
+    "mask_file": "C:\\Users\\nicol\\.claude\\jobs\\9ac9a508\\tmp\\art-echo\\m_illustre_queue.png"
+  },
+  "extraction": {
+    "tool": "tools/art/overlay.py extract --cpu",
+    "stage": "assets/art/dragon/dragon_illustre.png",
+    "mask": "assets/art/dragon/slots/illustre_queue.png",
+    "pos": [
+      [
+        134,
+        806
+      ],
+      [
+        144,
+        831
+      ],
+      [
+        169,
+        846
+      ],
+      [
+        199,
+        846
+      ],
+      [
+        219,
+        836
+      ],
+      [
+        139,
+        794
+      ]
+    ],
+    "neg": [
+      [
+        176,
+        819
+      ],
+      [
+        206,
+        861
+      ],
+      [
+        155,
+        861
+      ],
+      [
+        135,
+        854
+      ]
+    ],
+    "box": [
+      120,
+      785,
+      232,
+      858
+    ]
+  },
+  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): extracted in parts and merged (overlay.py merge): band as recorded (box 120 785 232 858); bell L --pos 135,854 135,871 --neg 155,861 144,831 --box 120 840 150 884; bell M --pos 155,861 --neg 135,854 169,846 --box 143 848 170 878; bell R --pos 214,860 --neg 199,846 --box 202 846 226 872",
+  "note": "inpainting and extraction mask = the slot mask united with itself shifted down 22 px (extmask.py). Seeds 1341-1343 rejected: the band ended ~20 px short of the tail's edge or crossed it as a sash; 1344 wraps the tail.",
+  "raw_crop": [
+    80,
+    730,
+    284,
+    908
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+}
