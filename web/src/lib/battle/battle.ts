@@ -66,7 +66,7 @@ export interface OpponentInput {
   mode: BattleMode;
   encounter: string | null;
   textId: number | null;
-  lieutenants: Pick<LieutenantState, 'key' | 'available' | 'neutralised' | 'stirring'>[];
+  lieutenants: Pick<LieutenantState, 'key' | 'available' | 'neutralised'>[];
 }
 
 export function opponentFor(i: OpponentInput): OpponentId {
@@ -74,10 +74,8 @@ export function opponentFor(i: OpponentInput): OpponentId {
   if (i.encounter && isOpponentId(i.encounter)) return i.encounter;
   if (i.mode === 'grimoire') return 'eris';
   const open = i.lieutenants.filter((l) => l.available && !l.neutralised && isOpponentId(l.key));
-  const stirring = open.filter((l) => l.stirring);
-  const pool = stirring.length > 0 ? stirring : open;
-  if (pool.length === 0) return 'eris';
-  return pool[Math.abs(i.textId ?? 0) % pool.length].key as LieutenantKey;
+  if (open.length === 0) return 'eris';
+  return open[Math.abs(i.textId ?? 0) % open.length].key as LieutenantKey;
 }
 
 export function battleFor(opponent: OpponentId, ctx: { mode: BattleMode; encounter: string | null }): BattleDef {

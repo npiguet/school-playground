@@ -3,7 +3,7 @@
 // bestiary codex on its lectern. A lieutenant still asleep at the hero's class is a locked place.
 import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
-import { agree, lieutenantName, sleepingCaption, stirringCaption } from '../eris';
+import { agree, lieutenantName, sleepingCaption } from '../eris';
 import { LIEUTENANT_ORDER, type LieutenantKey } from '../types';
 import { st, type HotspotDef, type HotspotState, type SceneContext, type SceneDef } from '../../scene/types';
 import { WAR_SHAPES, WAR_TOUR_AREAS } from './war.shapes';
@@ -20,11 +20,6 @@ function sheetState(key: LieutenantKey) {
     if (!l) return st();
     if (!l.available) return st({ locked: true, caption: sleepingCaption(key) });
     if (l.neutralised) return st({ caption: agree('Neutralisé', key) });
-    if (l.stirring) {
-      // W14: one glow per scene - the first lieutenant who stirs, in the camp's order.
-      const first = camp!.lieutenants.find((x) => x.stirring && x.available && !x.neutralised)?.key;
-      return st({ isNew: first === key, caption: stirringCaption(key) });
-    }
     if (l.active_quest_id !== null) return st({ caption: 'Quête en cours' });
     return st();
   };

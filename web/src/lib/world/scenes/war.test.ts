@@ -4,7 +4,7 @@ import type { CampResponse, LieutenantState } from '../types';
 import { LIEUTENANT_NAMES, WAR_HOTSPOTS, WAR_SCENE, isLieutenantKey } from './war';
 
 const lt = (key: string, over: Partial<LieutenantState> = {}) =>
-  ({ key, name: key, available: true, neutralised: false, stirring: false, active_quest_id: null, ...over }) as LieutenantState;
+  ({ key, name: key, available: true, neutralised: false, active_quest_id: null, ...over }) as LieutenantState;
 const state = (id: string, lieutenants: LieutenantState[]) =>
   WAR_HOTSPOTS.find((h) => h.id === id)!.state({ camp: { lieutenants } as CampResponse, catalog: null });
 
@@ -37,11 +37,5 @@ describe('war tent (UI3 Ruling B4)', () => {
     expect(state('hydre', [lt('hydre', { neutralised: true })])).toMatchObject({ caption: 'Neutralisée' });
     expect(state('protee', [lt('protee', { neutralised: true })])).toMatchObject({ caption: 'Neutralisé' });
     expect(state('chimere', [lt('chimere', { active_quest_id: 4 })])).toMatchObject({ caption: 'Quête en cours' });
-  });
-
-  it('glows on the first stirring lieutenant only (W14)', () => {
-    const both = [lt('echo', { stirring: true }), lt('lethe', { stirring: true })];
-    expect(state('echo', both)).toMatchObject({ isNew: true, caption: "S'agite" });
-    expect(state('lethe', both)).toMatchObject({ isNew: false, caption: "S'agite" });
   });
 });

@@ -115,7 +115,6 @@ def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row) -> list[di
             "window": {"days": window.days, "traps": window.traps, "caught": window.caught, "rate": window.rate, "complete": window.complete},
             "all_time": {"traps": traps, "caught": caught, "missed": missed, "rate": (caught / traps) if traps else None},
             "last_day": last_day, "bestiary_unlocked": bestiary_unlocked, "active_quest_id": active_quest["id"] if active_quest else None,
-            "stirring": neutralised and window.complete and window.rate is not None and window.rate < 0.5,
         })
     return out
 

@@ -79,8 +79,8 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
 
   // Closing item 2: c18c showed « Éris recule ! » (a half-victory title) over her line about keeping
   // the apple. Each boss outcome now gets a title and a line that agree: a win is the only "Victoire",
-  // and both kinds of loss (too easy, or a genuine defeat) share a title that never claims she was
-  // pushed back, matching her own line about the fight staying open.
+  // and a genuine loss has a title that never claims she was pushed back, matching her own line
+  // about the fight staying open.
   it('gives each boss outcome a title and a line that agree with each other', () => {
     const won = outcomeOf({ draft: 5, caught: 5 }, { won: true });
     expect(L.victoryTitle(won, 'eris')).toBe('Victoire\u202f!');

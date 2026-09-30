@@ -4,7 +4,6 @@
 import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
 import { stageLine } from '../dragon';
-import { stirringCaption } from '../eris';
 import { HUB_PLACE, bossEngaged, nextStep, nextStepKey } from '../nextStep';
 import { sayKey } from '../../dialogue/select';
 import { nearestProphecy, prophecyWhen } from '../prophecy';
@@ -64,13 +63,11 @@ export function campNextStep(camp: CampResponse | null): CampHotspotId | null {
  *  battle path's caption counts too, locked (the tricks still to foil) or open (the fight), first. */
 export function campNews(camp: CampResponse, catalog: WorldCatalog | null): Partial<Record<CampHotspotId, string>> {
   const p = nearestProphecy(camp);
-  const stirring = camp.lieutenants.find((l) => l.stirring && l.available && !l.neutralised);
   const all: [CampHotspotId, string | null][] = [
     ['boss', bossLocked(camp) ? bossLockCaption(camp) : bossCaption(camp, catalog)],
     ['oracle', p && p.days_left <= 7 ? `Une prophétie, ${prophecyWhen(p.days_left)}` : camp.oracle.status === 'sealed' ? 'Trois rouleaux à ouvrir' : null],
     ['parchemins', camp.xp.total === 0 ? 'Choisis un texte à défendre' : null],
     ['dragon', camp.dragon.stage !== 'egg' && !camp.dragon.name ? 'Il attend un nom' : null],
-    ['dossier', stirring ? `${stirring.name} ${stirringCaption(stirring.key as LieutenantKey).toLowerCase()}` : null],
   ];
   return Object.fromEntries(all.filter((e): e is [CampHotspotId, string] => e[1] !== null).slice(0, 3));
 }

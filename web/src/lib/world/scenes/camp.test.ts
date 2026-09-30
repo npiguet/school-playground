@@ -40,7 +40,6 @@ const ready = (over: Partial<CampResponse> = {}) => camp({ boss: { tier_availabl
 const seasoned = { total: 40, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 };
 const chosen = { week: 'w', status: 'chosen' as const, reward_id: null };
 const hatchling = { ...camp().dragon, stage: 'hatchling' as const };
-const echoStirs = [{ key: 'echo', name: 'Écho', stirring: true, neutralised: false, available: true }] as LieutenantState[];
 const prophecy = (days: number) => [{ text_id: 1, title: 'La mer', due_date: '2026-09-27', days_left: days }];
 
 describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
@@ -84,18 +83,17 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     expect(campNews(camp({ xp: seasoned, oracle: chosen, boss: won }), null)).toEqual({ boss: 'Éris boude, loin du camp' });
     // Ruling B-d: the locked path's caption is the battle's news, first of the three.
     expect(campNews(camp({ xp: seasoned, oracle: chosen, dragon: { ...hatchling, name: 'Braise', neutralised: 6 } }), null)).toEqual({});
-    expect(campNews(camp({ dragon: hatchling, lieutenants: echoStirs }), null)).toEqual({
+    expect(campNews(camp({ dragon: hatchling }), null)).toEqual({
       boss: 'Encore 2 ruses',
       oracle: 'Trois rouleaux à ouvrir',
       parchemins: 'Choisis un texte à défendre',
     });
-    const busy = ready({ xp: seasoned, prophecies: prophecy(2), dragon: hatchling, lieutenants: echoStirs });
+    const busy = ready({ xp: seasoned, prophecies: prophecy(2), dragon: hatchling });
     expect(campNews(busy, catalog)).toEqual({ boss: "Combat I\u202f: Sandales d'Hermès", oracle: `Une prophétie, ${prophecyWhen(2)}`, dragon: 'Il attend un nom' });
     expect(state('dossier', busy, catalog).caption).toBeNull();
-    expect(campNews(camp({ xp: seasoned, dragon: { ...hatchling, neutralised: 6 }, lieutenants: echoStirs }), null)).toEqual({
+    expect(campNews(camp({ xp: seasoned, dragon: { ...hatchling, neutralised: 6 } }), null)).toEqual({
       oracle: 'Trois rouleaux à ouvrir',
       dragon: 'Il attend un nom',
-      dossier: "Écho s'agite",
     });
     expect(campNews(camp(), null)).toEqual({ boss: 'Encore 2 ruses', oracle: 'Trois rouleaux à ouvrir', parchemins: 'Choisis un texte à défendre' });
   });

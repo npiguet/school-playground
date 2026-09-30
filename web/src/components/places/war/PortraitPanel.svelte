@@ -14,7 +14,7 @@
   import { worldApi } from '../../../lib/world/api';
   import { campFor, campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../../../lib/world/types';
-  import { agree, neutraliseRule, stirringCaption } from '../../../lib/world/eris';
+  import { agree, neutraliseRule } from '../../../lib/world/eris';
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
   import { lengthOf } from '../../../lib/library/shelf';
   import { longDate, rateText } from '../../../lib/text/french';
@@ -110,10 +110,6 @@
           <!-- Final review M22: no « le … » without a date. -->
           <p>{neutralisedLine}</p>
         </div>
-      {/if}
-
-      {#if lieutenantState.stirring}
-        <p class="kit-note" data-tone="eris">{name} {stirringCaption(lieutenantKey as LieutenantKey).toLowerCase()} à nouveau. Une quête de revanche{'\u202f?'}</p>
       {/if}
 
       {#if !lieutenantState.neutralised}

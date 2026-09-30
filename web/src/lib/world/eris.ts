@@ -206,8 +206,3 @@ export function sleepingLine(key: LieutenantKey, level?: string): string {
 export function sleepingCaption(key: LieutenantKey): string {
   return GENDER[key] === 'fp' ? 'Dorment encore' : 'Dort encore';
 }
-
-/** The short caption of a lieutenant that stirs again (a revenge quest waits). */
-export function stirringCaption(key: LieutenantKey): string {
-  return GENDER[key] === 'fp' ? "S'agitent" : "S'agite";
-}

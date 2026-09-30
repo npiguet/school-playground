@@ -29,6 +29,7 @@ def test_camp_for_new_profile(client):
     assert c["dragon"]["stage"] == "egg" and c["dragon"]["available"] == 5 and c["dragon"]["unlocked_tints"] == ["bronze"]
     protee = next(l for l in c["lieutenants"] if l["key"] == "protee")
     assert protee["available"] is False and len(c["lieutenants"]) == 6
+    assert all("stirring" not in l for l in c["lieutenants"])
     assert c["oracle"]["status"] == "sealed" and c["weekly"] == {"week": c["weekly"]["week"], "target": 3, "done": 0, "reached": False}
     assert c["boss"] == {"tier_available": None, "tiers_won": [], "active_quest_id": None}
 

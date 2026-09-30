@@ -498,8 +498,7 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   it, not merely when a new week begins.
 - **Mastery rule** — an error family ("lieutenant") is neutralised once the player's most recent
   qualifying days reach at least 3 distinct days and 10 draft errors, with a catch rate of at least
-  80% over that window. Neutralisation is permanent: nothing is ever taken away, a later dip only
-  surfaces as a suggested quest.
+  80% over that window. Neutralisation is permanent: nothing is ever taken away.
 - **Rewards are announced in advance** — every relic, dragon tint, divine gear and cabin decor piece
   is on the cabin's trophy shelf (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can
   be earned; nothing is a gamble.

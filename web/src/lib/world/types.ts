@@ -68,7 +68,6 @@ export interface LieutenantState {
   last_day: string | null;
   bestiary_unlocked: boolean;
   active_quest_id: number | null;
-  stirring: boolean;
 }
 
 export interface QuestOut {

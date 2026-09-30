@@ -14,7 +14,6 @@ import {
   sleepingCaption,
   sleepingLine,
   smallTricksLine,
-  stirringCaption,
 } from './eris';
 import { LIEUTENANT_ORDER } from './types';
 
@@ -59,7 +58,6 @@ describe("Éris's dossier lines", () => {
     expect(sleepingLine('hydre')).toBe("L'Hydre dort encore. Elle se réveillera dans quelques années.");
     for (const k of LIEUTENANT_ORDER) expect(sleepingLine(k, '5H')).not.toMatch(/classe|école/);
     expect([sleepingCaption('protee'), sleepingCaption('sirenes')]).toEqual(['Dort encore', 'Dorment encore']);
-    expect([stirringCaption('echo'), stirringCaption('sirenes')]).toEqual(["S'agite", "S'agitent"]);
   });
 
   // UI3b playability #3, #12: Éris's file says what stands between the hero and a lieutenant in one

@@ -34,8 +34,8 @@ export function reckoningSteps(draft: number, caught: number): number[] {
 // (a lieutenant "on the back foot", partway to a rout) reads as ground won; the boss's win/loss is
 // binary (the server's `boss.won`), and a real loss must never borrow that half-victory title
 // ("Éris recule !") while her own line says she keeps the apple. 'standoff' ("Le combat continue")
-// fits a genuine defeat (she keeps
-// the apple, but stays open to a rematch), and its opponent reaction is a taunt, not a retreat.
+// fits a genuine defeat (she keeps the apple, but stays open to a rematch), and its opponent
+// reaction is a taunt, not a retreat.
 export function outcomeOf(r: { draft: number; caught: number }, boss: { won: boolean } | null): Outcome {
   if (boss) return boss.won ? 'rout' : 'standoff';
   if (r.draft === 0 || r.caught >= r.draft) return 'rout';

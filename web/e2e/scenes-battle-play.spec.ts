@@ -134,7 +134,6 @@ test('a free text waits for the fresh camp before choosing its opponent', async 
     const pick = only;
     for (const l of json.lieutenants) {
       l.available = l.key === pick;
-      l.stirring = l.key === pick;
       l.neutralised = false;
     }
     if (pick === 'lethe') {

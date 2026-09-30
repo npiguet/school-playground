@@ -293,7 +293,7 @@ test('a foiled lieutenant: the gold seal on the sheet, the relic on the portrait
     const json = await res.json();
     json.lieutenants = json.lieutenants.map((l: { key: string; all_time: object }) =>
       l.key === 'hydre'
-        ? { ...l, neutralised: true, neutralised_at: '2026-09-20T10:00:00', stirring: false, bestiary_unlocked: true, all_time: { traps: 12, caught: 11, rate: 11 / 12 } }
+        ? { ...l, neutralised: true, neutralised_at: '2026-09-20T10:00:00', bestiary_unlocked: true, all_time: { traps: 12, caught: 11, rate: 11 / 12 } }
         : l,
     );
     await route.fulfill({ response: res, json });
