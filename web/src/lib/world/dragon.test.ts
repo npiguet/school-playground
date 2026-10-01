@@ -16,6 +16,7 @@ import {
   stageXp,
   validName,
   victoryGauge,
+  victoryLaurel,
 } from './dragon';
 
 describe('dragon helpers', () => {
@@ -101,22 +102,22 @@ describe('the victory gauge (spec 2026-09-29 dragon growth §2)', () => {
 
   it('stays on one scale when the dragon does not grow', () => {
     const g = victoryGauge(p({ total_before: 487, total_after: 538, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 }, stay('hatchling')), T);
-    expect(g).toEqual({ grew: false, before: { label: 'Dragonnet', max: 1100, from: 387 }, after: { label: 'Dragonnet', max: 1100, from: 387, to: 438 } });
+    expect(g).toEqual({ stages: { before: 'hatchling', after: 'hatchling' }, grew: false, before: { label: 'Dragonnet', max: 1100, from: 387 }, after: { label: 'Dragonnet', max: 1100, from: 387, to: 438 } });
   });
 
   it('fills the old stage, then switches to the new one', () => {
     const g = victoryGauge(p({ total_before: 1100, total_after: 1211, stage_before: 'hatchling', stage_after: 'young', floor: 1200, next: 5000 }, { stage_before: 'hatchling', stage_after: 'young', needs_name: false }), T);
-    expect(g).toEqual({ grew: true, before: { label: 'Dragonnet', max: 1100, from: 1000 }, after: { label: 'Jeune dragon', max: 3800, from: 0, to: 11 } });
+    expect(g).toEqual({ stages: { before: 'hatchling', after: 'young' }, grew: true, before: { label: 'Dragonnet', max: 1100, from: 1000 }, after: { label: 'Jeune dragon', max: 3800, from: 0, to: 11 } });
   });
 
   it('skips a middle stage when it crosses two at once', () => {
     const g = victoryGauge(p({ total_before: 60, total_after: 1250, stage_before: 'egg', stage_after: 'young', floor: 1200, next: 5000 }, { stage_before: 'egg', stage_after: 'young', needs_name: true }), T);
-    expect(g).toEqual({ grew: true, before: { label: 'Œuf', max: 100, from: 60 }, after: { label: 'Jeune dragon', max: 3800, from: 0, to: 50 } });
+    expect(g).toEqual({ stages: { before: 'egg', after: 'young' }, grew: true, before: { label: 'Œuf', max: 100, from: 60 }, after: { label: 'Jeune dragon', max: 3800, from: 0, to: 50 } });
   });
 
   it('is full at the top, never dividing by zero', () => {
     const g = victoryGauge(p({ total_before: 39950, total_after: 40100, stage_before: 'illustre', stage_after: 'ancestral', floor: 40000, next: null }, { stage_before: 'illustre', stage_after: 'ancestral', needs_name: false }), T);
-    expect(g).toEqual({ grew: true, before: { label: 'Dragon illustre', max: 25000, from: 24950 }, after: { label: 'Dragon ancestral', max: 1, from: 1, to: 1 } });
+    expect(g).toEqual({ stages: { before: 'illustre', after: 'ancestral' }, grew: true, before: { label: 'Dragon illustre', max: 25000, from: 24950 }, after: { label: 'Dragon ancestral', max: 1, from: 1, to: 1 } });
   });
 
   it('reads empty for a stage grown before its XP', () => {
@@ -127,7 +128,38 @@ describe('the victory gauge (spec 2026-09-29 dragon growth §2)', () => {
   it('resumes a victory saved before the stages on the dragon\'s scale', () => {
     // A play state saved before the change: rank fields, no stage fields (R7).
     const legacy = { xp: { session: 51, bonuses: [], total_before: 60, total_after: 160, rank_before: 1, rank_after: 2, title_after: 'Scribe des Muses' }, dragon: { stage_before: 'egg' as const, stage_after: 'hatchling' as const, needs_name: true } };
-    expect(victoryGauge(legacy, T)).toEqual({ grew: true, before: { label: 'Œuf', max: 100, from: 60 }, after: { label: 'Dragonnet', max: 1100, from: 0, to: 60 } });
+    expect(victoryGauge(legacy, T)).toEqual({ stages: { before: 'egg', after: 'hatchling' }, grew: true, before: { label: 'Œuf', max: 100, from: 60 }, after: { label: 'Dragonnet', max: 1100, from: 0, to: 60 } });
     expect(victoryGauge(legacy, stageXp({ stages: [{ key: 'hatchling', xp: 50 }] })).after).toEqual({ label: 'Dragonnet', max: 1150, from: 10, to: 110 });
+  });
+
+  it('names the stages it was built from (the XP block first), so the dragon card follows the note', () => {
+    const g = victoryGauge(p({ total_before: 1100, total_after: 1211, stage_before: 'hatchling', stage_after: 'young', floor: 1200, next: 5000 }, stay('hatchling')), T);
+    expect(g.stages).toEqual({ before: 'hatchling', after: 'young' });
+    expect(g.grew).toBe(true);
+  });
+});
+
+describe('the victory laurel at each phase', () => {
+  const T = DEFAULT_STAGE_XP;
+  const grown = (xpOf: typeof T) =>
+    victoryGauge({ xp: { session: 51, bonuses: [], total_before: 60, total_after: 160 }, dragon: { stage_before: 'egg', stage_after: 'hatchling', needs_name: true } }, xpOf);
+
+  it('fills the old scale, then shows the new one with its note', () => {
+    const g = grown(T);
+    expect(victoryLaurel(g, 'start')).toEqual({ label: 'Œuf', max: 100, value: 60, grewNote: false });
+    expect(victoryLaurel(g, 'filled')).toEqual({ label: 'Œuf', max: 100, value: 100, grewNote: false });
+    expect(victoryLaurel(g, 'after')).toEqual({ label: 'Dragonnet', max: 1100, value: 60, grewNote: true });
+  });
+
+  it('rescales the filled phase when the stage table arrives mid-animation', () => {
+    // The catalogue lowers the hatchling to 50 after the fill started: the old scale is 50 wide now.
+    const late = grown(stageXp({ stages: [{ key: 'hatchling', xp: 50 }] }));
+    expect(victoryLaurel(late, 'filled')).toEqual({ label: 'Œuf', max: 50, value: 50, grewNote: false });
+  });
+
+  it('stays on one scale without a note when the dragon does not grow', () => {
+    const g = victoryGauge({ xp: { session: 51, bonuses: [], total_before: 487, total_after: 538 }, dragon: { stage_before: 'hatchling', stage_after: 'hatchling', needs_name: false } }, T);
+    expect(victoryLaurel(g, 'start')).toEqual({ label: 'Dragonnet', max: 1100, value: 387, grewNote: false });
+    expect(victoryLaurel(g, 'after')).toEqual({ label: 'Dragonnet', max: 1100, value: 438, grewNote: false });
   });
 });

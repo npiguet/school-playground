@@ -101,6 +101,9 @@ export function scaleOf(stage: DragonStage, xpOf: Record<DragonStage, number>): 
  *  total before (no growth) or 0, to the total after. The new scale is the server's when the victory
  *  carries it, else the table's (a victory saved before the change, R7). */
 export interface VictoryGauge {
+  /** The stages the gauge was built from: the dragon card reads them too, so the « Ton dragon
+   *  grandit ! » note and the card never disagree. */
+  stages: { before: DragonStage; after: DragonStage };
   grew: boolean;
   before: { label: string; max: number; from: number };
   after: { label: string; max: number; from: number; to: number };
@@ -115,10 +118,26 @@ export function victoryGauge(p: { xp: Progression['xp']; dragon: Progression['dr
   const a0 = gaugeOf(p.xp.total_before, afterScale);
   const a1 = gaugeOf(p.xp.total_after, afterScale);
   return {
+    stages: { before, after },
     grew: before !== after,
     before: { label: stageLabel(before), max: b.max, from: b.value },
     after: { label: stageLabel(after), max: a1.max, from: a0.value, to: a1.value },
   };
+}
+
+/** Where the victory's laurel stands in its animation: `start` (mounted), `filled` (the old stage's
+ *  scale full, when the dragon grows) or `after` (the final value, on the new scale; at once under
+ *  reduced motion). */
+export type VictoryPhase = 'start' | 'filled' | 'after';
+
+/** What the victory's laurel shows at a phase, always read from the current gauge: a stage table that
+ *  arrives mid-animation rescales every phase, the filled one included. */
+export function victoryLaurel(g: VictoryGauge, phase: VictoryPhase): { label: string; max: number; value: number; grewNote: boolean } {
+  if (phase === 'after' || !g.grew) {
+    const value = phase === 'start' ? g.after.from : g.after.to;
+    return { label: g.after.label, max: g.after.max, value, grewNote: g.grew };
+  }
+  return { label: g.before.label, max: g.before.max, value: phase === 'filled' ? g.before.max : g.before.from, grewNote: false };
 }
 
 /** The stage after this one (the last stage is its own). */

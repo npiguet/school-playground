@@ -17,7 +17,7 @@
   import { ART, RELIC_OF } from '../../lib/world/art';
   import { worldApi } from '../../lib/world/api';
   import { campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
-  import { stageLabel, stageXp, validName, victoryGauge } from '../../lib/world/dragon';
+  import { stageLabel, stageXp, validName, victoryGauge, victoryLaurel, type VictoryPhase } from '../../lib/world/dragon';
   import { lowerLeadingArticle, romanTier } from '../../lib/world/quests';
   import { agree } from '../../lib/world/eris';
   import { erisSays } from '../../lib/world/voices';
@@ -92,17 +92,10 @@
   // Reduced motion (UI4 global constraints): the laurel jumps straight to its final value, on the new
   // stage's scale.
   const quick = reducedMotion();
-  // Which scale the gauge shows: the old one until the switch fires (below); the new one at once when
-  // the dragon does not grow.
-  let gaugePhase = $state<'before' | 'after'>(quick ? 'after' : 'before');
-  const shown = $derived(!gauge.grew || gaugePhase === 'after' ? gauge.after : gauge.before);
-
-  // Keeps following the catalogue until the delayed "to" step below takes over.
-  let xpValue = $state(0);
-  let xpAnimated = false;
-  $effect(() => {
-    if (!xpAnimated) xpValue = quick ? gauge.after.to : gauge.grew ? gauge.before.from : gauge.after.from;
-  });
+  // Only the phase is state; what the laurel shows is read from the current gauge at every phase, so a
+  // catalogue that arrives mid-animation rescales it (the filled old scale included).
+  let gaugePhase = $state<VictoryPhase>(quick ? 'after' : 'start');
+  const shown = $derived(victoryLaurel(gauge, gaugePhase));
   // The text's chip always; a bonus's chip when it paid something. A victory saved before the parts has
   // its one « Texte » chip, the whole session.
   const bonusChips = $derived.by(() => {
@@ -155,8 +148,10 @@
   );
 
   // Dragon card ------------------------------------------------------------------------------------
-  const dragonGrew = $derived(progression.dragon.stage_before !== progression.dragon.stage_after);
-  const isHatchEvent = $derived(progression.dragon.stage_before === 'egg' && dragonGrew);
+  // One source of truth for "the dragon grew" (Task 4 review): the gauge's stages, so the laurel's
+  // « Ton dragon grandit ! » and this card can never disagree.
+  const dragonGrew = $derived(gauge.grew);
+  const isHatchEvent = $derived(gauge.stages.before === 'egg' && dragonGrew);
   let hatchPhase = $state<'egg' | 'hatched'>('egg');
 
   let dragonNameInput = $state('');
@@ -208,19 +203,13 @@
     } else {
       timers.push(
         setTimeout(() => {
-          xpAnimated = true;
-          if (gauge.grew) {
-            xpValue = gauge.before.max;
+          if (untrack(() => gauge.grew)) {
+            gaugePhase = 'filled';
             playSfx('chime');
             xpBurstTrigger += 1;
-            timers.push(
-              setTimeout(() => {
-                gaugePhase = 'after';
-                xpValue = gauge.after.to;
-              }, 400),
-            );
+            timers.push(setTimeout(() => (gaugePhase = 'after'), 400));
           } else {
-            xpValue = gauge.after.to;
+            gaugePhase = 'after';
           }
         }, 150),
       );
@@ -235,7 +224,7 @@
       );
       t += 300;
     });
-    if (dragonGrew) {
+    if (untrack(() => dragonGrew)) {
       const at = t;
       timers.push(
         setTimeout(() => {
@@ -287,12 +276,12 @@
       <p class="xp-gain" data-testid="reveal-xp-gain">{VICTORY.xpGain(xpEarned)}</p>
       <div class="xp-laurel">
         <LaurelBar
-          value={xpValue}
+          value={shown.value}
           max={shown.max}
           label={shown.label}
           testId="victory-xp"
           surface="parchment"
-          note={gauge.grew && gaugePhase === 'after' ? VICTORY.stageUp : undefined}
+          note={shown.grewNote ? VICTORY.stageUp : undefined}
         />
         {#if gauge.grew}<Particles trigger={xpBurstTrigger} kind="burst" />{/if}
       </div>
@@ -361,7 +350,7 @@
     <Reveal delay={nextDelay()}>
       <div class="kit-sheet spoil" data-testid="reveal-dragon">
         <Dragon
-          stage={isHatchEvent && hatchPhase === 'egg' ? 'egg' : progression.dragon.stage_after}
+          stage={isHatchEvent && hatchPhase === 'egg' ? 'egg' : gauge.stages.after}
           tint={dragon?.tint ?? 'bronze'}
           mood="happy"
           size={140}
@@ -370,7 +359,7 @@
         {#if isHatchEvent}
           <p class="spoil-title">L'œuf éclôt{'\u202f!'}</p>
         {:else}
-          <p class="spoil-title">{dragon?.name ?? 'Ton dragon'} grandit{'\u202f: '}{stageLabel(progression.dragon.stage_after)}</p>
+          <p class="spoil-title">{dragon?.name ?? 'Ton dragon'} grandit{'\u202f: '}{stageLabel(gauge.stages.after)}</p>
         {/if}
         <Particles trigger={dragonSparkleTrigger} kind="sparkle" />
 

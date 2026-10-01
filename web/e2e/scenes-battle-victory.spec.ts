@@ -459,6 +459,33 @@ test('the dragon grows on the victory: the laurel ends on the new stage, « Ton 
   await expect(sheet).not.toContainText('Nouveau rang');
 });
 
+// Reduced motion (UI4 global constraints): the laurel shows the new stage, its values and the note at
+// once, with nothing left animating on it.
+test('the dragon grows on the victory under reduced motion: the new stage at once, nothing animating', async ({ page, request }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const sheet = await counted(
+    page,
+    request,
+    `Vic26-${testInfo.project.name}`,
+    progression({
+      xp: { session: 51, bonuses: [{ reason: 'board', amount: 60 }], total_before: 1100, total_after: 1211, stage_before: 'hatchling', stage_after: 'young', floor: 1200, next: 5000 },
+      dragon: { stage_before: 'hatchling', stage_after: 'young', needs_name: false },
+    }),
+  );
+  const laurel = sheet.getByTestId('victory-xp');
+  await expect(laurel).toBeVisible();
+  // Read once, no polling: the final state is there from the first frame the laurel shows.
+  const first = await laurel.evaluate((el) => ({
+    label: el.getAttribute('aria-label'),
+    now: el.getAttribute('aria-valuenow'),
+    max: el.getAttribute('aria-valuemax'),
+    text: el.textContent ?? '',
+    running: el.getAnimations({ subtree: true }).filter((a) => a.playState === 'running').length,
+  }));
+  expect(first).toEqual({ label: 'Jeune dragon', now: '11', max: '3800', text: expect.stringContaining('Ton dragon grandit !'), running: 0 });
+  await expect(sheet.getByTestId('reveal-dragon')).toContainText('grandit : Jeune dragon');
+});
+
 // Review focus 5: a play state saved before the change carries rank fields and no stage fields.
 test('a victory saved before the stages resumes on the dragon\'s scale', async ({ page, request }, testInfo) => {
   const sheet = await counted(
