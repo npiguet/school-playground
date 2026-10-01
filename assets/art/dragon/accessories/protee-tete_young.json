@@ -1,0 +1,194 @@
+{
+  "result": "r_tete_young_s2111_1.png",
+  "generation": {
+    "prompt": "the head of a young bronze-gold dragon with amber eyes and short ivory horns, wearing a crown on top of its head between the horns: a solid band of polished deep red-orange coral around the top of the skull, tall branching red-orange coral spikes standing up from the band like the points of a crown, small round white pearls set along the band, the band is solid with no dragon scales showing through, the crown's front edge sits just above the eyes, clean dark ink outline around the coral crown, (open frame:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.85,
+    "steps": 9,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 2111,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_young.png",
+    "mask_file": "assets\\art\\dragon\\slots\\young_tete.png"
+  },
+  "extract": {
+    "stage": "dragon_young.png",
+    "slot_mask": "young_tete.png",
+    "pos": [
+      [
+        540,
+        135
+      ],
+      [
+        580,
+        128
+      ],
+      [
+        620,
+        130
+      ],
+      [
+        660,
+        128
+      ],
+      [
+        700,
+        125
+      ],
+      [
+        583,
+        70
+      ],
+      [
+        598,
+        88
+      ],
+      [
+        558,
+        100
+      ],
+      [
+        650,
+        105
+      ],
+      [
+        690,
+        108
+      ]
+    ],
+    "neg": [
+      [
+        567,
+        108
+      ],
+      [
+        625,
+        110
+      ],
+      [
+        600,
+        152
+      ],
+      [
+        640,
+        70
+      ],
+      [
+        540,
+        88
+      ],
+      [
+        670,
+        70
+      ]
+    ],
+    "box": [
+      500,
+      40,
+      715,
+      150
+    ],
+    "hand_points": true,
+    "sam_mask": 0,
+    "diff": 28,
+    "novelty": 45,
+    "grow": 2,
+    "keep_white": true,
+    "max_hole": 30,
+    "cuts": [
+      [
+        [
+          599,
+          103
+        ],
+        [
+          612,
+          102
+        ],
+        [
+          622,
+          110
+        ],
+        [
+          622,
+          120
+        ],
+        [
+          609,
+          121
+        ],
+        [
+          600,
+          113
+        ]
+      ],
+      [
+        [
+          626,
+          100
+        ],
+        [
+          634,
+          97
+        ],
+        [
+          639,
+          108
+        ],
+        [
+          637,
+          119
+        ],
+        [
+          628,
+          117
+        ]
+      ],
+      [
+        [
+          674,
+          105
+        ],
+        [
+          688,
+          103
+        ],
+        [
+          691,
+          117
+        ],
+        [
+          677,
+          119
+        ]
+      ]
+    ]
+  },
+  "note": "Seeds 2111-2113 at 0.85, kept 2111 (coral band following the skull between the horns, branches joined to it, pearls along the band; the model turned the stage's small red crest into the tallest coral branch, which covers it); 2112 band dipped onto the brow, 2113 branches rising above the near horn with their base hidden (would float). Extracted in one piece with --keep-white, --max-hole 30 and three --cut polygons for the repainted skull seen between the branches.",
+  "raw_crop": [
+    438,
+    1,
+    765,
+    206
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}

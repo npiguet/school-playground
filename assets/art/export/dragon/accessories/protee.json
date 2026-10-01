@@ -1,0 +1,38 @@
+{
+  "protee-cou": {
+    "young": {
+      "src": "protee-cou_young.webp",
+      "x": 0.49219,
+      "y": 0.31934,
+      "w": 0.18359,
+      "h": 0.07324
+    }
+  },
+  "protee-tete": {
+    "young": {
+      "src": "protee-tete_young.webp",
+      "x": 0.47656,
+      "y": 0.04297,
+      "w": 0.22656,
+      "h": 0.10938
+    }
+  },
+  "protee-queue": {
+    "young": {
+      "src": "protee-queue_young.webp",
+      "x": 0.12305,
+      "y": 0.76758,
+      "w": 0.10645,
+      "h": 0.06055
+    }
+  },
+  "protee-dos": {
+    "young": {
+      "src": "protee-dos_young.webp",
+      "x": 0.31445,
+      "y": 0.43359,
+      "w": 0.21191,
+      "h": 0.19727
+    }
+  }
+}
