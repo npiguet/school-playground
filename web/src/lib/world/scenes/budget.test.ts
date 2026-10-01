@@ -2,7 +2,7 @@
 // background exceeds the budget." Runs in scripts/check.sh via vitest.
 import { describe, expect, it } from 'vitest';
 import { existsSync, readdirSync, statSync } from 'node:fs';
-import { SCENES, SCENE_BUDGET_BYTES } from './index';
+import { HOUSE_SCENES, SCENES, SCENE_BUDGET_BYTES } from './index';
 
 describe('scene weight budget', () => {
   it('keeps every scene background under public/art/scenes within 600 KB', () => {
@@ -14,7 +14,7 @@ describe('scene weight budget', () => {
   });
 
   it('points every scene background and preload at an existing WebP within budget', () => {
-    for (const scene of SCENES) {
+    for (const scene of [...SCENES, ...HOUSE_SCENES]) {
       for (const src of [scene.background, ...scene.preload]) {
         const file = 'public' + src;
         expect(existsSync(file), `${scene.id}: ${src}`).toBe(true);

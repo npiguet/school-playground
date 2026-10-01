@@ -6,6 +6,8 @@
   // (#/p/:id/cabane?panel=heros, Ruling B2): the HUD's hero chip is its shortcut from every place.
   // UI3b playability #7: the dragon greets here once per page load and speaks on the shelf's, the
   // journal's and the lyre's voice plates (the hero panel is a short menu, with no plate).
+  // The room is the highest house owned: the cabin, the villa or the palais, each with its own
+  // places and walls (spec 2026-09-29 drachmes §3, R21).
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
@@ -14,7 +16,7 @@
   import JournalPanel from '../components/places/cabin/JournalPanel.svelte';
   import LyrePanel from '../components/places/cabin/LyrePanel.svelte';
   import HeroPanel from '../components/places/cabin/HeroPanel.svelte';
-  import { CABIN_SCENE, DECOR_SLOTS, cabinGreeting, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
+  import { DECOR_SLOTS, MAX_DISPLAYED_DECOR, cabinGreeting, houseScene, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
   import { campFor } from '../lib/world/campStore.svelte';
   import { isAwake } from '../lib/world/eris';
   import { LIEUTENANT_ORDER } from '../lib/world/types';
@@ -34,9 +36,13 @@
   // The hero's rewards, fetched once here for both the walls and the shelf (final review M15).
   let owned = $state<RewardOut[] | null>(null);
   let rewardsError = $state('');
-  // One piece per wall slot (the walls hold four, server-enforced); a fifth left on display from
-  // before the limit stays on the shelf rather than hanging over the first.
-  const displayed = $derived((owned ?? []).filter((r) => r.kind === 'decor' && r.equipped).slice(0, DECOR_SLOTS.length));
+  // Until /camp answers, the cabin (R21): the places arrive from the camp, which has loaded it.
+  const house = $derived(campFor(profile.id)?.house ?? 'cabin');
+  const scene = $derived(houseScene(house));
+  const slots = $derived(DECOR_SLOTS[house]);
+  // One piece per wall slot (the house's walls hold 4, 6 or 9, server-enforced); a piece left on
+  // display beyond them stays on the shelf rather than hanging over another.
+  const displayed = $derived((owned ?? []).filter((r) => r.kind === 'decor' && r.equipped).slice(0, slots.length));
 
   // Only the hero id is tracked: the rewards reload for a new hero; a piece the shelf puts on
   // display or away comes back as the server answered it (onUpdated), with no second fetch.
@@ -73,15 +79,15 @@
   const from = openedFrom(() => panel, ['journal', 'lyre']);
 </script>
 
-<PlaceScene {profile} scene={CABIN_SCENE} bind:debug {greet}>
+<PlaceScene {profile} {scene} bind:debug {greet}>
   {#snippet children(ctx)}
     {#each displayed as r, i (r.id)}
-      {@const slot = DECOR_SLOTS[i]}
+      {@const slot = slots[i]}
       <div class="cabin-decor" data-testid="cabin-decor-{r.id}" style="left:{slot.x}%;top:{slot.y}%">
         <Medallion rewardId={r.id} size={52} label={r.name} />
       </div>
     {/each}
-    {#each CABIN_SCENE.hotspots as def (def.id)}
+    {#each scene.hotspots as def (def.id)}
       <Hotspot {def} status={def.state(ctx)} sceneId="cabin" onActivate={activate} />
     {/each}
   {/snippet}
@@ -89,7 +95,7 @@
 
 {#if panel === 'tresors'}
   <Overlay variant="table" size="wide" title={OVERLAY_TITLES.tresors} testId="overlay-trophies" voice={dragon ? trophiesLine(dragon, ownedTrophies, maxTrophies) : null} onClose={close} returnFocus={hotspotSelector('cabin', 'trophies')}>
-    <TrophiesPanel {profile} {owned} loadError={rewardsError} onUpdated={updated} />
+    <TrophiesPanel {profile} {owned} maxDecor={MAX_DISPLAYED_DECOR[house]} loadError={rewardsError} onUpdated={updated} />
   </Overlay>
 {:else if panel === 'journal'}
   <Overlay variant="codex" title={OVERLAY_TITLES.journal} testId="overlay-journal" voice={dragon ? journalLine(dragon) : null} onClose={close} returnFocus={from.of('journal') === 'heros' ? '[data-testid="hero-journal"]' : hotspotSelector('cabin', 'journal')}>

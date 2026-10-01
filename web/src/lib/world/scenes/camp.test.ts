@@ -78,6 +78,15 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     for (const c of [camp(), ready({ xp: seasoned }), camp({ drachmes: 900 })]) expect(state('stall', c, catalog)).toMatchObject({ caption: null, isNew: false });
   });
 
+  it('names the house on the camp\'s plaque (spec 2026-09-29 drachmes §3, R22)', () => {
+    const cabin = CAMP_HOTSPOTS.find((h) => h.id === 'cabin')!;
+    expect(cabin.label).toBe('Ta cabane');
+    expect(cabin.state({ camp: null, catalog: null }).label).toBeNull();
+    for (const [house, name] of [['cabin', 'Ta cabane'], ['villa', 'Ta villa'], ['palais', 'Ton palais']] as const) {
+      expect(cabin.state({ camp: { ...camp(), house }, catalog: null }).label).toBe(name);
+    }
+  });
+
   it('always shows the path to battle, locked until Éris can be fought', () => {
     for (const h of CAMP_HOTSPOTS) expect(h.state({ camp: null, catalog: null }).visible, h.id).toBe(true);
     expect(state('boss', null).locked).toBe(true);

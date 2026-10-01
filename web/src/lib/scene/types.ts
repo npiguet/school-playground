@@ -76,9 +76,11 @@ export interface HotspotState {
   seals: number;
   /** Short second line under the place name (dragon name, reward, counts). */
   caption: string | null;
+  /** Overrides the plaque's name (the camp's house, spec 2026-09-29 drachmes §3). */
+  label: string | null;
 }
 
-export const IDLE_HOTSPOT: HotspotState = { visible: true, locked: false, isNew: false, badge: null, seals: 0, caption: null };
+export const IDLE_HOTSPOT: HotspotState = { visible: true, locked: false, isNew: false, badge: null, seals: 0, caption: null, label: null };
 
 /** A hotspot state: the idle one with these fields changed (every scene module's `state`). */
 export const st = (p: Partial<HotspotState> = {}): HotspotState => ({ ...IDLE_HOTSPOT, ...p });

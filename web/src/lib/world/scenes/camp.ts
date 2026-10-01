@@ -9,6 +9,7 @@ import { sayKey } from '../../dialogue/select';
 import { nearestProphecy, prophecyWhen } from '../prophecy';
 import { romanTier } from '../quests';
 import { bossRewardName } from '../rewards';
+import { HOUSE_NAMES } from '../shop';
 import { fightLine } from '../seals';
 import type { CampResponse, DragonStage, LieutenantKey, WorldCatalog } from '../types';
 import { st, type DialogueLine, type HotspotDef, type HotspotState, type SceneContext, type SceneDef, type SceneLayerDef } from '../../scene/types';
@@ -110,7 +111,17 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
   },
   // UI3b playability #8: the same dark plaque as every other place, pinned to the cabin's door and
   // hanging in front of it (the pale 12 px ink on the white wall was the hardest name to read).
-  { id: 'cabin', label: 'Ta cabane', target: 'cabin', shape: CAMP_SHAPES.cabin, labelPos: 'below', leader: true, state: place('cabin') },
+  // Spec 2026-09-29 drachmes §3 (R22): the plaque names the highest house owned once the camp has
+  // loaded (« Ta cabane » before).
+  {
+    id: 'cabin',
+    label: 'Ta cabane',
+    target: 'cabin',
+    shape: CAMP_SHAPES.cabin,
+    labelPos: 'below',
+    leader: true,
+    state: place('cabin', (camp) => ({ label: HOUSE_NAMES[camp.house] })),
+  },
   {
     id: 'boss',
     label: 'Le sentier de la bataille',

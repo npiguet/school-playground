@@ -14,19 +14,21 @@
   import { lieutenantName, sleepingLine, isAwake } from '../../../lib/world/eris';
   import { firstSealLine, highestTrophies, sealTitle, sealTitleOf, trophyId } from '../../../lib/world/seals';
   import { rulesOf } from '../../../lib/rules';
-  import { MAX_DISPLAYED_DECOR, WALLS_FULL_LINE } from '../../../lib/world/scenes/cabin';
+  import { WALLS_FULL_LINE } from '../../../lib/world/scenes/cabin';
   import { howToWin } from '../../../lib/world/rewards';
   import { LIEUTENANT_ORDER, type LieutenantKey, type RewardKind, type RewardOut, type Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import type { Profile } from '../../../lib/types';
 
-  // `owned`: null while the cabin's /rewards has not answered; `loadError` when it could not.
+  // `owned`: null while the cabin's /rewards has not answered; `loadError` when it could not;
+  // `maxDecor`: the pieces the walls of the hero's house hold (spec 2026-09-29 drachmes §3).
   let {
     profile,
     owned,
+    maxDecor,
     loadError = '',
     onUpdated,
-  }: { profile: Profile; owned: RewardOut[] | null; loadError?: string; onUpdated: (reward: RewardOut) => void } = $props();
+  }: { profile: Profile; owned: RewardOut[] | null; maxDecor: number; loadError?: string; onUpdated: (reward: RewardOut) => void } = $props();
 
   const ownedById = $derived.by(() => {
     const m = new Map<string, RewardOut>();
@@ -73,7 +75,7 @@
 
   let equippingId = $state<string | null>(null);
   let equipError = $state('');
-  // The walls hold MAX_DISPLAYED_DECOR pieces (UI3b ruling). A fifth « Exposer » stays tappable
+  // The walls of the house hold `maxDecor` pieces (spec 2026-09-29 drachmes §3). One more « Exposer » stays tappable
   // and says why nothing is hung, instead of being disabled without a word; the server refuses
   // it too (409, the same line).
   let wallsFull = $state(false);
@@ -84,7 +86,7 @@
     if (!current) return;
     equipError = '';
     wallsFull = false;
-    if (current.kind === 'decor' && !current.equipped && displayedDecor >= MAX_DISPLAYED_DECOR) {
+    if (current.kind === 'decor' && !current.equipped && displayedDecor >= maxDecor) {
       wallsFull = true;
       return;
     }

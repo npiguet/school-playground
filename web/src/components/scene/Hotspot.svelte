@@ -36,7 +36,9 @@
   const box = $derived(shapeBox(def.shape));
   const inked = $derived(def.labelPos === 'on');
   // A label-less hotspot (the library owl) has no plaque, so nothing to pin.
-  const pinned = $derived(def.leader === true && !inked && def.label !== '');
+  // The state may rename the plaque (the camp's house, spec 2026-09-29 drachmes §3, R22).
+  const label = $derived(status.label ?? def.label);
+  const pinned = $derived(def.leader === true && !inked && label !== '');
   let flashing = $state(false);
   // Layout width of the plaque (offsetWidth ignores the scene's zoom-in transform), so the label
   // can be clamped inside the safe zone (final review I4, playability #1).
@@ -110,11 +112,11 @@
   >
     <span class="hotspot-glow" style="clip-path:{clipPath(def.shape)}" aria-hidden="true"></span>
     {#if pinned}<span class="hotspot-leader" aria-hidden="true"></span>{/if}
-    {#if def.label}
+    {#if label}
       <span class="hotspot-label" style="left:calc(50% + {dx}% + {shift}px)" bind:offsetWidth={labelW}>
         <span class="hotspot-name">
           {#if status.locked}<img class="hotspot-icon hotspot-lock" src={MARK_ICONS.lock} alt="" draggable="false" />{/if}
-          {#if def.icon}<img class="hotspot-icon" src={def.icon} alt="" draggable="false" />{/if}{def.label}
+          {#if def.icon}<img class="hotspot-icon" src={def.icon} alt="" draggable="false" />{/if}{label}
           {#if status.seals > 0}
             <span class="hotspot-seals" data-testid="{hotspotTestId(sceneId, def.id)}-seals" data-count={status.seals}
               ><span class="hotspot-seal" aria-hidden="true"></span><span class="hotspot-seal-count" aria-hidden="true">{status.seals}</span
