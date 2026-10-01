@@ -146,6 +146,37 @@ describe("the dragon's what-next line (spec 2026-09-29 explanations §1)", () =>
     expect(whatNext(state({ xp: { total: 41000, floor: 40000, next: null }, dragon: { name: 'Braise', stage: 'ancestral', tint: 'bronze', worn: [] } })).kind).toBe('none');
   });
 
+  // R1 (Task 1 review): the line and the glow agree whenever the glow's step outranks the other goals:
+  // over every combination of the cases, a named (or unhatched) dragon and no fight under way, the
+  // line follows the glow, except that a seal, the stage or the stall outranks the sealed scrolls.
+  it('agrees with the glow whenever it has a step', () => {
+    const egg = { name: null, stage: 'egg', tint: 'bronze', worn: [] };
+    const named = { name: 'Braise', stage: 'hatchling', tint: 'bronze', worn: [] };
+    const axes: Record<string, unknown[]> = {
+      dragon: [egg, named],
+      prophecies: [[], prophecy(3), prophecy(10)],
+      boss: [bossClosed, { ...bossClosed, tier_available: 1, next: null }],
+      xp: [{ total: 0, floor: 0, next: 100 }, { total: 300, floor: 100, next: 1200 }, { total: 1150, floor: 100, next: 1200 }],
+      lieutenants: [withLt({}), withLt({ echo: { next: win(3, 18, 0.9) } })],
+      affordable: [0, 2],
+      oracle: [sealed, { week: 'w', status: 'chosen', reward_id: null }],
+      weekly: [{ week: 'w', target: 3, done: 3, reached: true }, { week: 'w', target: 3, done: 1, reached: false }],
+    };
+    let combos: Record<string, unknown>[] = [{}];
+    for (const [k, values] of Object.entries(axes)) combos = combos.flatMap((c) => values.map((v) => ({ ...c, [k]: v })));
+    let checked = 0;
+    for (const o of combos) {
+      const c = state(o);
+      const step = nextStep(c);
+      if (step === null) continue;
+      checked++;
+      const kind = whatNext(c).kind;
+      if (step === 'scrolls' && ['seal', 'stage', 'shop'].includes(kind)) continue;
+      expect(kind, JSON.stringify(o)).toBe(step);
+    }
+    expect(checked).toBeGreaterThan(300);
+  });
+
   it("counts the week's texts in words", () => {
     expect(whatNext(state({ weekly: { week: 'w', target: 3, done: 2, reached: false } }))).toEqual({ kind: 'weekly', key: 'camp.next.weekly', vars: { texts: 'un texte' } });
     expect(whatNext(state({ weekly: { week: 'w', target: 5, done: 0, reached: false } })).vars).toEqual({ texts: 'cinq textes' });

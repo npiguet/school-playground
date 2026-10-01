@@ -3,7 +3,7 @@
 // next-step glow (Ruling B9), the path to battle locked until Éris can be fought.
 import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
-import { stageLine } from '../dragon';
+import { nearNextStage, stageLine } from '../dragon';
 import { HUB_PLACE, bossEngaged, nextStep, whatNext } from '../nextStep';
 import { sayKey } from '../../dialogue/select';
 import { nearestProphecy, prophecyWhen } from '../prophecy';
@@ -166,7 +166,8 @@ export function campGreeting(profileName: string, camp: CampResponse): DialogueL
   const d = camp.dragon;
   const next = whatNext(camp);
   const lines = [sayKey('camp.enter', { vars: { hero: profileName }, dragon: d })];
-  if (next.kind !== 'name' && next.kind !== 'stage') lines.push(dragonSays(d, stageLine(d.stage, d.name, camp.xp)));
+  // A seal within reach already says « Encore un peu »: the stage line takes its far wording then.
+  if (next.kind !== 'name' && next.kind !== 'stage') lines.push(dragonSays(d, stageLine(d.stage, camp.xp, next.kind !== 'seal' && nearNextStage(camp.xp))));
   if (camp.weekly.reached) lines.push(sayKey('camp.weekly', { dragon: d }));
   lines.push(sayKey(next.key, { vars: next.vars, ctx: next.ctx, dragon: d }));
   return lines;

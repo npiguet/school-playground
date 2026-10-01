@@ -119,6 +119,16 @@ def test_a_seal_is_never_lost(client):
     assert h["level"] == 1 and h["next"]["correct"] == 0.2
 
 
+def test_the_fifth_seal_has_no_next_window(client, settings):
+    """The camp's « a seal within reach » (spec 2026-09-29 explanations §1, R3) relies on it."""
+    pid = make_profile(client, level="10H")
+    seal(settings, pid, "hydre", 4)
+    assert hydre(camp(client, pid))["next"]["level"] == 5
+    seal(settings, pid, "hydre", 5)
+    h = hydre(camp(client, pid))
+    assert (h["level"], h["next"]) == (5, None)
+
+
 def test_the_seals_thresholds_come_from_the_rules_file(settings):
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     (settings.data_dir / RULES_FILENAME).write_text('{"levels": {"1": {"days": 1, "chances": 5}}}', encoding="utf-8")

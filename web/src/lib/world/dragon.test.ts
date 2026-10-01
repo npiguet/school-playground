@@ -42,20 +42,19 @@ describe('dragon helpers', () => {
     expect(dragonCaption({ name: 'Braise', stage: 'young' })).toBe('Braise');
     const xp = (total: number, floor: number, next: number | null) => ({ total, floor, next });
     // UI3b playability #15: the dragon speaks in the first person under its own plate.
-    expect(stageLine('egg', null, xp(40, 0, 100))).toBe("Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
-    expect(stageLine('hatchling', null, xp(150, 100, 1200))).toBe('Au fait, tu me donnes un nom\u202f?');
-    // A dragon that grew past the hatchling without a name still asks for one (it was never asked).
-    expect(stageLine('young', null, xp(1300, 1200, 5000))).toBe('Au fait, tu me donnes un nom\u202f?');
-    expect(stageLine('ancestral', null, xp(41000, 40000, null))).toBe('Au fait, tu me donnes un nom\u202f?');
+    expect(stageLine('egg', xp(40, 0, 100))).toBe("Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
     // Spec 2026-09-29 dragon growth §3: how far the next stage is, in words; « under 20 % » is strict.
-    expect(stageLine('hatchling', 'Braise', xp(150, 100, 1200))).toBe('Chaque texte bien défendu me fait grandir.');
-    expect(stageLine('young', 'Braise', xp(4240, 1200, 5000))).toBe('Chaque texte bien défendu me fait grandir.'); // 760 of 3800 left: 20 %
-    expect(stageLine('young', 'Braise', xp(4241, 1200, 5000))).toBe('Encore un peu de gloire et je grandis.');
-    expect(stageLine('illustre', 'Braise', xp(39000, 15000, 40000))).toBe('Encore un peu de gloire et je grandis.');
-    expect(stageLine('adult', 'Braise', xp(300, 5000, 15000))).toBe('Chaque texte bien défendu me fait grandir.'); // grown before its XP
-    expect(stageLine('ancestral', 'Braise', xp(41000, 40000, null))).toBe("J'ai tout lu, tout vu. Et je veille toujours sur toi.");
+    expect(stageLine('hatchling', xp(150, 100, 1200))).toBe('Chaque texte bien défendu me fait grandir.');
+    expect(stageLine('young', xp(4240, 1200, 5000))).toBe('Chaque texte bien défendu me fait grandir.'); // 760 of 3800 left: 20 %
+    expect(stageLine('young', xp(4241, 1200, 5000))).toBe('Encore un peu de gloire et je grandis.');
+    expect(stageLine('illustre', xp(39000, 15000, 40000))).toBe('Encore un peu de gloire et je grandis.');
+    expect(stageLine('adult', xp(300, 5000, 15000))).toBe('Chaque texte bien défendu me fait grandir.'); // grown before its XP
+    expect(stageLine('ancestral', xp(41000, 40000, null))).toBe("J'ai tout lu, tout vu. Et je veille toujours sur toi.");
+    // Explanations §1, R7: the camp can ask for the far wording (its next goal already says « Encore un peu »).
+    expect(stageLine('young', xp(4241, 1200, 5000), false)).toBe('Chaque texte bien défendu me fait grandir.');
+    expect(stageLine('egg', xp(90, 0, 100), true)).toBe("Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
     for (const st of DRAGON_STAGES) {
-      expect(stageLine(st, 'Braise', xp(4300, 1200, 5000))).not.toMatch(/\d|Braise|Ton dragon|ruse|neutralis|technique/);
+      expect(stageLine(st, xp(4300, 1200, 5000))).not.toMatch(/\d|Braise|Ton dragon|ruse|neutralis|technique/);
     }
   });
   it('measures the gauge on a stage scale, clamped, full at the top', () => {

@@ -154,16 +154,16 @@ export function nearNextStage(xp: { total: number } & Scale): boolean {
 
 /** What the dragon says of itself at its stage, in its own voice (UI3b playability #15: its plate
  *  names it, so it speaks in the first person; the egg speaks from inside its shell). The camp's
- *  greeting. `name` is null until it is named (a hatched dragon, at any stage, then asks for one). Spec 2026-09-29 dragon
- *  growth §3: once hatched and named, how far the next stage is, in words (never a number: the HUD
- *  carries them); « under 20 % » is strictly under a fifth of the stage's span. */
-export function stageLine(stage: DragonStage, name: string | null, xp: { total: number } & Scale): string {
+ *  greeting. Spec 2026-09-29 dragon growth §3: once hatched, how far the next stage is, in words (never
+ *  a number: the HUD carries them); « under 20 % » is strictly under a fifth of the stage's span.
+ *  `close` overrides that: the camp passes false when its next goal, a seal, already says « Encore un
+ *  peu » (explanations §1, R7). A hatched dragon without a name never hears this line: the camp asks
+ *  for its name through `camp.next.name` instead (explanations §1, R2). */
+export function stageLine(stage: DragonStage, xp: { total: number } & Scale, close = nearNextStage(xp)): string {
   // UI5 playability #12: it follows `camp.enter`, which has already said hello.
   if (stage === 'egg') return "Chaque piège d'Éris déjoué me fait frémir dans ma coquille.";
-  // Hatched and unnamed, at any stage: a dragon that grew while unnamed still asks (final review I1).
-  if (!name) return 'Au fait, tu me donnes un nom\u202f?';
   if (stage === 'ancestral' || xp.next === null) return "J'ai tout lu, tout vu. Et je veille toujours sur toi.";
-  return nearNextStage(xp) ? 'Encore un peu de gloire et je grandis.' : 'Chaque texte bien défendu me fait grandir.';
+  return close ? 'Encore un peu de gloire et je grandis.' : 'Chaque texte bien défendu me fait grandir.';
 }
 
 // What the dragon is up to, as a sentence under its growth in the nest (UI3b playability #5: a lone

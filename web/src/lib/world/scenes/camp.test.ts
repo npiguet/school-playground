@@ -4,6 +4,8 @@ import { DRAGON_STAGES, type CampResponse, type LieutenantState, type QuestOut, 
 import { nextStep, HUB_PLACE } from '../nextStep';
 import { prophecyWhen } from '../prophecy';
 import { variantsOf } from '../../../testing/dialogue';
+import { LINES } from '../../dialogue/content';
+import { poolFor } from '../../dialogue/select';
 import {
   CAMP_HOTSPOTS,
   CAMP_SCENE,
@@ -193,6 +195,23 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     expect(last.key).toBe('camp.next.seal');
     expect(variantsOf('camp.next.seal', { lieutenant: 'les Sirènes', seal: 'sceau de bronze' })).toContain(last.text);
     expect(last.text).toMatch(/Sirènes (auront|\.)|contre les Sirènes/);
+    // Every line the Sirènes may hear agrees with their plural, not just the one picked.
+    const pool = poolFor(LINES['camp.next.seal'], { opponent: 'sirenes' });
+    expect(pool.length).toBeGreaterThanOrEqual(3);
+    for (const l of pool) expect(l.text, l.text).toMatch(/auront|leur|contre/);
+  });
+
+  // Controller ruling (Task 1 review): a seal within reach already says « Encore un peu »; the stage
+  // line before it takes its far wording, even when the next stage is close.
+  it('never says « Encore un peu » twice in a row', () => {
+    const next = { level: 0, days: 3, chances: 18, correct: 0.9, complete: false, need: { days: 4, chances: 25, correct: 0.88 } };
+    const lieutenants = [{ key: 'hydre', name: "L'Hydre", available: true, level: 0, next }] as unknown as LieutenantState[];
+    const close = { total: 1150, floor: 100, next: 1200 };
+    const lines = campGreeting('Ariane', camp({ lieutenants, xp: close, dragon: { ...camp().dragon, stage: 'hatchling', name: 'Braise' } }));
+    expect(lines.map((l) => l.key)).toEqual(['camp.enter', undefined, 'camp.next.seal']);
+    expect(lines[1].text).toBe('Chaque texte bien défendu me fait grandir.');
+    // Without a seal in reach, the close stage is the next goal itself (and the stage line leaves).
+    expect(campGreeting('Ariane', camp({ xp: close, oracle: chosen, dragon: { ...camp().dragon, stage: 'hatchling', name: 'Braise' } })).map((l) => l.key)).toEqual(['camp.enter', 'camp.next.stage']);
   });
 
   it('seats the dragon in the painted nest, on a shallow plane; preloads every place it leads to', () => {
