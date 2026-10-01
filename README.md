@@ -37,7 +37,8 @@ rewards. The whole game is a set of painted scenes with places to tap (see §8).
   from the server.
 - **Camp and progression** — XP, Éris's lieutenants (one per error family) to neutralise,
   quests from the Oracle of Delphi, a weekly goal, a break nudge after about 25 minutes of play,
-  and a companion dragon that hatches and grows.
+  and a companion dragon that grows from the XP through six stages, from the egg to the Dragon
+  ancestral (years of play).
 - **Music and sounds** — each place has its own music loop, with sound effects and the dictation
   voice on three separate volume channels (see §8).
 
@@ -235,7 +236,8 @@ start-up. The full file with its defaults:
   "fight_max_per_100": 4,
   "copy_belle_max_per_100": 2, "copy_correcte_max_per_100": 8,
   "aid_bonus": 0.20, "pace_bonus": {"1": 0, "2": 0.25, "3": 0.5}, "prophecy_bonus": 0.5,
-  "chouette_hints": 3
+  "chouette_hints": 3,
+  "dragon_stages": {"hatchling": 100, "young": 1200, "adult": 5000, "illustre": 15000, "ancestral": 40000}
 }
 ```
 
@@ -248,6 +250,7 @@ start-up. The full file with its defaults:
 | `pace_bonus` | The XP bonus of each pace (`"1"` to `"3"`; a partial object keeps the other paces' defaults) |
 | `prophecy_bonus` | The XP bonus of a text played before its due date |
 | `chouette_hints` | The owl's hints per battle |
+| `dragon_stages` | The total XP at which the dragon reaches each stage (`hatchling` to `ancestral`; the egg is always 0). A partial object keeps the other stages' defaults; the stages must rise from one to the next (whole numbers up to 1 000 000), otherwise the whole table is ignored with a warning. A lowered stage takes effect on the next camp visit; a raised one never shrinks a dragon |
 
 A key you leave out keeps its default. A file that is not valid JSON, or a value of the wrong type
 (e.g. `"0.3"` in quotes, a negative number, a share above 1), is ignored with a warning in the game's
@@ -536,10 +539,15 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
 - **Mastery rule** — an error family ("lieutenant") is neutralised once the player's most recent
   qualifying days reach at least 3 distinct days and 10 draft errors, with a catch rate of at least
   80% over that window. Neutralisation is permanent: nothing is ever taken away.
+- **Dragon growth** — the dragon's stage follows the hero's total XP: Œuf (0), Dragonnet (100),
+  Jeune dragon (1 200), Dragon adulte (5 000), Dragon illustre (15 000), Dragon ancestral (40 000),
+  thresholds in `data/regles.json`. A stage is never lost: a raised threshold or a restored backup
+  keeps the stage already reached, and a dragon grown from neutralisations before this rule keeps
+  its stage. The HUD's laurel shows the way to the next stage; the XP ranks are gone.
 - **Rewards are announced in advance** — every relic, dragon tint, divine gear and cabin decor piece
   is on the cabin's trophy shelf (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can
   be earned; nothing is a gamble.
-- **Art and sound** are served from the same origin: `web/public/art` (WebP, about 5.2 MB) and
+- **Art and sound** are served from the same origin: `web/public/art` (WebP, about 5.8 MB) and
   `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler. Dragon tints are a
   CSS `hue-rotate` filter on one cut-out. The sound settings are saved per hero on the server (and
   remembered on the device for the title scene, before a hero is picked).
