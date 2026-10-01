@@ -80,6 +80,13 @@
       "y": 0.46484,
       "w": 0.27637,
       "h": 0.18555
+    },
+    "ancestral": {
+      "src": "chimere-dos_ancestral.webp",
+      "x": 0.29297,
+      "y": 0.46191,
+      "w": 0.29004,
+      "h": 0.2168
     }
   },
   "chimere-tete": {
