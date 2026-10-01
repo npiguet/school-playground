@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { CampResponse } from './types';
-import { HUB_PLACE, nextStep, nextStepKey } from './nextStep';
-import { prophecyWhen } from './prophecy';
+import { LIEUTENANT_ORDER, type CampResponse, type LieutenantState } from './types';
+import { HUB_PLACE, nextStep, sealWithinReach, whatNext } from './nextStep';
 
 function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {
@@ -47,12 +46,108 @@ describe('one next step for the whole camp (Ruling B9, order amended by the cont
   it('leads each step to one hub place', () => {
     expect(HUB_PLACE).toEqual({ battle: 'boss', 'first-text': 'parchemins', prophecy: 'oracle', scrolls: 'oracle' });
   });
+});
 
-  it('names the same step in the greeting', () => {
-    expect(nextStepKey(camp({ boss: open, prophecies: prophecy(3) }))).toEqual({ key: 'camp.next.prophecy', vars: { when: prophecyWhen(3) } });
-    expect(nextStepKey(camp({ boss: open }))).toEqual({ key: 'camp.next.battle' });
-    expect(nextStepKey(camp({ oracle: sealed }))).toEqual({ key: 'camp.next.scrolls' });
-    expect(nextStepKey(camp({ xp: fresh, oracle: sealed }))).toEqual({ key: 'camp.next.first-text' });
-    expect(nextStepKey(camp())).toEqual({ key: 'camp.next.none' });
+const need = { days: 4, chances: 25, correct: 0.88 };
+const win = (days: number, chances: number, correct: number | null) => ({
+  level: 2, days, chances, correct, complete: days >= need.days && chances >= need.chances, need,
+});
+const lt = (key: string, o: Partial<LieutenantState> = {}) =>
+  ({ key, name: key, available: true, level: 1, next: win(0, 0, null), ...o }) as unknown as LieutenantState;
+const withLt = (o: Record<string, Partial<LieutenantState>>) => LIEUTENANT_ORDER.map((k) => lt(k, o[k]));
+const bossClosed = { tier_available: null, tiers_won: [], active_quest_id: null, fights: 10, next: { tier: 1, level: 1, missing: 2 } };
+function state(o: Record<string, unknown> = {}): CampResponse {
+  return {
+    xp: { total: 300, floor: 100, next: 1200 },
+    dragon: { name: 'Braise', stage: 'hatchling', tint: 'bronze', worn: [] },
+    lieutenants: withLt({}),
+    quests: [],
+    prophecies: [],
+    oracle: { week: 'w', status: 'chosen', reward_id: null },
+    weekly: { week: 'w', target: 3, done: 3, reached: true },
+    boss: bossClosed,
+    affordable: 0,
+    ...o,
+  } as unknown as CampResponse;
+}
+
+describe("the dragon's what-next line (spec 2026-09-29 explanations §1)", () => {
+  // Review focus 1: every case true at once, then peeled one by one.
+  it('takes the first case that holds, in the order of R1', () => {
+    const c: Record<string, unknown> = {
+      dragon: { name: null, stage: 'hatchling', tint: 'bronze', worn: [] },
+      prophecies: prophecy(3),
+      boss: { ...bossClosed, tier_available: 1, next: null },
+      xp: { total: 0, floor: 0, next: 100 },
+      lieutenants: withLt({ echo: { next: win(3, 18, 0.9) } }),
+      affordable: 2,
+      oracle: { week: 'w', status: 'sealed', reward_id: null },
+      weekly: { week: 'w', target: 3, done: 1, reached: false },
+    };
+    const peel: Record<string, unknown>[] = [
+      { dragon: { name: 'Braise', stage: 'hatchling', tint: 'bronze', worn: [] } },
+      { prophecies: [] },
+      { boss: bossClosed },
+      { xp: { total: 1150, floor: 100, next: 1200 } },
+      { lieutenants: withLt({}) },
+      { xp: { total: 300, floor: 100, next: 1200 } },
+      { affordable: 0 },
+      { oracle: { week: 'w', status: 'chosen', reward_id: null } },
+      { weekly: { week: 'w', target: 3, done: 3, reached: true } },
+    ];
+    const seen = [whatNext(state(c)).kind];
+    for (const drop of peel) {
+      Object.assign(c, drop);
+      seen.push(whatNext(state(c)).kind);
+    }
+    expect(seen).toEqual(['name', 'prophecy', 'battle', 'first-text', 'seal', 'stage', 'shop', 'scrolls', 'weekly', 'none']);
+  });
+
+  it('asks for a name at any hatched stage, never from the egg', () => {
+    expect(whatNext(state({ dragon: { name: null, stage: 'young', tint: 'bronze', worn: [] } }))).toEqual({ kind: 'name', key: 'camp.next.name' });
+    expect(whatNext(state({ dragon: { name: null, stage: 'egg', tint: 'bronze', worn: [] } })).kind).toBe('none');
+  });
+
+  it('keeps pointing at Éris while her fight is under way', () => {
+    const engaged = { ...bossClosed, tier_available: 2, active_quest_id: 9, next: null };
+    expect(whatNext(state({ boss: engaged }))).toEqual({ kind: 'battle', key: 'camp.next.battle' });
+  });
+
+  // Review focus 1 (R3): whole numbers at 70 %, the share's tolerance, the ties.
+  it('finds a seal within reach: 70 % of the window, the share at target', () => {
+    const at = (w: ReturnType<typeof win> | null, o: Partial<LieutenantState> = {}) => sealWithinReach(state({ lieutenants: withLt({ hydre: { next: w, ...o } }) }));
+    expect(at(win(3, 18, 0.88))).toEqual({ key: 'hydre', level: 2 }); // 75 % of the days, 72 % of the chances
+    expect(at(win(3, 18, 22 / 25))).toEqual({ key: 'hydre', level: 2 }); // 0.88 as the server computes it
+    expect(at(win(4, 25, 0.9))).toEqual({ key: 'hydre', level: 2 }); // complete, not sealed yet
+    expect(at(win(3, 17, 0.9))).toBeNull(); // 68 % of the chances
+    expect(at(win(2, 25, 0.9))).toBeNull(); // 50 % of the days
+    expect(at(win(3, 18, 0.87))).toBeNull();
+    expect(at(win(3, 18, null))).toBeNull();
+    expect(at(null, { level: 5 })).toBeNull();
+    expect(at(win(3, 18, 0.9), { available: false })).toBeNull();
+    // Ties: the fuller window, then the camp's order.
+    expect(sealWithinReach(state({ lieutenants: withLt({ echo: { next: win(3, 18, 0.9) }, lethe: { next: win(4, 25, 0.9) } }) }))).toEqual({ key: 'lethe', level: 2 });
+    expect(sealWithinReach(state({ lieutenants: withLt({ lethe: { next: win(3, 18, 0.9) }, echo: { next: win(3, 18, 0.9) } }) }))).toEqual({ key: 'echo', level: 2 });
+  });
+
+  it('names the lieutenant and the seal, the Sirènes with their own lines', () => {
+    const line = (key: string) => whatNext(state({ lieutenants: withLt({ [key]: { next: win(3, 18, 0.9) } }) }));
+    expect(line('hydre')).toEqual({ kind: 'seal', key: 'camp.next.seal', vars: { lieutenant: "l'Hydre", seal: 'sceau de bronze' }, ctx: { opponent: 'hydre' } });
+    expect(line('sirenes')).toMatchObject({ vars: { lieutenant: 'les Sirènes', seal: 'sceau de bronze' }, ctx: { opponent: 'sirenes' } });
+    expect(line('protee').vars).toEqual({ lieutenant: 'Protée', seal: 'sceau de bronze' });
+    const argent = whatNext(state({ lieutenants: withLt({ chimere: { level: 2, next: { ...win(5, 40, 0.92), level: 3, need: { days: 6, chances: 45, correct: 0.91 } } } }) }));
+    expect(argent.vars).toEqual({ lieutenant: 'la Chimère', seal: "sceau d'argent" });
+  });
+
+  it('says the stage is close only on its own scale', () => {
+    expect(whatNext(state({ xp: { total: 1150, floor: 100, next: 1200 } })).kind).toBe('stage');
+    expect(whatNext(state({ xp: { total: 90, floor: 0, next: 100 }, dragon: { name: null, stage: 'egg', tint: 'bronze', worn: [] } })).kind).toBe('stage');
+    expect(whatNext(state({ xp: { total: 300, floor: 5000, next: 15000 }, dragon: { name: 'Braise', stage: 'adult', tint: 'bronze', worn: [] } })).kind).toBe('none');
+    expect(whatNext(state({ xp: { total: 41000, floor: 40000, next: null }, dragon: { name: 'Braise', stage: 'ancestral', tint: 'bronze', worn: [] } })).kind).toBe('none');
+  });
+
+  it("counts the week's texts in words", () => {
+    expect(whatNext(state({ weekly: { week: 'w', target: 3, done: 2, reached: false } }))).toEqual({ kind: 'weekly', key: 'camp.next.weekly', vars: { texts: 'un texte' } });
+    expect(whatNext(state({ weekly: { week: 'w', target: 5, done: 0, reached: false } })).vars).toEqual({ texts: 'cinq textes' });
   });
 });

@@ -28,7 +28,8 @@ export interface DialogueCtx {
 }
 
 export const DIALOGUE_KEYS = [
-  'camp.enter', 'camp.weekly', 'camp.next.prophecy', 'camp.next.battle', 'camp.next.first-text', 'camp.next.scrolls', 'camp.next.none',
+  'camp.enter', 'camp.weekly', 'camp.next.name', 'camp.next.prophecy', 'camp.next.battle', 'camp.next.first-text', 'camp.next.seal',
+  'camp.next.stage', 'camp.next.shop', 'camp.next.scrolls', 'camp.next.weekly', 'camp.next.none',
   'library.enter', 'library.owl',
   'delphi.enter.sealed', 'delphi.enter.chosen',
   'war.enter',
@@ -47,5 +48,7 @@ export type TourId = (typeof TOUR_IDS)[number];
 export const PLACEHOLDERS: Partial<Record<DialogueKey, string[]>> = {
   'camp.enter': ['hero'],
   'camp.next.prophecy': ['when'],
+  'camp.next.seal': ['lieutenant', 'seal'],
+  'camp.next.weekly': ['texts'],
   'battle.explain': ['word'],
 };

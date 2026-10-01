@@ -3,7 +3,7 @@ when each item is on sale, the house an owner lives in, and the accessories the 
 the router reads the database and writes the purchase (R5, R6, R7, R8)."""
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
-from app.world.catalog import ACCESSORY_SETS, LIEUTENANT_ORDER, SLOT_LEVEL, SLOTS, accessory_id
+from app.world.catalog import ACCESSORY_SETS, LIEUTENANT_ORDER, REWARDS, SLOT_LEVEL, SLOTS, accessory_id
 from app.world.dragon import stage_index
 
 if TYPE_CHECKING:
@@ -70,6 +70,15 @@ def on_sale(rid: str, *, owned: set[str], levels: dict[str, int], awake: list[st
         return True
     h = HOUSES[rid]
     return stage_index(stage) >= stage_index(h["stage"]) and (h["after"] is None or h["after"] in owned)
+
+
+def affordable(*, owned: set[str], levels: dict[str, int], awake: list[str], stage: str, balance: int, rules: "Rules") -> list[str]:
+    """The stall's items the purse can buy now (spec 2026-09-29 explanations §1 case 5, R5): on sale for
+    this hero, not owned, priced within the balance. The camp serves their number."""
+    return [rid for rid in REWARDS
+            if is_item(rid) and rid not in owned
+            and on_sale(rid, owned=owned, levels=levels, awake=awake, stage=stage)
+            and price_of(rid, rules) <= balance]
 
 
 def worn(equipped: set[str]) -> list[str]:

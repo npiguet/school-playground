@@ -8,6 +8,7 @@ import {
   dragonCaption,
   eggFilter,
   gaugeOf,
+  nearNextStage,
   nextStage,
   scaleOf,
   stageActivity,
@@ -20,6 +21,13 @@ import {
 } from './dragon';
 
 describe('dragon helpers', () => {
+  it('knows when the next stage is close: strictly under a fifth of the span (spec 2026-09-29 explanations §1, R4)', () => {
+    expect(nearNextStage({ total: 1101, floor: 100, next: 1200 })).toBe(true);
+    expect(nearNextStage({ total: 980, floor: 100, next: 1200 })).toBe(false); // exactly a fifth left
+    expect(nearNextStage({ total: 81, floor: 0, next: 100 })).toBe(true);
+    expect(nearNextStage({ total: 300, floor: 5000, next: 15000 })).toBe(false); // a stage grown before its XP
+    expect(nearNextStage({ total: 41000, floor: 40000, next: null })).toBe(false);
+  });
   it('never offers violet (reserved for Éris) and has six tints', () => {
     expect(Object.keys(TINT_FILTERS)).toEqual(['bronze', 'ecume', 'olivier', 'braise', 'jade', 'argent']);
     for (const f of Object.values(TINT_FILTERS)) expect(f).not.toMatch(/hue-rotate\((2[6-9]\d|3[0-2]\d)deg\)/); // 260–329° ≈ violet band

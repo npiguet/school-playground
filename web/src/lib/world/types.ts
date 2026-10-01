@@ -50,6 +50,8 @@ export interface WorldCatalog {
   oracle_rewards: string[];
   boss_rewards: Record<string, string>;
   quest_bonus: Record<string, number>;
+  /** A seal L pays level_xp × L XP (spec 2026-09-29 lieutenant levels §1), read by the guide. */
+  level_xp: number;
   /** Spec 2026-09-29 §7: the rules file's values (server/app/rules.py), defaults in lib/rules.ts. */
   rules: GameRules;
   /** Spec 2026-09-29 drachmes §2: Hermès's stall, its items and prices. */
@@ -154,6 +156,8 @@ export interface CampResponse {
   drachmes: number;
   /** Spec 2026-09-29 drachmes §3: the highest house owned. */
   house: House;
+  /** Spec 2026-09-29 explanations §1 (R5): the stall's items the purse can buy now. */
+  affordable: number;
 }
 
 export interface Progression {

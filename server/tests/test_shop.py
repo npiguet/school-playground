@@ -2,7 +2,7 @@
 from app.rules import Rules
 from app.world.catalog import REWARDS, SLOT_LEVEL, SLOTS, accessory_id
 from app.world.drachmes import earned_drachmes, session_drachmes
-from app.world.shop import (DRAW_ORDER, MAX_DECOR, SHOP_DECOR, THE, house_of, is_item, on_sale, parse_accessory, price_of,
+from app.world.shop import (DRAW_ORDER, MAX_DECOR, SHOP_DECOR, THE, affordable, house_of, is_item, on_sale, parse_accessory, price_of,
                             shop_catalog, worn)
 
 FIVE = ["hydre", "echo", "chimere", "sirenes", "lethe"]          # 5H to 7H
@@ -107,3 +107,17 @@ def test_every_source_pays_its_drachmes():
         {"reason": "boss", "amount": 30}, {"reason": "weekly", "amount": 5},
         {"reason": "level", "amount": 20, "lieutenant": "hydre", "level": 2}]
     assert earned_drachmes(3, [], Rules()) == []                                    # a zero part is no part
+
+
+# Spec 2026-09-29 explanations §1 case 5 (R5): what the purse can buy now, never what it cannot.
+def test_what_the_purse_can_buy():
+    r = Rules()
+    kw = dict(levels=lv(hydre=2), awake=SIX, stage="young", rules=r)
+    assert affordable(owned=set(), balance=39, **kw) == []
+    assert affordable(owned=set(), balance=40, **kw) == ["accessory:hydre-cou"]
+    assert set(affordable(owned={"decor:amphore"}, balance=50, **kw)) == {
+        "accessory:hydre-cou", "decor:chouette", "decor:mosaique", "decor:bouclier"}
+    assert "house:villa" in affordable(owned=set(), balance=300, levels={}, awake=SIX, stage="adult", rules=r)
+    assert "house:villa" not in affordable(owned=set(), balance=300, levels={}, awake=SIX, stage="young", rules=r)
+    rich = affordable(owned=set(), balance=10_000, levels=lv(protee=5), awake=FIVE, stage="egg", rules=r)
+    assert not [i for i in rich if "protee" in i]

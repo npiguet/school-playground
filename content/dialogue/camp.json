@@ -29,13 +29,18 @@
       { "speaker": "dragon", "text": "Tous les textes promis cette semaine sont défendus. Tu peux souffler, ou continuer si le cœur t'en dit." },
       { "speaker": "dragon", "text": "Objectif de la semaine atteint ! Même Éris l'a remarqué, et ça l'agace." }
     ],
+    "camp.next.name": [
+      { "speaker": "dragon", "text": "Au fait, tu me donnes un nom ?" },
+      { "speaker": "dragon", "text": "J'ai éclos, mais je n'ai toujours pas de nom. Tu viens m'en choisir un, dans mon nid ?" },
+      { "speaker": "dragon", "text": "Dans mon nid, tu peux me donner un nom. J'ai hâte de l'entendre !" }
+    ],
     "camp.next.prophecy": [
       { "speaker": "dragon", "text": "La Pythie a vu ta prochaine épreuve, {when}. Viens t'y préparer !" },
       { "speaker": "dragon", "text": "Une prophétie t'attend à Delphes : ta prochaine dictée, {when}. On s'y prépare ensemble ?" },
       { "speaker": "dragon", "text": "La Pythie a parlé : une dictée arrive {when}. Allons voir son parchemin." }
     ],
     "camp.next.battle": [
-      { "speaker": "dragon", "text": "Le sentier de la bataille est ouvert : Éris t'attend." },
+      { "speaker": "dragon", "text": "Éris t'attend sur le sentier de la bataille." },
       { "speaker": "dragon", "text": "Éris s'est montrée au bout du sentier de la bataille. On y va quand tu veux." },
       { "speaker": "dragon", "text": "Le sentier de la bataille est ouvert. Éris fanfaronne déjà, là-bas." }
     ],
@@ -44,10 +49,36 @@
       { "speaker": "dragon", "text": "Ton premier parchemin t'attend sous la tente. Éris y a déjà glissé ses pièges !" },
       { "speaker": "dragon", "text": "Sous la tente des parchemins, un premier texte attend d'être défendu." }
     ],
+    "camp.next.seal": [
+      { "speaker": "dragon", "text": "Encore un peu et {lieutenant} aura son {seal}." },
+      { "speaker": "dragon", "text": "Tu y es presque : {lieutenant} aura bientôt son {seal}." },
+      { "speaker": "dragon", "text": "Je sens le {seal} tout proche. Encore un peu de garde contre {lieutenant}." },
+      { "speaker": "dragon", "when": { "opponent": ["sirenes"] }, "text": "Encore un peu et {lieutenant} auront leur {seal}." },
+      { "speaker": "dragon", "when": { "opponent": ["sirenes"] }, "text": "Tu y es presque : {lieutenant} auront bientôt leur {seal}." },
+      { "speaker": "dragon", "when": { "opponent": ["sirenes"] }, "text": "Je sens le {seal} tout proche. Encore un peu de garde contre {lieutenant}." }
+    ],
+    "camp.next.stage": [
+      { "speaker": "dragon", "text": "Encore un peu de gloire et je grandis." },
+      { "speaker": "dragon", "text": "Je le sens, mes écailles tirent : encore un peu de gloire et je grandis." },
+      { "speaker": "dragon", "text": "Encore quelques textes bien défendus, et tu vas me voir grandir !" },
+      { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "Encore un peu de gloire et je sors de ma coquille." },
+      { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "Ma coquille craque déjà un peu. Encore quelques textes, et je sors !" },
+      { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "Je tapote de plus en plus fort : encore un peu de gloire et j'éclos." }
+    ],
+    "camp.next.shop": [
+      { "speaker": "dragon", "text": "Hermès a quelque chose pour toi, et tu as de quoi payer." },
+      { "speaker": "dragon", "text": "Ta bourse est assez pleine pour un objet de l'étal d'Hermès. Va voir, si le cœur t'en dit." },
+      { "speaker": "dragon", "text": "À l'étal d'Hermès, quelque chose est à ta portée. Rien ne presse : il t'attendra." }
+    ],
     "camp.next.scrolls": [
       { "speaker": "dragon", "text": "La Pythie t'attend à Delphes : trois rouleaux à ouvrir." },
       { "speaker": "dragon", "text": "Une nouvelle semaine, trois nouveaux rouleaux : la Pythie t'attend à Delphes." },
       { "speaker": "dragon", "text": "Les rouleaux de la semaine sont scellés à Delphes. Lequel t'appellera ?" }
+    ],
+    "camp.next.weekly": [
+      { "speaker": "dragon", "text": "Encore {texts} cette semaine pour l'objectif." },
+      { "speaker": "dragon", "text": "Ton objectif de la semaine : encore {texts}, à ton rythme." },
+      { "speaker": "dragon", "text": "Cette semaine, encore {texts} et l'objectif est atteint." }
     ],
     "camp.next.none": [
       { "speaker": "dragon", "text": "Les parchemins t'attendent, sous la tente." },

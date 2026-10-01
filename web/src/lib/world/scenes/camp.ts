@@ -4,7 +4,7 @@
 import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
 import { stageLine } from '../dragon';
-import { HUB_PLACE, bossEngaged, nextStep, nextStepKey } from '../nextStep';
+import { HUB_PLACE, bossEngaged, nextStep, whatNext } from '../nextStep';
 import { sayKey } from '../../dialogue/select';
 import { nearestProphecy, prophecyWhen } from '../prophecy';
 import { romanTier } from '../quests';
@@ -159,15 +159,15 @@ export function campDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 
   return { x: 17, y: 55, scale: WIDTH[stage], depth: 1, idle: 'breathe' };
 }
 
-/** The camp's greeting (Ruling E12): her name, the dragon's stage, the week's goal when reached, the next step. */
+/** The camp's greeting (Ruling E12; spec 2026-09-29 explanations §1): her name, the dragon's stage, the
+ *  week's goal when reached, then the most useful next goal (R1). R7: when that goal is the name or the
+ *  stage, the stage line is left out, so nothing is said twice. */
 export function campGreeting(profileName: string, camp: CampResponse): DialogueLine[] {
   const d = camp.dragon;
-  const lines = [
-    sayKey('camp.enter', { vars: { hero: profileName }, dragon: d }),
-    dragonSays(d, stageLine(d.stage, d.name, camp.xp)),
-  ];
+  const next = whatNext(camp);
+  const lines = [sayKey('camp.enter', { vars: { hero: profileName }, dragon: d })];
+  if (next.kind !== 'name' && next.kind !== 'stage') lines.push(dragonSays(d, stageLine(d.stage, d.name, camp.xp)));
   if (camp.weekly.reached) lines.push(sayKey('camp.weekly', { dragon: d }));
-  const next = nextStepKey(camp);
-  lines.push(sayKey(next.key, { vars: next.vars, dragon: d }));
+  lines.push(sayKey(next.key, { vars: next.vars, ctx: next.ctx, dragon: d }));
   return lines;
 }

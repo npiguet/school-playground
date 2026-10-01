@@ -31,6 +31,7 @@ function camp(over: Partial<CampResponse> = {}): CampResponse {
     small_tricks: { traps: 0, caught: 0 },
     drachmes: 0,
     house: 'cabin',
+    affordable: 0,
     ...over,
   };
 }
@@ -169,7 +170,29 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     expect(lines.map((l) => l.key)).toEqual(['camp.enter', undefined, 'camp.weekly', 'camp.next.prophecy']);
     expect(variantsOf('camp.weekly')).toContain(lines[2].text);
     expect(variantsOf('camp.next.prophecy', { when: prophecyWhen(2) })).toContain(lines[3].text);
-    expect(campGreeting('Ariane', camp({ xp: seasoned, oracle: chosen })).at(-1)!.key).toBe('camp.next.none');
+    expect(campGreeting('Ariane', camp({ xp: seasoned, oracle: chosen, weekly: { week: 'w', target: 3, done: 3, reached: true } })).at(-1)!.key).toBe('camp.next.none');
+  });
+
+  // Spec 2026-09-29 explanations §1, R7: the line never repeats the greeting's content.
+  it('never repeats itself: the name or the stage said as the next goal replaces the stage line', () => {
+    const week = { week: 'w', target: 3, done: 3, reached: true };
+    const close = camp({ weekly: week, xp: { total: 1150, floor: 100, next: 1200 }, dragon: { ...camp().dragon, stage: 'hatchling', name: 'Braise' } });
+    expect(campGreeting('Ariane', close).map((l) => l.key)).toEqual(['camp.enter', 'camp.weekly', 'camp.next.stage']);
+    const unnamed = camp({ weekly: week, xp: { total: 300, floor: 100, next: 1200 }, dragon: { ...camp().dragon, stage: 'hatchling', name: null } });
+    expect(campGreeting('Ariane', unnamed).map((l) => l.key)).toEqual(['camp.enter', 'camp.weekly', 'camp.next.name']);
+    const calm = camp({ weekly: week, oracle: chosen, xp: { total: 300, floor: 100, next: 1200 }, dragon: { ...camp().dragon, stage: 'hatchling', name: 'Braise' } });
+    const lines = campGreeting('Ariane', calm);
+    expect(lines.map((l) => l.key)).toEqual(['camp.enter', undefined, 'camp.weekly', 'camp.next.none']);
+    expect(new Set(lines.map((l) => l.text)).size).toBe(lines.length);
+  });
+
+  it('speaks the seal line with its lieutenant and its seal', () => {
+    const next = { level: 2, days: 3, chances: 18, correct: 0.9, complete: false, need: { days: 4, chances: 25, correct: 0.88 } };
+    const lieutenants = [{ key: 'sirenes', name: 'Les Sirènes', available: true, level: 1, next }] as unknown as LieutenantState[];
+    const last = campGreeting('Ariane', camp({ lieutenants, xp: { total: 300, floor: 100, next: 1200 } })).at(-1)!;
+    expect(last.key).toBe('camp.next.seal');
+    expect(variantsOf('camp.next.seal', { lieutenant: 'les Sirènes', seal: 'sceau de bronze' })).toContain(last.text);
+    expect(last.text).toMatch(/Sirènes (auront|\.)|contre les Sirènes/);
   });
 
   it('seats the dragon in the painted nest, on a shallow plane; preloads every place it leads to', () => {

@@ -23,6 +23,10 @@ const DOMAINS: Partial<Record<DialogueKey, DialogueCtx[]>> = {
   // UI5 playability #13: the camp's greeting grows with the dragon (without camp data: the generic).
   'camp.enter': [{}, ...STAGES],
   'nest.enter': STAGES,
+  // Spec 2026-09-29 explanations §1: the what-next lines, in every context the camp asks them.
+  'camp.next.name': DRAGON_STAGES.filter((s) => s !== 'egg').map((stage) => ({ stage }) as DialogueCtx),
+  'camp.next.stage': DRAGON_STAGES.filter((s) => s !== 'ancestral').map((stage) => ({ stage }) as DialogueCtx),
+  'camp.next.seal': LIEUTENANT_ORDER.map((opponent) => ({ opponent }) as DialogueCtx),
   'battle.start': [{ mode: 'dictation' }, { mode: 'grimoire' }],
   // UI5 playability #21: a retry names the lieutenant on the field (Éris herself: the generic lines).
   'battle.retry': ['eris', ...LIEUTENANT_ORDER].flatMap((opponent) => (['dictation', 'grimoire'] as const).map((mode) => ({ opponent, mode }) as DialogueCtx)),

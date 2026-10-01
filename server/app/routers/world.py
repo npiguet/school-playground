@@ -23,8 +23,8 @@ from app.world.dragon import grown_stage, stage_gauge, stage_table
 from app.world.fights import next_fight, open_fight
 from app.world.progression import boss_tiers_won, ensure_dragon, grant_reward, store_stage, weekly_done, xp_total
 from app.world.quests import density, recommend_texts
-from app.world.seals import level_rows, levels_of, lieutenants_for_level, next_seal
-from app.world.shop import MAX_DECOR, house_of, is_item, on_sale, parse_accessory, price_of, shop_catalog, worn
+from app.world.seals import LEVEL_XP, level_rows, levels_of, lieutenants_for_level, next_seal
+from app.world.shop import MAX_DECOR, affordable, house_of, is_item, on_sale, parse_accessory, price_of, shop_catalog, worn
 
 router = APIRouter(prefix="/api", tags=["world"])
 
@@ -300,6 +300,8 @@ def get_world(request: Request):
         "oracle_rewards": ORACLE_REWARDS,
         "boss_rewards": {str(k): v for k, v in BOSS_REWARDS.items()},
         "quest_bonus": QUEST_BONUS,
+        # Spec 2026-09-29 explanations §3: a seal L pays level_xp × L XP, read by the guide.
+        "level_xp": LEVEL_XP,
         # Spec 2026-09-29 drachmes §2: the stall's items, prices (from the rules file) and the walls per house.
         "shop": shop_catalog(request.app.state.rules),
         # Spec 2026-09-29 §7: what the client needs of the rules file (the copy line, the bonuses, the owl).
@@ -328,6 +330,7 @@ def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends
     rewards_count = db.execute("SELECT COUNT(*) FROM reward WHERE profile_id = ?", (pid,)).fetchone()[0]
     dragon, owned = dragon_and_owned(db, profile, now, rules)   # may persist a caught-up stage (see dragon_out)
     db.commit()
+    purse = balance(db, pid)
     return {
         "profile": to_out(profile), "xp": xp_block(db, pid, dragon["stage"], rules), "dragon": dragon,
         "lieutenants": lieutenant_states(db, profile, rules), "quests": quests,
@@ -339,7 +342,9 @@ def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends
                  "fights": len(rules.fights), "next": next_fight(rules.fights, levels, available, won) if tier_avail is None else None},
         "rewards_count": rewards_count,
         # Spec 2026-09-29 drachmes §1, §3: the purse and the highest house owned.
-        "drachmes": balance(db, pid), "house": house_of(owned),
+        "drachmes": purse, "house": house_of(owned),
+        # Spec 2026-09-29 explanations §1 case 5 (R5): how many of the stall's items the purse can buy now.
+        "affordable": len(affordable(owned=owned, levels=levels, awake=available, stage=dragon["stage"], balance=purse, rules=rules)),
         "small_tricks": small_tricks(db, pid),
     }
 

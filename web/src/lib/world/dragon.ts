@@ -146,6 +146,12 @@ export function nextStage(stage: DragonStage): DragonStage {
   return DRAGON_STAGES[Math.min(DRAGON_STAGES.length - 1, i + 1)];
 }
 
+/** The next stage is close (spec 2026-09-29 dragon growth §3, its R6; explanations §1 case 4): strictly
+ *  under a fifth of the stage's span left, in whole numbers, on the stored stage's scale. Never at the top. */
+export function nearNextStage(xp: { total: number } & Scale): boolean {
+  return xp.next !== null && 5 * (xp.next - xp.total) < xp.next - xp.floor;
+}
+
 /** What the dragon says of itself at its stage, in its own voice (UI3b playability #15: its plate
  *  names it, so it speaks in the first person; the egg speaks from inside its shell). The camp's
  *  greeting. `name` is null until it is named (a hatched dragon, at any stage, then asks for one). Spec 2026-09-29 dragon
@@ -157,8 +163,7 @@ export function stageLine(stage: DragonStage, name: string | null, xp: { total: 
   // Hatched and unnamed, at any stage: a dragon that grew while unnamed still asks (final review I1).
   if (!name) return 'Au fait, tu me donnes un nom\u202f?';
   if (stage === 'ancestral' || xp.next === null) return "J'ai tout lu, tout vu. Et je veille toujours sur toi.";
-  // Whole numbers only (no 0.2 × span float at the boundary): under a fifth of the span remains.
-  return 5 * (xp.next - xp.total) < xp.next - xp.floor ? 'Encore un peu de gloire et je grandis.' : 'Chaque texte bien défendu me fait grandir.';
+  return nearNextStage(xp) ? 'Encore un peu de gloire et je grandis.' : 'Chaque texte bien défendu me fait grandir.';
 }
 
 // What the dragon is up to, as a sentence under its growth in the nest (UI3b playability #5: a lone
