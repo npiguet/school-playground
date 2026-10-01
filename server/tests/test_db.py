@@ -91,18 +91,23 @@ def test_a_write_waits_out_a_lock_held_longer_than_sqlites_default(tmp_path):
     assert tuple(second.execute("SELECT name, level FROM profile WHERE id = 1").fetchone()) == ("B", "9H")
 
 
-def _pre_005_db(path):
-    """A database as the game left it before sub-project 1: migrations 001-004 only."""
+def _db_before(path, version):
+    """A database as the game left it before migration `version`: the earlier migrations only."""
     conn = connect(path)
     conn.execute("CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
     for f in sorted(MIGRATIONS_DIR.glob("*.sql")):
-        version = int(f.name.split("_", 1)[0])
-        if version >= 5:
+        v = int(f.name.split("_", 1)[0])
+        if v >= version:
             break
         conn.executescript(f.read_text(encoding="utf-8"))
-        conn.execute("INSERT INTO schema_version(version, applied_at) VALUES (?, 'then')", (version,))
+        conn.execute("INSERT INTO schema_version(version, applied_at) VALUES (?, 'then')", (v,))
     conn.commit()
     return conn
+
+
+def _pre_005_db(path):
+    """A database as the game left it before sub-project 1: migrations 001-004 only."""
+    return _db_before(path, 5)
 
 
 def test_migration_005_upgrades_a_pre_005_database_in_place(tmp_path):
@@ -121,3 +126,33 @@ def test_migration_005_upgrades_a_pre_005_database_in_place(tmp_path):
     assert conn.execute("SELECT help_stage FROM profile").fetchone()[0] == 3        # the column stays
     assert conn.execute("SELECT introduced FROM profile_stat").fetchone()[0] == 0
     assert conn.execute("SELECT introduced FROM profile_stat_day").fetchone()[0] == 0
+
+
+# Spec 2026-09-29 lieutenant levels §3 (review focus 5).
+def test_migration_006_turns_each_neutralised_lieutenant_into_its_wooden_seal(tmp_path):
+    conn = _db_before(tmp_path / "old.sqlite3", 6)
+    for pid, name in ((1, "Io"), (2, "Ada")):
+        conn.execute("INSERT INTO profile(id, name, avatar, level, help_stage, created_at) VALUES (?, ?, 'chouette', '8H', 0, 'now')",
+                     (pid, name))
+    conn.executemany("INSERT INTO mastery(profile_id, lieutenant, neutralised_at) VALUES (?, ?, ?)",
+                     [(1, "hydre", "2026-09-10T08:00:00+00:00"), (1, "echo", "2026-09-12T18:30:00+00:00")])
+    conn.executemany("INSERT INTO reward(profile_id, reward_id, source, granted_at, equipped) VALUES (?, ?, ?, ?, ?)",
+                     [(1, "ecaille_hydre", "mastery:hydre", "2026-09-10T08:00:01+00:00", 1),
+                      (1, "sandales_hermes", "quest:4", "2026-09-15T10:00:00+00:00", 1),
+                      (2, "plume_sirene", "mastery:sirenes", "2026-09-11T10:00:00+00:00", 0)])   # no mastery row (by hand)
+    conn.executemany("INSERT INTO xp_event(profile_id, amount, reason, created_at) VALUES (?, ?, ?, ?)",
+                     [(1, 200, "mastery", "2026-09-10T08:00:00+00:00"), (1, 54, "session", "2026-09-10T08:00:00+00:00")])
+    conn.commit()
+    assert migrate(conn) >= 6
+    assert [tuple(r) for r in conn.execute(
+        "SELECT profile_id, lieutenant, level, reached_at FROM lieutenant_level ORDER BY profile_id, lieutenant")] == [
+        (1, "echo", 1, "2026-09-12T18:30:00+00:00"), (1, "hydre", 1, "2026-09-10T08:00:00+00:00")]
+    assert [tuple(r) for r in conn.execute(
+        "SELECT profile_id, reward_id, source, granted_at, equipped FROM reward ORDER BY profile_id, reward_id")] == [
+        (1, "sandales_hermes", "quest:4", "2026-09-15T10:00:00+00:00", 1),
+        (1, "trophy:echo:1", "level:echo:1", "2026-09-12T18:30:00+00:00", 0),       # its relic row was missing
+        (1, "trophy:hydre:1", "level:hydre:1", "2026-09-10T08:00:01+00:00", 1)]
+    assert conn.execute("SELECT COUNT(*) FROM mastery").fetchone()[0] == 2           # kept, no longer written
+    assert conn.execute("SELECT SUM(amount) FROM xp_event WHERE profile_id = 1").fetchone()[0] == 254
+    assert migrate(conn) >= 6                                                        # idempotent
+    assert conn.execute("SELECT COUNT(*) FROM lieutenant_level").fetchone()[0] == 2

@@ -2,11 +2,11 @@ import { test, expect } from './crashGuard';
 import type { Page } from '@playwright/test';
 import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, installFastPauses, nextLine, createText, makeResult, postSession, redScan, spokenLines, swissDay, uniqueName } from './helpers';
 
-// SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
-// mastery driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
+// SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, the first seal
+// over three days driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
 // via `DISCORDE_TEST_HOOKS=1` in compose.e2e.yaml), a lost then won boss fight, the weekly goal
 // and the break nudge, and a no-red/no-guilt scan. One profile, one describe.serial: each step
-// depends on state the previous one left on the server (quests, mastery, rewards, dragon stage).
+// depends on state the previous one left on the server (quests, seals, rewards, dragon stage).
 
 // Every pace reads each breath group twice with a pause after each reading (the pace redesign): a boss
 // dictation is >= 150 words, so without shortened pauses (helpers.ts installFastPauses) a real-time
@@ -34,7 +34,7 @@ async function dictate(page: Page, draft: string, maxSteps = 120) {
   await ta.fill(draft);
 }
 
-test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, mastery, boss', () => {
+test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, seals, boss', () => {
   let profileId: string;
   let textId: number;
   let oracleQuestId: number;
@@ -215,12 +215,11 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     await expect(page.getByTestId('cabin-reward-tint:ecume')).toHaveAttribute('data-owned', 'true');
   });
 
-  test('6. mastery over three days neutralises the Hydra (the dragon grows from XP only); naming it; the dossier changes voice', async ({ page, request }) => {
-    // Decision 3's minimal recent window is computed fresh from all-time stats, so - since this
-    // profile already has Hydre-category errors "today" (steps 4-5) - it can complete in fewer
-    // than three of these calls; find whichever response actually neutralises her rather than
-    // hard-coding which one.
-    let neutralising: any = null;
+  test('6. three days of guard win the Hydra\'s wooden seal (its trophy, 100 XP); naming the dragon; the dossier changes voice', async ({ page, request }) => {
+    // Spec 2026-09-29 lieutenant levels §1: the first seal asks 3 days with a chance, 12 chances and 85 %
+    // right in the handed-in copy. This hero already met the Hydra today (steps 4-5), so the seal may
+    // come before the third of these days: find the response that brings it.
+    let sealed: any = null;
     for (const day of ['2026-09-21', '2026-09-22', '2026-09-23']) {
       const res = await postSession(request, {
         profileId: Number(profileId),
@@ -228,14 +227,17 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
         day,
         result: makeResult({ draft: 4, caught: 4, category: 'agreement:verb' }),
       });
-      if (res.progression.neutralised.includes('hydre')) {
-        neutralising = res;
+      if (res.progression.levels.some((u: { lieutenant: string }) => u.lieutenant === 'hydre')) {
+        sealed = res;
         break;
       }
     }
-    expect(neutralising).not.toBeNull();
-    // Neutralising the Hydra no longer grows the dragon (spec §1): it hatched from XP in step 5.
-    expect(neutralising.progression.dragon).toEqual({ stage_before: 'hatchling', stage_after: 'hatchling', needs_name: true });
+    expect(sealed).not.toBeNull();
+    expect(sealed.progression.levels).toContainEqual({ lieutenant: 'hydre', level: 1, reward_id: 'trophy:hydre:1' });
+    expect(sealed.progression.xp.bonuses).toContainEqual({ reason: 'level', amount: 100, lieutenant: 'hydre', level: 1 });
+    expect(sealed.progression.rewards).toContainEqual({ id: 'trophy:hydre:1', kind: 'trophy', name: "Écaille de l'Hydre en bois" });
+    // A seal does not grow the dragon by itself (dragon growth §1): it hatched from XP in step 5.
+    expect(sealed.progression.dragon).toEqual({ stage_before: 'hatchling', stage_after: 'hatchling', needs_name: true });
 
     await page.goto(`/#/p/${profileId}/dragon`);
     await expect(page.getByTestId('dragon-stage')).toContainText('Dragonnet');
@@ -257,7 +259,7 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     await expect(page.getByText('Iolaos')).toBeVisible();
   });
 
-  test('7. boss unlocks after two lieutenants; a lost fight loses nothing; a won fight grants the gear', async ({
+  test('7. boss unlocks at two wooden seals; a lost fight loses nothing; a won fight grants the gear', async ({
     page,
     request,
   }) => {
@@ -275,6 +277,7 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
       level: '10H',
     });
 
+    // Écho's wooden seal (spec 2026-09-29 lieutenant levels §4: fight I asks two seals of bois).
     for (const day of ['2026-09-01', '2026-09-02', '2026-09-03']) {
       await postSession(request, {
         profileId: Number(profileId),

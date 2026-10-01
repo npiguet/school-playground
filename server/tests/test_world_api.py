@@ -11,7 +11,8 @@ from tests.test_progression import hydre_result, post
 def test_world_catalog(client):
     w = client.get("/api/world").json()
     assert [l["key"] for l in w["lieutenants"]] == ["hydre", "echo", "chimere", "protee", "sirenes", "lethe"]
-    assert w["rewards"]["ecaille_hydre"]["name"] == "Écaille de l'Hydre" and w["mastery"] == {"min_days": 3, "min_traps": 10, "rate": 0.8}
+    assert w["rewards"]["ecaille_hydre"]["name"] == "Écaille de l'Hydre"
+    assert "mastery" not in w and "mastery" not in w["quest_bonus"]
     assert w["boss_rewards"]["1"] == "sandales_hermes"
     assert [s["key"] for s in w["stages"]] == ["egg", "hatchling", "young", "adult", "illustre", "ancestral"]
     assert "ranks" not in w
@@ -34,7 +35,11 @@ def test_camp_for_new_profile(client):
     assert protee["available"] is False and len(c["lieutenants"]) == 6
     assert all("stirring" not in l for l in c["lieutenants"])
     assert c["oracle"]["status"] == "sealed" and c["weekly"] == {"week": c["weekly"]["week"], "target": 3, "done": 0, "reached": False}
-    assert c["boss"] == {"tier_available": None, "tiers_won": [], "active_quest_id": None}
+    assert c["boss"] == {"tier_available": None, "tiers_won": [], "active_quest_id": None, "fights": 10, "next": {"tier": 1, "level": 1, "missing": 2}}
+    hydre = next(l for l in c["lieutenants"] if l["key"] == "hydre")
+    assert (hydre["level"], hydre["level_reached_at"]) == (0, None)
+    assert hydre["next"] == {"level": 1, "days": 0, "chances": 0, "correct": None, "complete": False,
+                             "need": {"days": 3, "chances": 12, "correct": 0.85}}
 
 
 def test_dragon_patch_validation(client):
@@ -132,7 +137,7 @@ def test_boss_requires_tier(client):
 def test_boss_flow(client, settings):
     pid = make_profile(client, level="10H")
     long_text = make_text(client, body=" ".join(["Les fées dansent dans la clairière et les oiseaux les écoutent."] * 16))   # ≥ 150 words
-    # neutralise hydre and echo via the test clock
+    # the wooden seals of hydre and echo via the test clock (spec 2026-09-29 lieutenant levels §4: fight I asks two)
     for key, cat in (("hydre", "agreement:verb"), ("echo", "homophone")):
         for day in ("2026-09-21", "2026-09-22", "2026-09-23"):
             r = hydre_result(); r["byCategory"] = {cat: {"opportunities": 10, "draft": 4, "caught": 4, "missed": 0, "introduced": 0}}
@@ -158,7 +163,7 @@ def test_boss_flow(client, settings):
     won = post(client, pid, long_text, hydre_result(draft=0, caught=0), quest_id=b["quest"]["id"], encounter="eris")["progression"]
     assert won["boss"] == {"tier": 1, "won": True} and [r["id"] for r in won["rewards"]] == ["sandales_hermes"]
     rewards = client.get(f"/api/profiles/{pid}/rewards").json()
-    assert {r["id"] for r in rewards} == {"ecaille_hydre", "voix_echo", "sandales_hermes"}
+    assert {r["id"] for r in rewards} == {"trophy:hydre:1", "trophy:echo:1", "sandales_hermes"}
     # I2: a done boss quest can't be shelved either (only an active board quest can).
     assert client.post(f"/api/profiles/{pid}/quests/{b['quest']['id']}/shelve").status_code == 409
     rid = client.patch(f"/api/profiles/{pid}/rewards/sandales_hermes", json={"equipped": True}).json()
@@ -174,8 +179,8 @@ def test_camp_survives_a_concurrent_first_visit_sealing_the_oracle(client, setti
     pid = make_profile(client)
     real = oracle_mod.compute_scrolls
 
-    def sealed_meanwhile(conn, profile, available, neutralised):
-        scrolls = real(conn, profile, available, neutralised)
+    def sealed_meanwhile(conn, profile, available, levels):
+        scrolls = real(conn, profile, available, levels)
         other = sqlite3.connect(settings.data_dir / DB_FILENAME)
         other.execute("INSERT INTO oracle(profile_id, week, scrolls_json) VALUES (?,?,?)",
                       (profile["id"], iso_week(local_day(now_utc())), json.dumps(scrolls)))

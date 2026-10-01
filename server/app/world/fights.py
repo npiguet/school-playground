@@ -21,21 +21,26 @@ def _missing(fight: dict[str, Any], levels: dict[str, int], awake: list[str]) ->
     return max(0, fight_need(fight, len(awake)) - sealed)
 
 
+def _first_unwon(ladder: list[dict], won: set[int]) -> tuple[int, dict] | None:
+    """The first fight of the ladder not won yet (its tier, 1-based, and its entry); None when all are."""
+    return next(((tier, fight) for tier, fight in enumerate(ladder, start=1) if tier not in won), None)
+
+
 def open_fight(ladder: list[dict], levels: dict[str, int], awake: list[str], won: set[int]) -> int | None:
     """The first fight not won, when its condition holds (its tier, 1-based); else None."""
-    for tier, fight in enumerate(ladder, start=1):
-        if tier in won:
-            continue
-        return tier if _missing(fight, levels, awake) == 0 else None
-    return None
+    first = _first_unwon(ladder, won)
+    if first is None:
+        return None
+    tier, fight = first
+    return tier if _missing(fight, levels, awake) == 0 else None
 
 
 def next_fight(ladder: list[dict], levels: dict[str, int], awake: list[str], won: set[int]) -> dict | None:
     """The first fight not won while it is not open yet: its tier, its seal and how many seals it still
     asks (R8). None once it is open, and once every fight is won."""
-    for tier, fight in enumerate(ladder, start=1):
-        if tier in won:
-            continue
-        missing = _missing(fight, levels, awake)
-        return {"tier": tier, "level": fight["level"], "missing": missing} if missing else None
-    return None
+    first = _first_unwon(ladder, won)
+    if first is None:
+        return None
+    tier, fight = first
+    missing = _missing(fight, levels, awake)
+    return {"tier": tier, "level": fight["level"], "missing": missing} if missing else None

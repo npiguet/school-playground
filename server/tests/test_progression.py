@@ -34,31 +34,29 @@ def test_session_grants_xp_and_reports_the_dragons_gauge(client):
     assert set(p["xp"]) == {"session", "parts", "bonuses", "total_before", "total_after", "stage_before", "stage_after", "floor", "next"}
     assert [p["xp"][k] for k in ("stage_before", "stage_after", "floor", "next")] == ["egg", "egg", 0, 100]
     assert p["dragon"] == {"stage_before": "egg", "stage_after": "egg", "needs_name": False}
-    assert p["neutralised"] == [] and p["rewards"] == [] and p["boss"] is None
+    assert p["levels"] == [] and p["rewards"] == [] and p["boss"] is None
 
 
-def test_mastery_over_three_days_grants_the_relic_and_the_dragon_hatches_from_xp(client):
+def test_three_days_grant_the_wooden_seal_and_the_dragon_hatches_from_xp(client):
     pid = make_profile(client, level="10H"); tid = make_text(client)
     p1 = post(client, pid, tid, hydre_result(), day="2026-09-21")["progression"]
     p2 = post(client, pid, tid, hydre_result(), day="2026-09-22")["progression"]
     p = post(client, pid, tid, hydre_result(), day="2026-09-23")["progression"]
-    # Spec 2026-09-29 dragon growth §1: 54 then 108 XP, the egg hatches at 100; neutralising the
-    # Hydra no longer grows it.
+    # Spec 2026-09-29 lieutenant levels §1: the first seal and its trophy; the dragon hatched from XP.
     assert p1["dragon"]["stage_after"] == "egg"
     assert p2["dragon"] == {"stage_before": "egg", "stage_after": "hatchling", "needs_name": True}
-    assert p["neutralised"] == ["hydre"]
-    assert [r["id"] for r in p["rewards"]] == ["ecaille_hydre"]
-    assert p["dragon"] == {"stage_before": "hatchling", "stage_after": "hatchling", "needs_name": True}
-    assert {"reason": "mastery", "amount": 200} in p["xp"]["bonuses"]
-    # permanent: a bad day later does not undo it
+    assert p["levels"] == [{"lieutenant": "hydre", "level": 1, "reward_id": "trophy:hydre:1"}]
+    assert [r["id"] for r in p["rewards"]] == ["trophy:hydre:1"]
+    assert {"reason": "level", "amount": 100, "lieutenant": "hydre", "level": 1} in p["xp"]["bonuses"]
+    # never lost: a bad day later keeps it
     p4 = post(client, pid, tid, hydre_result(draft=6, caught=0), day="2026-09-24")["progression"]
-    assert p4["neutralised"] == [] and p4["dragon"]["stage_after"] == "hatchling"
+    assert p4["levels"] == [] and p4["dragon"]["stage_after"] == "hatchling"
 
 
 def test_same_day_sessions_count_as_one_day(client):
     pid = make_profile(client, level="10H"); tid = make_text(client)
     for _ in range(3): post(client, pid, tid, hydre_result(), day="2026-09-21")
-    assert post(client, pid, tid, hydre_result(), day="2026-09-21")["progression"]["neutralised"] == []
+    assert post(client, pid, tid, hydre_result(), day="2026-09-21")["progression"]["levels"] == []
 
 
 def test_test_header_ignored_without_hook(settings, tmp_path):

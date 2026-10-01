@@ -1,13 +1,13 @@
-"""Applies a saved session to the world: XP, quests, mastery, weekly goal, then the dragon grown from the total XP (spec §3.6; plan Decisions 3, 6, 7, 8, 11, 15; spec 2026-09-29 dragon growth §1).
+"""Applies a saved session to the world: XP, quests, seals, weekly goal, then the dragon grown from the total XP (spec §3.6; spec 2026-09-29 dragon growth §1, lieutenant levels §1).
 Runs after app.stats.apply_session_to_stats so profile_stat_day already includes the session. Never removes anything."""
 from __future__ import annotations
 import json, sqlite3
 from app.clock import iso_week, week_bounds_utc
 from app.rules import Rules
 from app.schemas import AID_KEYS
-from app.world.catalog import BOSS_REWARDS, DECOR_ORDER, LIEUTENANTS, ORACLE_REWARDS, QUEST_BONUS, REWARDS
+from app.world.catalog import DECOR_ORDER, LIEUTENANTS, QUEST_BONUS, REWARDS, trophy_id
 from app.world.dragon import grown_stage, stage_gauge, stage_index
-from app.world.mastery import boss_tiers, is_neutralised, lieutenants_for_level, mastery_window
+from app.world.seals import LEVEL_XP, lieutenants_for_level, raise_levels
 from app.world.quests import fight_won, quest_miss_reason
 from app.world.xp import session_xp
 
@@ -26,17 +26,6 @@ def grant_reward(conn, profile_id, reward_id, source, now) -> bool:
     cur = conn.execute("INSERT OR IGNORE INTO reward(profile_id, reward_id, source, granted_at) VALUES (?,?,?,?)",
                        (profile_id, reward_id, source, now))
     return cur.rowcount == 1
-
-
-def lieutenant_day_rows(conn, profile_id, categories) -> list[dict]:
-    marks = ",".join("?" * len(categories))
-    return [dict(r) for r in conn.execute(
-        f"SELECT day, SUM(errors_in_draft) AS errors_in_draft, SUM(caught) AS caught FROM profile_stat_day "
-        f"WHERE profile_id = ? AND category IN ({marks}) GROUP BY day", (profile_id, *categories))]
-
-
-def neutralised_set(conn, profile_id) -> set[str]:
-    return {r[0] for r in conn.execute("SELECT lieutenant FROM mastery WHERE profile_id = ?", (profile_id,))}
 
 
 def boss_tiers_won(conn, profile_id) -> set[int]:
@@ -134,20 +123,18 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
         quest_out.append({"id": q["id"], "kind": q["kind"], "target": q["target"], "counted": ok, "reason": reason,
                           "progress": progress["sessions"],
                           "goal": goal["sessions"], "completed": completed, "reward_id": json.loads(q["reward_json"]).get("reward_id")})
-    # 3. mastery (permanent)
-    available = lieutenants_for_level(level)
-    already = neutralised_set(conn, pid)
-    newly = []
-    for key in available:
-        if key in already: continue
-        if is_neutralised(mastery_window(lieutenant_day_rows(conn, pid, LIEUTENANTS[key]["categories"]))):
-            conn.execute("INSERT INTO mastery(profile_id, lieutenant, neutralised_at) VALUES (?,?,?)", (pid, key, now))
-            newly.append(key)
-            add_xp(conn, pid, QUEST_BONUS["mastery"], "mastery", now, session_id=session_id, week=week)
-            bonuses.append({"reason": "mastery", "amount": QUEST_BONUS["mastery"]})
-            rid = LIEUTENANTS[key]["relic"]
-            if grant_reward(conn, pid, rid, f"mastery:{key}", now):
-                r = REWARDS[rid]; rewards.append({"id": rid, "kind": r["kind"], "name": r["name"]})
+    # 3. seals (spec 2026-09-29 lieutenant levels §1): each lieutenant awake at this class may gain its
+    # next seal, judged on the days after its last one; one at most per session; never lost. Seal L pays
+    # LEVEL_XP × L and the lieutenant's trophy in that material.
+    levels_out = []
+    for key, reached in raise_levels(conn, pid, lieutenants_for_level(level), now, rules):
+        amount = LEVEL_XP * reached
+        add_xp(conn, pid, amount, "level", now, session_id=session_id, week=week)
+        bonuses.append({"reason": "level", "amount": amount, "lieutenant": key, "level": reached})
+        rid = trophy_id(key, reached)
+        if grant_reward(conn, pid, rid, f"level:{key}:{reached}", now):
+            r = REWARDS[rid]; rewards.append({"id": rid, "kind": r["kind"], "name": r["name"]})
+        levels_out.append({"lieutenant": key, "level": reached, "reward_id": rid})
     # 4. weekly goal
     target = int(json.loads(profile["settings_json"] or "{}").get("weekly_goal", 3))
     done = weekly_done(conn, pid, week)
@@ -157,7 +144,7 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
         bonuses.append({"reason": "weekly", "amount": QUEST_BONUS["weekly"]}); reached_now = True
     total_after = xp_total(conn, pid)
     # 5. the dragon grows from the total XP (spec 2026-09-29 dragon growth §1), once every XP of this
-    # session is in (its quests', its mastery's, the week's): stored = max(stored, stage for the XP),
+    # session is in (its quests', its seals', the week's): stored = max(stored, stage for the XP),
     # so a raised threshold or a restored backup never shrinks it. Neutralisation no longer drives it.
     thresholds = rules.dragon_stages
     dragon = ensure_dragon(conn, pid, now)
@@ -171,7 +158,11 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
     floor, nxt = stage_gauge(stage_after, thresholds)
     return {"xp": {"session": xp.total, "parts": xp.parts, "bonuses": bonuses, "total_before": total_before, "total_after": total_after,
                    "stage_before": stage_before, "stage_after": stage_after, "floor": floor, "next": nxt},
-            "quests": quest_out, "neutralised": newly, "rewards": rewards,
+            "quests": quest_out,
+            "levels": levels_out,
+            # Compat until Task 6: the victory's old card reads the lieutenants that won their first seal.
+            "neutralised": [u["lieutenant"] for u in levels_out if u["level"] == 1],
+            "rewards": rewards,
             "dragon": {"stage_before": stage_before, "stage_after": stage_after, "needs_name": needs_name},
             "weekly": {"target": target, "done": done, "reached_now": reached_now}, "boss": boss_out,
             "encounter": body.encounter}

@@ -162,8 +162,11 @@ def test_a_wrong_level_value_is_logged_and_its_default_kept(tmp_path, caplog):
     expected = [dict(r) for r in LEVEL_DEFAULTS]
     expected[3]["days"] = 9
     assert rules.levels == expected
-    for bit in ("'days'", "'chances'", "'correct'", "'speed'", "'2'", "'3'", "'6'"):
+    for bit in ("'days'", "'chances'", "'correct'", "'speed'", "'correct '", "'2'", "'3'", "'6'"):
         assert bit in caplog.text, bit
+    # One warning per wrong value: seal 1's days, chances, correct, speed and « correct  », seal 2's
+    # correct, seal 3 (a list) and seal 6 (no such seal).
+    assert len([r for r in caplog.records if r.levelno == logging.WARNING]) == 8
 
 
 def test_levels_that_are_not_an_object_keep_the_built_in_ones(tmp_path):

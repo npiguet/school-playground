@@ -49,6 +49,8 @@
     oracle: 'Oracle',
     boss: 'Éris vaincue',
     mastery: 'Ruse neutralisée',
+    // Interim until the seals' chip (spec 2026-09-29 lieutenant levels §1, plan Task 6): never the raw key.
+    level: 'Sceau',
     weekly: 'Objectif de la semaine',
   };
   const XP_PARTS = ['text', 'pace', 'aids', 'prophecy'] as const;
@@ -143,7 +145,11 @@
     new Set(progression.quests.filter((q) => q.completed && q.reward_id).map((q) => q.reward_id as string)),
   );
   const extraRewards = $derived(
-    progression.rewards.filter((r) => r.kind !== 'relic' && !shownRewardIds.has(r.id) && r.id !== bossReward?.id),
+    // A seal's trophy (spec 2026-09-29 lieutenant levels §5) is never a « Nouveau trésor »: until the
+    // seal's own card (plan Task 6), the first seal shows on the neutralised card above.
+    progression.rewards.filter(
+      (r) => r.kind !== 'relic' && !r.id.startsWith('trophy:') && !shownRewardIds.has(r.id) && r.id !== bossReward?.id,
+    ),
   );
 
   // Dragon card ------------------------------------------------------------------------------------

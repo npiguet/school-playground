@@ -1,6 +1,5 @@
 import pytest
-from app.world.mastery import (Window, boss_tiers, is_neutralised, lieutenants_for_level, mastery_window,
-                               tier_available)
+from app.world.seals import lieutenants_for_level
 from app.rules import Rules
 from app.world.xp import session_xp
 from app.world.quests import density, fight_won, quest_miss_reason, recommend_texts
@@ -9,48 +8,9 @@ R = Rules()
 ODD = Rules(aid_bonus=0.33, pace_bonus={"1": 0.1, "2": 0.37, "3": 0.71}, prophecy_bonus=0.29)
 
 
-def rows(*triples):  # (day, draft, caught)
-    return [{"day": d, "errors_in_draft": e, "caught": c} for d, e, c in triples]
-
-
 def test_lieutenants_for_level_drops_protee_below_8h():
     assert "protee" not in lieutenants_for_level("7H")
     assert lieutenants_for_level("8H") == ["hydre", "echo", "chimere", "protee", "sirenes", "lethe"]
-
-
-def test_window_needs_three_days_and_ten_traps():
-    w = mastery_window(rows(("2026-09-20", 4, 4), ("2026-09-21", 4, 4)))
-    assert w.days == 2 and w.traps == 8 and not w.complete and not is_neutralised(w)
-    w = mastery_window(rows(("2026-09-20", 4, 4), ("2026-09-21", 4, 4), ("2026-09-22", 4, 3)))
-    assert w.complete and w.days == 3 and w.traps == 12 and w.rate == pytest.approx(11 / 12) and is_neutralised(w)
-
-
-def test_window_is_the_most_recent_minimal_span_and_ignores_empty_days():
-    w = mastery_window(rows(("2026-09-01", 10, 0), ("2026-09-10", 0, 0), ("2026-09-20", 5, 5), ("2026-09-21", 3, 3), ("2026-09-22", 4, 4)))
-    assert w.days == 3 and w.traps == 12 and w.rate == 1.0   # the bad day on 09-01 is outside the window
-
-
-def test_window_extends_until_ten_traps():
-    w = mastery_window(rows(("2026-09-19", 1, 0), ("2026-09-20", 2, 2), ("2026-09-21", 2, 2), ("2026-09-22", 2, 2), ("2026-09-23", 4, 4)))
-    assert w.days == 4 and w.traps == 10 and w.rate == pytest.approx(1.0) and is_neutralised(w)
-
-
-def test_window_does_not_dilute_with_older_unrelated_bad_day():
-    # A legitimate minimal 3-day/10-trap window (09-20..09-22) must not be diluted by
-    # folding in an older, unrelated bad day (09-15) once the window is already complete.
-    w = mastery_window(rows(("2026-09-15", 5, 0), ("2026-09-20", 3, 3), ("2026-09-21", 3, 3), ("2026-09-22", 4, 4)))
-    assert w.days == 3 and w.traps == 10 and w.rate == pytest.approx(1.0) and is_neutralised(w)
-
-
-def test_window_no_data():
-    assert mastery_window([]) == Window(days=0, traps=0, caught=0, rate=None, complete=False)
-
-
-def test_boss_tiers():
-    assert boss_tiers(6) == {1: 2, 2: 4, 3: 6} and boss_tiers(5) == {1: 2, 2: 4, 3: 5}
-    assert tier_available(1, 6, set()) is None and tier_available(2, 6, set()) == 1
-    assert tier_available(4, 6, {1}) == 2 and tier_available(6, 6, {1, 2, 3}) is None
-    assert tier_available(4, 6, set()) == 1   # tiers are fought in order
 
 
 def xp_result(words=150, left=3, caught=4):

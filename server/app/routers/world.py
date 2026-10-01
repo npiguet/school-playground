@@ -1,6 +1,6 @@
 """World API: camp hub, dragon, quest board, Oracle, boss fights and rewards (spec §3.6; plan Task 3).
 
-Server-authoritative: this router is the only writer of quest/oracle/dragon/reward/xp_event/mastery
+Server-authoritative: this router is the only writer of quest/oracle/dragon/reward/xp_event/lieutenant_level
 state outside of app.world.progression (which runs from POST /api/sessions).
 """
 from __future__ import annotations
@@ -16,17 +16,16 @@ from app.rules import Rules
 from app.schemas import DragonPatch, OracleChoice, QuestCreate, RewardPatch
 from app.textutil import word_count
 from app.world import oracle as oracle_mod
-from app.world.catalog import (BOSS_REWARDS, LIEUTENANT_ORDER, LIEUTENANTS, MASTERY, ORACLE_REWARDS, QUEST_BONUS,
-                               REWARDS, TINTS)
+from app.world.catalog import BOSS_REWARDS, LIEUTENANT_ORDER, LIEUTENANTS, ORACLE_REWARDS, QUEST_BONUS, REWARDS, TINTS
 from app.world.dragon import grown_stage, stage_gauge, stage_table
-from app.world.mastery import lieutenants_for_level, mastery_window, tier_available
-from app.world.progression import (boss_tiers_won, ensure_dragon, lieutenant_day_rows, neutralised_set, store_stage,
-                                   weekly_done, xp_total)
+from app.world.fights import next_fight, open_fight
+from app.world.progression import boss_tiers_won, ensure_dragon, store_stage, weekly_done, xp_total
 from app.world.quests import density, recommend_texts
+from app.world.seals import level_rows, levels_of, lieutenants_for_level, next_seal
 
 router = APIRouter(prefix="/api", tags=["world"])
 
-BOSS_MESSAGE = "Éris ne se montre pas encore. Neutralise d'abord ses lieutenants."
+BOSS_MESSAGE = "Éris ne se montre pas encore. Gagne d'abord d'autres sceaux sur ses lieutenants."
 TWO_QUESTS_MESSAGE = "Deux quêtes à la fois, c'est déjà beaucoup. Termine-en une ou range-la."
 ALREADY_ACTIVE_MESSAGE = "Cette quête est déjà en cours."
 TINT_LOCKED_MESSAGE = "Cette teinte n'est pas encore débloquée."
@@ -76,7 +75,7 @@ def dragon_out(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: 
     pid = profile["id"]
     dragon = ensure_dragon(conn, pid, now)
     available = lieutenants_for_level(profile["level"])
-    n = len(neutralised_set(conn, pid))
+    n = sum(1 for v in levels_of(conn, pid).values() if v >= 1)  # compat until Task 5 (the camp's old « tricks before Éris »)
     # Spec 2026-09-29 dragon growth §1: the stage follows the total XP and never goes down; a stage
     # caught up here (a threshold lowered in regles.json) is stored.
     stage = grown_stage(dragon["stage"], xp_total(conn, pid), rules.dragon_stages)
@@ -88,11 +87,10 @@ def dragon_out(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: 
             "unlocked_tints": unlocked_tints}
 
 
-def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row) -> list[dict]:
+def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row, rules: Rules) -> list[dict]:
     pid = profile["id"]
     available = set(lieutenants_for_level(profile["level"]))
-    neutralised_rows = {r["lieutenant"]: r["neutralised_at"] for r in
-                        conn.execute("SELECT lieutenant, neutralised_at FROM mastery WHERE profile_id = ?", (pid,))}
+    seals = level_rows(conn, pid)
     out = []
     for key in LIEUTENANT_ORDER:
         cats = LIEUTENANTS[key]["categories"]
@@ -100,21 +98,25 @@ def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row) -> list[di
         row = conn.execute(f"SELECT SUM(errors_in_draft) t, SUM(caught) c, SUM(missed) m, MAX(day) last FROM profile_stat_day "
                            f"WHERE profile_id = ? AND category IN ({marks})", (pid, *cats)).fetchone()
         traps, caught, missed = row["t"] or 0, row["c"] or 0, row["m"] or 0
-        last_day = row["last"]
-        window = mastery_window(lieutenant_day_rows(conn, pid, cats))
-        neutralised = key in neutralised_rows
-        bestiary_unlocked = neutralised or conn.execute(
+        level, reached_at = seals.get(key, (0, None))
+        nxt = next_seal(conn, pid, key, level, reached_at, rules)
+        # Spec 2026-09-29 lieutenant levels §5: the page opens at the first seal or a finished quest.
+        bestiary_unlocked = level >= 1 or conn.execute(
             "SELECT 1 FROM quest WHERE profile_id = ? AND kind IN ('board','oracle') AND target = ? AND status = 'done' LIMIT 1",
             (pid, key)).fetchone() is not None
         active_quest = conn.execute(
             "SELECT id FROM quest WHERE profile_id = ? AND kind IN ('board','oracle') AND target = ? AND status = 'active' LIMIT 1",
             (pid, key)).fetchone()
         out.append({
-            "key": key, "name": LIEUTENANTS[key]["name"], "categories": cats,
-            "available": key in available, "neutralised": neutralised, "neutralised_at": neutralised_rows.get(key),
-            "window": {"days": window.days, "traps": window.traps, "caught": window.caught, "rate": window.rate, "complete": window.complete},
+            "key": key, "name": LIEUTENANTS[key]["name"], "categories": cats, "available": key in available,
+            # Spec §1: the seal won (0 before the first) and the window toward the next (None after the fifth).
+            "level": level, "level_reached_at": reached_at, "next": nxt,
             "all_time": {"traps": traps, "caught": caught, "missed": missed, "rate": (caught / traps) if traps else None},
-            "last_day": last_day, "bestiary_unlocked": bestiary_unlocked, "active_quest_id": active_quest["id"] if active_quest else None,
+            "last_day": row["last"], "bestiary_unlocked": bestiary_unlocked, "active_quest_id": active_quest["id"] if active_quest else None,
+            # Compat until Task 4: the war tent still reads these.
+            "neutralised": level >= 1, "neutralised_at": reached_at if level >= 1 else None,
+            "window": {"days": nxt["days"], "traps": nxt["chances"], "caught": 0, "rate": nxt["correct"], "complete": nxt["complete"]}
+                      if nxt else {"days": 0, "traps": 0, "caught": 0, "rate": None, "complete": False},
         })
     return out
 
@@ -200,12 +202,10 @@ def _pick_boss_text(conn: sqlite3.Connection, profile: sqlite3.Row) -> int | Non
     return candidates[0][0]
 
 
-def create_boss_quest(conn: sqlite3.Connection, profile: sqlite3.Row, now: str) -> tuple[dict, bool]:
+def create_boss_quest(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: Rules) -> tuple[dict, bool]:
     pid = profile["id"]
-    available = lieutenants_for_level(profile["level"])
-    neutralised = neutralised_set(conn, pid)
-    won = boss_tiers_won(conn, pid)
-    tier = tier_available(len(neutralised), len(available), won)
+    # Spec 2026-09-29 lieutenant levels §4: the first fight not won, when its seals are there.
+    tier = open_fight(rules.fights, levels_of(conn, pid), lieutenants_for_level(profile["level"]), boss_tiers_won(conn, pid))
     if tier is None:
         raise HTTPException(409, BOSS_MESSAGE)
     existing = conn.execute("SELECT * FROM quest WHERE profile_id = ? AND kind = 'boss' AND status = 'active'", (pid,)).fetchone()
@@ -216,7 +216,8 @@ def create_boss_quest(conn: sqlite3.Connection, profile: sqlite3.Row, now: str) 
     if text_id is None:
         raise HTTPException(409, "Éris ne trouve pas de texte assez long pour ce combat.")
     goal = {"tier": tier, "text_id": text_id}
-    reward = {"xp": QUEST_BONUS["boss"], "reward_id": BOSS_REWARDS[tier], "bestiary": False}
+    # The first three fights keep their divine gear; the later ones pay their XP only (R8).
+    reward = {"xp": QUEST_BONUS["boss"], "reward_id": BOSS_REWARDS.get(tier), "bestiary": False}
     quest = create_quest(conn, profile, "boss", "eris", None, goal, reward, now)
     return {"quest": quest, "text_id": text_id, "tier": tier}, True
 
@@ -284,7 +285,6 @@ def get_world(request: Request):
         "tints": TINTS,
         "oracle_rewards": ORACLE_REWARDS,
         "boss_rewards": {str(k): v for k, v in BOSS_REWARDS.items()},
-        "mastery": MASTERY,
         "quest_bonus": QUEST_BONUS,
         # Spec 2026-09-29 §7: what the client needs of the rules file (the copy line, the bonuses, the owl).
         "rules": request.app.state.rules.as_dict(),
@@ -297,8 +297,8 @@ def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends
     now = now_utc(); day = local_day(now); week = iso_week(day)
     pid = profile["id"]
     available = lieutenants_for_level(profile["level"])
-    neutralised = neutralised_set(db, pid)
-    oracle_row = oracle_mod.get_or_seal(db, profile, week, available, neutralised, now)
+    levels = levels_of(db, pid)
+    oracle_row = oracle_mod.get_or_seal(db, profile, week, available, levels, now)
     db.commit()
     full_oracle = oracle_out(db, profile, oracle_row, day)
     quests = [quest_out(db, r) for r in
@@ -306,19 +306,21 @@ def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends
     target = int(json.loads(profile["settings_json"] or "{}").get("weekly_goal", 3))
     done = weekly_done(db, pid, week)
     won = boss_tiers_won(db, pid)
-    tier_avail = tier_available(len(neutralised), len(available), won)
+    rules = request.app.state.rules
+    tier_avail = open_fight(rules.fights, levels, available, won)
     active_boss = db.execute("SELECT id FROM quest WHERE profile_id = ? AND kind = 'boss' AND status = 'active'", (pid,)).fetchone()
     rewards_count = db.execute("SELECT COUNT(*) FROM reward WHERE profile_id = ?", (pid,)).fetchone()[0]
-    rules = request.app.state.rules
     dragon = dragon_out(db, profile, now, rules)   # may persist a caught-up stage (see dragon_out)
     db.commit()
     return {
         "profile": to_out(profile), "xp": xp_block(db, pid, dragon["stage"], rules), "dragon": dragon,
-        "lieutenants": lieutenant_states(db, profile), "quests": quests,
+        "lieutenants": lieutenant_states(db, profile, rules), "quests": quests,
         "oracle": {"week": full_oracle["week"], "status": full_oracle["status"], "reward_id": full_oracle["reward_id"]},
         "prophecies": full_oracle["prophecies"],
         "weekly": {"week": week, "target": target, "done": done, "reached": done >= target},
-        "boss": {"tier_available": tier_avail, "tiers_won": sorted(won), "active_quest_id": active_boss["id"] if active_boss else None},
+        "boss": {"tier_available": tier_avail, "tiers_won": sorted(won), "active_quest_id": active_boss["id"] if active_boss else None,
+                 # Spec §4: the ladder's length, and what opens the next fight (None once one is open or all are won).
+                 "fights": len(rules.fights), "next": next_fight(rules.fights, levels, available, won) if tier_avail is None else None},
         "rewards_count": rewards_count, "small_tricks": small_tricks(db, pid),
     }
 
@@ -384,8 +386,8 @@ def get_oracle(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
     profile = fetch_profile(db, profile_id)
     now = now_utc(); day = local_day(now); week = iso_week(day)
     available = lieutenants_for_level(profile["level"])
-    neutralised = neutralised_set(db, profile["id"])
-    row = oracle_mod.get_or_seal(db, profile, week, available, neutralised, now)
+    levels = levels_of(db, profile["id"])
+    row = oracle_mod.get_or_seal(db, profile, week, available, levels, now)
     db.commit()
     return oracle_out(db, profile, row, day)
 
@@ -395,8 +397,8 @@ def post_oracle(profile_id: int, body: OracleChoice, db: sqlite3.Connection = De
     profile = fetch_profile(db, profile_id)
     now = now_utc(); day = local_day(now); week = iso_week(day)
     available = lieutenants_for_level(profile["level"])
-    neutralised = neutralised_set(db, profile["id"])
-    row = oracle_mod.get_or_seal(db, profile, week, available, neutralised, now)
+    levels = levels_of(db, profile["id"])
+    row = oracle_mod.get_or_seal(db, profile, week, available, levels, now)
     if row["chosen"] is not None:
         raise HTTPException(409, ORACLE_ALREADY_CONSULTED)
     try:
@@ -408,9 +410,9 @@ def post_oracle(profile_id: int, body: OracleChoice, db: sqlite3.Connection = De
 
 
 @router.post("/profiles/{profile_id}/boss")
-def post_boss(profile_id: int, response: Response, db: sqlite3.Connection = Depends(get_db)):
+def post_boss(profile_id: int, response: Response, request: Request, db: sqlite3.Connection = Depends(get_db)):
     profile = fetch_profile(db, profile_id)
-    data, created = create_boss_quest(db, profile, now_utc())
+    data, created = create_boss_quest(db, profile, now_utc(), request.app.state.rules)
     db.commit()
     response.status_code = 201 if created else 200
     return data

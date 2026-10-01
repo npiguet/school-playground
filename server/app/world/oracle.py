@@ -14,11 +14,14 @@ def scroll_meta() -> list[dict]:
     return [dict(s) for s in SCROLLS]
 
 
-def compute_scrolls(conn, profile, available, neutralised) -> dict:
+def compute_scrolls(conn, profile, available, levels) -> dict:
+    """R10 (spec 2026-09-29 lieutenant levels §5): lowest seal first. The weak point is chosen among the
+    awake lieutenants at the lowest seal; fate among the others, by seal, then the longest unseen."""
     pid = profile["id"]
-    candidates = [k for k in available if k not in neutralised] or list(available)
+    low = min(levels.get(k, 0) for k in available)
+    candidates = [k for k in available if levels.get(k, 0) == low]
     rates, last = {}, {}
-    for k in candidates:
+    for k in available:
         cats = LIEUTENANTS[k]["categories"]; marks = ",".join("?" * len(cats))
         row = conn.execute(f"SELECT SUM(errors_in_draft) d, SUM(caught) c, SUM(missed) m, MAX(day) last FROM profile_stat_day "
                            f"WHERE profile_id = ? AND category IN ({marks})", (pid, *cats)).fetchone()
@@ -28,9 +31,8 @@ def compute_scrolls(conn, profile, available, neutralised) -> dict:
     if with_rate: faible = min(with_rate, key=lambda k: (rates[k][0], candidates.index(k)))
     elif any(rates[k][1] for k in candidates): faible = max(candidates, key=lambda k: rates[k][1])
     else: faible = candidates[0]
-    others = [k for k in candidates if k != faible] or candidates
-    destin = min(others, key=lambda k: (last[k], candidates.index(k)))
-    return {"faible": faible, "destin": destin}
+    others = sorted((k for k in available if k != faible), key=lambda k: (levels.get(k, 0), last[k], available.index(k)))
+    return {"faible": faible, "destin": others[0] if others else faible}
 
 
 def oracle_reward_for(conn, profile_id) -> str | None:
@@ -38,10 +40,10 @@ def oracle_reward_for(conn, profile_id) -> str | None:
     return ORACLE_REWARDS[n] if n < len(ORACLE_REWARDS) else None
 
 
-def get_or_seal(conn, profile, week, available, neutralised, now) -> dict:
+def get_or_seal(conn, profile, week, available, levels, now) -> dict:
     row = conn.execute("SELECT * FROM oracle WHERE profile_id = ? AND week = ?", (profile["id"], week)).fetchone()
     if row is None:
-        scrolls = compute_scrolls(conn, profile, available, neutralised)
+        scrolls = compute_scrolls(conn, profile, available, levels)
         # OR IGNORE: two first visits of the week can race here (the library tent and the camp both
         # fetch /camp on mount). Whichever sealed first wins; the other reads that row back below
         # instead of failing on the (profile_id, week) key with a 500.

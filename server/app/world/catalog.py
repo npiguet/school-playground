@@ -1,4 +1,4 @@
-"""World catalog: lieutenants, rewards (plan Decisions 1, 6, 12, 20; the dragon's stages, which replaced the XP ranks, live in app.world.dragon). French labels are UI text served by GET /api/world."""
+"""World catalog: lieutenants, rewards, the seals' materials and trophies (plan Decisions 1, 6, 12, 20; spec 2026-09-29 lieutenant levels; the dragon's stages, which replaced the XP ranks, live in app.world.dragon). French labels are UI text served by GET /api/world."""
 LIEUTENANT_ORDER = ["hydre", "echo", "chimere", "protee", "sirenes", "lethe"]
 # `gender` is the lieutenant's narrative gender ('f'/'m'/'fp' - feminine, masculine, feminine
 # plural), the source of truth for player-facing French agreement (l'Hydre/Écho/la Chimère/les
@@ -61,8 +61,7 @@ def trophy_id(key: str, level: int) -> str:
 REWARDS.update({trophy_id(k, level): _r(trophy_id(k, level), "trophy", f"{TROPHY_OF[k]} en {MATERIALS[level - 1]}",
                                         _TROPHY_DESC[level - 1], f"{SEAL_TITLES[level - 1]} {OF_LIEUTENANT[k]}")
                 for k in LIEUTENANT_ORDER for level in range(1, len(MATERIALS) + 1)})
-ORACLE_REWARDS =["tint:ecume", "tint:olivier", "tint:braise", "tint:jade", "tint:argent", "decor:fresque"]
+ORACLE_REWARDS = ["tint:ecume", "tint:olivier", "tint:braise", "tint:jade", "tint:argent", "decor:fresque"]
 DECOR_ORDER = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee"]
 BOSS_REWARDS = {1: "sandales_hermes", 2: "egide", 3: "foudre_zeus"}
-QUEST_BONUS = {"board": 60, "oracle": 150, "boss": 300, "mastery": 200, "weekly": 40}
-MASTERY = {"min_days": 3, "min_traps": 10, "rate": 0.8}
+QUEST_BONUS = {"board": 60, "oracle": 150, "boss": 300, "weekly": 40}

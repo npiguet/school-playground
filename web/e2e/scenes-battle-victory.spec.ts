@@ -663,7 +663,7 @@ test('a fight Éris refuses says why, in her colour, and nothing is lost', async
   const refusal = page.getByTestId('battle-parchment').locator('.kit-note[data-tone="eris"][role="alert"]');
   await expect(refusal).toBeVisible();
   // A fresh hero has no tier open: the server's 409 (routers/world.py BOSS_MESSAGE), word for word.
-  await expect(refusal).toHaveText("Éris ne se montre pas encore. Neutralise d'abord ses lieutenants.");
+  await expect(refusal).toHaveText("Éris ne se montre pas encore. Gagne d'abord d'autres sceaux sur ses lieutenants.");
   await expect(page).toHaveURL(/\/eris$/);
 });
 
