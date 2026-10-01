@@ -1,0 +1,119 @@
+{
+  "result": "cou_adult_s3202.png",
+  "generation": {
+    "prompt": "the neck of a strong adult dragon with burnished bronze-gold scales and a pale cream throat, the dragon wears a snug (collar around its neck:1.5) that crosses the whole neck from its back edge to its throat: a band of polished silver covered with a row of small overlapping bright azure-blue feathers with white tips, and hanging at the front of the throat a pendant shaped like a small ancient Greek lyre of polished silver, its curved frame like two swan necks, thin silver strings and a round blue sapphire at its base, the collar wraps closely around the neck and follows its curve, solid and opaque with no scales showing through, clean dark ink outline around the collar and the lyre pendant, (violet:-1.5) (purple:-1.5).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.75,
+    "steps": 11,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 3202,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_adult.png",
+    "mask_file": "assets\\art\\dragon\\slots\\adult_cou.png"
+  },
+  "extract": {
+    "stage": "dragon_adult.png",
+    "slot_mask": "adult_cou.png",
+    "pos": [
+      [
+        510,
+        265
+      ],
+      [
+        540,
+        280
+      ],
+      [
+        570,
+        285
+      ],
+      [
+        590,
+        300
+      ],
+      [
+        525,
+        300
+      ],
+      [
+        550,
+        250
+      ],
+      [
+        590,
+        262
+      ],
+      [
+        610,
+        280
+      ],
+      [
+        625,
+        315
+      ]
+    ],
+    "neg": [
+      [
+        560,
+        322
+      ],
+      [
+        525,
+        236
+      ],
+      [
+        600,
+        238
+      ],
+      [
+        640,
+        240
+      ],
+      [
+        500,
+        325
+      ]
+    ],
+    "box": [
+      483,
+      232,
+      712,
+      340
+    ],
+    "hand_points": true,
+    "sam_mask": 2,
+    "diff": 28,
+    "novelty": 45,
+    "grow": 2,
+    "keep_white": true,
+    "max_hole": null,
+    "cuts": null
+  },
+  "note": "denoise 0.75, --keep-white; rejected 3201 (a thin silver ring low on the neck, small feathers), 3203 (soft blurry feathers, lyre small)",
+  "raw_crop": [
+    459,
+    208,
+    736,
+    364
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}

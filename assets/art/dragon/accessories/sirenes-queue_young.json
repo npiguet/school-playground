@@ -1,0 +1,115 @@
+{
+  "result": "queue_young_s3121.png",
+  "generation": {
+    "prompt": "close view of the tail of a young dragon with burnished bronze-gold scales and a pale cream underside, wearing feather ribbons tied around the tail: a band of bright azure-blue silk ribbon wrapped snugly around the tail with a small polished silver clasp, and from the band hang three long bright azure-blue feathers with white tips and two short loose ends of blue ribbon, the band wraps closely around the tail and follows its curve, solid and opaque with no scales showing through, clean dark ink outline around the ribbons and the feathers, (violet:-1.5) (purple:-1.5).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.75,
+    "steps": 11,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 3121,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_young.png",
+    "mask_file": "C:\\Users\\nicol\\.claude\\jobs\\9ac9a508\\tmp\\art-sirenes\\m_young_queue.png"
+  },
+  "extract": {
+    "stage": "dragon_young.png",
+    "slot_mask": "m_young_queue.png",
+    "pos": [
+      [
+        160,
+        765
+      ],
+      [
+        200,
+        775
+      ],
+      [
+        225,
+        785
+      ],
+      [
+        175,
+        775
+      ],
+      [
+        130,
+        820
+      ],
+      [
+        150,
+        850
+      ],
+      [
+        168,
+        828
+      ],
+      [
+        140,
+        795
+      ]
+    ],
+    "neg": [
+      [
+        205,
+        830
+      ],
+      [
+        232,
+        845
+      ],
+      [
+        262,
+        775
+      ],
+      [
+        190,
+        750
+      ]
+    ],
+    "box": [
+      125,
+      739,
+      272,
+      878
+    ],
+    "hand_points": true,
+    "sam_mask": 0,
+    "diff": 28,
+    "novelty": 45,
+    "grow": 2,
+    "keep_white": true,
+    "max_hole": null,
+    "cuts": null
+  },
+  "clean_polys": [
+    "155,765 163,756 172,758 180,764 186,772 183,778 170,780 160,786 154,780"
+  ],
+  "clean_note": "overlay_clean.py erased these polygons (stage px) after extraction",
+  "note": "denoise 0.75 on the queue slot united with itself shifted 30 px down (room for the hanging feathers); the polygon erased a patch of repainted scales above the knot, and orange repainted-skin pixels beside the clasp were dropped (box 178,766,200,798: r-b > 60, r >= g); rejected 3122 (ribbon slack, feathers off the tail), 3123 (a loose ribbon end floating below the tail)",
+  "raw_crop": [
+    101,
+    715,
+    296,
+    902
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}

@@ -1,0 +1,80 @@
+{
+  "sirenes-cou": {
+    "young": {
+      "src": "sirenes-cou_young.webp",
+      "x": 0.49121,
+      "y": 0.3125,
+      "w": 0.19238,
+      "h": 0.10645
+    },
+    "ancestral": {
+      "src": "sirenes-cou_ancestral.webp",
+      "x": 0.54297,
+      "y": 0.29883,
+      "w": 0.14941,
+      "h": 0.07422
+    },
+    "adult": {
+      "src": "sirenes-cou_adult.webp",
+      "x": 0.47559,
+      "y": 0.23438,
+      "w": 0.16309,
+      "h": 0.0918
+    }
+  },
+  "sirenes-dos": {
+    "young": {
+      "src": "sirenes-dos_young.webp",
+      "x": 0.2998,
+      "y": 0.43457,
+      "w": 0.21875,
+      "h": 0.20312
+    },
+    "ancestral": {
+      "src": "sirenes-dos_ancestral.webp",
+      "x": 0.30566,
+      "y": 0.46289,
+      "w": 0.27246,
+      "h": 0.2207
+    },
+    "adult": {
+      "src": "sirenes-dos_adult.webp",
+      "x": 0.30469,
+      "y": 0.4707,
+      "w": 0.22266,
+      "h": 0.16211
+    }
+  },
+  "sirenes-tete": {
+    "young": {
+      "src": "sirenes-tete_young.webp",
+      "x": 0.49414,
+      "y": 0.02344,
+      "w": 0.19531,
+      "h": 0.14551
+    }
+  },
+  "sirenes-queue": {
+    "ancestral": {
+      "src": "sirenes-queue_ancestral.webp",
+      "x": 0.10449,
+      "y": 0.74902,
+      "w": 0.13672,
+      "h": 0.12402
+    },
+    "adult": {
+      "src": "sirenes-queue_adult.webp",
+      "x": 0.12402,
+      "y": 0.7168,
+      "w": 0.11523,
+      "h": 0.11816
+    },
+    "young": {
+      "src": "sirenes-queue_young.webp",
+      "x": 0.12109,
+      "y": 0.72949,
+      "w": 0.13281,
+      "h": 0.12891
+    }
+  }
+}
