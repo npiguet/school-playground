@@ -16,7 +16,13 @@
       { "speaker": "dragon", "when": { "stage": ["young"] }, "text": "Bonjour, {hero}. J'ai des fourmis dans les pattes : on part à l'aventure ?" },
       { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "{hero}. J'ai survolé la mer ce matin : elle scintillait jusqu'à l'horizon." },
       { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "Bonjour, {hero}. Les Muses m'ont demandé de tes nouvelles." },
-      { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "{hero}. J'ai plané jusqu'à Delphes. La Pythie te salue." }
+      { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "{hero}. J'ai plané jusqu'à Delphes. La Pythie te salue." },
+      { "speaker": "dragon", "when": { "stage": ["illustre"] }, "text": "{hero} ! Les bergers de la vallée chantent déjà nos exploits. J'ai fait semblant de ne pas écouter." },
+      { "speaker": "dragon", "when": { "stage": ["illustre"] }, "text": "Bonjour, {hero}. Mes écailles ont durci comme une armure : même Éris les a vues briller." },
+      { "speaker": "dragon", "when": { "stage": ["illustre"] }, "text": "{hero} ! Les Muses ont gravé nos victoires sur une colonne. Il en faudra bientôt une deuxième." },
+      { "speaker": "dragon", "when": { "stage": ["ancestral"] }, "text": "Bonjour, {hero}. J'ai relu les vieux parchemins cette nuit. Ils parlent souvent de toi." },
+      { "speaker": "dragon", "when": { "stage": ["ancestral"] }, "text": "{hero}. Le feu est doux ce matin. Assieds-toi un moment, puis nous irons où tu voudras." },
+      { "speaker": "dragon", "when": { "stage": ["ancestral"] }, "text": "Bonjour, {hero}. J'ai vu passer bien des saisons au camp. Tes visites restent mes préférées." }
     ],
     "camp.weekly": [
       { "speaker": "dragon", "text": "Ton objectif de la semaine est atteint. Le camp te remercie !" },
@@ -51,14 +57,14 @@
   },
   "tour": [
     { "speaker": "dragon", "target": null, "when": { "stage": ["egg"] }, "text": "Toc, toc ! C'est moi, l'œuf que les Muses t'ont confié. Je vais te montrer le camp." },
-    { "speaker": "dragon", "target": null, "when": { "stage": ["hatchling", "young", "adult"] }, "text": "On refait le tour du camp ? Suis-moi." },
+    { "speaker": "dragon", "target": null, "when": { "stage": ["hatchling", "young", "adult", "illustre", "ancestral"] }, "text": "On refait le tour du camp ? Suis-moi." },
     { "speaker": "dragon", "target": null, "text": "Les Muses comptent sur toi : Éris, la déesse de la Discorde, sème des dés-accords dans les textes du camp. Un -s oublié, un a pour un à…" },
     { "speaker": "dragon", "target": null, "text": "Chacun de ses lieutenants cache une ruse. Relis une chose à la fois, et ses ruses tombent une à une." },
     { "speaker": "dragon", "target": "parchemins", "text": "La tente des parchemins : tes textes t'y attendent, et on peut en apporter de nouveaux." },
     { "speaker": "dragon", "target": "oracle", "text": "Le chemin de Delphes : la Pythie y ouvre les rouleaux de la semaine et annonce tes prochaines dictées." },
     { "speaker": "dragon", "target": "dossier", "text": "La tente de guerre : le dossier d'Éris et le bestiaire de ses monstres." },
-    { "speaker": "dragon", "target": "dragon", "when": { "stage": ["egg"] }, "text": "Mon nid. J'éclorai quand la première ruse d'Éris sera neutralisée, et tu me donneras un nom." },
-    { "speaker": "dragon", "target": "dragon", "when": { "stage": ["hatchling", "young", "adult"] }, "text": "Mon nid. Viens m'y voir quand tu veux." },
+    { "speaker": "dragon", "target": "dragon", "when": { "stage": ["egg"] }, "text": "Mon nid. J'éclorai après tes premiers textes défendus, et tu me donneras un nom." },
+    { "speaker": "dragon", "target": "dragon", "when": { "stage": ["hatchling", "young", "adult", "illustre", "ancestral"] }, "text": "Mon nid. Viens m'y voir quand tu veux." },
     { "speaker": "dragon", "target": "cabin", "text": "Ta cabane : tes trésors, ton journal, et la lyre pour régler la voix et les sons." },
     { "speaker": "dragon", "target": "boss", "text": "Le sentier de la bataille. Quand Éris se montrera, c'est là qu'on l'affrontera." },
     { "speaker": "dragon", "target": null, "text": "À toi de choisir où aller : touche un lieu du camp !" }

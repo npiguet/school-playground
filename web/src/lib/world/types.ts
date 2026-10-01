@@ -8,7 +8,9 @@ import type { Profile } from '../types';
 export const LIEUTENANT_ORDER = ['hydre', 'echo', 'chimere', 'protee', 'sirenes', 'lethe'] as const;
 export type LieutenantKey = (typeof LIEUTENANT_ORDER)[number];
 
-export type DragonStage = 'egg' | 'hatchling' | 'young' | 'adult';
+/** Spec 2026-09-29 dragon growth §1: the six stages, in order (server/app/world/dragon.py STAGE_ORDER). */
+export const DRAGON_STAGES = ['egg', 'hatchling', 'young', 'adult', 'illustre', 'ancestral'] as const;
+export type DragonStage = (typeof DRAGON_STAGES)[number];
 export type Tint = 'bronze' | 'ecume' | 'olivier' | 'braise' | 'jade' | 'argent';
 export type QuestKind = 'board' | 'oracle' | 'boss';
 export type QuestStatus = 'active' | 'done' | 'shelved' | 'expired';

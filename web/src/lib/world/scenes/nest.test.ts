@@ -3,7 +3,7 @@ import { validateScene } from '../../scene/validate';
 import { LINES } from '../../dialogue/content';
 import { frenchSpacing } from '../../text/french';
 import { variantsOf } from '../../../testing/dialogue';
-import type { CampResponse, DragonOut } from '../types';
+import { DRAGON_STAGES, type CampResponse, type DragonOut } from '../types';
 import { NEST_HOTSPOTS, NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from './nest';
 
 const egg = { name: null, tint: 'bronze', stage: 'egg', neutralised: 0, available: 6, next_stage_at: 1, unlocked_tints: ['bronze'] } as DragonOut;
@@ -19,9 +19,9 @@ describe("dragon's nest (UI3 Ruling B5)", () => {
 
   it('seats the dragon in the straw bed, bigger as it grows', () => {
     expect(nestDragonLayer('egg')).toMatchObject({ x: 50, y: 62, depth: 1 });
-    const widths = (['egg', 'hatchling', 'young', 'adult'] as const).map((s) => nestDragonLayer(s).scale);
-    expect(widths).toEqual([...widths].sort((a, b) => a - b));
-    expect(widths[3]).toBeLessThanOrEqual(34);
+    const widths = DRAGON_STAGES.map((s) => nestDragonLayer(s).scale);
+    expect(widths.every((w, i) => i === 0 || w > widths[i - 1]), 'bigger at every stage').toBe(true);
+    expect(widths[5]).toBeLessThanOrEqual(34);
   });
 
   it('asks for a name once it has hatched, and says who it is otherwise', () => {
@@ -43,7 +43,7 @@ describe("dragon's nest (UI3 Ruling B5)", () => {
     expect(nestGreeting({ ...egg, stage: 'hatchling' })[0]).toMatchObject({ key: 'nest.name' });
     expect(variantsOf('nest.name')).toContain(nestGreeting({ ...egg, stage: 'hatchling' })[0].text);
     expect(nestGreeting({ ...egg, stage: 'hatchling', name: 'Braise' })[0]).toMatchObject({ key: 'nest.enter', name: 'Braise' });
-    expect(careLine(egg)).toMatchObject({ speaker: 'dragon', text: "Je frémis dans la paille. J'éclorai quand une ruse d'Éris sera neutralisée." });
+    expect(careLine(egg)).toMatchObject({ speaker: 'dragon', text: 'Je frémis dans la paille. Encore quelques textes défendus, et je sors de ma coquille.' });
     expect(careLine({ ...egg, stage: 'hatchling' }).text).toBe('Ici, tu peux me donner un nom et choisir ma teinte.');
     expect(careLine({ ...egg, stage: 'young', name: 'Braise' }).text).toBe('Admire-moi\u202f! Tu peux changer ma teinte quand tu veux.');
     for (const d of [egg, { ...egg, stage: 'young' as const, name: 'Braise' }]) expect(careLine(d).text.length).toBeLessThanOrEqual(160);

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { FORBIDDEN, lieutenantName } from '../world/eris';
 import { SCENES } from '../world/scenes';
-import { LIEUTENANT_ORDER } from '../world/types';
+import { DRAGON_STAGES, LIEUTENANT_ORDER } from '../world/types';
 import { GENDERED, GUILT, banned, erisSelfMasculine } from '../../testing/copyRules';
 import { LINES, TOURS, parseDialogueFile } from './content';
 import { DIALOGUE_KEYS, PLACEHOLDERS, TOUR_IDS, type DialogueCtx, type DialogueKey, type LineDef } from './types';
@@ -18,7 +18,7 @@ const every: { where: string; line: LineDef }[] = [
 
 // The contexts each key is asked in (default: none): every one must have at least three lines to
 // pick from, so « no immediate repeat » always has somewhere to go.
-const STAGES = ['egg', 'hatchling', 'young', 'adult'].map((stage) => ({ stage }) as DialogueCtx);
+const STAGES = DRAGON_STAGES.map((stage) => ({ stage }) as DialogueCtx);
 const DOMAINS: Partial<Record<DialogueKey, DialogueCtx[]>> = {
   // UI5 playability #13: the camp's greeting grows with the dragon (without camp data: the generic).
   'camp.enter': [{}, ...STAGES],
@@ -56,10 +56,16 @@ describe('the dialogue content (spec §8)', () => {
       const scene = SCENES.find((s) => s.id === id)!;
       const ringable = [...scene.hotspots.map((h) => h.id), ...Object.keys(scene.tourAreas ?? {})];
       for (const step of TOURS[id]) if (step.target) expect(ringable, `${id}: ${step.target}`).toContain(step.target);
-      for (const stage of ['egg', 'hatchling', 'young', 'adult'] as const) {
+      for (const stage of DRAGON_STAGES) {
         expect(TOURS[id].filter((s) => !s.when || s.when.stage?.includes(stage)).length, `${id} ${stage}`).toBeGreaterThanOrEqual(2);
       }
     }
+  });
+
+  it('names only the six dragon stages in a when.stage (a typo would never speak, silently)', () => {
+    const file = (stage: string[]) => ({ lines: { 'nest.enter': [{ speaker: 'dragon', when: { stage }, text: 'Un mot.' }] } });
+    expect(() => parseDialogueFile('nest.json', file(['illustré']))).toThrow(/when\.stage/);
+    expect(() => parseDialogueFile('nest.json', file(['illustre', 'ancestral']))).not.toThrow();
   });
 
   it('uses only the placeholders each key declares', () => {

@@ -46,7 +46,7 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(page).toHaveURL(/\/dragon\?panel=soin$/);
   const care = page.getByTestId('overlay-care');
   await expect(care.getByRole('heading', { name: 'Ton dragon', level: 2 })).toBeVisible();
-  await expect(care.getByTestId('overlay-voice')).toContainText("Je frémis dans la paille. J'éclorai quand une ruse d'Éris sera neutralisée.");
+  await expect(care.getByTestId('overlay-voice')).toContainText('Je frémis dans la paille. Encore quelques textes défendus, et je sors de ma coquille.');
   await expect(care).toContainText('Tu lui donneras un nom quand il éclora.');
   await expect(care.getByRole('heading', { name: 'Son nom' })).toHaveCount(0);
   await expect(care.getByTestId('dragon-tint-bronze')).toBeVisible();
@@ -136,4 +136,39 @@ test('nest: ?debug outlines the dragon; no red; rotate screen', async ({ page, r
   expect(await redScan(page)).toEqual([]);
   await page.setViewportSize({ width: 820, height: 1180 });
   await expect(page.getByTestId('rotate-screen')).toBeVisible();
+});
+
+// Spec 2026-09-29 dragon growth §3: each of the six stages in the straw bed, with its name and what it
+// is up to; the biggest stays clear of its growth sheet and below the HUD. The stage is set by
+// intercepting this hero's /camp (its XP is pinned by the server tests and world.spec).
+const STAGES = [
+  ['egg', 'Œuf', 'Il frémit dans sa coquille.'],
+  ['hatchling', 'Dragonnet', 'Il est curieux.'],
+  ['young', 'Jeune dragon', "Il s'entraîne à voler."],
+  ['adult', 'Dragon adulte', 'Il monte la garde.'],
+  ['illustre', 'Dragon illustre', 'Il veille sur le camp et raconte ses exploits.'],
+  ['ancestral', 'Dragon ancestral', 'Il lit les vieux parchemins et veille sur toi.'],
+] as const;
+
+test('the nest shows each of the six stages, clear of its growth sheet and of the HUD', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let stage: string = 'egg';
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage, name: stage === 'egg' ? null : 'Braise' };
+    await route.fulfill({ response: res, json: camp });
+  });
+  for (const [key, label, activity] of STAGES) {
+    stage = key;
+    await page.goto(`/#/p/${id}/dragon?debug`);
+    await page.reload();
+    await expectScene(page, 'nest');
+    await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('src', `/art/dragon/dragon_${key}_cut.webp`);
+    await expect(page.getByTestId('dragon-stage')).toHaveText(label);
+    await expect(page.getByTestId('nest-growth')).toContainText(activity);
+    const b = await measureBoxes(page, { growth: '[data-testid="nest-growth"]', layer: '[data-testid="nest-dragon-layer"] img', hud: 'header.hud' });
+    expect(b.growth!.x + b.growth!.width, `${key}: the growth sheet left of the dragon`).toBeLessThanOrEqual(b.layer!.x + 2);
+    expect(b.layer!.y, `${key}: the dragon's picture below the HUD`).toBeGreaterThanOrEqual(b.hud!.y + b.hud!.height - 2);
+  }
 });

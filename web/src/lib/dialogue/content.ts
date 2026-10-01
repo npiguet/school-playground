@@ -8,6 +8,7 @@ import war from '@content/dialogue/war.json';
 import nest from '@content/dialogue/nest.json';
 import cabin from '@content/dialogue/cabin.json';
 import battle from '@content/dialogue/battle.json';
+import { DRAGON_STAGES } from '../world/types';
 import { DIALOGUE_KEYS, TOUR_IDS, type DialogueFile, type DialogueKey, type LineDef, type TourId, type TourStepDef } from './types';
 
 const SPEAKERS = new Set(['dragon', 'pythia', 'owl', 'eris']);
@@ -22,6 +23,9 @@ function checkLine(where: string, x: unknown, tour: boolean): LineDef | TourStep
     const w = o.when as Record<string, unknown>;
     for (const [k, v] of Object.entries(w)) {
       if (!WHEN_KEYS.has(k) || !Array.isArray(v) || v.length === 0) throw new Error(`${where}: bad when.${k}`);
+      if (k === 'stage' && (v as unknown[]).some((s) => !(DRAGON_STAGES as readonly unknown[]).includes(s))) {
+        throw new Error(`${where}: bad when.stage ${JSON.stringify(v)}`);
+      }
     }
   }
   if (tour && !(o.target === null || typeof o.target === 'string')) throw new Error(`${where}: bad target`);

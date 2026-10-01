@@ -422,8 +422,8 @@ even with "the far wing as solid and richly painted as the near one" and `(trans
 parts:-3)`: bad for the cut-out and for accessories. img2img at 0.7 kept the young's gangly
 proportions; 0.78-0.85 is the band where the new stage matures but keeps the pose.
 
-Exports (staged): `assets/art/export/dragon/dragon_{adult,illustre,ancestral}_cut.webp` (1024 px,
-q82, 116-136 KB). Contact sheet of the six stages on dark, mid and parchment:
+Exports: `web/public/art/dragon/dragon_{adult,illustre,ancestral}_cut.webp` (moved there when
+sub-project 3 wired them; 1024 px, q82, 116-136 KB). Contact sheet of the six stages on dark, mid and parchment:
 `docs/art/progression-stages.png` (`python tools/art/stages_sheet.py`). The old adult (seed 204,
 head-on) stays in git history.
 

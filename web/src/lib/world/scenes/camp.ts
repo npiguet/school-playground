@@ -136,7 +136,7 @@ export const CAMP_SCENE: SceneDef = {
   preload: [ART.scenes.libraryTent, ART.scenes.delphi, ART.scenes.warTent, ART.scenes.nest, ART.scenes.cabin, ART.scenes.erisLair],
 };
 
-const WIDTH: Record<DragonStage, number> = { egg: 6, hatchling: 7, young: 8, adult: 9 };
+const WIDTH: Record<DragonStage, number> = { egg: 6, hatchling: 7, young: 8, adult: 9, illustre: 9.5, ancestral: 10 };
 
 /** The dragon's cut-out seated in the painted nest (carry rec. 7, immersion Deferred #23:
  *  docs/art/scenes.md ≈ (17, 50), feet on the straw at y 55). Depth 1 keeps it inside its place's

@@ -40,7 +40,8 @@ export const NEST_SCENE: SceneDef = {
   preload: [ART.scenes.hubCamp],
 };
 
-const WIDTH: Record<DragonStage, number> = { egg: 10, hatchling: 16, young: 21, adult: 26 };
+// R11: the nest's dragon spot is x 34-68; the square picture at 28 % keeps its top below the HUD.
+const WIDTH: Record<DragonStage, number> = { egg: 10, hatchling: 16, young: 21, adult: 26, illustre: 27, ancestral: 28 };
 
 /** The dragon's cut-out in the straw bed (docs/art/scenes.md: feet at y 62, centred at x 50). */
 export function nestDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 'src' | 'alt'> {
@@ -63,7 +64,7 @@ export function nestGreeting(d: DragonOut): DialogueLine[] {
 /** What the dragon says from its care overlay's voice plate (Ruling B5, immersion #23), in the
  *  first person under its own plate (UI3b playability #15). */
 export function careLine(d: DragonOut): DialogueLine {
-  if (d.stage === 'egg') return dragonSays(d, "Je frémis dans la paille. J'éclorai quand une ruse d'Éris sera neutralisée.");
+  if (d.stage === 'egg') return dragonSays(d, "Je frémis dans la paille. Encore quelques textes défendus, et je sors de ma coquille.");
   // UI5 playability #12: the nest's greeting has already asked (`nest.name`); here is where she names it.
   if (!d.name) return dragonSays(d, 'Ici, tu peux me donner un nom et choisir ma teinte.');
   return dragonSays(d, 'Admire-moi\u202f! Tu peux changer ma teinte quand tu veux.');

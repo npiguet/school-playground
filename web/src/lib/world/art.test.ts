@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import type { WorldCatalog } from './types';
+import { DRAGON_STAGES, type WorldCatalog } from './types';
 import {
   ADD_ICONS,
   ART,
@@ -34,6 +34,11 @@ describe('art map', () => {
 
   it('total non-scene art payload stays under 2.5 MB', () => {
     expect(nonScene().reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThan(2.5 * 1024 * 1024);
+  });
+
+  it('paints the dragon at each of its six stages (spec 2026-09-29 dragon growth §3)', () => {
+    expect(Object.keys(ART.dragon)).toEqual([...DRAGON_STAGES]);
+    for (const s of DRAGON_STAGES) expect(ART.dragon[s]).toBe(`/art/dragon/dragon_${s}_cut.webp`);
   });
 
   it('artFor resolves and throws on unknown keys', () => {

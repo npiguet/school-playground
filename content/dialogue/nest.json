@@ -4,7 +4,7 @@
       { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "Toc, toc… Chaque piège d'Éris déjoué me fait frémir dans ma coquille." },
       { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "Il fait chaud dans ce nid. Encore un peu, et je sors !" },
       { "speaker": "dragon", "when": { "stage": ["egg"] }, "text": "Tu entends ? C'est moi qui tapote la coquille." },
-      { "speaker": "dragon", "when": { "stage": ["hatchling"] }, "text": "Ah, c'est toi ! Chaque ruse d'Éris neutralisée me fait grandir." },
+      { "speaker": "dragon", "when": { "stage": ["hatchling"] }, "text": "Ah, c'est toi ! Chaque texte bien défendu me fait grandir." },
       { "speaker": "dragon", "when": { "stage": ["hatchling"] }, "text": "Regarde mes écailles : elles brillent un peu plus chaque jour." },
       { "speaker": "dragon", "when": { "stage": ["hatchling"] }, "text": "J'ai essayé de cracher du feu. Juste de la fumée, pour l'instant." },
       { "speaker": "dragon", "when": { "stage": ["young"] }, "text": "Je bats des ailes ! Bientôt, je volerai au-dessus du camp." },
@@ -12,7 +12,13 @@
       { "speaker": "dragon", "when": { "stage": ["young"] }, "text": "Mes ailes me portent déjà jusqu'au feu du camp." },
       { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "Je veille sur le camp. Éris n'a qu'à bien se tenir." },
       { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "Du haut du nid, je vois tout le camp. Rien ne m'échappe." },
-      { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "Les lieutenants d'Éris évitent mon ombre, maintenant." }
+      { "speaker": "dragon", "when": { "stage": ["adult"] }, "text": "Les lieutenants d'Éris évitent mon ombre, maintenant." },
+      { "speaker": "dragon", "when": { "stage": ["illustre"] }, "text": "Tu as vu mes écailles ? Dures comme du bronze. Les lieutenants d'Éris s'en souviennent." },
+      { "speaker": "dragon", "when": { "stage": ["illustre"] }, "text": "Le nid devient petit pour moi. Je le garde quand même : c'est ici que tout a commencé." },
+      { "speaker": "dragon", "when": { "stage": ["illustre"] }, "text": "On raconte nos exploits jusqu'à Delphes. La Pythie dit que je rougis. C'est faux." },
+      { "speaker": "dragon", "when": { "stage": ["ancestral"] }, "text": "Assieds-toi près de moi. J'ai déroulé un vieux parchemin : il raconte le premier piège d'Éris." },
+      { "speaker": "dragon", "when": { "stage": ["ancestral"] }, "text": "Je lis lentement, maintenant. Chaque mot compte, tu le sais aussi bien que moi." },
+      { "speaker": "dragon", "when": { "stage": ["ancestral"] }, "text": "Le camp a bien changé depuis mon œuf. Toi et moi, nous avons grandi ensemble." }
     ],
     "nest.name": [
       { "speaker": "dragon", "text": "Alors, tu m'as trouvé un nom ?" },
@@ -22,7 +28,7 @@
   },
   "tour": [
     { "speaker": "dragon", "target": "dragon", "when": { "stage": ["egg"] }, "text": "Mon nid. Quand j'aurai éclos, tu me donneras un nom et tu choisiras ma teinte." },
-    { "speaker": "dragon", "target": "dragon", "when": { "stage": ["hatchling", "young", "adult"] }, "text": "Mon nid. Ici, tu choisis ma teinte, et mon nom si je n'en ai pas encore." },
-    { "speaker": "dragon", "target": null, "text": "Chaque ruse d'Éris neutralisée me fait grandir : œuf, petit dragon, jeune dragon, puis gardien du camp." }
+    { "speaker": "dragon", "target": "dragon", "when": { "stage": ["hatchling", "young", "adult", "illustre", "ancestral"] }, "text": "Mon nid. Ici, tu choisis ma teinte, et mon nom si je n'en ai pas encore." },
+    { "speaker": "dragon", "target": null, "text": "Chaque texte bien défendu me fait grandir : œuf, dragonnet, jeune dragon, dragon adulte, puis illustre, et un jour ancestral." }
   ]
 }

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { DRAGON_STAGES } from './types';
 import { LOCKED_EGG_FILTER, TINT_FILTERS, TINT_SWATCH, dragonCaption, eggFilter, stageActivity, stageLabel, stageLine, validName } from './dragon';
 
 describe('dragon helpers', () => {
@@ -9,6 +10,8 @@ describe('dragon helpers', () => {
   it('labels and lines', () => {
     expect(stageLabel('egg')).toBe('Œuf');
     expect(stageLabel('adult')).toBe('Dragon adulte');
+    expect(DRAGON_STAGES.map(stageLabel)).toEqual(['Œuf', 'Dragonnet', 'Jeune dragon', 'Dragon adulte', 'Dragon illustre', 'Dragon ancestral']);
+    expect(dragonCaption({ name: null, stage: 'ancestral' })).toBe('Dragon ancestral');
     expect(dragonCaption({ name: null, stage: 'egg' })).toBe('Un œuf de dragon');
     expect(dragonCaption({ name: null, stage: 'young' })).toBe('Jeune dragon');
     expect(dragonCaption({ name: 'Braise', stage: 'young' })).toBe('Braise');
@@ -20,7 +23,7 @@ describe('dragon helpers', () => {
     expect(stageLine('young', 'Braise', 1)).toBe("Je bats des ailes\u202f! Encore 1 ruse d'Éris à neutraliser.");
     expect(stageLine('young', 'Braise', 0)).toBe("Je bats des ailes\u202f! Toutes les ruses d'Éris sont neutralisées, pour l'instant.");
     expect(stageLine('adult', 'Braise', null)).toBe("Je veille sur le camp. Éris n'a qu'à bien se tenir.");
-    for (const st of ['egg', 'hatchling', 'young', 'adult'] as const) {
+    for (const st of DRAGON_STAGES) {
       expect(stageLine(st, 'Braise', 2)).not.toMatch(/Braise|Ton dragon|technique/);
     }
   });
@@ -29,6 +32,8 @@ describe('dragon helpers', () => {
     expect(stageActivity('hatchling')).toBe('Il est curieux.');
     expect(stageActivity('young')).toBe("Il s'entraîne à voler.");
     expect(stageActivity('adult')).toBe('Il monte la garde.');
+    expect(stageActivity('illustre')).toBe('Il veille sur le camp et raconte ses exploits.');
+    expect(stageActivity('ancestral')).toBe('Il lit les vieux parchemins et veille sur toi.');
   });
   it('tints a won egg and greys a locked one (fix round 1: on the egg picture only)', () => {
     expect(eggFilter('ecume', true)).toBe(TINT_FILTERS.ecume);

@@ -358,6 +358,8 @@ async function facesSection(w: Walk) {
     ['hatchling', 'chimere', 'c25-faces-hatchling-chimere'],
     ['young', 'echo', 'c26-faces-young-echo'],
     ['adult', 'eris', 'c27-faces-adult-eris'],
+    ['illustre', 'hydre', 'c28-faces-illustre-hydre'],
+    ['ancestral', 'lethe', 'c29-faces-ancestral-lethe'],
   ] as const) {
     await page.route('**/api/profiles/*/camp', async (route) => {
       const res = await route.fetch();

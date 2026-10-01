@@ -92,7 +92,10 @@ export const ART = {
     egg: '/art/dragon/dragon_egg_cut.webp',
     hatchling: '/art/dragon/dragon_hatchling_cut.webp',
     young: '/art/dragon/dragon_young_cut.webp',
+    // Sub-project 3: the adult redrawn in the young dragon's three-quarter pose, and the two new stages.
     adult: '/art/dragon/dragon_adult_cut.webp',
+    illustre: '/art/dragon/dragon_illustre_cut.webp',
+    ancestral: '/art/dragon/dragon_ancestral_cut.webp',
   },
   lieutenants: {
     hydre: '/art/lieutenants/hydre_cut.webp',

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateScene } from '../../scene/validate';
-import type { CampResponse, LieutenantState, QuestOut, WorldCatalog } from '../types';
+import { DRAGON_STAGES, type CampResponse, type LieutenantState, type QuestOut, type WorldCatalog } from '../types';
 import { nextStep, HUB_PLACE } from '../nextStep';
 import { prophecyWhen } from '../prophecy';
 import { variantsOf } from '../../../testing/dialogue';
@@ -137,7 +137,8 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
 
   it('seats the dragon in the painted nest, on a shallow plane; preloads every place it leads to', () => {
     expect(campDragonLayer('egg')).toMatchObject({ x: 17, y: 55, depth: 1 });
-    expect(campDragonLayer('adult').scale).toBeGreaterThan(campDragonLayer('egg').scale);
+    const widths = DRAGON_STAGES.map((s) => campDragonLayer(s).scale);
+    expect(widths.every((w, i) => i === 0 || w > widths[i - 1]), 'bigger at every stage').toBe(true);
     // Final review M14: none of the hub's destinations loads cold on its first tap.
     expect(CAMP_SCENE.preload).toEqual([
       '/art/scenes/library_tent.webp',

@@ -53,6 +53,8 @@ const STAGE_LABELS: Record<DragonStage, string> = {
   hatchling: 'Dragonnet',
   young: 'Jeune dragon',
   adult: 'Dragon adulte',
+  illustre: 'Dragon illustre',
+  ancestral: 'Dragon ancestral',
 };
 
 export function stageLabel(stage: DragonStage): string {
@@ -88,6 +90,8 @@ const STAGE_ACTIVITY: Record<DragonStage, string> = {
   hatchling: 'Il est curieux.',
   young: "Il s'entraîne à voler.",
   adult: 'Il monte la garde.',
+  illustre: 'Il veille sur le camp et raconte ses exploits.',
+  ancestral: 'Il lit les vieux parchemins et veille sur toi.',
 };
 
 export function stageActivity(stage: DragonStage): string {

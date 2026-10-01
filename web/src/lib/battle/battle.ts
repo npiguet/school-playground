@@ -41,9 +41,9 @@ export const BACKDROPS: Record<BackdropId, { src: string; feetY: number; particl
  *  mirrors a combatant that does not look toward the other side (Ruling C10). A frontal figure
  *  (Écho, Protée, les Sirènes, Léthé) is 'left': it is never mirrored on the right. The Hydra's heads
  *  and the Chimera's goat and snake heads look right (its lion faces us). The dragon's stages
- *  disagree: the hatchling and the young dragon look right, the adult left; the egg is symmetric. */
+ *  all look right (the adult was redrawn in the young dragon's pose in sub-project 3); the egg is symmetric. */
 export const FACES: Record<OpponentId, Facing> & { dragon: Record<DragonStage, Facing> } = {
-  dragon: { egg: 'right', hatchling: 'right', young: 'right', adult: 'left' },
+  dragon: { egg: 'right', hatchling: 'right', young: 'right', adult: 'right', illustre: 'right', ancestral: 'right' },
   eris: 'left',
   hydre: 'right',
   echo: 'left',

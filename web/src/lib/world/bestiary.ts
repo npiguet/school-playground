@@ -233,7 +233,7 @@ export const BESTIARY: BestiaryEntry[] = [
       'Le dragon de Colchide gardait la Toison d\'or\u202f; Médée l\'endormit pour que Jason puisse la prendre.',
     ],
     sources: 'Hésiode, Théogonie\u202f; Apollonios de Rhodes, Argonautiques, IV\u202f; Apollodore, Bibliothèque, II, 5.',
-    inGame: "Au camp, ton dragon est une créature inventée pour le jeu, cousine lointaine de Ladon\u202f: il grandit à chaque ruse d'Éris que tu neutralises.",
+    inGame: "Au camp, ton dragon est une créature inventée pour le jeu, cousine lointaine de Ladon\u202f: il grandit avec chaque texte que tu défends, de l'œuf au dragon ancestral.",
   },
 ];
 
