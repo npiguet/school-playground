@@ -7,7 +7,8 @@
   // codex still renders (every monster shown as still to discover rather than crashing).
   import { BESTIARY, type BestiaryEntry } from '../../../lib/world/bestiary';
   import { campFor } from '../../../lib/world/campStore.svelte';
-  import { agree, pronounFor } from '../../../lib/world/eris';
+  import { pronounFor } from '../../../lib/world/eris';
+  import { sealTitle } from '../../../lib/world/seals';
   import type { LieutenantKey } from '../../../lib/world/types';
   import { href } from '../../../lib/routes';
   import { go } from '../../../lib/scene/panelNav';
@@ -38,7 +39,7 @@
   function statusStamp(e: BestiaryEntry): string | null {
     if (e.kind !== 'monster') return null;
     const l = lieutenantState(e.key);
-    if (l?.neutralised) return agree('Neutralisé', e.key as LieutenantKey);
+    if (l && l.level > 0) return sealTitle(l.level);
     if (l && l.all_time.traps > 0) return 'En cours';
     return 'À découvrir';
   }

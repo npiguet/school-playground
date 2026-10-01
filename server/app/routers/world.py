@@ -113,10 +113,6 @@ def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row, rules: Rul
             "level": level, "level_reached_at": reached_at, "next": nxt,
             "all_time": {"traps": traps, "caught": caught, "missed": missed, "rate": (caught / traps) if traps else None},
             "last_day": row["last"], "bestiary_unlocked": bestiary_unlocked, "active_quest_id": active_quest["id"] if active_quest else None,
-            # Compat until Task 4: the war tent still reads these.
-            "neutralised": level >= 1, "neutralised_at": reached_at if level >= 1 else None,
-            "window": {"days": nxt["days"], "traps": nxt["chances"], "caught": 0, "rate": nxt["correct"], "complete": nxt["complete"]}
-                      if nxt else {"days": 0, "traps": 0, "caught": 0, "rate": None, "complete": False},
         })
     return out
 

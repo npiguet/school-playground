@@ -19,7 +19,7 @@
   import { VOICES, erisSays } from '../lib/world/voices';
   import { sayKey } from '../lib/dialogue/select';
   import { entry } from '../lib/world/bestiary';
-  import { ART } from '../lib/world/art';
+  import { ART, trophyIcon } from '../lib/world/art';
   import { campFor } from '../lib/world/campStore.svelte';
   import { shapeBox } from '../lib/scene/geometry';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
@@ -94,8 +94,13 @@
         style="left:{s.box.x}%;top:{s.box.y}%;width:{s.box.w}%;height:{s.box.h}%"
         aria-hidden="true"
       >
-        <img src={ART.lieutenants[s.key]} alt="" draggable="false" />
-        {#if l?.neutralised}<span class="war-seal"></span>{/if}
+        <img class="war-portrait" src={ART.lieutenants[s.key]} alt="" draggable="false" />
+        <!-- Spec 2026-09-29 lieutenant levels §5 (R13): the seal won, its trophy; a plain outline before the first. -->
+        {#if l?.available && l.level > 0}
+          <img class="war-seal" src={trophyIcon(s.key, l.level)} alt="" draggable="false" data-level={l.level} />
+        {:else if l?.available}
+          <span class="war-seal is-outline" data-level="0"></span>
+        {/if}
       </div>
     {/each}
     {#each WAR_SCENE.hotspots as def (def.id)}
@@ -135,27 +140,33 @@
     overflow: hidden;
     pointer-events: none;
   }
-  .war-sheet img {
+  .war-sheet .war-portrait {
     width: 100%;
     height: 100%;
     object-fit: cover;
     object-position: 50% 10%;
     mix-blend-mode: multiply;
   }
-  .war-sheet.asleep img {
+  .war-sheet.asleep .war-portrait {
     filter: grayscale(1);
     opacity: 0.45;
   }
-  /* A gold seal pressed on a foiled lieutenant's sheet. */
+  /* The seal won on this lieutenant: its trophy pinned to the sheet's corner (R13). */
   .war-seal {
     position: absolute;
-    top: 6%;
-    right: 8%;
-    width: 30%;
+    top: 4%;
+    right: 6%;
+    width: 32%;
     aspect-ratio: 1;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
+  }
+  /* Before the first seal: its place, a plain outline. */
+  .war-seal.is-outline {
+    width: 24%;
     border-radius: 50%;
-    border: 2px solid var(--bronze-dark);
-    background: radial-gradient(circle at 35% 30%, var(--gold-light), var(--gold) 70%);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    border: 2px dashed var(--bronze-dark);
+    opacity: 0.55;
+    filter: none;
   }
 </style>

@@ -107,13 +107,13 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     }
   });
 
-  it('carries the quest count on the Delphi plaque, the foiled tricks as gold seals on the war-tent plaque', () => {
+  it('carries the quest count on the Delphi plaque, the seals won on the war-tent plaque (spec 2026-09-29 lieutenant levels R14)', () => {
     const quests = [{ status: 'active' }, { status: 'active' }, { status: 'done' }] as QuestOut[];
     expect(state('oracle', camp({ quests })).badge).toBe(2);
     expect(state('oracle', camp()).badge).toBeNull();
     // UI3b playability #17: the coin means « something waits »; what is won is a seal.
-    const lieutenants = [{ key: 'hydre', neutralised: true }, { key: 'echo', neutralised: false }] as LieutenantState[];
-    expect(state('dossier', camp({ lieutenants }))).toMatchObject({ badge: null, seals: 1 });
+    const lieutenants = ['hydre', 'echo', 'chimere', 'protee', 'sirenes', 'lethe'].map((key, i) => ({ key, level: [2, 0, 1, 0, 0, 0][i] })) as LieutenantState[];
+    expect(state('dossier', camp({ lieutenants }))).toMatchObject({ badge: null, seals: 3 });
     expect(state('dossier', camp())).toMatchObject({ badge: null, seals: 0 });
   });
 

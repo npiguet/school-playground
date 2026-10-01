@@ -118,7 +118,7 @@ test('a « Revoir » link outside the victory drops its panel', async ({ page, r
 });
 
 // Task 2 fix round 1 #3: a free text's opponent comes from this visit's own /camp answer, never from
-// the snapshot the camp left in memory (a lieutenant may have woken or been neutralised since). The
+// the snapshot the camp left in memory (a lieutenant may have woken or won a seal since). The
 // camp's snapshot here offers Protée only; the fresh answer, held back, offers Léthé only.
 test('a free text waits for the fresh camp before choosing its opponent', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Mus5-${testInfo.project.name}`));
@@ -134,7 +134,7 @@ test('a free text waits for the fresh camp before choosing its opponent', async 
     const pick = only;
     for (const l of json.lieutenants) {
       l.available = l.key === pick;
-      l.neutralised = false;
+      l.level = 0;
     }
     if (pick === 'lethe') {
       held = true;

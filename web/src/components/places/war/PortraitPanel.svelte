@@ -1,23 +1,21 @@
 <script lang="ts">
   // A lieutenant's portrait sheet (UI3 Ruling B4), handed over by the war tent's scroll overlay
-  // (WarTent.svelte): the mastery gauges (Decision 3's 3-day / 10-trap / 80% window) and the actions
-  // that launch a quest or a focused Grimoire corrompu (Decision 21). Éris's line for the current
-  // band is the overlay's voice plate (Ruling B10), not part of this panel. A lieutenant asleep at
-  // the hero's class (final review I1) shows its grey portrait only: no gauges, no quest to launch
-  // (UI3b playability #12: once neutralised, the gauges go too - Éris's line and the relic are the
-  // page; before, they count toward the goal, capped, under the rule said once as a sentence)
-  // (the dragon says why from the voice plate, WarTent.svelte; the server refuses it too). Degrades
+  // (WarTent.svelte): the seal won and the three gauges toward the next one (spec 2026-09-29
+  // lieutenant levels §5, R12-R13), capped at their targets, with what still stands before it in
+  // one sentence; and the actions that launch a quest or a focused Grimoire corrompu (Decision 21).
+  // Éris's line for the current band is the overlay's voice plate (Ruling B10), not part of this
+  // panel. A lieutenant asleep at the hero's class (final review I1) shows its grey portrait only:
+  // no seal, no gauges, no quest to launch (the dragon says why from the voice plate,
+  // WarTent.svelte; the server refuses it too). After the fifth seal the gauges go. Degrades
   // gracefully when the world API isn't reachable: the technique/state sections just stay empty
   // rather than crash.
-  import Medallion from '../../juice/Medallion.svelte';
-  import { ART, RELIC_OF } from '../../../lib/world/art';
+  import { ART, trophyIcon } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
   import { campFor, campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../../../lib/world/types';
-  import { agree, neutraliseRule } from '../../../lib/world/eris';
+  import { sealGauges, sealProgressLine, sealTitle } from '../../../lib/world/seals';
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
   import { lengthOf } from '../../../lib/library/shelf';
-  import { longDate, rateText } from '../../../lib/text/french';
   import { useToast } from '../../../lib/ui/toast.svelte';
   import { ApiError } from '../../../lib/api';
   import type { Profile } from '../../../lib/types';
@@ -34,24 +32,16 @@
   const camp = $derived(campFor(profile.id));
   const lieutenantState = $derived(camp?.lieutenants.find((l) => l.key === lieutenantKey) ?? null);
   const asleep = $derived(lieutenantState !== null && !lieutenantState.available);
-  // Final review M22: « Neutralisé » alone when the server has no date for it.
-  const neutralisedLine = $derived.by(() => {
-    const word = agree('Neutralisé', lieutenantKey as LieutenantKey);
-    const at = lieutenantState?.neutralised_at;
-    return at ? `${word} le ${longDate(at.slice(0, 10))}` : word;
-  });
   const catalogEntry = $derived(campStore.catalog?.lieutenants.find((l) => l.key === lieutenantKey) ?? null);
   const name = $derived(
     lieutenantState?.name ?? catalogEntry?.name ?? bestiaryEntry(lieutenantKey)?.name ?? lieutenantKey,
   );
   const art = $derived(isKnownKey ? ART.lieutenants[lieutenantKey as LieutenantKey] : ART.erisSmug);
-  const relicId = $derived(isKnownKey ? RELIC_OF[lieutenantKey as LieutenantKey] : '');
-  const relicName = $derived(campStore.catalog?.rewards[relicId]?.name ?? `Relique de ${name}`);
   const questXp = $derived(campStore.catalog?.quest_bonus.board ?? 60);
 
-  const days = $derived(lieutenantState?.window.days ?? 0);
-  const traps = $derived(lieutenantState?.window.traps ?? 0);
-  const rate = $derived(lieutenantState?.window.rate ?? null);
+  const level = $derived(lieutenantState?.level ?? 0);
+  const gauges = $derived(lieutenantState?.next ? sealGauges(lieutenantState.next) : null);
+  const nextLine = $derived(lieutenantState && isKnownKey ? sealProgressLine(lieutenantKey as LieutenantKey, lieutenantState) : '');
 
   let createdQuest = $state<QuestOut | null>(null);
   let creating = $state(false);
@@ -104,31 +94,34 @@
     {#if lieutenantState && asleep}
       <!-- Asleep at this class: nothing to measure or launch yet (I1). -->
     {:else if lieutenantState}
-      {#if lieutenantState.neutralised}
-        <div class="kit-sheet neutralised-banner" data-testid="lieutenant-neutralised">
-          <Medallion rewardId={relicId} size={64} label={relicName} />
-          <!-- Final review M22: no « le … » without a date. -->
-          <p>{neutralisedLine}</p>
-        </div>
-      {/if}
+      <div class="kit-sheet seal-plate" data-testid="lieutenant-seal" data-level={level}>
+        {#if level > 0}
+          <img class="seal-art" src={trophyIcon(lieutenantKey, level)} alt="" />
+        {:else}
+          <span class="seal-outline" aria-hidden="true"></span>
+        {/if}
+        <p>{level > 0 ? sealTitle(level) : 'Pas encore de sceau'}</p>
+      </div>
 
-      {#if !lieutenantState.neutralised}
+      {#if gauges}
         <div class="gauges" data-testid="lieutenant-gauges">
-          <p class="rule">{neutraliseRule(lieutenantKey as LieutenantKey)}</p>
-          <div class="kit-gauge" data-testid="lieutenant-gauge-days" data-state={days >= 3 ? 'ok' : 'short'} style:--fill="{Math.min(100, (days / 3) * 100)}%">
-            <span class="kit-gauge-label">Jours de garde{'\u202f: '}{Math.min(days, 3)} sur 3</span>
+          <div class="kit-gauge" data-testid="lieutenant-gauge-days" data-state={gauges.days.ok ? 'ok' : 'short'} style:--fill="{gauges.days.fill}%">
+            <span class="kit-gauge-label">{gauges.days.label}</span>
             <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
           </div>
-          <div class="kit-gauge" data-testid="lieutenant-gauge-traps" data-state={traps >= 10 ? 'ok' : 'short'} style:--fill="{Math.min(100, (traps / 10) * 100)}%">
-            <span class="kit-gauge-label">Pièges croisés{'\u202f: '}{Math.min(traps, 10)} sur 10</span>
+          <div class="kit-gauge" data-testid="lieutenant-gauge-traps" data-state={gauges.chances.ok ? 'ok' : 'short'} style:--fill="{gauges.chances.fill}%">
+            <span class="kit-gauge-label">{gauges.chances.label}</span>
             <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
           </div>
-          <div class="kit-gauge" data-testid="lieutenant-rate" data-state={(rate ?? 0) >= 0.8 ? 'ok' : 'short'} style:--fill="{Math.min(100, Math.round((rate ?? 0) * 100))}%">
-            <span class="kit-gauge-label">Pièges déjoués{'\u202f: '}{rateText(rate)}, il en faut {rateText(0.8)}</span>
-            <span class="kit-gauge-track"><span class="kit-gauge-fill"></span><span class="target-mark" style="left:80%" aria-hidden="true"></span></span>
+          <div class="kit-gauge" data-testid="lieutenant-rate" data-state={gauges.correct.ok ? 'ok' : 'short'} style:--fill="{gauges.correct.fill}%">
+            <span class="kit-gauge-label">{gauges.correct.label}</span>
+            <span class="kit-gauge-track"
+              ><span class="kit-gauge-fill"></span><span class="target-mark" style="left:{gauges.correct.mark}%" aria-hidden="true"></span></span
+            >
           </div>
         </div>
       {/if}
+      <p class="rule" data-testid="lieutenant-next">{nextLine}</p>
 
       {#if questError}
         <p class="kit-note" data-tone="eris" role="alert">{questError}</p>
@@ -220,15 +213,27 @@
     margin: 0;
     font-style: italic;
   }
-  .neutralised-banner {
+  .seal-plate {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 14px 16px;
+    padding: 12px 16px;
   }
-  .neutralised-banner p {
+  .seal-plate p {
     margin: 0;
     font-weight: 600;
+  }
+  .seal-art {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+  }
+  .seal-outline {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px dashed var(--bronze-dark);
+    opacity: 0.55;
   }
   .gauges {
     display: flex;

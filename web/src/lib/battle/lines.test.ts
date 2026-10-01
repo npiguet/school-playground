@@ -5,7 +5,7 @@ import { GENDERED, erisSelfMasculine } from '../../testing/copyRules';
 import { outcomeOf } from './hp';
 import * as L from './lines';
 
-const BANDS: Band[] = ['none', 'strong', 'contested', 'weak', 'neutralised'];
+const BANDS: Band[] = ['none', 'strong', 'contested', 'weak', 'bois', 'argent', 'orichalque'];
 
 // Every string reachable from lines.ts, functions called with representative arguments.
 function allLines(): string[] {

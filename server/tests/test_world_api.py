@@ -38,6 +38,7 @@ def test_camp_for_new_profile(client):
     assert c["boss"] == {"tier_available": None, "tiers_won": [], "active_quest_id": None, "fights": 10, "next": {"tier": 1, "level": 1, "missing": 2}}
     hydre = next(l for l in c["lieutenants"] if l["key"] == "hydre")
     assert (hydre["level"], hydre["level_reached_at"]) == (0, None)
+    assert not {"neutralised", "neutralised_at", "window"} & set(hydre)
     assert hydre["next"] == {"level": 1, "days": 0, "chances": 0, "correct": None, "complete": False,
                              "need": {"days": 3, "chances": 12, "correct": 0.85}}
 

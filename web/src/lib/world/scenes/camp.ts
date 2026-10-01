@@ -101,9 +101,9 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     shape: CAMP_SHAPES.dossier,
     labelPos: 'below',
     leader: true,
-    // UI3b playability #17: the neutralised lieutenants are gold seals on the plaque (as on their
-    // sheets in the tent), not the gold coin that means « something waits here ».
-    state: place('dossier', (camp) => ({ seals: camp.lieutenants.filter((l) => l.neutralised).length })),
+    // Spec 2026-09-29 lieutenant levels §5 (R14): the seals won across lieutenants, one gold seal and
+    // their number on the plaque, not the gold coin that means « something waits here ».
+    state: place('dossier', (camp) => ({ seals: camp.lieutenants.reduce((sum, l) => sum + l.level, 0) })),
   },
   // UI3b playability #8: the same dark plaque as every other place, pinned to the cabin's door and
   // hanging in front of it (the pale 12 px ink on the white wall was the hardest name to read).

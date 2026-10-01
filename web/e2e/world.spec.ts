@@ -253,7 +253,7 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('alt', 'Braise');
 
     await page.goto(`/#/p/${profileId}/dossier`);
-    await expect(page.getByTestId('dossier-line-hydre')).toContainText("L'Hydre est neutralisée");
+    await expect(page.getByTestId('dossier-line-hydre')).toContainText('Mon Hydre porte un sceau');
 
     await page.goto(`/#/p/${profileId}/bestiaire/hydre`);
     await expect(page.getByText('Iolaos')).toBeVisible();

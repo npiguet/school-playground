@@ -70,8 +70,9 @@ export interface HotspotState {
   isNew: boolean;
   /** A count of things to do here (a gold coin on the plaque's corner): active quests. */
   badge: number | null;
-  /** Things won here, as small gold seals after the name (UI3b playability #17: a count of what is
-   *  done is never the « something waits » coin): the war tent's neutralised lieutenants. */
+  /** Things won here, as one gold seal and their number after the name (UI3b playability #17: a count
+   *  of what is done is never the « something waits » coin): the war tent's seals won across
+   *  lieutenants (spec 2026-09-29 lieutenant levels, R14). */
   seals: number;
   /** Short second line under the place name (dragon name, reward, counts). */
   caption: string | null;

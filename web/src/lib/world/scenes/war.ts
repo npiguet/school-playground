@@ -3,7 +3,8 @@
 // bestiary codex on its lectern. A lieutenant still asleep at the hero's class is a locked place.
 import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
-import { agree, lieutenantName, sleepingCaption } from '../eris';
+import { lieutenantName, sleepingCaption } from '../eris';
+import { sealTitle } from '../seals';
 import { LIEUTENANT_ORDER, type LieutenantKey } from '../types';
 import { st, type HotspotDef, type HotspotState, type SceneContext, type SceneDef } from '../../scene/types';
 import { WAR_SHAPES, WAR_TOUR_AREAS } from './war.shapes';
@@ -19,7 +20,7 @@ function sheetState(key: LieutenantKey) {
     const l = camp?.lieutenants.find((x) => x.key === key);
     if (!l) return st();
     if (!l.available) return st({ locked: true, caption: sleepingCaption(key) });
-    if (l.neutralised) return st({ caption: agree('Neutralisé', key) });
+    if (l.level > 0) return st({ caption: sealTitle(l.level) });
     if (l.active_quest_id !== null) return st({ caption: 'Quête en cours' });
     return st();
   };

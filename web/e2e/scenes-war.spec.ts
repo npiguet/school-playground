@@ -32,7 +32,7 @@ test('the war tent: six sheets with their painted lieutenants, the file, the cod
   await expect(page.locator('[data-testid="scene-war"] .stage-plaque')).toHaveText('La tente de guerre');
   for (const k of SHEETS) {
     await expect(page.getByTestId(`war-${k}`)).toBeVisible();
-    await expect(page.getByTestId(`war-sheet-${k}`).locator('img')).toHaveAttribute('src', `/art/lieutenants/${k}_cut.webp`);
+    await expect(page.getByTestId(`war-sheet-${k}`).locator('img.war-portrait')).toHaveAttribute('src', `/art/lieutenants/${k}_cut.webp`);
   }
   await expect(page.getByTestId('war-hydre')).toHaveAccessibleName(/L'Hydre/);
   await expect(page.getByTestId('war-dossier')).toHaveAccessibleName(/Le dossier d'Éris/);
@@ -50,6 +50,8 @@ test('a sheet opens its lieutenant: Éris speaks, a quest, the seal and Back clo
   await expect(sheet.getByRole('heading', { name: "L'Hydre", level: 2 })).toBeVisible();
   await expect(sheet.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'eris');
   await expect(sheet.getByTestId('lieutenant-gauge-days')).toContainText('0 sur 3');
+  await expect(sheet.getByTestId('lieutenant-seal')).toContainText('Pas encore de sceau');
+  await expect(sheet.getByTestId('lieutenant-next')).toHaveText('Pas encore croisée.');
   await sheet.getByTestId('lieutenant-quest').click();
   await expect(sheet.getByRole('status')).toHaveText('Quête affichée au mur.');
   await expect(sheet.getByTestId('lieutenant-quest')).toContainText('Quête en cours');
@@ -285,47 +287,58 @@ test('codex → page → portrait: each seal steps back one panel and focus foll
   await expect(page.getByTestId('war-bestiary')).toBeFocused();
 });
 
-test('a foiled lieutenant: the gold seal on the sheet, the relic on the portrait, the stamp in the file and the codex', async ({ page, request }, testInfo) => {
+// Spec 2026-09-29 lieutenant levels §5: an intercepted /camp (the seals themselves are pinned by the
+// server tests): the Hydra at the bronze seal on its way to silver, Écho at the fifth.
+test('a sealed lieutenant: its trophy on the sheet and the portrait, the seal in the file and the codex, the next seal in words', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  // Fixture: L'Hydre neutralised on 20 September 2026 (an intercepted /camp; mechanics untouched).
-  await page.route('**/api/profiles/*/camp', async (route) => {
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
     const res = await route.fetch();
     const json = await res.json();
-    json.lieutenants = json.lieutenants.map((l: { key: string; all_time: object }) =>
+    json.lieutenants = json.lieutenants.map((l: { key: string }) =>
       l.key === 'hydre'
-        ? { ...l, neutralised: true, neutralised_at: '2026-09-20T10:00:00', bestiary_unlocked: true, all_time: { traps: 12, caught: 11, rate: 11 / 12 } }
-        : l,
+        ? { ...l, level: 2, level_reached_at: '2026-09-20T10:00:00+00:00', bestiary_unlocked: true,
+            all_time: { traps: 12, caught: 11, missed: 1, rate: 11 / 12 },
+            next: { level: 3, days: 2, chances: 20, correct: 0.9, complete: false, need: { days: 6, chances: 45, correct: 0.91 } } }
+        : l.key === 'echo'
+          ? { ...l, level: 5, level_reached_at: '2026-09-25T10:00:00+00:00', bestiary_unlocked: true, next: null }
+          : l,
     );
     await route.fulfill({ response: res, json });
   });
   await openTent(page, id);
-  await expect(page.getByTestId('war-hydre')).toContainText('Neutralisée');
+  await expect(page.getByTestId('war-hydre')).toContainText('Sceau de bronze');
   // UI3b playability #8: the names and captions inked on the sheets are read at arm's length.
   for (const sel of ['.hotspot-name', '.hotspot-caption']) {
     const px = await page.getByTestId('war-hydre').locator(sel).evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
     expect(px, sel).toBeGreaterThanOrEqual(14);
   }
-  await expect(page.getByTestId('war-sheet-hydre').locator('.war-seal')).toBeVisible();
-  await expect(page.getByTestId('war-sheet-echo').locator('.war-seal')).toHaveCount(0);
+  await expect(page.getByTestId('war-sheet-hydre').locator('img.war-seal')).toHaveAttribute('src', '/art/trophies/trophy-hydre-2.webp');
+  await expect(page.getByTestId('war-sheet-chimere').locator('.war-seal.is-outline')).toBeAttached();
   await tap(page.getByTestId('war-hydre'), testInfo);
   const sheet = page.getByTestId('overlay-portrait');
-  const banner = sheet.getByTestId('lieutenant-neutralised');
-  await expect(banner).toContainText(/Neutralisée le dimanche 20 septembre/);
-  await expect(banner.locator('[data-reward="ecaille_hydre"]')).toBeVisible();
-  await expect(sheet.getByTestId('overlay-voice')).toContainText('neutralisée');
-  // UI3b playability #12: once neutralised, Éris's line and the relic are the page: no gauges.
+  await expect(sheet.getByTestId('lieutenant-seal')).toContainText('Sceau de bronze');
+  await expect(sheet.getByTestId('lieutenant-seal').locator('img')).toHaveAttribute('src', '/art/trophies/trophy-hydre-2.webp');
+  await expect(sheet.getByTestId('overlay-voice')).toContainText('Mon Hydre porte un sceau');
+  await expect(sheet.getByTestId('lieutenant-gauge-days')).toContainText('Jours de garde\u202f: 2 sur 6');
+  await expect(sheet.getByTestId('lieutenant-gauge-traps')).toContainText('Pièges croisés\u202f: 20 sur 45');
+  await expect(sheet.getByTestId('lieutenant-rate')).toContainText('Pièges déjoués\u202f: 90\u202f%, il en faut 91\u202f%');
+  await expect(sheet.getByTestId('lieutenant-next')).toHaveText("Encore 4 jours de garde et 25 pièges avant le sceau d'argent.");
+  await closeOverlay(page);
+  await tap(page.getByTestId('war-echo'), testInfo);
+  await expect(sheet.getByTestId('lieutenant-next')).toHaveText("Sceau d'orichalque. Il ne reste rien à conquérir ici.");
   await expect(sheet.getByTestId('lieutenant-gauges')).toHaveCount(0);
+  await expect(sheet.getByTestId('overlay-voice')).toContainText('Cinq sceaux sur Écho');
   await closeOverlay(page);
   await tap(page.getByTestId('war-dossier'), testInfo);
-  await expect(page.getByTestId('dossier-row-hydre').locator('.kit-stamp')).toHaveText('Neutralisée');
-  // The stamp alone: no progress sentence, no gauge, no numbers (UI3b playability #3).
-  await expect(page.getByTestId('dossier-progress-hydre')).toHaveCount(0);
-  await expect(page.getByTestId('dossier-window-hydre')).toHaveCount(0);
-  await expect(page.getByTestId('dossier-row-hydre')).not.toContainText(/\d/);
+  await expect(page.getByTestId('dossier-seal-hydre')).toHaveText('Sceau de bronze');
+  await expect(page.getByTestId('dossier-progress-hydre')).toHaveText("Encore 4 jours de garde et 25 pièges avant le sceau d'argent.");
+  await expect(page.getByTestId('dossier-window-hydre')).toBeAttached();
+  await expect(page.getByTestId('dossier-seal-echo')).toHaveText("Sceau d'orichalque");
+  await expect(page.getByTestId('dossier-window-echo')).toHaveCount(0);
   await closeOverlay(page);
   await tap(page.getByTestId('war-bestiary'), testInfo);
   const card = page.getByTestId('overlay-codex').getByTestId('bestiary-card-hydre');
-  await expect(card.locator('.kit-stamp')).toHaveText('Neutralisée');
+  await expect(card.locator('.kit-stamp')).toHaveText('Sceau de bronze');
   await expect(card.getByTestId('bestiary-locked')).toHaveCount(0);
   expect(await redScan(page)).toEqual([]);
 });

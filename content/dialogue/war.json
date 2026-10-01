@@ -9,7 +9,7 @@
   },
   "tour": [
     { "speaker": "dragon", "target": "dossier", "text": "La tente de guerre. Sur la table, le dossier d'Éris : tout ce qu'on sait de ses ruses." },
-    { "speaker": "dragon", "target": "portraits", "text": "Ses lieutenants sont épinglés sur la toile. Chacun cache une ruse dans les textes." },
+    { "speaker": "dragon", "target": "portraits", "text": "Ses lieutenants sont épinglés sur la toile. Chacun a cinq sceaux à gagner : bois, bronze, argent, or et orichalque." },
     { "speaker": "dragon", "target": "bestiary", "text": "Le bestiaire raconte le vrai mythe de chaque monstre, puis ce qu'Éris en a fait." },
     { "speaker": "eris", "target": null, "text": "Lisez-le, ce dossier. Ce que vous y trouverez, je le sais déjà. Ce que j'y cache, vous le chercherez dans vos textes." }
   ]

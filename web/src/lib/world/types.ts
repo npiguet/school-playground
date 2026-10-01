@@ -35,7 +35,6 @@ export interface WorldCatalog {
   tints: Tint[];
   oracle_rewards: string[];
   boss_rewards: Record<string, string>;
-  mastery: { min_days: number; min_traps: number; rate: number };
   quest_bonus: Record<string, number>;
   /** Spec 2026-09-29 §7: the rules file's values (server/app/rules.py), defaults in lib/rules.ts. */
   rules: GameRules;
@@ -51,12 +50,22 @@ export interface RewardOut {
   equipped: boolean;
 }
 
-export interface Window {
+/** Spec 2026-09-29 lieutenant levels §1: what the next seal asks (from data/regles.json). */
+export interface SealNeed {
   days: number;
-  traps: number;
-  caught: number;
-  rate: number | null;
+  chances: number;
+  correct: number;
+}
+
+/** The window toward a lieutenant's next seal: days of guard (days with a chance) after the last
+ *  seal, the chances met, the share right in the handed-in copies (null without a chance). */
+export interface SealWindow {
+  level: number;
+  days: number;
+  chances: number;
+  correct: number | null;
   complete: boolean;
+  need: SealNeed;
 }
 
 export interface LieutenantState {
@@ -64,9 +73,11 @@ export interface LieutenantState {
   name: string;
   categories: string[];
   available: boolean;
-  neutralised: boolean;
-  neutralised_at: string | null;
-  window: Window;
+  /** Spec 2026-09-29 lieutenant levels §1: the seal won, 0 before the first (1 bois … 5 orichalque). */
+  level: number;
+  level_reached_at: string | null;
+  /** The window toward the next seal; null after the fifth. */
+  next: SealWindow | null;
   all_time: { traps: number; caught: number; missed: number; rate: number | null };
   last_day: string | null;
   bestiary_unlocked: boolean;

@@ -117,9 +117,8 @@
           {#if def.icon}<img class="hotspot-icon" src={def.icon} alt="" draggable="false" />{/if}{def.label}
           {#if status.seals > 0}
             <span class="hotspot-seals" data-testid="{hotspotTestId(sceneId, def.id)}-seals" data-count={status.seals}
-              >{#each Array.from({ length: status.seals }, (_, i) => i) as i (i)}<span class="hotspot-seal"></span>{/each}<span class="sr-only"
-                >({plural(status.seals, 'ruse neutralisée', 'ruses neutralisées')})</span
-              ></span
+              ><span class="hotspot-seal" aria-hidden="true"></span><span class="hotspot-seal-count" aria-hidden="true">{status.seals}</span
+              ><span class="sr-only">({plural(status.seals, 'sceau', 'sceaux')})</span></span
             >
           {/if}
         </span>
@@ -308,9 +307,10 @@
     font-style: italic;
     font-size: 14px;
   }
-  /* Things won here: small gold wax seals after the name (UI3b playability #17). */
+  /* Things won here: one gold wax seal and their number after the name (R14). */
   .hotspot-seals {
     display: inline-flex;
+    align-items: center;
     gap: 3px;
     margin-left: 2px;
   }
@@ -320,6 +320,13 @@
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, var(--gold-light), var(--gold) 70%);
     box-shadow: 0 0 0 1px var(--bronze-dark);
+  }
+  .hotspot-seal-count {
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 14px;
+    margin-left: 2px;
   }
   .hotspot-badge {
     position: absolute;

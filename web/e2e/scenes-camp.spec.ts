@@ -51,7 +51,7 @@ async function openCamp(page: Page, profileId: number) {
   await waitForSceneSettled(page, 'camp');
 }
 
-// Neutralise two lieutenants over three days (SP3 decision 3) -> boss tier 1 (decision 8).
+// Two wooden seals over three days (spec 2026-09-29 lieutenant levels §1) → fight I (§4).
 async function readyTheBattle(request: Parameters<typeof createText>[0], profileId: number, project: string) {
   const text = await createText(request, { title: uniqueName(`Veillée ${project}`), body: BODY, level: '10H' });
   for (const day of ['2026-08-03', '2026-08-04', '2026-08-05']) {
@@ -542,12 +542,13 @@ test('the path to battle opens once Éris can be fought; badges sit on their pla
   await expect(page.getByTestId('camp-dragon-layer').locator('img')).not.toHaveAttribute('src', /dragon_egg/);
 
   // Playability #5, UI3 Ruling B3: the quest count is pinned to the top-right corner of the Delphi
-  // plaque (the chimère board quest). UI3b playability #17: the foiled tricks are two gold seals on
-  // the war tent's plaque, never the « something waits » coin.
+  // plaque (the chimère board quest). UI3b playability #17: the two wooden seals won are one gold
+  // seal and « 2 » on the war tent's plaque (R14), never the « something waits » coin.
   await expect(page.getByTestId('camp-oracle-badge')).toHaveText('1');
   await expect(page.getByTestId('camp-dossier-badge')).toHaveCount(0);
-  await expect(page.getByTestId('camp-dossier-seals').locator('.hotspot-seal')).toHaveCount(2);
-  await expect(page.getByTestId('camp-dossier')).toHaveAccessibleName(/La tente de guerre.*2 ruses neutralisées/);
+  await expect(page.getByTestId('camp-dossier-seals').locator('.hotspot-seal')).toHaveCount(1);
+  await expect(page.getByTestId('camp-dossier-seals').locator('.hotspot-seal-count')).toHaveText('2');
+  await expect(page.getByTestId('camp-dossier')).toHaveAccessibleName(/La tente de guerre.*2 sceaux/);
   for (const place of ['oracle']) {
     const b = await measureBoxes(page, {
       badge: `[data-testid="camp-${place}-badge"]`,

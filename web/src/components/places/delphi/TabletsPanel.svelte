@@ -1,6 +1,6 @@
 <script lang="ts">
   // The quest board: quests in progress, a monster to challenge (a board quest), and Éris waiting
-  // at the edge of the camp once enough lieutenants are neutralised (spec §3.6, plan Task 7).
+  // at the edge of the camp once enough seals are won (spec §3.6, plan Task 7).
   // UI3a Task 12: opened as the votive-tablet wall's overlay over the Delphi scene (Delphi.svelte).
   // Immersion wave (playability #1, #10): six terracotta tablets hang on cords from a peg rail; the
   // wall's reward and the cabin-treasure countdown are said once, never on each tablet.
@@ -10,7 +10,8 @@
   import { worldApi } from '../../../lib/world/api';
   import { campFor, campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../../../lib/world/types';
-  import { agree, sleepingLine } from '../../../lib/world/eris';
+  import { sleepingLine } from '../../../lib/world/eris';
+  import { sealTitle } from '../../../lib/world/seals';
   import { romanTier, tricksBeforeEris } from '../../../lib/world/quests';
   import { bossRewardId, bossRewardName } from '../../../lib/world/rewards';
   import { ApiError } from '../../../lib/api';
@@ -140,7 +141,7 @@
           {#if asleep}
             <p class="tablet-note">{sleepingLine(key, profile.level)}</p>
           {:else}
-            {#if l.neutralised}<span class="kit-tablet-stamp">{agree('Neutralisé', key)}</span>{/if}
+            {#if l.level > 0}<span class="kit-tablet-stamp">{sealTitle(l.level)}</span>{/if}
             {#if l.active_quest_id}
               <span class="kit-tablet-ribbon">Quête en cours</span>
             {:else}

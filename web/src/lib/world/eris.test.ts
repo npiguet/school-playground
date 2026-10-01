@@ -7,9 +7,8 @@ import {
   dossierIntro,
   dossierLine,
   dragonAside,
-  erisProgressLine,
   genderFor,
-  neutraliseRule,
+  isAwake,
   lieutenantName,
   pronounFor,
   sleepingCaption,
@@ -18,13 +17,14 @@ import {
 } from './eris';
 import { DRAGON_STAGES, LIEUTENANT_ORDER } from './types';
 
-const BANDS = ['none', 'strong', 'contested', 'weak', 'neutralised'] as const;
+const BANDS = ['none', 'strong', 'contested', 'weak', 'bois', 'argent', 'orichalque'] as const;
 
 describe("Éris's dossier lines", () => {
   it('exist for every lieutenant × band and are distinct', () => {
     const all = LIEUTENANT_ORDER.flatMap((k) => BANDS.map((b) => dossierLine(k, b)));
     expect(all.every((s) => s.length > 20)).toBe(true);
     expect(new Set(all).size).toBe(all.length);
+    expect(dossierLine('hydre', 'bois')).toBe('Mon Hydre porte un sceau. Ses têtes repoussent quand même, je les arrose tous les soirs.');
   });
 
   it('never target the player (Decision 19)', () => {
@@ -36,14 +36,17 @@ describe("Éris's dossier lines", () => {
     }
   });
 
-  it('bands follow the thresholds', () => {
-    const l = (traps: number, rate: number | null, neutralised = false) =>
-      ({ neutralised, all_time: { traps, caught: 0, missed: 0, rate } }) as never;
+  it('bands follow the catch rate before the first seal, then the seal group (spec 2026-09-29 lieutenant levels §5)', () => {
+    const l = (traps: number, rate: number | null, level = 0) => ({ level, all_time: { traps, caught: 0, missed: 0, rate } });
     expect(bandFor(l(2, 0))).toBe('none');
     expect(bandFor(l(5, 0.3))).toBe('strong');
     expect(bandFor(l(5, 0.5))).toBe('contested');
     expect(bandFor(l(5, 0.85))).toBe('weak');
-    expect(bandFor(l(5, 0.1, true))).toBe('neutralised');
+    expect([1, 2, 3, 4, 5].map((lv) => bandFor(l(5, 0.1, lv)))).toEqual(['bois', 'bois', 'argent', 'argent', 'orichalque']);
+  });
+
+  it('knows who is awake at a class', () => {
+    expect([isAwake('protee', '7H'), isAwake('protee', '8H'), isAwake('hydre', '5H')]).toEqual([false, true, true]);
   });
 
   // The line names whichever lieutenant sleeps, never a fixed one (review round 1 #1), and says
@@ -59,23 +62,6 @@ describe("Éris's dossier lines", () => {
     expect(sleepingLine('hydre')).toBe("L'Hydre dort encore. Elle se réveillera dans quelques années.");
     for (const k of LIEUTENANT_ORDER) expect(sleepingLine(k, '5H')).not.toMatch(/classe|école/);
     expect([sleepingCaption('protee'), sleepingCaption('sirenes')]).toEqual(['Dort encore', 'Dorment encore']);
-  });
-
-  // UI3b playability #3, #12: Éris's file says what stands between the hero and a lieutenant in one
-  // sentence (no « 3/3 jours · 12/10 pièges · 92 % »), and the portrait says the rule once.
-  it('says in one sentence what is left before a lieutenant falls', () => {
-    const l = (days: number, traps: number, rate: number | null, allTraps = traps, neutralised = false) =>
-      ({ neutralised, all_time: { traps: allTraps, caught: 0, missed: 0, rate }, window: { days, traps, rate } }) as never;
-    expect(erisProgressLine('hydre', l(2, 6, 0.8))).toBe("Encore 1 jour de garde et 4 pièges à croiser avant qu'elle tombe.");
-    expect(erisProgressLine('protee', l(3, 4, 0.9))).toBe("Encore 6 pièges à croiser avant qu'il tombe.");
-    expect(erisProgressLine('sirenes', l(0, 0, null, 3))).toBe("Encore 3 jours de garde et 10 pièges à croiser avant qu'elles tombent.");
-    expect(erisProgressLine('echo', l(3, 12, 0.7))).toBe("Il ne te reste qu'à déjouer 8 pièges sur 10 avant qu'elle tombe.");
-    expect(erisProgressLine('chimere', l(0, 0, null, 0))).toBe('Pas encore croisée.');
-    expect(erisProgressLine('sirenes', l(0, 0, null, 0))).toBe('Pas encore croisées.');
-    expect(erisProgressLine('hydre', l(3, 12, 0.9, 16, true))).toBe('');
-    expect(neutraliseRule('hydre')).toBe('Pour la neutraliser\u202f: 3 jours de garde, 10 pièges croisés, et 8 sur 10 déjoués.');
-    expect(neutraliseRule('protee')).toMatch(/^Pour le neutraliser/);
-    expect(neutraliseRule('sirenes')).toMatch(/^Pour les neutraliser/);
   });
 
   it("speaks of her small tricks and of the file in words, never a trap count, and never at the player", () => {

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { BACKDROPS, FACES, HOME, battleFor, isOpponentId, opponentFor } from './battle';
 
-const lt = (key: string, over: Partial<{ available: boolean; neutralised: boolean }> = {}) => ({
+const lt = (key: string, over: Partial<{ available: boolean; level: number }> = {}) => ({
   key,
   available: true,
-  neutralised: false,
+  level: 0,
   ...over,
 });
 const SIX = ['hydre', 'echo', 'chimere', 'protee', 'sirenes', 'lethe'].map((k) => lt(k));
@@ -28,16 +28,14 @@ describe('who fights where (Ruling C2)', () => {
     expect(battleFor('eris', { mode: 'grimoire', encounter: null }).backdrop.id).toBe('temple');
   });
 
-  it('picks a free text its lieutenant: awake and not neutralised, stable per text', () => {
+  it('picks a free text its lieutenant among the awake ones at the lowest seal, stable per text (R10)', () => {
     expect(opponentFor({ mode: 'dictation', encounter: null, textId: 7, lieutenants: SIX })).toBe('echo'); // 7 % 6 = 1
-    const calm = [lt('hydre', { neutralised: true }), lt('echo', { available: false }), lt('chimere'), lt('lethe')];
-    expect(opponentFor({ mode: 'dictation', encounter: null, textId: 3, lieutenants: calm })).toBe('lethe'); // 3 % 2 = 1
+    const mixed = [lt('hydre', { level: 1 }), lt('echo', { available: false }), lt('chimere'), lt('lethe')];
+    expect(opponentFor({ mode: 'dictation', encounter: null, textId: 3, lieutenants: mixed })).toBe('lethe'); // 3 % 2 = 1
+    const high = [lt('hydre', { level: 5 }), lt('echo', { level: 3 }), lt('lethe', { level: 3 })];
+    expect(opponentFor({ mode: 'dictation', encounter: null, textId: 2, lieutenants: high })).toBe('echo'); // 2 % 2 = 0
     expect(opponentFor({ mode: 'dictation', encounter: null, textId: 3, lieutenants: [] })).toBe('eris');
-    // Every lieutenant asleep or neutralised as if there were none.
-    const spent = [lt('hydre', { neutralised: true }), lt('echo', { available: false }), lt('lethe', { neutralised: true })];
-    for (const textId of [0, 1, 2, 3]) {
-      expect(opponentFor({ mode: 'dictation', encounter: null, textId, lieutenants: spent })).toBe('eris');
-    }
+    expect(opponentFor({ mode: 'dictation', encounter: null, textId: 1, lieutenants: [lt('echo', { available: false })] })).toBe('eris');
     expect(opponentFor({ mode: 'dictation', encounter: 'nope', textId: 0, lieutenants: SIX })).toBe('hydre');
   });
 

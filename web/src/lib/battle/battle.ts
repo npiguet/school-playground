@@ -66,15 +66,19 @@ export interface OpponentInput {
   mode: BattleMode;
   encounter: string | null;
   textId: number | null;
-  lieutenants: Pick<LieutenantState, 'key' | 'available' | 'neutralised'>[];
+  lieutenants: Pick<LieutenantState, 'key' | 'available' | 'level'>[];
 }
 
+/** R10 (spec 2026-09-29 lieutenant levels §5): a free text faces an awake lieutenant at the lowest
+ *  seal, stable per text; Éris only when none is awake. */
 export function opponentFor(i: OpponentInput): OpponentId {
   if (i.mode === 'boss' || i.encounter === 'eris') return 'eris';
   if (i.encounter && isOpponentId(i.encounter)) return i.encounter;
   if (i.mode === 'grimoire') return 'eris';
-  const open = i.lieutenants.filter((l) => l.available && !l.neutralised && isOpponentId(l.key));
-  if (open.length === 0) return 'eris';
+  const awake = i.lieutenants.filter((l) => l.available && isOpponentId(l.key));
+  if (awake.length === 0) return 'eris';
+  const low = Math.min(...awake.map((l) => l.level));
+  const open = awake.filter((l) => l.level === low);
   return open[Math.abs(i.textId ?? 0) % open.length].key as LieutenantKey;
 }
 
