@@ -1,6 +1,8 @@
 // Reward words shared by the places (final review M3, M4): the boss's reward known in advance (SP3
 // decisions 9/12) on the hub, the quest wall and the battle screen, and the cabin shelf's count.
+import { rulesOf } from '../rules';
 import { plural } from '../text/french';
+import { drachmesText } from './shop';
 import type { CampResponse, WorldCatalog } from './types';
 
 /** The fight on offer or under way: the tier open, else the active boss quest's (an old fight resumed
@@ -17,12 +19,16 @@ export function bossRewardId(tier: number | null, catalog: WorldCatalog | null):
 }
 
 /** The name of the reward a boss tier grants: the gear of the first three fights, then its XP (spec
- *  2026-09-29 lieutenant levels §4), or a generic phrase while the catalog loads. */
+ *  2026-09-29 lieutenant levels §4) and its drachmes (spec 2026-09-29 drachmes §1), or a generic
+ *  phrase while the catalog loads. */
 export function bossRewardName(tier: number | null, catalog: WorldCatalog | null): string {
   const id = bossRewardId(tier, catalog);
   const name = id ? catalog?.rewards[id]?.name : undefined;
   if (name) return name;
-  if (tier !== null && catalog && !id) return `${catalog.quest_bonus.boss} XP`;
+  if (tier !== null && catalog && !id) {
+    const coins = rulesOf(catalog).drachmes?.boss ?? 0;
+    return coins > 0 ? `${catalog.quest_bonus.boss} XP et ${drachmesText(coins)}` : `${catalog.quest_bonus.boss} XP`;
+  }
   return 'une récompense';
 }
 

@@ -27,6 +27,7 @@ describe('the rules of the camp (spec 2026-09-29 §7)', () => {
         { level: 3, count: 2 }, { level: 3, count: 'all' }, { level: 4, count: 2 }, { level: 4, count: 'all' },
         { level: 5, count: 2 }, { level: 5, count: 'all' },
       ],
+      drachmes: { xp_per_drachme: 10, board: 5, oracle: 15, weekly: 5, level: 10, boss: 30 },
     });
   });
 
@@ -55,6 +56,7 @@ describe('the rules of the camp (spec 2026-09-29 §7)', () => {
     expect(rules.fights).toEqual([{ level: 1, count: 3 }, { level: 2, count: 'all' }, { level: 5, count: 1 }]);
     expect(firstSealLine(rules.levels[0])).toBe('Premier sceau\u202f: 2 jours de garde et 10 pièges, dont 100\u202f% déjoués.');
     expect(rules.levels[2]).toEqual({ days: 6, chances: 50, correct: 0.91 });
+    expect(rules.drachmes).toEqual(DEFAULT_RULES.drachmes);
   });
 
   it('counts the mistakes left per 100 words, never dividing by zero', () => {

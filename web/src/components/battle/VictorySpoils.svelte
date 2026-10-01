@@ -15,11 +15,12 @@
   import OverlayVoice from '../scene/OverlayVoice.svelte';
   import { questNotCounted, VICTORY } from '../../lib/battle/lines';
   import type { OpponentId } from '../../lib/battle/battle';
-  import { ART, trophyIcon } from '../../lib/world/art';
+  import { ART, MARK_ICONS, trophyIcon } from '../../lib/world/art';
   import { campStore, loadCatalog } from '../../lib/world/campStore.svelte';
   import { rememberDragonSeen } from '../../lib/world/dragonSeen.svelte';
   import { stageLabel, stageXp, victoryGauge, victoryLaurel, type VictoryPhase } from '../../lib/world/dragon';
   import { lowerLeadingArticle, romanTier } from '../../lib/world/quests';
+  import { drachmeChip } from '../../lib/world/shop';
   import { bonusChipLabel, levelUpLine, levelUps, sealCry, sealTitleOf } from '../../lib/world/seals';
   import { erisSays } from '../../lib/world/voices';
   import { playSfx } from '../../lib/juice/sfx';
@@ -96,6 +97,8 @@
     return [...session, ...progression.xp.bonuses];
   });
   // UI4 playability #2: the headline is all she earned (the laurel's own move), the tags its breakdown.
+  // Spec 2026-09-29 drachmes §1 (R15): what the session paid in drachmes; none on a victory saved before.
+  const drachmesEarned = $derived(progression.drachmes?.earned ?? 0);
   const xpEarned = $derived(
     Math.max(0, progression.xp.total_after - progression.xp.total_before) ||
       progression.xp.session + progression.xp.bonuses.reduce((sum, b) => sum + b.amount, 0),
@@ -252,6 +255,12 @@
         {#each bonusChips as b, i (i)}
           <span class="kit-tag bonus" data-testid="xp-chip" style:--tag-tilt="{i % 2 ? 1.2 : -1.2}deg">{bonusChipLabel(b, names)} +{b.amount}</span>
         {/each}
+        {#if drachmesEarned > 0}
+          <!-- Spec 2026-09-29 drachmes §1 (R15): the session's drachmes, after its XP. -->
+          <span class="kit-tag bonus drachme-chip" data-testid="drachme-chip" style:--tag-tilt="{bonusChips.length % 2 ? 1.2 : -1.2}deg">
+            <img class="chip-coin" src={MARK_ICONS.drachme} alt="" draggable="false" />{drachmeChip(drachmesEarned)}
+          </span>
+        {/if}
       </div>
     </div>
   </Reveal>
@@ -424,6 +433,17 @@
     font-size: 15px;
     font-weight: 600;
     padding: 4px 10px 5px 24px;
+  }
+  /* A kit tag stacks its lines; this one reads in a row: the coin, then « +12 drachmes ». */
+  .drachme-chip {
+    flex-direction: row;
+    align-items: center;
+  }
+  .chip-coin {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    margin-right: 4px;
   }
   .spoil-title {
     font-family: var(--font-display);

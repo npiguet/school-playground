@@ -16,6 +16,21 @@ export type QuestKind = 'board' | 'oracle' | 'boss';
 export type QuestStatus = 'active' | 'done' | 'shelved' | 'expired';
 export type ScrollKey = 'faible' | 'ecole' | 'destin';
 export type RewardKind = 'trophy' | 'tint' | 'gear' | 'decor' | 'accessory' | 'house';
+/** Spec 2026-09-29 drachmes §3: the house the hero lives in (the highest one owned). */
+export type House = 'cabin' | 'villa' | 'palais';
+/** Spec §4: where the dragon wears a piece. */
+export type Slot = 'cou' | 'queue' | 'dos' | 'tete';
+
+/** Spec §2 (R9): Hermès's stall as `/api/world` serves it; names and descriptions are in `rewards`. */
+export interface ShopCatalog {
+  slots: Slot[];
+  slot_levels: Record<Slot, number>;
+  draw_order: Slot[];
+  accessories: { id: string; item: string; lieutenant: string; slot: Slot; level: number; price: number; the: string }[];
+  decor: { id: string; price: number; the: string }[];
+  houses: { id: string; key: 'villa' | 'palais'; stage: DragonStage; after: string | null; price: number; the: string }[];
+  max_decor: Record<House, number>;
+}
 
 export interface WorldCatalog {
   lieutenants: {
@@ -37,6 +52,8 @@ export interface WorldCatalog {
   quest_bonus: Record<string, number>;
   /** Spec 2026-09-29 §7: the rules file's values (server/app/rules.py), defaults in lib/rules.ts. */
   rules: GameRules;
+  /** Spec 2026-09-29 drachmes §2: Hermès's stall, its items and prices. */
+  shop: ShopCatalog;
 }
 
 export interface RewardOut {
@@ -104,6 +121,8 @@ export interface DragonOut {
   tint: Tint;
   stage: DragonStage;
   unlocked_tints: Tint[];
+  /** Spec 2026-09-29 drachmes §4: the pieces worn, as manifest keys ("hydre-cou"), in draw order. */
+  worn: string[];
 }
 
 export interface OracleOut {
@@ -131,6 +150,10 @@ export interface CampResponse {
   boss: { tier_available: number | null; tiers_won: number[]; active_quest_id: number | null; fights: number; next: { tier: number; level: number; missing: number } | null };
   rewards_count: number;
   small_tricks: { traps: number; caught: number };
+  /** Spec 2026-09-29 drachmes §1: the purse. */
+  drachmes: number;
+  /** Spec 2026-09-29 drachmes §3: the highest house owned. */
+  house: House;
 }
 
 export interface Progression {
@@ -168,6 +191,9 @@ export interface Progression {
   levels?: { lieutenant: string; level: number; reward_id: string }[];
   /** A victory saved before the seals: its old `neutralised` keys, now their wooden seal. */
   neutralised?: string[];
+  /** Spec 2026-09-29 drachmes §1: what this session paid, part by part (absent from a victory saved
+   *  before the change). */
+  drachmes?: { earned: number; parts: { reason: string; amount: number; lieutenant?: string; level?: number }[]; balance: number };
   rewards: { id: string; kind: RewardKind; name: string }[];
   dragon: { stage_before: DragonStage; stage_after: DragonStage; needs_name: boolean };
   weekly: { target: number; done: number; reached_now: boolean };

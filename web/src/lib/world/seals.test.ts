@@ -16,6 +16,7 @@ import {
   sealProgressLine,
   sealReady,
   sealTitle,
+  sealNameOf,
   sealTitleOf,
   sealsName,
   trophyId,
@@ -37,6 +38,17 @@ describe('the seals in words', () => {
     expect(sealTitle(2)).toBe('Sceau de bronze');
     expect([sealTitleOf('hydre', 2), sealTitleOf('echo', 3), sealTitleOf('sirenes', 1)]).toEqual(["Sceau de bronze de l'Hydre", "Sceau d'argent d'Écho", 'Sceau de bois des Sirènes']);
     for (const l of [0, 1, 2, 3, 4, 5, 6]) expect(sealTitle(l)).not.toMatch(/niveau|\d/i);
+  });
+
+  // Spec 2026-09-29 drachmes §2: Hermès's stall says « Au sceau de bronze de l'Hydre » in a sentence.
+  it("names a lieutenant's seal in a sentence, lower case", () => {
+    expect([sealNameOf('hydre', 2), sealNameOf('echo', 3), sealNameOf('chimere', 4), sealNameOf('protee', 1), sealNameOf('lethe', 5)]).toEqual([
+      "sceau de bronze de l'Hydre",
+      "sceau d'argent d'Écho",
+      "sceau d'or de la Chimère",
+      'sceau de bois de Protée',
+      "sceau d'orichalque de Léthé",
+    ]);
   });
 
   it('says what stands before the next seal (spec §5)', () => {

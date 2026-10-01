@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hudXp } from './hud';
+import { hudDrachmes, hudXp } from './hud';
 
 // Spec 2026-09-29 dragon growth §2: one gauge, the dragon's, named by its stage.
 describe('hudXp', () => {
@@ -13,5 +13,12 @@ describe('hudXp', () => {
   it('reads empty for a stage grown before its XP, full for a stale total past the next stage', () => {
     expect(hudXp({ total: 300, floor: 5000, next: 15000 }, 'adult')).toEqual({ label: 'Dragon adulte · 300 XP', value: 0, max: 10000 });
     expect(hudXp({ total: 1300, floor: 100, next: 1200 }, 'hatchling').value).toBe(1100);
+  });
+});
+
+describe('hudDrachmes', () => {
+  it('shows the purse: the number grouped, its name for screen readers (spec 2026-09-29 drachmes §1)', () => {
+    expect(hudDrachmes(1117)).toEqual({ text: '1\u202f117', label: '1117 drachmes' });
+    expect(hudDrachmes(1)).toEqual({ text: '1', label: '1 drachme' });
   });
 });

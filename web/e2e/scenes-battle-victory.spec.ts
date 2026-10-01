@@ -395,6 +395,7 @@ function progression(o: Record<string, unknown> = {}) {
     weekly: { target: 5, done: 1, reached_now: false },
     boss: null,
     encounter: null,
+    drachmes: { earned: 12, parts: [{ reason: 'session', amount: 12 }], balance: 40 },
     ...o,
   };
 }
@@ -423,6 +424,22 @@ async function counted(
   await expectBattle(page, 'victory');
   return page.getByTestId('victory');
 }
+
+// Spec 2026-09-29 drachmes §1 (R15): the victory's chips add the drachmes; a saved victory has none.
+test('the victory adds « +12 drachmes » after the XP chips', async ({ page, request }, testInfo) => {
+  const sheet = await counted(page, request, `Vic40-${testInfo.project.name}`, progression({}));
+  await expect(sheet.getByTestId('drachme-chip')).toHaveText('+12 drachmes');
+  await expect(sheet.getByTestId('drachme-chip').locator('img')).toHaveAttribute('src', '/art/icons/drachme.webp');
+  const [lastXp, coin] = [await sheet.getByTestId('xp-chip').last().boundingBox(), await sheet.getByTestId('drachme-chip').boundingBox()];
+  expect(coin!.x > lastXp!.x || coin!.y > lastXp!.y).toBe(true);
+});
+
+test('a victory saved before the drachmes shows no drachme chip', async ({ page, request }, testInfo) => {
+  const sheet = await counted(page, request, `Vic41-${testInfo.project.name}`, progression({ drachmes: undefined }));
+  await expect(sheet.getByTestId('xp-chip').first()).toBeVisible();
+  await expect(sheet.getByTestId('drachme-chip')).toHaveCount(0);
+  await expect(sheet).not.toContainText('undefined');
+});
 
 // Spec 2026-09-29 §4: the session XP broken down, then the quest's.
 test('the XP chips break the session down: text, pace, aids, prophecy, then the quest', async ({ page, request }, testInfo) => {

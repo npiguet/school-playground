@@ -19,6 +19,8 @@ export interface GameRules {
   levels: SealNeed[];
   /** §4: Éris's ladder (the server opens the fights; the client never counts them). */
   fights: { level: number; count: number | 'all' }[];
+  /** Spec 2026-09-29 drachmes §1 (R2): what each source pays (server/app/world/drachmes.py). */
+  drachmes: { xp_per_drachme: number; board: number; oracle: number; weekly: number; level: number; boss: number };
 }
 
 export const DEFAULT_RULES: GameRules = {
@@ -39,6 +41,7 @@ export const DEFAULT_RULES: GameRules = {
     { days: 10, chances: 100, correct: 0.97 },
   ],
   fights: [1, 2, 3, 4, 5].flatMap((level) => [{ level, count: 2 }, { level, count: 'all' as const }]),
+  drachmes: { xp_per_drachme: 10, board: 5, oracle: 15, weekly: 5, level: 10, boss: 30 },
 };
 
 export function rulesOf(catalog: { rules?: GameRules } | null | undefined): GameRules {

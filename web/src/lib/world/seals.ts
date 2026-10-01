@@ -43,6 +43,11 @@ export function sealTitle(level: number): string {
   return `Sceau ${ofMaterial(level)}`;
 }
 
+/** « sceau de bronze de l'Hydre », inside a sentence (spec 2026-09-29 drachmes §2: Hermès's locked pieces). */
+export function sealNameOf(key: LieutenantKey, level: number): string {
+  return `${sealName(level)} ${OF[key]}`;
+}
+
 /** « Sceau de bronze de l'Hydre » (the catalogue's `source` of a trophy). */
 export function sealTitleOf(key: LieutenantKey, level: number): string {
   return `${sealTitle(level)} ${OF[key]}`;

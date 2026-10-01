@@ -16,6 +16,7 @@ import {
   uniqueName,
   waitForSceneSettled,
   heroNamer,
+  swissDay,
 } from './helpers';
 
 // UI1 (scenes spec §9, §10): the camp as a hub scene, in both WebKit projects (desktop 1280x720
@@ -117,8 +118,8 @@ test('the locked path to battle: the dragon says what opens the first fight', as
 });
 
 // Spec 2026-09-29 lieutenant levels §4: the caption counts seals across lieutenants, never naming one;
-// after the third fight Éris pays XP only.
-test('the path to battle says what opens the next fight in words; a fourth fight pays its XP', async ({ page, request }, testInfo) => {
+// after the third fight Éris pays XP only (and, spec 2026-09-29 drachmes §1, her drachmes).
+test('the path to battle says what opens the next fight in words; a fourth fight pays its XP and drachmes', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const text = await createText(request, { title: uniqueName(`Garde ${testInfo.project.name}`), body: BODY, level: '10H' });
   for (const day of ['2026-08-03', '2026-08-04', '2026-08-05']) {
@@ -136,7 +137,26 @@ test('the path to battle says what opens the next fight in words; a fourth fight
   });
   await page.reload();
   await expectCamp(page);
-  await expect(boss).toContainText('Combat IV\u202f: 300 XP');
+  await expect(boss).toContainText('Combat IV\u202f: 300 XP et 30 drachmes');
+  // The longer caption still stays clear of the other plaques.
+  expect(await labelOverlaps(page, 'camp')).toEqual([]);
+});
+
+// Spec 2026-09-29 drachmes \u00a71 (R14): the purse beside the XP laurel, in every place's HUD.
+test('the HUD shows the purse beside the laurel', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const text = await createText(request, { title: uniqueName(`Bourse ${testInfo.project.name}`), body: 'Les f\u00e9es dansent dans la clairi\u00e8re.', level: '10H' });
+  const res = await postSession(request, { profileId: id, textId: text.id, day: swissDay(0), result: makeResult({ words: 1000, draft: 4, caught: 4 }) });
+  expect(res.progression.drachmes.balance).toBeGreaterThan(0);
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  const purse = page.getByTestId('hud-drachmes');
+  await expect(purse).toHaveText(String(res.progression.drachmes.balance));
+  await expect(purse).toHaveAttribute('aria-label', `${res.progression.drachmes.balance} drachmes`);
+  await expect(purse.locator('img')).toHaveAttribute('src', '/art/icons/drachme.webp');
+  const [laurel, coin] = [await page.getByTestId('hud-xp').boundingBox(), await purse.boundingBox()];
+  expect(coin!.x).toBeGreaterThan(laurel!.x + laurel!.width - 1);
+  expect(await labelOverlaps(page, 'camp')).toEqual([]);
 });
 
 // Final review M11: "only one navigation" is proved by counting every hash change from before the

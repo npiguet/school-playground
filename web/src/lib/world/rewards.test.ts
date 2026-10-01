@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HOW_TO_WIN_IDS, bossRewardId, bossRewardName, bossTier, howToWin, treasureCaption } from './rewards';
 import { REWARD_ICONS } from './art';
+import { DEFAULT_RULES } from '../rules';
 import type { CampResponse, QuestOut, WorldCatalog } from './types';
 
 const catalog = {
@@ -13,7 +14,12 @@ describe('reward words', () => {
   it('names the boss reward known in advance: the gear of the first three fights, then its XP (spec 2026-09-29 lieutenant levels §4)', () => {
     expect(bossRewardId(1, catalog)).toBe('sandales_hermes');
     expect(bossRewardName(1, catalog)).toBe("Sandales d'Hermès");
-    expect(bossRewardName(4, catalog)).toBe('300 XP');
+    // Spec 2026-09-29 drachmes §1: a won fight also pays its drachmes (the rules' `drachmes.boss`).
+    expect(bossRewardName(4, catalog)).toBe('300 XP et 30 drachmes');
+    const thrifty = { ...catalog, rules: { ...DEFAULT_RULES, drachmes: { ...DEFAULT_RULES.drachmes, boss: 0 } } } as WorldCatalog;
+    expect(bossRewardName(4, thrifty)).toBe('300 XP');
+    const rich = { ...catalog, rules: { ...DEFAULT_RULES, drachmes: { ...DEFAULT_RULES.drachmes, boss: 1 } } } as WorldCatalog;
+    expect(bossRewardName(4, rich)).toBe('300 XP et 1 drachme');
     expect(bossRewardName(null, catalog)).toBe('une récompense');
     expect(bossRewardName(1, null)).toBe('une récompense');
     expect(bossRewardId(null, catalog)).toBeNull();

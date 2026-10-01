@@ -49,4 +49,9 @@ export const worldApi = {
 
   patchReward: (profileId: number, id: string, equipped: boolean) =>
     request<RewardOut>('PATCH', `/api/profiles/${profileId}/rewards/${id}`, { equipped }),
+
+  /** Spec 2026-09-29 drachmes §2 (R5): buy an item at Hermès's stall; 409 with Hermès's line when it
+   *  is owned, not on sale or the purse is short. */
+  buy: (profileId: number, item: string) =>
+    request<{ reward: RewardOut; drachmes: number }>('POST', `/api/profiles/${profileId}/purchases`, { item }),
 };

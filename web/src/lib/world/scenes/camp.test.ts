@@ -19,7 +19,7 @@ function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {
     profile: { id: 7, name: 'Ariane' } as CampResponse['profile'],
     xp: { total: 0, floor: 0, next: 100 },
-    dragon: { name: null, tint: 'bronze', stage: 'egg', unlocked_tints: ['bronze'] },
+    dragon: { name: null, tint: 'bronze', stage: 'egg', unlocked_tints: ['bronze'], worn: [] },
     lieutenants: [],
     quests: [],
     oracle: { week: '2026-W39', status: 'sealed', reward_id: null },
@@ -28,6 +28,8 @@ function camp(over: Partial<CampResponse> = {}): CampResponse {
     boss: { tier_available: null, tiers_won: [], active_quest_id: null, fights: 10, next: { tier: 1, level: 1, missing: 2 } },
     rewards_count: 0,
     small_tricks: { traps: 0, caught: 0 },
+    drachmes: 0,
+    house: 'cabin',
     ...over,
   };
 }
@@ -79,9 +81,9 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     expect(bossLockLine(done)).toBe('Éris est vaincue à chaque combat. Elle boude, loin du camp.');
   });
 
-  it('a fight past the third shows its XP on the plaque (Combat IV)', () => {
+  it('a fight past the third shows its XP and drachmes on the plaque (Combat IV)', () => {
     const fourth = camp({ boss: { tier_available: 4, tiers_won: [1, 2, 3], active_quest_id: null, fights: 10, next: null } });
-    expect(state('boss', fourth, { ...catalog, quest_bonus: { boss: 300 } } as WorldCatalog).caption).toBe('Combat IV\u202f: 300 XP');
+    expect(state('boss', fourth, { ...catalog, quest_bonus: { boss: 300 } } as WorldCatalog).caption).toBe('Combat IV\u202f: 300 XP et 30 drachmes');
   });
 
   it('captions only the places with news, three at most, in priority order', () => {

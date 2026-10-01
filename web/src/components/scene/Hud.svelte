@@ -6,13 +6,14 @@
   // Task 10b round 1 #3: the dragon's ambient status (what it's up to) lives on the camp-dragon
   // hotspot's caption instead of a `title` here (see camp.ts) - a `title` tooltip never shows on
   // iPad, the target device, since there's no mouse hover to trigger it.
+  // The purse beside the laurel (spec 2026-09-29 drachmes §1, R14): the painted coin and the balance.
   import type { Snippet } from 'svelte';
   import Avatar from '../Avatar.svelte';
   import LaurelBar from '../ui/LaurelBar.svelte';
   import SoundPlate from './SoundPlate.svelte';
-  import { ART } from '../../lib/world/art';
+  import { ART, MARK_ICONS } from '../../lib/world/art';
   import { TINT_FILTERS } from '../../lib/world/dragon';
-  import { hudXp } from '../../lib/scene/hud';
+  import { hudDrachmes, hudXp } from '../../lib/scene/hud';
   import { href } from '../../lib/routes';
   import type { CampResponse } from '../../lib/world/types';
   import type { Profile } from '../../lib/types';
@@ -35,6 +36,7 @@
   } = $props();
 
   const xp = $derived(camp ? hudXp(camp.xp, camp.dragon.stage) : null);
+  const purse = $derived(camp ? hudDrachmes(camp.drachmes) : null);
 </script>
 
 {#snippet hero()}
@@ -53,6 +55,12 @@
   <div class="hud-center">
     {#if xp && !band}
       <LaurelBar value={xp.value} max={xp.max} label={xp.label} testId="hud-xp" />
+    {/if}
+    {#if purse && !band}
+      <!-- R14: the painted coin and the balance, right of the laurel; not a link. -->
+      <span class="hud-drachmes" data-testid="hud-drachmes" role="img" aria-label={purse.label}>
+        <img src={MARK_ICONS.drachme} alt="" draggable="false" /><span aria-hidden="true">{purse.text}</span>
+      </span>
     {/if}
   </div>
   <div class="hud-right">
@@ -115,6 +123,31 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .hud-center {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hud-drachmes {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 2px 12px 2px 4px;
+    border-radius: 999px;
+    border: 1px solid var(--bronze-light);
+    background: rgba(21, 18, 26, 0.6);
+    color: var(--bronze-ink);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 18px;
+    white-space: nowrap;
+  }
+  .hud-drachmes img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
   }
   .hud-right {
     justify-self: end;
