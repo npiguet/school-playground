@@ -83,6 +83,11 @@ def quest_out(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
 
 
 def dragon_out(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: Rules) -> dict:
+    return dragon_and_owned(conn, profile, now, rules)[0]
+
+
+def dragon_and_owned(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: Rules) -> tuple[dict, set[str]]:
+    """The dragon as served, with the reward ids owned (read once, for the callers that need both)."""
     pid = profile["id"]
     dragon = ensure_dragon(conn, pid, now)
     # Spec 2026-09-29 dragon growth §1: the stage follows the total XP and never goes down; a stage
@@ -93,8 +98,9 @@ def dragon_out(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: 
     rows = conn.execute("SELECT reward_id, equipped FROM reward WHERE profile_id = ?", (pid,)).fetchall()
     owned = {r[0] for r in rows}
     unlocked_tints = ["bronze"] + [t for t in TINTS[1:] if f"tint:{t}" in owned]
-    return {"name": dragon["name"], "tint": dragon["tint"], "stage": stage, "unlocked_tints": unlocked_tints,
-            "worn": worn({r[0] for r in rows if r[1]})}  # spec 2026-09-29 drachmes §4: the pieces worn, in draw order
+    out = {"name": dragon["name"], "tint": dragon["tint"], "stage": stage, "unlocked_tints": unlocked_tints,
+           "worn": worn({r[0] for r in rows if r[1]})}  # spec 2026-09-29 drachmes §4: the pieces worn, in draw order
+    return out, owned
 
 
 def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row, rules: Rules) -> list[dict]:
@@ -320,7 +326,7 @@ def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends
     tier_avail = open_fight(rules.fights, levels, available, won)
     active_boss = db.execute("SELECT id FROM quest WHERE profile_id = ? AND kind = 'boss' AND status = 'active'", (pid,)).fetchone()
     rewards_count = db.execute("SELECT COUNT(*) FROM reward WHERE profile_id = ?", (pid,)).fetchone()[0]
-    dragon = dragon_out(db, profile, now, rules)   # may persist a caught-up stage (see dragon_out)
+    dragon, owned = dragon_and_owned(db, profile, now, rules)   # may persist a caught-up stage (see dragon_out)
     db.commit()
     return {
         "profile": to_out(profile), "xp": xp_block(db, pid, dragon["stage"], rules), "dragon": dragon,
@@ -333,7 +339,7 @@ def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends
                  "fights": len(rules.fights), "next": next_fight(rules.fights, levels, available, won) if tier_avail is None else None},
         "rewards_count": rewards_count,
         # Spec 2026-09-29 drachmes §1, §3: the purse and the highest house owned.
-        "drachmes": balance(db, pid), "house": house_of(owned_ids(db, pid)),
+        "drachmes": balance(db, pid), "house": house_of(owned),
         "small_tricks": small_tricks(db, pid),
     }
 

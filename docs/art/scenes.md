@@ -46,6 +46,8 @@ the right (Éris's direction).
 
 Weekly-goal banner: open sky at x 40–65, y 8–18.
 
+The web copy carries Hermès's stall (`assets/art/scenes/hub_camp_stall.png`, box x 10.5-21.8 %, y 20.8-44.8 %; sub-project 4).
+
 ## nest: the dragon's nest
 
 A woven nest in a rock hollow on a sea cliff at sunset. The middle of the straw bed is empty.

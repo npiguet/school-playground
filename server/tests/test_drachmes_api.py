@@ -72,8 +72,10 @@ def test_a_seal_and_the_week_pay_their_drachmes(client, settings):
     p = post(client, pid, tid, hydre_result(), day="2026-09-23")["progression"]      # the Hydra's wooden seal, the week's third
     assert {"reason": "level", "amount": 10, "lieutenant": "hydre", "level": 1} in p["drachmes"]["parts"]
     assert {"reason": "weekly", "amount": 5} in p["drachmes"]["parts"]
-    session_refs = {ref for _a, reason, ref in ledger(settings, pid) if reason in ("level", "weekly")}
-    assert len(session_refs) == 1 and next(iter(session_refs)).startswith("session:")
+    rows = ledger(settings, pid)
+    last_session = [ref for _a, reason, ref in rows if reason == "session"][-1]
+    assert last_session.startswith("session:")
+    assert {ref for _a, reason, ref in rows if reason in ("level", "weekly")} == {last_session}
 
 
 def test_a_board_quest_pays_five(client):
@@ -160,6 +162,24 @@ def test_purchases_racing_never_overdraw(client, settings):
     assert camp(client, pid)["drachmes"] == 20 and sum(a for a, _r, _ref in ledger(settings, pid)) == 20
 
 
+def test_a_session_and_a_purchase_posted_together_keep_the_ledger_whole(client, settings):
+    pid = make_profile(client, level="10H"); tid = make_text(client)
+    purse(settings, pid, 50)
+    seal(settings, pid, "hydre", 2)
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        sale = ex.submit(lambda: buy(client, pid, "accessory:hydre-cou"))
+        session = ex.submit(lambda: post(client, pid, tid, hydre_result(), day="2026-09-21"))
+        assert sale.result().status_code == 201
+        earned = session.result()["progression"]["drachmes"]["earned"]
+    rows = ledger(settings, pid)
+    assert sum(a for a, _r, _ref in rows) == 50 + earned - 40
+    assert camp(client, pid)["drachmes"] == 50 + earned - 40 >= 0
+    running = 0
+    for amount, _reason, _ref in rows:
+        running += amount
+        assert running >= 0
+
+
 # Review focus 4.
 def test_one_accessory_per_slot(client, settings):
     pid = make_profile(client, level="10H")
@@ -193,7 +213,8 @@ def test_the_walls_hold_four_six_or_nine_pieces_by_house(client, settings):
     assert (wear(client, pid, QUEST_DECOR[4]).status_code, wear(client, pid, QUEST_DECOR[4]).json()["detail"]) == (409, WALLS_FULL)
     own(settings, pid, "house:villa")
     assert wear(client, pid, QUEST_DECOR[4]).status_code == 200 and wear(client, pid, SHOP_DECOR[0]).status_code == 200
-    assert wear(client, pid, SHOP_DECOR[1]).status_code == 409                         # the seventh, in the villa
+    r = wear(client, pid, SHOP_DECOR[1])                                               # the seventh, in the villa
+    assert (r.status_code, r.json()["detail"]) == (409, WALLS_FULL)
     own(settings, pid, "house:palais")
     for d in SHOP_DECOR[1:]:
         assert wear(client, pid, d).status_code == 200                                 # nine in the palais

@@ -73,12 +73,20 @@ describe('art map', () => {
     expect(ART.scenes.warTent).toBe('/art/scenes/war_tent.webp');
     expect(ART.scenes.nest).toBe('/art/scenes/nest.webp');
     expect(ART.scenes.cabin).toBe('/art/scenes/cabin.webp');
-    expect(ART.characters).toEqual({ pythia: '/art/characters/pythia_cut.webp', owl: '/art/characters/owl_cut.webp' });
+    expect(ART.characters).toEqual({ pythia: '/art/characters/pythia_cut.webp', owl: '/art/characters/owl_cut.webp', hermes: '/art/characters/hermes_cut.webp' });
+    expect([ART.scenes.villa, ART.scenes.palais]).toEqual(['/art/scenes/villa.webp', '/art/scenes/palais.webp']);
     expect(ART.props).toEqual({
       votiveTablets: '/art/props/votive_tablets_cut.webp',
       codexLectern: '/art/props/codex_lectern_cut.webp',
       trophyShelf: '/art/props/trophy_shelf_cut.webp',
     });
+  });
+
+  it('ships the camp with Hermès\'s stall in place of the old one, and Hermès within budget (spec 2026-09-29 drachmes §2)', () => {
+    expect(ART.scenes.hubCamp).toBe('/art/scenes/hub_camp.webp');
+    expect(existsSync('public/art/scenes/hub_camp_stall.webp')).toBe(false);
+    expect(statSync('public' + ART.characters.hermes).size).toBeLessThanOrEqual(80 * 1024);
+    for (const id of ['amphore', 'chouette', 'mosaique', 'bouclier']) expect(statSync(`public/art/icons/decor-${id}.webp`).size, id).toBeLessThanOrEqual(20 * 1024);
   });
 
   it('ships the overlay textures and objects within their budgets (immersion wave W3)', () => {
@@ -96,9 +104,9 @@ describe('art map', () => {
     expect(PLACE_ICONS).toEqual({ portal: '/art/icons/portal-arch.webp' });
   });
 
-  it('maps the 31 painted icons, each within its own budget (UI3 Ruling A12)', () => {
+  it('maps the 36 painted icons, each within its own budget (UI3 Ruling A12)', () => {
     const icons = flat(ART.icons);
-    expect(icons).toHaveLength(31);
+    expect(icons).toHaveLength(36);
     for (const p of icons) expect(statSync('public' + p).size, p).toBeLessThanOrEqual(60 * 1024);
     expect(icons.reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThanOrEqual(1.5 * 1024 * 1024);
     const onDisk = readdirSync('public/art/icons').filter((f) => f.endsWith('.webp')).map((f) => `/art/icons/${f}`);
@@ -108,16 +116,18 @@ describe('art map', () => {
     expect(Object.keys(TOOL_ICONS)).toEqual(['persee', 'athena', 'ariane', 'argus', 'palamede']);
     expect(ART.emblems.palamede).toBe('/art/emblems/palamede_cut.webp');
     expect(Object.keys(ADD_ICONS)).toEqual(['text', 'scan', 'alexandria']);
-    expect(MARK_ICONS).toEqual({ oracleSeal: '/art/icons/seal-oracle.webp', lock: '/art/icons/lock.webp' });
+    expect(MARK_ICONS).toEqual({ oracleSeal: '/art/icons/seal-oracle.webp', lock: '/art/icons/lock.webp', drachme: '/art/icons/drachme.webp' });
   });
 
   it('has a painted icon for every gear and decor reward of the server catalog, and a trophy per lieutenant and seal', () => {
     const py = readFileSync('../server/app/world/catalog.py', 'utf-8');
     const ids = [...py.matchAll(/_r\("([^"]+)", "(gear|decor)"/g)].map((m) => m[1]);
-    expect(ids).toHaveLength(8);
+    expect(ids).toHaveLength(12);
     expect(Object.keys(REWARD_ICONS).sort()).toEqual([...ids].sort());
     expect(py).not.toMatch(/"relic"/);
     expect(rewardIcon('decor:lanterne')).toBe('/art/icons/decor-lanterne.webp');
+    expect(rewardIcon('decor:mosaique')).toBe('/art/icons/decor-mosaique.webp');
+    expect([rewardKindOf('accessory:hydre-cou'), rewardKindOf('house:villa')]).toEqual(['accessory', 'house']);
     expect(rewardIcon('sandales_hermes')).toBe('/art/icons/sandales_hermes.webp');
     expect(rewardIcon('tint:ecume')).toBeNull();
     expect([rewardKindOf('tint:jade'), rewardKindOf('decor:tapis'), rewardKindOf('egide'), rewardKindOf('trophy:hydre:1')]).toEqual(['tint', 'decor', 'gear', 'trophy']);
@@ -168,7 +178,7 @@ describe('reward kinds before the catalog has loaded (final review M6)', () => {
   it('guesses the same kind as the server catalog for every reward', () => {
     const source = readFileSync('../server/app/world/catalog.py', 'utf-8');
     const rewards = [...source.matchAll(/_r\("([^"]+)", "([a-z]+)"/g)].map((m) => [m[1], m[2]]);
-    expect(rewards).toHaveLength(13);
+    expect(rewards).toHaveLength(19);
     for (const [id, kind] of rewards) expect(rewardKindOf(id), id).toBe(kind);
     for (const k of LIEUTENANT_ORDER) for (const l of [1, 2, 3, 4, 5]) expect(rewardKindOf(`trophy:${k}:${l}`)).toBe('trophy');
   });

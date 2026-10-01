@@ -47,6 +47,11 @@ const HOW_TO_WIN: Record<string, string> = {
   'decor:bibliotheque': 'Termine six quêtes du mur pour la gagner.',
   'decor:trophee': 'Termine huit quêtes du mur pour le gagner.',
   'decor:fresque': "Termine une sixième quête de l'Oracle pour la gagner.",
+  // Spec 2026-09-29 drachmes §2: Hermès's decor, bought at his stall.
+  'decor:amphore': 'Hermès la vend à son étal.',
+  'decor:chouette': 'Hermès la vend à son étal.',
+  'decor:mosaique': 'Hermès la vend à son étal.',
+  'decor:bouclier': 'Hermès le vend à son étal.',
 };
 
 /** How to win a reward, as a sentence to the player (the catalog's own words for an unknown id). */

@@ -15,7 +15,7 @@ export type Tint = 'bronze' | 'ecume' | 'olivier' | 'braise' | 'jade' | 'argent'
 export type QuestKind = 'board' | 'oracle' | 'boss';
 export type QuestStatus = 'active' | 'done' | 'shelved' | 'expired';
 export type ScrollKey = 'faible' | 'ecole' | 'destin';
-export type RewardKind = 'trophy' | 'tint' | 'gear' | 'decor';
+export type RewardKind = 'trophy' | 'tint' | 'gear' | 'decor' | 'accessory' | 'house';
 
 export interface WorldCatalog {
   lieutenants: {

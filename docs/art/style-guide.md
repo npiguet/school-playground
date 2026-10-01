@@ -451,7 +451,8 @@ what was rejected: `krea2` skill "Phase 3 recipes (progression redesign)", `art-
 "Phase 3 exports". The web copies are staged under `assets/art/export/` (not `web/public/art/`);
 the code task that wires each asset moves it. The trophies are wired: `web/public/art/trophies/` (256 px) and
 `web/public/art/trophies/large/` (512 px), sub-project 2. Contact sheets: `docs/art/trophies-sheet.png`,
-`docs/art/phase3-sheet.png`.
+`docs/art/phase3-sheet.png`. The camp with the stall is wired in place of `web/public/art/scenes/hub_camp.webp`; the villa,
+the palais, Hermès and the five icons are in `web/public/art/` (sub-project 4).
 
 **Trophies** `assets/art/trophies/trophy-<lt>-<L>.png` (+ `_cut`, sidecar), 1024², style
 `discorde-inked-clean`, `--vscale 1.0`, 8 steps. Prompt: the icon composition sentence (§5 Icons)

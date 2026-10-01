@@ -18,6 +18,11 @@ export const REWARD_ICONS: Record<string, string> = {
   'decor:bibliotheque': icon('decor-bibliotheque'),
   'decor:trophee': icon('decor-trophee'),
   'decor:fresque': icon('decor-fresque'),
+  // Spec 2026-09-29 drachmes §2: Hermès's four pieces.
+  'decor:amphore': icon('decor-amphore'),
+  'decor:chouette': icon('decor-chouette'),
+  'decor:mosaique': icon('decor-mosaique'),
+  'decor:bouclier': icon('decor-bouclier'),
 };
 
 /** The hero emblems (was AVATAR_GLYPHS, UI3 Ruling A13). */
@@ -56,10 +61,11 @@ export const ADD_ICONS = {
   alexandria: icon('add-alexandria'),
 } as const;
 
-/** Small marks: the Oracle's wax seal, a padlock. */
+/** Small marks: the Oracle's wax seal, a padlock, the drachme coin (spec 2026-09-29 drachmes §1). */
 export const MARK_ICONS = {
   oracleSeal: icon('seal-oracle'),
   lock: icon('lock'),
+  drachme: icon('drachme'),
 } as const;
 
 /** Place plaques that carry a painted icon but are not one of the three ways in (UI3a playability #20). */
@@ -111,6 +117,8 @@ export const ART = {
   characters: {
     pythia: '/art/characters/pythia_cut.webp',
     owl: '/art/characters/owl_cut.webp',
+    // Spec 2026-09-29 drachmes §2: Hermès at his stall.
+    hermes: '/art/characters/hermes_cut.webp',
   },
   // Not referenced yet on purpose (final review M7): UI3b's inputs for the war tent's codex
   // lectern, the cabin's trophy shelf and a closer view of Delphi's tablets.
@@ -160,12 +168,16 @@ export const ART = {
     erisLair: '/art/scenes/eris_lair.webp',
     // UI2 scenes (2048×1152), one per place (docs/art/scenes.md).
     titleGates: '/art/scenes/title_gates.webp',
+    // The camp with Hermès's stall painted in (spec 2026-09-29 drachmes §2).
     hubCamp: '/art/scenes/hub_camp.webp',
     nest: '/art/scenes/nest.webp',
     delphi: '/art/scenes/delphi.webp',
     libraryTent: '/art/scenes/library_tent.webp',
     warTent: '/art/scenes/war_tent.webp',
     cabin: '/art/scenes/cabin.webp',
+    // Spec 2026-09-29 drachmes §3: the houses bought from Hermès, the cabin's room plan.
+    villa: '/art/scenes/villa.webp',
+    palais: '/art/scenes/palais.webp',
   },
 } as const;
 
@@ -219,5 +231,7 @@ export function rewardKindOf(id: string, catalog?: WorldCatalog | null): RewardK
   if (id.startsWith('trophy:')) return 'trophy';
   if (id.startsWith('tint:')) return 'tint';
   if (id.startsWith('decor:')) return 'decor';
+  if (id.startsWith('accessory:')) return 'accessory';
+  if (id.startsWith('house:')) return 'house';
   return 'gear';
 }

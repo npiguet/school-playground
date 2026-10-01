@@ -10,5 +10,5 @@ CREATE TABLE drachme_event (
   created_at TEXT NOT NULL);
 CREATE INDEX drachme_event_profile ON drachme_event(profile_id);
 INSERT INTO drachme_event(profile_id, amount, reason, ref, created_at)
-  SELECT profile_id, SUM(amount) / 10, 'grant', NULL, strftime('%Y-%m-%dT%H:%M:%S+00:00', 'now')
+  SELECT profile_id, SUM(amount) / 10, 'grant', NULL, strftime('%Y-%m-%dT%H:%M:%f+00:00', 'now')
   FROM xp_event GROUP BY profile_id HAVING SUM(amount) >= 10;

@@ -37,6 +37,8 @@ describe('reward words', () => {
     const tints = ['ecume', 'olivier', 'braise', 'jade', 'argent'].map((t) => `tint:${t}`);
     expect([...HOW_TO_WIN_IDS].sort()).toEqual([...Object.keys(REWARD_ICONS), ...tints].sort());
     expect(howToWin('sandales_hermes', '')).toBe('Bats Éris une première fois pour les gagner.');
+    expect(howToWin('decor:bouclier', '')).toBe('Hermès le vend à son étal.');
+    expect(howToWin('decor:chouette', '')).toBe('Hermès la vend à son étal.');
     expect(howToWin('decor:new', 'Dix quêtes du mur')).toBe('À gagner\u202f: dix quêtes du mur.');
     for (const id of HOW_TO_WIN_IDS) expect(howToWin(id, '')).not.toMatch(/Comment l'obtenir|Neutraliser|Vaincre/);
   });
