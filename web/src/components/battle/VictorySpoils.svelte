@@ -41,7 +41,7 @@
   const XP_PARTS = ['text', 'pace', 'aids', 'prophecy'] as const;
 
   // Spec 2026-09-29 lieutenant levels §5 (R16): the seals this session won, read once on mount (a
-  // victory saved before the change shows its neutralisations as their wooden seals).
+  // victory saved before the change shows its old `neutralised` keys as their wooden seals).
   const ups = levelUps(untrack(() => progression));
 
   // Boss card: the treasure Éris leaves behind, shown once, in her defeat's block.
@@ -121,8 +121,8 @@
 
   // Rewards not already shown by the quest cards (their own `reward_id`), the seal cards (every trophy
   // comes from a seal this session; a victory saved before the change may still carry a relic: its
-  // seal card shows it as the wooden trophy) or the boss
-  // block (its treasure, shown once with Éris's defeat: UI4 playability #4).
+  // seal card shows it as the wooden trophy) or the boss block (its treasure, shown once with Éris's
+  // defeat: UI4 playability #4).
   const shownRewardIds = $derived(
     new Set(progression.quests.filter((q) => q.completed && q.reward_id).map((q) => q.reward_id as string)),
   );

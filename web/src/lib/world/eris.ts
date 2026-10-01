@@ -45,7 +45,7 @@ export function genderFor(key: LieutenantKey): Gender {
   return GENDER[key];
 }
 
-/** Agrees a past-participle/adjective stem (e.g. "neutralisé") with a lieutenant's gender:
+/** Agrees a past-participle/adjective stem (e.g. "croisé") with a lieutenant's gender:
  *  "-e" feminine, "-es" feminine plural, unchanged masculine. */
 export function agree(base: string, key: LieutenantKey): string {
   const g = GENDER[key];

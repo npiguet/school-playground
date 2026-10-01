@@ -17,7 +17,7 @@ def test_world_catalog(client):
     assert w["boss_rewards"]["1"] == "sandales_hermes"
     assert [s["key"] for s in w["stages"]] == ["egg", "hatchling", "young", "adult", "illustre", "ancestral"]
     assert "ranks" not in w
-    # I7: the client's French agreement (chips, "Neutralisée", "C'est celle-là", ...) derives from
+    # I7: the client's French agreement (« Pas encore croisée », "C'est celle-là", ...) derives from
     # this narrative gender - l'Hydre/Écho/la Chimère/Léthé are feminine, les Sirènes feminine
     # plural, Protée alone masculine.
     genders = {l["key"]: l["gender"] for l in w["lieutenants"]}

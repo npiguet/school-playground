@@ -101,6 +101,25 @@ def test_the_world_catalog_serves_the_defaults_without_a_file(client):
     assert client.get("/api/world").json()["rules"] == DEFAULTS
 
 
+# The served example is shared with the client: web/src/lib/rules.test.ts parses the same `served`
+# block as its GameRules, so the two sides cannot drift apart (seals as a list of five
+# {days, chances, correct}, fights as {level, count: number | "all"}).
+WORLD_RULES_EXAMPLE = Path(__file__).parent / "fixtures" / "rules" / "world_rules.json"
+
+
+def test_the_world_catalog_serves_the_seals_and_fights_in_the_clients_shape(settings):
+    example = json.loads(WORLD_RULES_EXAMPLE.read_text(encoding="utf-8"))
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    (settings.data_dir / RULES_FILENAME).write_text(json.dumps(example["regles"]), encoding="utf-8")
+    with TestClient(create_app(settings)) as c:
+        served = c.get("/api/world").json()["rules"]
+    assert served == example["served"]
+    assert all(set(s) == {"days", "chances", "correct"} and type(s["days"]) is int and type(s["chances"]) is int
+               and type(s["correct"]) is float for s in served["levels"])
+    assert all(set(f) == {"level", "count"} and type(f["level"]) is int and (f["count"] == "all" or type(f["count"]) is int)
+               for f in served["fights"])
+
+
 # Spec 2026-09-29 dragon growth §1: the thresholds live in the rules file, with the same fallback rules.
 def test_the_built_in_stages_mirror_the_spec():
     assert DEFAULT_STAGE_XP == STAGE_DEFAULTS

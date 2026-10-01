@@ -45,6 +45,20 @@
   // The close view: one lieutenant's trophies at a time (R15).
   let openKey = $state<LieutenantKey | null>(null);
 
+  // The close view sits under the whole row, far from its plinth: it takes the focus when it opens
+  // (scrolling into view), and its plinth takes the focus back when it closes it. Done in the tap,
+  // not on the sheet's removal: WebKit does not focus a tapped button (nothing to remember), and
+  // the shelf closing must leave the focus to the overlay's own return.
+  function takeFocus(node: HTMLElement) {
+    node.focus();
+  }
+
+  function togglePlinth(key: LieutenantKey, button: HTMLButtonElement) {
+    const closing = openKey === key;
+    openKey = closing ? null : key;
+    if (closing) button.focus();
+  }
+
   function trophyName(key: LieutenantKey, level: number): string {
     return campStore.catalog?.rewards[trophyId(key, level)]?.name ?? sealTitleOf(key, level);
   }
@@ -109,8 +123,8 @@
               type="button"
               class="plinth-open"
               aria-expanded={openKey === key}
-              aria-controls="trophy-close-{key}"
-              onclick={() => (openKey = openKey === key ? null : key)}
+              aria-controls={openKey === key ? `trophy-close-${key}` : undefined}
+              onclick={(e) => togglePlinth(key, e.currentTarget)}
             >
               <img class="plinth-art" src={trophyIcon(key, top)} alt="" draggable="false" />
               <span class="trophy-name">{trophyName(key, top)}</span>
@@ -127,7 +141,17 @@
     {#if openKey && (highest[openKey] ?? 0) > 0}
       {@const key = openKey}
       {@const top = highest[key] ?? 0}
-      <div class="kit-sheet trophy-close" id="trophy-close-{key}" data-testid="cabin-trophy-close-{key}">
+      <!-- Keyed on the lieutenant, so another plinth's sheet takes the focus too (takeFocus). -->
+      {#key key}
+      <div
+        class="kit-sheet trophy-close"
+        id="trophy-close-{key}"
+        data-testid="cabin-trophy-close-{key}"
+        role="region"
+        aria-label={trophyName(key, top)}
+        tabindex="-1"
+        use:takeFocus
+      >
         <img class="close-art" src={trophyIcon(key, top, true)} alt={trophyName(key, top)} draggable="false" />
         <div class="close-words">
           <h4>{trophyName(key, top)}</h4>
@@ -142,6 +166,7 @@
           {/if}
         </div>
       </div>
+      {/key}
     {/if}
   </section>
 

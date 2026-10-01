@@ -94,23 +94,15 @@ describe('French gender agreement (I7)', () => {
     expect(genderFor('lethe')).toBe('f');
   });
 
-  it('agrees a participle/adjective with each gender', () => {
-    expect(agree('Neutralisé', 'hydre')).toBe('Neutralisée');
-    expect(agree('Neutralisé', 'protee')).toBe('Neutralisé');
-    expect(agree('Neutralisé', 'sirenes')).toBe('Neutralisées');
-  });
-
-  // P1-1 (SP3 playability): the progression reveal's neutralisation card hard-coded "neutralisé"
-  // ("L'Hydre — neutralisé !"), which is wrong for every feminine/plural lieutenant. It now builds
-  // the line with `agree()`, lower-case base like the dossier/lieutenant page - covered directly
-  // since battle/VictorySpoils.svelte has no component test in this codebase (pure functions only).
-  it('agrees the reveal neutralisation line for every lieutenant', () => {
-    expect(agree('neutralisé', 'hydre')).toBe('neutralisée');
-    expect(agree('neutralisé', 'echo')).toBe('neutralisée');
-    expect(agree('neutralisé', 'chimere')).toBe('neutralisée');
-    expect(agree('neutralisé', 'lethe')).toBe('neutralisée');
-    expect(agree('neutralisé', 'sirenes')).toBe('neutralisées');
-    expect(agree('neutralisé', 'protee')).toBe('neutralisé');
+  // A participle agrees with every lieutenant: the war tent's « Pas encore croisée. » (sealProgressLine)
+  // and the battle's « montrée » are built with `agree()`.
+  it('agrees a participle with every lieutenant', () => {
+    expect(agree('Croisé', 'hydre')).toBe('Croisée');
+    expect(agree('croisé', 'echo')).toBe('croisée');
+    expect(agree('croisé', 'chimere')).toBe('croisée');
+    expect(agree('croisé', 'lethe')).toBe('croisée');
+    expect(agree('croisé', 'sirenes')).toBe('croisées');
+    expect(agree('croisé', 'protee')).toBe('croisé');
   });
 
   it('picks the right stressed pronoun after "contre"', () => {

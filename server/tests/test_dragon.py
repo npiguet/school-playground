@@ -88,7 +88,7 @@ def test_a_session_hatches_the_egg_at_100_xp_and_reports_the_gauge(client, setti
 
 
 def test_the_weeks_bonus_counts_toward_the_stage(settings):
-    # R2: the stage is grown after every XP of the session. Same day, so no neutralisation: 54, 108,
+    # R2: the stage is grown after every XP of the session. Same day, so no seal: 54, 108,
     # then 162 + the week's 40 = 202 crosses a hatchling threshold of 200 only thanks to the week.
     with app_with_rules(settings, '{"dragon_stages": {"hatchling": 200}}') as c:
         pid = make_profile(c, level="10H"); tid = make_text(c)
@@ -107,7 +107,7 @@ def test_thresholds_come_from_the_rules_file_and_the_world_serves_them(settings)
         assert p["dragon"]["stage_after"] == "hatchling" and (p["xp"]["floor"], p["xp"]["next"]) == (50, 1200)
 
 
-# Spec §4: an existing profile keeps its stored stage (here one grown from neutralisations before).
+# Spec §4: an existing profile keeps its stored stage (here one grown under the rules before).
 def test_a_stored_adult_stays_adult_with_little_xp(client, settings):
     pid = make_profile(client, level="10H"); tid = make_text(client)
     client.get(f"/api/profiles/{pid}/camp")            # creates the dragon's row
@@ -158,7 +158,7 @@ def test_a_hand_edited_stage_normalised_to_egg_clears_hatched_at(client, setting
 
 
 def test_the_camp_gauge_follows_the_stored_stage(client, settings):
-    # R3: a stage grown before (from neutralisations) reads an empty gauge on its own scale.
+    # R3: a stage grown before (under the old rules) reads an empty gauge on its own scale.
     pid = make_profile(client, level="10H")
     client.get(f"/api/profiles/{pid}/camp")
     set_stage(settings, pid, "adult"); give_xp(settings, pid, 300)

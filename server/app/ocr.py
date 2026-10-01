@@ -159,7 +159,7 @@ def assemble(words: list[OcrWord], is_known: Callable[[str], bool] | None = None
 
 _QUOTE_SINGLE_RE = re.compile(r"[’‘ʼ]")
 _QUOTE_DOUBLE_RE = re.compile(r"[“”„]")
-_NBSP_RE = re.compile(r"[  ]")
+_NBSP_RE = re.compile(r"[\u00a0\u202f]")
 _GUILLEMET_OPEN_RE = re.compile(r"«\s*")
 _GUILLEMET_CLOSE_RE = re.compile(r"\s*»")
 _SPACE_BEFORE_COMMA_DOT_RE = re.compile(r"\s+([,.])")

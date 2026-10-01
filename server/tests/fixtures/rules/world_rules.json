@@ -1,0 +1,27 @@
+{
+  "regles": {
+    "chouette_hints": 2,
+    "levels": {"1": {"days": 2, "chances": 10, "correct": 1}, "3": {"chances": 50}},
+    "fights": [{"level": 1, "count": 3}, {"level": 2, "count": "all"}, {"level": 5, "count": 1}]
+  },
+  "served": {
+    "quest_min_chances": 3,
+    "quest_min_correct": 0.85,
+    "fight_max_per_100": 4.0,
+    "copy_belle_max_per_100": 2.0,
+    "copy_correcte_max_per_100": 8.0,
+    "aid_bonus": 0.2,
+    "pace_bonus": {"1": 0.0, "2": 0.25, "3": 0.5},
+    "prophecy_bonus": 0.5,
+    "chouette_hints": 2,
+    "dragon_stages": {"egg": 0, "hatchling": 100, "young": 1200, "adult": 5000, "illustre": 15000, "ancestral": 40000},
+    "levels": [
+      {"days": 2, "chances": 10, "correct": 1.0},
+      {"days": 4, "chances": 25, "correct": 0.88},
+      {"days": 6, "chances": 50, "correct": 0.91},
+      {"days": 8, "chances": 70, "correct": 0.94},
+      {"days": 10, "chances": 100, "correct": 0.97}
+    ],
+    "fights": [{"level": 1, "count": 3}, {"level": 2, "count": "all"}, {"level": 5, "count": 1}]
+  }
+}

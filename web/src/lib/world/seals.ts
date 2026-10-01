@@ -151,8 +151,8 @@ export interface LevelUp {
   reward_id: string;
 }
 
-/** The seals a victory reveals; a victory saved before the change reveals its neutralisations as the
- *  wooden seals they became (migration 006). */
+/** The seals a victory reveals; a victory saved before the change reveals its old `neutralised` keys
+ *  as the wooden seals they became (migration 006). */
 export function levelUps(p: { levels?: { lieutenant: string; level: number; reward_id: string }[]; neutralised?: string[] }): LevelUp[] {
   const ups = p.levels ?? (p.neutralised ?? []).map((k) => ({ lieutenant: k, level: 1, reward_id: trophyId(k, 1) }));
   return ups.filter((u): u is LevelUp => isKey(u.lieutenant));
@@ -171,7 +171,7 @@ const CHIP_LABELS: Record<string, string> = {
   weekly: 'Objectif de la semaine',
   // A seal's bonus without its lieutenant (never sent by the server): never the raw key.
   level: 'Sceau',
-  // A victory saved before the seals: its neutralisation's bonus was the first seal's.
+  // A victory saved before the seals: its old bonus (now the first seal's).
   mastery: 'Premier sceau',
 };
 

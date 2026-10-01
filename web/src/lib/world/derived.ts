@@ -1,7 +1,7 @@
 // Client-side derived stat categories (SP3 decision 2): `derived:sirenes` and `derived:lethe`
 // ride on the existing SP1 grading pipeline unchanged - the server just stores whatever keys
 // show up in `result.byCategory`. Pure functions, no API calls, so this file works today even
-// though the server-side lieutenant/mastery endpoints (SP3 Tasks 2-3) aren't merged yet.
+// on the server side: the server only stores the keys and reads them per lieutenant.
 import { errorKey, gradeText, mapAnnotation } from '../grading';
 import type { Annotation, AnnotToken, CategoryStat, Chain, SessionResult, TokenError } from '../grading/types';
 

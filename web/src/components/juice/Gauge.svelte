@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Rounded progress bar (XP toward the dragon's next stage, weekly goal, mastery windows, ...).
+  // Rounded progress bar (XP toward the dragon's next stage, weekly goal, seal windows, ...).
   // Olive fill always - orange is Éris's sabotage colour and never used for the
   // player's own progress (spec §2 "orange rather than red"). Spans only, so it can sit inside a
   // button or a phrasing context (the nest's growth sheet, QuestCard).

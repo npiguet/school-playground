@@ -1,9 +1,10 @@
 """The game's tunable rules (spec 2026-09-29 §7): `regles.json` in the game's data folder (the NAS's
 `./data`), read once at start-up. Every key is optional: a missing key keeps its built-in default,
 and a malformed file or a value of the wrong type is logged and ignored, so a typo never stops the
-game. GET /api/world serves them to the client (the copy line, the bonuses, the owl's hints); the
-dragon's stage thresholds (`dragon_stages`) are served as the world's stage table; the seals'
-thresholds (`levels`) and Éris's ladder (`fights`) are read by the server only."""
+game. GET /api/world serves them to the client (the copy line, the bonuses, the owl's hints, the
+seals' thresholds `levels` for the shelf's words, Éris's ladder `fights`); the dragon's stage
+thresholds (`dragon_stages`) are also served as the world's stage table. The server alone decides
+the seals and opens the fights."""
 from __future__ import annotations
 import json
 import logging

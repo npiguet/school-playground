@@ -193,7 +193,7 @@ export async function createText(request: APIRequestContext, body: TextCreateInp
 }
 
 // Builds a minimal, valid SessionResult (mirrors web/src/lib/grading/types.ts) with every draft
-// error attributed to a single category, so SP3 world.spec.ts can drive quest/mastery progression
+// error attributed to a single category, so SP3 world.spec.ts can drive quest/seal progression
 // from the API without replaying a full dictation. `category` is a StatKey (e.g. 'agreement:verb',
 // 'homophone') - the one lieutenant category the caller wants to move.
 export function makeResult(o: { words?: number; draft?: number; caught?: number; left?: number; category?: string }): object {
@@ -223,7 +223,7 @@ export function makeResult(o: { words?: number; draft?: number; caught?: number;
 export { swissDay } from '../src/testing/swissDay';
 
 // Posts a session straight to the API (bypassing dictation/proofreading), for specs that need to
-// drive quest/mastery/boss progression across many sessions or specific days (SP3 Decision 5's
+// drive quest/seal/boss progression across many sessions or specific days (SP3 Decision 5's
 // `X-Discorde-Day` test-clock header, enabled only via `DISCORDE_TEST_HOOKS=1` in
 // compose.e2e.yaml). Returns the parsed JSON response (with its `progression` block).
 export async function postSession(

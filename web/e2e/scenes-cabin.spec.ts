@@ -93,12 +93,17 @@ test('the shelf: each lieutenant its highest trophy, the lower ones in its close
   await tap(open, testInfo);
   await expect(open).toHaveAttribute('aria-expanded', 'true');
   const close = shelf.getByTestId('cabin-trophy-close-hydre');
+  // The sheet opens under the whole row: it takes the focus (and its plinth points at it).
+  await expect(close).toBeFocused();
+  await expect(open).toHaveAttribute('aria-controls', 'trophy-close-hydre');
   await expect(close.locator('img.close-art')).toHaveAttribute('src', '/art/trophies/large/trophy-hydre-2.webp');
   await expect(close).toContainText("Écaille de l'Hydre en bois");
   await expect(close.locator('img[src="/art/trophies/trophy-hydre-1.webp"]')).toBeVisible();
   await expect(shelf.getByTestId('overlay-voice')).toContainText('Il en reste 28 à gagner');
   await tap(open, testInfo);
   await expect(close).toHaveCount(0);
+  await expect(open).toBeFocused();
+  await expect(open).not.toHaveAttribute('aria-controls');
   expect(await redScan(page)).toEqual([]);
 });
 

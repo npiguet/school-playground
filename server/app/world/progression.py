@@ -145,7 +145,7 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
     total_after = xp_total(conn, pid)
     # 5. the dragon grows from the total XP (spec 2026-09-29 dragon growth §1), once every XP of this
     # session is in (its quests', its seals', the week's): stored = max(stored, stage for the XP),
-    # so a raised threshold or a restored backup never shrinks it. Neutralisation no longer drives it.
+    # so a raised threshold or a restored backup never shrinks it.
     thresholds = rules.dragon_stages
     dragon = ensure_dragon(conn, pid, now)
     stage_before = dragon["stage"] if stage_index(dragon["stage"]) >= 0 else "egg"

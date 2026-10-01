@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_RULES, copyVerdict, paceBonus, per100, prophecyBonusApplies, rulesOf } from './rules';
+import { readFileSync } from 'node:fs';
+import { DEFAULT_RULES, copyVerdict, paceBonus, per100, prophecyBonusApplies, rulesOf, type GameRules } from './rules';
+import { firstSealLine } from './world/seals';
 
 describe('the rules of the camp (spec 2026-09-29 §7)', () => {
   it('mirrors the server defaults', () => {
@@ -20,12 +22,12 @@ describe('the rules of the camp (spec 2026-09-29 §7)', () => {
         { days: 8, chances: 70, correct: 0.94 },
         { days: 10, chances: 100, correct: 0.97 },
       ],
-      fights: DEFAULT_RULES.fights,
+      fights: [
+        { level: 1, count: 2 }, { level: 1, count: 'all' }, { level: 2, count: 2 }, { level: 2, count: 'all' },
+        { level: 3, count: 2 }, { level: 3, count: 'all' }, { level: 4, count: 2 }, { level: 4, count: 'all' },
+        { level: 5, count: 2 }, { level: 5, count: 'all' },
+      ],
     });
-    expect(DEFAULT_RULES.levels[0]).toEqual({ days: 3, chances: 12, correct: 0.85 });
-    expect(DEFAULT_RULES.fights).toHaveLength(10);
-    expect(DEFAULT_RULES.fights[0]).toEqual({ level: 1, count: 2 });
-    expect(DEFAULT_RULES.fights[9]).toEqual({ level: 5, count: 'all' });
   });
 
   it("reads the server's rules from the world catalog, the defaults until it has come", () => {
@@ -33,6 +35,26 @@ describe('the rules of the camp (spec 2026-09-29 §7)', () => {
     expect(rulesOf({ rules: served })).toBe(served);
     expect(rulesOf(null)).toBe(DEFAULT_RULES);
     expect(rulesOf({})).toBe(DEFAULT_RULES);
+  });
+
+  it("reads the rules exactly as GET /api/world serves them (the server's own example)", () => {
+    // server/tests/test_rules.py checks the server serves this same block for the same regles.json.
+    const example = JSON.parse(readFileSync('../server/tests/fixtures/rules/world_rules.json', 'utf-8'));
+    const rules = rulesOf({ rules: example.served as GameRules });
+    for (const key of Object.keys(DEFAULT_RULES)) expect(rules, key).toHaveProperty(key);
+    expect(rules.levels).toHaveLength(5);
+    for (const need of rules.levels) {
+      expect(Object.keys(need).sort()).toEqual(['chances', 'correct', 'days']);
+      expect(Object.values(need).every((v) => typeof v === 'number')).toBe(true);
+    }
+    for (const f of rules.fights) {
+      expect(Object.keys(f).sort()).toEqual(['count', 'level']);
+      expect(typeof f.level).toBe('number');
+      expect(f.count === 'all' || typeof f.count === 'number').toBe(true);
+    }
+    expect(rules.fights).toEqual([{ level: 1, count: 3 }, { level: 2, count: 'all' }, { level: 5, count: 1 }]);
+    expect(firstSealLine(rules.levels[0])).toBe('Premier sceau\u202f: 2 jours de garde et 10 pièges, dont 100\u202f% déjoués.');
+    expect(rules.levels[2]).toEqual({ days: 6, chances: 50, correct: 0.91 });
   });
 
   it('counts the mistakes left per 100 words, never dividing by zero', () => {

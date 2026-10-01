@@ -22,7 +22,7 @@ def clean_text(text: str) -> str:
     s = text
     s = re.sub(r"[’‘ʼ]", "'", s)
     s = re.sub(r"[“”]", '"', s)
-    s = re.sub(r"[\xa0  ]", " ", s)
+    s = re.sub(r"[\xa0\u202f\u2009]", " ", s)
     s = re.sub(r"\[\d+\]", "", s)
     s = re.sub(r"\(\d+\)", "", s)
     s = re.sub(r"«\s*", "« ", s)

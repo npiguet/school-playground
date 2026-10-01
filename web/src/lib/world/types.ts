@@ -166,7 +166,7 @@ export interface Progression {
   /** Spec 2026-09-29 lieutenant levels §1: the seals this session won (absent from a victory saved
    *  before the change). */
   levels?: { lieutenant: string; level: number; reward_id: string }[];
-  /** A victory saved before the seals: the lieutenants it neutralised, now their wooden seal. */
+  /** A victory saved before the seals: its old `neutralised` keys, now their wooden seal. */
   neutralised?: string[];
   rewards: { id: string; kind: RewardKind; name: string }[];
   dragon: { stage_before: DragonStage; stage_after: DragonStage; needs_name: boolean };
