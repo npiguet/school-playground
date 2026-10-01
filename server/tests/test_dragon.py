@@ -75,13 +75,16 @@ def test_the_world_serves_the_stage_table(client):
     assert client.get("/api/world").json()["stages"] == STAGES
 
 
-def test_a_session_hatches_the_egg_at_100_xp_and_reports_the_gauge(client):
+def test_a_session_hatches_the_egg_at_100_xp_and_reports_the_gauge(client, settings):
     pid = make_profile(client, level="10H"); tid = make_text(client)
     first = post(client, pid, tid, hydre_result(), day="2026-09-21")["progression"]     # 54 XP
     assert first["dragon"]["stage_after"] == "egg" and (first["xp"]["floor"], first["xp"]["next"]) == (0, 100)
+    assert stored(settings, pid) == ("egg", None)
     second = post(client, pid, tid, hydre_result(), day="2026-09-22")["progression"]    # 108 XP
     assert second["dragon"] == {"stage_before": "egg", "stage_after": "hatchling", "needs_name": True}
     assert [second["xp"][k] for k in ("stage_before", "stage_after", "floor", "next")] == ["egg", "hatchling", 100, 1200]
+    stage, hatched_at = stored(settings, pid)      # the session path writes hatched_at when the dragon hatches
+    assert stage == "hatchling" and hatched_at is not None
 
 
 def test_the_weeks_bonus_counts_toward_the_stage(settings):
@@ -124,7 +127,7 @@ def test_a_profile_with_16000_xp_reads_illustre(client, settings):
     assert stage == "illustre" and hatched_at is not None
 
 
-def test_a_raised_threshold_or_a_restored_backup_never_shrinks_the_stage(settings):
+def test_a_raised_threshold_never_shrinks_the_stage(settings):
     with TestClient(create_app(settings)) as c:
         pid = make_profile(c, level="10H"); tid = make_text(c)
         give_xp(settings, pid, 1300)
@@ -141,4 +144,14 @@ def test_an_unknown_stored_stage_is_replaced_by_the_stage_for_the_xp(client, set
     set_stage(settings, pid, "dragonnet")               # a hand-edited row
     p = post(client, pid, tid, hydre_result())["progression"]
     assert p["dragon"]["stage_before"] == "egg" and p["dragon"]["stage_after"] == "egg"
+    assert stored(settings, pid) == ("egg", None)
+
+
+def test_a_hand_edited_stage_normalised_to_egg_clears_hatched_at(client, settings):
+    pid = make_profile(client, level="10H"); tid = make_text(client)
+    client.get(f"/api/profiles/{pid}/camp")
+    conn = db(settings)
+    conn.execute("UPDATE dragon SET stage = 'dragonnet', hatched_at = '2026-09-01T10:00:00+00:00' WHERE profile_id = ?", (pid,))
+    conn.commit(); conn.close()
+    post(client, pid, tid, hydre_result())
     assert stored(settings, pid) == ("egg", None)
