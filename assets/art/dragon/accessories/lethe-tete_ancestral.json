@@ -1,0 +1,126 @@
+{
+  "result": "tete_ancestral_s2960.png",
+  "generation": {
+    "prompt": "the head of an ancient wise dragon with large burnished bronze-gold scales like polished armour plates, calm amber eyes under heavy brows and very long sweeping ivory horns with silver tips, wearing a crown of poppies on top of its head between the horns: a slim circlet of polished bright silver that sits all around the top of the skull just above the brow, set all along with a ring of large bright scarlet-red poppy flowers with round black centres standing upright on it, small silver leaves and night-blue buds between the poppies, the crown's front edge sits just above the eyes, solid flowers and metal with no scales showing through, clean dark ink outline around the circlet and every poppy, (violet:-2) (purple:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.85,
+    "steps": 9,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 2960,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_ancestral.png",
+    "mask_file": "assets\\art\\dragon\\slots\\ancestral_tete.png"
+  },
+  "extract": {
+    "stage": "dragon_ancestral.png",
+    "slot_mask": "ancestral_tete.png",
+    "pos": [
+      [
+        700,
+        128
+      ],
+      [
+        675,
+        140
+      ],
+      [
+        685,
+        172
+      ],
+      [
+        768,
+        122
+      ],
+      [
+        800,
+        148
+      ],
+      [
+        738,
+        128
+      ],
+      [
+        745,
+        147
+      ],
+      [
+        720,
+        150
+      ]
+    ],
+    "neg": [
+      [
+        735,
+        182
+      ],
+      [
+        762,
+        168
+      ],
+      [
+        700,
+        92
+      ],
+      [
+        640,
+        172
+      ],
+      [
+        790,
+        182
+      ],
+      [
+        660,
+        120
+      ]
+    ],
+    "box": [
+      600,
+      70,
+      830,
+      200
+    ],
+    "hand_points": true,
+    "sam_mask": 2,
+    "diff": 28,
+    "novelty": 45,
+    "grow": 2,
+    "keep_white": true,
+    "max_hole": null,
+    "cuts": null
+  },
+  "clean_polys": [
+    "736,78 760,78 778,108 770,118 762,118 745,100 736,88",
+    "693,95 718,95 716,107 701,111 693,108",
+    "783,162 812,158 812,188 783,188",
+    "761,110 815,110 815,166 776,166 768,150 761,128"
+  ],
+  "clean_note": "overlay_clean.py erased these polygons (stage px) after extraction",
+  "note": "denoise 0.85, plain head slot, --keep-white (silver leaves); 2960 kept: a large poppy and a smaller one on a silver brow band with leaves and night-blue buds, between the horns. Polygons erased a redrawn ivory horn streak taken in by SAM, an olive skull patch above the big poppy, repainted skin below the right end, and the poppy cluster painted right of the near horn (it stood over the air beside the head once laid on the stage, as on every ancestral seed, cf. Protée's note). Rejected 2961 and 2962: poppies and a bud painted in the air beside and above the near horn.",
+  "raw_crop": [
+    588,
+    46,
+    836,
+    233
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}
