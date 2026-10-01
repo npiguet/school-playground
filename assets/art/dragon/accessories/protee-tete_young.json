@@ -183,7 +183,7 @@
       ]
     ]
   },
-  "note": "Seeds 2111-2113 at 0.85, kept 2111 (coral band following the skull between the horns, branches joined to it, pearls along the band; the model turned the stage's small red crest into the tallest coral branch, which covers it); 2112 band dipped onto the brow, 2113 branches rising above the near horn with their base hidden (would float). Extracted in one piece with --keep-white, --max-hole 30 and three --cut polygons for the repainted skull seen between the branches.",
+  "note": "Seeds 2111-2113 at 0.85, kept 2111 (coral band following the skull between the horns, branches joined to it, pearls along the band; the model turned the stage's small red crest into the tallest coral branch, which covers it); 2112 band dipped onto the brow, 2113 branches rising above the near horn with their base hidden (would float). Extracted in one piece with --keep-white, --max-hole 30 and three --cut polygons for the repainted skull seen between the branches. Clean-up (scratch scripts, recorded here): near-white pixels within 2 px of the outside dropped in the box 540,30-720,112 (white ground fringe around the branches, 98 px), pixels not red-dominant and not bright dropped in 540,30-720,124 (64 px), and a 74 px coral fleck floating right of the far horn (x 694-702, y 78-94) dropped.",
   "raw_crop": [
     438,
     1,

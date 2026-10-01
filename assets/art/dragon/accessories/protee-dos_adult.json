@@ -1,0 +1,138 @@
+{
+  "result": "r_dos_adult_s2231_2.png",
+  "generation": {
+    "prompt": "the back and shoulder of an adult bronze-gold dragon, wearing a sea harness on its back just behind the wing: a wide pad of overlapping glossy sea-green fish scales lying on the back like a short saddle blanket, two broad straps of the same sea-green scales running down around the chest and the belly, all edges trimmed with a thin row of small white pearls, one round mother-of-pearl shell medallion on the side with a red coral bead at its centre, the harness sits snugly on the back and follows its curve, clean dark ink outline around the harness.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.8,
+    "steps": 10,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 2232,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_adult.png",
+    "mask_file": "assets\\art\\dragon\\slots\\adult_dos.png"
+  },
+  "extract": {
+    "stage": "dragon_adult.png",
+    "slot_mask": "adult_dos.png",
+    "pos": [
+      [
+        415,
+        549
+      ],
+      [
+        465,
+        524
+      ],
+      [
+        515,
+        499
+      ],
+      [
+        440,
+        589
+      ],
+      [
+        490,
+        564
+      ],
+      [
+        509,
+        603
+      ],
+      [
+        380,
+        536
+      ],
+      [
+        542,
+        549
+      ]
+    ],
+    "neg": [
+      [
+        390,
+        599
+      ],
+      [
+        440,
+        624
+      ],
+      [
+        340,
+        574
+      ],
+      [
+        440,
+        504
+      ],
+      [
+        560,
+        584
+      ]
+    ],
+    "box": [
+      314,
+      464,
+      567,
+      647
+    ],
+    "hand_points": true,
+    "sam_mask": 0,
+    "diff": 28,
+    "novelty": 45,
+    "grow": 8,
+    "keep_white": true,
+    "max_hole": 40,
+    "cuts": [
+      [
+        [
+          400,
+          588
+        ],
+        [
+          440,
+          597
+        ],
+        [
+          470,
+          603
+        ],
+        [
+          480,
+          630
+        ],
+        [
+          400,
+          630
+        ]
+      ]
+    ]
+  },
+  "note": "Seeds 2231-2233 at 0.8, kept 2232 (the sea-green scale pad behind the wing with pearl trim and the medallion at its lower corner, the same shape as the young one); 2231 split into two flaps with the shoulder showing between them, 2233 a long S-shaped blanket. Extracted with --keep-white --max-hole 40 --grow 8 and one --cut polygon (a ragged strap end hanging below the pearl trim). The medallion's lower right edge is flat where the model's painting met the slot's edge (it was cut in the generated picture itself).",
+  "raw_crop": [
+    290,
+    440,
+    591,
+    671
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}

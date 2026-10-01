@@ -1,0 +1,123 @@
+{
+  "result": "r_tete_adult_s2211_1.png",
+  "generation": {
+    "prompt": "the head of an adult bronze-gold dragon with amber eyes and two long curved ivory horns, wearing a crown on top of its head between the horns: a solid band of polished deep red-orange coral around the top of the skull, tall branching red-orange coral spikes standing up from the band like the points of a crown, small round white pearls set along the band, the band is solid with no dragon scales showing through, the crown's front edge sits just above the eyes, clean dark ink outline around the coral crown, (open frame:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.85,
+    "steps": 9,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 2211,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_adult.png",
+    "mask_file": "assets\\art\\dragon\\slots\\adult_tete.png"
+  },
+  "extract": {
+    "stage": "dragon_adult.png",
+    "slot_mask": "adult_tete.png",
+    "pos": [
+      [
+        600,
+        110
+      ],
+      [
+        630,
+        108
+      ],
+      [
+        660,
+        110
+      ],
+      [
+        700,
+        112
+      ],
+      [
+        715,
+        118
+      ],
+      [
+        625,
+        52
+      ],
+      [
+        637,
+        60
+      ],
+      [
+        677,
+        72
+      ],
+      [
+        705,
+        50
+      ],
+      [
+        685,
+        40
+      ],
+      [
+        715,
+        62
+      ]
+    ],
+    "neg": [
+      [
+        662,
+        80
+      ],
+      [
+        707,
+        82
+      ],
+      [
+        680,
+        132
+      ],
+      [
+        630,
+        127
+      ]
+    ],
+    "box": [
+      512,
+      30,
+      735,
+      181
+    ],
+    "hand_points": true,
+    "sam_mask": 0,
+    "diff": 28,
+    "novelty": 45,
+    "grow": 2,
+    "keep_white": true,
+    "max_hole": 30,
+    "cuts": null
+  },
+  "note": "Seeds 2211-2213 at 0.85, kept 2211 (coral band across the skull below the near horn, a crown of branches standing behind the horn and above the brow, pearls on the band; the closest to the young crown); 2212 leaned its branches and dipped the band toward the eye, 2213 bunched all branches on the brow. Extracted in one piece with --keep-white --max-hole 30. Clean-up (scratch scripts, recorded here): greyish pixels (saturation < 0.25, max channel < 190) dropped in the box 600,25-735,99 (repainted grey ground between the branches), the polygon 708,121 722,117 735,112 735,145 708,145 erased (a redrawn brow edge hanging below the band's end), then near-white pixels within 2 px of the outside dropped in 600,25-735,99 (white fringe around the branches, 489 px).",
+  "raw_crop": [
+    488,
+    6,
+    759,
+    205
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}
