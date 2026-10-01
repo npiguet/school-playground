@@ -13,6 +13,13 @@
       "y": 0.25195,
       "w": 0.17578,
       "h": 0.07812
+    },
+    "illustre": {
+      "src": "chimere-cou_illustre.webp",
+      "x": 0.52734,
+      "y": 0.27832,
+      "w": 0.21387,
+      "h": 0.08887
     }
   },
   "chimere-queue": {
@@ -29,6 +36,13 @@
       "y": 0.71484,
       "w": 0.0752,
       "h": 0.0918
+    },
+    "illustre": {
+      "src": "chimere-queue_illustre.webp",
+      "x": 0.1084,
+      "y": 0.73633,
+      "w": 0.12891,
+      "h": 0.10449
     }
   },
   "chimere-dos": {
