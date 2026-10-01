@@ -303,3 +303,29 @@ seeds in `docs/art/style-guide.md`, "Accessories: protee").
 - The plume above the real horn and the brow band + clasp below it were extracted as two parts (each
   its own `--box`; negatives on the repainted skull dome and the brow) and merged: the horn, kept out
   of the mask, separates them, and the composite reads as a plume standing behind the horn.
+
+## Notes from Léthé's set, young and adult (2026-10-01): lanterns, brooches, traced parts
+
+Proven on the eight young and adult Léthé overlays (poppy collar, silver tail lantern, starry cape,
+poppy crown; seeds in `docs/art/style-guide.md`, "Accessories: lethe").
+
+- **A lantern on a chain needs the queue slot plus 40 px of room below** (`extmask.py <stage> queue 40`).
+  Even with it, the lantern was cut flat by the mask's bottom on 3 of 6 adult seeds. About one result in
+  three hangs the lantern off the tail's outer edge, over the air: that reads correctly and extracts more
+  cleanly than a lantern painted over the tail.
+- **A brooch at the edge of the dos slot gets cut**: on the adult the plain slot's right edge runs
+  through the shoulder where the model puts the brooch (5 of 6 seeds cut or dropped it). Inpaint and
+  extract on the slot grown 20-25 px, kept inside the stage silhouette (dilate the slot, AND the cut-out's
+  alpha > 8): 2 of 3 seeds then had a whole brooch.
+- **Trace a small part by hand when SAM keeps taking the tail around it**: a ring drawn as a cylinder (its
+  open top shows repainted tail) and a lantern in front of the tail came back with tail in every SAM mask.
+  Keep the result's pixels inside a polygon read off a 6-7x view with a 10 px grid, with the same edge as
+  `extract` (erode 1 px, blur 0.8 px), and merge the parts. About ten minutes per part, and exact. Record
+  the polygons in the sidecar.
+- **Bronze skin seen through chain rings**: drop warm pixels (R - B > 30 and R - G < 70, so a poppy's red
+  stays) in a small box around the rings only. Never on a crown with green stems or olive leaves: it ate
+  the wreath's stems and split it.
+- **Read point coordinates off small views.** The Read tool downscales a picture wider than about
+  1500-2000 px, so on a 3-4 tile review strip the grid labels and the pixels drift apart: positives read
+  off one missed the lantern by 25 px and SAM took the white ground. Place points on a single-tile view
+  under ~1000 px wide.
