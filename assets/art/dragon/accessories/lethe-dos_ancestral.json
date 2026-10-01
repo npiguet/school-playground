@@ -104,7 +104,7 @@
     "max_hole": null,
     "cuts": null
   },
-  "note": "denoise 0.8, --keep-white, inpainted and extracted on the dos slot grown 24 px inside the silhouette (growmask.py ancestral dos 24); 2943 kept (the same diagonal drape as the illustre's 2843, starry velvet, silver hem, poppy brooch on the shoulder). The brooch's right side was cut by the mask's edge: completed with rim2.py (ellipse centre 612,519, radius 12.5; missing pixels painted poppy red inside 0.72 of the radius, silver rim, dark ink outline); the raw is the result with the overlay's pixels pasted in (rawfix.py). Rejected 2944 (cape split in two), 2945 (brooch cut by the mask's right edge, cape a hanging sheet).",
+  "note": "denoise 0.8, --keep-white, inpainted and extracted on the dos slot grown 24 px inside the silhouette (growmask.py ancestral dos 24); 2943 kept (the same diagonal drape as the illustre's 2843, starry velvet, silver hem, poppy brooch on the shoulder). The brooch's right side was cut by the mask's edge: completed with tools/art/overlay_rim.py (INNER 0.72; ellipse centre 612,519, radius 12.5; missing pixels painted poppy red inside 0.72 of the radius, silver rim, dark ink outline); the raw is the result with the overlay's pixels pasted in (rawfix.py). Rejected 2944 (cape split in two), 2945 (brooch cut by the mask's right edge, cape a hanging sheet).",
   "raw_crop": [
     246,
     426,

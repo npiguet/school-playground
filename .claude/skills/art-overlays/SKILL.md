@@ -356,3 +356,28 @@ plume; seeds in `docs/art/style-guide.md`, "Accessories: sirenes").
 - **Whole feather straps cut by the slot**: on the illustre dos slot one of three harness seeds ended a
   strap flat at the slot's bottom edge mid-flank and one cut the medallion at the top edge. Prefer a seed
   whose strap ends in feather tips inside the slot over a closer match to the other stages' shape.
+
+## Notes from Léthé's set, illustre and ancestral (2026-10-02): tail bands, cut brooches
+
+Proven on the eight illustre and ancestral Léthé overlays (seeds in `docs/art/style-guide.md`,
+"Accessories: lethe"; reasons and rejected seeds in each sidecar's `note`).
+
+- **On the illustre and ancestral the queue slot's top edge crosses the tail**, and the model paints a tail
+  band across the tail's direction, so its outer end runs up into that edge: 9 of 9 illustre bands on the
+  stock slot (+ 40 px) or on a box starting at y 790 ended on the mask's straight edge, 10-25 px short of
+  the outer outline. Inpaint on the tail itself: `python tools/art/tailmask.py <stage> X0 Y0 X1 Y1 40 OUT`
+  (the cut-out's silhouette inside a box, dilated 6 px, united with itself shifted 40 px down). Start the
+  box high enough for the band's slant (illustre `112 762 235 870`: 2837 crossed the tail from the dorsal
+  fin to the inner outline; ancestral `112 795 232 875` was enough there: 2935). Keep the box's left edge
+  off a wing that passes behind the tail (illustre x < 112).
+- **A brooch cut 2-4 px by the mask's edge** (illustre 2843, ancestral 2943: grown dos slot, every other
+  seed worse) can be completed instead of rerolled: `tools/art/overlay_rim.py OV OUT cx cy rx ry [inner]`
+  paints the missing pixels inside the brooch's ellipse (poppy red inside `inner`, silver rim, dark ink
+  outline). Fit the ellipse to the brooch's intact rim on a 6-8x view; a radius 1-2 px too big draws a
+  grey crescent beyond the old rim. Then the raw is the result with the overlay's pixels pasted in.
+- **Poppy crowns on the ancestral head**: as with Protée's coral, every seed painted poppies right of the
+  near horn over the air (2960-2962); erase that cluster and keep the wreath between the horns. SAM also
+  took a streak of redrawn ivory horn above the big poppy: erase it by polygon.
+- **A collar band whose edge is the slot's own edge** (ancestral cou: most seeds a strip along the slot's
+  top edge): prefer a seed whose band slants and tapers at the neck's back edge (it reads as wrapping)
+  over a wide flat panel filling the slot (2900).

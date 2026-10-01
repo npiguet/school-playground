@@ -176,7 +176,7 @@
     }
   ],
   "cleanup": "dropwarm.py box 205 836 225 865 (bronze skin seen through the chain rings)",
-  "note": "denoise 0.75, --keep-white; band and lantern extracted as two parts (lantern --max-hole 30) and merged. Inpainting mask built by hand: the ancestral tail inside the box x 112-232, y 795-875, dilated 6 px, united with itself shifted 40 px down (the stock slot's top edge crosses the tail, so bands ended on it). 2935 kept: the band crosses the whole tail, the lantern hangs whole beside the inner outline. Rejected on the stock slot + 40 px: 2920 (lantern cut flat by the mask's bottom), 2921 (band short of the outer outline, lantern over the spines), 2922 (band along the slot's top edge); on this mask 2933 (band ends on the mask's top edge, lantern cut at the bottom), 2934 (lantern cut by the mask's right edge).",
+  "note": "denoise 0.75, --keep-white; band and lantern extracted as two parts (lantern --max-hole 30) and merged. Inpainting mask from tools/art/tailmask.py ancestral 112 795 232 875 40: the ancestral tail inside the box x 112-232, y 795-875, dilated 6 px, united with itself shifted 40 px down (the stock slot's top edge crosses the tail, so bands ended on it). 2935 kept: the band crosses the whole tail, the lantern hangs whole beside the inner outline. Rejected on the stock slot + 40 px: 2920 (lantern cut flat by the mask's bottom), 2921 (band short of the outer outline, lantern over the spines), 2922 (band along the slot's top edge); on this mask 2933 (band ends on the mask's top edge, lantern cut at the bottom), 2934 (lantern cut by the mask's right edge).",
   "raw_crop": [
     83,
     765,
