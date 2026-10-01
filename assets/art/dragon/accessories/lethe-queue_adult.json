@@ -1,0 +1,42 @@
+{
+  "result": "queue_adult_s2724.png",
+  "generation": {
+    "prompt": "close view of the tail of a strong adult dragon with burnished bronze-gold scales and a pale cream underside, wearing a small silver lantern hanging from its tail: a snug band of polished bright silver with a night-blue enamel stripe wrapped tightly around the tail, and hanging just below it on a short silver chain a small round lantern of polished bright silver with a domed silver lid and a ring on top, its little panes of deep night-blue glass pierced with tiny star shapes, one small red poppy engraved on its side, clean dark ink outline around the band, the chain and the lantern, (glow:-2) (light rays:-2) (violet:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.75,
+    "steps": 11,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 2724,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_adult.png",
+    "mask_file": "C:\\Users\\nicol\\.claude\\jobs\\9ac9a508\\tmp\\art-lethe\\m_adult_queue.png"
+  },
+  "extraction": "traced by hand (SAM 2.1 with points kept taking the repainted tail seen inside the ring and behind the lantern): band = result pixels inside polygon '141,738 150,746 160,757 170,765 180,769 190,771 200,771 210,770 220,768 230,764 236,760 238,768 232,778 220,782 205,784 190,784 178,782 165,778 155,772 146,764 140,755 138,745'; chain + lantern = polygon '176,803 172,808 166,815 161,822 157,830 154,840 155,850 160,858 170,863 182,864 194,862 201,855 204,845 203,833 199,824 194,816 188,808 184,803 190,798 190,788 185,782 183,770 178,770 177,782 170,788 169,797', warm skin inside the ring dropped (box 173 788 187 801, R-B > 30); alpha eroded 1 px + 0.8 px blur; merged with overlay.py merge (scripts polyov.py / dropwarm.py in the job scratch)",
+  "note": "mask = queue slot united with itself shifted down 40 px (tools/art/extmask.py adult queue 40); rejected 2720 and 2722 (lantern cut flat by the mask's bottom), 2721 (band ~15 px short of the tail's far outline), 2723 (lantern hanging from a band hidden at the mask's top edge), 2725 (half a band, lantern cut by the mask's bottom)",
+  "raw_crop": [
+    103,
+    705,
+    272,
+    889
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}

@@ -1,0 +1,183 @@
+{
+  "merged_parts": [
+    {
+      "result": "queue_young_s2621.png",
+      "generation": {
+        "prompt": "close view of the tail of a young dragon with burnished bronze-gold scales and a pale cream underside, wearing a small silver lantern hanging from its tail: a snug band of polished bright silver with a night-blue enamel stripe wrapped tightly around the tail, and hanging just below it on a short silver chain a small round lantern of polished bright silver with a domed silver lid and a ring on top, its little panes of deep night-blue glass pierced with tiny star shapes, one small red poppy engraved on its side, clean dark ink outline around the band, the chain and the lantern, (glow:-2) (light rays:-2) (violet:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+        "denoising_strength": 0.75,
+        "steps": 11,
+        "cfg_scale": 1.0,
+        "sampler_name": "Euler",
+        "scheduler": "Simple",
+        "width": 1024,
+        "height": 1024,
+        "seed": 2621,
+        "override_settings": {
+          "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+        },
+        "alwayson_scripts": {
+          "negpip": {
+            "args": [
+              true,
+              1.0
+            ]
+          }
+        },
+        "mask_blur": 4,
+        "inpainting_fill": 1,
+        "inpaint_full_res": true,
+        "inpaint_full_res_padding": 48,
+        "inpainting_mask_invert": 0,
+        "style": "discorde-inked-clean",
+        "init": "assets\\art\\dragon\\dragon_young.png",
+        "mask_file": "C:\\Users\\nicol\\.claude\\jobs\\9ac9a508\\tmp\\art-lethe\\m_young_queue.png"
+      },
+      "extract": {
+        "stage": "dragon_young.png",
+        "slot_mask": "m_young_queue.png",
+        "pos": [
+          [
+            172,
+            766
+          ],
+          [
+            200,
+            779
+          ],
+          [
+            228,
+            790
+          ],
+          [
+            248,
+            797
+          ]
+        ],
+        "neg": [
+          [
+            200,
+            752
+          ],
+          [
+            222,
+            812
+          ],
+          [
+            172,
+            795
+          ],
+          [
+            262,
+            815
+          ]
+        ],
+        "box": [
+          150,
+          745,
+          265,
+          812
+        ],
+        "hand_points": true,
+        "sam_mask": 0,
+        "diff": 28,
+        "novelty": 45,
+        "grow": 2,
+        "keep_white": true,
+        "max_hole": null,
+        "cuts": null
+      }
+    },
+    {
+      "result": "queue_young_s2621.png",
+      "generation": {
+        "prompt": "close view of the tail of a young dragon with burnished bronze-gold scales and a pale cream underside, wearing a small silver lantern hanging from its tail: a snug band of polished bright silver with a night-blue enamel stripe wrapped tightly around the tail, and hanging just below it on a short silver chain a small round lantern of polished bright silver with a domed silver lid and a ring on top, its little panes of deep night-blue glass pierced with tiny star shapes, one small red poppy engraved on its side, clean dark ink outline around the band, the chain and the lantern, (glow:-2) (light rays:-2) (violet:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+        "denoising_strength": 0.75,
+        "steps": 11,
+        "cfg_scale": 1.0,
+        "sampler_name": "Euler",
+        "scheduler": "Simple",
+        "width": 1024,
+        "height": 1024,
+        "seed": 2621,
+        "override_settings": {
+          "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+        },
+        "alwayson_scripts": {
+          "negpip": {
+            "args": [
+              true,
+              1.0
+            ]
+          }
+        },
+        "mask_blur": 4,
+        "inpainting_fill": 1,
+        "inpaint_full_res": true,
+        "inpaint_full_res_padding": 48,
+        "inpainting_mask_invert": 0,
+        "style": "discorde-inked-clean",
+        "init": "assets\\art\\dragon\\dragon_young.png",
+        "mask_file": "C:\\Users\\nicol\\.claude\\jobs\\9ac9a508\\tmp\\art-lethe\\m_young_queue.png"
+      },
+      "extract": {
+        "stage": "dragon_young.png",
+        "slot_mask": "m_young_queue.png",
+        "pos": [
+          [
+            145,
+            820
+          ],
+          [
+            152,
+            800
+          ],
+          [
+            148,
+            840
+          ],
+          [
+            150,
+            773
+          ]
+        ],
+        "neg": [
+          [
+            115,
+            820
+          ],
+          [
+            120,
+            780
+          ],
+          [
+            178,
+            830
+          ]
+        ],
+        "box": [
+          124,
+          748,
+          172,
+          856
+        ],
+        "hand_points": true,
+        "sam_mask": 2,
+        "diff": 28,
+        "novelty": 45,
+        "grow": 2,
+        "keep_white": true,
+        "max_hole": 30,
+        "cuts": null
+      }
+    }
+  ],
+  "cleanup": "two parts (band, lantern with chain) merged with overlay.py merge; overlay_clean.py --poly '240,768 275,768 275,830 236,830 236,806' (repainted tail at the band's right end); warm (bronze) pixels dropped inside the chain rings, box 130 750 162 780 (dropwarm: R-B > 30)",
+  "note": "inpainting and extraction mask = the queue slot united with itself shifted down 40 px (tools/art/extmask.py young queue 40), room for the hanging lantern; --keep-white (polished silver); rejected 2620 (lantern cut flat by the mask's bottom edge), 2622 (lantern bottom touching the mask's bottom edge, band on a redrawn wider tail)",
+  "raw_crop": [
+    101,
+    715,
+    296,
+    912
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}
