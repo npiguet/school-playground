@@ -362,6 +362,11 @@
     height: 40px;
     object-fit: contain;
   }
+  /* One entry per line: the long how-to lines wrapped into a zig-zag of uneven pairs (Task 5 review). */
+  .to-win {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
   /* R13: a trophy still to win is its painted icon as a dark silhouette, never hidden. */
   .to-win .silhouette {
     width: 40px;

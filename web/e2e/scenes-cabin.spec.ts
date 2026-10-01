@@ -127,14 +127,29 @@ test('the shelf says how to win every trophy, and the next fight names its gear'
   await expect(shelf.getByTestId('cabin-trophy-echo')).toContainText('3 jours de garde et 12 pièges, dont 85\u202f% déjoués.');
   await tap(shelf.getByTestId('cabin-trophy-open-echo'), testInfo);
   for (const level of [1, 2, 3, 4, 5]) await expect(shelf.getByTestId(`cabin-trophy-towin-echo-${level}`)).toBeVisible();
+  // One column, so a child reads the list top to bottom, never in a zig-zag (Task 5 review minor 1).
+  await expect(shelf.getByTestId('cabin-trophy-close-echo').locator('ul.to-win')).toHaveCSS('flex-direction', 'column');
   await tap(shelf.getByTestId('cabin-trophy-open-hydre'), testInfo);
   const close = shelf.getByTestId('cabin-trophy-close-hydre');
   await expect(close).toContainText("Aussi sur l'étagère");
   await expect(close.getByTestId('cabin-trophy-towin-hydre-2')).toHaveCount(0);
   await expect(close.getByTestId('cabin-trophy-towin-hydre-3')).toContainText(frenchSpacing("Au sceau d'argent : défends encore des textes où l'Hydre se cache."));
+  // A trophy still to win is a dark silhouette, never the lit trophy as if owned.
+  await expect(close.getByTestId('cabin-trophy-towin-hydre-3').locator('img.silhouette')).toHaveCSS('filter', /brightness\(0\)/);
   await expect(shelf.getByTestId('cabin-reward-sandales_hermes')).toContainText('Gagne le prochain combat contre Éris pour les gagner.');
   await expect(shelf.getByTestId('cabin-reward-egide')).toContainText('Bats Éris une deuxième fois pour la gagner.');
   await page.unrouteAll({ behavior: 'ignoreErrors' });
+});
+
+// R13: only an awake lieutenant's plinth opens; a sleeping one says when it wakes, with no button.
+test("a sleeping lieutenant's plinth has no close view to open", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name), '5H');
+  await page.goto(`/#/p/${id}/cabane?panel=tresors`);
+  const shelf = page.getByTestId('overlay-trophies');
+  const protee = shelf.getByTestId('cabin-trophy-protee');
+  await expect(protee).toContainText('Protée dort encore.');
+  await expect(protee.getByTestId('cabin-trophy-open-protee')).toHaveCount(0);
+  await expect(shelf.getByTestId('cabin-trophy-open-hydre')).toBeVisible();
 });
 
 test('overlay-trophies: an in-world table, clear of the HUD, 48 px targets, kit classes only', async ({ page, request }, testInfo) => {
