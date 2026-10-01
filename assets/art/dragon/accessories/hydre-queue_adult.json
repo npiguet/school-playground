@@ -222,5 +222,12 @@
         ]
       ]
     ]
-  }
+  },
+  "raw_crop": [
+    103,
+    705,
+    272,
+    849
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
 }
