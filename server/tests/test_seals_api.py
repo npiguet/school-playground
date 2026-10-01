@@ -190,3 +190,21 @@ def test_the_fights_after_the_third_pay_xp_only(client, settings):
     assert p["boss"] == {"tier": 4, "won": True} and p["rewards"] == [] and {"reason": "boss", "amount": 300} in p["xp"]["bonuses"]
     c = camp(client, pid)["boss"]
     assert c["tiers_won"] == [1, 2, 3, 4] and c["next"] == {"tier": 5, "level": 3, "missing": 2}
+
+
+# Review of plan Task 2: a fight already started stays open, whatever the ladder says now.
+def test_an_active_boss_quest_is_returned_even_when_its_fight_would_not_open(client, settings):
+    pid = make_profile(client, level="10H"); long_text = make_text(client, body=LONG)
+    for key in ("hydre", "echo", "chimere", "protee", "sirenes"):
+        seal(settings, pid, key, 1)
+    won(settings, pid, 1, 2)
+    conn = db(settings)
+    qid = conn.execute("INSERT INTO quest(profile_id, kind, target, status, goal_json, reward_json, created_at) "
+                       "VALUES (?, 'boss', 'eris', 'active', ?, ?, 'then')",
+                       (pid, json.dumps({"tier": 3, "text_id": long_text}),
+                        json.dumps({"xp": 300, "reward_id": "foudre_zeus", "bestiary": False}))).lastrowid
+    conn.commit(); conn.close()
+    assert camp(client, pid)["boss"]["tier_available"] is None                # fight III asks two seals of bronze
+    r = client.post(f"/api/profiles/{pid}/boss")
+    assert r.status_code == 200 and r.json()["quest"]["id"] == qid and r.json()["tier"] == 3
+    assert camp(client, pid)["boss"]["active_quest_id"] == qid

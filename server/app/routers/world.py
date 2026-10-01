@@ -204,14 +204,16 @@ def _pick_boss_text(conn: sqlite3.Connection, profile: sqlite3.Row) -> int | Non
 
 def create_boss_quest(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: Rules) -> tuple[dict, bool]:
     pid = profile["id"]
-    # Spec 2026-09-29 lieutenant levels §4: the first fight not won, when its seals are there.
-    tier = open_fight(rules.fights, levels_of(conn, pid), lieutenants_for_level(profile["level"]), boss_tiers_won(conn, pid))
-    if tier is None:
-        raise HTTPException(409, BOSS_MESSAGE)
+    # A fight already started stays open, whatever the ladder says now (a quest from before migration
+    # 006's thresholds, a class changed down): the camp still points at it.
     existing = conn.execute("SELECT * FROM quest WHERE profile_id = ? AND kind = 'boss' AND status = 'active'", (pid,)).fetchone()
     if existing is not None:
         goal = json.loads(existing["goal_json"])
         return {"quest": quest_out(conn, existing), "text_id": goal["text_id"], "tier": goal["tier"]}, False
+    # Spec 2026-09-29 lieutenant levels §4: the first fight not won, when its seals are there.
+    tier = open_fight(rules.fights, levels_of(conn, pid), lieutenants_for_level(profile["level"]), boss_tiers_won(conn, pid))
+    if tier is None:
+        raise HTTPException(409, BOSS_MESSAGE)
     text_id = _pick_boss_text(conn, profile)
     if text_id is None:
         raise HTTPException(409, "Éris ne trouve pas de texte assez long pour ce combat.")

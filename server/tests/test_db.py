@@ -1,4 +1,5 @@
 import sqlite3
+import pytest
 from app.db import MIGRATIONS_DIR, connect, migrate
 
 
@@ -156,3 +157,27 @@ def test_migration_006_turns_each_neutralised_lieutenant_into_its_wooden_seal(tm
     assert conn.execute("SELECT SUM(amount) FROM xp_event WHERE profile_id = 1").fetchone()[0] == 254
     assert migrate(conn) >= 6                                                        # idempotent
     assert conn.execute("SELECT COUNT(*) FROM lieutenant_level").fetchone()[0] == 2
+
+
+# Review of plan Task 2 (lieutenant levels): a migration and its version row are one transaction.
+def test_a_failed_migration_leaves_the_database_as_it_was(tmp_path, monkeypatch):
+    import app.db as db_mod
+    folder = tmp_path / "migrations"; folder.mkdir()
+    (folder / "001_base.sql").write_text("CREATE TABLE item (id INTEGER PRIMARY KEY, name TEXT NOT NULL);\n"
+                                         "INSERT INTO item(id, name) VALUES (1, 'old');", encoding="utf-8")
+    monkeypatch.setattr(db_mod, "MIGRATIONS_DIR", folder)
+    conn = connect(tmp_path / "t.sqlite3")
+    assert migrate(conn) == 1
+    broken = folder / "002_change.sql"
+    broken.write_text("CREATE TABLE extra (id INTEGER PRIMARY KEY);\n"
+                      "UPDATE item SET name = 'new' WHERE id = 1;\n"
+                      "INSERT INTO no_such_table VALUES (1);", encoding="utf-8")   # fails on its last statement
+    with pytest.raises(sqlite3.OperationalError):
+        migrate(conn)
+    assert "extra" not in table_names(conn)
+    assert conn.execute("SELECT name FROM item WHERE id = 1").fetchone()[0] == "old"
+    assert [r[0] for r in conn.execute("SELECT version FROM schema_version")] == [1]
+    broken.write_text("CREATE TABLE extra (id INTEGER PRIMARY KEY);\nUPDATE item SET name = 'new' WHERE id = 1;", encoding="utf-8")
+    assert migrate(conn) == 2
+    assert "extra" in table_names(conn) and conn.execute("SELECT name FROM item WHERE id = 1").fetchone()[0] == "new"
+    assert [r[0] for r in conn.execute("SELECT version FROM schema_version ORDER BY version")] == [1, 2]

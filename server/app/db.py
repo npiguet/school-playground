@@ -45,9 +45,17 @@ def migrate(conn: sqlite3.Connection) -> int:
         version = int(path.name.split("_", 1)[0])
         if version <= current:
             continue
-        conn.executescript(path.read_text(encoding="utf-8"))
-        conn.execute("INSERT INTO schema_version(version, applied_at) VALUES (?, datetime('now'))", (version,))
-        conn.commit()
+        # One transaction per migration, its version row included: a migration that fails (or a process
+        # killed in the middle) leaves the database as it was before it, and the next start runs it
+        # again. executescript() alone commits statement by statement. No migration may hold its own
+        # BEGIN/COMMIT or a PRAGMA that cannot run in a transaction.
+        try:
+            conn.executescript(f"BEGIN;\n{path.read_text(encoding='utf-8')}\n"
+                               f"INSERT INTO schema_version(version, applied_at) VALUES ({version}, datetime('now'));\nCOMMIT;")
+        except BaseException:
+            if conn.in_transaction:
+                conn.rollback()
+            raise
         current = version
     return current
 
