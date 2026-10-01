@@ -16,7 +16,8 @@
   import JournalPanel from '../components/places/cabin/JournalPanel.svelte';
   import LyrePanel from '../components/places/cabin/LyrePanel.svelte';
   import HeroPanel from '../components/places/cabin/HeroPanel.svelte';
-  import { DECOR_SLOTS, MAX_DISPLAYED_DECOR, cabinGreeting, houseScene, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
+  import GuidePanel from '../components/places/cabin/GuidePanel.svelte';
+  import { DECOR_SLOTS, MAX_DISPLAYED_DECOR, cabinGreeting, guideLine, houseScene, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
   import { campFor } from '../lib/world/campStore.svelte';
   import { isAwake } from '../lib/world/eris';
   import { LIEUTENANT_ORDER } from '../lib/world/types';
@@ -106,6 +107,11 @@
 {:else if panel === 'lyre'}
   <Overlay variant="scroll" title={OVERLAY_TITLES.lyre} testId="overlay-lyre" voice={dragon ? lyreLine(dragon) : null} onClose={close} returnFocus={from.of('lyre') === 'heros' ? '[data-testid="hero-settings"]' : hotspotSelector('cabin', 'lyre')}>
     <LyrePanel {profile} />
+  </Overlay>
+{:else if panel === 'guide'}
+  <!-- Spec 2026-09-29 explanations §3 (R12): opened from the lyre, its seal steps back there. -->
+  <Overlay variant="codex" title={OVERLAY_TITLES.guide} testId="overlay-guide" voice={dragon ? guideLine(dragon) : null} onClose={close} returnFocus={hotspotSelector('cabin', 'lyre')}>
+    <GuidePanel />
   </Overlay>
 {:else if panel === 'heros'}
   <Overlay variant="scroll" title={OVERLAY_TITLES.heros} testId="overlay-heros" onClose={close} returnFocus={'[data-testid="hud-hero"]'}>

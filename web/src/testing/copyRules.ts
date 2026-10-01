@@ -30,6 +30,10 @@ export const banned = (text: string): string[] => BANNED.filter(([re]) => re.tes
  *  « Il manque un mot » (a neutral hint) and « ratisser » are fine. Global: use with matchAll/match. */
 export const GUILT = /(?<![\p{L}])(manquée?s?|ratée?s?|perdue?s?)(?![\p{L}])/giu;
 
+/** Spec 2026-09-29 explanations §4, drachmes §2 (plan R14): nothing hurries the player. No countdown, no
+ *  scarcity, no last chance. (« vite » alone is no pressure: « Le camp apprend vite. ») */
+export const FOMO = /(?<!\p{L})(derni[eè]re chance|trop tard|compte à rebours|dépêche|plus que \d|ne reste (?:plus )?que \d|avant qu'il ne soit|bientôt fini)/iu;
+
 /** The adjectives and participles that would agree with the player (« perdue » is GUILT's), in
  *  both genders: « tu es prêt » genders her as much as « tu es prête » (final review M10). */
 export const AGREEING = [

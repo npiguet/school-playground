@@ -67,7 +67,12 @@ export interface Suggestion {
   aid: AidKey;
 }
 
-const sameAids = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((k) => b.includes(k));
+/** Spec §3: « belles copies » in a row before leaving an aid is suggested, « copies à reprendre » before
+ *  taking one back (the guide says the same numbers). */
+export const LEAVE_AFTER = 3;
+export const TAKE_AFTER = 2;
+
+const sameAids =(a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((k) => b.includes(k));
 
 /** Spec §3: after 3 consecutive dictations with a « belle copie » and the same aids, suggest leaving the
  *  next aid (athena → argus → palamede → persee → ariane); after 2 consecutive « copie à reprendre »,
@@ -76,14 +81,14 @@ const sameAids = (a: readonly string[], b: readonly string[]) => a.length === b.
 export function suggestion(recent: readonly RecentDefence[], current: readonly AidKey[], rules: GameRules): Suggestion | null {
   const dictations = recent.filter((s) => s.mode === 'dictation');
   const verdict = (s: RecentDefence) => (s.per_100 === null ? null : copyVerdict(s.per_100, rules));
-  const run = dictations.slice(0, 3);
+  const run = dictations.slice(0, LEAVE_AFTER);
   const first = run[0]?.aids ?? null;
-  if (run.length === 3 && first !== null && run.every((s) => verdict(s) === 'belle' && s.aids !== null && sameAids(s.aids, first))) {
+  if (run.length === LEAVE_AFTER && first !== null && run.every((s) => verdict(s) === 'belle' && s.aids !== null && sameAids(s.aids, first))) {
     const aid = SUGGEST_ORDER.find((k) => first.includes(k) && current.includes(k));
     if (aid) return { kind: 'leave', aid };
   }
-  const last2 = dictations.slice(0, 2);
-  if (last2.length === 2 && last2.every((s) => verdict(s) === 'reprendre')) {
+  const last2 = dictations.slice(0, TAKE_AFTER);
+  if (last2.length === TAKE_AFTER && last2.every((s) => verdict(s) === 'reprendre')) {
     const aid = [...SUGGEST_ORDER].reverse().find((k) => !current.includes(k));
     if (aid) return { kind: 'take', aid };
   }

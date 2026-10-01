@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AID_KEYS, AID_LABELS, SUGGEST_ORDER, aidDesc, aidIcon, bonusParts, listFr, normalizeAids, suggestion, type AidKey } from './aids';
+import { AID_KEYS, AID_LABELS, LEAVE_AFTER, SUGGEST_ORDER, TAKE_AFTER, aidDesc, aidIcon, bonusParts, listFr, normalizeAids, suggestion, type AidKey } from './aids';
 import { DEFAULT_RULES as R } from './rules';
 
 const ALL = [...AID_KEYS];
@@ -43,6 +43,9 @@ describe('the five review aids (spec 2026-09-29 §3)', () => {
 });
 
 describe('the suggestion, never automatic (spec 2026-09-29 §3)', () => {
+  it('suggests after three belles copies and two copies à reprendre (the guide reads the same numbers)', () =>
+    expect([LEAVE_AFTER, TAKE_AFTER]).toEqual([3, 2]));
+
   it('suggests leaving the next aid after three belles copies with the same aids', () => {
     expect(suggestion([belle(ALL), belle(ALL), belle(ALL)], ALL, R)).toEqual({ kind: 'leave', aid: 'athena' });
     expect(suggestion([belle(NO_OWL), belle(NO_OWL), belle(NO_OWL)], NO_OWL, R)).toEqual({ kind: 'leave', aid: 'argus' });

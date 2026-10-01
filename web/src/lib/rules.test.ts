@@ -59,6 +59,9 @@ describe('the rules of the camp (spec 2026-09-29 §7)', () => {
     expect(rules.drachmes).toEqual(DEFAULT_RULES.drachmes);
   });
 
+  it("knows what pays drachmes, as the server's defaults (spec 2026-09-29 drachmes §1)", () =>
+    expect(DEFAULT_RULES.drachmes).toEqual({ xp_per_drachme: 10, board: 5, oracle: 15, weekly: 5, level: 10, boss: 30 }));
+
   it('counts the mistakes left per 100 words, never dividing by zero', () => {
     expect(per100(3, 150)).toBe(2);
     expect(per100(0, 120)).toBe(0);

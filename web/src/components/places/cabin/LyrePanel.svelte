@@ -1,7 +1,7 @@
 <script lang="ts">
   // The lyre (UI3 Ruling B6, was the Settings screen): the dictation voice's trial, the hero's class,
-  // the camp's sounds, the weekly goal as medallions, the seal (PIN), the camp's tours and the credits
-  // (immersion Deferred #7), on a scroll in the cabin. The mute (A17) became three channels (UI5,
+  // the camp's sounds, the weekly goal as medallions, the seal (PIN), the camp's tours, le guide du camp
+  // (spec 2026-09-29 explanations §3) and the credits (immersion Deferred #7), on a scroll in the cabin. The mute (A17) became three channels (UI5,
   // spec §7). UI3b playability #6: every choice is a medallion, and the dragon says what the lyre is
   // for from the overlay's voice plate (CabinRoom.svelte), so the headings stay short.
   import { onDestroy, untrack } from 'svelte';
@@ -15,6 +15,8 @@
   import { useToast } from '../../../lib/ui/toast.svelte';
   import { audioSettings } from '../../../lib/audio/store.svelte';
   import { resetTours } from '../../../lib/tours/seen.svelte';
+  import { go } from '../../../lib/scene/panelNav';
+  import { href } from '../../../lib/routes';
   import { frenchSpacing } from '../../../lib/text/french';
   import { sayKey } from '../../../lib/dialogue/select';
   import { buildLine } from '../../../lib/version';
@@ -212,6 +214,14 @@
     <section class="apart">
       <h3 class="kit-section">Les visites du camp</h3>
       <button type="button" class="kit-link" data-testid="lyre-tours" onclick={replayTours} disabled={replaying}>Refaire les visites du camp</button>
+      <h3 class="kit-section guide-title">Le guide du camp</h3>
+      <!-- Spec 2026-09-29 explanations §3 (R12): the guide opens as the cabin's panel; its seal steps back here. -->
+      <button
+        type="button"
+        class="kit-link"
+        data-testid="lyre-guide"
+        onclick={() => go(href('cabin', { profileId: String(profile.id) }, { panel: 'guide' }), 'panel')}>Lire le guide du camp</button
+      >
     </section>
 
     {#if error}
@@ -254,6 +264,9 @@
     padding-top: 18px;
     border-top: 1px solid rgba(92, 64, 24, 0.45);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+  .guide-title {
+    margin-top: 14px;
   }
   .lyre-credits {
     margin-top: 22px;

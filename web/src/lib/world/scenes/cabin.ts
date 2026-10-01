@@ -160,5 +160,10 @@ export function journalLine(d: DragonOut): DialogueLine {
 
 export function lyreLine(d: DragonOut): DialogueLine {
   // UI5 playability #17; Kokoro plan preflight #6: the voice is no longer chosen here.
-  return dragonSays(d, 'Règle ici la musique, les bruitages et la voix qui te lit la dictée, et refais les visites du camp quand tu veux.');
+  return dragonSays(d, "Règle ici la musique, les bruitages et la voix qui te lit la dictée ; les visites du camp et son guide t'attendent aussi.");
+}
+
+/** The guide's plate (spec 2026-09-29 explanations §3). */
+export function guideLine(d: DragonOut): DialogueLine {
+  return dragonSays(d, 'Tout ce que je sais du camp est écrit ici. Relis-le quand tu veux.');
 }

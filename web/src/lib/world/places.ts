@@ -25,7 +25,8 @@ export type PanelId =
   | 'tresors'
   | 'journal'
   | 'lyre'
-  | 'etal';
+  | 'etal'
+  | 'guide';
 
 /** Every overlay's title (Ruling W6): a place hotspot's plaque starts its overlay's title, so the
  *  player opens what she tapped (carry #12, playability #15). One table, read by every place. */
@@ -52,6 +53,8 @@ export const OVERLAY_TITLES: Record<PanelId, string> = {
   lyre: 'La lyre',
   // Spec 2026-09-29 drachmes §2 (R10): Hermès's stall, an overlay of the camp.
   etal: "L'étal d'Hermès",
+  // Spec 2026-09-29 explanations §3 (R12): the guide, a cabin overlay opened from the lyre.
+  guide: 'Le guide du camp',
 };
 
 export interface PlaceView {
@@ -99,7 +102,7 @@ export function placeFor(route: Route): PlaceView | null {
       return { place: 'nest', panel: route.query.panel === 'soin' ? 'soin' : null };
     case 'cabin': {
       const p = route.query.panel;
-      return { place: 'cabin', panel: p === 'tresors' || p === 'heros' ? p : null };
+      return { place: 'cabin', panel: p === 'tresors' || p === 'heros' || p === 'guide' ? p : null };
     }
     case 'stats':
       return { place: 'cabin', panel: 'journal' };
