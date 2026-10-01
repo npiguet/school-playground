@@ -27,7 +27,16 @@ export const test = base.extend<{ tours: boolean }>({
   // A crash seen while the body still ran (the `page` fixture's teardown has not begun) and before
   // any failure was recorded (final review I4: `testInfo.errors` still empty) is marked DURING_BODY:
   // the classifier then counts every failure of the body as its aftermath (crashNote).
-  context: async ({ context, browser }, use, testInfo) => {
+  context: async ({ context, browser, tours }, use, testInfo) => {
+    // UI5 Ruling E10: no e2e ever plays real sound (the engine records instead and publishes its
+    // state as window.__discordeAudio), and the first-visit tours stay away unless a spec asks for
+    // them with test.use({ tours: true }). On the context, so a page a test opens itself
+    // (context.newPage(), scenes-parity) gets them too: it once met the camp tour's new steps.
+    await context.addInitScript((toursOn: boolean) => {
+      const w = window as unknown as { __discordeAudioStub?: boolean; __discordeTours?: string };
+      w.__discordeAudioStub = true;
+      if (!toursOn) w.__discordeTours = 'off';
+    }, tours);
     const crashes: string[] = [];
     const watch = (page: import('@playwright/test').Page) =>
       page.on('crash', () => crashes.push(`page crashed at ${page.url()}${crashNote(bodyEnded.has(context), testInfo.errors.length)}`));
@@ -51,21 +60,16 @@ export const test = base.extend<{ tours: boolean }>({
   // `expect` timeout in playwright.config.ts says more). A 100 ms heartbeat notes every gap of a
   // second or more; a failed test lists them, so a stall overlapping a failure is named as such
   // instead of passing for an app bug (it was taken for a Svelte double intro once).
-  page: async ({ page, tours }, use, testInfo) => {
-    await page.addInitScript((toursOn: boolean) => {
-      // UI5 Ruling E10: no e2e ever plays real sound (the engine records instead and publishes its
-      // state as window.__discordeAudio), and the first-visit tours stay away unless a spec asks
-      // for them with test.use({ tours: true }).
-      const w = window as unknown as { __discordeAudioStub?: boolean; __discordeTours?: string; __pageStalls?: string[] };
-      w.__discordeAudioStub = true;
-      if (!toursOn) w.__discordeTours = 'off';
+  page: async ({ page }, use, testInfo) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __pageStalls?: string[] };
       let last = performance.now();
       setInterval(() => {
         const now = performance.now();
         if (now - last >= 1000) (w.__pageStalls ??= []).push(`${Math.round(now - last)} ms at t=${Math.round(last)}`);
         last = now;
       }, 100);
-    }, tours);
+    });
     await use(page);
     bodyEnded.add(page.context());
     if (testInfo.status !== testInfo.expectedStatus && !page.isClosed()) {
