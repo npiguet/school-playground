@@ -401,7 +401,8 @@ async function hubSection(w: Walk) {
   await noRed(w, 'hub');
   // Carry #16 / M9: the locked path to battle, explained by the dragon.
   await page.getByTestId('camp-boss').click();
-  await expect(page.getByTestId('dialogue-text')).toContainText('Éris se cache encore');
+  // Spec 2026-09-29 lieutenant levels R9: the dragon says what opens the first fight, in words.
+  await expect(page.getByTestId('dialogue-text')).toContainText("Encore deux sceaux de bois et Éris t'attend.");
   await settleDialogue(page);
   await shot(w, 'b03-hub-locked-battle-path');
   await page.getByTestId('dialogue-skip').click();
