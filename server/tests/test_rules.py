@@ -23,7 +23,7 @@ PRICE_DEFAULTS = {"accessory": {"cou": 40, "queue": 60, "dos": 90, "tete": 130},
 DEFAULTS = {"quest_min_chances": 3, "quest_min_correct": 0.85, "fight_max_per_100": 4.0, "copy_belle_max_per_100": 2.0,
             "copy_correcte_max_per_100": 8.0, "aid_bonus": 0.2, "pace_bonus": {"1": 0.0, "2": 0.25, "3": 0.5},
             "prophecy_bonus": 0.5, "chouette_hints": 3, "dragon_stages": STAGE_DEFAULTS,
-            "levels": LEVEL_DEFAULTS, "fights": FIGHT_DEFAULTS, "drachmes": DRACHME_DEFAULTS, "prices": PRICE_DEFAULTS}
+            "levels": LEVEL_DEFAULTS, "fights": FIGHT_DEFAULTS, "drachmes": DRACHME_DEFAULTS}
 
 
 def write(tmp_path: Path, text: str) -> Path:
@@ -103,6 +103,17 @@ def test_the_world_catalog_serves_the_rules_read_at_start_up(settings):
 
 def test_the_world_catalog_serves_the_defaults_without_a_file(client):
     assert client.get("/api/world").json()["rules"] == DEFAULTS
+
+
+# Plan ruling R2 (spec 2026-09-29 drachmes §2): the file's prices reach the client with the stall's items, not in `rules`.
+def test_the_prices_read_at_start_up_are_served_in_the_shop(settings):
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    (settings.data_dir / RULES_FILENAME).write_text('{"prices": {"accessory": {"cou": 45}, "villa": 250}}', encoding="utf-8")
+    with TestClient(create_app(settings)) as c:
+        w = c.get("/api/world").json()
+    assert "prices" not in w["rules"]
+    assert {a["price"] for a in w["shop"]["accessories"] if a["slot"] == "cou"} == {45}
+    assert [h["price"] for h in w["shop"]["houses"]] == [250, 800]
 
 
 # The served example is shared with the client: web/src/lib/rules.test.ts parses the same `served`
@@ -224,7 +235,7 @@ def test_drachmes_and_prices_from_the_file_keep_the_other_defaults(tmp_path):
                                        '"prices": {"accessory": {"tete": 150}, "villa": 250}}'))
     assert rules.drachmes == {**DRACHME_DEFAULTS, "boss": 40, "xp_per_drachme": 8}
     assert rules.prices == {**PRICE_DEFAULTS, "accessory": {**PRICE_DEFAULTS["accessory"], "tete": 150}, "villa": 250}
-    assert rules.as_dict() == {**DEFAULTS, "drachmes": rules.drachmes, "prices": rules.prices}
+    assert rules.as_dict() == {**DEFAULTS, "drachmes": rules.drachmes}     # the prices are not served in `rules` (R2)
     assert Rules().prices["accessory"]["tete"] == 130          # the built-in table is never shared and changed
 
 

@@ -35,6 +35,8 @@ def test_session_grants_xp_and_reports_the_dragons_gauge(client):
     assert [p["xp"][k] for k in ("stage_before", "stage_after", "floor", "next")] == ["egg", "egg", 0, 100]
     assert p["dragon"] == {"stage_before": "egg", "stage_after": "egg", "needs_name": False}
     assert p["levels"] == [] and p["rewards"] == [] and p["boss"] is None
+    # Spec 2026-09-29 drachmes §1: the session pays a tenth of its XP into a purse that was empty.
+    assert p["drachmes"]["balance"] == p["drachmes"]["earned"] > 0
 
 
 def test_three_days_grant_the_wooden_seal_and_the_dragon_hatches_from_xp(client):

@@ -205,6 +205,12 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     expect(res2.progression.xp.total_after).toBeGreaterThanOrEqual(100);
     expect(res2.progression.dragon).toEqual({ stage_before: 'egg', stage_after: 'hatchling', needs_name: true });
     expect(res2.progression.rewards.some((r: { id: string }) => r.id === 'tint:ecume')).toBe(true);
+    // Spec 2026-09-29 drachmes §1: the session pays a tenth of its XP, halves up; the purse adds each
+    // session's drachmes (step 4's session paid some before these two).
+    expect(res1.progression.drachmes.parts[0]).toEqual({ reason: 'session', amount: Math.floor((2 * res1.progression.xp.session + 10) / 20) });
+    expect(res1.progression.drachmes.balance).toBeGreaterThan(res1.progression.drachmes.earned);
+    expect(res2.progression.drachmes.balance).toBe(res1.progression.drachmes.balance + res2.progression.drachmes.earned);
+    expect(res2.progression.drachmes.parts).toContainEqual({ reason: 'oracle', amount: 15 });
 
     await page.goto(`/#/p/${profileId}/dragon?panel=soin`);
     await expect(page.getByTestId('dragon-tint-ecume')).toBeEnabled();

@@ -28,3 +28,14 @@ def earned_drachmes(session_xp: int, bonuses: list[dict], rules: "Rules") -> lis
         elif b["reason"] == "level":
             parts.append({"reason": "level", "amount": d["level"] * b["level"], "lieutenant": b["lieutenant"], "level": b["level"]})
     return [p for p in parts if p["amount"] > 0]
+
+
+def add_drachmes(conn, profile_id: int, amount: int, reason: str, ref: str | None, now: str) -> None:
+    """One row of the ledger (R3, R5): earned (positive) or spent at the stall (negative)."""
+    conn.execute("INSERT INTO drachme_event(profile_id, amount, reason, ref, created_at) VALUES (?, ?, ?, ?, ?)",
+                 (profile_id, amount, reason, ref, now))
+
+
+def balance(conn, profile_id: int) -> int:
+    """The purse: the ledger's sum (never below zero, the purchase checks it under the write lock)."""
+    return conn.execute("SELECT COALESCE(SUM(amount), 0) FROM drachme_event WHERE profile_id = ?", (profile_id,)).fetchone()[0]

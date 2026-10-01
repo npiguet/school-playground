@@ -159,6 +159,22 @@ def test_migration_006_turns_each_neutralised_lieutenant_into_its_wooden_seal(tm
     assert conn.execute("SELECT COUNT(*) FROM lieutenant_level").fetchone()[0] == 2
 
 
+# Spec 2026-09-29 drachmes §1, §5 (review focus 2): the starting grant, a tenth of the XP, once.
+def test_migration_007_grants_a_tenth_of_the_xp(tmp_path):
+    conn = _db_before(tmp_path / "old.sqlite3", 7)
+    for pid, name in ((1, "Io"), (2, "Ada"), (3, "Léo")):
+        conn.execute("INSERT INTO profile(id, name, avatar, level, help_stage, created_at) VALUES (?, ?, 'chouette', '8H', 0, 'now')",
+                     (pid, name))
+    conn.executemany("INSERT INTO xp_event(profile_id, amount, reason, created_at) VALUES (?, ?, ?, 'then')",
+                     [(1, 1000, "session"), (1, 239, "level"), (2, 9, "session")])
+    conn.commit()
+    assert migrate(conn) >= 7
+    assert [tuple(r) for r in conn.execute("SELECT profile_id, amount, reason, ref FROM drachme_event ORDER BY profile_id")] == [
+        (1, 123, "grant", None)]
+    assert migrate(conn) >= 7                                                 # idempotent
+    assert conn.execute("SELECT COUNT(*) FROM drachme_event").fetchone()[0] == 1
+
+
 # Review of plan Task 2 (lieutenant levels): a migration and its version row are one transaction.
 def test_a_failed_migration_leaves_the_database_as_it_was(tmp_path, monkeypatch):
     import app.db as db_mod

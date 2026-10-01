@@ -1,4 +1,4 @@
-"""Applies a saved session to the world: XP, quests, seals, weekly goal, then the dragon grown from the total XP (spec §3.6; spec 2026-09-29 dragon growth §1, lieutenant levels §1).
+"""Applies a saved session to the world: XP, quests, seals, weekly goal, then the dragon grown from the total XP, then its drachmes (spec §3.6; spec 2026-09-29 dragon growth §1, lieutenant levels §1, drachmes §1).
 Runs after app.stats.apply_session_to_stats so profile_stat_day already includes the session. Never removes anything."""
 from __future__ import annotations
 import json, sqlite3
@@ -6,6 +6,7 @@ from app.clock import iso_week, week_bounds_utc
 from app.rules import Rules
 from app.schemas import AID_KEYS
 from app.world.catalog import DECOR_ORDER, LIEUTENANTS, QUEST_BONUS, REWARDS, trophy_id
+from app.world.drachmes import add_drachmes, balance, earned_drachmes
 from app.world.dragon import grown_stage, stage_gauge, stage_index
 from app.world.seals import LEVEL_XP, lieutenants_for_level, raise_levels
 from app.world.quests import fight_won, quest_miss_reason
@@ -156,11 +157,17 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
         record_seen_stage(conn, pid, stage_after)
     needs_name = stage_after != "egg" and dragon["name"] is None
     floor, nxt = stage_gauge(stage_after, thresholds)
+    # 6. Spec 2026-09-29 drachmes §1 (R3): the session's drachmes, from its own XP and each bonus that
+    # pays, one ledger row per part.
+    drachme_parts = earned_drachmes(xp.total, bonuses, rules)
+    for part in drachme_parts:
+        add_drachmes(conn, pid, part["amount"], part["reason"], f"session:{session_id}", now)
     return {"xp": {"session": xp.total, "parts": xp.parts, "bonuses": bonuses, "total_before": total_before, "total_after": total_after,
                    "stage_before": stage_before, "stage_after": stage_after, "floor": floor, "next": nxt},
             "quests": quest_out,
             "levels": levels_out,
             "rewards": rewards,
+            "drachmes": {"earned": sum(p["amount"] for p in drachme_parts), "parts": drachme_parts, "balance": balance(conn, pid)},
             "dragon": {"stage_before": stage_before, "stage_after": stage_after, "needs_name": needs_name},
             "weekly": {"target": target, "done": done, "reached_now": reached_now}, "boss": boss_out,
             "encounter": body.encounter}

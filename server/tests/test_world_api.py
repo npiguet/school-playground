@@ -24,12 +24,16 @@ def test_world_catalog(client):
     assert genders == {"hydre": "f", "echo": "f", "chimere": "f", "protee": "m", "sirenes": "fp", "lethe": "f"}
     # CLAUDE.md "No emoji" (UI3 Ruling A13): the lieutenants' icons are painted art on the client.
     assert all("glyph" not in lt for lt in w["lieutenants"])
+    # Spec 2026-09-29 drachmes §2 (R2, R9): the stall's prices come with its items in `shop`, never in `rules`.
+    assert w["shop"]["houses"][0]["price"] == 300 and len(w["shop"]["accessories"]) == 24 and w["shop"]["decor"][0]["price"] == 50
+    assert "prices" not in w["rules"] and w["rules"]["drachmes"]["boss"] == 30
 
 
 def test_camp_for_new_profile(client):
     pid = make_profile(client, level="7H")
     c = client.get(f"/api/profiles/{pid}/camp").json()
     assert c["xp"] == {"total": 0, "floor": 0, "next": 100}
+    assert (c["drachmes"], c["house"], c["dragon"]["worn"]) == (0, "cabin", [])
     assert "next_stage_at" not in c["dragon"]
     assert c["dragon"]["stage"] == "egg" and c["dragon"]["unlocked_tints"] == ["bronze"]
     assert "neutralised" not in c["dragon"] and "available" not in c["dragon"]

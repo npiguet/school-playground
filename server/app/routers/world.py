@@ -1,6 +1,6 @@
 """World API: camp hub, dragon, quest board, Oracle, boss fights and rewards (spec §3.6; plan Task 3).
 
-Server-authoritative: this router is the only writer of quest/oracle/dragon/reward/xp_event/lieutenant_level
+Server-authoritative: this router is the only writer of quest/oracle/dragon/reward/xp_event/drachme_event/lieutenant_level
 state outside of app.world.progression (which runs from POST /api/sessions).
 """
 from __future__ import annotations
@@ -13,15 +13,18 @@ from app.db import begin_write, get_db
 from app.levels import LEVELS, level_index
 from app.routers.profiles import fetch_profile, to_out
 from app.rules import Rules
-from app.schemas import DragonPatch, OracleChoice, QuestCreate, RewardPatch
+from app.schemas import DragonPatch, OracleChoice, Purchase, QuestCreate, RewardPatch
 from app.textutil import word_count
 from app.world import oracle as oracle_mod
-from app.world.catalog import BOSS_REWARDS, LIEUTENANT_ORDER, LIEUTENANTS, ORACLE_REWARDS, QUEST_BONUS, REWARDS, TINTS
+from app.world.catalog import (ACCESSORY_SETS, BOSS_REWARDS, LIEUTENANT_ORDER, LIEUTENANTS, ORACLE_REWARDS, QUEST_BONUS, REWARDS, TINTS,
+                               accessory_id)
+from app.world.drachmes import add_drachmes, balance
 from app.world.dragon import grown_stage, stage_gauge, stage_table
 from app.world.fights import next_fight, open_fight
-from app.world.progression import boss_tiers_won, ensure_dragon, store_stage, weekly_done, xp_total
+from app.world.progression import boss_tiers_won, ensure_dragon, grant_reward, store_stage, weekly_done, xp_total
 from app.world.quests import density, recommend_texts
 from app.world.seals import level_rows, levels_of, lieutenants_for_level, next_seal
+from app.world.shop import MAX_DECOR, house_of, is_item, on_sale, parse_accessory, price_of, shop_catalog, worn
 
 router = APIRouter(prefix="/api", tags=["world"])
 
@@ -29,11 +32,19 @@ BOSS_MESSAGE = "Éris ne se montre pas encore. Gagne d'abord d'autres sceaux sur
 TWO_QUESTS_MESSAGE = "Deux quêtes à la fois, c'est déjà beaucoup. Termine-en une ou range-la."
 ALREADY_ACTIVE_MESSAGE = "Cette quête est déjà en cours."
 TINT_LOCKED_MESSAGE = "Cette teinte n'est pas encore débloquée."
-# The cabin's walls hold four pieces of decor (UI3b ruling: DECOR_SLOTS in
-# web/src/lib/world/scenes/cabin.ts); a fifth would hang over the first.
-MAX_DISPLAYED_DECOR = 4
+# The walls of each house hold MAX_DECOR pieces (spec 2026-09-29 drachmes §3; DECOR_SLOTS in
+# web/src/lib/world/scenes/cabin.ts); one more would hang over the first.
 WALLS_FULL_MESSAGE = "Les murs sont pleins\u202f: range d'abord une pièce."
 ORACLE_ALREADY_CONSULTED = "L'Oracle a déjà parlé cette semaine. Reviens lundi."
+# Spec 2026-09-29 drachmes §2 (R5, R7): Hermès's refusals, said to the player.
+OWNED_MESSAGE = "Tu l'as déjà."
+NOT_ON_SALE_MESSAGE = "Hermès ne vend pas encore cet objet."
+SHORT_MESSAGE = "Ta bourse n'est pas encore assez pleine pour cet objet."
+HOUSE_MESSAGE = "Ta maison n'est pas un objet à exposer."
+
+
+def owned_ids(conn: sqlite3.Connection, pid: int) -> set[str]:
+    return {r[0] for r in conn.execute("SELECT reward_id FROM reward WHERE profile_id = ?", (pid,))}
 
 
 _YEARS = {1: "dans un an", 2: "dans deux ans", 3: "dans trois ans"}
@@ -79,9 +90,11 @@ def dragon_out(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: 
     stage = grown_stage(dragon["stage"], xp_total(conn, pid), rules.dragon_stages)
     if stage != dragon["stage"]:
         store_stage(conn, pid, stage, now)
-    owned = {r[0] for r in conn.execute("SELECT reward_id FROM reward WHERE profile_id = ?", (pid,))}
+    rows = conn.execute("SELECT reward_id, equipped FROM reward WHERE profile_id = ?", (pid,)).fetchall()
+    owned = {r[0] for r in rows}
     unlocked_tints = ["bronze"] + [t for t in TINTS[1:] if f"tint:{t}" in owned]
-    return {"name": dragon["name"], "tint": dragon["tint"], "stage": stage, "unlocked_tints": unlocked_tints}
+    return {"name": dragon["name"], "tint": dragon["tint"], "stage": stage, "unlocked_tints": unlocked_tints,
+            "worn": worn({r[0] for r in rows if r[1]})}  # spec 2026-09-29 drachmes §4: the pieces worn, in draw order
 
 
 def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row, rules: Rules) -> list[dict]:
@@ -281,6 +294,8 @@ def get_world(request: Request):
         "oracle_rewards": ORACLE_REWARDS,
         "boss_rewards": {str(k): v for k, v in BOSS_REWARDS.items()},
         "quest_bonus": QUEST_BONUS,
+        # Spec 2026-09-29 drachmes §2: the stall's items, prices (from the rules file) and the walls per house.
+        "shop": shop_catalog(request.app.state.rules),
         # Spec 2026-09-29 §7: what the client needs of the rules file (the copy line, the bonuses, the owl).
         "rules": request.app.state.rules.as_dict(),
     }
@@ -316,7 +331,10 @@ def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends
         "boss": {"tier_available": tier_avail, "tiers_won": sorted(won), "active_quest_id": active_boss["id"] if active_boss else None,
                  # Spec §4: the ladder's length, and what opens the next fight (None once one is open or all are won).
                  "fights": len(rules.fights), "next": next_fight(rules.fights, levels, available, won) if tier_avail is None else None},
-        "rewards_count": rewards_count, "small_tricks": small_tricks(db, pid),
+        "rewards_count": rewards_count,
+        # Spec 2026-09-29 drachmes §1, §3: the purse and the highest house owned.
+        "drachmes": balance(db, pid), "house": house_of(owned_ids(db, pid)),
+        "small_tricks": small_tricks(db, pid),
     }
 
 
@@ -422,12 +440,44 @@ def get_rewards(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
             for r in rows if r["reward_id"] in REWARDS]
 
 
+@router.post("/profiles/{profile_id}/purchases", status_code=201)
+def post_purchase(profile_id: int, body: Purchase, request: Request, db: sqlite3.Connection = Depends(get_db)):
+    """Spec 2026-09-29 drachmes §2 (R5, review focus 1): the balance is read and the purchase written
+    under one write lock, so two purchases at once can never overdraw the purse."""
+    profile = fetch_profile(db, profile_id)
+    if not is_item(body.item):
+        raise HTTPException(404, "Item not found")
+    rules = request.app.state.rules
+    now = now_utc()
+    pid = profile["id"]
+    begin_write(db)
+    try:
+        stage = dragon_out(db, profile, now, rules)["stage"]      # the stored stage, caught up from the XP
+        owned = owned_ids(db, pid)
+        if body.item in owned:
+            raise HTTPException(409, OWNED_MESSAGE)
+        if not on_sale(body.item, owned=owned, levels=levels_of(db, pid), awake=lieutenants_for_level(profile["level"]), stage=stage):
+            raise HTTPException(409, NOT_ON_SALE_MESSAGE)
+        price = price_of(body.item, rules)
+        if balance(db, pid) < price:
+            raise HTTPException(409, SHORT_MESSAGE)
+        add_drachmes(db, pid, -price, "purchase", body.item, now)
+        grant_reward(db, pid, body.item, "stall", now)
+    except HTTPException:
+        db.rollback()
+        raise
+    db.commit()
+    row = db.execute("SELECT granted_at, equipped FROM reward WHERE profile_id = ? AND reward_id = ?", (pid, body.item)).fetchone()
+    return {"reward": {**REWARDS[body.item], "granted_at": row["granted_at"], "equipped": bool(row["equipped"])},
+            "drachmes": balance(db, pid)}
+
+
 def _kind(reward_id: str) -> str | None:
     return REWARDS.get(reward_id, {}).get("kind")
 
 
 def _displayed_decor(conn: sqlite3.Connection, profile_id: int) -> int:
-    """How many pieces of decor hang on the cabin's walls (a stale catalog id counts as none)."""
+    """How many pieces of decor hang on the house's walls (a stale catalog id counts as none)."""
     rows = conn.execute("SELECT reward_id FROM reward WHERE profile_id = ? AND equipped = 1", (profile_id,)).fetchall()
     return sum(1 for r in rows if _kind(r["reward_id"]) == "decor")
 
@@ -444,10 +494,21 @@ def patch_reward(profile_id: int, reward_id: str, body: RewardPatch, db: sqlite3
     if row is None:
         db.rollback()
         raise HTTPException(404, "Reward not found")
-    if body.equipped and not row["equipped"] and _kind(reward_id) == "decor":
-        if _displayed_decor(db, profile_id) >= MAX_DISPLAYED_DECOR:
+    kind = _kind(reward_id)
+    if kind == "house":
+        db.rollback()
+        raise HTTPException(409, HOUSE_MESSAGE)
+    if body.equipped and not row["equipped"] and kind == "decor":
+        # Spec 2026-09-29 drachmes §3: the walls of the house the hero lives in.
+        if _displayed_decor(db, profile_id) >= MAX_DECOR[house_of(owned_ids(db, profile_id))]:
             db.rollback()
             raise HTTPException(409, WALLS_FULL_MESSAGE)
+    if body.equipped and kind == "accessory":
+        # Spec §4 (R7): one piece per slot; putting one on takes off the other of its slot, in the same transaction.
+        slot = parse_accessory(reward_id)[1]
+        others = [accessory_id(k, slot) for k in ACCESSORY_SETS if accessory_id(k, slot) != reward_id]
+        db.execute(f"UPDATE reward SET equipped = 0 WHERE profile_id = ? AND reward_id IN ({','.join('?' * len(others))})",
+                   (profile_id, *others))
     db.execute("UPDATE reward SET equipped = ? WHERE profile_id = ? AND reward_id = ?", (int(body.equipped), profile_id, reward_id))
     db.commit()
     row = db.execute("SELECT * FROM reward WHERE profile_id = ? AND reward_id = ?", (profile_id, reward_id)).fetchone()

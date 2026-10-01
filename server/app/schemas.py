@@ -153,3 +153,8 @@ class OracleChoice(BaseModel):
 
 class RewardPatch(BaseModel):
     equipped: bool
+
+
+class Purchase(BaseModel):
+    """Spec 2026-09-29 drachmes §2: one item of Hermès's stall, by its reward id."""
+    item: str = Field(min_length=1, max_length=64)

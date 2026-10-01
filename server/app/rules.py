@@ -4,8 +4,8 @@ and a malformed file or a value of the wrong type is logged and ignored, so a ty
 game. GET /api/world serves them to the client (the copy line, the bonuses, the owl's hints, the
 seals' thresholds `levels` for the shelf's words, Éris's ladder `fights`); the dragon's stage
 thresholds (`dragon_stages`) are also served as the world's stage table. The server alone decides
-the seals and opens the fights; what pays drachmes (`drachmes`) and what things cost (`prices`) are
-served in `/api/world`'s `shop`."""
+the seals and opens the fights. What pays drachmes (`drachmes`) is served with the rest; what things
+cost (`prices`) is not: it reaches the client only through `/api/world`'s `shop`, with the items."""
 from __future__ import annotations
 import json
 import logging
@@ -48,7 +48,11 @@ class Rules:
     prices: dict[str, Any] = field(default_factory=default_prices)
 
     def as_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        """What `/api/world` serves as `rules`: everything but the prices (plan ruling R2: they are
+        served in `shop`, beside the items they price)."""
+        out = asdict(self)
+        del out["prices"]
+        return out
 
 
 def _count(v: Any) -> bool:
