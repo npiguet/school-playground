@@ -1,4 +1,4 @@
-"""Applies a saved session to the world: XP, quests, mastery, dragon, weekly goal (spec §3.6; plan Decisions 3, 6, 7, 8, 11, 15).
+"""Applies a saved session to the world: XP, quests, mastery, weekly goal, then the dragon grown from the total XP (spec §3.6; plan Decisions 3, 6, 7, 8, 11, 15; spec 2026-09-29 dragon growth §1).
 Runs after app.stats.apply_session_to_stats so profile_stat_day already includes the session. Never removes anything."""
 from __future__ import annotations
 import json, sqlite3
@@ -6,7 +6,8 @@ from app.clock import iso_week, week_bounds_utc
 from app.rules import Rules
 from app.schemas import AID_KEYS
 from app.world.catalog import BOSS_REWARDS, DECOR_ORDER, LIEUTENANTS, ORACLE_REWARDS, QUEST_BONUS, REWARDS
-from app.world.mastery import dragon_stage, is_neutralised, lieutenants_for_level, mastery_window, boss_tiers
+from app.world.dragon import grown_stage, stage_gauge, stage_index
+from app.world.mastery import boss_tiers, is_neutralised, lieutenants_for_level, mastery_window
 from app.world.quests import fight_won, quest_miss_reason
 from app.world.xp import rank_for, session_xp
 
@@ -55,6 +56,13 @@ def weekly_done(conn, profile_id, week) -> int:
 def ensure_dragon(conn, profile_id, now) -> sqlite3.Row:
     conn.execute("INSERT OR IGNORE INTO dragon(profile_id, updated_at) VALUES (?, ?)", (profile_id, now))
     return conn.execute("SELECT * FROM dragon WHERE profile_id = ?", (profile_id,)).fetchone()
+
+
+def store_stage(conn, profile_id, stage, now) -> None:
+    """Writes a grown stage; `hatched_at` is set once, when the dragon leaves the egg (spec §1)."""
+    hatched = None if stage == "egg" else now
+    conn.execute("UPDATE dragon SET stage = ?, hatched_at = COALESCE(hatched_at, ?), updated_at = ? WHERE profile_id = ?",
+                 (stage, hatched, now, profile_id))
 
 
 def _complete_quest(conn, q, profile_id, now, bonuses, rewards):
@@ -127,18 +135,7 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
             rid = LIEUTENANTS[key]["relic"]
             if grant_reward(conn, pid, rid, f"mastery:{key}", now):
                 r = REWARDS[rid]; rewards.append({"id": rid, "kind": r["kind"], "name": r["name"]})
-    # 4. dragon stage is stored MONOTONICALLY: a new lieutenant unlock (e.g. Protée at 8H) can raise
-    # `available` for an already-neutralised profile, but the stored stage never goes down for it.
-    dragon = ensure_dragon(conn, pid, now)
-    stage_before = dragon["stage"]
-    n = len(already | set(newly))
-    computed = dragon_stage(n, len(available))
-    stage_after = max(stage_before, computed, key=lambda s: ["egg", "hatchling", "young", "adult"].index(s))
-    if stage_after != stage_before:
-        conn.execute("UPDATE dragon SET stage = ?, hatched_at = COALESCE(hatched_at, ?), updated_at = ? WHERE profile_id = ?",
-                     (stage_after, now, now, pid))
-    needs_name = stage_after != "egg" and dragon["name"] is None
-    # 5. weekly goal
+    # 4. weekly goal
     target = int(json.loads(profile["settings_json"] or "{}").get("weekly_goal", 3))
     done = weekly_done(conn, pid, week)
     reached_now = False
@@ -147,8 +144,20 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
         bonuses.append({"reason": "weekly", "amount": QUEST_BONUS["weekly"]}); reached_now = True
     total_after = xp_total(conn, pid)
     rank_after, title_after, _, _ = rank_for(total_after)
+    # 5. the dragon grows from the total XP (spec 2026-09-29 dragon growth §1), once every XP of this
+    # session is in (its quests', its mastery's, the week's): stored = max(stored, stage for the XP),
+    # so a raised threshold or a restored backup never shrinks it. Neutralisation no longer drives it.
+    thresholds = rules.dragon_stages
+    dragon = ensure_dragon(conn, pid, now)
+    stage_before = dragon["stage"] if stage_index(dragon["stage"]) >= 0 else "egg"
+    stage_after = grown_stage(dragon["stage"], total_after, thresholds)
+    if stage_after != dragon["stage"]:
+        store_stage(conn, pid, stage_after, now)
+    needs_name = stage_after != "egg" and dragon["name"] is None
+    floor, nxt = stage_gauge(stage_after, thresholds)
     return {"xp": {"session": xp.total, "parts": xp.parts, "bonuses": bonuses, "total_before": total_before, "total_after": total_after,
-                   "rank_before": rank_before, "rank_after": rank_after, "title_after": title_after},
+                   "rank_before": rank_before, "rank_after": rank_after, "title_after": title_after,
+                   "stage_before": stage_before, "stage_after": stage_after, "floor": floor, "next": nxt},
             "quests": quest_out, "neutralised": newly, "rewards": rewards,
             "dragon": {"stage_before": stage_before, "stage_after": stage_after, "needs_name": needs_name},
             "weekly": {"target": target, "done": done, "reached_now": reached_now}, "boss": boss_out,

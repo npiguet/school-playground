@@ -1,7 +1,8 @@
 """The game's tunable rules (spec 2026-09-29 §7): `regles.json` in the game's data folder (the NAS's
 `./data`), read once at start-up. Every key is optional: a missing key keeps its built-in default,
 and a malformed file or a value of the wrong type is logged and ignored, so a typo never stops the
-game. GET /api/world serves them to the client (the copy line, the bonuses, the owl's hints)."""
+game. GET /api/world serves them to the client (the copy line, the bonuses, the owl's hints); the
+dragon's stage thresholds (`dragon_stages`) are served as the world's stage table."""
 from __future__ import annotations
 import json
 import logging
@@ -9,6 +10,7 @@ import math
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Callable
+from app.world.dragon import DEFAULT_STAGE_XP, STAGE_ORDER
 
 RULES_FILENAME = "regles.json"
 PACES = ("1", "2", "3")
@@ -31,6 +33,7 @@ class Rules:
     pace_bonus: dict[str, float] = field(default_factory=_default_pace_bonus)
     prophecy_bonus: float = 0.5
     chouette_hints: int = 3
+    dragon_stages: dict[str, int] = field(default_factory=lambda: dict(DEFAULT_STAGE_XP))
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -82,6 +85,28 @@ def _pace_bonus(raw: Any, path: Path) -> dict[str, float] | None:
     return out
 
 
+def _dragon_stages(raw: Any, path: Path) -> dict[str, int] | None:
+    """Spec 2026-09-29 dragon growth §1: a partial table keeps the other stages' defaults; the egg is
+    always 0; a table that no longer rises is refused whole (no single key can be blamed)."""
+    if not isinstance(raw, dict):
+        log.warning('%s: dragon_stages must be an object like {"young": 1200}; the built-in stages apply', path)
+        return None
+    out = dict(DEFAULT_STAGE_XP)
+    for stage, value in raw.items():
+        if stage == STAGE_ORDER[0] and _count(value) and value == 0:
+            continue
+        if stage not in STAGE_ORDER[1:] or not _count(value):
+            log.warning("%s: dragon_stages[%r] = %r is ignored (hatchling to ancestral, a whole number of XP "
+                        "from 0 to %d; the egg is always 0)", path, stage, value, MAX_COUNT)
+            continue
+        out[stage] = value
+    xps = [out[s] for s in STAGE_ORDER]
+    if any(a >= b for a, b in zip(xps, xps[1:])):
+        log.warning("%s: dragon_stages must rise from stage to stage (%s); the built-in stages apply", path, xps)
+        return None
+    return out
+
+
 def load_rules(data_dir: Path) -> Rules:
     path = data_dir / RULES_FILENAME
     if not path.is_file():
@@ -100,6 +125,10 @@ def load_rules(data_dir: Path) -> Rules:
             pace = _pace_bonus(value, path)
             if pace is not None:
                 values[key] = pace
+        elif key == "dragon_stages":
+            stages = _dragon_stages(value, path)
+            if stages is not None:
+                values[key] = stages
         elif key in CHECKS:
             ok, cast = CHECKS[key]
             if ok(value):

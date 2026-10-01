@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, installFastPauses, nextLine, createText, makeResult, postSession, redScan, spokenLines, swissDay, uniqueName } from './helpers';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, a 3-day
-// mastery hatch driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
+// mastery driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
 // via `DISCORDE_TEST_HOOKS=1` in compose.e2e.yaml), a lost then won boss fight, the weekly goal
 // and the break nudge, and a no-red/no-guilt scan. One profile, one describe.serial: each step
 // depends on state the previous one left on the server (quests, mastery, rewards, dragon stage).
@@ -34,7 +34,7 @@ async function dictate(page: Page, draft: string, maxSteps = 120) {
   await ta.fill(draft);
 }
 
-test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
+test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, mastery, boss', () => {
   let profileId: string;
   let textId: number;
   let oracleQuestId: number;
@@ -184,7 +184,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     const today = swissDay();
     // The Oracle quest counts sessions, not distinct days - two more today's-dated sessions on
     // top of step 4's finish it (goal: 3).
-    await postSession(request, {
+    const res1 = await postSession(request, {
       profileId: Number(profileId),
       textId,
       day: today,
@@ -198,6 +198,12 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     });
     const oracleProgress = res2.progression.quests.find((q: { id: number }) => q.id === oracleQuestId);
     expect(oracleProgress?.completed).toBe(true);
+    // Spec 2026-09-29 dragon growth §1: the dragon hatches from XP, at 100. Step 4's short text and the
+    // first session here stay under it; the second (with the Oracle's 150 and the week's 40) crosses it.
+    expect(res1.progression.dragon.stage_after).toBe('egg');
+    expect(res2.progression.xp.total_before).toBeLessThan(100);
+    expect(res2.progression.xp.total_after).toBeGreaterThanOrEqual(100);
+    expect(res2.progression.dragon).toEqual({ stage_before: 'egg', stage_after: 'hatchling', needs_name: true });
     expect(res2.progression.rewards.some((r: { id: string }) => r.id === 'tint:ecume')).toBe(true);
 
     await page.goto(`/#/p/${profileId}/dragon?panel=soin`);
@@ -209,7 +215,7 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
     await expect(page.getByTestId('cabin-reward-tint:ecume')).toHaveAttribute('data-owned', 'true');
   });
 
-  test('6. mastery over three days hatches the dragon; the dossier changes voice', async ({ page, request }) => {
+  test('6. mastery over three days neutralises the Hydra (the dragon grows from XP only); naming it; the dossier changes voice', async ({ page, request }) => {
     // Decision 3's minimal recent window is computed fresh from all-time stats, so - since this
     // profile already has Hydre-category errors "today" (steps 4-5) - it can complete in fewer
     // than three of these calls; find whichever response actually neutralises her rather than
@@ -228,8 +234,8 @@ test.describe.serial('world: camp, Oracle, quests, mastery hatch, boss', () => {
       }
     }
     expect(hatched).not.toBeNull();
-    expect(hatched.progression.dragon.stage_after).toBe('hatchling');
-    expect(hatched.progression.dragon.needs_name).toBe(true);
+    // Neutralising the Hydra no longer grows the dragon (spec §1): it hatched from XP in step 5.
+    expect(hatched.progression.dragon).toEqual({ stage_before: 'hatchling', stage_after: 'hatchling', needs_name: true });
 
     await page.goto(`/#/p/${profileId}/dragon`);
     await expect(page.getByTestId('dragon-stage')).toContainText('Dragonnet');

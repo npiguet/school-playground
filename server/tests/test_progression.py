@@ -31,22 +31,27 @@ def test_session_grants_xp_and_reports_rank(client):
     assert p["xp"]["session"] == 22 + 24 + 8 and p["xp"]["parts"] == {"text": 54, "pace": 0, "aids": 0, "prophecy": 0}
     assert p["xp"]["total_after"] == p["xp"]["session"]
     assert p["xp"]["rank_before"] == 1 and p["xp"]["title_after"] == "Recrue du camp"
+    assert [p["xp"][k] for k in ("stage_before", "stage_after", "floor", "next")] == ["egg", "egg", 0, 100]
     assert p["dragon"] == {"stage_before": "egg", "stage_after": "egg", "needs_name": False}
     assert p["neutralised"] == [] and p["rewards"] == [] and p["boss"] is None
 
 
-def test_mastery_over_three_days_hatches_the_dragon_and_grants_relic(client):
+def test_mastery_over_three_days_grants_the_relic_and_the_dragon_hatches_from_xp(client):
     pid = make_profile(client, level="10H"); tid = make_text(client)
-    post(client, pid, tid, hydre_result(), day="2026-09-21")
-    post(client, pid, tid, hydre_result(), day="2026-09-22")
+    p1 = post(client, pid, tid, hydre_result(), day="2026-09-21")["progression"]
+    p2 = post(client, pid, tid, hydre_result(), day="2026-09-22")["progression"]
     p = post(client, pid, tid, hydre_result(), day="2026-09-23")["progression"]
+    # Spec 2026-09-29 dragon growth §1: 54 then 108 XP, the egg hatches at 100; neutralising the
+    # Hydra no longer grows it.
+    assert p1["dragon"]["stage_after"] == "egg"
+    assert p2["dragon"] == {"stage_before": "egg", "stage_after": "hatchling", "needs_name": True}
     assert p["neutralised"] == ["hydre"]
     assert [r["id"] for r in p["rewards"]] == ["ecaille_hydre"]
-    assert p["dragon"] == {"stage_before": "egg", "stage_after": "hatchling", "needs_name": True}
+    assert p["dragon"] == {"stage_before": "hatchling", "stage_after": "hatchling", "needs_name": True}
     assert {"reason": "mastery", "amount": 200} in p["xp"]["bonuses"]
     # permanent: a bad day later does not undo it
-    p2 = post(client, pid, tid, hydre_result(draft=6, caught=0), day="2026-09-24")["progression"]
-    assert p2["neutralised"] == [] and p2["dragon"]["stage_after"] == "hatchling"
+    p4 = post(client, pid, tid, hydre_result(draft=6, caught=0), day="2026-09-24")["progression"]
+    assert p4["neutralised"] == [] and p4["dragon"]["stage_after"] == "hatchling"
 
 
 def test_same_day_sessions_count_as_one_day(client):
@@ -114,42 +119,6 @@ def test_derived_categories_are_hidden_from_generic_stats(client):
     stats = client.get(f"/api/profiles/{pid}/stats").json()
     assert all(not c["category"].startswith("derived:") for c in stats["categories"])
     assert stats["totals"]["caught"] == 4
-
-
-def test_dragon_stage_is_persisted_monotonically(client):
-    # Controller ruling: a stored dragon stage is never lowered. A profile that started below
-    # 8H (5 lieutenants available, Protée asleep) neutralises all 5 and hatches to "adult"; when
-    # its level rises to 8H+, Protée joins `available` (now 6) and the *computed* stage for a
-    # single unneutralised lieutenant among 6 would be "hatchling" -- but the stored stage must
-    # stay "adult" (max(stored, computed)), never regress.
-    pid = make_profile(client, level="7H"); tid = make_text(client, level="7H")
-    for key, cats in [("hydre", "agreement:verb"), ("echo", "homophone"), ("chimere", "agreement:gender")]:
-        for day in ("2026-09-01", "2026-09-02", "2026-09-03"):
-            r = make_result()
-            r["totalWords"] = 120; r["draftErrors"] = [{}] * 4; r["caught"] = [{}] * 4; r["catchRate"] = 1.0
-            r["byCategory"] = {cats: {"opportunities": 10, "draft": 4, "caught": 4, "missed": 0, "introduced": 0}}
-            post(client, pid, tid, r, day=day)
-    # sirenes and lethe still need neutralising, but with only 5 lieutenants available below 8H
-    # (hydre, echo, chimere, sirenes, lethe), 3 neutralised is already the "young" threshold
-    # (ceil(5/2) = 3); finish the remaining two to reach "adult".
-    for key, cat in [("sirenes", "derived:sirenes"), ("lethe", "derived:lethe")]:
-        for day in ("2026-10-01", "2026-10-02", "2026-10-03"):
-            r = make_result()
-            r["totalWords"] = 120; r["draftErrors"] = [{}] * 4; r["caught"] = [{}] * 4; r["catchRate"] = 1.0
-            r["byCategory"] = {cat: {"opportunities": 10, "draft": 4, "caught": 4, "missed": 0, "introduced": 0}}
-            p = post(client, pid, tid, r, day=day)["progression"]
-    assert p["dragon"]["stage_after"] == "adult"
-
-    # raise the profile's level past 8H: Protée now joins `available` (6 lieutenants), unneutralised
-    r = client.patch(f"/api/profiles/{pid}", json={"level": "9H"})
-    assert r.status_code == 200
-    r2 = make_result()
-    r2["totalWords"] = 120; r2["draftErrors"] = [{}]; r2["caught"] = [{}]; r2["catchRate"] = 1.0
-    r2["byCategory"] = {"agreement:verb": {"opportunities": 1, "draft": 1, "caught": 1, "missed": 0, "introduced": 0}}
-    p2 = post(client, pid, tid, r2, day="2026-10-10")["progression"]
-    # computed from scratch (5 of 6 neutralised) would be "young", strictly lower than the stored "adult"
-    assert p2["dragon"]["stage_before"] == "adult"
-    assert p2["dragon"]["stage_after"] == "adult"
 
 
 def test_the_aids_left_at_the_camp_pay_their_bonus(client):

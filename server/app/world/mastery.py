@@ -1,4 +1,4 @@
-"""Mastery (neutralisation) rule, dragon stages and boss tiers (spec §3.6; plan Decisions 3, 8, 11)."""
+"""Mastery (neutralisation) rule, the neutralisation count shown by the nest until sub-project 3's Task 3, and boss tiers (spec §3.6; plan Decisions 3, 8, 11)."""
 from __future__ import annotations
 from dataclasses import dataclass
 from math import ceil
@@ -31,14 +31,6 @@ def is_neutralised(w: Window) -> bool:
 
 def _thresholds(available: int) -> dict[str, int]:
     return {"hatchling": 1, "young": ceil(available / 2), "adult": available}
-
-
-def dragon_stage(neutralised: int, available: int) -> str:
-    t = _thresholds(available)
-    if neutralised >= t["adult"]: return "adult"
-    if neutralised >= t["young"]: return "young"
-    if neutralised >= t["hatchling"]: return "hatchling"
-    return "egg"
 
 
 def next_stage_at(neutralised: int, available: int) -> int | None:

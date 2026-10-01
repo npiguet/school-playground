@@ -12,19 +12,20 @@ from app.clock import iso_week, local_day, now_utc
 from app.db import begin_write, get_db
 from app.levels import LEVELS, level_index
 from app.routers.profiles import fetch_profile, to_out
+from app.rules import Rules
 from app.schemas import DragonPatch, OracleChoice, QuestCreate, RewardPatch
 from app.textutil import word_count
 from app.world import oracle as oracle_mod
 from app.world.catalog import (BOSS_REWARDS, LIEUTENANT_ORDER, LIEUTENANTS, MASTERY, ORACLE_REWARDS, QUEST_BONUS,
                                RANKS, REWARDS, TINTS)
-from app.world.mastery import dragon_stage, lieutenants_for_level, mastery_window, next_stage_at, tier_available
-from app.world.progression import boss_tiers_won, ensure_dragon, lieutenant_day_rows, neutralised_set, weekly_done, xp_total
+from app.world.dragon import grown_stage, stage_table
+from app.world.mastery import lieutenants_for_level, mastery_window, next_stage_at, tier_available
+from app.world.progression import (boss_tiers_won, ensure_dragon, lieutenant_day_rows, neutralised_set, store_stage,
+                                   weekly_done, xp_total)
 from app.world.quests import density, recommend_texts
 from app.world.xp import rank_for
 
 router = APIRouter(prefix="/api", tags=["world"])
-
-STAGE_ORDER = ["egg", "hatchling", "young", "adult"]
 
 BOSS_MESSAGE = "Éris ne se montre pas encore. Neutralise d'abord ses lieutenants."
 TWO_QUESTS_MESSAGE = "Deux quêtes à la fois, c'est déjà beaucoup. Termine-en une ou range-la."
@@ -72,16 +73,16 @@ def quest_out(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
             "created_at": row["created_at"], "completed_at": row["completed_at"]}
 
 
-def dragon_out(conn: sqlite3.Connection, profile: sqlite3.Row, now: str) -> dict:
+def dragon_out(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: Rules) -> dict:
     pid = profile["id"]
     dragon = ensure_dragon(conn, pid, now)
     available = lieutenants_for_level(profile["level"])
     n = len(neutralised_set(conn, pid))
-    computed = dragon_stage(n, len(available))
-    stage = max(dragon["stage"], computed, key=STAGE_ORDER.index)
+    # Spec 2026-09-29 dragon growth §1: the stage follows the total XP and never goes down; a stage
+    # caught up here (a threshold lowered in regles.json) is stored.
+    stage = grown_stage(dragon["stage"], xp_total(conn, pid), rules.dragon_stages)
     if stage != dragon["stage"]:
-        conn.execute("UPDATE dragon SET stage = ?, hatched_at = COALESCE(hatched_at, ?), updated_at = ? WHERE profile_id = ?",
-                     (stage, now, now, pid))
+        store_stage(conn, pid, stage, now)
     owned = {r[0] for r in conn.execute("SELECT reward_id FROM reward WHERE profile_id = ?", (pid,))}
     unlocked_tints = ["bronze"] + [t for t in TINTS[1:] if f"tint:{t}" in owned]
     return {"name": dragon["name"], "tint": dragon["tint"], "stage": stage, "neutralised": n, "available": len(available),
@@ -278,6 +279,8 @@ def get_world(request: Request):
         "lieutenants": [{"key": k, **LIEUTENANTS[k]} for k in LIEUTENANT_ORDER],
         "rewards": REWARDS,
         "ranks": [{"xp": xp, "title": t} for xp, t in RANKS],
+        # Spec 2026-09-29 dragon growth §2: the dragon's stages, their names and XP (from the rules file).
+        "stages": stage_table(request.app.state.rules.dragon_stages),
         "tints": TINTS,
         "oracle_rewards": ORACLE_REWARDS,
         "boss_rewards": {str(k): v for k, v in BOSS_REWARDS.items()},
@@ -289,7 +292,7 @@ def get_world(request: Request):
 
 
 @router.get("/profiles/{profile_id}/camp")
-def get_camp(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
+def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)):
     profile = fetch_profile(db, profile_id)
     now = now_utc(); day = local_day(now); week = iso_week(day)
     pid = profile["id"]
@@ -306,7 +309,7 @@ def get_camp(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
     tier_avail = tier_available(len(neutralised), len(available), won)
     active_boss = db.execute("SELECT id FROM quest WHERE profile_id = ? AND kind = 'boss' AND status = 'active'", (pid,)).fetchone()
     rewards_count = db.execute("SELECT COUNT(*) FROM reward WHERE profile_id = ?", (pid,)).fetchone()[0]
-    dragon = dragon_out(db, profile, now)   # may persist a caught-up stage (see dragon_out's monotonic recompute)
+    dragon = dragon_out(db, profile, now, request.app.state.rules)   # may persist a caught-up stage (see dragon_out)
     db.commit()
     return {
         "profile": to_out(profile), "xp": xp_block(db, pid), "dragon": dragon,
@@ -320,7 +323,7 @@ def get_camp(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
 
 
 @router.patch("/profiles/{profile_id}/dragon")
-def patch_dragon(profile_id: int, body: DragonPatch, db: sqlite3.Connection = Depends(get_db)):
+def patch_dragon(profile_id: int, body: DragonPatch, request: Request, db: sqlite3.Connection = Depends(get_db)):
     profile = fetch_profile(db, profile_id)
     now = now_utc()
     ensure_dragon(db, profile_id, now)
@@ -328,14 +331,14 @@ def patch_dragon(profile_id: int, body: DragonPatch, db: sqlite3.Connection = De
     if body.name is not None:
         updates["name"] = body.name
     if body.tint is not None:
-        current = dragon_out(db, profile, now)
+        current = dragon_out(db, profile, now, request.app.state.rules)
         if body.tint not in TINTS or body.tint not in current["unlocked_tints"]:
             raise HTTPException(422, TINT_LOCKED_MESSAGE)
         updates["tint"] = body.tint
     if updates:
         sets = ", ".join(f"{k} = ?" for k in updates)
         db.execute(f"UPDATE dragon SET {sets}, updated_at = ? WHERE profile_id = ?", (*updates.values(), now, profile_id))
-    result = dragon_out(db, profile, now)
+    result = dragon_out(db, profile, now, request.app.state.rules)
     db.commit()
     return result
 

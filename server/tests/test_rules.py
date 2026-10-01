@@ -6,10 +6,12 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.rules import RULES_FILENAME, load_rules
+from app.world.dragon import DEFAULT_STAGE_XP
 
+STAGE_DEFAULTS = {"egg": 0, "hatchling": 100, "young": 1200, "adult": 5000, "illustre": 15000, "ancestral": 40000}
 DEFAULTS = {"quest_min_chances": 3, "quest_min_correct": 0.85, "fight_max_per_100": 4.0, "copy_belle_max_per_100": 2.0,
             "copy_correcte_max_per_100": 8.0, "aid_bonus": 0.2, "pace_bonus": {"1": 0.0, "2": 0.25, "3": 0.5},
-            "prophecy_bonus": 0.5, "chouette_hints": 3}
+            "prophecy_bonus": 0.5, "chouette_hints": 3, "dragon_stages": STAGE_DEFAULTS}
 
 
 def write(tmp_path: Path, text: str) -> Path:
@@ -89,3 +91,42 @@ def test_the_world_catalog_serves_the_rules_read_at_start_up(settings):
 
 def test_the_world_catalog_serves_the_defaults_without_a_file(client):
     assert client.get("/api/world").json()["rules"] == DEFAULTS
+
+
+# Spec 2026-09-29 dragon growth §1: the thresholds live in the rules file, with the same fallback rules.
+def test_the_built_in_stages_mirror_the_spec():
+    assert DEFAULT_STAGE_XP == STAGE_DEFAULTS
+
+
+def test_dragon_stages_from_the_file_keep_the_other_defaults(tmp_path):
+    rules = load_rules(write(tmp_path, '{"dragon_stages": {"hatchling": 50, "ancestral": 30000}}'))
+    assert rules.dragon_stages == {**STAGE_DEFAULTS, "hatchling": 50, "ancestral": 30000}
+    assert rules.as_dict() == {**DEFAULTS, "dragon_stages": {**STAGE_DEFAULTS, "hatchling": 50, "ancestral": 30000}}
+
+
+def test_a_wrong_dragon_stage_value_is_logged_and_its_default_kept(tmp_path, caplog):
+    text = json.dumps({"dragon_stages": {"egg": 10, "hatchling": True, "young": 1200.5, "adult": -1, "dragon": 5,
+                                         "ancestral": 10 ** 400, "illustre": 20000}})
+    with caplog.at_level(logging.WARNING):
+        rules = load_rules(write(tmp_path, text))
+    assert rules.dragon_stages == {**STAGE_DEFAULTS, "illustre": 20000}
+    for key in ("'egg'", "'hatchling'", "'young'", "'adult'", "'dragon'", "'ancestral'"):
+        assert key in caplog.text, key
+
+
+def test_an_egg_at_zero_is_accepted_quietly(tmp_path, caplog):
+    with caplog.at_level(logging.WARNING):
+        assert load_rules(write(tmp_path, '{"dragon_stages": {"egg": 0}}')).dragon_stages == STAGE_DEFAULTS
+    assert caplog.text == ""
+
+
+def test_dragon_stages_that_do_not_rise_are_refused_whole(tmp_path, caplog):
+    with caplog.at_level(logging.WARNING):
+        assert load_rules(write(tmp_path, '{"dragon_stages": {"young": 6000}}')).dragon_stages == STAGE_DEFAULTS
+        assert load_rules(write(tmp_path, '{"dragon_stages": {"hatchling": 0}}')).dragon_stages == STAGE_DEFAULTS
+        assert load_rules(write(tmp_path, '{"dragon_stages": {"illustre": 5000, "aid_bonus": 1}}')).dragon_stages == STAGE_DEFAULTS
+    assert caplog.text.count("must rise") == 3
+
+
+def test_dragon_stages_that_are_not_an_object_keep_the_built_in_ones(tmp_path):
+    assert load_rules(write(tmp_path, '{"dragon_stages": [100, 1200], "chouette_hints": 2}')).as_dict() == {**DEFAULTS, "chouette_hints": 2}

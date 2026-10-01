@@ -1,6 +1,6 @@
 import pytest
-from app.world.mastery import (Window, boss_tiers, dragon_stage, is_neutralised, lieutenants_for_level, mastery_window,
-                               next_stage_at, tier_available)
+from app.world.mastery import (Window, boss_tiers, is_neutralised, lieutenants_for_level, mastery_window, next_stage_at,
+                               tier_available)
 from app.rules import Rules
 from app.world.xp import rank_for, session_xp
 from app.world.quests import density, fight_won, quest_miss_reason, recommend_texts
@@ -46,9 +46,7 @@ def test_window_no_data():
     assert mastery_window([]) == Window(days=0, traps=0, caught=0, rate=None, complete=False)
 
 
-def test_dragon_stage_and_tiers():
-    assert dragon_stage(0, 6) == "egg" and dragon_stage(1, 6) == "hatchling" and dragon_stage(3, 6) == "young" and dragon_stage(6, 6) == "adult"
-    assert dragon_stage(2, 5) == "hatchling" and dragon_stage(3, 5) == "young" and dragon_stage(5, 5) == "adult"
+def test_boss_tiers_and_the_neutralisation_count():
     assert next_stage_at(0, 6) == 1 and next_stage_at(1, 6) == 3 and next_stage_at(6, 6) is None
     assert boss_tiers(6) == {1: 2, 2: 4, 3: 6} and boss_tiers(5) == {1: 2, 2: 4, 3: 5}
     assert tier_available(1, 6, set()) is None and tier_available(2, 6, set()) == 1
