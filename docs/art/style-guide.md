@@ -517,3 +517,37 @@ rejected, blotchy multicolour silver), decor-amphore 1015 (black-figure amphora 
 hero), decor-chouette 1017 (a small white marble owl on a plinth), decor-mosaique 1020 (a framed
 tile mosaic of three Muses with lyre, scroll and mask), decor-bouclier 1026 (a polished bronze
 hoplite shield with a Pegasus relief; 1021 and 1027 rejected, blotchier). All under 17 KiB.
+
+## Accessories: echo
+
+Écho's set (the cave nymph: sound, seashells, cave stone), made with the art-overlays skill:
+inpainting on `dragon_<stage>.png` with the slot mask, `discorde-inked-clean`, V-scale 1, then
+`overlay.py extract --cpu` with hand points. One colour family for the four pieces: braided deep
+sea-blue cord, turquoise beads, cream cowries, pale pink and cream shells, slate-grey cloth, a
+little polished bronze. One fixed item sentence per slot, only the dragon's stage words change (the
+prompts are in each sidecar). Files: `assets/art/dragon/accessories/echo-<slot>_<stage>.png`
+(+ `.json`, `_raw.png` the generated picture, `_mask.png` the item mask, see `tools/art/overlay_raw.py`),
+WebPs and the manifest fragment `echo.json` in `assets/art/export/dragon/accessories/`. Contact sheet
+`docs/art/accessories-echo.png` (`python tools/art/accessories_sheet.py echo docs/art/accessories-echo.png`).
+
+| Item (slot, denoise) | young | adult | illustre | ancestral |
+|---|---|---|---|---|
+| pendentif-conque (cou, 0.75) | 1141 | 1241 | 1323 | 1423 |
+| clochettes de bronze (queue, 0.75, slot + 22 px down) | 1173 | 1221 | 1344 | not made yet |
+| cape couleur de roche (dos, 0.8) | 1161 | 1231 | 1333 | 1433 |
+| diadème de coquillages (tête, 0.85) | 1112 | 1212 | 1312 | 1413 |
+
+- **Cou**: a wide snug band of braided sea-blue cords with turquoise beads and cowries, a large pink
+  and cream spiral conch hanging at the front.
+- **Queue**: a braided sea-blue band around the tail with three polished bronze bells, each with a
+  tiny pink shell charm. Inpainted and extracted on the slot united with itself shifted 22 px down
+  (`tools/art/extmask.py`), and extracted part by part (band, each bell) then merged. Rejected: young
+  1131-1133 (bells cut flat by the slot's bottom edge), illustre 1341-1343 (the band stopped ~20 px
+  short of the tail's edge or lay across it like a sash).
+- **Dos**: a short draped cloak of matte slate-grey wool with lilac-grey folds, its hem edged with
+  turquoise beads and cowries, knotted at the shoulder behind the wing.
+- **Tête**: a thin bronze band across the brow set with upright pink and cream scallop shells,
+  turquoise beads between them and a larger fan scallop standing up (behind the far horn on the
+  ancestral, the horns being kept out of the head slot).
+- Kept results were cleaned by hand where SAM took in repainted skin (`tools/art/overlay_clean.py`
+  polygons, recorded in each sidecar's `cleanup`).
