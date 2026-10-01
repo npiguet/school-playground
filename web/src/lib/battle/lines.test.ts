@@ -100,6 +100,10 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
     const t = (draft: number, caught: number, outcome: 'rout' | 'push' | 'standoff', mode: 'dictation' | 'grimoire' = 'dictation') =>
       L.dragonTally({ draft, caught, mode, outcome });
     expect(t(0, 0, 'rout')).toBe("Pas un piège dans ta dictée\u202f: Éris n'a rien pu glisser\u202f!");
+    // Nothing in the dictation but the copy is not a rout: she slipped traps in while proofreading.
+    for (const o of ['push', 'standoff'] as const) {
+      expect(t(0, 0, o), o).toBe("Ta dictée n'avait aucun piège, mais Éris en a glissé pendant la relecture. Viens, on les regarde ensemble dans «\u202fRevoir\u202f».");
+    }
     expect(t(5, 5, 'rout')).toBe("Tu as déjoué 5 pièges sur 5. Ses lieutenants s'en souviendront\u202f!");
     // A rout with little caught is still a victory in the dragon's words.
     expect(t(4, 1, 'rout')).toBe("Tu as déjoué 1 piège sur 4. Ses lieutenants s'en souviendront\u202f!");

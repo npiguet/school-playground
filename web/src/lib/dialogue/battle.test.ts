@@ -24,7 +24,7 @@ describe("Éris in battle (Ruling E14)", () => {
 
   it('never claims a catch in the lines of a rout or a push, which can come with nothing caught', () => {
     for (const key of ['battle.victory', 'battle.retreat'] as const) {
-      for (const l of LINES[key]) expect(l.text, l.text).not.toMatch(/déjoué|débusqués|trouvé tous|retrouvés|La moitié de mes/);
+      for (const l of LINES[key]) expect(l.text, l.text).not.toMatch(/déjoué|débusqués|trouves|trouvé tous|retrouvés|La moitié de mes/);
     }
   });
 

@@ -15,13 +15,6 @@ def quest_miss_reason(by_category: dict, categories: list[str], rules: Rules) ->
     return None if m["correct"] >= rules.quest_min_correct else "copy"
 
 
-def session_counts_for(by_category: dict, categories: list[str], rules: Rules) -> bool:
-    """Spec 2026-09-29 §2: a quest session (board or Oracle) counts when the text gave the target
-    lieutenant enough chances and its correct share of the handed-in copy is high enough. Active
-    quests created before the change are judged by this rule too (their stored min_rate is ignored)."""
-    return quest_miss_reason(by_category, categories, rules) is None
-
-
 def fight_won(result: dict, rules: Rules) -> bool:
     """Spec 2026-09-29 §2: an Éris fight is won on the whole copy, at most `fight_max_per_100` mistakes
     left per 100 words. A clean copy simply wins (the old "too easy" draw is gone)."""

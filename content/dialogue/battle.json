@@ -54,7 +54,7 @@
       { "speaker": "eris", "text": "Quelques-uns de mes pièges tiennent encore. Je m'accroche à ceux-là." },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Hmpf. Le grimoire se répare. Il garde encore quelques secrets…" },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Le grimoire se répare à moitié. L'autre moitié reste à moi." },
-      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Tu trouves mes dés-accords plus vite que je ne les sème. Presque." }
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Le grimoire me résiste encore à moitié. Presque réparé, presque." }
     ],
     "battle.caught": [
       { "speaker": "eris", "text": "Ha ! Mes pièges tiennent encore. Mais tu commences à voir clair…" },

@@ -201,14 +201,14 @@ export function ofOpponent(id: OpponentId): string {
 /** Why a quest's text does not count this time (the server's `reason`), in the camp's voice: the
  *  opponent showed too little in it, or too many of its traps stay in the copy. Never guilt. */
 export function questNotCounted(reason: 'chances' | 'copy', id: OpponentId): string {
-  if (reason === 'copy') return `Trop de pièges ${ofOpponent(id)} restent dans ta copie : ce texte ne compte pas pour la quête.`;
+  if (reason === 'copy') return `Trop de pièges ${ofOpponent(id)} restent dans ta copie\u202f: ce texte ne compte pas pour la quête.`;
   const many = id !== 'eris' && genderFor(id) === 'fp';
   const shown = id === 'eris' ? 'montrée' : agree('montré', id);
-  return `${opponentName(id)} ${many ? 'se sont' : "s'est"} peu ${shown} dans ce texte : il ne compte pas pour la quête.`;
+  return `${opponentName(id)} ${many ? 'se sont' : "s'est"} peu ${shown} dans ce texte\u202f: il ne compte pas pour la quête.`;
 }
 
 export const VICTORY = {
-  counting:'Les Muses comptent les pièges déjoués…',
+  counting: 'Les Muses comptent les pièges déjoués…',
   submitError: (e: string) => `Les Muses n'ont pas pu noter cette partie (${e}).`,
   retry: 'Réessayer',
   sending: 'Envoi en cours…',
@@ -271,7 +271,11 @@ export const VICTORY = {
 /** The dragon's tally follows the reckoning's outcome (the copy's, spec 2026-09-29): what was caught
  *  is counted, and the closing words agree with the title (a rout is a victory even with little caught). */
 export function dragonTally(o: { draft: number; caught: number; mode: PlayMode; outcome: Outcome }): string {
-  if (o.draft === 0) return "Pas un piège dans ta dictée\u202f: Éris n'a rien pu glisser\u202f!";
+  if (o.draft === 0) {
+    if (o.outcome === 'rout') return "Pas un piège dans ta dictée\u202f: Éris n'a rien pu glisser\u202f!";
+    // Nothing to catch in the dictation, yet the copy is not clean: she slipped some in at the proofreading.
+    return "Ta dictée n'avait aucun piège, mais Éris en a glissé pendant la relecture. Viens, on les regarde ensemble dans «\u202fRevoir\u202f».";
+  }
   const [one, many] = o.mode === 'grimoire' ? ['dés-accord', 'dés-accords'] : ['piège', 'pièges'];
   const verb = o.mode === 'grimoire' ? 'retrouvé' : 'déjoué';
   if (o.caught === 0) {

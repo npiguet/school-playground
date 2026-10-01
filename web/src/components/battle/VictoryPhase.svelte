@@ -13,7 +13,7 @@
   import DialogueBox from '../scene/DialogueBox.svelte';
   import { DRAGON_REVIEW_HINT, dragonTally, opponentName, VICTORY, victoryTitle } from '../../lib/battle/lines';
   import type { OpponentId } from '../../lib/battle/battle';
-  import { outcomeOf, reckoningSteps, reckoningVerdict } from '../../lib/battle/hp';
+  import { bossFallbackOutcome, outcomeOf, reckoningSteps, reckoningVerdict } from '../../lib/battle/hp';
   import { react, strike } from '../../lib/battle/stage.svelte';
   import { emitBattle } from '../../lib/battle/events';
   import { spokenExplanation, type ExplainContext } from '../../lib/explain';
@@ -154,8 +154,13 @@
     const introduced = result.introduced.length;
     if (!picked) {
       // Spoken once the outcome is known (the dialogue waits for the progression, so a boss's too);
-      // a boss fight whose submission failed has none yet and falls back to the copy's own verdict.
-      const outcome = verdict ?? outcomeOf(copyOf?.verdict ?? 'reprendre', null);
+      // a boss fight whose submission failed has none yet and falls back to the fight rule (a boss
+      // never has a lieutenant's « push »).
+      const outcome =
+        verdict ??
+        (encounter === 'eris'
+          ? bossFallbackOutcome(per100(copyOf?.left ?? 0, result.totalWords), rulesOf(campStore.catalog).fight_max_per_100)
+          : outcomeOf(copyOf?.verdict ?? 'reprendre', null));
       picked = [
         erisVictoryLine({ outcome, draft, caught, introduced, mode }),
         dragonSays(speaker, dragonTally({ draft, caught, mode, outcome })),

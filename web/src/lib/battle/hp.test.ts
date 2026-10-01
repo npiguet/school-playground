@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FULL_HP, hpDuringPlay, hpPercent, outcomeOf, reckoningSteps, reckoningVerdict } from './hp';
+import { bossFallbackOutcome, FULL_HP, hpDuringPlay, hpPercent, outcomeOf, reckoningSteps, reckoningVerdict } from './hp';
 import { copyVerdict, DEFAULT_RULES, per100 } from '../rules';
 
 describe("the opponent's hold on the text (Ruling C3)", () => {
@@ -62,6 +62,15 @@ describe("the opponent's hold on the text (Ruling C3)", () => {
     // half-victory - the server's win/loss is binary, and a loss must not borrow that title).
     expect(outcomeOf('belle', { won: false })).toBe('standoff');
     expect(outcomeOf('correcte', { won: false })).toBe('standoff');
+  });
+
+  it("falls back to the fight rule for a boss whose submission failed: a rout or a standoff, never a push", () => {
+    const max = DEFAULT_RULES.fight_max_per_100;
+    // A copie correcte (a lieutenant's push) that still wins the fight is a rout for the boss.
+    expect(outcomeOf('correcte', null)).toBe('push');
+    expect(bossFallbackOutcome(max, max)).toBe('rout');
+    expect(bossFallbackOutcome(0, max)).toBe('rout');
+    expect(bossFallbackOutcome(max + 0.1, max)).toBe('standoff');
   });
 
   it('empties the bar of a won boss fight with nothing caught, and keeps it up for a lost one with everything caught', () => {

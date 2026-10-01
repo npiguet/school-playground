@@ -61,4 +61,11 @@ export function reckoningVerdict(
   return outcomeOf(copy, o.bossFight ? (o.progression?.boss ?? null) : null);
 }
 
+/** A boss fight whose submission failed has no server verdict yet: the dialogue falls back to the
+ *  client's own fight rule (at most `fightMax` mistakes per 100 words left: a rout, else a standoff),
+ *  never to the lieutenant mapping, whose « push » a boss never has. */
+export function bossFallbackOutcome(leftPer100: number, fightMax: number): Outcome {
+  return outcomeOf('reprendre', { won: leftPer100 <= fightMax });
+}
+
 export const hpPercent = (hp: HpView) => Math.round(hp.value * 100);
