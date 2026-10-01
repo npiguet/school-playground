@@ -1,4 +1,4 @@
-"""World catalog: lieutenants, rewards, ranks (plan Decisions 1, 6, 12, 20). French labels are UI text served by GET /api/world."""
+"""World catalog: lieutenants, rewards (plan Decisions 1, 6, 12, 20; the dragon's stages, which replaced the XP ranks, live in app.world.dragon). French labels are UI text served by GET /api/world."""
 LIEUTENANT_ORDER = ["hydre", "echo", "chimere", "protee", "sirenes", "lethe"]
 # `gender` is the lieutenant's narrative gender ('f'/'m'/'fp' - feminine, masculine, feminine
 # plural), the source of truth for player-facing French agreement (l'Hydre/Écho/la Chimère/les
@@ -44,8 +44,5 @@ REWARDS = {r["id"]: r for r in [
 ORACLE_REWARDS = ["tint:ecume", "tint:olivier", "tint:braise", "tint:jade", "tint:argent", "decor:fresque"]
 DECOR_ORDER = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee"]
 BOSS_REWARDS = {1: "sandales_hermes", 2: "egide", 3: "foudre_zeus"}
-RANKS = [(0, "Recrue du camp"), (150, "Scribe des Muses"), (400, "Sentinelle des textes"), (800, "Garde des Parchemins"),
-         (1400, "Œil d'Argus"), (2200, "Main d'Ariane"), (3200, "Bouclier de Persée"), (4500, "Sagesse d'Athéna"),
-         (6000, "Fléau d'Éris"), (8000, "Légende du camp")]
 QUEST_BONUS = {"board": 60, "oracle": 150, "boss": 300, "mastery": 200, "weekly": 40}
 MASTERY = {"min_days": 3, "min_traps": 10, "rate": 0.8}

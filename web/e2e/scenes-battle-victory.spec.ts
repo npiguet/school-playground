@@ -351,15 +351,21 @@ test('after twenty-five minutes the dragon suggests a pause, on the sheet', asyn
   await expectCamp(page);
 });
 
+// The egg hatches: the dragon's block and the gauge's stages agree, as the server's always do.
+const HATCH = {
+  xp: { session: 51, bonuses: [], total_before: 60, total_after: 111, stage_before: 'egg', stage_after: 'hatchling', floor: 100, next: 1200 },
+  dragon: { stage_before: 'egg', stage_after: 'hatchling', needs_name: true },
+};
+
 // A victory the Muses have already counted (the play state keeps its progression), so the spoils
-// show exactly this one: a boss won or lost, a hatch, a rank-up.
+// show exactly this one: a boss won or lost, a hatch, a stage change.
 function progression(o: Record<string, unknown> = {}) {
   return {
-    xp: { session: 51, bonuses: [], total_before: 487, total_after: 538, rank_before: 3, rank_after: 3, title_after: 'Sentinelle des textes' },
+    xp: { session: 51, bonuses: [], total_before: 487, total_after: 538, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 },
     quests: [],
     neutralised: [],
     rewards: [],
-    dragon: { stage_before: 'egg', stage_after: 'egg', needs_name: false },
+    dragon: { stage_before: 'hatchling', stage_after: 'hatchling', needs_name: false },
     weekly: { target: 5, done: 1, reached_now: false },
     boss: null,
     encounter: null,
@@ -399,7 +405,7 @@ test('the XP chips break the session down: text, pace, aids, prophecy, then the 
     request,
     `Vic20-${testInfo.project.name}`,
     progression({
-      xp: { session: 94, parts: { text: 57, pace: 8, aids: 13, prophecy: 16 }, bonuses: [{ reason: 'board', amount: 60 }], total_before: 487, total_after: 641, rank_before: 3, rank_after: 3, title_after: 'Sentinelle des textes' },
+      xp: { session: 94, parts: { text: 57, pace: 8, aids: 13, prophecy: 16 }, bonuses: [{ reason: 'board', amount: 60 }], total_before: 487, total_after: 641, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 },
       quests: [{ id: 3, kind: 'board', target: 'hydre', counted: true, progress: 3, goal: 3, completed: true, reward_id: null }],
     }),
   );
@@ -427,9 +433,45 @@ test('a bonus part at zero shows no chip', async ({ page, request }, testInfo) =
     page,
     request,
     `Vic21-${testInfo.project.name}`,
-    progression({ xp: { session: 70, parts: { text: 57, pace: 0, aids: 13, prophecy: 0 }, bonuses: [], total_before: 487, total_after: 557, rank_before: 3, rank_after: 3, title_after: 'Sentinelle des textes' } }),
+    progression({ xp: { session: 70, parts: { text: 57, pace: 0, aids: 13, prophecy: 0 }, bonuses: [], total_before: 487, total_after: 557, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 } }),
   );
   await expect(sheet.getByTestId('xp-chip')).toHaveText(['Texte +57', 'Sans aides +13']);
+});
+
+// Spec 2026-09-29 dragon growth §2: the old stage fills, then the new one shows, « Ton dragon grandit ! ».
+test('the dragon grows on the victory: the laurel ends on the new stage, « Ton dragon grandit ! »', async ({ page, request }, testInfo) => {
+  const sheet = await counted(
+    page,
+    request,
+    `Vic24-${testInfo.project.name}`,
+    progression({
+      xp: { session: 51, bonuses: [{ reason: 'board', amount: 60 }], total_before: 1100, total_after: 1211, stage_before: 'hatchling', stage_after: 'young', floor: 1200, next: 5000 },
+      dragon: { stage_before: 'hatchling', stage_after: 'young', needs_name: false },
+    }),
+  );
+  const laurel = sheet.getByTestId('victory-xp');
+  await expect(laurel).toHaveAttribute('aria-label', 'Jeune dragon');
+  await expect(laurel).toHaveAttribute('aria-valuenow', '11');
+  await expect(laurel).toHaveAttribute('aria-valuemax', '3800');
+  await expect(laurel).toContainText('Ton dragon grandit\u202f!');
+  await expect(sheet.getByTestId('reveal-xp-gain')).toHaveText('+111 XP');
+  await expect(sheet.getByTestId('reveal-dragon')).toContainText('grandit\u202f: Jeune dragon');
+  await expect(sheet).not.toContainText('Nouveau rang');
+});
+
+// Review focus 5: a play state saved before the change carries rank fields and no stage fields.
+test('a victory saved before the stages resumes on the dragon\'s scale', async ({ page, request }, testInfo) => {
+  const sheet = await counted(
+    page,
+    request,
+    `Vic25-${testInfo.project.name}`,
+    progression({ xp: { session: 51, bonuses: [], total_before: 487, total_after: 538, rank_before: 3, rank_after: 3, title_after: 'Sentinelle des textes' } }),
+  );
+  const laurel = sheet.getByTestId('victory-xp');
+  await expect(laurel).toHaveAttribute('aria-label', 'Dragonnet');
+  await expect(laurel).toHaveAttribute('aria-valuenow', '438');
+  await expect(laurel).toHaveAttribute('aria-valuemax', '1100');
+  await expect(sheet).not.toContainText(/Sentinelle|undefined|Nouveau rang/);
 });
 
 test('a victory saved before the parts keeps its one text chip', async ({ page, request }, testInfo) => {
@@ -445,7 +487,7 @@ test('beating Éris: her defeat line and her treasure, once, in the parchment st
     request,
     `Vic14-${testInfo.project.name}`,
     progression({
-      xp: { session: 51, bonuses: [{ reason: 'boss', amount: 300 }], total_before: 487, total_after: 838, rank_before: 3, rank_after: 4, title_after: 'Garde des Parchemins' },
+      xp: { session: 51, bonuses: [{ reason: 'boss', amount: 300 }], total_before: 487, total_after: 838, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 },
       quests: [{ id: 9, kind: 'boss', target: 'eris', counted: true, progress: 1, goal: 1, completed: true, reward_id: 'sandales_hermes' }],
       rewards: [{ id: 'sandales_hermes', kind: 'gear', name: "Sandales d'Hermès" }],
       boss: { tier: 1, won: true },
@@ -463,9 +505,8 @@ test('beating Éris: her defeat line and her treasure, once, in the parchment st
   await expect(sheet.getByTestId('reveal-reward-sandales_hermes')).toHaveCount(0);
   await expect(sheet.locator('.kit-cubby')).toHaveCount(0);
   await expect(boss).toHaveClass(/kit-sheet/);
-  // The whole gain in the headline (+300 for Éris included); the new rank's leaves grow back.
+  // The whole gain in the headline (+300 for Éris included).
   await expect(sheet.getByTestId('reveal-xp-gain')).toHaveText('+351 XP');
-  await expect(sheet.getByTestId('victory-xp')).toContainText('Les feuilles repoussent');
   // The climax is not left below the fold: the block scrolls into the sheet's view.
   await expect
     .poll(() =>
@@ -502,7 +543,7 @@ test('Éris escaping speaks for herself, on her plate', async ({ page, request }
 
 // UI4 playability #9: naming the dragon is a question, answered on the parchment's line.
 test('the egg hatches: « Comment vas-tu l\'appeler ? », and her answer is inked on a line', async ({ page, request }, testInfo) => {
-  const sheet = await counted(page, request, `Vic16-${testInfo.project.name}`, progression({ dragon: { stage_before: 'egg', stage_after: 'hatchling', needs_name: true } }));
+  const sheet = await counted(page, request, `Vic16-${testInfo.project.name}`, progression(HATCH));
   await expect(sheet.getByTestId('reveal-dragon')).toContainText("Comment vas-tu l'appeler\u202f?");
   const field = sheet.getByTestId('reveal-name-input');
   await expect(field).toHaveAttribute('placeholder', 'Son nom…');
@@ -515,7 +556,7 @@ test('the egg hatches: « Comment vas-tu l\'appeler ? », and her answer is inke
 // name is written on the victory sheet, which folds with the stage (Ruling C4).
 test('the egg hatches under the keyboard: her dragon\'s name line stays above it', async ({ page, request }, testInfo) => {
   await installKeyboardSim(page);
-  const sheet = await counted(page, request, `Vic17-${testInfo.project.name}`, progression({ dragon: { stage_before: 'egg', stage_after: 'hatchling', needs_name: true } }));
+  const sheet = await counted(page, request, `Vic17-${testInfo.project.name}`, progression(HATCH));
   const field = sheet.getByTestId('reveal-name-input');
   await field.click();
   const band = await setKeyboard(page, Math.round((await page.evaluate(() => window.innerHeight)) * 0.45));
@@ -580,7 +621,7 @@ const FOUR = 'Les fée danse dans la clairiere. Elles chante et les oiseaux les 
 const ONE_CAUGHT = 'Les fées danse dans la clairiere. Elles chante et les oiseaux les écoutent.';
 
 test("Éris answers the reckoning from her lines, then the dragon explains a trap still standing (Ruling E14)", async ({ page, request }, testInfo) => {
-  await victory(page, request, `Vic14-${testInfo.project.name}`, ONE_CAUGHT, 'hydre', FOUR);
+  await victory(page, request, `Vic18-${testInfo.project.name}`, ONE_CAUGHT, 'hydre', FOUR);
   await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués\u202f: 1 sur 4');
   await tap(page.getByTestId('reveal-continue'), testInfo);
   const dialogue = page.getByTestId('victory-dialogue');

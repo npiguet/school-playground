@@ -1,9 +1,9 @@
 <script lang="ts">
-  // The laurel XP bar (scenes UI spec §6 UI kit): a branch of leaves that light up toward the next
-  // rank. Gold on a bronze outline, never orange (orange is Éris's colour). Accessible as a progressbar.
+  // The laurel XP bar (scenes UI spec §6 UI kit): a branch of leaves that light up toward the
+  // dragon's next stage. Gold on a bronze outline, never orange (orange is Éris's colour). Accessible as a progressbar.
   // `surface`: `sky` (the HUD, over a bright backdrop) sits on a dark scrim; `parchment` (the victory
   // sheet, UI4 playability #3) is ink on the paper, the branch a sibling of the sheet's laurel crown.
-  // `note`: a line under the branch (after a rank-up: the leaves grow back, not lost).
+  // `note`: a line under the branch (after a stage change: « Ton dragon grandit ! »).
   import { LAUREL_LEAVES, laurelLeaves } from '../../lib/ui/laurel';
 
   let {

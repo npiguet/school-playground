@@ -1,6 +1,6 @@
 <script lang="ts">
   // The victory's spoils (spec §3.6, plan Task 8; UI4 Task 6 moved it onto the victory sheet, built
-  // from kit objects): a short, joyful, staggered sequence - XP rising on the laurel, quests touched,
+  // from kit objects): a short, joyful, staggered sequence - XP rising on the dragon's laurel, quests touched,
   // a lieutenant neutralised (permanent, spec ethics: nothing is ever lost), rewards not already
   // shown, the dragon growing, the weekly goal and a boss outcome. Every reward here was already
   // known in advance (the quest board / lieutenant page / boss screen showed it before the player
@@ -17,7 +17,7 @@
   import { ART, RELIC_OF } from '../../lib/world/art';
   import { worldApi } from '../../lib/world/api';
   import { campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
-  import { stageLabel, validName } from '../../lib/world/dragon';
+  import { stageLabel, stageXp, validName, victoryGauge } from '../../lib/world/dragon';
   import { lowerLeadingArticle, romanTier } from '../../lib/world/quests';
   import { agree } from '../../lib/world/eris';
   import { erisSays } from '../../lib/world/voices';
@@ -82,46 +82,26 @@
   }
 
   // XP card ------------------------------------------------------------------------------------
-  // A rank-up (`rank_after > rank_before`) must animate the OLD rank's scale to its own max first,
-  // then switch the gauge to the NEW rank's floor/next thresholds (P1-2): otherwise the bar reads
-  // "Sentinelle des textes 441 / 250" - full and past its own max at the exact moment the game
-  // says "Nouveau rang". `rankBefore*`/`rankAfter*` are kept as separate derived values (not one
-  // mutated in place) so both stay reactive to a still-loading world catalog the whole time.
-  const rankBeforeFloor = $derived(campStore.catalog?.ranks[progression.xp.rank_before - 1]?.xp ?? 0);
-  const rankBeforeNextThreshold = $derived(campStore.catalog?.ranks[progression.xp.rank_before]?.xp ?? null);
-  const rankBeforeMax = $derived(
-    Math.max(1, (rankBeforeNextThreshold ?? Math.max(progression.xp.total_before, rankBeforeFloor + 1)) - rankBeforeFloor),
-  );
-  const rankBeforeTitle = $derived(campStore.catalog?.ranks[progression.xp.rank_before - 1]?.title ?? progression.xp.title_after);
+  // Spec 2026-09-29 dragon growth §2: one gauge, the dragon's. A stage change fills the OLD stage's
+  // scale to its max first, then switches the gauge to the NEW stage's floor/next (the P1-2 two-part
+  // logic, keyed on the stage): otherwise the laurel would read full and past its own max at the
+  // moment the dragon grows. Derived from the catalogue's stage table, so a still-loading catalogue
+  // (`loadCatalog()` above) updates it.
+  const gauge = $derived(victoryGauge(progression, stageXp(campStore.catalog)));
 
-  const rankAfterFloor = $derived(campStore.catalog?.ranks[progression.xp.rank_after - 1]?.xp ?? 0);
-  const rankAfterNextThreshold = $derived(campStore.catalog?.ranks[progression.xp.rank_after]?.xp ?? null);
-  const rankAfterMax = $derived(
-    Math.max(1, (rankAfterNextThreshold ?? Math.max(progression.xp.total_after, rankAfterFloor + 1)) - rankAfterFloor),
-  );
-
-  const rankedUp = $derived(progression.xp.rank_after > progression.xp.rank_before);
-
-  // Reduced motion (UI4 global constraints): the laurel jumps straight to its final value, on the
-  // new rank's scale.
+  // Reduced motion (UI4 global constraints): the laurel jumps straight to its final value, on the new
+  // stage's scale.
   const quick = reducedMotion();
-  // Which scale the gauge currently shows: the old one until the rank-up switch fires (below),
-  // the new one immediately when there is no rank-up at all.
+  // Which scale the gauge shows: the old one until the switch fires (below); the new one at once when
+  // the dragon does not grow.
   let gaugePhase = $state<'before' | 'after'>(quick ? 'after' : 'before');
-  const showingAfterRank = $derived(!rankedUp || gaugePhase === 'after');
-  const gaugeFloor = $derived(showingAfterRank ? rankAfterFloor : rankBeforeFloor);
-  const gaugeMax = $derived(showingAfterRank ? rankAfterMax : rankBeforeMax);
-  const gaugeTitle = $derived(showingAfterRank ? progression.xp.title_after : rankBeforeTitle);
+  const shown = $derived(!gauge.grew || gaugePhase === 'after' ? gauge.after : gauge.before);
 
-  // `gaugeFloor` needs the world catalog, which may still be loading (`loadCatalog()` above) when
-  // this mounts - keep tracking it until the delayed "to" step below takes over, so a slow fetch
-  // doesn't freeze the gauge at the wrong scale.
+  // Keeps following the catalogue until the delayed "to" step below takes over.
   let xpValue = $state(0);
   let xpAnimated = false;
   $effect(() => {
-    if (!xpAnimated) {
-      xpValue = quick ? Math.max(0, progression.xp.total_after - rankAfterFloor) : Math.max(0, progression.xp.total_before - gaugeFloor);
-    }
+    if (!xpAnimated) xpValue = quick ? gauge.after.to : gauge.grew ? gauge.before.from : gauge.after.from;
   });
   // The text's chip always; a bonus's chip when it paid something. A victory saved before the parts has
   // its one « Texte » chip, the whole session.
@@ -220,28 +200,27 @@
 
   $effect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
-    // The XP gauge itself animates shortly after mount, independent of the other cues. A rank-up
-    // fills the OLD scale to its max first, then (after the burst) switches the gauge to the NEW
-    // rank's floor/next and animates to `total_after` on that scale (P1-2). Reduced motion: the value
-    // is already final (above); only the rank-up chime plays.
+    // The XP gauge animates shortly after mount. A stage change fills the OLD scale to its max first,
+    // then (after the burst) switches to the NEW stage's scale and animates to `total_after` on it.
+    // Reduced motion: the value is already final (above); only the chime plays.
     if (quick) {
-      if (untrack(() => rankedUp)) playSfx('chime');
+      if (untrack(() => gauge.grew)) playSfx('chime');
     } else {
       timers.push(
         setTimeout(() => {
           xpAnimated = true;
-          if (rankedUp) {
-            xpValue = rankBeforeMax;
+          if (gauge.grew) {
+            xpValue = gauge.before.max;
             playSfx('chime');
             xpBurstTrigger += 1;
             timers.push(
               setTimeout(() => {
                 gaugePhase = 'after';
-                xpValue = Math.max(0, progression.xp.total_after - rankAfterFloor);
+                xpValue = gauge.after.to;
               }, 400),
             );
           } else {
-            xpValue = Math.max(0, progression.xp.total_after - rankAfterFloor);
+            xpValue = gauge.after.to;
           }
         }, 150),
       );
@@ -309,22 +288,19 @@
       <div class="xp-laurel">
         <LaurelBar
           value={xpValue}
-          max={gaugeMax}
-          label={gaugeTitle}
+          max={shown.max}
+          label={shown.label}
           testId="victory-xp"
           surface="parchment"
-          note={rankedUp && showingAfterRank ? VICTORY.rankFresh : undefined}
+          note={gauge.grew && gaugePhase === 'after' ? VICTORY.stageUp : undefined}
         />
-        {#if rankedUp}<Particles trigger={xpBurstTrigger} kind="burst" />{/if}
+        {#if gauge.grew}<Particles trigger={xpBurstTrigger} kind="burst" />{/if}
       </div>
       <div class="bonuses">
         {#each bonusChips as b, i (i)}
           <span class="kit-tag bonus" data-testid="xp-chip" style:--tag-tilt="{i % 2 ? 1.2 : -1.2}deg">{BONUS_LABELS[b.reason] ?? b.reason} +{b.amount}</span>
         {/each}
       </div>
-      {#if rankedUp}
-        <p class="kit-ribbon rank-up">Nouveau rang{'\u202f: '}{progression.xp.title_after}</p>
-      {/if}
     </div>
   </Reveal>
 
@@ -511,9 +487,6 @@
     font-size: 15px;
     font-weight: 600;
     padding: 4px 10px 5px 24px;
-  }
-  .rank-up {
-    font-size: 17px;
   }
   .spoil-title {
     font-family: var(--font-display);

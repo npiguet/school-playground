@@ -30,7 +30,8 @@ export interface WorldCatalog {
     relic: string;
   }[];
   rewards: Record<string, { id: string; kind: RewardKind; name: string; desc: string; source: string }>;
-  ranks: { xp: number; title: string }[];
+  /** Spec 2026-09-29 dragon growth §2: the dragon's stages, their names and XP (from data/regles.json). */
+  stages: { key: DragonStage; name: string; xp: number }[];
   tints: Tint[];
   oracle_rewards: string[];
   boss_rewards: Record<string, string>;
@@ -131,9 +132,12 @@ export interface Progression {
     bonuses: { reason: string; amount: number }[];
     total_before: number;
     total_after: number;
-    rank_before: number;
-    rank_after: number;
-    title_after: string;
+    /** Spec 2026-09-29 dragon growth §2: the dragon's stages around this victory and the new stage's
+     *  gauge (floor, next; next null at the last stage). Absent from a victory saved before the change. */
+    stage_before?: DragonStage;
+    stage_after?: DragonStage;
+    floor?: number;
+    next?: number | null;
   };
   quests: {
     id: number;

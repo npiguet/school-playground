@@ -17,7 +17,7 @@ from app.schemas import DragonPatch, OracleChoice, QuestCreate, RewardPatch
 from app.textutil import word_count
 from app.world import oracle as oracle_mod
 from app.world.catalog import (BOSS_REWARDS, LIEUTENANT_ORDER, LIEUTENANTS, MASTERY, ORACLE_REWARDS, QUEST_BONUS,
-                               RANKS, REWARDS, TINTS)
+                               REWARDS, TINTS)
 from app.world.dragon import grown_stage, stage_gauge, stage_table
 from app.world.mastery import lieutenants_for_level, mastery_window, tier_available
 from app.world.progression import (boss_tiers_won, ensure_dragon, lieutenant_day_rows, neutralised_set, store_stage,
@@ -279,7 +279,6 @@ def get_world(request: Request):
     return {
         "lieutenants": [{"key": k, **LIEUTENANTS[k]} for k in LIEUTENANT_ORDER],
         "rewards": REWARDS,
-        "ranks": [{"xp": xp, "title": t} for xp, t in RANKS],
         # Spec 2026-09-29 dragon growth §2: the dragon's stages, their names and XP (from the rules file).
         "stages": stage_table(request.app.state.rules.dragon_stages),
         "tints": TINTS,

@@ -1,6 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { DRAGON_STAGES } from './types';
-import { LOCKED_EGG_FILTER, TINT_FILTERS, TINT_SWATCH, dragonCaption, eggFilter, gaugeOf, nextStage, stageActivity, stageLabel, stageLine, validName } from './dragon';
+import { DRAGON_STAGES, type Progression } from './types';
+import {
+  DEFAULT_STAGE_XP,
+  LOCKED_EGG_FILTER,
+  TINT_FILTERS,
+  TINT_SWATCH,
+  dragonCaption,
+  eggFilter,
+  gaugeOf,
+  nextStage,
+  scaleOf,
+  stageActivity,
+  stageLabel,
+  stageLine,
+  stageXp,
+  validName,
+  victoryGauge,
+} from './dragon';
 
 describe('dragon helpers', () => {
   it('never offers violet (reserved for Éris) and has six tints', () => {
@@ -64,5 +80,54 @@ describe('dragon helpers', () => {
       const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
       expect(r >= 200 && g < 60 && b < 60, tint).toBe(false);
     }
+  });
+});
+
+describe('the victory gauge (spec 2026-09-29 dragon growth §2)', () => {
+  const T = DEFAULT_STAGE_XP;
+  const p = (xp: Partial<Progression['xp']>, dragon: Progression['dragon']) => ({
+    xp: { session: 51, bonuses: [], total_before: 0, total_after: 0, ...xp },
+    dragon,
+  });
+  const stay = (s: Progression['dragon']['stage_after']) => ({ stage_before: s, stage_after: s, needs_name: false });
+
+  it('reads the stage table from the catalogue, the defaults until it has come', () => {
+    expect(DEFAULT_STAGE_XP).toEqual({ egg: 0, hatchling: 100, young: 1200, adult: 5000, illustre: 15000, ancestral: 40000 });
+    expect(stageXp(null)).toEqual(T);
+    expect(stageXp({ stages: [{ key: 'hatchling', xp: 50 }, { key: 'dragon', xp: 7 }] })).toEqual({ ...T, hatchling: 50 });
+    expect(scaleOf('young', T)).toEqual({ floor: 1200, next: 5000 });
+    expect(scaleOf('ancestral', T)).toEqual({ floor: 40000, next: null });
+  });
+
+  it('stays on one scale when the dragon does not grow', () => {
+    const g = victoryGauge(p({ total_before: 487, total_after: 538, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 }, stay('hatchling')), T);
+    expect(g).toEqual({ grew: false, before: { label: 'Dragonnet', max: 1100, from: 387 }, after: { label: 'Dragonnet', max: 1100, from: 387, to: 438 } });
+  });
+
+  it('fills the old stage, then switches to the new one', () => {
+    const g = victoryGauge(p({ total_before: 1100, total_after: 1211, stage_before: 'hatchling', stage_after: 'young', floor: 1200, next: 5000 }, { stage_before: 'hatchling', stage_after: 'young', needs_name: false }), T);
+    expect(g).toEqual({ grew: true, before: { label: 'Dragonnet', max: 1100, from: 1000 }, after: { label: 'Jeune dragon', max: 3800, from: 0, to: 11 } });
+  });
+
+  it('skips a middle stage when it crosses two at once', () => {
+    const g = victoryGauge(p({ total_before: 60, total_after: 1250, stage_before: 'egg', stage_after: 'young', floor: 1200, next: 5000 }, { stage_before: 'egg', stage_after: 'young', needs_name: true }), T);
+    expect(g).toEqual({ grew: true, before: { label: 'Œuf', max: 100, from: 60 }, after: { label: 'Jeune dragon', max: 3800, from: 0, to: 50 } });
+  });
+
+  it('is full at the top, never dividing by zero', () => {
+    const g = victoryGauge(p({ total_before: 39950, total_after: 40100, stage_before: 'illustre', stage_after: 'ancestral', floor: 40000, next: null }, { stage_before: 'illustre', stage_after: 'ancestral', needs_name: false }), T);
+    expect(g).toEqual({ grew: true, before: { label: 'Dragon illustre', max: 25000, from: 24950 }, after: { label: 'Dragon ancestral', max: 1, from: 1, to: 1 } });
+  });
+
+  it('reads empty for a stage grown before its XP', () => {
+    const g = victoryGauge(p({ total_before: 300, total_after: 354, stage_before: 'adult', stage_after: 'adult', floor: 5000, next: 15000 }, stay('adult')), T);
+    expect(g.after).toEqual({ label: 'Dragon adulte', max: 10000, from: 0, to: 0 });
+  });
+
+  it('resumes a victory saved before the stages on the dragon\'s scale', () => {
+    // A play state saved before the change: rank fields, no stage fields (R7).
+    const legacy = { xp: { session: 51, bonuses: [], total_before: 60, total_after: 160, rank_before: 1, rank_after: 2, title_after: 'Scribe des Muses' }, dragon: { stage_before: 'egg' as const, stage_after: 'hatchling' as const, needs_name: true } };
+    expect(victoryGauge(legacy, T)).toEqual({ grew: true, before: { label: 'Œuf', max: 100, from: 60 }, after: { label: 'Dragonnet', max: 1100, from: 0, to: 60 } });
+    expect(victoryGauge(legacy, stageXp({ stages: [{ key: 'hatchling', xp: 50 }] })).after).toEqual({ label: 'Dragonnet', max: 1150, from: 10, to: 110 });
   });
 });

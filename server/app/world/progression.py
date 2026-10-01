@@ -9,7 +9,7 @@ from app.world.catalog import BOSS_REWARDS, DECOR_ORDER, LIEUTENANTS, ORACLE_REW
 from app.world.dragon import grown_stage, stage_gauge, stage_index
 from app.world.mastery import boss_tiers, is_neutralised, lieutenants_for_level, mastery_window
 from app.world.quests import fight_won, quest_miss_reason
-from app.world.xp import rank_for, session_xp
+from app.world.xp import session_xp
 
 
 def add_xp(conn, profile_id, amount, reason, now, session_id=None, quest_id=None, week=None):
@@ -85,7 +85,6 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
     pid = profile["id"]; level = profile["level"]; week = iso_week(day)
     mode = body.mode
     total_before = xp_total(conn, pid)
-    rank_before = rank_for(total_before)[0]
     bonuses: list[dict] = []; rewards: list[dict] = []
     # 1. session XP (spec 2026-09-29 §4): a page opened before the aids sends none, and leaves none.
     aids = body.aids
@@ -144,7 +143,6 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
         add_xp(conn, pid, QUEST_BONUS["weekly"], "weekly", now, week=week)
         bonuses.append({"reason": "weekly", "amount": QUEST_BONUS["weekly"]}); reached_now = True
     total_after = xp_total(conn, pid)
-    rank_after, title_after, _, _ = rank_for(total_after)
     # 5. the dragon grows from the total XP (spec 2026-09-29 dragon growth §1), once every XP of this
     # session is in (its quests', its mastery's, the week's): stored = max(stored, stage for the XP),
     # so a raised threshold or a restored backup never shrinks it. Neutralisation no longer drives it.
@@ -157,7 +155,6 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
     needs_name = stage_after != "egg" and dragon["name"] is None
     floor, nxt = stage_gauge(stage_after, thresholds)
     return {"xp": {"session": xp.total, "parts": xp.parts, "bonuses": bonuses, "total_before": total_before, "total_after": total_after,
-                   "rank_before": rank_before, "rank_after": rank_after, "title_after": title_after,
                    "stage_before": stage_before, "stage_after": stage_after, "floor": floor, "next": nxt},
             "quests": quest_out, "neutralised": newly, "rewards": rewards,
             "dragon": {"stage_before": stage_before, "stage_after": stage_after, "needs_name": needs_name},

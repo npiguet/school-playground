@@ -2,7 +2,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from app.rules import Rules
-from app.world.catalog import RANKS
 from app.world.measures import mistakes_per_100
 
 
@@ -52,11 +51,3 @@ def session_xp(result: dict, pace_level: int, mode: str, prophecy: bool, aids_le
     total = _half_up(effort + base * (1 + sum(bonuses.values())))
     text = _half_up(effort + base)
     return SessionXp(total, {"text": text, **_split(total - text, {k: base * b for k, b in bonuses.items()})})
-
-
-def rank_for(total: int) -> tuple[int, str, int, int | None]:
-    rank, title, floor = 1, RANKS[0][1], 0
-    for i, (threshold, name) in enumerate(RANKS):
-        if total >= threshold: rank, title, floor = i + 1, name, threshold
-    nxt = RANKS[rank][0] if rank < len(RANKS) else None
-    return rank, title, floor, nxt

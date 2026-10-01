@@ -24,13 +24,14 @@ def post(client, pid, tid, result, day=None, **extra):
     return r.json()
 
 
-def test_session_grants_xp_and_reports_rank(client):
+def test_session_grants_xp_and_reports_the_dragons_gauge(client):
     pid = make_profile(client, level="10H"); tid = make_text(client)
     p = post(client, pid, tid, hydre_result())["progression"]
     # 120 words, 0 left, 4 caught, pace 1: effort 22, accuracy 24, rereading 8 (spec 2026-09-29 §4).
     assert p["xp"]["session"] == 22 + 24 + 8 and p["xp"]["parts"] == {"text": 54, "pace": 0, "aids": 0, "prophecy": 0}
     assert p["xp"]["total_after"] == p["xp"]["session"]
-    assert p["xp"]["rank_before"] == 1 and p["xp"]["title_after"] == "Recrue du camp"
+    # Spec 2026-09-29 dragon growth §2: the ranks merged into the stages; no rank field is left.
+    assert set(p["xp"]) == {"session", "parts", "bonuses", "total_before", "total_after", "stage_before", "stage_after", "floor", "next"}
     assert [p["xp"][k] for k in ("stage_before", "stage_after", "floor", "next")] == ["egg", "egg", 0, 100]
     assert p["dragon"] == {"stage_before": "egg", "stage_after": "egg", "needs_name": False}
     assert p["neutralised"] == [] and p["rewards"] == [] and p["boss"] is None

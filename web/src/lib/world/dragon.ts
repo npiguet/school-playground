@@ -2,7 +2,7 @@
 // generation), stage labels/camp speech lines and name validation. Pure functions/data only, no
 // DOM/store access, so `Dragon.svelte`, the nest and its care panel, the trophy shelf and
 // the victory's spoils (`battle/VictorySpoils.svelte`) all share the same wording and this file stays trivially testable.
-import { DRAGON_STAGES, type DragonOut, type DragonStage, type Tint } from './types';
+import { DRAGON_STAGES, type DragonOut, type DragonStage, type Progression, type Tint } from './types';
 
 export type Mood = 'idle' | 'happy' | 'sleepy';
 
@@ -78,6 +78,47 @@ export function gaugeOf(total: number, s: Scale): { value: number; max: number }
   if (s.next === null) return { value: 1, max: 1 };
   const max = Math.max(1, s.next - s.floor);
   return { value: Math.min(max, Math.max(0, total - s.floor)), max };
+}
+
+/** Spec 2026-09-29 dragon growth §1: the built-in thresholds (server/app/world/dragon.py
+ *  DEFAULT_STAGE_XP), until the catalogue's table has come. */
+export const DEFAULT_STAGE_XP: Record<DragonStage, number> = { egg: 0, hatchling: 100, young: 1200, adult: 5000, illustre: 15000, ancestral: 40000 };
+
+/** Each stage's XP from the catalogue's table (the rules file's), the defaults for any it lacks. */
+export function stageXp(catalog: { stages?: { key: string; xp: number }[] } | null | undefined): Record<DragonStage, number> {
+  const out = { ...DEFAULT_STAGE_XP };
+  for (const s of catalog?.stages ?? []) if ((DRAGON_STAGES as readonly string[]).includes(s.key)) out[s.key as DragonStage] = s.xp;
+  return out;
+}
+
+export function scaleOf(stage: DragonStage, xpOf: Record<DragonStage, number>): Scale {
+  const i = Math.max(0, DRAGON_STAGES.indexOf(stage));
+  return { floor: xpOf[DRAGON_STAGES[i]], next: i + 1 < DRAGON_STAGES.length ? xpOf[DRAGON_STAGES[i + 1]] : null };
+}
+
+/** The victory's laurel (spec §2, the P1-2 two-part logic keyed on the stage): `before` is the old
+ *  stage's scale, which fills to its max when the dragon grows; `after` the new stage's, from the
+ *  total before (no growth) or 0, to the total after. The new scale is the server's when the victory
+ *  carries it, else the table's (a victory saved before the change, R7). */
+export interface VictoryGauge {
+  grew: boolean;
+  before: { label: string; max: number; from: number };
+  after: { label: string; max: number; from: number; to: number };
+}
+
+export function victoryGauge(p: { xp: Progression['xp']; dragon: Progression['dragon'] }, xpOf: Record<DragonStage, number>): VictoryGauge {
+  const before = p.xp.stage_before ?? p.dragon.stage_before;
+  const after = p.xp.stage_after ?? p.dragon.stage_after;
+  const beforeScale = scaleOf(before, xpOf);
+  const afterScale = p.xp.floor !== undefined && p.xp.next !== undefined ? { floor: p.xp.floor, next: p.xp.next } : scaleOf(after, xpOf);
+  const b = gaugeOf(p.xp.total_before, beforeScale);
+  const a0 = gaugeOf(p.xp.total_before, afterScale);
+  const a1 = gaugeOf(p.xp.total_after, afterScale);
+  return {
+    grew: before !== after,
+    before: { label: stageLabel(before), max: b.max, from: b.value },
+    after: { label: stageLabel(after), max: a1.max, from: a0.value, to: a1.value },
+  };
 }
 
 /** The stage after this one (the last stage is its own). */

@@ -2,7 +2,7 @@ import pytest
 from app.world.mastery import (Window, boss_tiers, is_neutralised, lieutenants_for_level, mastery_window,
                                tier_available)
 from app.rules import Rules
-from app.world.xp import rank_for, session_xp
+from app.world.xp import session_xp
 from app.world.quests import density, fight_won, quest_miss_reason, recommend_texts
 
 R = Rules()
@@ -99,13 +99,6 @@ def test_the_parts_always_add_up_to_the_session_xp():
                                     case = (words, left, caught, pace, mode, prophecy, aids_left)
                                     assert sum(xp.parts.values()) == xp.total, case
                                     assert min(xp.parts.values()) >= 0, case
-
-
-def test_rank_for():
-    assert rank_for(0) == (1, "Recrue du camp", 0, 150)
-    assert rank_for(149) == (1, "Recrue du camp", 0, 150)
-    assert rank_for(150) == (2, "Scribe des Muses", 150, 400)
-    assert rank_for(9999) == (10, "Légende du camp", 8000, None)
 
 
 def test_a_quest_session_counts_on_the_final_text():

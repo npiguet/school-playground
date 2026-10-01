@@ -12,7 +12,9 @@ def test_world_catalog(client):
     w = client.get("/api/world").json()
     assert [l["key"] for l in w["lieutenants"]] == ["hydre", "echo", "chimere", "protee", "sirenes", "lethe"]
     assert w["rewards"]["ecaille_hydre"]["name"] == "Écaille de l'Hydre" and w["mastery"] == {"min_days": 3, "min_traps": 10, "rate": 0.8}
-    assert w["boss_rewards"]["1"] == "sandales_hermes" and len(w["ranks"]) == 10
+    assert w["boss_rewards"]["1"] == "sandales_hermes"
+    assert [s["key"] for s in w["stages"]] == ["egg", "hatchling", "young", "adult", "illustre", "ancestral"]
+    assert "ranks" not in w
     # I7: the client's French agreement (chips, "Neutralisée", "C'est celle-là", ...) derives from
     # this narrative gender - l'Hydre/Écho/la Chimère/Léthé are feminine, les Sirènes feminine
     # plural, Protée alone masculine.

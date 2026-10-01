@@ -231,8 +231,8 @@ export const VICTORY = {
   threads: (ok: number, all: number) => `Fils d'Ariane tendus\u202f: ${ok} sur ${all}`,
   /** UI4 playability #2: the headline is everything she earned; the tags below break it down. */
   xpGain: (xp: number) => `+${xp} XP`,
-  // Under the branch after a rank-up; the ribbon below already says « Nouveau rang : … ».
-  rankFresh: 'Les feuilles repoussent',
+  /** Spec 2026-09-29 dragon growth §2: under the laurel once it has switched to the new stage. */
+  stageUp: 'Ton dragon grandit\u202f!',
   treasure: (name: string) => `Nouveau trésor\u202f: ${name}`,
   /** The boss's reward (#4). No article: the treasures' names take le, la, l' or les. */
   bossReward: (name: string) => `Ta récompense\u202f: ${name}\u202f!`,
