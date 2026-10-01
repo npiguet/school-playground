@@ -195,10 +195,14 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     expect(last.key).toBe('camp.next.seal');
     expect(variantsOf('camp.next.seal', { lieutenant: 'les Sirènes', seal: 'sceau de bronze' })).toContain(last.text);
     expect(last.text).toMatch(/Sirènes (auront|\.)|contre les Sirènes/);
+    expect(last.text).not.toMatch(/\baura\b|\bson\b/);
     // Every line the Sirènes may hear agrees with their plural, not just the one picked.
     const pool = poolFor(LINES['camp.next.seal'], { opponent: 'sirenes' });
     expect(pool.length).toBeGreaterThanOrEqual(3);
-    for (const l of pool) expect(l.text, l.text).toMatch(/auront|leur|contre/);
+    for (const l of pool) {
+      expect(l.text, l.text).toMatch(/auront|leur|contre/);
+      expect(l.text, l.text).not.toMatch(/\baura\b|\bson\b/);
+    }
   });
 
   // Controller ruling (Task 1 review): a seal within reach already says « Encore un peu »; the stage

@@ -86,7 +86,9 @@
     void tick().then(() => {
       if (!live || tour || overlayState.open > 0) return;
       // Spec 2026-09-29 explanations §2 (R9): a tour seen before its new steps comes back with them only;
-      // none for this dragon's stage: it counts as seen, and the place greets as usual.
+      // none for this dragon's stage: it counts as seen, and the place greets as usual. Today's content
+      // never takes this branch (content.test « versions the new tour steps and leaves no stage without
+      // them »); tours.gated.test pins tourSteps' empty answer for a stage-gated step.
       const steps = tourSteps(id, dragon, seenVersion(profile.settings, id));
       if (steps.lines.length === 0) {
         void markTourSeen(profile, id);
