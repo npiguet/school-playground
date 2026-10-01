@@ -291,3 +291,15 @@ seeds in `docs/art/style-guide.md`, "Accessories: protee").
   parts (a repainted brow tuft, a coral fleck beside a horn) are easy to miss at 2x.
 - A head slot's horn exclusion makes the model paint a coral tuft in the air beside the near horn with
   its base hidden on every ancestral seed; erase it (it floats once laid on the stage).
+
+## Notes from the Sirènes ancestral plume (2026-10-01): a narrow air box stops the redrawn horn
+
+- **Size the air above the skull to the plume, not to the head.** With the air box running past the
+  skull's far edge (ancestral x 660-819, y 5-130), 2 of 3 seeds redrew a horn in the empty air right of
+  the plume (3412-3413) and one plume ran into the picture's top edge and was cut flat (3411). Air
+  limited to x 650-770, y 15-135 (slot | cut-out alpha < 8 in that box): no seed of three redrew a horn
+  and every feather tip stayed rounded inside the picture (3611-3613). Leave 10-15 px between the box
+  and the picture's top.
+- A thin brow band and its clasp extract as their own part (own `--box` around the brow, positives on
+  band and clasp, negatives on the repainted skull dome above and the brow below): in one SAM call with
+  the feathers it kept only the band's near end.
