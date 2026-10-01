@@ -534,7 +534,7 @@ WebPs and the manifest fragment `echo.json` in `assets/art/export/dragon/accesso
 | Item (slot, denoise) | young | adult | illustre | ancestral |
 |---|---|---|---|---|
 | pendentif-conque (cou, 0.75) | 1141 | 1241 | 1323 | 1423 |
-| clochettes de bronze (queue, 0.75, slot + 22 px down) | 1173 | 1221 | 1344 | not made yet |
+| clochettes de bronze (queue, 0.75, slot + 22 px down) | 1173 | 1221 | 1344 | 1442 |
 | cape couleur de roche (dos, 0.8) | 1161 | 1231 | 1333 | 1433 |
 | diadème de coquillages (tête, 0.85) | 1112 | 1212 | 1312 | 1413 |
 
@@ -544,7 +544,9 @@ WebPs and the manifest fragment `echo.json` in `assets/art/export/dragon/accesso
   tiny pink shell charm. Inpainted and extracted on the slot united with itself shifted 22 px down
   (`tools/art/extmask.py`), and extracted part by part (band, each bell) then merged. Rejected: young
   1131-1133 (bells cut flat by the slot's bottom edge), illustre 1341-1343 (the band stopped ~20 px
-  short of the tail's edge or lay across it like a sash).
+  short of the tail's edge or lay across it like a sash), ancestral 1441 (two bells, one cut by the
+  slot) and 1443 (a sash ~20 px short of the inner outline). The ancestral 1442 has a shell charm on
+  one bell only.
 - **Dos**: a short draped cloak of matte slate-grey wool with lilac-grey folds, its hem edged with
   turquoise beads and cowries, knotted at the shoulder behind the wing.
 - **Tête**: a thin bronze band across the brow set with upright pink and cream scallop shells,

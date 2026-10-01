@@ -1,0 +1,102 @@
+{
+  "item": "echo-queue",
+  "stage": "ancestral",
+  "inpainting": {
+    "prompt": "the tail of an ancient wise dragon with large burnished bronze-gold armour-like scales, wearing a tail ornament of bronze bells: a snug band of thick braided deep sea-blue rope with small turquoise beads wrapped tightly around the tail, and hanging from it three small round bells of bright shining polished yellow bronze, each bell with a dark slit and a tiny pale pink seashell charm, clean dark ink outline around the band and every bell, (scales on the band:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.75,
+    "steps": 11,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 1442,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_ancestral.png",
+    "mask_file": "C:\\Users\\nicol\\.claude\\jobs\\9ac9a508\\tmp\\art-echo\\m_ancestral_queue.png"
+  },
+  "extraction": {
+    "tool": "tools/art/overlay.py extract --cpu",
+    "stage": "assets/art/dragon/dragon_ancestral.png",
+    "mask": "assets/art/dragon/slots/ancestral_queue.png",
+    "pos": [
+      [
+        147,
+        782
+      ],
+      [
+        164,
+        806
+      ],
+      [
+        190,
+        826
+      ],
+      [
+        214,
+        826
+      ],
+      [
+        230,
+        819
+      ]
+    ],
+    "neg": [
+      [
+        207,
+        802
+      ],
+      [
+        194,
+        852
+      ],
+      [
+        144,
+        836
+      ],
+      [
+        210,
+        782
+      ],
+      [
+        130,
+        806
+      ],
+      [
+        174,
+        861
+      ]
+    ],
+    "box": [
+      125,
+      765,
+      245,
+      840
+    ]
+  },
+  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): no polygon erased; extracted in parts and merged (overlay.py merge, bells with --keep-white): band as recorded (box 125 765 245 840); bell L --pos 130,806 117,829 --neg 147,782 144,836 140,800 --box 108 790 145 845; bell M --pos 174,861 --neg 190,826 194,852 160,860 --box 158 838 192 882; bell R --pos 224,852 --neg 214,826 210,860 240,865 --box 210 835 240 875",
+  "note": "inpainting and extraction mask = the slot mask united with itself shifted down 22 px (tools/art/extmask.py ancestral queue 22 <out>). Seeds 1441-1443 at 0.75: 1441 only two bells, one cut by the mask; 1443 (three bells with shells, extracted and checked) laid the band across the tail like a sash ~20 px short of the inner outline; 1442 wraps the tail from outline to outline (only the left bell carries a shell charm).",
+  "raw_crop": [
+    83,
+    735,
+    283,
+    911
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}
