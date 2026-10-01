@@ -20,6 +20,9 @@ export interface ProfileSettings {
   /** The camp's first visit was welcomed (decision 22): the Muses' cards before UI5, the camp tour
    *  since (written with `tours`; true counts as the camp tour seen, Ruling E13). */
   onboarded?: boolean;
+  /** Final review I3 (sub-project 3): the dragon's stage the hero last saw, written by a victory that
+   *  shows it grow and by the camp's « grew while you were away » reveal. Absent: never shown. */
+  dragon_seen_stage?: string | null;
 }
 
 export interface Profile {

@@ -654,6 +654,8 @@ test('no red on the hub, its greeting or the hero panel', async ({ page, request
 // empty for a stage grown before its XP (R3). This hero's /camp answer carries the stage and XP.
 test("HUD: the laurel is the dragon's growth, named by its stage, full at the last stage", async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
+  // Every faked stage already seen: no « grew while you were away » reveal over the laurel.
+  await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'ancestral' } } });
   let fake: { stage: string; xp: { total: number; floor: number; next: number | null } } = { stage: 'young', xp: { total: 3100, floor: 1200, next: 5000 } };
   await page.route(`**/api/profiles/${id}/camp`, async (route) => {
     const res = await route.fetch();
@@ -664,7 +666,7 @@ test("HUD: the laurel is the dragon's growth, named by its stage, full at the la
   });
   await openCamp(page, id);
   const laurel = page.getByTestId('hud-xp');
-  await expect(laurel).toContainText('Jeune dragon · 3 100 XP');
+  await expect(laurel).toContainText('Jeune dragon · 3\u202f100 XP');
   await expect(laurel).toHaveAttribute('aria-valuenow', '1900');
   await expect(laurel).toHaveAttribute('aria-valuemax', '3800');
   await expect(laurel.locator('.leaf.lit')).toHaveCount(5);
@@ -672,7 +674,7 @@ test("HUD: the laurel is the dragon's growth, named by its stage, full at the la
   fake = { stage: 'ancestral', xp: { total: 41000, floor: 40000, next: null } };
   await page.reload();
   await expectCamp(page);
-  await expect(laurel).toContainText('Dragon ancestral · 41 000 XP');
+  await expect(laurel).toContainText('Dragon ancestral · 41\u202f000 XP');
   await expect(laurel.locator('.leaf.lit')).toHaveCount(10);
   await expect(page.getByTestId('hud-dragon').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_ancestral_cut.webp');
 
@@ -682,4 +684,78 @@ test("HUD: the laurel is the dragon's growth, named by its stage, full at the la
   await expect(laurel).toContainText('Dragon adulte · 300 XP');
   await expect(laurel).toHaveAttribute('aria-valuenow', '0');
   await expect(laurel.locator('.leaf.lit')).toHaveCount(0);
+});
+
+// Final review I3 (sub-project 3): a growth she never saw on a victory (the stages' catch-up on the
+// first /camp after an update, a lowered threshold) is revealed once at the camp, before the greeting.
+async function seenStageOf(request: Parameters<typeof createText>[0], id: number): Promise<unknown> {
+  return (await (await request.get(`/api/profiles/${id}`)).json()).settings.dragon_seen_stage;
+}
+
+test('a dragon that hatched while she was away is revealed once at the camp; she names it there', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const text = await createText(request, { title: uniqueName(`Éclosion ${testInfo.project.name}`), body: BODY, level: '10H' });
+  // 300 words, nothing to catch: 10 + 30 + 60 = 100 XP, the egg hatches on the server.
+  const hatch = await postSession(request, { profileId: id, textId: text.id, day: '2026-08-03', result: makeResult({ words: 300 }) });
+  expect(hatch.progression.dragon.stage_after).toBe('hatchling');
+  // That session's victory was never shown (as for a stage caught up after an update).
+  await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'egg' } } });
+
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  const reveal = page.getByTestId('camp-dragon-reveal');
+  await expect(reveal).toBeVisible();
+  await expect(reveal).toHaveAttribute('role', 'dialog');
+  await expect(reveal.getByTestId('camp-reveal-line')).toHaveText("L'œuf a éclos pendant ton absence\u202f!");
+  await expect(reveal.locator('img.dragon')).toHaveAttribute('src', '/art/dragon/dragon_hatchling_cut.webp');
+  // The greeting waits for the reveal (it would ask for the name the reveal is asking for).
+  await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
+  await expect(reveal).toContainText("Comment vas-tu l'appeler\u202f?");
+  await reveal.getByTestId('camp-reveal-name-input').fill('Braise');
+  await tap(reveal.getByTestId('camp-reveal-name-save'), testInfo);
+  await expect(reveal.getByTestId('camp-reveal-name-input')).toHaveCount(0);
+  await tap(reveal.getByTestId('camp-reveal-continue'), testInfo);
+  await expect(reveal).toHaveCount(0);
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('alt', 'Braise');
+  await expect.poll(() => seenStageOf(request, id)).toBe('hatchling');
+
+  await page.reload();
+  await expectCamp(page);
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await expect(page.getByTestId('camp-dragon-reveal')).toHaveCount(0);
+});
+
+test('a named dragon grown two stages while she was away: the stage named, no name asked; the seal closes it for good', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'hatchling' } } });
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage: 'adult', name: 'Braise' };
+    camp.xp = { total: 6000, floor: 5000, next: 15000 };
+    await route.fulfill({ response: res, json: camp });
+  });
+  // Reduced motion: the scroll and the dragon arrive still.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  const reveal = page.getByTestId('camp-dragon-reveal');
+  // A real modal: focus inside it, the camp behind it inert.
+  await expect(reveal).toBeFocused();
+  await expect(page.getByTestId('scene-camp')).toHaveAttribute('inert', '');
+  await expect
+    .poll(() => reveal.evaluate((el) => el.getAnimations({ subtree: true }).filter((a) => a.playState === 'running').length))
+    .toBe(0);
+  await expect(reveal.getByTestId('camp-reveal-line')).toHaveText('Ton dragon a grandi pendant ton absence\u202f: Dragon adulte\u202f!');
+  await expect(reveal.locator('img.dragon')).toHaveAttribute('src', '/art/dragon/dragon_adult_cut.webp');
+  await expect(reveal.getByTestId('camp-reveal-name-input')).toHaveCount(0);
+  await tap(reveal.getByTestId('overlay-close'), testInfo);
+  await expect(reveal).toHaveCount(0);
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await expect.poll(() => seenStageOf(request, id)).toBe('adult');
+  await page.reload();
+  await expectCamp(page);
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await expect(page.getByTestId('camp-dragon-reveal')).toHaveCount(0);
 });

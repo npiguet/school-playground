@@ -10,7 +10,9 @@ import {
   expectOverlayTapTargets,
   installKeyboardSim,
   LEGACY_UI,
+  makeResult,
   nextLine,
+  postSession,
   redScan,
   seedPlay,
   setKeyboard,
@@ -273,8 +275,8 @@ test('nothing caught: still standing, still laurels, never a loss', async ({ pag
 // correcte, so it is pushed back (not still standing).
 test('the copy decides: a copie correcte with nothing caught pushes the lieutenant back', async ({ page, request }, testInfo) => {
   await victory(page, request, `Vic5b-${testInfo.project.name}`, HALF, 'hydre', HALF);
-  await expect(page.getByTestId('results-copy')).toHaveText('Ta copie : 1 faute sur 13 mots. Une copie correcte.');
-  await expect(page.getByTestId('victory-title')).toHaveText("L'Hydre recule !");
+  await expect(page.getByTestId('results-copy')).toHaveText('Ta copie\u202f: 1 faute sur 13 mots. Une copie correcte.');
+  await expect(page.getByTestId('victory-title')).toHaveText("L'Hydre recule\u202f!");
   await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '75');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'retreat');
 });
@@ -288,8 +290,8 @@ test('the copy decides: a belle copie routs the lieutenant even with nothing cau
   await seedPlay(page, { profileId: id, textId: text.id, phase: 'results', draft: LONG_ONE, current: LONG_ONE, opponent: 'chimere' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'victory');
-  await expect(page.getByTestId('results-copy')).toHaveText('Ta copie : 1 faute sur 52 mots. Une belle copie.');
-  await expect(page.getByTestId('victory-title')).toHaveText('Victoire !');
+  await expect(page.getByTestId('results-copy')).toHaveText('Ta copie\u202f: 1 faute sur 52 mots. Une belle copie.');
+  await expect(page.getByTestId('victory-title')).toHaveText('Victoire\u202f!');
   await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '0');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'defeat');
 });
@@ -349,6 +351,29 @@ test('after twenty-five minutes the dragon suggests a pause, on the sheet', asyn
   await expect(nudge).toHaveCount(0);
   await tap(page.getByTestId('btn-back-camp'), testInfo);
   await expectCamp(page);
+});
+
+// Final review I3 (sub-project 3): the victory that shows the egg hatching records it as seen (with
+// the session, on the server), so the camp has no « hatched while you were away » to reveal after it.
+test('a real hatch on the victory, then the camp: no second reveal', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Vic18-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Éclosion'), body: REF, level: '10H' });
+  // 290 words, nothing to catch: 10 + 29 + 58 = 97 XP, still an egg; the battle below hatches it.
+  const before = await postSession(request, { profileId: id, textId: text.id, day: '2026-08-03', result: makeResult({ words: 290 }) });
+  expect(before.progression.dragon.stage_after).toBe('egg');
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'results', draft: DRAFT, current: HALF, opponent: 'hydre' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'victory');
+  await expect(page.getByTestId('victory').getByTestId('reveal-dragon')).toContainText("L'œuf éclôt\u202f!");
+  await tap(page.getByTestId('btn-back-camp'), testInfo);
+  await expectCamp(page);
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await expect(page.getByTestId('camp-dragon-reveal')).toHaveCount(0);
+  expect((await (await request.get(`/api/profiles/${id}`)).json()).settings.dragon_seen_stage).toBe('hatchling');
+  await page.reload();
+  await expectCamp(page);
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await expect(page.getByTestId('camp-dragon-reveal')).toHaveCount(0);
 });
 
 // The egg hatches: the dragon's block and the gauge's stages agree, as the server's always do.
@@ -423,8 +448,8 @@ test("a quest's text that does not count says why: too many of its traps left in
     progression({ quests: [{ id: 5, kind: 'board', target: 'hydre', counted: false, reason: 'copy', progress: 1, goal: 3, completed: false, reward_id: null }] }),
   );
   const quest = sheet.getByTestId('reveal-quest-5');
-  await expect(quest.getByTestId('quest-reason')).toHaveText("Trop de pièges de l'Hydre restent dans ta copie : ce texte ne compte pas pour la quête.");
-  await expect(quest).toContainText('Ta quête : 1 / 3');
+  await expect(quest.getByTestId('quest-reason')).toHaveText("Trop de pièges de l'Hydre restent dans ta copie\u202f: ce texte ne compte pas pour la quête.");
+  await expect(quest).toContainText('Ta quête\u202f: 1 / 3');
   await expect(quest).not.toContainText(/raté|manqué|perdu/i);
 });
 
@@ -482,8 +507,8 @@ test('the dragon grows on the victory under reduced motion: the new stage at onc
     text: el.textContent ?? '',
     running: el.getAnimations({ subtree: true }).filter((a) => a.playState === 'running').length,
   }));
-  expect(first).toEqual({ label: 'Jeune dragon', now: '11', max: '3800', text: expect.stringContaining('Ton dragon grandit !'), running: 0 });
-  await expect(sheet.getByTestId('reveal-dragon')).toContainText('grandit : Jeune dragon');
+  expect(first).toEqual({ label: 'Jeune dragon', now: '11', max: '3800', text: expect.stringContaining('Ton dragon grandit\u202f!'), running: 0 });
+  await expect(sheet.getByTestId('reveal-dragon')).toContainText('grandit\u202f: Jeune dragon');
 });
 
 // Review focus 5: a play state saved before the change carries rank fields and no stage fields.
@@ -551,7 +576,7 @@ test('beating Éris: her defeat line and her treasure, once, in the parchment st
 test('a won fight against Éris empties her hold even with nothing caught', async ({ page, request }, testInfo) => {
   const sheet = await counted(page, request, `Vic15b-${testInfo.project.name}`, progression({ boss: { tier: 1, won: true }, encounter: 'eris' }), true, DRAFT);
   await expect(sheet.getByTestId('results-catch-rate')).toHaveText('Ses pièges se sont bien cachés cette fois');
-  await expect(page.getByTestId('victory-title')).toHaveText('Victoire !');
+  await expect(page.getByTestId('victory-title')).toHaveText('Victoire\u202f!');
   await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '0');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'defeat');
 });

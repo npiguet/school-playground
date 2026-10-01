@@ -1,7 +1,8 @@
 <script lang="ts">
   // The dragon companion's portrait: one cut WebP per stage, tinted with a CSS filter (decision
   // 11 - never a new art generation for a tint). Used by the victory's spoils
-  // (battle/VictorySpoils.svelte) for the hatch (the places draw the dragon as a SceneLayer cut-out).
+  // (battle/VictorySpoils.svelte) for the hatch and the camp's « grew while you were away » reveal
+  // (screens/Camp.svelte; the places draw the dragon itself as a SceneLayer cut-out).
   // Its size comes from the caller; the places size each stage themselves (camp.ts / nest.ts `WIDTH`).
   import { ART } from '../lib/world/art';
   import { TINT_FILTERS, type Mood } from '../lib/world/dragon';

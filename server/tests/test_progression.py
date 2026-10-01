@@ -163,3 +163,21 @@ def test_the_session_keeps_its_xp_as_its_score(client):
     xp = post(client, pid, tid, hydre_result())["progression"]["xp"]["session"]
     history = next(t for t in client.get(f"/api/texts?profile_id={pid}").json() if t["id"] == tid)["history"]
     assert history["best_score"] == xp
+
+
+def test_a_victory_that_shows_the_dragon_grow_records_the_stage_as_seen(client):
+    # Final review I3: the victory shows the hatch or the new stage, so the camp must not reveal it
+    # again: the session records `settings.dragon_seen_stage`, keeping every other setting.
+    pid = make_profile(client, level="10H"); tid = make_text(client)
+    client.patch(f"/api/profiles/{pid}", json={"settings": {"weekly_goal": 4, "tours": ["camp"]}})
+    post(client, pid, tid, hydre_result(), day="2026-09-21", aids=["argus"])
+    assert "dragon_seen_stage" not in client.get(f"/api/profiles/{pid}").json()["settings"]   # still an egg
+    p = post(client, pid, tid, hydre_result(), day="2026-09-22", aids=["argus"])["progression"]
+    assert p["dragon"]["stage_after"] == "hatchling"
+    settings = client.get(f"/api/profiles/{pid}").json()["settings"]
+    assert settings["dragon_seen_stage"] == "hatchling"
+    assert settings["weekly_goal"] == 4 and settings["tours"] == ["camp"] and settings["aids"] == ["argus"]
+    # A victory that shows no growth leaves what the camp last showed alone.
+    client.patch(f"/api/profiles/{pid}", json={"settings": {"dragon_seen_stage": "egg"}})
+    post(client, pid, tid, hydre_result(), day="2026-09-23")
+    assert client.get(f"/api/profiles/{pid}").json()["settings"]["dragon_seen_stage"] == "egg"

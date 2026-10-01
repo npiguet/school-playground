@@ -10,21 +10,20 @@
   import Medallion from '../juice/Medallion.svelte';
   import Particles from '../juice/Particles.svelte';
   import Dragon from '../Dragon.svelte';
+  import DragonNameAsk from '../DragonNameAsk.svelte';
   import LaurelBar from '../ui/LaurelBar.svelte';
   import OverlayVoice from '../scene/OverlayVoice.svelte';
   import { questNotCounted, VICTORY } from '../../lib/battle/lines';
   import type { OpponentId } from '../../lib/battle/battle';
   import { ART, RELIC_OF } from '../../lib/world/art';
-  import { worldApi } from '../../lib/world/api';
-  import { campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
-  import { stageLabel, stageXp, validName, victoryGauge, victoryLaurel, type VictoryPhase } from '../../lib/world/dragon';
+  import { campStore, loadCatalog } from '../../lib/world/campStore.svelte';
+  import { rememberDragonSeen } from '../../lib/world/dragonSeen.svelte';
+  import { stageLabel, stageXp, victoryGauge, victoryLaurel, type VictoryPhase } from '../../lib/world/dragon';
   import { lowerLeadingArticle, romanTier } from '../../lib/world/quests';
   import { agree } from '../../lib/world/eris';
   import { erisSays } from '../../lib/world/voices';
-  import { ApiError } from '../../lib/api';
-  import { playSfx, unlockAudio } from '../../lib/juice/sfx';
+  import { playSfx } from '../../lib/juice/sfx';
   import { reducedMotion } from '../../lib/juice/motion';
-  import { keepFocusedFieldAboveKeyboard } from '../../lib/scene/keyboardField.svelte';
   import type { DragonOut, LieutenantKey, Progression } from '../../lib/world/types';
   import type { Profile } from '../../lib/types';
 
@@ -153,35 +152,13 @@
   const dragonGrew = $derived(gauge.grew);
   const isHatchEvent = $derived(gauge.stages.before === 'egg' && dragonGrew);
   let hatchPhase = $state<'egg' | 'hatched'>('egg');
-
-  let dragonNameInput = $state('');
-  let dragonNameError = $state('');
-  let dragonNameSaved = $state(false);
-  let savingDragonName = $state(false);
-  // iPad report 2026-09-28: her dragon's name line stays whole above the on-screen keyboard (the
-  // stage folds, the sheet scrolls it into view).
-  let nameForm = $state<HTMLDivElement | undefined>(undefined);
-  keepFocusedFieldAboveKeyboard(() => nameForm);
-
-  async function saveDragonName() {
-    dragonNameError = '';
-    if (!validName(dragonNameInput)) {
-      dragonNameError = 'Un nom de 1 à 20 lettres.';
-      return;
-    }
-    savingDragonName = true;
-    try {
-      await worldApi.patchDragon(profile.id, { name: dragonNameInput });
-      dragonNameSaved = true;
-      unlockAudio();
-      playSfx('chime');
-      await refreshCamp(profile.id);
-    } catch (e) {
-      dragonNameError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
-    } finally {
-      savingDragonName = false;
-    }
-  }
+  // Final review I3: the growth shown here is seen; the camp must not reveal it again. The server
+  // recorded it with the session; this page load remembers it too (a failed profile reload).
+  $effect(() => {
+    if (!dragonGrew) return;
+    const [id, stage] = [profile.id, gauge.stages.after];
+    untrack(() => rememberDragonSeen(id, stage));
+  });
 
   // Sound & particles: fire once, staggered to roughly track the cards' own Reveal delays. Sound
   // always plays (mute is the only gate, inside `playSfx`); particles render nothing under
@@ -363,28 +340,8 @@
         {/if}
         <Particles trigger={dragonSparkleTrigger} kind="sparkle" />
 
-        {#if progression.dragon.needs_name && !dragonNameSaved}
-          <!-- UI4 playability #9: a question, and her answer inked on the parchment's line. -->
-          <p class="name-ask" id="reveal-name-ask">{VICTORY.nameAsk}</p>
-          <!-- Not a kit-form field: her dragon's name is written on the parchment's line. -->
-          <div class="name-form" bind:this={nameForm}>
-            <input
-              data-testid="reveal-name-input"
-              aria-label={VICTORY.dragonName}
-              aria-describedby="reveal-name-ask"
-              placeholder={VICTORY.namePlaceholder}
-              maxlength="20"
-              lang="fr"
-              autocapitalize="words"
-              autocorrect="off"
-              spellcheck="false"
-              bind:value={dragonNameInput}
-            />
-            <button type="button" class="kit-bronze" data-testid="reveal-name-save" disabled={savingDragonName} onclick={saveDragonName}>
-              {VICTORY.nameSave}
-            </button>
-          </div>
-          {#if dragonNameError}<p class="kit-note" data-tone="eris" role="alert">{dragonNameError}</p>{/if}
+        {#if progression.dragon.needs_name}
+          <DragonNameAsk profileId={profile.id} />
         {/if}
       </div>
     </Reveal>
@@ -525,42 +482,6 @@
   }
   .boss-lost :global(.overlay-voice) {
     margin: 0;
-  }
-  .name-ask {
-    font-family: var(--font-display);
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--ink);
-  }
-  .name-form {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-  }
-  /* Her dragon's name, inked on the parchment's line (UI4 playability #9). */
-  .name-form input {
-    width: 12em;
-    min-height: 48px;
-    padding: 4px 8px;
-    background: transparent;
-    border: 0;
-    border-bottom: 2px solid var(--bronze);
-    border-radius: 0;
-    box-shadow: none;
-    color: var(--ink);
-    font-family: var(--font-display);
-    font-size: 22px;
-    text-align: center;
-  }
-  .name-form input::placeholder {
-    color: var(--ink-soft);
-    font-style: italic;
-  }
-  .name-form input:focus-visible {
-    outline: 3px solid var(--gold-light);
-    outline-offset: 2px;
   }
   .laurels {
     display: inline-flex;

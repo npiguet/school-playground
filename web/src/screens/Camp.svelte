@@ -6,13 +6,21 @@
   // review M2): the data load, the HUD, the greeting and the "camp unreachable" state are shared; what
   // is the camp's own is the dragon in its nest, the ribbon, the locked path to battle explaining
   // itself, the fade out to the next scene and having no exit sign (it is where the others lead).
+  // Final review I3 (sub-project 3): a dragon that grew while she was away (its stage beyond the one
+  // she last saw, lib/world/dragonSeen.svelte.ts) is revealed once, on a scroll, before the greeting.
   import { fade } from 'svelte/transition';
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import SceneLayer from '../components/scene/SceneLayer.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
+  import Overlay from '../components/scene/Overlay.svelte';
+  import Dragon from '../components/Dragon.svelte';
+  import DragonNameAsk from '../components/DragonNameAsk.svelte';
   import { CAMP_SCENE, bossLockLine, campDragonLayer, campGreeting, weeklyCaption } from '../lib/world/scenes/camp';
   import { dragonSays } from '../lib/world/scenes/speakers';
   import { campFor } from '../lib/world/campStore.svelte';
+  import { dragonRevealFor, markDragonSeen, type CampReveal } from '../lib/world/dragonSeen.svelte';
+  import { overlayState } from '../lib/scene/overlayState.svelte';
+  import { VICTORY } from '../lib/battle/lines';
   import { TINT_FILTERS, dragonCaption } from '../lib/world/dragon';
   import { ART } from '../lib/world/art';
   import type { CampResponse } from '../lib/world/types';
@@ -33,9 +41,30 @@
   let debug = $state(false);
   let place: PlaceScene | undefined = $state();
 
+  // Final review I3: what the camp would reveal of the dragon now (null once seen), and the reveal on
+  // show. It waits for the camp tour and any open overlay (one modal at a time), and never opens under
+  // ?debug or on the way to a deep-linked panel. Frozen once open: naming the dragon in it must not
+  // take the name field away mid-sentence.
+  const pending = $derived.by(() => {
+    const camp = campFor(profile.id);
+    return camp ? dragonRevealFor(profile, camp.dragon) : null;
+  });
+  let reveal = $state<CampReveal | null>(null);
+  $effect(() => {
+    if (reveal || !pending || debug || panel !== null || shouldTour(profile, 'camp') || overlayState.open > 0) return;
+    reveal = pending;
+  });
+  function closeReveal() {
+    const shown = reveal;
+    if (!shown) return;
+    void markDragonSeen(profile, shown.stage);
+    reveal = null;
+  }
+
   // The dragon greets once the camp data is there; a new hero's first visit is the camp tour instead
-  // (PlaceScene holds the greeting while it runs, UI5 Ruling E13).
-  const greet = (camp: CampResponse | null) => (camp ? campGreeting(profile.name, camp) : null);
+  // (PlaceScene holds the greeting while it runs, UI5 Ruling E13). A reveal to show comes first: the
+  // greeting (which asks for a name the reveal may just have given) waits for it to close.
+  const greet = (camp: CampResponse | null) => (camp && !pending && !reveal ? campGreeting(profile.name, camp) : null);
 
   function dragonLayer(camp: CampResponse): SceneLayerDef {
     return { id: 'dragon', src: ART.dragon[camp.dragon.stage], alt: dragonCaption(camp.dragon), ...campDragonLayer(camp.dragon.stage) };
@@ -115,6 +144,20 @@
   {/snippet}
 </PlaceScene>
 
+{#if reveal}
+  {@const dragon = campFor(profile.id)?.dragon}
+  <Overlay variant="scroll" title="Ton dragon" testId="camp-dragon-reveal" onClose={closeReveal}>
+    <div class="dragon-reveal">
+      <Dragon stage={reveal.stage} tint={dragon?.tint ?? 'bronze'} mood="happy" size={160} name={dragon?.name} />
+      <p class="reveal-line" data-testid="camp-reveal-line">{reveal.line}</p>
+      {#if reveal.askName}
+        <DragonNameAsk profileId={profile.id} testPrefix="camp-reveal" ownKeyboard={false} />
+      {/if}
+      <button type="button" class="kit-bronze" data-testid="camp-reveal-continue" onclick={closeReveal}>{VICTORY.continue}</button>
+    </div>
+  </Overlay>
+{/if}
+
 {#if leaving}
   <div class="exit-veil" data-testid="exit-veil" aria-hidden="true" in:fade={{ duration: 180 }}></div>
 {/if}
@@ -164,6 +207,21 @@
   .leaf.filled {
     border-color: var(--bronze-dark);
     background: linear-gradient(135deg, var(--gold-light), var(--gold));
+  }
+  /* The reveal's scroll: the dragon at its new stage, the news, its name if it has none. */
+  .dragon-reveal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+  }
+  .reveal-line {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--reward-ink);
   }
   .exit-veil {
     position: fixed;

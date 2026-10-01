@@ -250,7 +250,7 @@ start-up. The full file with its defaults:
 | `pace_bonus` | The XP bonus of each pace (`"1"` to `"3"`; a partial object keeps the other paces' defaults) |
 | `prophecy_bonus` | The XP bonus of a text played before its due date |
 | `chouette_hints` | The owl's hints per battle |
-| `dragon_stages` | The total XP at which the dragon reaches each stage (`hatchling` to `ancestral`; the egg is always 0). A partial object keeps the other stages' defaults; the stages must rise from one to the next (whole numbers up to 1 000 000), otherwise the whole table is ignored with a warning. A lowered stage takes effect on the next camp visit; a raised one never shrinks a dragon |
+| `dragon_stages` | The total XP at which the dragon reaches each stage (`hatchling` to `ancestral`; the egg is always 0). A partial object keeps the other stages' defaults; the stages must rise from one to the next (whole numbers up to 1 000 000), otherwise the whole table is ignored with a warning. A lowered threshold takes effect on the next camp visit; a raised one never shrinks a dragon |
 
 A key you leave out keeps its default. A file that is not valid JSON, or a value of the wrong type
 (e.g. `"0.3"` in quotes, a negative number, a share above 1), is ignored with a warning in the game's
@@ -543,7 +543,10 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   Jeune dragon (1 200), Dragon adulte (5 000), Dragon illustre (15 000), Dragon ancestral (40 000),
   thresholds in `data/regles.json`. A stage is never lost: a raised threshold or a restored backup
   keeps the stage already reached, and a dragon grown from neutralisations before this rule keeps
-  its stage. The HUD's laurel shows the way to the next stage; the XP ranks are gone.
+  its stage. The HUD's laurel shows the way to the next stage; the XP ranks are gone. A growth the
+  hero has not seen on a victory (a lowered threshold, the catch-up after an update) is revealed once
+  at the camp, with the naming field for an unnamed dragon; the stage last seen is the hero's
+  `settings.dragon_seen_stage`.
 - **Rewards are announced in advance** — every relic, dragon tint, divine gear and cabin decor piece
   is on the cabin's trophy shelf (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can
   be earned; nothing is a gamble.

@@ -66,6 +66,15 @@ def store_stage(conn, profile_id, stage, now) -> None:
                  (stage, now, stage, now, profile_id))
 
 
+def record_seen_stage(conn, profile_id, stage) -> None:
+    """The victory shows the hatch or the new stage, so it is the stage the hero last saw
+    (`settings.dragon_seen_stage`, final review I3): the camp's « grew while you were away » reveal
+    shows only a growth she has not seen. Read fresh: the session may have just written `aids`."""
+    row = conn.execute("SELECT settings_json FROM profile WHERE id = ?", (profile_id,)).fetchone()
+    settings = {**json.loads(row["settings_json"] or "{}"), "dragon_seen_stage": stage}
+    conn.execute("UPDATE profile SET settings_json = ? WHERE id = ?", (json.dumps(settings, ensure_ascii=False), profile_id))
+
+
 def _complete_quest(conn, q, profile_id, now, bonuses, rewards):
     reward = json.loads(q["reward_json"])
     conn.execute("UPDATE quest SET status = 'done', completed_at = ? WHERE id = ?", (now, q["id"]))
@@ -152,6 +161,8 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
     stage_after = grown_stage(dragon["stage"], total_after, thresholds)
     if stage_after != dragon["stage"]:
         store_stage(conn, pid, stage_after, now)
+    if stage_after != stage_before:
+        record_seen_stage(conn, pid, stage_after)
     needs_name = stage_after != "egg" and dragon["name"] is None
     floor, nxt = stage_gauge(stage_after, thresholds)
     return {"xp": {"session": xp.total, "parts": xp.parts, "bonuses": bonuses, "total_before": total_before, "total_after": total_after,
