@@ -20,7 +20,7 @@
   import { rememberDragonSeen } from '../../lib/world/dragonSeen.svelte';
   import { stageLabel, stageXp, victoryGauge, victoryLaurel, type VictoryPhase } from '../../lib/world/dragon';
   import { lowerLeadingArticle, romanTier } from '../../lib/world/quests';
-  import { bonusChipLabel, levelUpLine, levelUps, sealCry } from '../../lib/world/seals';
+  import { bonusChipLabel, levelUpLine, levelUps, sealCry, sealTitleOf } from '../../lib/world/seals';
   import { erisSays } from '../../lib/world/voices';
   import { playSfx } from '../../lib/juice/sfx';
   import { reducedMotion } from '../../lib/juice/motion';
@@ -120,14 +120,15 @@
   }
 
   // Rewards not already shown by the quest cards (their own `reward_id`), the seal cards (every trophy
-  // comes from a seal this session; a relic only from a victory saved before the change) or the boss
+  // comes from a seal this session; a victory saved before the change may still carry a relic: its
+  // seal card shows it as the wooden trophy) or the boss
   // block (its treasure, shown once with Éris's defeat: UI4 playability #4).
   const shownRewardIds = $derived(
     new Set(progression.quests.filter((q) => q.completed && q.reward_id).map((q) => q.reward_id as string)),
   );
   const extraRewards = $derived(
     progression.rewards.filter(
-      (r) => r.kind !== 'trophy' && r.kind !== 'relic' && !shownRewardIds.has(r.id) && r.id !== bossReward?.id,
+      (r) => r.kind !== 'trophy' && String(r.kind) !== 'relic' && !shownRewardIds.has(r.id) && r.id !== bossReward?.id,
     ),
   );
 
@@ -287,12 +288,15 @@
       <div class="level-up" data-testid="reveal-level-{u.lieutenant}">
         <img src={ART.lieutenants[u.lieutenant]} alt={names[u.lieutenant] ?? u.lieutenant} class="lieutenant-art" />
         <div class="kit-sheet spoil level-sheet">
-          <img
-            class="trophy-art"
-            data-testid="reveal-level-trophy"
-            src={trophyIcon(u.lieutenant, u.level) ?? ''}
-            alt={campStore.catalog?.rewards[u.reward_id]?.name ?? sealCry(u.level)}
-          />
+          {#if trophyIcon(u.lieutenant, u.level)}
+            <!-- Before the catalogue loads, the alt names the lieutenant, not the card's title again. -->
+            <img
+              class="trophy-art"
+              data-testid="reveal-level-trophy"
+              src={trophyIcon(u.lieutenant, u.level)}
+              alt={campStore.catalog?.rewards[u.reward_id]?.name ?? sealTitleOf(u.lieutenant, u.level)}
+            />
+          {/if}
           <p class="spoil-title">{sealCry(u.level)}</p>
           <p>{levelUpLine(u.lieutenant, u.level)}</p>
         </div>

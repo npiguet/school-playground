@@ -10,12 +10,6 @@ const icon = (name: string) => `/art/icons/${name}.webp`;
  *  REWARDS; decor files keep the art pipeline's `decor-` prefix (a `:` can't be in a file name -
  *  controller Ruling U9). Tints have no icon: they are colour swatches (TINT_SWATCH in dragon.ts). */
 export const REWARD_ICONS: Record<string, string> = {
-  ecaille_hydre: icon('ecaille_hydre'),
-  voix_echo: icon('voix_echo'),
-  criniere_chimere: icon('criniere_chimere'),
-  perle_protee: icon('perle_protee'),
-  plume_sirene: icon('plume_sirene'),
-  pavot_lethe: icon('pavot_lethe'),
   sandales_hermes: icon('sandales_hermes'),
   egide: icon('egide'),
   foudre_zeus: icon('foudre_zeus'),
@@ -72,16 +66,6 @@ export const MARK_ICONS = {
 export const PLACE_ICONS = {
   portal: icon('portal-arch'),
 } as const;
-
-/** The relic each lieutenant leaves when neutralised (catalog.py LIEUTENANTS[*].relic). */
-export const RELIC_OF: Record<LieutenantKey, string> = {
-  hydre: 'ecaille_hydre',
-  echo: 'voix_echo',
-  chimere: 'criniere_chimere',
-  protee: 'perle_protee',
-  sirenes: 'plume_sirene',
-  lethe: 'pavot_lethe',
-};
 
 /** The lieutenants' trophies (spec 2026-09-29 lieutenant levels §1, art spec Phase 3): one per seal,
  *  the old relic as a statuette in the seal's material; the icon (256 px) and the shelf's close view
@@ -227,7 +211,7 @@ export function lieutenantIcon(key: string): string | null {
 }
 
 /** The server's own catalog is the source of truth for a reward's kind (review round 1 #7); the
- *  id-prefix/RELIC_OF guess below covers the moment before the catalog has loaded. Medallion is
+ *  id-prefix guess below covers the moment before the catalog has loaded. Medallion is
  *  the one caller (final review M6), always with `campStore.catalog`. */
 export function rewardKindOf(id: string, catalog?: WorldCatalog | null): RewardKind {
   const fromCatalog = catalog?.rewards[id]?.kind;
@@ -235,5 +219,5 @@ export function rewardKindOf(id: string, catalog?: WorldCatalog | null): RewardK
   if (id.startsWith('trophy:')) return 'trophy';
   if (id.startsWith('tint:')) return 'tint';
   if (id.startsWith('decor:')) return 'decor';
-  return (Object.values(RELIC_OF) as string[]).includes(id) ? 'relic' : 'gear';
+  return 'gear';
 }

@@ -312,6 +312,8 @@ test('the longest battle caption stays on its plaque, inside the safe zone', asy
     const [plate, text] = await Promise.all([label.boundingBox(), label.locator('.hotspot-caption').boundingBox()]);
     expect(text!.x, at).toBeGreaterThanOrEqual(plate!.x);
     expect(text!.x + text!.width, at).toBeLessThanOrEqual(plate!.x + plate!.width + 0.5);
+    expect(text!.y, at).toBeGreaterThanOrEqual(plate!.y - 0.5);
+    expect(text!.y + text!.height, at).toBeLessThanOrEqual(plate!.y + plate!.height + 0.5);
   }
 });
 

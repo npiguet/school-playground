@@ -48,19 +48,19 @@ test('the trophy shelf shows every reward, each known in advance', async ({ page
   await expect(page).toHaveURL(/\/cabane\?panel=tresors$/);
   const shelf = page.getByTestId('overlay-trophies');
   await expect(shelf.getByRole('heading', { name: 'Tes trésors', level: 2 })).toBeVisible();
-  for (const section of ['Reliques', 'Armes et armures divines', 'Objets de la cabane', 'Teintes']) {
+  for (const section of ['Trophées', 'Armes et armures divines', 'Objets de la cabane', 'Teintes']) {
     await expect(shelf.getByRole('heading', { name: section, level: 3 })).toBeVisible();
   }
   const sandals = shelf.getByTestId('cabin-reward-sandales_hermes');
   await expect(sandals).toHaveAttribute('data-owned', 'false');
-  // UI3b playability #13: how to win it, said to her; the relic's dark silhouette, not a « ? ».
+  // UI3b playability #13: how to win it, said to her; the gear's dark silhouette, not a « ? ».
   await expect(sandals).toContainText('Bats Éris une première fois pour les gagner.');
   await expect(sandals).not.toContainText("Comment l'obtenir");
   await expect(sandals.locator('.medallion')).toHaveAttribute('aria-label', 'Récompense à découvrir');
   await expect(sandals.locator('.medallion img.silhouette')).toHaveCSS('filter', /brightness\(0\)/);
-  // UI3b playability #7: the dragon speaks from the shelf's plate (no relic won yet: six to win).
+  // UI3b playability #7: the dragon speaks from the shelf's plate (no seal won yet).
   await expect(shelf.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'dragon');
-  await expect(shelf.getByTestId('overlay-voice')).toContainText('Il en manque encore six\u202f!');
+  await expect(shelf.getByTestId('overlay-voice')).toContainText("Chaque sceau que tu gagnes pose un trophée sur l'étagère. Le premier sera en bois\u202f!");
   // Fix round 1: a tint still to win is a grey egg; the filter is on the egg, not on its ring.
   const ecume = shelf.getByTestId('cabin-reward-tint:ecume');
   await expect(ecume.locator('.tint-egg')).toHaveCSS('filter', 'none');
@@ -69,6 +69,37 @@ test('the trophy shelf shows every reward, each known in advance', async ({ page
   await closeOverlay(page);
   await expect(page).toHaveURL(/\/cabane$/);
   await expect(page.getByTestId('cabin-trophies')).toBeFocused();
+});
+
+// Spec 2026-09-29 lieutenant levels §5: real seals from posted sessions (the test clock): three days
+// win the Hydra's wooden seal, four more days after it the bronze one.
+test('the shelf: each lieutenant its highest trophy, the lower ones in its close view, an empty plinth says the first seal', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const text = await createText(request, { title: uniqueName(`Étagère ${testInfo.project.name}`), body: 'Les fées dansent dans la clairière.', level: '10H' });
+  for (const day of ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-08', '2026-08-09']) {
+    await postSession(request, { profileId: id, textId: text.id, day, result: makeResult({ draft: 4, caught: 4, category: 'agreement:verb' }) });
+  }
+  await page.goto(`/#/p/${id}/cabane?panel=tresors`);
+  const shelf = page.getByTestId('overlay-trophies');
+  await expect(shelf.getByRole('heading', { name: 'Trophées', level: 3 })).toBeVisible();
+  const hydre = shelf.getByTestId('cabin-trophy-hydre');
+  await expect(hydre).toHaveAttribute('data-level', '2');
+  await expect(hydre.locator('img')).toHaveAttribute('src', '/art/trophies/trophy-hydre-2.webp');
+  await expect(hydre).toContainText('Sceau de bronze');
+  const echo = shelf.getByTestId('cabin-trophy-echo');
+  await expect(echo).toHaveAttribute('data-level', '0');
+  await expect(echo).toContainText('Premier sceau\u202f: 3 jours de garde et 12 pièges, dont 85\u202f% déjoués.');
+  const open = hydre.getByRole('button', { name: "Écaille de l'Hydre en bronze" });
+  await tap(open, testInfo);
+  await expect(open).toHaveAttribute('aria-expanded', 'true');
+  const close = shelf.getByTestId('cabin-trophy-close-hydre');
+  await expect(close.locator('img.close-art')).toHaveAttribute('src', '/art/trophies/large/trophy-hydre-2.webp');
+  await expect(close).toContainText("Écaille de l'Hydre en bois");
+  await expect(close.locator('img[src="/art/trophies/trophy-hydre-1.webp"]')).toBeVisible();
+  await expect(shelf.getByTestId('overlay-voice')).toContainText('Il en reste 28 à gagner');
+  await tap(open, testInfo);
+  await expect(close).toHaveCount(0);
+  expect(await redScan(page)).toEqual([]);
 });
 
 test('overlay-trophies: an in-world table, clear of the HUD, 48 px targets, kit classes only', async ({ page, request }, testInfo) => {

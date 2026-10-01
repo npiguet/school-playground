@@ -3,6 +3,7 @@
 // apply until the catalog has come. Pure.
 import { todayIso } from './dates';
 import type { PlayMode } from './types';
+import type { SealNeed } from './world/types';
 
 export interface GameRules {
   quest_min_chances: number;
@@ -14,6 +15,10 @@ export interface GameRules {
   pace_bonus: Record<'1' | '2' | '3', number>;
   prophecy_bonus: number;
   chouette_hints: number;
+  /** Spec 2026-09-29 lieutenant levels §1: each seal's days, chances and share (seal 1 first). */
+  levels: SealNeed[];
+  /** §4: Éris's ladder (the server opens the fights; the client never counts them). */
+  fights: { level: number; count: number | 'all' }[];
 }
 
 export const DEFAULT_RULES: GameRules = {
@@ -26,6 +31,14 @@ export const DEFAULT_RULES: GameRules = {
   pace_bonus: { '1': 0, '2': 0.25, '3': 0.5 },
   prophecy_bonus: 0.5,
   chouette_hints: 3,
+  levels: [
+    { days: 3, chances: 12, correct: 0.85 },
+    { days: 4, chances: 25, correct: 0.88 },
+    { days: 6, chances: 45, correct: 0.91 },
+    { days: 8, chances: 70, correct: 0.94 },
+    { days: 10, chances: 100, correct: 0.97 },
+  ],
+  fights: [1, 2, 3, 4, 5].flatMap((level) => [{ level, count: 2 }, { level, count: 'all' as const }]),
 };
 
 export function rulesOf(catalog: { rules?: GameRules } | null | undefined): GameRules {

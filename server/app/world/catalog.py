@@ -5,28 +5,22 @@ LIEUTENANT_ORDER = ["hydre", "echo", "chimere", "protee", "sirenes", "lethe"]
 # Sirènes/Léthé are feminine, Protée is masculine; SP3 batch review I7). The client's `agree()`
 # helper (web/src/lib/world/eris.ts) reads it via GET /api/world.
 LIEUTENANTS = {
-    "hydre":   {"name": "L'Hydre", "gender": "f", "categories": ["agreement:number", "agreement:verb"], "min_level": "5H", "relic": "ecaille_hydre",
+    "hydre":   {"name": "L'Hydre", "gender": "f", "categories": ["agreement:number", "agreement:verb"], "min_level": "5H",
                 "technique": "Elle sème des dés-accords de nombre\u202f: un -s ou un -nt qui manque, et deux têtes repoussent."},
-    "echo":    {"name": "Écho", "gender": "f", "categories": ["homophone"], "min_level": "5H", "relic": "voix_echo",
+    "echo":    {"name": "Écho", "gender": "f", "categories": ["homophone"], "min_level": "5H",
                 "technique": "Elle répète un mot qui sonne juste mais s'écrit faux\u202f: a ou à, et ou est, son ou sont."},
-    "chimere": {"name": "La Chimère", "gender": "f", "categories": ["agreement:gender"], "min_level": "5H", "relic": "criniere_chimere",
+    "chimere": {"name": "La Chimère", "gender": "f", "categories": ["agreement:gender"], "min_level": "5H",
                 "technique": "Ses têtes se disputent le genre\u202f: un masculin ici, un féminin là."},
-    "protee":  {"name": "Protée", "gender": "m", "categories": ["agreement:participle"], "min_level": "8H", "relic": "perle_protee",
+    "protee":  {"name": "Protée", "gender": "m", "categories": ["agreement:participle"], "min_level": "8H",
                 "technique": "Il change la forme des participes passés\u202f: -é, -ée, -és, -ées, selon être ou avoir."},
-    "sirenes": {"name": "Les Sirènes", "gender": "fp", "categories": ["derived:sirenes"], "min_level": "5H", "relic": "plume_sirene",
+    "sirenes": {"name": "Les Sirènes", "gender": "fp", "categories": ["derived:sirenes"], "min_level": "5H",
                 "technique": "Leur chant éloigne le sujet de son verbe, le cache derrière un pronom ou le met après."},
-    "lethe":   {"name": "Léthé", "gender": "f", "categories": ["derived:lethe"], "min_level": "5H", "relic": "pavot_lethe",
+    "lethe":   {"name": "Léthé", "gender": "f", "categories": ["derived:lethe"], "min_level": "5H",
                 "technique": "Elle endort l'attention dans le dernier tiers du texte, là où l'on ne relit plus."},
 }
 TINTS = ["bronze", "ecume", "olivier", "braise", "jade", "argent"]
 def _r(id, kind, name, desc, source): return {"id": id, "kind": kind, "name": name, "desc": desc, "source": source}
 REWARDS = {r["id"]: r for r in [
-    _r("ecaille_hydre", "relic", "Écaille de l'Hydre", "Une écaille vert olive, tiède comme un marais.", "Neutraliser l'Hydre"),
-    _r("voix_echo", "relic", "Voix d'Écho", "Un coquillage qui répète le dernier mot juste.", "Neutraliser Écho"),
-    _r("criniere_chimere", "relic", "Crinière de la Chimère", "Trois mèches de feu qui ne brûlent pas.", "Neutraliser la Chimère"),
-    _r("perle_protee", "relic", "Perle de Protée", "Une perle qui garde toujours la même forme.", "Neutraliser Protée"),
-    _r("plume_sirene", "relic", "Plume de Sirène", "Une plume bleue qui ne chante plus.", "Neutraliser les Sirènes"),
-    _r("pavot_lethe", "relic", "Pavot de Léthé", "Un pavot rouge qui tient éveillé.", "Neutraliser Léthé"),
     _r("tint:ecume", "tint", "Teinte Écume", "Ton dragon prend la couleur de la mer Égée.", "Quête de l'Oracle"),
     _r("tint:olivier", "tint", "Teinte Olivier", "Ton dragon prend le vert des oliviers.", "Quête de l'Oracle"),
     _r("tint:braise", "tint", "Teinte Braise", "Ton dragon rougeoie comme une braise.", "Quête de l'Oracle"),

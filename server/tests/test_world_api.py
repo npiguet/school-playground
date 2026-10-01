@@ -11,7 +11,8 @@ from tests.test_progression import hydre_result, post
 def test_world_catalog(client):
     w = client.get("/api/world").json()
     assert [l["key"] for l in w["lieutenants"]] == ["hydre", "echo", "chimere", "protee", "sirenes", "lethe"]
-    assert w["rewards"]["ecaille_hydre"]["name"] == "Écaille de l'Hydre"
+    assert w["rewards"]["trophy:hydre:1"]["name"] == "Écaille de l'Hydre en bois"
+    assert all(r["kind"] != "relic" for r in w["rewards"].values()) and all("relic" not in l for l in w["lieutenants"])
     assert "mastery" not in w and "mastery" not in w["quest_bonus"]
     assert w["boss_rewards"]["1"] == "sandales_hermes"
     assert [s["key"] for s in w["stages"]] == ["egg", "hatchling", "young", "adult", "illustre", "ancestral"]

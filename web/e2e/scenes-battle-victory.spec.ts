@@ -552,6 +552,43 @@ test('a seal on the victory: « Sceau de bronze ! », its trophy, its chip', asy
   await expect(sheet.getByTestId('reveal-reward-trophy:hydre:2')).toHaveCount(0); // never twice as « Nouveau trésor »
 });
 
+// Two seals won in one victory (two lieutenants, one level each): both cards, both chips.
+test('two seals in one victory: both cards and both chips', async ({ page, request }, testInfo) => {
+  const sheet = await counted(
+    page,
+    request,
+    `Vic27-${testInfo.project.name}`,
+    progression({
+      levels: [
+        { lieutenant: 'hydre', level: 2, reward_id: 'trophy:hydre:2' },
+        { lieutenant: 'echo', level: 1, reward_id: 'trophy:echo:1' },
+      ],
+      rewards: [
+        { id: 'trophy:hydre:2', kind: 'trophy', name: "Écaille de l'Hydre en bronze" },
+        { id: 'trophy:echo:1', kind: 'trophy', name: "Voix d'Écho en bois" },
+      ],
+      xp: {
+        session: 51,
+        bonuses: [
+          { reason: 'level', amount: 200, lieutenant: 'hydre', level: 2 },
+          { reason: 'level', amount: 100, lieutenant: 'echo', level: 1 },
+        ],
+        total_before: 487,
+        total_after: 938,
+        stage_before: 'hatchling',
+        stage_after: 'hatchling',
+        floor: 100,
+        next: 1200,
+      },
+    }),
+  );
+  await expect(sheet.getByTestId('reveal-level-hydre')).toContainText('Sceau de bronze\u202f!');
+  await expect(sheet.getByTestId('reveal-level-echo')).toContainText('Sceau de bois\u202f!');
+  await expect(sheet.getByTestId('reveal-level-hydre').getByTestId('reveal-level-trophy')).toHaveAttribute('src', '/art/trophies/trophy-hydre-2.webp');
+  await expect(sheet.getByTestId('reveal-level-echo').getByTestId('reveal-level-trophy')).toHaveAttribute('src', '/art/trophies/trophy-echo-1.webp');
+  await expect(sheet.getByTestId('xp-chip')).toContainText(["Sceau de bronze\u202f: l'Hydre +200", 'Sceau de bois\u202f: Écho +100']);
+});
+
 // Review focus 5: a play state saved before the change.
 test('a victory saved before the seals shows the first seal', async ({ page, request }, testInfo) => {
   const sheet = await counted(

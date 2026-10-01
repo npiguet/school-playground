@@ -5,7 +5,7 @@
 import { plural, rateText } from '../text/french';
 import { agree, genderFor, lieutenantName } from './eris';
 import { lowerLeadingArticle } from './quests';
-import { LIEUTENANT_ORDER, type LieutenantKey, type LieutenantState, type SealWindow } from './types';
+import { LIEUTENANT_ORDER, type LieutenantKey, type LieutenantState, type SealNeed, type SealWindow } from './types';
 
 export const MATERIALS = ['bois', 'bronze', 'argent', 'or', 'orichalque'] as const;
 export const MAX_SEAL = MATERIALS.length;
@@ -137,6 +137,12 @@ export function levelChipLabel(level: number, name: string): string {
   return `${sealTitle(level)}\u202f: ${lowerLeadingArticle(name)}`;
 }
 
+/** A trophy's reward id (`trophy:<lieutenant>:<seal>`). Joined, not templated: the French-spacing
+ *  guard reads a template literal with a colon as copy, so nobody hand-rolls this id. */
+export function trophyId(key: string, level: number): string {
+  return ['trophy', key, level].join(':');
+}
+
 const isKey = (k: string): k is LieutenantKey => (LIEUTENANT_ORDER as readonly string[]).includes(k);
 
 export interface LevelUp {
@@ -148,8 +154,7 @@ export interface LevelUp {
 /** The seals a victory reveals; a victory saved before the change reveals its neutralisations as the
  *  wooden seals they became (migration 006). */
 export function levelUps(p: { levels?: { lieutenant: string; level: number; reward_id: string }[]; neutralised?: string[] }): LevelUp[] {
-  // The id is joined, not templated: the French-spacing guard reads a template literal as copy.
-  const ups = p.levels ?? (p.neutralised ?? []).map((k) => ({ lieutenant: k, level: 1, reward_id: ['trophy', k, 1].join(':') }));
+  const ups = p.levels ?? (p.neutralised ?? []).map((k) => ({ lieutenant: k, level: 1, reward_id: trophyId(k, 1) }));
   return ups.filter((u): u is LevelUp => isKey(u.lieutenant));
 }
 
@@ -176,4 +181,19 @@ export function bonusChipLabel(b: { reason: string; amount?: number; lieutenant?
     return levelChipLabel(b.level, names[b.lieutenant] ?? lieutenantName(b.lieutenant));
   }
   return CHIP_LABELS[b.reason] ?? b.reason;
+}
+
+/** The highest trophy of each lieutenant among the rewards owned (R15). */
+export function highestTrophies(owned: { id: string }[]): Partial<Record<LieutenantKey, number>> {
+  const out: Partial<Record<LieutenantKey, number>> = {};
+  for (const { id } of owned) {
+    const m = /^trophy:([a-z]+):([1-5])$/.exec(id);
+    if (m && isKey(m[1])) out[m[1]] = Math.max(out[m[1]] ?? 0, Number(m[2]));
+  }
+  return out;
+}
+
+/** An empty plinth says what the first seal asks, in words (spec §5). */
+export function firstSealLine(need: SealNeed): string {
+  return `Premier sceau\u202f: ${plural(need.days, 'jour', 'jours')} de garde et ${plural(need.chances, 'piège', 'pièges')}, dont ${rateText(need.correct)} déjoués.`;
 }

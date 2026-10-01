@@ -3,6 +3,8 @@ import {
   MATERIALS,
   bonusChipLabel,
   fightLine,
+  firstSealLine,
+  highestTrophies,
   levelChipLabel,
   levelUpLine,
   levelUps,
@@ -15,6 +17,7 @@ import {
   sealTitle,
   sealTitleOf,
   sealsName,
+  trophyId,
 } from './seals';
 import type { SealWindow } from './types';
 
@@ -86,6 +89,32 @@ describe('the seals in words', () => {
     expect(levelUps({ neutralised: ['echo'] })).toEqual([{ lieutenant: 'echo', level: 1, reward_id: 'trophy:echo:1' }]);
     expect(levelUps({ levels: [{ lieutenant: 'medusa', level: 1, reward_id: 'x' }] })).toEqual([]);
     expect(levelUps({})).toEqual([]);
+  });
+
+  it('builds a trophy id in one place, and keeps two seals won in one victory apart', () => {
+    expect(trophyId('hydre', 2)).toBe('trophy:hydre:2');
+    const two = [
+      { lieutenant: 'hydre', level: 2, reward_id: trophyId('hydre', 2) },
+      { lieutenant: 'echo', level: 1, reward_id: trophyId('echo', 1) },
+    ];
+    expect(levelUps({ levels: two })).toEqual(two);
+    const names = { hydre: "L'Hydre", echo: 'Écho' };
+    const chips = [
+      { reason: 'level', amount: 200, lieutenant: 'hydre', level: 2 },
+      { reason: 'level', amount: 100, lieutenant: 'echo', level: 1 },
+    ].map((b) => bonusChipLabel(b, names));
+    expect(chips).toEqual(["Sceau de bronze\u202f: l'Hydre", 'Sceau de bois\u202f: Écho']);
+    expect(two.map((u) => levelUpLine(u.lieutenant as 'hydre' | 'echo', u.level))).toEqual([
+      "Tu poses le sceau de bronze sur l'Hydre. Son trophée t'attend dans ta cabane.",
+      "Tu poses le sceau de bois sur Écho. Son trophée t'attend dans ta cabane.",
+    ]);
+  });
+
+  it('finds the highest trophy of each lieutenant on the shelf, and says the first seal (R15)', () => {
+    const owned = ['trophy:hydre:1', 'trophy:hydre:2', 'trophy:echo:1', 'tint:jade', 'trophy:medusa:3', 'trophy:lethe:9'].map((id) => ({ id }));
+    expect(highestTrophies(owned)).toEqual({ hydre: 2, echo: 1 });
+    expect(firstSealLine({ days: 3, chances: 12, correct: 0.85 })).toBe('Premier sceau\u202f: 3 jours de garde et 12 pièges, dont 85\u202f% déjoués.');
+    expect(firstSealLine({ days: 1, chances: 1, correct: 0.5 })).toBe('Premier sceau\u202f: 1 jour de garde et 1 piège, dont 50\u202f% déjoués.');
   });
 
   it('labels every chip of the victory, the saved ones included', () => {

@@ -24,16 +24,9 @@ export function treasureCaption(n: number): string {
   return n <= 0 ? 'Aucun trésor encore' : plural(n, 'trésor', 'trésors');
 }
 
-// How to win each reward, said to the player (UI3b playability #13: « Comment l'obtenir :
-// Neutraliser la Chimère » was the register of a help page). The pronoun agrees with the reward
-// (la crinière, le pavot, les sandales). Mirrors server/app/world/catalog.py REWARDS' `source`.
+// How to win each reward, said to the player (UI3b playability #13: said to the player, the
+// pronoun agreed with the reward: la teinte, les sandales, le tapis). Mirrors server/app/world/catalog.py REWARDS' `source`.
 const HOW_TO_WIN: Record<string, string> = {
-  ecaille_hydre: "Neutralise l'Hydre pour la gagner.",
-  voix_echo: 'Neutralise Écho pour la gagner.',
-  criniere_chimere: 'Neutralise la Chimère pour la gagner.',
-  perle_protee: 'Neutralise Protée pour la gagner.',
-  plume_sirene: 'Neutralise les Sirènes pour la gagner.',
-  pavot_lethe: 'Neutralise Léthé pour le gagner.',
   'tint:ecume': "Gagne-la dans une quête de l'Oracle.",
   'tint:olivier': "Gagne-la dans une quête de l'Oracle.",
   'tint:braise': "Gagne-la dans une quête de l'Oracle.",

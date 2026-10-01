@@ -1,18 +1,22 @@
 <script lang="ts">
   // The trophy shelf (UI3 Ruling B6, was the Cabin screen): every reward the game can grant, each
   // in its cubby before it's earned (decision 12, ethics - no gamble, nothing hidden). Owned gear
-  // and decor can be put on display or away; relics and tints are keepsakes with no toggle of their
-  // own (a tint is applied from the dragon's care, in the nest). Displayed decor hangs on the
+  // and decor can be put on display or away; trophies and tints are keepsakes with no toggle (a
+  // trophy stands on its lieutenant's plinth, spec 2026-09-29 lieutenant levels §5; a tint is applied
+  // from the dragon's care, in the nest). Displayed decor hangs on the
   // cabin's walls: the cabin owns the list of rewards (it hangs them) and hands it down; a piece
   // put on display or away goes back up through `onUpdated` (final review M15: one /rewards fetch).
   import Medallion from '../../juice/Medallion.svelte';
-  import { ART } from '../../../lib/world/art';
+  import { ART, trophyIcon } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
   import { campStore } from '../../../lib/world/campStore.svelte';
   import { eggFilter } from '../../../lib/world/dragon';
+  import { lieutenantName, sleepingLine, isAwake } from '../../../lib/world/eris';
+  import { firstSealLine, highestTrophies, sealTitle, sealTitleOf, trophyId } from '../../../lib/world/seals';
+  import { rulesOf } from '../../../lib/rules';
   import { MAX_DISPLAYED_DECOR, WALLS_FULL_LINE } from '../../../lib/world/scenes/cabin';
   import { howToWin } from '../../../lib/world/rewards';
-  import type { RewardKind, RewardOut, Tint } from '../../../lib/world/types';
+  import { LIEUTENANT_ORDER, type LieutenantKey, type RewardKind, type RewardOut, type Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import type { Profile } from '../../../lib/types';
 
@@ -31,11 +35,19 @@
   });
 
   const SECTIONS: { kind: RewardKind; title: string }[] = [
-    { kind: 'relic', title: 'Reliques' },
     { kind: 'gear', title: 'Armes et armures divines' },
     { kind: 'decor', title: 'Objets de la cabane' },
     { kind: 'tint', title: 'Teintes' },
   ];
+
+  const highest = $derived(highestTrophies(owned ?? []));
+  const firstSeal = $derived(firstSealLine(rulesOf(campStore.catalog).levels[0]));
+  // The close view: one lieutenant's trophies at a time (R15).
+  let openKey = $state<LieutenantKey | null>(null);
+
+  function trophyName(key: LieutenantKey, level: number): string {
+    return campStore.catalog?.rewards[trophyId(key, level)]?.name ?? sealTitleOf(key, level);
+  }
 
   function itemsFor(kind: RewardKind): { id: string; name: string; desc: string; source: string }[] {
     return Object.values(campStore.catalog?.rewards ?? {}).filter((r) => r.kind === kind);
@@ -85,6 +97,53 @@
     <!-- The rest (each reward announced ahead, nothing drawn by lot) is the cabin tour's step 1 (UI5 Ruling E13). -->
     <p class="kit-note">Ta cabane attend ses premiers trésors.</p>
   {/if}
+
+  <section data-testid="cabin-trophy-shelf">
+    <h3 class="kit-section">Trophées</h3>
+    <ul class="cubbies">
+      {#each LIEUTENANT_ORDER as key (key)}
+        {@const top = highest[key] ?? 0}
+        <li class="kit-cubby trophy plinth" class:is-empty={top === 0} data-testid="cabin-trophy-{key}" data-level={top}>
+          {#if top > 0}
+            <button
+              type="button"
+              class="plinth-open"
+              aria-expanded={openKey === key}
+              aria-controls="trophy-close-{key}"
+              onclick={() => (openKey = openKey === key ? null : key)}
+            >
+              <img class="plinth-art" src={trophyIcon(key, top)} alt="" draggable="false" />
+              <span class="trophy-name">{trophyName(key, top)}</span>
+            </button>
+            <p class="trophy-desc">{sealTitle(top)}</p>
+          {:else}
+            <span class="plinth-empty" aria-hidden="true"></span>
+            <h4 class="trophy-name">{lieutenantName(key)}</h4>
+            <p class="trophy-how">{isAwake(key, profile.level) ? firstSeal : sleepingLine(key, profile.level)}</p>
+          {/if}
+        </li>
+      {/each}
+    </ul>
+    {#if openKey && (highest[openKey] ?? 0) > 0}
+      {@const key = openKey}
+      {@const top = highest[key] ?? 0}
+      <div class="kit-sheet trophy-close" id="trophy-close-{key}" data-testid="cabin-trophy-close-{key}">
+        <img class="close-art" src={trophyIcon(key, top, true)} alt={trophyName(key, top)} draggable="false" />
+        <div class="close-words">
+          <h4>{trophyName(key, top)}</h4>
+          <p>{campStore.catalog?.rewards[trophyId(key, top)]?.desc ?? ''}</p>
+          {#if top > 1}
+            <p class="lower-title">Aussi sur l'étagère</p>
+            <ul class="lower">
+              {#each Array.from({ length: top - 1 }, (_, i) => top - 1 - i) as level (level)}
+                <li><img src={trophyIcon(key, level)} alt="" draggable="false" /><span>{trophyName(key, level)}</span></li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
+      </div>
+    {/if}
+  </section>
 
   {#each SECTIONS as section (section.kind)}
     <section>
@@ -164,6 +223,74 @@
      length of the description above. */
   .trophy > .kit-bronze {
     margin-top: auto;
+  }
+  /* A lieutenant's plinth: its highest trophy, a button that opens the close view (R15). */
+  .plinth-open {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 48px;
+    padding: 4px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .plinth-open:focus-visible {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 2px;
+  }
+  .plinth-art {
+    width: 88px;
+    height: 88px;
+    object-fit: contain;
+    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.4));
+  }
+  .plinth-empty {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 2px dashed var(--parchment-solid);
+    opacity: 0.5;
+  }
+  .trophy-close {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    margin-top: 16px;
+    color: var(--ink);
+  }
+  .close-art {
+    width: min(40%, 256px);
+    aspect-ratio: 1;
+    object-fit: contain;
+  }
+  .close-words h4,
+  .close-words p {
+    margin: 0 0 6px;
+  }
+  .lower-title {
+    font-weight: 600;
+  }
+  .lower {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .lower li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lower img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
   }
   .tint-egg {
     width: 64px;

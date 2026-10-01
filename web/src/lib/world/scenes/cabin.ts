@@ -76,14 +76,17 @@ export function cabinGreeting(d: DragonOut): DialogueLine[] {
   return [sayKey('cabin.enter', { dragon: d })];
 }
 
-const COUNT_WORDS = ['', 'une', 'deux', 'trois', 'quatre', 'cinq', 'six'];
+const COUNT_WORDS = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six'];
 
-/** The shelf's line: how many relics are still to win (`missing` null while the rewards load). */
-export function trophiesLine(d: DragonOut, missing: number | null): DialogueLine {
-  if (missing === null) return dragonSays(d, 'Chaque ruse neutralisée laisse une relique.');
-  if (missing <= 0) return dragonSays(d, 'Chaque ruse neutralisée a laissé sa relique\u202f: elles sont toutes là\u202f!');
-  const n = COUNT_WORDS[missing] ?? String(missing);
-  return dragonSays(d, `Chaque ruse neutralisée laisse une relique. Il en manque encore ${n}\u202f!`);
+/** The shelf's line (spec 2026-09-29 lieutenant levels §5): the trophies still to win, five per
+ *  lieutenant awake (`owned` null while the rewards load). */
+export function trophiesLine(d: DragonOut, owned: number | null, max: number): DialogueLine {
+  const head = "Chaque sceau que tu gagnes pose un trophée sur l'étagère.";
+  if (owned === null) return dragonSays(d, head);
+  if (owned >= max) return dragonSays(d, "Tous les sceaux sont gagnés\u202f: l'étagère brille d'orichalque\u202f!");
+  if (owned === 0) return dragonSays(d, `${head} Le premier sera en bois\u202f!`);
+  const left = max - owned;
+  return dragonSays(d, `${head} Il en reste ${COUNT_WORDS[left] ?? String(left)} à gagner\u202f!`);
 }
 
 export function journalLine(d: DragonOut): DialogueLine {

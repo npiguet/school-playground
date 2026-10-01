@@ -8,7 +8,6 @@ import {
   LIEUTENANT_ICONS,
   MARK_ICONS,
   PLACE_ICONS,
-  RELIC_OF,
   REWARD_ICONS,
   TOOL_ICONS,
   artFor,
@@ -97,9 +96,9 @@ describe('art map', () => {
     expect(PLACE_ICONS).toEqual({ portal: '/art/icons/portal-arch.webp' });
   });
 
-  it('maps the 37 painted icons, each within its own budget (UI3 Ruling A12)', () => {
+  it('maps the 31 painted icons, each within its own budget (UI3 Ruling A12)', () => {
     const icons = flat(ART.icons);
-    expect(icons).toHaveLength(37);
+    expect(icons).toHaveLength(31);
     for (const p of icons) expect(statSync('public' + p).size, p).toBeLessThanOrEqual(60 * 1024);
     expect(icons.reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThanOrEqual(1.5 * 1024 * 1024);
     const onDisk = readdirSync('public/art/icons').filter((f) => f.endsWith('.webp')).map((f) => `/art/icons/${f}`);
@@ -112,19 +111,16 @@ describe('art map', () => {
     expect(MARK_ICONS).toEqual({ oracleSeal: '/art/icons/seal-oracle.webp', lock: '/art/icons/lock.webp' });
   });
 
-  it('has a painted icon for every non-tint reward of the server catalog, and a relic per lieutenant', () => {
+  it('has a painted icon for every gear and decor reward of the server catalog, and a trophy per lieutenant and seal', () => {
     const py = readFileSync('../server/app/world/catalog.py', 'utf-8');
-    const ids = [...py.matchAll(/_r\("([^"]+)", "(relic|gear|decor)"/g)].map((m) => m[1]);
-    expect(ids).toHaveLength(14);
+    const ids = [...py.matchAll(/_r\("([^"]+)", "(gear|decor)"/g)].map((m) => m[1]);
+    expect(ids).toHaveLength(8);
     expect(Object.keys(REWARD_ICONS).sort()).toEqual([...ids].sort());
+    expect(py).not.toMatch(/"relic"/);
     expect(rewardIcon('decor:lanterne')).toBe('/art/icons/decor-lanterne.webp');
     expect(rewardIcon('sandales_hermes')).toBe('/art/icons/sandales_hermes.webp');
     expect(rewardIcon('tint:ecume')).toBeNull();
-    for (const [key, relic] of Object.entries(RELIC_OF)) {
-      expect(py, key).toContain(`"relic": "${relic}"`);
-      expect(rewardKindOf(relic)).toBe('relic');
-    }
-    expect([rewardKindOf('tint:jade'), rewardKindOf('decor:tapis'), rewardKindOf('egide')]).toEqual(['tint', 'decor', 'gear']);
+    expect([rewardKindOf('tint:jade'), rewardKindOf('decor:tapis'), rewardKindOf('egide'), rewardKindOf('trophy:hydre:1')]).toEqual(['tint', 'decor', 'gear', 'trophy']);
   });
 
   it('falls back to the owl for an unknown avatar and to nothing for an unknown lieutenant', () => {
@@ -134,11 +130,11 @@ describe('art map', () => {
     expect(lieutenantIcon('medusa')).toBeNull();
   });
 
-  it('prefers the camp catalog\'s own kind over the id-prefix/RELIC_OF guess when it is given (review round 1 #7)', () => {
+  it('prefers the camp catalog\'s own kind over the id-prefix guess when it is given (review round 1 #7)', () => {
     const catalog = {
       rewards: { egide: { id: 'egide', kind: 'decor', name: 'Égide', desc: '', source: '' } },
     } as unknown as WorldCatalog;
-    // Without a catalog, `egide` isn't a tint/decor id nor a relic, so the fallback guesses 'gear'.
+    // Without a catalog, `egide` isn't a tint/decor/trophy id, so the fallback guesses 'gear'.
     expect(rewardKindOf('egide')).toBe('gear');
     // A catalog that (hypothetically) disagrees wins.
     expect(rewardKindOf('egide', catalog)).toBe('decor');
@@ -172,7 +168,7 @@ describe('reward kinds before the catalog has loaded (final review M6)', () => {
   it('guesses the same kind as the server catalog for every reward', () => {
     const source = readFileSync('../server/app/world/catalog.py', 'utf-8');
     const rewards = [...source.matchAll(/_r\("([^"]+)", "([a-z]+)"/g)].map((m) => [m[1], m[2]]);
-    expect(rewards.length).toBeGreaterThan(15);
+    expect(rewards).toHaveLength(13);
     for (const [id, kind] of rewards) expect(rewardKindOf(id), id).toBe(kind);
     for (const k of LIEUTENANT_ORDER) for (const l of [1, 2, 3, 4, 5]) expect(rewardKindOf(`trophy:${k}:${l}`)).toBe('trophy');
   });

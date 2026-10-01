@@ -16,6 +16,7 @@
   import HeroPanel from '../components/places/cabin/HeroPanel.svelte';
   import { CABIN_SCENE, DECOR_SLOTS, cabinGreeting, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
   import { campFor } from '../lib/world/campStore.svelte';
+  import { isAwake } from '../lib/world/eris';
   import { LIEUTENANT_ORDER } from '../lib/world/types';
   import { worldApi } from '../lib/world/api';
   import { ApiError } from '../lib/api';
@@ -60,8 +61,9 @@
 
   const dragon = $derived(campFor(profile.id)?.dragon ?? null);
   const greet = (camp: CampResponse | null) => (camp ? cabinGreeting(camp.dragon) : null);
-  // One relic per lieutenant: how many are still on the shelf to win (null while /rewards loads).
-  const missingRelics = $derived(owned === null ? null : LIEUTENANT_ORDER.length - owned.filter((r) => r.kind === 'relic').length);
+  // Five trophies per lieutenant awake at the class (spec 2026-09-29 lieutenant levels §5); null while /rewards loads.
+  const ownedTrophies = $derived(owned === null ? null : owned.filter((r) => r.kind === 'trophy').length);
+  const maxTrophies = $derived(5 * LIEUTENANT_ORDER.filter((k) => isAwake(k, profile.level)).length);
 
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
   const close = () => closePanel(sceneHref('cabin', profile.id));
@@ -86,7 +88,7 @@
 </PlaceScene>
 
 {#if panel === 'tresors'}
-  <Overlay variant="table" size="wide" title={OVERLAY_TITLES.tresors} testId="overlay-trophies" voice={dragon ? trophiesLine(dragon, missingRelics) : null} onClose={close} returnFocus={hotspotSelector('cabin', 'trophies')}>
+  <Overlay variant="table" size="wide" title={OVERLAY_TITLES.tresors} testId="overlay-trophies" voice={dragon ? trophiesLine(dragon, ownedTrophies, maxTrophies) : null} onClose={close} returnFocus={hotspotSelector('cabin', 'trophies')}>
     <TrophiesPanel {profile} {owned} loadError={rewardsError} onUpdated={updated} />
   </Overlay>
 {:else if panel === 'journal'}

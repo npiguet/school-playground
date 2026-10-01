@@ -13,7 +13,19 @@ describe('the rules of the camp (spec 2026-09-29 §7)', () => {
       pace_bonus: { '1': 0, '2': 0.25, '3': 0.5 },
       prophecy_bonus: 0.5,
       chouette_hints: 3,
+      levels: [
+        { days: 3, chances: 12, correct: 0.85 },
+        { days: 4, chances: 25, correct: 0.88 },
+        { days: 6, chances: 45, correct: 0.91 },
+        { days: 8, chances: 70, correct: 0.94 },
+        { days: 10, chances: 100, correct: 0.97 },
+      ],
+      fights: DEFAULT_RULES.fights,
     });
+    expect(DEFAULT_RULES.levels[0]).toEqual({ days: 3, chances: 12, correct: 0.85 });
+    expect(DEFAULT_RULES.fights).toHaveLength(10);
+    expect(DEFAULT_RULES.fights[0]).toEqual({ level: 1, count: 2 });
+    expect(DEFAULT_RULES.fights[9]).toEqual({ level: 5, count: 'all' });
   });
 
   it("reads the server's rules from the world catalog, the defaults until it has come", () => {

@@ -19,13 +19,14 @@ describe('the cabin (UI3 Ruling B6)', () => {
     const greeting = cabinGreeting(dragon);
     expect(greeting).toEqual([expect.objectContaining({ key: 'cabin.enter', speaker: 'dragon', name: 'Braise' })]);
     expect(variantsOf('cabin.enter')).toContain(greeting[0].text);
-    expect(trophiesLine(dragon, 4).text).toBe('Chaque ruse neutralisée laisse une relique. Il en manque encore quatre\u202f!');
-    expect(trophiesLine(dragon, 1).text).toBe('Chaque ruse neutralisée laisse une relique. Il en manque encore une\u202f!');
-    expect(trophiesLine(dragon, 0).text).toBe('Chaque ruse neutralisée a laissé sa relique\u202f: elles sont toutes là\u202f!');
-    expect(trophiesLine(dragon, null).text).toBe('Chaque ruse neutralisée laisse une relique.');
+    expect(trophiesLine(dragon, null, 30).text).toBe("Chaque sceau que tu gagnes pose un trophée sur l'étagère.");
+    expect(trophiesLine(dragon, 0, 30).text).toBe("Chaque sceau que tu gagnes pose un trophée sur l'étagère. Le premier sera en bois\u202f!");
+    expect(trophiesLine(dragon, 2, 30).text).toBe("Chaque sceau que tu gagnes pose un trophée sur l'étagère. Il en reste 28 à gagner\u202f!");
+    expect(trophiesLine(dragon, 24, 25).text).toBe("Chaque sceau que tu gagnes pose un trophée sur l'étagère. Il en reste un à gagner\u202f!");
+    expect(trophiesLine(dragon, 30, 30).text).toBe("Tous les sceaux sont gagnés\u202f: l'étagère brille d'orichalque\u202f!");
     expect(journalLine(dragon).text).toBe('Ton journal se souvient de chaque texte défendu.');
     expect(lyreLine(dragon).text).toBe('Règle ici la musique, les bruitages et la voix qui te lit la dictée, et refais les visites du camp quand tu veux.');
-    for (const l of [trophiesLine(dragon, 4), journalLine(dragon), lyreLine(dragon), ...cabinGreeting(dragon)]) {
+    for (const l of [trophiesLine(dragon, 4, 30), journalLine(dragon), lyreLine(dragon), ...cabinGreeting(dragon)]) {
       expect(l.text.length).toBeLessThanOrEqual(160);
       expect(l.portrait).toBe('/art/dragon/dragon_young_cut.webp');
     }

@@ -15,7 +15,7 @@ export type Tint = 'bronze' | 'ecume' | 'olivier' | 'braise' | 'jade' | 'argent'
 export type QuestKind = 'board' | 'oracle' | 'boss';
 export type QuestStatus = 'active' | 'done' | 'shelved' | 'expired';
 export type ScrollKey = 'faible' | 'ecole' | 'destin';
-export type RewardKind = 'relic' | 'trophy' | 'tint' | 'gear' | 'decor';
+export type RewardKind = 'trophy' | 'tint' | 'gear' | 'decor';
 
 export interface WorldCatalog {
   lieutenants: {
@@ -27,7 +27,6 @@ export interface WorldCatalog {
     categories: string[];
     technique: string;
     min_level: string;
-    relic: string;
   }[];
   rewards: Record<string, { id: string; kind: RewardKind; name: string; desc: string; source: string }>;
   /** Spec 2026-09-29 dragon growth §2: the dragon's stages, their names and XP (from data/regles.json). */
