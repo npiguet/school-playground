@@ -185,11 +185,11 @@ export const BESTIARY: BestiaryEntry[] = [
     art: ART.emblems.palamede,
     teaser: "Un héros grec inventif, qui démasqua la ruse d'Ulysse.",
     facts: [
-      "Les Grecs lui attribuaient de grandes inventions : les nombres, selon le sophiste Gorgias, et des lettres de l'alphabet grec, selon Hygin.",
-      "On disait aussi qu'il avait inventé les dés : Pausanias raconte qu'on montrait à Argos, dans le temple de la Fortune, ceux qu'il y avait offerts.",
-      "Ulysse fit semblant d'être fou pour ne pas partir à Troie. Palamède posa le petit Télémaque devant sa charrue : Ulysse s'arrêta, et sa ruse fut découverte.",
+      "Les Grecs lui attribuaient de grandes inventions\u202f: les nombres, selon le sophiste Gorgias, et des lettres de l'alphabet grec, selon Hygin.",
+      "On disait aussi qu'il avait inventé les dés\u202f: Pausanias raconte qu'on montrait à Argos, dans le temple de la Fortune, ceux qu'il y avait offerts.",
+      "Ulysse fit semblant d'être fou pour ne pas partir à Troie. Palamède posa le petit Télémaque devant sa charrue\u202f: Ulysse s'arrêta, et sa ruse fut découverte.",
     ],
-    sources: 'Gorgias, Défense de Palamède, 30 ; Hygin, Fables, 95 et 277 ; Pausanias, Description de la Grèce, II, 20, 3.',
+    sources: 'Gorgias, Défense de Palamède, 30\u202f; Hygin, Fables, 95 et 277\u202f; Pausanias, Description de la Grèce, II, 20, 3.',
     inGame: 'Ses jetons te disent combien de pièges se cachent.',
   },
   {

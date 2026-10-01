@@ -128,14 +128,14 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   });
 
   it("says why a quest's text does not count, the opponent's name agreed, without guilt", () => {
-    expect(L.questNotCounted('chances', 'hydre')).toBe("L'Hydre s'est peu montrée dans ce texte : il ne compte pas pour la quête.");
-    expect(L.questNotCounted('chances', 'protee')).toBe("Protée s'est peu montré dans ce texte : il ne compte pas pour la quête.");
-    expect(L.questNotCounted('chances', 'sirenes')).toBe('Les Sirènes se sont peu montrées dans ce texte : il ne compte pas pour la quête.');
-    expect(L.questNotCounted('copy', 'hydre')).toBe("Trop de pièges de l'Hydre restent dans ta copie : ce texte ne compte pas pour la quête.");
-    expect(L.questNotCounted('copy', 'chimere')).toBe('Trop de pièges de la Chimère restent dans ta copie : ce texte ne compte pas pour la quête.');
-    expect(L.questNotCounted('copy', 'sirenes')).toBe('Trop de pièges des Sirènes restent dans ta copie : ce texte ne compte pas pour la quête.');
-    expect(L.questNotCounted('copy', 'echo')).toBe("Trop de pièges d'Écho restent dans ta copie : ce texte ne compte pas pour la quête.");
-    expect(L.questNotCounted('copy', 'eris')).toBe("Trop de pièges d'Éris restent dans ta copie : ce texte ne compte pas pour la quête.");
+    expect(L.questNotCounted('chances', 'hydre')).toBe("L'Hydre s'est peu montrée dans ce texte\u202f: il ne compte pas pour la quête.");
+    expect(L.questNotCounted('chances', 'protee')).toBe("Protée s'est peu montré dans ce texte\u202f: il ne compte pas pour la quête.");
+    expect(L.questNotCounted('chances', 'sirenes')).toBe('Les Sirènes se sont peu montrées dans ce texte\u202f: il ne compte pas pour la quête.');
+    expect(L.questNotCounted('copy', 'hydre')).toBe("Trop de pièges de l'Hydre restent dans ta copie\u202f: ce texte ne compte pas pour la quête.");
+    expect(L.questNotCounted('copy', 'chimere')).toBe('Trop de pièges de la Chimère restent dans ta copie\u202f: ce texte ne compte pas pour la quête.');
+    expect(L.questNotCounted('copy', 'sirenes')).toBe('Trop de pièges des Sirènes restent dans ta copie\u202f: ce texte ne compte pas pour la quête.');
+    expect(L.questNotCounted('copy', 'echo')).toBe("Trop de pièges d'Écho restent dans ta copie\u202f: ce texte ne compte pas pour la quête.");
+    expect(L.questNotCounted('copy', 'eris')).toBe("Trop de pièges d'Éris restent dans ta copie\u202f: ce texte ne compte pas pour la quête.");
     for (const id of [...LIEUTENANT_ORDER, 'eris'] as const) {
       for (const reason of ['chances', 'copy'] as const) {
         const s = L.questNotCounted(reason, id);

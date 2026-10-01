@@ -13,8 +13,8 @@ describe("the journal's aids (spec 2026-09-29 §3)", () => {
   });
 
   it('says what each aid left at the camp is worth, from the rules', () => {
-    expect(aidBonusLine(0.2)).toBe('Chaque aide laissée au camp : +20 % de gloire.');
-    expect(aidBonusLine(0.35)).toBe('Chaque aide laissée au camp : +35 % de gloire.');
+    expect(aidBonusLine(0.2)).toBe('Chaque aide laissée au camp\u202f: +20\u202f% de gloire.');
+    expect(aidBonusLine(0.35)).toBe('Chaque aide laissée au camp\u202f: +35\u202f% de gloire.');
   });
 });
 

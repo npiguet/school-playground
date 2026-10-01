@@ -2,11 +2,11 @@
 // dates as a person says them. Pure and deterministic - no Intl: Node's ICU and WebKit's disagree
 // on fr-CH punctuation, and vitest runs in Node (Ruling W7).
 
-/** A rate in words, « 75 % », or « — » when there was nothing to catch. The one percent
+/** A rate in words, « 75 % », or « — » when there was nothing to catch. The one percent
  *  formatter of the game (final review M1): a narrow no-break space before « % » (French
  *  typography), so the sign never wraps alone, wherever the rate is shown. */
 export function rateText(rate: number | null): string {
-  return rate === null ? '—' : `${Math.round(100 * rate)} %`;
+  return rate === null ? '—' : `${Math.round(100 * rate)}\u202f%`;
 }
 
 /** French typography (Ruling E15): a narrow no-break space (U+202F) before « : ; ! ? » and inside

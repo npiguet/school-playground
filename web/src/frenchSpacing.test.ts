@@ -52,7 +52,7 @@ const FILES = walk('src').filter((p) => !(p in EXCLUDE));
 
 /** Each spacing fault in `text`, with a little context. */
 function faults(source: string): string[] {
-  // A literal's ` ` escape and the markup's `&nbsp;` are the characters they stand for.
+  // A literal's `\u202f` escape and the markup's `&nbsp;` are the characters they stand for.
   const text = source
     .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
@@ -92,14 +92,14 @@ describe('French spacing on screen', () => {
     expect(svelte('<p>Victoire !</p>')).toHaveLength(1);
     expect(svelte('<p>Victoire!</p>')).toHaveLength(1);
     expect(svelte('<p>Prêt?</p>')).toHaveLength(1);
-    expect(svelte('<p>«mot »</p>')).toHaveLength(1);
-    expect(svelte('<p>« mot»</p>')).toHaveLength(1);
+    expect(svelte('<p>«mot\u202f»</p>')).toHaveLength(1);
+    expect(svelte('<p>«\u202fmot»</p>')).toHaveLength(1);
     expect(svelte('<p>« mot »</p>')).toHaveLength(2);
     expect(svelte('<p>Victoire&nbsp;!</p>')).toHaveLength(1);
     expect(svelte('<p>Rejouer&nbsp;(2)</p>')).toHaveLength(0);
     expect(faults(screenText("const u = `/api/texts?page=${n}`; const v = '/api/x?since=1';", 'ts'))).toHaveLength(0);
-    expect(svelte("<script>const x = a ? b : c; const y = p?.q ?? r;</script><p>Victoire ! « mot »</p>")).toHaveLength(0);
+    expect(svelte("<script>const x = a ? b : c; const y = p?.q ?? r;</script><p>Victoire\u202f! «\u202fmot\u202f»</p>")).toHaveLength(0);
     expect(faults(screenText('const m = `Verbe : « ${v} ».`;', 'ts'))).toHaveLength(3);
-    expect(faults(screenText('const m = `Verbe : « ${v} ».`;', 'ts'))).toHaveLength(0);
+    expect(faults(screenText('const m = `Verbe\u202f: «\u202f${v}\u202f».`;', 'ts'))).toHaveLength(0);
   });
 });

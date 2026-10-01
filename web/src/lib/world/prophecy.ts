@@ -21,7 +21,7 @@ export function prophecyWhen(daysLeft: number): string {
 export function prophecyBonus(p: CampResponse['prophecies'][number]): string | null {
   if (p.days_left <= 0) return null;
   const day = p.days_left < 7 ? weekdayOf(p.due_date) : null;
-  return `Défendue avant ${day ?? 'son jour'} : +50 % d'XP`;
+  return `Défendue avant ${day ?? 'son jour'}\u202f: +50\u202f% d'XP`;
 }
 
 /** The prophecy a place shows: the one falling due first. */

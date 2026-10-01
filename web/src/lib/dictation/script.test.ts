@@ -177,7 +177,7 @@ describe('parameters', () => {
     expect(PACE_LABELS).toEqual({
       1: { title: 'Pas à pas', description: "Chaque groupe est lu deux fois, puis la Pythie t'attend. Une réécoute par groupe." },
       2: { title: 'Par groupes', description: 'Chaque groupe est lu deux fois, puis la Pythie enchaîne. Tu peux faire une pause.' },
-      3: { title: "D'un bon pas", description: 'Des groupes plus longs, lus deux fois, sans bouton pause : la Pythie enchaîne.' },
+      3: { title: "D'un bon pas", description: 'Des groupes plus longs, lus deux fois, sans bouton pause\u202f: la Pythie enchaîne.' },
     });
   });
 });

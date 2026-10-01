@@ -25,7 +25,7 @@ export const DICTATION_RATE = 0.85;
 export const PACE_LABELS: Record<Pace, { title: string; description: string }> = {
   1: { title: 'Pas à pas', description: "Chaque groupe est lu deux fois, puis la Pythie t'attend. Une réécoute par groupe." },
   2: { title: 'Par groupes', description: 'Chaque groupe est lu deux fois, puis la Pythie enchaîne. Tu peux faire une pause.' },
-  3: { title: "D'un bon pas", description: 'Des groupes plus longs, lus deux fois, sans bouton pause : la Pythie enchaîne.' },
+  3: { title: "D'un bon pas", description: 'Des groupes plus longs, lus deux fois, sans bouton pause\u202f: la Pythie enchaîne.' },
 };
 
 export interface Chunk {

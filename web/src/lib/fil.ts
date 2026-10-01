@@ -98,7 +98,7 @@ function pickVerb(
     if (!chain && token.morph.Mood === 'Imp') {
       return {
         ...state,
-        message: `« ${verbText} » est à l'impératif : il n'a pas de sujet écrit. Essaie un autre verbe.`,
+        message: `«\u202f${verbText}\u202f» est à l'impératif\u202f: il n'a pas de sujet écrit. Essaie un autre verbe.`,
       };
     }
     return { ...state, message: "Le fil d'Ariane s'emmêle sur ce verbe. Essaie un autre verbe." };
@@ -111,7 +111,7 @@ function pickVerb(
     attempts: 0,
     highlightVerb: annotIndex,
     highlightSubject: [],
-    message: `Verbe : « ${verbText} ». Maintenant, touche son sujet.`,
+    message: `Verbe\u202f: «\u202f${verbText}\u202f». Maintenant, touche son sujet.`,
   };
 }
 
@@ -137,14 +137,14 @@ function pickSubject(
     annotIndex !== undefined && (chain.controller_group.includes(annotIndex) || annotIndex === chain.via_token);
 
   if (isCorrect) {
-    const prefix = chain.via === 'qui' ? `« qui » reprend « ${group} ». ` : '';
+    const prefix = chain.via === 'qui' ? `«\u202fqui\u202f» reprend «\u202f${group}\u202f». ` : '';
     return {
       ...state,
       step: 'done',
       drawn: state.drawn + 1,
       correct: state.correct + 1,
       highlightSubject: chain.controller_group,
-      message: `${prefix}Le fil est tendu entre « ${verb} » et « ${group} » (${num}). Vérifie la terminaison du verbe.`,
+      message: `${prefix}Le fil est tendu entre «\u202f${verb}\u202f» et «\u202f${group}\u202f» (${num}). Vérifie la terminaison du verbe.`,
     };
   }
 
@@ -152,7 +152,7 @@ function pickSubject(
     return {
       ...state,
       attempts: state.attempts + 1,
-      message: `Le fil ne tient pas. Le sujet, c'est qui fait l'action de « ${verb} ». Réessaie.`,
+      message: `Le fil ne tient pas. Le sujet, c'est qui fait l'action de «\u202f${verb}\u202f». Réessaie.`,
     };
   }
 
@@ -161,7 +161,7 @@ function pickSubject(
     step: 'done',
     drawn: state.drawn + 1,
     highlightSubject: chain.controller_group,
-    message: `Le fil te guide : le sujet de « ${verb} », c'est « ${group} » (${num}).`,
+    message: `Le fil te guide\u202f: le sujet de «\u202f${verb}\u202f», c'est «\u202f${group}\u202f» (${num}).`,
   };
 }
 

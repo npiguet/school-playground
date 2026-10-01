@@ -53,7 +53,7 @@ export function workByline(w: Pick<AlexandriaWork, 'author' | 'translator'>): st
 export function wordGauge(n: number): { label: string; state: 'short' | 'ok' | 'long'; fill: number } {
   const words = plural(n, 'mot', 'mots');
   const fill = Math.min(1, n / WORDS_MAX);
-  const ideal = `${words} · l'idéal : ${WORDS_MIN} à ${WORDS_MAX}`;
+  const ideal = `${words} · l'idéal\u202f: ${WORDS_MIN} à ${WORDS_MAX}`;
   if (n < WORDS_MIN) return { label: ideal, state: 'short', fill };
   if (n <= WORDS_MAX) return { label: `${words} · parfait`, state: 'ok', fill };
   return { label: ideal, state: 'long', fill };

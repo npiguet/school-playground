@@ -10,7 +10,7 @@ describe('the shelves speak the camp, not the catalogue (playability #2, #5, #24
     expect(historyLine(null)).toBe('Jamais défendu');
     expect(historyLine({ times_played: 0, best_catch_rate: null } as never)).toBe('Jamais défendu');
     expect(historyLine({ times_played: 3, best_catch_rate: null } as never)).toBe('Défendu 3 fois');
-    expect(historyLine({ times_played: 1, best_catch_rate: 0.916 } as never)).toBe('Défendu 1 fois · 92 % des pièges');
+    expect(historyLine({ times_played: 1, best_catch_rate: 0.916 } as never)).toBe('Défendu 1 fois · 92\u202f% des pièges');
   });
 
   it('names who wrote it, never the title again', () => {
@@ -29,10 +29,10 @@ describe('the shelves speak the camp, not the catalogue (playability #2, #5, #24
   // Re-review N7: the server takes a text of any length (schemas.py: body min_length=1), so 80-200 is
   // the ideal, not a rule - the owl, the gauge and the (enabled) submit say the same thing.
   it('measures a text against the ideal 80-200 words (the desk gauge)', () => {
-    expect(wordGauge(13)).toEqual({ label: "13 mots · l'idéal : 80 à 200", state: 'short', fill: 13 / 200 });
-    expect(wordGauge(1).label).toBe("1 mot · l'idéal : 80 à 200");
+    expect(wordGauge(13)).toEqual({ label: "13 mots · l'idéal\u202f: 80 à 200", state: 'short', fill: 13 / 200 });
+    expect(wordGauge(1).label).toBe("1 mot · l'idéal\u202f: 80 à 200");
     expect(wordGauge(94)).toEqual({ label: '94 mots · parfait', state: 'ok', fill: 94 / 200 });
-    expect(wordGauge(214)).toEqual({ label: "214 mots · l'idéal : 80 à 200", state: 'long', fill: 1 });
+    expect(wordGauge(214)).toEqual({ label: "214 mots · l'idéal\u202f: 80 à 200", state: 'long', fill: 1 });
   });
 });
 
