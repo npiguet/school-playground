@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { FORBIDDEN, lieutenantName } from '../world/eris';
-import { SCENES } from '../world/scenes';
+import { HOUSE_SCENES, SCENES } from '../world/scenes';
 import { DRAGON_STAGES, LIEUTENANT_ORDER } from '../world/types';
 import { GENDERED, GUILT, banned, erisSelfMasculine } from '../../testing/copyRules';
 import { LINES, TOURS, parseDialogueFile } from './content';
@@ -57,13 +57,30 @@ describe('the dialogue content (spec §8)', () => {
   it('walks each tour through hotspots that exist in its place, for every dragon stage', () => {
     expect(Object.keys(TOURS).sort()).toEqual([...TOUR_IDS].sort());
     for (const id of TOUR_IDS) {
-      const scene = SCENES.find((s) => s.id === id)!;
-      const ringable = [...scene.hotspots.map((h) => h.id), ...Object.keys(scene.tourAreas ?? {})];
-      for (const step of TOURS[id]) if (step.target) expect(ringable, `${id}: ${step.target}`).toContain(step.target);
+      // The cabin's tour also plays in the villa and the palace (sub-project 4), which share its ids.
+      const scenes = [SCENES.find((s) => s.id === id)!, ...(id === 'cabin' ? HOUSE_SCENES : [])];
+      for (const scene of scenes) {
+        const ringable = [...scene.hotspots.map((h) => h.id), ...Object.keys(scene.tourAreas ?? {})];
+        for (const step of TOURS[id]) if (step.target) expect(ringable, `${id} in ${scene.id}: ${step.target}`).toContain(step.target);
+      }
       for (const stage of DRAGON_STAGES) {
         expect(TOURS[id].filter((s) => !s.when || s.when.stage?.includes(stage)).length, `${id} ${stage}`).toBeGreaterThanOrEqual(2);
       }
     }
+  });
+
+  // Spec 2026-09-29 explanations §2, R8-R9: a tour's new steps are versioned, and a hero who saw the
+  // older version hears at least one of them, whatever the dragon's stage.
+  it('versions the new tour steps and leaves no stage without them', () => {
+    for (const id of TOUR_IDS) {
+      for (const s of TOURS[id]) if (s.since !== undefined) expect(Number.isInteger(s.since) && s.since >= 2, `${id}: since ${s.since}`).toBe(true);
+      const version = TOURS[id].reduce((v, s) => Math.max(v, s.since ?? 1), 1);
+      if (version < 2) continue;
+      for (const stage of DRAGON_STAGES) {
+        expect(TOURS[id].filter((s) => (s.since ?? 1) > 1 && (!s.when || s.when.stage?.includes(stage))).length, `${id} ${stage}`).toBeGreaterThan(0);
+      }
+    }
+    expect(() => parseDialogueFile('war.json', { lines: { 'war.enter': [{ speaker: 'eris', text: 'Un mot.' }] }, tour: [{ speaker: 'dragon', target: null, since: 1, text: 'Un mot.' }] })).toThrow(/since/);
   });
 
   it('names only the six dragon stages in a when.stage (a typo would never speak, silently)', () => {

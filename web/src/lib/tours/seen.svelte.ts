@@ -6,7 +6,7 @@ import { api } from '../api';
 import { profileStore } from '../profileStore.svelte';
 import type { Profile } from '../types';
 import type { TourId } from '../dialogue/types';
-import { tourSeen, toursEnabled } from './tours';
+import { seenEntries, tourSeen, toursEnabled } from './tours';
 
 const seenNow = new SvelteSet<string>();
 // Tours given up for this page load: the place could not reach /camp (a tour waits for the dragon's
@@ -26,7 +26,8 @@ export function giveUpTour(profile: Profile, id: TourId): void {
 
 // The server replaces the whole `tours` list on each save, so saves run one after the other (never
 // two in flight, where the older could land last), and each one sends every tour this page load
-// has seen for the hero on top of the saved ones (a failed save is made good by the next).
+// has seen for the hero, at its current version (R8), on top of the saved ones (a failed save is
+// made good by the next).
 let saving: Promise<unknown> = Promise.resolve();
 function chained<T>(save: () => Promise<T>): Promise<T> {
   const next = saving.then(save);
@@ -43,7 +44,7 @@ export function markTourSeen(profile: Profile, id: TourId): Promise<void> {
   seenNow.add(k(profile.id, id));
   return chained(async () => {
     const base = profileStore.current?.id === profile.id ? profileStore.current.settings : profile.settings;
-    const tours = [...new Set([...(base.tours ?? []), ...seenThisLoad(profile.id)])];
+    const tours = [...new Set([...(base.tours ?? []), ...seenThisLoad(profile.id).flatMap(seenEntries)])];
     const settings = tours.includes('camp') ? { tours, onboarded: true } : { tours };
     try {
       const updated = await api.profiles.patch(profile.id, { settings });

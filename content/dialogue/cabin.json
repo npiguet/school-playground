@@ -8,7 +8,10 @@
   },
   "tour": [
     { "speaker": "dragon", "target": "trophies", "text": "L'étagère garde tes trésors. Ici, pas de hasard : tu sais toujours ce que tu peux gagner." },
+    { "speaker": "dragon", "target": "trophies", "since": 2, "text": "Chaque sceau que tu gagnes y pose un trophée, du bois à l'orichalque. Un socle vide te dit comment gagner le premier." },
     { "speaker": "dragon", "target": "journal", "text": "Ton journal se souvient de chaque texte défendu et de chaque piège déjoué." },
-    { "speaker": "dragon", "target": "lyre", "text": "La lyre règle la voix qui lit la dictée, la musique et les bruitages du camp." }
+    { "speaker": "dragon", "target": "lyre", "text": "La lyre règle la voix qui lit la dictée, la musique et les bruitages du camp." },
+    { "speaker": "dragon", "target": "lyre", "since": 2, "text": "Dans la lyre, il y a aussi le guide du camp : la gloire, les sceaux, les drachmes, les aides et Éris, tout y est raconté." },
+    { "speaker": "dragon", "target": null, "since": 2, "text": "Et ta maison peut changer : quand je grandis, Hermès vend une villa, puis un palais. Plus de murs, plus de décor !" }
   ]
 }

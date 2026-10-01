@@ -1,4 +1,5 @@
 import { test, expect } from './crashGuard';
+import { frenchSpacing } from '../src/lib/text/french';
 import { createFreshHeroApi, createProfileApi, expectCamp, expectLineOf, expectScene, heroNamer, nextLine, tap } from './helpers';
 
 // UI5 (spec §8, Ruling E13): each place's first visit is its tour.
@@ -29,12 +30,12 @@ test("a new hero's camp begins with the egg's tour, once (the Muses' cards are g
   await expect(page.getByTestId('scene-camp')).toHaveAttribute('inert', '');
   await expect(page.getByTestId('scene-camp')).not.toHaveClass(/has-overlay/);
   // UI5 playability #7: two lines of lore before the first place lights up.
-  expect(await walkTour(page)).toEqual(['', '', '', 'parchemins', 'oracle', 'dossier', 'dragon', 'cabin', 'boss', '']);
+  expect(await walkTour(page)).toEqual(['', '', '', 'parchemins', 'oracle', 'dossier', 'dragon', 'cabin', 'stall', 'stall', 'boss', '']);
   await expect(tour).toHaveCount(0);
   // The seen flag is saved after the tour closes: poll the server rather than race the PATCH.
   await expect
     .poll(async () => (await (await request.get(`/api/profiles/${id}`)).json()).settings)
-    .toMatchObject({ tours: ['camp'], onboarded: true });
+    .toMatchObject({ tours: ['camp', 'camp:2'], onboarded: true });
   const hero = await (await request.get(`/api/profiles/${id}`)).json();
   await page.reload();
   await expectCamp(page);
@@ -135,9 +136,16 @@ test("the war tour rings the portrait wall, and the last step's button starts he
   }
   await expect(page.getByTestId('dialogue-skip')).toHaveText('Passer la visite');
   await nextLine(page);
+  // Spec 2026-09-29 explanations §2 (R10): the gauges on each sheet, then Éris on her fights.
+  await expect(tour).toHaveAttribute('data-target', 'portraits');
+  await expect(tour).toHaveAttribute('data-step', '2');
+  await nextLine(page);
   await expect(tour).toHaveAttribute('data-target', 'bestiary');
   await nextLine(page);
-  await expect(tour).toHaveAttribute('data-step', '3');
+  await expect(tour).toHaveAttribute('data-step', '4');
+  await expect(page.getByTestId('dialogue-box')).toHaveAttribute('data-speaker', 'eris');
+  await nextLine(page);
+  await expect(tour).toHaveAttribute('data-step', '5');
   await expect(page.getByTestId('dialogue-skip')).toHaveText("C'est parti\u202f!");
   await tap(page.getByTestId('dialogue-skip'), testInfo);
   await expect(tour).toHaveCount(0);
@@ -230,13 +238,51 @@ test('a tour that opens closes the sound plate, and the HUD stays shut under the
 
 test('« Refaire les visites du camp » brings every tour back', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  await request.patch(`/api/profiles/${id}`, { data: { settings: { tours: ['camp', 'library', 'delphi', 'war', 'nest', 'cabin'] } } });
+  const every = ['camp', 'camp:2', 'library', 'delphi', 'war', 'war:2', 'nest', 'nest:2', 'cabin', 'cabin:2'];
+  await request.patch(`/api/profiles/${id}`, { data: { settings: { tours: every } } });
   await page.goto(`/#/p/${id}/settings`);
   await page.getByTestId('lyre-tours').click();
   await expect(page.getByTestId('overlay-lyre').getByRole('status')).toHaveText('Les visites reprendront à ton prochain passage dans chaque lieu.');
   await page.goto(`/#/p/${id}/temple`);
   await expect(page.getByTestId('tour')).toHaveAttribute('data-tour', 'delphi');
   await expect(page.getByTestId('dialogue-box')).toHaveAttribute('data-speaker', 'pythia');
+});
+
+// Spec 2026-09-29 explanations §2, §5 (R8, R9; review focus 2).
+test('a tour seen before its new steps comes back once, with the new steps only', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await request.patch(`/api/profiles/${id}`, { data: { settings: { tours: ['camp', 'library', 'delphi', 'war', 'nest', 'cabin'] } } });
+  await page.goto(`/#/p/${id}/cabane`);
+  const tour = page.getByTestId('tour');
+  await expect(tour).toHaveAttribute('data-tour', 'cabin');
+  await expectScene(page, 'cabin');
+  await expect(page.getByTestId('dialogue-text')).toHaveText(
+    frenchSpacing("Chaque sceau que tu gagnes y pose un trophée, du bois à l'orichalque. Un socle vide te dit comment gagner le premier."),
+  );
+  expect(await walkTour(page)).toEqual(['trophies', 'lyre', '']);
+  await expect.poll(async () => (await (await request.get(`/api/profiles/${id}`)).json()).settings.tours).toContain('cabin:2');
+  await page.reload();
+  await expectScene(page, 'cabin');
+  await expect(tour).toHaveCount(0);
+  await expectLineOf(page.getByTestId('dialogue-box'), 'cabin.enter');
+  // A place without new steps stays quiet.
+  await page.goto(`/#/p/${id}/temple`);
+  await expectScene(page, 'delphi');
+  await expect(tour).toHaveCount(0);
+});
+
+test('a hero onboarded before the stall hears Hermès at the camp, then nothing more', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/camp`);
+  const tour = page.getByTestId('tour');
+  await expect(tour).toHaveAttribute('data-tour', 'camp');
+  await expect(tour).toHaveAttribute('data-target', 'stall');
+  await expect(page.getByTestId('dialogue-box')).toHaveAttribute('data-speaker', 'hermes');
+  expect(await walkTour(page)).toEqual(['stall', 'stall']);
+  await expect.poll(async () => (await (await request.get(`/api/profiles/${id}`)).json()).settings.tours).toContain('camp:2');
+  await page.reload();
+  await expectCamp(page);
+  await expect(tour).toHaveCount(0);
 });
 
 test('reduced motion: the ring holds still and every line shows at once', async ({ page, request }, testInfo) => {

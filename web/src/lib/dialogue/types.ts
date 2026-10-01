@@ -16,6 +16,8 @@ export interface LineDef {
 export interface TourStepDef extends LineDef {
   /** The hotspot id the ring circles, or null for a line over the whole place. */
   target: string | null;
+  /** Spec 2026-09-29 explanations §2 (R8): the tour's content version that added this step (absent: 1). */
+  since?: number;
 }
 export interface DialogueFile {
   lines: Record<string, LineDef[]>;

@@ -29,6 +29,8 @@
   "tour": [
     { "speaker": "dragon", "target": "dragon", "when": { "stage": ["egg"] }, "text": "Mon nid. Quand j'aurai éclos, tu me donneras un nom et tu choisiras ma teinte." },
     { "speaker": "dragon", "target": "dragon", "when": { "stage": ["hatchling", "young", "adult", "illustre", "ancestral"] }, "text": "Mon nid. Ici, tu choisis ma teinte, et mon nom si je n'en ai pas encore." },
+    { "speaker": "dragon", "target": "dragon", "since": 2, "when": { "stage": ["young", "adult", "illustre", "ancestral"] }, "text": "Ici, tu choisis aussi ma parure : au cou, à la queue, sur le dos, sur la tête. Hermès vend chaque pièce à son étal." },
+    { "speaker": "dragon", "target": "dragon", "since": 2, "when": { "stage": ["egg", "hatchling"] }, "text": "Quand je serai un jeune dragon, je porterai une parure. Hermès vend chaque pièce à son étal, dans le camp." },
     { "speaker": "dragon", "target": null, "text": "Chaque texte bien défendu me fait grandir : œuf, dragonnet, jeune dragon, dragon adulte, puis illustre, et un jour ancestral." }
   ]
 }

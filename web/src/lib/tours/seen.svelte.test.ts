@@ -42,7 +42,7 @@ describe('seen tours (Ruling E13)', () => {
     release();
     await Promise.all([first, second]);
     expect(patch).toHaveBeenCalledTimes(2);
-    expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: ['nest', 'library', 'war'] } });
+    expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: ['nest', 'library', 'war', 'war:2'] } });
   });
 
   it('makes good a failed save with the next one', async () => {
@@ -51,7 +51,7 @@ describe('seen tours (Ruling E13)', () => {
     patch.mockRejectedValueOnce(new Error('offline'));
     await markTourSeen(p, 'camp');
     await markTourSeen(p, 'cabin');
-    expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: ['camp', 'cabin'], onboarded: true } });
+    expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: ['camp', 'camp:2', 'cabin', 'cabin:2'], onboarded: true } });
   });
 
   it('gives a tour up for this page load without saving it (no /camp to read the dragon from)', () => {
@@ -66,10 +66,20 @@ describe('seen tours (Ruling E13)', () => {
     const p = hero({});
     profileStore.current = p;
     await markTourSeen(p, 'camp');
-    expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: ['camp'], onboarded: true } });
-    expect(profileStore.current!.settings).toMatchObject({ tours: ['camp'], onboarded: true });
+    expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: ['camp', 'camp:2'], onboarded: true } });
+    expect(profileStore.current!.settings).toMatchObject({ tours: ['camp', 'camp:2'], onboarded: true });
     await resetTours(9);
     expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: [], onboarded: false } });
     expect(shouldTour(profileStore.current!, 'camp')).toBe(true);
+  });
+
+  it('comes back for new steps once, and never after the version is saved (spec 2026-09-29 explanations §2)', async () => {
+    const p = hero({ tours: ['war'] });
+    profileStore.current = p;
+    expect(shouldTour(p, 'war')).toBe(true);
+    await markTourSeen(p, 'war');
+    expect(patch).toHaveBeenLastCalledWith(9, { settings: { tours: ['war', 'war:2'] } });
+    expect(shouldTour(profileStore.current!, 'war')).toBe(false);
+    expect(shouldTour(hero({ tours: ['war', 'war:2'] }), 'war')).toBe(false);
   });
 });

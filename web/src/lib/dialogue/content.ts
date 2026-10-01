@@ -30,6 +30,7 @@ function checkLine(where: string, x: unknown, tour: boolean): LineDef | TourStep
     }
   }
   if (tour && !(o.target === null || typeof o.target === 'string')) throw new Error(`${where}: bad target`);
+  if (tour && o.since !== undefined && !(Number.isInteger(o.since) && (o.since as number) >= 2)) throw new Error(`${where}: bad since`);
   return o as unknown as LineDef;
 }
 

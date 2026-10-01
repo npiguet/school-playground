@@ -14,7 +14,7 @@
   import DialogueBox from './DialogueBox.svelte';
   import TourLayer from './TourLayer.svelte';
   import { giveUpTour, markTourSeen, shouldTour } from '../../lib/tours/seen.svelte';
-  import { tourSteps } from '../../lib/tours/tours';
+  import { seenVersion, tourSteps } from '../../lib/tours/tours';
   import { overlayState } from '../../lib/scene/overlayState.svelte';
   import type { TourId } from '../../lib/dialogue/types';
   import { campFor, campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
@@ -85,8 +85,15 @@
     let live = true;
     void tick().then(() => {
       if (!live || tour || overlayState.open > 0) return;
+      // Spec 2026-09-29 explanations §2 (R9): a tour seen before its new steps comes back with them only;
+      // none for this dragon's stage: it counts as seen, and the place greets as usual.
+      const steps = tourSteps(id, dragon, seenVersion(profile.settings, id));
+      if (steps.lines.length === 0) {
+        void markTourSeen(profile, id);
+        return;
+      }
       markGreeted(greetKey(scene.id, profile.id));
-      tour = { id, ...tourSteps(id, dragon) };
+      tour = { id, ...steps };
     });
     return () => {
       live = false;
