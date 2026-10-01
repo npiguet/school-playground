@@ -83,8 +83,34 @@ test('no muster tour on a resumed battle or on the grimoire', async ({ page, req
   await expect(page.getByTestId('btn-open-grimoire')).toBeVisible();
   await expect(page.getByTestId('battle-voice')).toBeVisible();
   await expect(page.getByTestId('muster-tour')).toHaveCount(0);
-  // Neither counts as the first dictation muster: the tour still waits for it.
-  expect((await (await request.get(`/api/profiles/${id}`)).json()).settings.tours ?? []).not.toContain('muster');
+  // Neither counts as the first dictation muster: the tour still waits for it. Shown, not read once off
+  // the server (a wrong save is an async PATCH that could land after such a read; a tour marked seen
+  // is closed at once for this page load, so the next plain muster would stay silent).
+  const other = await createText(request, { title: uniqueName('Visite'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${other.id}`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('muster-tour')).toHaveAttribute('data-step', '0');
+});
+
+// Task 3 review: the lyre's reset brings the muster's tour back too (R8: it clears every tour).
+test('« Refaire les visites du camp » brings the muster tour back on the next dictation muster', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const every = ['camp', 'camp:2', 'library', 'delphi', 'war', 'war:2', 'nest', 'nest:2', 'cabin', 'cabin:2', 'muster'];
+  await request.patch(`/api/profiles/${id}`, { data: { settings: { tours: every } } });
+  const text = await createText(request, { title: uniqueName('Visite'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('battle-voice')).toBeVisible();
+  await expect(page.getByTestId('muster-tour')).toHaveCount(0);
+  await page.goto(`/#/p/${id}/settings`);
+  const lyre = page.getByTestId('overlay-lyre');
+  await tap(lyre.getByTestId('lyre-tours'), testInfo);
+  await expect(lyre.getByRole('status')).toHaveText('Les visites reprendront à ton prochain passage dans chaque lieu.');
+  const next = await createText(request, { title: uniqueName('Visite'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${next.id}`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('muster-tour')).toHaveAttribute('data-step', '0');
+  await expect(page.locator('[data-tour-lit]')).toHaveAttribute('data-tour-part', 'pace');
 });
 
 // Review focus 3: the muster's no-scroll budget (scenes-muster.spec.ts) holds with the tour's plate in

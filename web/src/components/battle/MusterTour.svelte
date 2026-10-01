@@ -29,12 +29,14 @@
     class="muster-tour"
     role="group"
     aria-label={'Visite\u202f: la préparation de la bataille'}
-    aria-live="polite"
     data-testid="muster-tour"
     data-step={index}
     data-target={targets[index] ?? ''}
   >
-    <OverlayVoice {line} testId="muster-tour-voice" />
+    <!-- Only the dragon's words are announced at each step, not the buttons beside them. -->
+    <div class="tour-voice" aria-live="polite">
+      <OverlayVoice {line} testId="muster-tour-voice" />
+    </div>
     <div class="tour-actions">
       {#if !last}
         <button type="button" class="kit-link" data-testid="muster-tour-skip" onclick={onDone}>Passer la visite</button>
@@ -46,8 +48,9 @@
 
 <style>
   /* Beside the plate, not under it: the muster's no-scroll budget (scenes-muster-tour.spec.ts) has
-     room for a plate as tall as Éris's taunt, not for a row of buttons more. A narrow parchment (a
-     phone) puts them under it. */
+     room for a plate as tall as Éris's taunt, not for a row of buttons more. The battle is played in
+     landscape only (a phone or a portrait iPad gets « Tourne ton iPad »), so they wrap under the plate
+     only in a narrow landscape window. */
   .muster-tour {
     flex: none;
     display: flex;
@@ -55,9 +58,11 @@
     align-items: center;
     gap: 6px 12px;
   }
-  .muster-tour :global(.overlay-voice) {
+  .tour-voice {
     flex: 1 1 22rem;
     min-width: 0;
+  }
+  .muster-tour :global(.overlay-voice) {
     margin-bottom: 0;
   }
   /* The dragon's portrait says who speaks; its name stays for a screen reader only, so two lines of

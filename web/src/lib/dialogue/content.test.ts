@@ -62,7 +62,13 @@ describe('the dialogue content (spec §8)', () => {
       // The muster is no scene: its tour lights parts of the parchment (spec 2026-09-29 explanations
       // §2, R11).
       const scenes = id === 'muster' ? [] : [SCENES.find((s) => s.id === id)!, ...(id === 'cabin' ? HOUSE_SCENES : [])];
-      const ringables = id === 'muster' ? [{ where: 'muster', ringable: [...MUSTER_TOUR_PARTS] as string[] }] : scenes.map((scene) => ({ where: scene.id, ringable: [...scene.hotspots.map((h) => h.id), ...Object.keys(scene.tourAreas ?? {})] }));
+      const ringables =
+        id === 'muster'
+          ? [{ where: 'muster', ringable: [...MUSTER_TOUR_PARTS] as string[] }]
+          : scenes.map((scene) => ({
+              where: scene.id,
+              ringable: [...scene.hotspots.map((h) => h.id), ...Object.keys(scene.tourAreas ?? {})],
+            }));
       for (const { where, ringable } of ringables) {
         for (const step of TOURS[id]) if (step.target) expect(ringable, `${id} in ${where}: ${step.target}`).toContain(step.target);
       }

@@ -323,12 +323,14 @@
     font-size: 17px;
     line-height: 1.3;
   }
-  /* R11: the part the tour speaks of (the pace, the aids, the total), outlined in gold. */
+  /* R11: the part the tour speaks of (the pace, the aids, the total), outlined in gold. A deep gold
+     line, wide and set off the part, with a light halo outside it, so it reads on the cream parchment
+     and never looks like the pale ring of a suggested aid (AidToggles' .suggested) inside it. */
   .muster :global([data-tour-lit]) {
-    outline: 3px solid var(--gold-light);
-    outline-offset: 4px;
+    outline: 4px solid var(--gold);
+    outline-offset: 5px;
     border-radius: 12px;
-    box-shadow: 0 0 18px color-mix(in srgb, var(--gold-light) 60%, transparent);
+    box-shadow: 0 0 16px 12px color-mix(in srgb, var(--gold-light) 70%, transparent);
   }
   .voice-muted {
     margin: 0;

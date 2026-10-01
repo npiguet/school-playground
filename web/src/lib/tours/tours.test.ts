@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MUSTER } from '../battle/lines';
 import { MUSTER_TOUR_PARTS, TOUR_OF, seenEntries, seenVersion, tourSeen, tourSteps, tourVersion, toursEnabled } from './tours';
 
 const egg = { name: null, stage: 'egg', tint: 'bronze' } as never;
@@ -63,6 +64,16 @@ describe('the first-visit tours (spec §8, Ruling E13)', () => {
     expect(m.lines.every((l) => l.speaker === 'dragon')).toBe(true);
     expect(MUSTER_TOUR_PARTS).toEqual(['pace', 'aids', 'bonus']);
     expect(tourVersion('muster')).toBe(1);
+  });
+
+  // Task 3 review, ruling: « C'est parti ! » only closes the tour, so its last line points at the
+  // button still to press, never at a dictation that would start by itself.
+  it('ends the muster tour on the button that starts the dictation', () => {
+    for (const stage of [egg, young]) {
+      const last = tourSteps('muster', stage).lines.at(-1)!.text;
+      expect(last).toContain(`« ${MUSTER.start} »`);
+      expect(last).not.toMatch(/en route/i);
+    }
   });
 
   it('can be switched off by the e2e hook only (Ruling E10)', () => {
