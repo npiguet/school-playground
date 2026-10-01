@@ -31,7 +31,7 @@ describe('screenText', () => {
 
   it('drops a block marker’s head expression (control flow, never text) (UI5 Task 8)', () => {
     const text = screenText('{#key `${a.id}:${b.gen}`}<p>Victoire\u202f!</p>{/key}', 'svelte');
-    expect(text).not.toMatch(/[  ]:/);
+    expect(text).not.toMatch(/[ \u00a0]:/);
     expect(text).toContain('Victoire\u202f!');
   });
 });

@@ -24,6 +24,6 @@ describe('prophecyBonus', () => {
 // Moved from the hub's tests (UI3b Task 7): the hub no longer shows the card, the wording guard stays.
 describe('prophecyWhen', () => {
   it('says when a prophecy falls due in words', () => {
-    expect([0, 1, 3].map(prophecyWhen)).toEqual(["aujourd'hui", 'demain', 'dans 3 jours']);
+    expect([0, 1, 3].map(prophecyWhen)).toEqual(["aujourd'hui", 'demain', 'dans\u00a03\u00a0jours']);
   });
 });

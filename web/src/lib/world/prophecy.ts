@@ -10,7 +10,7 @@ export function prophecyWhen(daysLeft: number): string {
   if (daysLeft === 1) return 'demain';
   // No-break spaces: « dans 2 jours » stays one unit, never split at the end of a line (the altar
   // card, walk a13; re-review N16).
-  return `dans ${daysLeft} jours`;
+  return `dans\u00a0${daysLeft}\u00a0jours`;
 }
 
 /** The bonus a prophecy still offers, as a tag on its strip (re-review N6, ruling W-f): « Défendue

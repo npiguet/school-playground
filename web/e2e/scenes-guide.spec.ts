@@ -53,8 +53,8 @@ for (const [width, height] of [
     const guide = page.getByTestId('overlay-guide');
     await expect(guide).toBeVisible();
     await expect(guide.locator('h3')).toHaveText(TITLES);
-    await expect(guide.getByTestId('guide-aides')).toContainText('20 % de gloire');
-    await expect(guide.getByTestId('guide-gloire')).toContainText('Dragonnet : 100 XP');
+    await expect(guide.getByTestId('guide-aides')).toContainText('20\u202f% de gloire');
+    await expect(guide.getByTestId('guide-gloire')).toContainText('Dragonnet\u202f: 100 XP');
     await expectReadable(page, guide);
     await tap(guide.getByTestId('overlay-close'), testInfo);
     await expect(page).toHaveURL(/\/settings$/);
@@ -75,7 +75,7 @@ test('the guide reads the rules the server serves', async ({ page, request }, te
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.goto(`/#/p/${id}/cabane?panel=guide`);
   const guide = page.getByTestId('overlay-guide');
-  await expect(guide.getByTestId('guide-aides')).toContainText('30 % de gloire');
-  await expect(guide.getByTestId('guide-eris')).toContainText('Combat I : trois lieutenants au sceau de bois');
+  await expect(guide.getByTestId('guide-aides')).toContainText('30\u202f% de gloire');
+  await expect(guide.getByTestId('guide-eris')).toContainText('Combat I\u202f: trois lieutenants au sceau de bois');
   await page.unrouteAll({ behavior: 'ignoreErrors' });
 });

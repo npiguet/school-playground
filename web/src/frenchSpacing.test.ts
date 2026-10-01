@@ -31,7 +31,7 @@ const EXCLUDE: Record<string, string> = {
   'src/lib/tours/seen.svelte.ts': 'storage keys',
 };
 
-const BAD_SPACE = /[  ][:;!?»]|«[  ]/g;
+const BAD_SPACE = /[ \u00a0][:;!?»]|«[ \u00a0]/g;
 // A missing space: a letter, digit or closing bracket right against « ; ! ? » », or « right against
 // a word. The colon is left out: in code it is everywhere (`a:b`, `http:`), and screenText keeps no
 // code. `?.` and `??` are code (optional chaining, nullish coalescing) and `texts?page=` a URL's
@@ -57,7 +57,7 @@ function faults(source: string): string[] {
     .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/&#(\d+);/g, (_, dec: string) => String.fromCharCode(Number(dec)))
-    .replace(/&nbsp;/g, ' ')
+    .replace(/&nbsp;/g, '\u00a0')
     .replace(/&laquo;/g, '«')
     .replace(/&raquo;/g, '»')
     .replace(/&[a-z]+;/gi, '&');

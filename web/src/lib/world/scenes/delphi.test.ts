@@ -44,7 +44,7 @@ describe('Delphi (UI3 Ruling A1, A10)', () => {
     expect(state('pythia', camp({ xp: { total: 0 } as CampResponse['xp'] }))).toMatchObject({ isNew: false, caption: 'Trois rouleaux à ouvrir' });
     expect(state('pythia', camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null, fights: 10, next: null } })).isNew).toBe(false);
     // A prophecy within a week comes first, the week chosen or not, even for a new hero.
-    expect(state('pythia', camp({ oracle: chosen, prophecies: soon }))).toMatchObject({ isNew: true, caption: 'Une prophétie, dans 2 jours' });
+    expect(state('pythia', camp({ oracle: chosen, prophecies: soon }))).toMatchObject({ isNew: true, caption: 'Une prophétie, dans\u00a02\u00a0jours' });
     expect(state('pythia', camp({ xp: { total: 0 } as CampResponse['xp'], prophecies: soon })).isNew).toBe(true);
     const quests = [{ status: 'active' }, { status: 'active' }, { status: 'done' }] as QuestOut[];
     expect(state('tablets', camp({ quests })).badge).toBe(2);
