@@ -329,3 +329,30 @@ poppy crown; seeds in `docs/art/style-guide.md`, "Accessories: lethe").
   1500-2000 px, so on a 3-4 tile review strip the grid labels and the pixels drift apart: positives read
   off one missed the lantern by 25 px and SAM took the white ground. Place points on a single-tile view
   under ~1000 px wide.
+
+## Notes from the Sirènes set (2026-10-02): white-tipped feathers, the picture's top, narrow air
+
+Proven on the 16 Sirènes overlays (feathered lyre collar, feather ribbons, feather harness, feather
+plume; seeds in `docs/art/style-guide.md`, "Accessories: sirenes").
+
+- **Items with white parts of their own (white-tipped feathers): peel the white ground off the outer edge
+  only.** A whole-box near-white defringe (Chimera note) eats the white feather tips. Use
+  `tools/art/overlay_whitefringe.py OV OUT x0 y0 x1 y1 --px 1 --sat 45`: it drops only neutral near-white
+  pixels (min channel > 200, max - min < 45) that touch transparency, 1 px per step, three steps, then
+  re-softens the edge; tips inside the item's outline stay. It replaces the set's scratch `edgewhite.py`
+  (same pixels: 213 dropped on the illustre plume either way; older Sirènes sidecars name `edgewhite.py`).
+  Keep the box around the part over the air (the plume), and `--keep-white` on the extraction itself.
+- **An item that reaches the picture's top edge (y = 0) ends in a hard horizontal cut.** Fade its mask
+  over the top rows (adult plume: alpha x (y+1)/9 over rows 0-7), then `overlay_raw.py rebuild` and crop
+  again. Better: keep the air box 10-15 px below the top so no tip gets there (next point).
+- **Size the air box above the skull to the plume, not to the head** (see the ancestral plume note): on
+  the illustre, air x 655-775, y 15-125 (`slot | cut-out alpha < 8` in that box) gave three seeds of three
+  with no horn redrawn in the air and every tip inside the picture; the plume and the brow band + clasp
+  extract as two parts from that one result (plume box with negatives on the real horn and the air; band
+  box with negatives on the repainted skull above and below) and merge.
+- **A thin chain (a pendant's) is its own part**: in the one SAM call for collar + pendant the 2-3 px
+  chain came back broken and the lyre floated. A tight `--box` around the chain alone with four points
+  along it took it whole; merge it with the rest.
+- **Whole feather straps cut by the slot**: on the illustre dos slot one of three harness seeds ended a
+  strap flat at the slot's bottom edge mid-flank and one cut the medallion at the top edge. Prefer a seed
+  whose strap ends in feather tips inside the slot over a closer match to the other stages' shape.

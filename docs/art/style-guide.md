@@ -672,3 +672,48 @@ enamel, mother-of-pearl. One fixed item sentence per slot, only the dragon's sta
   Every ancestral seed also painted a coral tuft beside the near horn with its base hidden: erased
   (it floats). The adult crown's tallest branches stand behind the far horn.
 - Reasons for each pick, rejected seeds and clean-up recipes are in each sidecar's `note`.
+
+## Accessories: sirenes
+
+The Sirènes' set (singers of the sea rocks: azure feathers, polished silver, the lyre), made with the
+art-overlays skill: inpainting on `dragon_<stage>.png` with the slot mask, `discorde-inked-clean`,
+V-scale 1, then `overlay.py extract --cpu --keep-white` with hand points (white feather tips and silver
+highlights must stay). One colour family for the four pieces: polished silver, bright azure-blue feathers
+tipped white, a lyre motif on each piece, a blue sapphire on the collar; every prompt ends with
+`(violet:-1.5) (purple:-1.5)` to keep the blue from drifting to violet. One fixed item sentence per slot,
+only the dragon's stage words change (prompts in each sidecar). Files:
+`assets/art/dragon/accessories/sirenes-<slot>_<stage>.png` (+ `.json`, `_raw.png`, `_mask.png`), WebPs
+and the manifest fragment `sirenes.json` in `assets/art/export/dragon/accessories/`. Contact sheet
+`docs/art/accessories-sirenes.png` (`python tools/art/accessories_sheet.py sirenes docs/art/accessories-sirenes.png`).
+
+| Item (slot, denoise) | young | adult | illustre | ancestral |
+|---|---|---|---|---|
+| pendentif en forme de lyre (cou, 0.75) | 3103 | 3202 | 3303 | 3401 |
+| rubans de plumes (queue, 0.75) | 3121 | 3222 | 3321 | 3423 |
+| harnais de plumes (dos, 0.8) | 3131 | 3231 | 3331 | 3433 |
+| aigrette de plumes bleues (tête, 0.85) | 3112 | 3216 (air) | 3311 (narrow air) | 3613 (narrow air) |
+
+- **Cou**: a silver band covered with small overlapping azure feathers, a silver lyre pendant with a
+  sapphire at the throat. Rejected: thin silver rings with a feather fringe (3101, 3201), a band slanting
+  up the neck (3102), soft blurry feathers (3203, 3403), the lyre cut by the slot's edge (3402). The
+  illustre collar is the weakest of the set: of 3301-3303 only 3303 has both the feathers and the lyre,
+  and its feather band covers the side of the neck only, the lyre hanging from a thin chain at the throat
+  (3301: a few feathers at the back edge; 3302: no lyre). A further batch was refused by the permission
+  system; re-roll it (3304+) when generation is allowed.
+- **Queue**: a blue silk ribbon tied around the tail with a silver clasp, three hanging feathers and two
+  ribbon ends; the queue slot united with itself shifted down (22-30 px) so the feathers hang whole.
+  Rejected: slack ribbons or a band only along the tail's top edge (3122, 3221), a tail redrawn narrower
+  (3223), two crossed bands (3323), fewer feathers (3322).
+- **Dos**: feather straps edged with silver and a round silver medallion engraved with a lyre. Young,
+  adult and ancestral show crossed straps; the illustre a feather strap hanging from a medallion rosette
+  (3331), since its crossed-strap seed 3332 had the lower strap cut flat by the slot's bottom edge
+  mid-flank and 3333's medallion was cut by the slot's top edge (also adult 3233).
+- **Tête**: a thin silver brow band with a lyre-shaped clasp and a tall spray of azure feathers behind
+  the horn. The plain head slot flattens or shrinks the plume (adult 3211-3213); adult, illustre and
+  ancestral use the slot united with the open air above the skull. A wide air box let the model redraw
+  a horn in the air (adult 3214, ancestral 3412-3413) or run the plume into the picture's top (ancestral
+  3411); a box only as wide as the plume (illustre x 655-775, ancestral x 650-770, 10-15 px below the
+  top) gave none of that. The adult plume reaches y 0: its mask fades over the top 8 rows. Plume and
+  band are extracted as two parts and merged; the white ground is peeled off the plume's outer edge only
+  (`tools/art/overlay_whitefringe.py --px 1 --sat 45`), never over the whole box, so the white tips stay.
+- Reasons for each pick, rejected seeds and clean-up recipes are in each sidecar's `note`.
