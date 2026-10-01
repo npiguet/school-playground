@@ -150,7 +150,7 @@ export function campGreeting(profileName: string, camp: CampResponse): DialogueL
   const d = camp.dragon;
   const lines = [
     sayKey('camp.enter', { vars: { hero: profileName }, dragon: d }),
-    dragonSays(d, stageLine(d.stage, d.name, Math.max(0, d.available - d.neutralised))),
+    dragonSays(d, stageLine(d.stage, d.name, camp.xp)),
   ];
   if (camp.weekly.reached) lines.push(sayKey('camp.weekly', { dragon: d }));
   const next = nextStepKey(camp);

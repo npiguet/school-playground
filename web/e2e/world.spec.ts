@@ -68,7 +68,7 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
       }
       await expect(tour).toHaveCount(0);
 
-      await expect(page.getByTestId('hud-xp')).toContainText('Recrue du camp');
+      await expect(page.getByTestId('hud-xp')).toContainText('Œuf · 0 XP');
       await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
       await expect(page.getByTestId('camp-weekly')).toContainText('0 / 3');
 

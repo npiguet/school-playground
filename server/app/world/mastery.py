@@ -1,4 +1,4 @@
-"""Mastery (neutralisation) rule, the neutralisation count shown by the nest until sub-project 3's Task 3, and boss tiers (spec §3.6; plan Decisions 3, 8, 11)."""
+"""Mastery (neutralisation) rule and boss tiers (spec §3.6; plan Decisions 3, 8, 11)."""
 from __future__ import annotations
 from dataclasses import dataclass
 from math import ceil
@@ -27,16 +27,6 @@ def mastery_window(day_rows: list[dict]) -> Window:
 
 def is_neutralised(w: Window) -> bool:
     return w.complete and w.rate is not None and w.rate >= MASTERY["rate"]
-
-
-def _thresholds(available: int) -> dict[str, int]:
-    return {"hatchling": 1, "young": ceil(available / 2), "adult": available}
-
-
-def next_stage_at(neutralised: int, available: int) -> int | None:
-    for n in sorted(_thresholds(available).values()):
-        if n > neutralised: return n
-    return None
 
 
 def boss_tiers(available: int) -> dict[int, int]:

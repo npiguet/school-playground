@@ -6,7 +6,7 @@ import { variantsOf } from '../../../testing/dialogue';
 import { DRAGON_STAGES, type CampResponse, type DragonOut } from '../types';
 import { NEST_HOTSPOTS, NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from './nest';
 
-const egg = { name: null, tint: 'bronze', stage: 'egg', neutralised: 0, available: 6, next_stage_at: 1, unlocked_tints: ['bronze'] } as DragonOut;
+const egg = { name: null, tint: 'bronze', stage: 'egg', neutralised: 0, available: 6, unlocked_tints: ['bronze'] } as DragonOut;
 const state = (d: DragonOut) => NEST_HOTSPOTS[0].state({ camp: { dragon: d } as CampResponse, catalog: null });
 
 describe("dragon's nest (UI3 Ruling B5)", () => {
@@ -30,10 +30,11 @@ describe("dragon's nest (UI3 Ruling B5)", () => {
     expect(state({ ...egg, stage: 'young', name: 'Braise' })).toMatchObject({ isNew: false, caption: 'Braise' });
   });
 
-  it('measures growth to the next stage in words, with a real plural', () => {
-    expect(growth(egg)).toEqual({ value: 0, max: 1, label: "Pour grandir\u202f: 1 ruse d'Éris neutralisée" });
-    expect(growth({ ...egg, stage: 'hatchling', neutralised: 1, next_stage_at: 3 })).toEqual({ value: 1, max: 3, label: "Pour grandir\u202f: 3 ruses d'Éris neutralisées" });
-    expect(growth({ ...egg, stage: 'adult', neutralised: 6, next_stage_at: null })).toEqual({ value: 6, max: 6, label: 'Il a fini de grandir.' });
+  it('measures growth toward the next stage in XP, and says when it has finished growing (spec 2026-09-29 dragon growth §2)', () => {
+    expect(growth({ total: 40, floor: 0, next: 100 }, 'egg')).toEqual({ value: 40, max: 100, label: 'Prochaine étape\u202f: Dragonnet', count: '40 sur 100 XP' });
+    expect(growth({ total: 3100, floor: 1200, next: 5000 }, 'young')).toEqual({ value: 1900, max: 3800, label: 'Prochaine étape\u202f: Dragon adulte', count: '1\u202f900 sur 3\u202f800 XP' });
+    expect(growth({ total: 300, floor: 5000, next: 15000 }, 'adult')).toMatchObject({ value: 0, count: '0 sur 10\u202f000 XP' });
+    expect(growth({ total: 41000, floor: 40000, next: null }, 'ancestral')).toEqual({ value: 1, max: 1, label: 'Il a fini de grandir.', count: null });
   });
 
   it('greets by its stage, asks an unnamed hatchling\'s name (Ruling E12), and speaks in its care (immersion #23)', () => {

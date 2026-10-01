@@ -34,7 +34,7 @@
     lead?: Snippet;
   } = $props();
 
-  const xp = $derived(camp ? hudXp(camp.xp) : null);
+  const xp = $derived(camp ? hudXp(camp.xp, camp.dragon.stage) : null);
 </script>
 
 {#snippet hero()}

@@ -1,5 +1,5 @@
 import pytest
-from app.world.mastery import (Window, boss_tiers, is_neutralised, lieutenants_for_level, mastery_window, next_stage_at,
+from app.world.mastery import (Window, boss_tiers, is_neutralised, lieutenants_for_level, mastery_window,
                                tier_available)
 from app.rules import Rules
 from app.world.xp import rank_for, session_xp
@@ -46,8 +46,7 @@ def test_window_no_data():
     assert mastery_window([]) == Window(days=0, traps=0, caught=0, rate=None, complete=False)
 
 
-def test_boss_tiers_and_the_neutralisation_count():
-    assert next_stage_at(0, 6) == 1 and next_stage_at(1, 6) == 3 and next_stage_at(6, 6) is None
+def test_boss_tiers():
     assert boss_tiers(6) == {1: 2, 2: 4, 3: 6} and boss_tiers(5) == {1: 2, 2: 4, 3: 5}
     assert tier_available(1, 6, set()) is None and tier_available(2, 6, set()) == 1
     assert tier_available(4, 6, {1}) == 2 and tier_available(6, 6, {1, 2, 3}) is None

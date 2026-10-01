@@ -155,3 +155,14 @@ def test_a_hand_edited_stage_normalised_to_egg_clears_hatched_at(client, setting
     conn.commit(); conn.close()
     post(client, pid, tid, hydre_result())
     assert stored(settings, pid) == ("egg", None)
+
+
+def test_the_camp_gauge_follows_the_stored_stage(client, settings):
+    # R3: a stage grown before (from neutralisations) reads an empty gauge on its own scale.
+    pid = make_profile(client, level="10H")
+    client.get(f"/api/profiles/{pid}/camp")
+    set_stage(settings, pid, "adult"); give_xp(settings, pid, 300)
+    assert client.get(f"/api/profiles/{pid}/camp").json()["xp"] == {"total": 300, "floor": 5000, "next": 15000}
+    give_xp(settings, pid, 40000)
+    c = client.get(f"/api/profiles/{pid}/camp").json()
+    assert c["dragon"]["stage"] == "ancestral" and c["xp"] == {"total": 40300, "floor": 40000, "next": None}

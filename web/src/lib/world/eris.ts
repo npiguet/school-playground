@@ -2,7 +2,8 @@
 // Taunts target only her own tricks, never the player's ability - the FORBIDDEN list and its
 // unit test (eris.test.ts) are the guardrail. Pure functions/data only, no DOM/store access, so
 // this lane's screens (Dossier, Lieutenant) can stay thin.
-import type { LieutenantKey, LieutenantState } from './types';
+import { stageLabel } from './dragon';
+import type { DragonStage, LieutenantKey, LieutenantState } from './types';
 import { levelIndex } from '../levels';
 import { plural } from '../text/french';
 
@@ -205,4 +206,12 @@ export function sleepingLine(key: LieutenantKey, level?: string): string {
 /** The short caption on a locked sheet or tablet. */
 export function sleepingCaption(key: LieutenantKey): string {
   return GENDER[key] === 'fp' ? 'Dorment encore' : 'Dort encore';
+}
+
+/** What Éris would rather not say about the hero's dragon (the dossier's « Ce qu'elle préfère taire »).
+ *  Spec 2026-09-29 dragon growth §2: the rank titles are gone; the dragon's stage says how far the
+ *  hero has come. */
+export function dragonAside(stage: DragonStage): string {
+  if (stage === 'egg') return "Ton dragon dort encore dans sa coquille. Qu'il y reste.";
+  return `Ton dragon a grandi\u202f: ${stageLabel(stage).toLowerCase()}. Je fais semblant de ne pas l'avoir vu.`;
 }

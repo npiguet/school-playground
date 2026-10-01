@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DRAGON_STAGES } from './types';
-import { LOCKED_EGG_FILTER, TINT_FILTERS, TINT_SWATCH, dragonCaption, eggFilter, stageActivity, stageLabel, stageLine, validName } from './dragon';
+import { LOCKED_EGG_FILTER, TINT_FILTERS, TINT_SWATCH, dragonCaption, eggFilter, gaugeOf, nextStage, stageActivity, stageLabel, stageLine, validName } from './dragon';
 
 describe('dragon helpers', () => {
   it('never offers violet (reserved for Éris) and has six tints', () => {
@@ -15,17 +15,27 @@ describe('dragon helpers', () => {
     expect(dragonCaption({ name: null, stage: 'egg' })).toBe('Un œuf de dragon');
     expect(dragonCaption({ name: null, stage: 'young' })).toBe('Jeune dragon');
     expect(dragonCaption({ name: 'Braise', stage: 'young' })).toBe('Braise');
+    const xp = (total: number, floor: number, next: number | null) => ({ total, floor, next });
     // UI3b playability #15: the dragon speaks in the first person under its own plate.
-    expect(stageLine('egg', null, 1)).toBe("Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
-    expect(stageLine('hatchling', null, 5)).toBe('Au fait, tu me donnes un nom\u202f?');
-    expect(stageLine('hatchling', 'Braise', 5)).toBe("Chaque ruse d'Éris neutralisée me fait grandir.");
-    expect(stageLine('young', 'Braise', 2)).toBe("Je bats des ailes\u202f! Encore 2 ruses d'Éris à neutraliser.");
-    expect(stageLine('young', 'Braise', 1)).toBe("Je bats des ailes\u202f! Encore 1 ruse d'Éris à neutraliser.");
-    expect(stageLine('young', 'Braise', 0)).toBe("Je bats des ailes\u202f! Toutes les ruses d'Éris sont neutralisées, pour l'instant.");
-    expect(stageLine('adult', 'Braise', null)).toBe("Je veille sur le camp. Éris n'a qu'à bien se tenir.");
+    expect(stageLine('egg', null, xp(40, 0, 100))).toBe("Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
+    expect(stageLine('hatchling', null, xp(150, 100, 1200))).toBe('Au fait, tu me donnes un nom\u202f?');
+    // Spec 2026-09-29 dragon growth §3: how far the next stage is, in words; « under 20 % » is strict.
+    expect(stageLine('hatchling', 'Braise', xp(150, 100, 1200))).toBe('Chaque texte bien défendu me fait grandir.');
+    expect(stageLine('young', 'Braise', xp(4240, 1200, 5000))).toBe('Chaque texte bien défendu me fait grandir.'); // 760 of 3800 left: 20 %
+    expect(stageLine('young', 'Braise', xp(4241, 1200, 5000))).toBe('Encore un peu de gloire et je grandis.');
+    expect(stageLine('illustre', 'Braise', xp(39000, 15000, 40000))).toBe('Encore un peu de gloire et je grandis.');
+    expect(stageLine('adult', 'Braise', xp(300, 5000, 15000))).toBe('Chaque texte bien défendu me fait grandir.'); // grown before its XP
+    expect(stageLine('ancestral', 'Braise', xp(41000, 40000, null))).toBe("J'ai tout lu, tout vu. Et je veille toujours sur toi.");
     for (const st of DRAGON_STAGES) {
-      expect(stageLine(st, 'Braise', 2)).not.toMatch(/Braise|Ton dragon|technique/);
+      expect(stageLine(st, 'Braise', xp(4300, 1200, 5000))).not.toMatch(/\d|Braise|Ton dragon|ruse|neutralis|technique/);
     }
+  });
+  it('measures the gauge on a stage scale, clamped, full at the top', () => {
+    expect(gaugeOf(3100, { floor: 1200, next: 5000 })).toEqual({ value: 1900, max: 3800 });
+    expect(gaugeOf(300, { floor: 5000, next: 15000 })).toEqual({ value: 0, max: 10000 });
+    expect(gaugeOf(9000, { floor: 100, next: 1200 })).toEqual({ value: 1100, max: 1100 });
+    expect(gaugeOf(41000, { floor: 40000, next: null })).toEqual({ value: 1, max: 1 });
+    expect(DRAGON_STAGES.map(nextStage)).toEqual(['hatchling', 'young', 'adult', 'illustre', 'ancestral', 'ancestral']);
   });
   it('says what it is up to as a sentence, never a lone word (UI3b playability #5)', () => {
     expect(stageActivity('egg')).toBe('Il frémit dans sa coquille.');

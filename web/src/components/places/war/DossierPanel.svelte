@@ -11,7 +11,7 @@
   import { campFor, campStore } from '../../../lib/world/campStore.svelte';
   import { rateText } from '../../../lib/text/french';
   import { LIEUTENANT_ORDER, type LieutenantKey } from '../../../lib/world/types';
-  import { agree, bandFor, dossierLine, dossierIntro, erisProgressLine, sleepingLine, smallTricksLine } from '../../../lib/world/eris';
+  import { agree, bandFor, dossierLine, dragonAside, dossierIntro, erisProgressLine, sleepingLine, smallTricksLine } from '../../../lib/world/eris';
   import { erisSays } from '../../../lib/world/voices';
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
   import { api, ApiError } from '../../../lib/api';
@@ -163,7 +163,7 @@
             <p>Aucun de mes pièges déjoué pour l'instant. Profitons-en.</p>
           {/if}
           {#if camp}
-            <p>Ton rang{'\u202f: '}{camp.xp.title}. Je fais semblant de ne pas l'avoir vu.</p>
+            <p>{dragonAside(camp.dragon.stage)}</p>
           {/if}
         </section>
       </Reveal>

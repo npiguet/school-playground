@@ -16,6 +16,11 @@ export function frenchSpacing(text: string): string {
   return text.replace(/[ \u00a0]+([:;!?»])/g, '\u202f$1').replace(/«[ \u00a0]+/g, '«\u202f');
 }
 
+/** A count with its thousands grouped by a narrow no-break space, as French typography wants (« 15 000 »). */
+export function thousands(n: number): string {
+  return String(Math.trunc(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+}
+
 /** « 2 quêtes », « 1 quête », « 0 quête » (in French, fewer than two is singular). */
 export function plural(n: number, one: string, many: string): string {
   return `${n} ${Math.abs(n) < 2 ? one : many}`;

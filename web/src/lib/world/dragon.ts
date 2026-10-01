@@ -2,8 +2,7 @@
 // generation), stage labels/camp speech lines and name validation. Pure functions/data only, no
 // DOM/store access, so `Dragon.svelte`, the nest and its care panel, the trophy shelf and
 // the victory's spoils (`battle/VictorySpoils.svelte`) all share the same wording and this file stays trivially testable.
-import { plural } from '../text/french';
-import type { DragonOut, DragonStage, Tint } from './types';
+import { DRAGON_STAGES, type DragonOut, type DragonStage, type Tint } from './types';
 
 export type Mood = 'idle' | 'happy' | 'sleepy';
 
@@ -66,21 +65,39 @@ export function dragonCaption(d: Pick<DragonOut, 'name' | 'stage'>): string {
   return d.name ?? (d.stage === 'egg' ? 'Un œuf de dragon' : stageLabel(d.stage));
 }
 
+/** A stage's scale: its own threshold and the next stage's (null at the last stage). */
+export interface Scale {
+  floor: number;
+  next: number | null;
+}
+
+/** The gauge on a stage's scale (spec 2026-09-29 dragon growth §2, R3): a total below the floor (a stage
+ *  grown before its XP) reads empty, one past the next threshold (a stale answer) full; the last stage
+ *  is always full. */
+export function gaugeOf(total: number, s: Scale): { value: number; max: number } {
+  if (s.next === null) return { value: 1, max: 1 };
+  const max = Math.max(1, s.next - s.floor);
+  return { value: Math.min(max, Math.max(0, total - s.floor)), max };
+}
+
+/** The stage after this one (the last stage is its own). */
+export function nextStage(stage: DragonStage): DragonStage {
+  const i = DRAGON_STAGES.indexOf(stage);
+  return DRAGON_STAGES[Math.min(DRAGON_STAGES.length - 1, i + 1)];
+}
+
 /** What the dragon says of itself at its stage, in its own voice (UI3b playability #15: its plate
  *  names it, so it speaks in the first person; the egg speaks from inside its shell). The camp's
- *  greeting and the nest's. `name` is null until it is named (a hatchling then asks for one);
- *  `remaining` is the number of available lieutenants left to neutralise (only said when `young`). */
-export function stageLine(stage: DragonStage, name: string | null, remaining: number | null): string {
-  // UI5 playability #12: it follows `camp.enter`, which has already said hello (no second « Toc,
-  // toc », no « Te revoilà » after the greeting).
+ *  greeting. `name` is null until it is named (a hatchling then asks for one). Spec 2026-09-29 dragon
+ *  growth §3: once hatched and named, how far the next stage is, in words (never a number: the HUD
+ *  carries them); « under 20 % » is strictly under a fifth of the stage's span. */
+export function stageLine(stage: DragonStage, name: string | null, xp: { total: number } & Scale): string {
+  // UI5 playability #12: it follows `camp.enter`, which has already said hello.
   if (stage === 'egg') return "Chaque piège d'Éris déjoué me fait frémir dans ma coquille.";
-  if (stage === 'hatchling') return name ? "Chaque ruse d'Éris neutralisée me fait grandir." : 'Au fait, tu me donnes un nom\u202f?';
-  if (stage === 'young') {
-    const n = Math.max(0, remaining ?? 0);
-    if (n === 0) return "Je bats des ailes\u202f! Toutes les ruses d'Éris sont neutralisées, pour l'instant.";
-    return `Je bats des ailes\u202f! Encore ${plural(n, "ruse d'Éris", "ruses d'Éris")} à neutraliser.`;
-  }
-  return "Je veille sur le camp. Éris n'a qu'à bien se tenir.";
+  if (stage === 'hatchling' && !name) return 'Au fait, tu me donnes un nom\u202f?';
+  if (stage === 'ancestral' || xp.next === null) return "J'ai tout lu, tout vu. Et je veille toujours sur toi.";
+  // Whole numbers only (no 0.2 × span float at the boundary): under a fifth of the span remains.
+  return 5 * (xp.next - xp.total) < xp.next - xp.floor ? 'Encore un peu de gloire et je grandis.' : 'Chaque texte bien défendu me fait grandir.';
 }
 
 // What the dragon is up to, as a sentence under its growth in the nest (UI3b playability #5: a lone

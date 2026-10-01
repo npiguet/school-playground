@@ -263,7 +263,7 @@ test('places and their labels sit inside the visible safe zone, never overlap, a
 test('HUD: laurel, dragon, sound toggle that survives leaving the camp', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCamp(page, id);
-  await expect(page.getByTestId('hud-xp')).toContainText('Recrue du camp');
+  await expect(page.getByTestId('hud-xp')).toContainText('Œuf · 0 XP');
   await expect(page.getByTestId('hud-hero').locator('img[src="/art/icons/avatar-chouette.webp"]')).toBeVisible();
 
   // UI5 Ruling E8: the lyre opens the sound plate; music and effects off strike the lyre through.
@@ -648,4 +648,38 @@ test('no red on the hub, its greeting or the hero panel', async ({ page, request
   await expect(page.getByTestId('overlay-heros')).toBeVisible();
   expect(await redScan(page)).toEqual([]);
   await expect(page.locator('body')).not.toContainText(/manqué|raté|perdu/i);
+});
+
+// Spec 2026-09-29 dragon growth §2: one gauge, the dragon's: named by its stage, full at the last one,
+// empty for a stage grown before its XP (R3). This hero's /camp answer carries the stage and XP.
+test("HUD: the laurel is the dragon's growth, named by its stage, full at the last stage", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let fake: { stage: string; xp: { total: number; floor: number; next: number | null } } = { stage: 'young', xp: { total: 3100, floor: 1200, next: 5000 } };
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage: fake.stage, name: 'Braise' };
+    camp.xp = fake.xp;
+    await route.fulfill({ response: res, json: camp });
+  });
+  await openCamp(page, id);
+  const laurel = page.getByTestId('hud-xp');
+  await expect(laurel).toContainText('Jeune dragon · 3 100 XP');
+  await expect(laurel).toHaveAttribute('aria-valuenow', '1900');
+  await expect(laurel).toHaveAttribute('aria-valuemax', '3800');
+  await expect(laurel.locator('.leaf.lit')).toHaveCount(5);
+
+  fake = { stage: 'ancestral', xp: { total: 41000, floor: 40000, next: null } };
+  await page.reload();
+  await expectCamp(page);
+  await expect(laurel).toContainText('Dragon ancestral · 41 000 XP');
+  await expect(laurel.locator('.leaf.lit')).toHaveCount(10);
+  await expect(page.getByTestId('hud-dragon').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_ancestral_cut.webp');
+
+  fake = { stage: 'adult', xp: { total: 300, floor: 5000, next: 15000 } };
+  await page.reload();
+  await expectCamp(page);
+  await expect(laurel).toContainText('Dragon adulte · 300 XP');
+  await expect(laurel).toHaveAttribute('aria-valuenow', '0');
+  await expect(laurel.locator('.leaf.lit')).toHaveCount(0);
 });

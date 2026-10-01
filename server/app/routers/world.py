@@ -18,12 +18,11 @@ from app.textutil import word_count
 from app.world import oracle as oracle_mod
 from app.world.catalog import (BOSS_REWARDS, LIEUTENANT_ORDER, LIEUTENANTS, MASTERY, ORACLE_REWARDS, QUEST_BONUS,
                                RANKS, REWARDS, TINTS)
-from app.world.dragon import grown_stage, stage_table
-from app.world.mastery import lieutenants_for_level, mastery_window, next_stage_at, tier_available
+from app.world.dragon import grown_stage, stage_gauge, stage_table
+from app.world.mastery import lieutenants_for_level, mastery_window, tier_available
 from app.world.progression import (boss_tiers_won, ensure_dragon, lieutenant_day_rows, neutralised_set, store_stage,
                                    weekly_done, xp_total)
 from app.world.quests import density, recommend_texts
-from app.world.xp import rank_for
 
 router = APIRouter(prefix="/api", tags=["world"])
 
@@ -86,7 +85,7 @@ def dragon_out(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: 
     owned = {r[0] for r in conn.execute("SELECT reward_id FROM reward WHERE profile_id = ?", (pid,))}
     unlocked_tints = ["bronze"] + [t for t in TINTS[1:] if f"tint:{t}" in owned]
     return {"name": dragon["name"], "tint": dragon["tint"], "stage": stage, "neutralised": n, "available": len(available),
-            "next_stage_at": next_stage_at(n, len(available)), "unlocked_tints": unlocked_tints}
+            "unlocked_tints": unlocked_tints}
 
 
 def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row) -> list[dict]:
@@ -120,10 +119,12 @@ def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row) -> list[di
     return out
 
 
-def xp_block(conn: sqlite3.Connection, pid: int) -> dict:
-    total = xp_total(conn, pid)
-    rank, title, floor, nxt = rank_for(total)
-    return {"total": total, "rank": rank, "title": title, "next_threshold": nxt, "rank_floor": floor}
+def xp_block(conn: sqlite3.Connection, pid: int, stage: str, rules: Rules) -> dict:
+    """The HUD's gauge (spec 2026-09-29 dragon growth §2): the total XP, the dragon's stage's floor and
+    the next stage's threshold (None at the top). From the stored stage (R3), so a stage grown before
+    its XP reads an empty gauge, never a negative one."""
+    floor, nxt = stage_gauge(stage, rules.dragon_stages)
+    return {"total": xp_total(conn, pid), "floor": floor, "next": nxt}
 
 
 def prophecies(conn: sqlite3.Connection, day: str) -> list[dict]:
@@ -309,10 +310,11 @@ def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends
     tier_avail = tier_available(len(neutralised), len(available), won)
     active_boss = db.execute("SELECT id FROM quest WHERE profile_id = ? AND kind = 'boss' AND status = 'active'", (pid,)).fetchone()
     rewards_count = db.execute("SELECT COUNT(*) FROM reward WHERE profile_id = ?", (pid,)).fetchone()[0]
-    dragon = dragon_out(db, profile, now, request.app.state.rules)   # may persist a caught-up stage (see dragon_out)
+    rules = request.app.state.rules
+    dragon = dragon_out(db, profile, now, rules)   # may persist a caught-up stage (see dragon_out)
     db.commit()
     return {
-        "profile": to_out(profile), "xp": xp_block(db, pid), "dragon": dragon,
+        "profile": to_out(profile), "xp": xp_block(db, pid, dragon["stage"], rules), "dragon": dragon,
         "lieutenants": lieutenant_states(db, profile), "quests": quests,
         "oracle": {"week": full_oracle["week"], "status": full_oracle["status"], "reward_id": full_oracle["reward_id"]},
         "prophecies": full_oracle["prophecies"],

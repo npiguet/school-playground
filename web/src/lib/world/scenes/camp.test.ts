@@ -18,8 +18,8 @@ import {
 function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {
     profile: { id: 7, name: 'Ariane' } as CampResponse['profile'],
-    xp: { total: 0, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 },
-    dragon: { name: null, tint: 'bronze', stage: 'egg', neutralised: 0, available: 6, next_stage_at: 1, unlocked_tints: ['bronze'] },
+    xp: { total: 0, floor: 0, next: 100 },
+    dragon: { name: null, tint: 'bronze', stage: 'egg', neutralised: 0, available: 6, unlocked_tints: ['bronze'] },
     lieutenants: [],
     quests: [],
     oracle: { week: '2026-W39', status: 'sealed', reward_id: null },
@@ -37,7 +37,7 @@ const catalog = {
 } as unknown as WorldCatalog;
 const state = (id: string, c: CampResponse | null, cat: WorldCatalog | null = null) => CAMP_HOTSPOTS.find((h) => h.id === id)!.state({ camp: c, catalog: cat });
 const ready = (over: Partial<CampResponse> = {}) => camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null }, ...over });
-const seasoned = { total: 40, rank: 1, title: 'Recrue du camp', next_threshold: 150, rank_floor: 0 };
+const seasoned = { total: 40, floor: 0, next: 100 };
 const chosen = { week: 'w', status: 'chosen' as const, reward_id: null };
 const hatchling = { ...camp().dragon, stage: 'hatchling' as const };
 const prophecy = (days: number) => [{ text_id: 1, title: 'La mer', due_date: '2026-09-27', days_left: days }];

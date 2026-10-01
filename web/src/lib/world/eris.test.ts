@@ -6,6 +6,7 @@ import {
   confirmChoiceLabel,
   dossierIntro,
   dossierLine,
+  dragonAside,
   erisProgressLine,
   genderFor,
   neutraliseRule,
@@ -15,7 +16,7 @@ import {
   sleepingLine,
   smallTricksLine,
 } from './eris';
-import { LIEUTENANT_ORDER } from './types';
+import { DRAGON_STAGES, LIEUTENANT_ORDER } from './types';
 
 const BANDS = ['none', 'strong', 'contested', 'weak', 'neutralised'] as const;
 
@@ -138,5 +139,10 @@ describe('French gender agreement (I7)', () => {
 
   it('covers every lieutenant, so a new one can\'t be added without a gender', () => {
     for (const key of LIEUTENANT_ORDER) expect(['f', 'm', 'fp']).toContain(genderFor(key));
+  });
+  it("keeps the hero's dragon to one dry aside, never a rank (spec 2026-09-29 dragon growth §2)", () => {
+    expect(dragonAside('egg')).toBe("Ton dragon dort encore dans sa coquille. Qu'il y reste.");
+    expect(dragonAside('illustre')).toBe("Ton dragon a grandi\u202f: dragon illustre. Je fais semblant de ne pas l'avoir vu.");
+    for (const s of DRAGON_STAGES) expect(dragonAside(s)).not.toMatch(/rang/);
   });
 });

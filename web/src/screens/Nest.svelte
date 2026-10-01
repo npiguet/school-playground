@@ -33,7 +33,7 @@
   {#snippet children(ctx)}
     {#if ctx.camp}
       {@const d = ctx.camp.dragon}
-      {@const g = growth(d)}
+      {@const g = growth(ctx.camp.xp, d.stage)}
       <SceneLayer
         layer={{ id: 'dragon', src: ART.dragon[d.stage], alt: dragonCaption(d), ...nestDragonLayer(d.stage) }}
         filter={TINT_FILTERS[d.tint]}
@@ -53,7 +53,7 @@
         >
           <span class="kit-gauge-label growth-label">{g.label}</span>
           <span class="kit-gauge-track"><span class="kit-gauge-fill"></span></span>
-          <span class="growth-count">{g.value} sur {g.max}</span>
+          {#if g.count}<span class="growth-count">{g.count}</span>{/if}
         </span>
         <p class="nest-activity">{stageActivity(d.stage)}</p>
       </div>

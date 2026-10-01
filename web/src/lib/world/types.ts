@@ -94,7 +94,6 @@ export interface DragonOut {
   stage: DragonStage;
   neutralised: number;
   available: number;
-  next_stage_at: number | null;
   unlocked_tints: Tint[];
 }
 
@@ -109,7 +108,9 @@ export interface OracleOut {
 
 export interface CampResponse {
   profile: Profile;
-  xp: { total: number; rank: number; title: string; next_threshold: number | null; rank_floor: number };
+  /** Spec 2026-09-29 dragon growth §2: the dragon's gauge, the HUD's laurel: the total XP, the stored
+   *  stage's threshold and the next stage's (null at the last stage). */
+  xp: { total: number; floor: number; next: number | null };
   dragon: DragonOut;
   lieutenants: LieutenantState[];
   quests: QuestOut[];

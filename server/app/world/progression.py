@@ -61,11 +61,9 @@ def ensure_dragon(conn, profile_id, now) -> sqlite3.Row:
 def store_stage(conn, profile_id, stage, now) -> None:
     """Writes a grown stage; `hatched_at` is set once, when the dragon leaves the egg (spec §1), and
     cleared when the stage stored is the egg (a hand-edited stage normalised back to it)."""
-    if stage == "egg":
-        conn.execute("UPDATE dragon SET stage = 'egg', hatched_at = NULL, updated_at = ? WHERE profile_id = ?", (now, profile_id))
-        return
-    conn.execute("UPDATE dragon SET stage = ?, hatched_at = COALESCE(hatched_at, ?), updated_at = ? WHERE profile_id = ?",
-                 (stage, now, now, profile_id))
+    conn.execute("UPDATE dragon SET stage = ?, updated_at = ?, "
+                 "hatched_at = CASE WHEN ? = 'egg' THEN NULL ELSE COALESCE(hatched_at, ?) END WHERE profile_id = ?",
+                 (stage, now, stage, now, profile_id))
 
 
 def _complete_quest(conn, q, profile_id, now, bonuses, rewards):

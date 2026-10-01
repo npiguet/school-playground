@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { de, frenchSpacing, longDate, plural, weekdayOf } from './french';
+import { de, frenchSpacing, longDate, plural, thousands, weekdayOf } from './french';
 
 describe('French wording helpers', () => {
   it('counts without a form plural (playability #10)', () => {
@@ -63,5 +63,8 @@ describe('frenchSpacing (Ruling E15)', () => {
   });
   it('leaves an unspaced colon alone (never invents a space)', () => {
     expect(frenchSpacing('l’idéal:80')).toBe('l’idéal:80');
+  });
+  it('groups thousands with a narrow no-break space (« 15 000 »)', () => {
+    expect([0, 999, 1000, 41000, 1234567].map(thousands)).toEqual(['0', '999', '1\u202f000', '41\u202f000', '1\u202f234\u202f567']);
   });
 });

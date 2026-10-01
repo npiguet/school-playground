@@ -25,7 +25,8 @@ def test_world_catalog(client):
 def test_camp_for_new_profile(client):
     pid = make_profile(client, level="7H")
     c = client.get(f"/api/profiles/{pid}/camp").json()
-    assert c["xp"] == {"total": 0, "rank": 1, "title": "Recrue du camp", "next_threshold": 150, "rank_floor": 0}
+    assert c["xp"] == {"total": 0, "floor": 0, "next": 100}
+    assert "next_stage_at" not in c["dragon"]
     assert c["dragon"]["stage"] == "egg" and c["dragon"]["available"] == 5 and c["dragon"]["unlocked_tints"] == ["bronze"]
     protee = next(l for l in c["lieutenants"] if l["key"] == "protee")
     assert protee["available"] is False and len(c["lieutenants"]) == 6

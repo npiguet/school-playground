@@ -56,10 +56,9 @@ describe('who fights where (Ruling C2)', () => {
   });
 
   it('knows which way each painted cut-out looks, the dragon per stage (Ruling C10)', () => {
-    // Checked by eye on web/public/art (UI4 Task 1). The dragon's stages disagree: the hatchling and
-    // the young dragon look right, the adult left; the egg is symmetric.
     // Checked by eye on web/public/art (UI4 Task 1) and docs/art/progression-stages.png (sub-project 3):
-    // the redrawn adult, the illustre and the ancestral keep the young dragon's three-quarter pose.
+    // the egg is symmetric; the hatchling, the young dragon, the redrawn adult, the illustre and the
+    // ancestral all keep the same three-quarter pose, looking right.
     expect(FACES.dragon).toEqual({ egg: 'right', hatchling: 'right', young: 'right', adult: 'right', illustre: 'right', ancestral: 'right' });
     expect(FACES.hydre).toBe('right');
     expect(FACES.eris).toBe('left');

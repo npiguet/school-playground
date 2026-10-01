@@ -28,7 +28,8 @@ test('the nest: the egg in the straw, its growth, its greeting; the exit leads b
   await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
   await expect(page.getByTestId('dragon-stage')).toHaveText('Œuf');
   // UI3b playability #5: the camp's words (« ruses »), a sentence for its mood, a pinned sheet.
-  await expect(page.getByTestId('nest-growth')).toContainText("Pour grandir\u202f: 1 ruse d'Éris neutralisée");
+  await expect(page.getByTestId('nest-growth')).toContainText('Prochaine étape\u202f: Dragonnet');
+  await expect(page.getByTestId('nest-growth')).toContainText('0 sur 100 XP');
   await expect(page.getByTestId('nest-growth')).toContainText('Il frémit dans sa coquille.');
   await expect(page.getByTestId('nest-growth')).toHaveClass(/kit-sheet/);
   await expect(page.getByTestId('nest-dragon')).toContainText('Un œuf de dragon');
@@ -171,4 +172,27 @@ test('the nest shows each of the six stages, clear of its growth sheet and of th
     expect(b.growth!.x + b.growth!.width, `${key}: the growth sheet left of the dragon`).toBeLessThanOrEqual(b.layer!.x + 2);
     expect(b.layer!.y, `${key}: the dragon's picture below the HUD`).toBeGreaterThanOrEqual(b.hud!.y + b.hud!.height - 2);
   }
+});
+
+test('the growth sheet: the next stage and the XP toward it; « Il a fini de grandir. » at the top', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let fake: { stage: string; xp: { total: number; floor: number; next: number | null } } = { stage: 'young', xp: { total: 3100, floor: 1200, next: 5000 } };
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage: fake.stage, name: 'Braise' };
+    camp.xp = fake.xp;
+    await route.fulfill({ response: res, json: camp });
+  });
+  await page.goto(`/#/p/${id}/dragon?debug`);
+  await expectScene(page, 'nest');
+  const sheet = page.getByTestId('nest-growth');
+  await expect(sheet).toContainText('Prochaine étape : Dragon adulte');
+  await expect(sheet).toContainText('1 900 sur 3 800 XP');
+  fake = { stage: 'ancestral', xp: { total: 41000, floor: 40000, next: null } };
+  await page.reload();
+  await expectScene(page, 'nest');
+  await expect(sheet).toContainText('Il a fini de grandir.');
+  await expect(sheet.locator('.growth-count')).toHaveCount(0);
+  await expect(sheet.locator('[role="progressbar"]')).toHaveAttribute('data-state', 'ok');
 });
