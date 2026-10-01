@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { FORBIDDEN, lieutenantName } from '../world/eris';
 import { HOUSE_SCENES, SCENES } from '../world/scenes';
 import { DRAGON_STAGES, LIEUTENANT_ORDER } from '../world/types';
-import { GENDERED, GUILT, banned, erisSelfMasculine } from '../../testing/copyRules';
+import { FOMO, GENDERED, GUILT, banned, erisSelfMasculine } from '../../testing/copyRules';
 import { LINES, TOURS, parseDialogueFile } from './content';
 import { DIALOGUE_KEYS, PLACEHOLDERS, TOUR_IDS, type DialogueCtx, type DialogueKey, type LineDef } from './types';
 import { poolFor } from './select';
@@ -111,7 +111,13 @@ describe('the dialogue content (spec §8)', () => {
       expect(banned(line.text), where).toEqual([]);
       expect(line.text.match(GUILT), where).toBeNull();
       expect(line.text.match(GENDERED), where).toBeNull();
+      expect(line.text, where).not.toMatch(FOMO);
     }
+    // Spec 2026-09-29 explanations (R14): the FOMO rule catches pressure and lets the camp's own words through.
+    expect('Plus que 3 jours !').toMatch(FOMO);
+    expect('Dernière chance').toMatch(FOMO);
+    expect("Il ne te reste qu'à déjouer 88 % des pièges").not.toMatch(FOMO);
+    expect('Le camp apprend vite.').not.toMatch(FOMO);
   });
 
   it("keeps Éris's taunts on her tricks and the camp's heroes, never the player's ability", () => {

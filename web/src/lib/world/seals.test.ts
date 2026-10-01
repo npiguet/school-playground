@@ -4,7 +4,6 @@ import {
   bonusChipLabel,
   codexStamp,
   fightLine,
-  firstSealLine,
   highestTrophies,
   levelChipLabel,
   levelUpLine,
@@ -12,7 +11,9 @@ import {
   sealCry,
   sealFill,
   sealGauges,
+  sealHowLine,
   sealName,
+  sealNeedLine,
   sealProgressLine,
   sealReady,
   sealTitle,
@@ -148,11 +149,18 @@ describe('the seals in words', () => {
     ]);
   });
 
-  it('finds the highest trophy of each lieutenant on the shelf, and says the first seal (R15)', () => {
+  it('finds the highest trophy of each lieutenant on the shelf (R15)', () => {
     const owned = ['trophy:hydre:1', 'trophy:hydre:2', 'trophy:echo:1', 'tint:jade', 'trophy:medusa:3', 'trophy:lethe:9'].map((id) => ({ id }));
     expect(highestTrophies(owned)).toEqual({ hydre: 2, echo: 1 });
-    expect(firstSealLine({ days: 3, chances: 12, correct: 0.85 })).toBe('Premier sceau\u202f: 3 jours de garde et 12 pièges, dont 85\u202f% déjoués.');
-    expect(firstSealLine({ days: 1, chances: 1, correct: 0.5 })).toBe('Premier sceau\u202f: 1 jour de garde et 1 piège, dont 50\u202f% déjoués.');
+  });
+
+  // Spec 2026-09-29 explanations §4 (R13): how each trophy is won, in words, agreed with its lieutenant.
+  it('says how each trophy is won, and what the first seal asks', () => {
+    expect(sealHowLine('hydre', 1)).toBe("Premier sceau\u202f: défends des textes où l'Hydre se cache.");
+    expect(sealHowLine('sirenes', 3)).toBe("Au sceau d'argent\u202f: défends encore des textes où les Sirènes se cachent.");
+    expect(sealHowLine('protee', 5)).toBe("Au sceau d'orichalque\u202f: défends encore des textes où Protée se cache.");
+    expect(sealNeedLine({ days: 3, chances: 12, correct: 0.85 })).toBe('3 jours de garde et 12 pièges, dont 85\u202f% déjoués.');
+    expect(sealNeedLine({ days: 1, chances: 1, correct: 0.9 })).toBe('1 jour de garde et 1 piège, dont 90\u202f% déjoués.');
   });
 
   it('labels every chip of the victory, the saved ones included', () => {

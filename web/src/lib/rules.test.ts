@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { DEFAULT_RULES, copyVerdict, paceBonus, per100, prophecyBonusApplies, rulesOf, type GameRules } from './rules';
-import { firstSealLine } from './world/seals';
+import { sealNeedLine } from './world/seals';
 
 describe('the rules of the camp (spec 2026-09-29 §7)', () => {
   it('mirrors the server defaults', () => {
@@ -54,7 +54,7 @@ describe('the rules of the camp (spec 2026-09-29 §7)', () => {
       expect(f.count === 'all' || typeof f.count === 'number').toBe(true);
     }
     expect(rules.fights).toEqual([{ level: 1, count: 3 }, { level: 2, count: 'all' }, { level: 5, count: 1 }]);
-    expect(firstSealLine(rules.levels[0])).toBe('Premier sceau\u202f: 2 jours de garde et 10 pièges, dont 100\u202f% déjoués.');
+    expect(sealNeedLine(rules.levels[0])).toBe('2 jours de garde et 10 pièges, dont 100\u202f% déjoués.');
     expect(rules.levels[2]).toEqual({ days: 6, chances: 50, correct: 0.91 });
     expect(rules.drachmes).toEqual(DEFAULT_RULES.drachmes);
   });

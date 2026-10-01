@@ -9,13 +9,13 @@
   import Medallion from '../../juice/Medallion.svelte';
   import { ART, trophyIcon } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
-  import { campStore } from '../../../lib/world/campStore.svelte';
+  import { campFor, campStore } from '../../../lib/world/campStore.svelte';
   import { eggFilter } from '../../../lib/world/dragon';
   import { lieutenantName, sleepingLine, isAwake } from '../../../lib/world/eris';
-  import { firstSealLine, highestTrophies, sealTitle, sealTitleOf, trophyId } from '../../../lib/world/seals';
+  import { MAX_SEAL, highestTrophies, sealHowLine, sealNeedLine, sealTitle, sealTitleOf, trophyId } from '../../../lib/world/seals';
   import { rulesOf } from '../../../lib/rules';
   import { WALLS_FULL_LINE } from '../../../lib/world/scenes/cabin';
-  import { howToWin } from '../../../lib/world/rewards';
+  import { howToEarn, nextFightTier } from '../../../lib/world/rewards';
   import { houseDecorTitle, houseEmptyLine } from '../../../lib/world/shop';
   import { LIEUTENANT_ORDER, type House, type LieutenantKey, type RewardKind, type RewardOut, type Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
@@ -54,7 +54,9 @@
   ]);
 
   const highest = $derived(highestTrophies(owned ?? []));
-  const firstSeal = $derived(firstSealLine(rulesOf(campStore.catalog).levels[0]));
+  const firstNeed = $derived(sealNeedLine(rulesOf(campStore.catalog).levels[0]));
+  // Spec 2026-09-29 explanations §4 (R13): the gear of the next fight to win says so.
+  const nextTier = $derived(nextFightTier(campFor(profile.id)));
   // The close view: one lieutenant's trophies at a time (R15).
   let openKey = $state<LieutenantKey | null>(null);
 
@@ -130,30 +132,45 @@
     <ul class="cubbies">
       {#each LIEUTENANT_ORDER as key (key)}
         {@const top = highest[key] ?? 0}
+        {@const awake = isAwake(key, profile.level)}
         <li class="kit-cubby trophy plinth" class:is-empty={top === 0} data-testid="cabin-trophy-{key}" data-level={top}>
-          {#if top > 0}
+          {#if awake || top > 0}
+            <!-- Spec 2026-09-29 explanations §4 (R13): every plinth opens its close view, the empty one too:
+                 the trophies still to win are shown there, never hidden. -->
             <button
               type="button"
               class="plinth-open"
+              data-testid="cabin-trophy-open-{key}"
               aria-expanded={openKey === key}
               aria-controls={openKey === key ? `trophy-close-${key}` : undefined}
               onclick={(e) => togglePlinth(key, e.currentTarget)}
             >
-              <img class="plinth-art" src={trophyIcon(key, top)} alt="" draggable="false" />
-              <span class="trophy-name">{trophyName(key, top)}</span>
+              {#if top > 0}
+                <img class="plinth-art" src={trophyIcon(key, top)} alt="" draggable="false" />
+                <span class="trophy-name">{trophyName(key, top)}</span>
+              {:else}
+                <span class="plinth-empty" aria-hidden="true"></span>
+                <span class="trophy-name">{lieutenantName(key)}</span>
+              {/if}
             </button>
-            <p class="trophy-desc">{sealTitle(top)}</p>
+            {#if top > 0}
+              <p class="trophy-desc">{sealTitle(top)}</p>
+            {:else}
+              <p class="trophy-how">{sealHowLine(key, 1)}</p>
+              <p class="trophy-need">{firstNeed}</p>
+            {/if}
           {:else}
             <span class="plinth-empty" aria-hidden="true"></span>
             <h4 class="trophy-name">{lieutenantName(key)}</h4>
-            <p class="trophy-how">{isAwake(key, profile.level) ? firstSeal : sleepingLine(key, profile.level)}</p>
+            <p class="trophy-how">{sleepingLine(key, profile.level)}</p>
           {/if}
         </li>
       {/each}
     </ul>
-    {#if openKey && (highest[openKey] ?? 0) > 0}
+    {#if openKey}
       {@const key = openKey}
       {@const top = highest[key] ?? 0}
+      {@const heading = top > 0 ? trophyName(key, top) : lieutenantName(key)}
       <!-- Keyed on the lieutenant, so another plinth's sheet takes the focus too (takeFocus). -->
       {#key key}
       <div
@@ -161,19 +178,34 @@
         id="trophy-close-{key}"
         data-testid="cabin-trophy-close-{key}"
         role="region"
-        aria-label={trophyName(key, top)}
+        aria-label={heading}
         tabindex="-1"
         use:takeFocus
       >
-        <img class="close-art" src={trophyIcon(key, top, true)} alt={trophyName(key, top)} draggable="false" />
+        {#if top > 0}
+          <img class="close-art" src={trophyIcon(key, top, true)} alt={heading} draggable="false" />
+        {/if}
         <div class="close-words">
-          <h4>{trophyName(key, top)}</h4>
-          <p>{campStore.catalog?.rewards[trophyId(key, top)]?.desc ?? ''}</p>
+          <h4>{heading}</h4>
+          {#if top > 0}
+            <p>{campStore.catalog?.rewards[trophyId(key, top)]?.desc ?? ''}</p>
+          {/if}
           {#if top > 1}
             <p class="lower-title">Aussi sur l'étagère</p>
             <ul class="lower">
               {#each Array.from({ length: top - 1 }, (_, i) => top - 1 - i) as level (level)}
                 <li><img src={trophyIcon(key, level)} alt="" draggable="false" /><span>{trophyName(key, level)}</span></li>
+              {/each}
+            </ul>
+          {/if}
+          {#if top < MAX_SEAL}
+            <p class="lower-title">Encore à gagner</p>
+            <ul class="lower to-win">
+              {#each Array.from({ length: MAX_SEAL - top }, (_, i) => top + 1 + i) as level (level)}
+                <li data-testid="cabin-trophy-towin-{key}-{level}">
+                  <img class="silhouette" src={trophyIcon(key, level)} alt="" draggable="false" />
+                  <span class="to-win-words"><span class="to-win-name">{trophyName(key, level)}</span><span class="to-win-how">{sealHowLine(key, level)}</span></span>
+                </li>
               {/each}
             </ul>
           {/if}
@@ -202,7 +234,7 @@
             <h4 class="trophy-name">{item.name}</h4>
             <p class="trophy-desc">{item.desc}</p>
             {#if !isOwned}
-              <p class="trophy-how">{howToWin(item.id, item.source)}</p>
+              <p class="trophy-how">{howToEarn(item.id, item.source, { nextTier, catalog: campStore.catalog })}</p>
             {:else if (section.kind === 'gear' || section.kind === 'decor') && rewardRow}
               <button type="button" class="kit-bronze is-quiet" data-testid="cabin-equip-{item.id}" disabled={equippingId === item.id} onclick={() => toggleEquip(item.id)}>
                 {rewardRow.equipped ? 'Ranger' : 'Exposer'}
@@ -329,6 +361,27 @@
     width: 40px;
     height: 40px;
     object-fit: contain;
+  }
+  /* R13: a trophy still to win is its painted icon as a dark silhouette, never hidden. */
+  .to-win .silhouette {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    filter: brightness(0) opacity(0.45);
+  }
+  .to-win-words {
+    display: flex;
+    flex-direction: column;
+  }
+  .to-win-how {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  /* What the first seal asks, under its how-to line: on the dark wood, so in the parchment ink too. */
+  .trophy-need {
+    margin: 0;
+    font-size: 14px;
+    color: var(--parchment-solid);
   }
   .tint-egg {
     width: 64px;

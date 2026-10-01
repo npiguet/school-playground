@@ -18,6 +18,7 @@ import {
   tap,
   heroNamer,
 } from './helpers';
+import { frenchSpacing } from '../src/lib/text/french';
 
 // UI3b Tasks 5-6 (scenes spec §3 Cabin, §10). desktop + ipad.
 
@@ -53,8 +54,9 @@ test('the trophy shelf shows every reward, each known in advance', async ({ page
   }
   const sandals = shelf.getByTestId('cabin-reward-sandales_hermes');
   await expect(sandals).toHaveAttribute('data-owned', 'false');
-  // UI3b playability #13: how to win it, said to her; the gear's dark silhouette, not a « ? ».
-  await expect(sandals).toContainText('Bats Éris une première fois pour les gagner.');
+  // UI3b playability #13: how to win it, said to the player; the gear's dark silhouette, not a « ? ».
+  // Spec 2026-09-29 explanations §4 (R13): the sandals are the next fight's, and say so.
+  await expect(sandals).toContainText('Gagne le prochain combat contre Éris pour les gagner.');
   await expect(sandals).not.toContainText("Comment l'obtenir");
   await expect(sandals.locator('.medallion')).toHaveAttribute('aria-label', 'Récompense à découvrir');
   await expect(sandals.locator('.medallion img.silhouette')).toHaveCSS('filter', /brightness\(0\)/);
@@ -88,7 +90,8 @@ test('the shelf: each lieutenant its highest trophy, the lower ones in its close
   await expect(hydre).toContainText('Sceau de bronze');
   const echo = shelf.getByTestId('cabin-trophy-echo');
   await expect(echo).toHaveAttribute('data-level', '0');
-  await expect(echo).toContainText('Premier sceau\u202f: 3 jours de garde et 12 pièges, dont 85\u202f% déjoués.');
+  await expect(echo).toContainText("Premier sceau\u202f: défends des textes où Écho se cache.");
+  await expect(echo).toContainText('3 jours de garde et 12 pièges, dont 85\u202f% déjoués.');
   const open = hydre.getByRole('button', { name: "Écaille de l'Hydre en bronze" });
   await tap(open, testInfo);
   await expect(open).toHaveAttribute('aria-expanded', 'true');
@@ -105,6 +108,33 @@ test('the shelf: each lieutenant its highest trophy, the lower ones in its close
   await expect(open).toBeFocused();
   await expect(open).not.toHaveAttribute('aria-controls');
   expect(await redScan(page)).toEqual([]);
+});
+
+// Spec 2026-09-29 explanations §4 (R13; review focus 5): nothing on the shelf is hidden, each thing says how.
+test('the shelf says how to win every trophy, and the next fight names its gear', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.route(`**/api/profiles/${id}/rewards`, async (route) => {
+    const list = await (await route.fetch()).json();
+    const trophy = (level: number, material: string) => ({
+      id: `trophy:hydre:${level}`, kind: 'trophy', name: `Écaille de l'Hydre en ${material}`, desc: '',
+      source: "Sceau de l'Hydre", granted_at: '2026-09-20T12:00:00+00:00', equipped: false,
+    });
+    await route.fulfill({ json: [...list, trophy(1, 'bois'), trophy(2, 'bronze')] });
+  });
+  await page.goto(`/#/p/${id}/cabane?panel=tresors`);
+  const shelf = page.getByTestId('overlay-trophies');
+  await expect(shelf.getByTestId('cabin-trophy-echo')).toContainText(frenchSpacing("Premier sceau : défends des textes où Écho se cache."));
+  await expect(shelf.getByTestId('cabin-trophy-echo')).toContainText('3 jours de garde et 12 pièges, dont 85\u202f% déjoués.');
+  await tap(shelf.getByTestId('cabin-trophy-open-echo'), testInfo);
+  for (const level of [1, 2, 3, 4, 5]) await expect(shelf.getByTestId(`cabin-trophy-towin-echo-${level}`)).toBeVisible();
+  await tap(shelf.getByTestId('cabin-trophy-open-hydre'), testInfo);
+  const close = shelf.getByTestId('cabin-trophy-close-hydre');
+  await expect(close).toContainText("Aussi sur l'étagère");
+  await expect(close.getByTestId('cabin-trophy-towin-hydre-2')).toHaveCount(0);
+  await expect(close.getByTestId('cabin-trophy-towin-hydre-3')).toContainText(frenchSpacing("Au sceau d'argent : défends encore des textes où l'Hydre se cache."));
+  await expect(shelf.getByTestId('cabin-reward-sandales_hermes')).toContainText('Gagne le prochain combat contre Éris pour les gagner.');
+  await expect(shelf.getByTestId('cabin-reward-egide')).toContainText('Bats Éris une deuxième fois pour la gagner.');
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
 });
 
 test('overlay-trophies: an in-world table, clear of the HUD, 48 px targets, kit classes only', async ({ page, request }, testInfo) => {

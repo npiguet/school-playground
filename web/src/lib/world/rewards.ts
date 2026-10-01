@@ -67,3 +67,23 @@ export function howToWin(id: string, source: string): string {
 
 /** The reward ids that have a sentence (the catalog's, rewards.test.ts). */
 export const HOW_TO_WIN_IDS = Object.keys(HOW_TO_WIN);
+
+// The divine gear agrees with its pronoun (les sandales, l'égide, la foudre).
+const GEAR_THEM: Record<string, string> = { sandales_hermes: 'les', egide: 'la', foudre_zeus: 'la' };
+
+/** The fight whose reward is the next to win (spec 2026-09-29 explanations §4, R13): the lowest tier of
+ *  the ladder not won yet; null once every fight is won or without the camp. */
+export function nextFightTier(camp: Pick<CampResponse, 'boss'> | null): number | null {
+  if (!camp) return null;
+  for (let t = 1; t <= camp.boss.fights; t++) if (!camp.boss.tiers_won.includes(t)) return t;
+  return null;
+}
+
+/** How to earn a reward not owned yet (spec §4): the next fight's gear says so; the rest keeps its sentence. */
+export function howToEarn(id: string, source: string, o: { nextTier: number | null; catalog: WorldCatalog | null }): string {
+  const tier = Object.entries(o.catalog?.boss_rewards ?? {}).find(([, rid]) => rid === id)?.[0];
+  if (tier !== undefined && o.nextTier !== null && Number(tier) === o.nextTier) {
+    return `Gagne le prochain combat contre Éris pour ${GEAR_THEM[id] ?? 'le'} gagner.`;
+  }
+  return howToWin(id, source);
+}

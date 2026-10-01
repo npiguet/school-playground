@@ -211,7 +211,22 @@ export function highestTrophies(owned: { id: string }[]): Partial<Record<Lieuten
   return out;
 }
 
-/** An empty plinth says what the first seal asks, in words (spec §5). */
-export function firstSealLine(need: SealNeed): string {
-  return `Premier sceau\u202f: ${plural(need.days, 'jour', 'jours')} de garde et ${plural(need.chances, 'piège', 'pièges')}, dont ${rateText(need.correct)} déjoués.`;
+const HIDES: Record<LieutenantKey, string> = {
+  hydre: "où l'Hydre se cache",
+  echo: 'où Écho se cache',
+  chimere: 'où la Chimère se cache',
+  protee: 'où Protée se cache',
+  sirenes: 'où les Sirènes se cachent',
+  lethe: 'où Léthé se cache',
+};
+
+/** How a trophy is won, in words (spec 2026-09-29 explanations §4, R13): the first seal, then each metal. */
+export function sealHowLine(key: LieutenantKey, level: number): string {
+  if (level <= 1) return `Premier sceau\u202f: défends des textes ${HIDES[key]}.`;
+  return `Au ${sealName(level)}\u202f: défends encore des textes ${HIDES[key]}.`;
+}
+
+/** What a seal asks, from the rules (the empty plinth's second line). */
+export function sealNeedLine(need: SealNeed): string {
+  return `${plural(need.days, 'jour', 'jours')} de garde et ${plural(need.chances, 'piège', 'pièges')}, dont ${rateText(need.correct)} déjoués.`;
 }
