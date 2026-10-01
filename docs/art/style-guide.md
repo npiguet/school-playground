@@ -573,7 +573,7 @@ overlay except the four young ones), WebPs and the manifest fragment `hydre.json
 |---|---|---|---|---|
 | collier d'écailles (cou, 0.75) | 1101 | 1201 | 1303 | 1401 |
 | anneau de serpents (queue, 0.75) | 1121 | 1221 | 1322 | 1421 |
-| selle des marais (dos, 0.8) | 1132 | 1232 | 1333 | not made yet |
+| selle des marais (dos, 0.8) | 1132 | 1232 | 1333 | 1431 |
 | casque à serpents (tête, 0.85) | 1112 | 1212 | 1313 | 1413 |
 
 - **Cou**: a wide band of overlapping glossy emerald serpent scales, thin polished bronze rims top and
@@ -589,7 +589,8 @@ overlay except the four young ones), WebPs and the manifest fragment `hydre.json
   an emerald scale saddle cloth down the flank, bronze studs and a coiled-serpent medallion.
   Illustre 1333: two enclosed patches of the seat matched the original's colours and were dropped by
   the extraction; filled back from the result. Rejected: illustre 1331 (squeezed against the
-  shoulder), 1332 (a flat scale panel).
+  shoulder), 1332 (a flat scale panel); ancestral 1432 (smeared along the wing's shadow), 1433 (a
+  black shadow hole under the seat).
 - **Tête**: a smooth bronze dome with an emerald scale rim and a crest of coiled bronze serpents with
   raised heads. Extracted in parts (dome, each standing serpent) and merged; serpents that stand out
   of the slot's air need `--grow 6-8`. Rejected: illustre 1311-1312 and ancestral 1411-1412 (serpent
