@@ -26,6 +26,13 @@ function allLines(): string[] {
   return out.filter((s) => /\p{L}/u.test(s));
 }
 
+describe('the boss muster reads the rules file (spec 2026-09-29 §2)', () => {
+  it('says a decimal limit with a French comma', () => {
+    expect(L.MUSTER.boss(4.5)).toBe("Combat contre Éris\u202f: elle s'enfuit si ta copie garde 4,5 fautes au plus pour 100 mots.");
+    expect(L.MUSTER.boss(1)).toBe("Combat contre Éris\u202f: elle s'enfuit si ta copie garde 1 faute au plus pour 100 mots.");
+  });
+});
+
 describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   it('never addresses the player by an agreeing adjective or « héros »', () => {
     for (const s of allLines()) expect(GENDERED.test(s), s).toBe(false);

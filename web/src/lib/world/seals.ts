@@ -3,7 +3,7 @@
 // number or the school's word. Pure: the camp's `lieutenants[].next` carries the window, the server
 // decides; these words only say it.
 import { swissDay } from '../swissDay';
-import { plural, rateText } from '../text/french';
+import { countWord, plural, rateText } from '../text/french';
 import { agree, genderFor, lieutenantName } from './eris';
 import { lowerLeadingArticle } from './quests';
 import { LIEUTENANT_ORDER, type LieutenantKey, type LieutenantState, type SealNeed, type SealWindow } from './types';
@@ -123,14 +123,11 @@ export function codexStamp(l: Pick<LieutenantState, 'level' | 'next'> | null): s
   return l?.next && l.next.chances > 0 ? 'En cours' : 'À découvrir';
 }
 
-const COUNT_WORDS = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six'];
-
 /** What opens the next fight (spec §4, R9): the seals still missing, counted across the lieutenants,
  *  never naming one. The battle path's caption and the dragon's line when the locked path is tapped. */
 export function fightLine(next: { level: number; missing: number }): string {
   const n = next.missing;
-  const count = n < COUNT_WORDS.length ? COUNT_WORDS[n] : String(n);
-  return `Encore ${count} ${n < 2 ? sealName(next.level) : sealsName(next.level)} et Éris t'attend.`;
+  return `Encore ${countWord(n)} ${n < 2 ? sealName(next.level) : sealsName(next.level)} et Éris t'attend.`;
 }
 
 const ON: Record<LieutenantKey, string> = {

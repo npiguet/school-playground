@@ -10,6 +10,7 @@ import type { DragonOut, House } from '../types';
 import { CABIN_SHAPES, PALAIS_SHAPES, VILLA_SHAPES } from './cabin.shapes';
 import { dragonSays } from './speakers';
 import { sayKey } from '../../dialogue/select';
+import { countWord } from '../../text/french';
 
 /** The three places of a room (spec 2026-09-29 drachmes §3: every house keeps them, in its own boxes). */
 function houseHotspots(shapes: Record<'trophies' | 'journal' | 'lyre', HotspotShape>): HotspotDef[] {
@@ -141,8 +142,6 @@ export function cabinGreeting(d: DragonOut): DialogueLine[] {
   return [sayKey('cabin.enter', { dragon: d })];
 }
 
-const COUNT_WORDS = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six'];
-
 /** The shelf's line (spec 2026-09-29 lieutenant levels §5): the trophies still to win, five per
  *  lieutenant awake (`owned` null while the rewards load). */
 export function trophiesLine(d: DragonOut, owned: number | null, max: number): DialogueLine {
@@ -151,7 +150,7 @@ export function trophiesLine(d: DragonOut, owned: number | null, max: number): D
   if (owned >= max) return dragonSays(d, "Tous les sceaux sont gagnés\u202f: l'étagère brille d'orichalque\u202f!");
   if (owned === 0) return dragonSays(d, `${head} Le premier sera en bois\u202f!`);
   const left = max - owned;
-  return dragonSays(d, `${head} Il en reste ${COUNT_WORDS[left] ?? String(left)} à gagner\u202f!`);
+  return dragonSays(d, `${head} Il en reste ${countWord(left)} à gagner\u202f!`);
 }
 
 export function journalLine(d: DragonOut): DialogueLine {
@@ -160,7 +159,7 @@ export function journalLine(d: DragonOut): DialogueLine {
 
 export function lyreLine(d: DragonOut): DialogueLine {
   // UI5 playability #17; Kokoro plan preflight #6: the voice is no longer chosen here.
-  return dragonSays(d, "Règle ici la musique, les bruitages et la voix qui te lit la dictée ; les visites du camp et son guide t'attendent aussi.");
+  return dragonSays(d, "Règle ici la musique, les bruitages et la voix qui te lit la dictée\u202f; les visites du camp et son guide t'attendent aussi.");
 }
 
 /** The guide's plate (spec 2026-09-29 explanations §3). */

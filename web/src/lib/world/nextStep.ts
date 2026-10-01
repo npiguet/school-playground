@@ -10,6 +10,7 @@ import { nearestProphecy, prophecyWhen } from './prophecy';
 import { lowerLeadingArticle } from './quests';
 import { sealName } from './seals';
 import type { DialogueCtx, DialogueKey } from '../dialogue/types';
+import { countWord } from '../text/french';
 
 export type NextStep = 'battle' | 'first-text' | 'prophecy' | 'scrolls' | null;
 
@@ -67,9 +68,8 @@ export function sealWithinReach(camp: Pick<CampResponse, 'lieutenants'>): { key:
   return best ? { key: best.key, level: best.level } : null;
 }
 
-const COUNT = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six'];
 /** « un texte », « deux textes » (R6), digits past six. */
-const texts = (n: number) => `${n < COUNT.length ? COUNT[n] : String(n)} ${n < 2 ? 'texte' : 'textes'}`;
+const texts = (n: number) => `${countWord(n)} ${n < 2 ? 'texte' : 'textes'}`;
 
 /** The dragon's what-next line (spec §1, R1): a pure function of the camp, first match wins. */
 export function whatNext(camp: CampResponse): NextLine {

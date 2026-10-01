@@ -79,7 +79,9 @@
 
   // The journal and the lyre opened from the hero panel give focus back to its medallion when
   // their seal steps back there; opened from the room, to their own hotspot (openedFrom).
-  const from = openedFrom(() => panel, ['journal', 'lyre']);
+  // The guide opened from the lyre gives focus back to « Lire le guide du camp »; coming back from
+  // the guide leaves the lyre's own origin (the hero panel) as it was.
+  const from = openedFrom(() => panel, ['journal', 'lyre', 'guide'], { lyre: ['guide'] });
 </script>
 
 <PlaceScene {profile} {scene} bind:debug {greet}>
@@ -110,7 +112,7 @@
   </Overlay>
 {:else if panel === 'guide'}
   <!-- Spec 2026-09-29 explanations §3 (R12): opened from the lyre, its seal steps back there. -->
-  <Overlay variant="codex" title={OVERLAY_TITLES.guide} testId="overlay-guide" voice={dragon ? guideLine(dragon) : null} onClose={close} returnFocus={hotspotSelector('cabin', 'lyre')}>
+  <Overlay variant="codex" title={OVERLAY_TITLES.guide} testId="overlay-guide" voice={dragon ? guideLine(dragon) : null} onClose={close} returnFocus={from.of('guide') === 'lyre' ? '[data-testid="lyre-guide"]' : hotspotSelector('cabin', 'lyre')}>
     <GuidePanel />
   </Overlay>
 {:else if panel === 'heros'}

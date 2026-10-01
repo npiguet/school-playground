@@ -71,7 +71,7 @@ describe('the first-visit tours (spec §8, Ruling E13)', () => {
   it('ends the muster tour on the button that starts the dictation', () => {
     for (const stage of [egg, young]) {
       const last = tourSteps('muster', stage).lines.at(-1)!.text;
-      expect(last).toContain(`« ${MUSTER.start} »`);
+      expect(last).toContain(`«\u202f${MUSTER.start}\u202f»`);
       expect(last).not.toMatch(/en route/i);
     }
   });

@@ -72,7 +72,7 @@ export interface Suggestion {
 export const LEAVE_AFTER = 3;
 export const TAKE_AFTER = 2;
 
-const sameAids =(a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((k) => b.includes(k));
+const sameAids = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((k) => b.includes(k));
 
 /** Spec §3: after 3 consecutive dictations with a « belle copie » and the same aids, suggest leaving the
  *  next aid (athena → argus → palamede → persee → ariane); after 2 consecutive « copie à reprendre »,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { de, frenchSpacing, longDate, plural, thousands, weekdayOf } from './french';
+import { countWord, de, decimalFr, frenchSpacing, longDate, plural, thousands, weekdayOf } from './french';
 
 describe('French wording helpers', () => {
   it('counts without a form plural (playability #10)', () => {
@@ -66,5 +66,14 @@ describe('frenchSpacing (Ruling E15)', () => {
   });
   it('groups thousands with a narrow no-break space (« 15 000 »)', () => {
     expect([0, 999, 1000, 41000, 1234567].map(thousands)).toEqual(['0', '999', '1\u202f000', '41\u202f000', '1\u202f234\u202f567']);
+  });
+  it('counts in words up to six, agreed with a feminine noun, then in digits', () => {
+    expect([0, 1, 2, 6, 7, 12].map((n) => countWord(n))).toEqual(['zéro', 'un', 'deux', 'six', '7', '12']);
+    expect([1, 3].map((n) => countWord(n, true))).toEqual(['une', 'trois']);
+  });
+  it('writes a decimal with a French comma, in a count too (a rules value may be 4.5)', () => {
+    expect([4, 4.5, 0.25].map(decimalFr)).toEqual(['4', '4,5', '0,25']);
+    expect(plural(4.5, 'faute', 'fautes')).toBe('4,5 fautes');
+    expect(plural(1.5, 'faute', 'fautes')).toBe('1,5 faute');
   });
 });

@@ -5,10 +5,10 @@
 import { AID_KEYS, AID_LABELS, LEAVE_AFTER, TAKE_AFTER, aidDesc, listFr } from '../aids';
 import { PACES, PACE_LABELS } from '../dictation/script';
 import { paceBonus, rulesOf } from '../rules';
-import { plural, rateText, thousands } from '../text/french';
+import { countWord, plural, rateText, thousands } from '../text/french';
 import { stageLabel, stageXp } from './dragon';
 import { romanTier } from './quests';
-import { MAX_SEAL, sealName, sealTitle } from './seals';
+import { MATERIALS, MAX_SEAL, sealName, sealTitle } from './seals';
 import { drachmesText } from './shop';
 import { DRAGON_STAGES, type DragonStage, type House, type Slot, type WorldCatalog } from './types';
 
@@ -30,14 +30,34 @@ const HOUSES = { villa: { stage: 'adult' as DragonStage, price: 300 }, palais: {
 const WALLS: Record<House, number> = { cabin: 4, villa: 6, palais: 9 };
 const DECOR_PRICE = 50;
 
-const WORDS = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six'];
-const count = (n: number, feminine = false) => (n === 1 && feminine ? 'une' : n < WORDS.length ? WORDS[n] : String(n));
 const p = (text: string): GuideBlock => ({ kind: 'p', text });
 const list = (items: string[]): GuideBlock => ({ kind: 'list', items });
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 const quoted = (s: string) => `\u00ab\u202f${s}\u202f\u00bb`;
 /** « adulte », « illustre »: what the dragon is when a house goes on sale. */
 const grown = (s: DragonStage) => lowerFirst(stageLabel(s).replace(/^Dragon /, ''));
+/** « à partir du bronze », « à partir de l'argent ». */
+const fromSeal = (level: number) => {
+  const m = MATERIALS[Math.min(MAX_SEAL, Math.max(1, Math.round(level))) - 1];
+  return /^[aeiou]/.test(m) ? `à partir de l'${m}` : `à partir du ${m}`;
+};
+/** « belles copies », with « une belle copie » for one. */
+const counted = (n: number, one: string, many: string) => `${countWord(n, true)} ${n < 2 ? one : many}`;
+
+/** The gods' weapons Éris's fights bring (`boss_rewards`, tier → piece), in the ladder's order. When the
+ *  tiers are the first ones (1..N) the guide says « les N premières »; otherwise it pairs each piece
+ *  with its fight. */
+function gearSentence(catalog: WorldCatalog | null): string {
+  const pieces = Object.entries(catalog?.boss_rewards ?? {})
+    .map(([tier, id]) => ({ tier: Number(tier), name: catalog?.rewards[id]?.name }))
+    .filter((g): g is { tier: number; name: string } => Number.isInteger(g.tier) && g.tier >= 1 && !!g.name)
+    .sort((a, b) => a.tier - b.tier);
+  if (pieces.length === 0) return '';
+  const first = pieces.every((g, i) => g.tier === i + 1);
+  if (first && pieces.length === 1) return `La première apporte aussi une arme des dieux\u202f: ${pieces[0].name}.`;
+  if (first) return `Les ${countWord(pieces.length, true)} premières apportent aussi une arme des dieux\u202f: ${listFr(pieces.map((g) => g.name))}.`;
+  return `Certaines apportent aussi une arme des dieux\u202f: ${pieces.map((g) => `le combat ${romanTier(g.tier)}, ${g.name}`).join('\u202f; ')}.`;
+}
 
 export function guideSections(catalog: WorldCatalog | null): GuideSection[] {
   const r = rulesOf(catalog);
@@ -57,10 +77,7 @@ export function guideSections(catalog: WorldCatalog | null): GuideSection[] {
   const walls = shop?.max_decor ?? WALLS;
   const decor = shop?.decor[0]?.price ?? DECOR_PRICE;
   const paces = PACES.map((pace) => ({ pace, bonus: paceBonus(pace, 'dictation', r) })).filter((x) => x.bonus > 0);
-  const gear = Object.keys(catalog?.boss_rewards ?? {})
-    .sort((a, b) => Number(a) - Number(b))
-    .map((tier) => catalog?.rewards[catalog.boss_rewards[tier]]?.name)
-    .filter((n): n is string => !!n);
+  const firstOnSale = Math.min(...SLOT_ORDER.map(slotLevel));
 
   return [
     {
@@ -97,10 +114,16 @@ export function guideSections(catalog: WorldCatalog | null): GuideSection[] {
           `Un sceau\u202f: ${drachmesText(d.level)} pour le bois, jusqu'à ${drachmesText(MAX_SEAL * d.level)} pour l'orichalque`,
           `Un combat gagné contre Éris\u202f: ${drachmesText(d.boss)}`,
         ]),
-        p("Hermès les échange à son étal, dans le camp. Ce qu'il vend dépend de toi\u202f: chaque sceau d'un lieutenant, à partir du bronze, met en vente une de ses parures."),
+        p(`Hermès les échange à son étal, dans le camp. Ce qu'il vend dépend de toi\u202f: chaque sceau d'un lieutenant, ${fromSeal(firstOnSale)}, met en vente une de ses parures.`),
         list(SLOT_ORDER.map((s) => `Pour ${SLOT_WHERE[s]}, au ${sealName(slotLevel(s))}\u202f: ${drachmesText(slotPrice(s))}`)),
         p(
-          `Le décor coûte ${drachmesText(decor)} la pièce. La villa, ${drachmesText(villa.price)}, est en vente quand je suis ${grown(villa.stage)}\u202f; le palais, ${drachmesText(palais.price)}, quand je suis ${grown(palais.stage)}, après la villa. Plus la maison est grande, plus ses murs portent de décor\u202f: ${walls.cabin} pièces dans la cabane, ${walls.villa} dans la villa, ${walls.palais} dans le palais.`,
+          [
+            `Le décor coûte ${drachmesText(decor)} la pièce.`,
+            `La villa, ${drachmesText(villa.price)}, est en vente quand je suis ${grown(villa.stage)}\u202f;`,
+            `le palais, ${drachmesText(palais.price)}, quand je suis ${grown(palais.stage)}, après la villa.`,
+            'Plus la maison est grande, plus ses murs portent de décor\u202f:',
+            `${walls.cabin} pièces dans la cabane, ${walls.villa} dans la villa, ${walls.palais} dans le palais.`,
+          ].join(' '),
         ),
         p('Hermès ne presse personne\u202f: ses prix ne bougent pas, et rien ne quitte son étal.'),
       ],
@@ -122,7 +145,12 @@ export function guideSections(catalog: WorldCatalog | null): GuideSection[] {
         ),
         p("Ce bonus s'ajoute à la gloire de ta copie et de tes pièges déjoués, pas à celle de l'effort\u202f: il compte surtout quand ta copie est soignée."),
         p(
-          `Tu décides toujours. Après ${count(LEAVE_AFTER, true)} ${LEAVE_AFTER < 2 ? 'belle copie' : 'belles copies'} de suite avec les mêmes aides, je te proposerai d'en laisser une au camp\u202f; après ${count(TAKE_AFTER, true)} ${TAKE_AFTER < 2 ? 'copie à reprendre' : 'copies à reprendre'}, d'en reprendre une. Tu peux toujours dire non.`,
+          [
+            'Tu décides toujours.',
+            `Après ${counted(LEAVE_AFTER, 'belle copie', 'belles copies')} de suite avec les mêmes aides, je te proposerai d'en laisser une au camp\u202f;`,
+            `après ${counted(TAKE_AFTER, 'copie à reprendre', 'copies à reprendre')}, d'en reprendre une.`,
+            'Tu peux toujours dire non.',
+          ].join(' '),
         ),
       ],
     },
@@ -133,7 +161,7 @@ export function guideSections(catalog: WorldCatalog | null): GuideSection[] {
         p("Éris revient se battre quand assez de sceaux sont posés sur ses lieutenants. Chaque combat s'ouvre après la victoire du précédent\u202f:"),
         list(
           r.fights.map((f, i) => {
-            const who = f.count === 'all' ? 'tous les lieutenants' : f.count === 1 ? 'un lieutenant' : `${count(f.count)} lieutenants`;
+            const who = f.count === 'all' ? 'tous les lieutenants' : f.count === 1 ? 'un lieutenant' : `${countWord(f.count)} lieutenants`;
             return `Combat ${romanTier(i + 1)}\u202f: ${who} au ${sealName(f.level)}`;
           }),
         ),
@@ -141,8 +169,7 @@ export function guideSections(catalog: WorldCatalog | null): GuideSection[] {
         p(
           [
             `Chaque victoire rapporte ${qb.boss} XP et ${drachmesText(d.boss)}.`,
-            gear.length === 1 ? `La première apporte aussi une arme des dieux\u202f: ${gear[0]}.` : '',
-            gear.length > 1 ? `Les ${count(gear.length, true)} premières apportent aussi une arme des dieux\u202f: ${listFr(gear)}.` : '',
+            gearSentence(catalog),
           ]
             .filter(Boolean)
             .join(' '),

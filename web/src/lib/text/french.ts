@@ -21,9 +21,24 @@ export function thousands(n: number): string {
   return String(Math.trunc(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
 }
 
-/** « 2 quêtes », « 1 quête », « 0 quête » (in French, fewer than two is singular). */
+/** A number as French writes it: a decimal comma (« 4,5 »), a whole number as it is. The rules
+ *  file may hold a decimal (fight_max_per_100), which would otherwise print « 4.5 ». */
+export function decimalFr(n: number): string {
+  return String(n).replace('.', ',');
+}
+
+/** « 2 quêtes », « 1 quête », « 0 quête », « 4,5 fautes » (in French, fewer than two is singular). */
 export function plural(n: number, one: string, many: string): string {
-  return `${n} ${Math.abs(n) < 2 ? one : many}`;
+  return `${decimalFr(n)} ${Math.abs(n) < 2 ? one : many}`;
+}
+
+const COUNT_WORDS = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six'];
+
+/** A small count in words (« un », « deux » … « six »), digits past it; « une » before a feminine
+ *  noun (« une belle copie »). The one table the camp's lines count with. */
+export function countWord(n: number, feminine = false): string {
+  if (n === 1 && feminine) return 'une';
+  return Number.isInteger(n) && n >= 0 && n < COUNT_WORDS.length ? COUNT_WORDS[n] : String(n);
 }
 
 const VOWEL_OR_H = /^[aeiouàâäéèêëîïôöùûüœæh]/i;

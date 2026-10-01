@@ -1,8 +1,8 @@
 <script lang="ts">
   // The lyre (UI3 Ruling B6, was the Settings screen): the dictation voice's trial, the hero's class,
-  // the camp's sounds, the weekly goal as medallions, the seal (PIN), the camp's tours, le guide du camp
-  // (spec 2026-09-29 explanations §3) and the credits (immersion Deferred #7), on a scroll in the cabin. The mute (A17) became three channels (UI5,
-  // spec §7). UI3b playability #6: every choice is a medallion, and the dragon says what the lyre is
+  // the camp's sounds, the weekly goal as medallions, the seal (PIN), the camp's tours, le guide du
+  // camp (spec 2026-09-29 explanations §3) and the credits (immersion Deferred #7), on a scroll in the
+  // cabin. The mute (A17) became three channels (UI5, spec §7). UI3b playability #6: every choice is a medallion, and the dragon says what the lyre is
   // for from the overlay's voice plate (CabinRoom.svelte), so the headings stay short.
   import { onDestroy, untrack } from 'svelte';
   import LevelMedallions from '../../ui/LevelMedallions.svelte';
@@ -215,7 +215,8 @@
       <h3 class="kit-section">Les visites du camp</h3>
       <button type="button" class="kit-link" data-testid="lyre-tours" onclick={replayTours} disabled={replaying}>Refaire les visites du camp</button>
       <h3 class="kit-section guide-title">Le guide du camp</h3>
-      <!-- Spec 2026-09-29 explanations §3 (R12): the guide opens as the cabin's panel; its seal steps back here. -->
+      <!-- Spec 2026-09-29 explanations §3 (R12): the guide opens as the cabin's panel; its seal steps
+           back here. -->
       <button
         type="button"
         class="kit-link"

@@ -107,6 +107,38 @@ describe('le guide du camp (spec 2026-09-29 explanations §3)', () => {
     expect(e).toContain("La première apporte aussi une arme des dieux\u202f: Sandales d'Hermès.");
   });
 
+  // Fix round 1, M5: « à partir du bronze » is the lowest level the stall's list reads.
+  it('says from which seal the stall sells, from the served slot levels', () => {
+    expect(text(null, 'drachmes')).toContain('à partir du bronze, met en vente');
+    const late = { ...ODD, shop: { ...ODD.shop, slot_levels: { cou: 3, queue: 3, dos: 4, tete: 5 } } } as unknown as WorldCatalog;
+    expect(text(late, 'drachmes')).toContain("à partir de l'argent, met en vente");
+    expect(text(late, 'drachmes')).toContain("Pour le cou, au sceau d'argent\u202f: 45 drachmes");
+  });
+
+  // Fix round 1, M6: the server's own three pieces, and a ladder whose gear tiers are not 1..N.
+  it("names the gods' weapons with the fights that bring them", () => {
+    const three = {
+      ...ODD,
+      boss_rewards: { '1': 'sandales_hermes', '2': 'egide', '3': 'foudre_zeus' },
+      rewards: {
+        sandales_hermes: { id: 'sandales_hermes', kind: 'gear', name: "Sandales d'Hermès", desc: '', source: '' },
+        egide: { id: 'egide', kind: 'gear', name: 'Égide', desc: '', source: '' },
+        foudre_zeus: { id: 'foudre_zeus', kind: 'gear', name: 'Foudre de Zeus', desc: '', source: '' },
+      },
+    } as unknown as WorldCatalog;
+    expect(text(three, 'eris')).toContain("Les trois premières apportent aussi une arme des dieux\u202f: Sandales d'Hermès, Égide et Foudre de Zeus.");
+    const gaps = { ...three, boss_rewards: { '1': 'sandales_hermes', '3': 'egide', '10': 'foudre_zeus' } } as unknown as WorldCatalog;
+    const e = text(gaps, 'eris');
+    expect(e).not.toContain('premières');
+    expect(e).toContain("Certaines apportent aussi une arme des dieux\u202f: le combat I, Sandales d'Hermès\u202f; le combat III, Égide\u202f; le combat X, Foudre de Zeus.");
+  });
+
+  // Fix round 1, M7: the rules file may hold a decimal limit.
+  it('writes a decimal limit with a French comma', () => {
+    const half = { ...ODD, rules: { ...ODD.rules, fight_max_per_100: 4.5 } } as unknown as WorldCatalog;
+    expect(text(half, 'eris')).toContain('4,5 fautes au plus pour 100 mots');
+  });
+
   it('speaks the camp, never the school, never guilt or pressure, in French typography', () => {
     for (const catalog of [null, ODD]) {
       for (const s of guideSections(catalog)) {
