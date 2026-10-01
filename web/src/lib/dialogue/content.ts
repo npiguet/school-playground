@@ -8,10 +8,11 @@ import war from '@content/dialogue/war.json';
 import nest from '@content/dialogue/nest.json';
 import cabin from '@content/dialogue/cabin.json';
 import battle from '@content/dialogue/battle.json';
+import stall from '@content/dialogue/stall.json';
 import { DRAGON_STAGES } from '../world/types';
 import { DIALOGUE_KEYS, TOUR_IDS, type DialogueFile, type DialogueKey, type LineDef, type TourId, type TourStepDef } from './types';
 
-const SPEAKERS = new Set(['dragon', 'pythia', 'owl', 'eris']);
+const SPEAKERS = new Set(['dragon', 'pythia', 'owl', 'eris', 'hermes']);
 const WHEN_KEYS = new Set(['stage', 'opponent', 'mode']);
 
 function checkLine(where: string, x: unknown, tour: boolean): LineDef | TourStepDef {
@@ -47,7 +48,7 @@ export function parseDialogueFile(name: string, raw: unknown): DialogueFile {
   return { lines, ...(tour ? { tour } : {}) };
 }
 
-const FILES = { camp, library, delphi, war, nest, cabin, battle } as Record<string, unknown>;
+const FILES = { camp, library, delphi, war, nest, cabin, stall, battle } as Record<string, unknown>;
 const parsed = Object.entries(FILES).map(([n, raw]) => [n, parseDialogueFile(`${n}.json`, raw)] as const);
 
 export const LINES = Object.fromEntries(parsed.flatMap(([, f]) => Object.entries(f.lines))) as Record<DialogueKey, LineDef[]>;

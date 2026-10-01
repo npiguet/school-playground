@@ -1,7 +1,8 @@
 // Who says a content line (spec §2.5): the dragon with its stage's tinted cut-out (« L'œuf » before
-// it hatches), the Pythia, Athena's owl, Éris. The same frames as voices.ts and speakers.ts.
+// it hatches), the Pythia, Athena's owl, Éris, Hermès at his stall. The same frames as voices.ts and
+// speakers.ts.
 import { dragonSpeaker, type DragonLook } from '../world/scenes/speakers';
-import { erisSays, owl, pythia } from '../world/voices';
+import { erisSays, hermes, owl, pythia } from '../world/voices';
 import type { DialogueLine, SpeakerId } from '../scene/types';
 
 /** The dragon before /camp has answered: an egg, in bronze. */
@@ -19,5 +20,7 @@ export function frameFor(speaker: SpeakerId, dragon: DragonLook | null | undefin
       return frame(pythia(''));
     case 'eris':
       return frame(erisSays(''));
+    case 'hermes':
+      return frame(hermes(''));
   }
 }

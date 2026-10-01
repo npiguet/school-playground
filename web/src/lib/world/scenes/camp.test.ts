@@ -14,6 +14,7 @@ import {
   bossLockCaption,
   weeklyCaption,
 } from './camp';
+import { CAMP_SHAPES } from './camp.shapes';
 
 function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {
@@ -45,7 +46,7 @@ const hatchling = { ...camp().dragon, stage: 'hatchling' as const };
 const prophecy = (days: number) => [{ text_id: 1, title: 'La mer', due_date: '2026-09-27', days_left: days }];
 
 describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
-  it('is a valid scene with the six places of the painted camp, each pinned to its landmark', () => {
+  it('is a valid scene with the six places of the painted camp and the stall, each pinned to its landmark', () => {
     expect(validateScene(CAMP_SCENE)).toEqual([]);
     expect(CAMP_SCENE).toMatchObject({ title: 'Le camp', background: '/art/scenes/hub_camp.webp' });
     expect(Object.fromEntries(CAMP_HOTSPOTS.map((h) => [h.id, h.target]))).toEqual({
@@ -55,11 +56,22 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
       dossier: 'war-tent',
       cabin: 'cabin',
       boss: 'boss',
+      stall: 'camp',
     });
-    // UI3b playability #8: every place, the cabin too, has the same dark plaque pinned by a leader.
-    for (const h of CAMP_HOTSPOTS) expect([h.labelPos, h.leader], h.id).toEqual(['below', true]);
+    // UI3b playability #8: every place, the cabin too, has the same dark plaque pinned by a leader
+    // (the stall's hangs above its awning, R18: below it is the dragon's nest).
+    for (const h of CAMP_HOTSPOTS) expect([h.labelPos, h.leader], h.id).toEqual([h.id === 'stall' ? 'above' : 'below', true]);
     // Playability #10: the battle path's plaque slides right, off the war tent's peak.
     expect(CAMP_HOTSPOTS.find((h) => h.id === 'boss')!.labelDx).toBeGreaterThan(0);
+  });
+
+  it("puts Hermès's stall on its painted box, inside the safe zone, above the dragon (spec 2026-09-29 drachmes §2, R18)", () => {
+    const stall = CAMP_HOTSPOTS.find((h) => h.id === 'stall')!;
+    expect(stall).toMatchObject({ label: "L'étal d'Hermès", target: 'camp', query: { panel: 'etal' }, labelPos: 'above', leader: true });
+    expect(CAMP_SHAPES.stall).toEqual({ kind: 'polygon', points: [[12.5, 21.5], [21.8, 21.5], [21.8, 40], [12.5, 40]] });
+    expect(validateScene(CAMP_SCENE)).toEqual([]);
+    // No caption and no glow of its own: nothing at the stall ever calls the player in.
+    for (const c of [camp(), ready({ xp: seasoned }), camp({ drachmes: 900 })]) expect(state('stall', c, catalog)).toMatchObject({ caption: null, isNew: false });
   });
 
   it('always shows the path to battle, locked until Éris can be fought', () => {

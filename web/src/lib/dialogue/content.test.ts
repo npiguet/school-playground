@@ -36,7 +36,7 @@ const DOMAINS: Partial<Record<DialogueKey, DialogueCtx[]>> = {
 
 describe('the dialogue content (spec §8)', () => {
   it('has exactly the files and keys the code asks for, each key in its own file', () => {
-    expect(readdirSync(DIR).sort()).toEqual(['battle.json', 'cabin.json', 'camp.json', 'delphi.json', 'library.json', 'nest.json', 'war.json']);
+    expect(readdirSync(DIR).sort()).toEqual(['battle.json', 'cabin.json', 'camp.json', 'delphi.json', 'library.json', 'nest.json', 'stall.json', 'war.json']);
     expect(Object.keys(LINES).sort()).toEqual([...DIALOGUE_KEYS].sort());
     for (const f of readdirSync(DIR)) {
       const file = parseDialogueFile(f, JSON.parse(readFileSync(`${DIR}/${f}`, 'utf-8')));
@@ -87,6 +87,15 @@ describe('the dialogue content (spec §8)', () => {
   it("keeps Éris's taunts on her tricks and the camp's heroes, never the player's ability", () => {
     for (const { where, line } of every.filter((x) => x.line.speaker === 'eris')) {
       for (const w of FORBIDDEN) expect(line.text.toLowerCase().includes(w), `${where}: « ${w} »`).toBe(false);
+    }
+  });
+
+  // Spec 2026-09-29 drachmes §2: Hermès never pushes: no price, no delay, no scarcity in his mouth.
+  it('lets Hermès welcome and thank, never press', () => {
+    const lines = every.filter((x) => x.line.speaker === 'hermes');
+    expect(lines.length).toBeGreaterThanOrEqual(12);
+    for (const { where, line } of lines) {
+      expect(line.text, where).not.toMatch(/\d|drachme|prix|promo|remise|réduc|solde|vite|dernière|dernier|plus que|seulement|aujourd'hui|demain|bientôt|avant que|stock|rare/i);
     }
   });
 

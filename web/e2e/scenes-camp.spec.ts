@@ -23,7 +23,8 @@ import {
 // and iPad landscape 1180x820). Every place is a real button that routes to its place, Back
 // returns to the hub, the hero panel has its own route, portrait shows the rotate screen, reduced
 // motion removes parallax, bob and particles. UI3 Ruling B3: six places on hub_camp.webp, the path
-// to battle always shown and locked until Éris can be fought.
+// to battle always shown and locked until Éris can be fought; Hermès's stall beside the nest (spec
+// 2026-09-29 drachmes §2).
 
 const PLACES: { id: string; path: RegExp; name: RegExp }[] = [
   { id: 'dragon', path: /\/dragon$/, name: /Le nid du dragon/ },
@@ -31,6 +32,8 @@ const PLACES: { id: string; path: RegExp; name: RegExp }[] = [
   { id: 'parchemins', path: /\/tente-parchemins$/, name: /La tente des parchemins/ },
   { id: 'dossier', path: /\/tente-de-guerre$/, name: /La tente de guerre/ },
   { id: 'cabin', path: /\/cabane$/, name: /Ta cabane/ },
+  // Spec 2026-09-29 drachmes §2 (R10): Hermès's stall opens over the camp itself.
+  { id: 'stall', path: /\/camp\?panel=etal$/, name: /L'étal d'Hermès/ },
 ];
 const ALL = [...PLACES.map((p) => `camp-${p.id}`), 'camp-boss'];
 
@@ -683,7 +686,7 @@ test('the weekly ribbon hangs in the open sky, at least 4 px clear of every plac
       };
     });
     const at = `${size.width}x${size.height}`;
-    expect(hotspots, `six places at ${at}`).toHaveLength(6);
+    expect(hotspots, `six places and the stall at ${at}`).toHaveLength(7);
     expect((weekly.x - art.x) / art.width, `ribbon left at ${at}`).toBeGreaterThanOrEqual(0.3);
     expect((weekly.x + weekly.width - art.x) / art.width, `ribbon right at ${at}`).toBeLessThanOrEqual(0.7);
     expect((weekly.y + weekly.height - art.y) / art.height, `ribbon bottom at ${at}`).toBeLessThanOrEqual(0.22);

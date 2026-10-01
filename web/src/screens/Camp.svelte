@@ -8,6 +8,8 @@
   // itself, the fade out to the next scene and having no exit sign (it is where the others lead).
   // Final review I3 (sub-project 3): a dragon that grew while she was away (its stage beyond the one
   // she last saw, lib/world/dragonSeen.svelte.ts) is revealed once, on a scroll, before the greeting.
+  // Hermès's stall opens here as an overlay (`?panel=etal`, spec 2026-09-29 drachmes §2).
+  import { untrack } from 'svelte';
   import { fade } from 'svelte/transition';
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import SceneLayer from '../components/scene/SceneLayer.svelte';
@@ -15,6 +17,9 @@
   import Overlay from '../components/scene/Overlay.svelte';
   import Dragon from '../components/Dragon.svelte';
   import DragonNameAsk from '../components/DragonNameAsk.svelte';
+  import StallPanel from '../components/places/camp/StallPanel.svelte';
+  import { sayKey } from '../lib/dialogue/select';
+  import type { ItemKind } from '../lib/world/shop';
   import { CAMP_SCENE, bossLockLine, campDragonLayer, campGreeting, weeklyCaption } from '../lib/world/scenes/camp';
   import { dragonSays } from '../lib/world/scenes/speakers';
   import { campFor } from '../lib/world/campStore.svelte';
@@ -24,14 +29,14 @@
   import { TINT_FILTERS, dragonCaption } from '../lib/world/dragon';
   import { ART } from '../lib/world/art';
   import type { CampResponse } from '../lib/world/types';
-  import type { HotspotDef, SceneLayerDef } from '../lib/scene/types';
+  import type { DialogueLine, HotspotDef, SceneLayerDef } from '../lib/scene/types';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
   import { reducedMotion } from '../lib/juice/motion';
   import { navigate } from '../lib/router.svelte';
-  import { heroPanelHref, hotspotHref, openPanel, replacePanel } from '../lib/scene/panelNav';
+  import { closePanel, go, heroPanelHref, hotspotHref, openPanel, replacePanel } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
   import { shouldTour } from '../lib/tours/seen.svelte';
-  import type { PanelId } from '../lib/world/places';
+  import { OVERLAY_TITLES, sceneHref, type PanelId } from '../lib/world/places';
   import type { Profile } from '../lib/types';
 
   // `panel` comes from placeFor, like every other place (final review M2).
@@ -95,10 +100,24 @@
   function activate(def: HotspotDef) {
     const to = hotspotHref(def, profile.id);
     if (!to) return;
+    // Spec 2026-09-29 drachmes §2 (R10): the stall is an overlay of the camp: no night fade, no
+    // leaving (`go` plays the tap).
+    if (def.query?.panel) {
+      go(to, 'panel');
+      return;
+    }
     unlockAudio();
     playSfx('tap');
     leaveTo(to);
   }
+
+  // Hermès speaks on the stall's voice plate: his welcome, then his thanks after a purchase (R13).
+  let stallVoice = $state<DialogueLine | null>(null);
+  $effect(() => {
+    if (panel === 'etal') stallVoice = untrack(() => sayKey('stall.enter'));
+  });
+  const bought = (kind: ItemKind) => (stallVoice = sayKey(`stall.bought.${kind}`));
+  const closeStall = () => closePanel(sceneHref('camp', profile.id));
 
   // UI3 Ruling B3, carry #16/M9: the locked path to battle says how many tricks remain, in the
   // dragon's words. The tap on the locked path never takes the stage's one-tap guard (Hotspot.svelte).
@@ -143,6 +162,12 @@
     {/if}
   {/snippet}
 </PlaceScene>
+
+{#if panel === 'etal'}
+  <Overlay variant="table" size="wide" title={OVERLAY_TITLES.etal} testId="overlay-stall" voice={stallVoice} onClose={closeStall} returnFocus={hotspotSelector('camp', 'stall')}>
+    <StallPanel {profile} onBought={bought} />
+  </Overlay>
+{/if}
 
 {#if reveal}
   {@const dragon = campFor(profile.id)?.dragon}

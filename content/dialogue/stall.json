@@ -1,0 +1,28 @@
+{
+  "lines": {
+    "stall.enter": [
+      { "speaker": "hermes", "text": "Bienvenue à mon étal ! Regarde tout à ton aise, rien ne presse." },
+      { "speaker": "hermes", "text": "Ah, te voilà ! J'arrive de l'Olympe avec quelques merveilles. Prends ton temps." },
+      { "speaker": "hermes", "text": "Mes sandales ont fait le tour de la Grèce pour remplir ces étagères. Regarde, simplement." },
+      { "speaker": "hermes", "text": "Salut à toi ! Chaque objet ici a sa petite histoire. Demande-moi, je les connais toutes." }
+    ],
+    "stall.bought.accessory": [
+      { "speaker": "hermes", "text": "Belle parure ! Passe au nid pour en habiller ton dragon." },
+      { "speaker": "hermes", "text": "Ton dragon va se tenir plus droit que jamais. Le nid t'attend pour l'essayage." },
+      { "speaker": "hermes", "text": "Un travail d'artisan de Corinthe ! Au nid, ton dragon pourra s'en parer." },
+      { "speaker": "hermes", "text": "Emballée dans une feuille de vigne ! Ton dragon la trouvera dans son nid." }
+    ],
+    "stall.bought.decor": [
+      { "speaker": "hermes", "text": "Un bel objet pour une belle demeure. Il t'attend parmi tes trésors." },
+      { "speaker": "hermes", "text": "Livré par mes sandales ailées ! Ouvre tes trésors pour l'exposer au mur." },
+      { "speaker": "hermes", "text": "Tes murs vont briller ! L'objet t'attend parmi tes trésors, dans ta maison." },
+      { "speaker": "hermes", "text": "Voilà qui fera parler tout le camp. Tu le trouveras parmi tes trésors." }
+    ],
+    "stall.bought.house": [
+      { "speaker": "hermes", "text": "Les clés sont à toi ! Tes affaires ont déjà déménagé, par la voie des airs." },
+      { "speaker": "hermes", "text": "Une demeure digne de ton camp ! Ton dragon voudra la visiter tout de suite." },
+      { "speaker": "hermes", "text": "Marché conclu ! Tes trophées et tes décors t'attendent déjà dans ta nouvelle maison." },
+      { "speaker": "hermes", "text": "J'ai porté chaque meuble moi-même, d'un seul coup d'ailes. Bonne installation !" }
+    ]
+  }
+}

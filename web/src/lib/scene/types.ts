@@ -130,7 +130,7 @@ export interface SceneDef {
   preload: string[];
 }
 
-export type SpeakerId = 'dragon' | 'pythia' | 'owl' | 'eris';
+export type SpeakerId = 'dragon' | 'pythia' | 'owl' | 'eris' | 'hermes';
 
 export interface DialogueLine {
   speaker: SpeakerId;

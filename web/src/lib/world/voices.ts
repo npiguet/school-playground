@@ -7,6 +7,9 @@ import type { DialogueLine } from '../scene/types';
 export const owl = (text: string): DialogueLine => ({ speaker: 'owl', name: "La chouette d'Athéna", portrait: ART.characters.owl, text });
 export const pythia = (text: string): DialogueLine => ({ speaker: 'pythia', name: 'La Pythie', portrait: ART.characters.pythia, text });
 
+/** Spec 2026-09-29 drachmes §2: the merchant at his stall. */
+export const hermes = (text: string): DialogueLine => ({ speaker: 'hermes', name: 'Hermès', portrait: ART.characters.hermes, text });
+
 /** Éris speaks in her war tent (UI3 Ruling B10): lines built from live data (her dossier lines). */
 export function erisSays(text: string): DialogueLine {
   return { speaker: 'eris', name: 'Éris', portrait: ART.erisSmug, text };

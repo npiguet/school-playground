@@ -14,9 +14,10 @@ describe('places (UI3 Ruling A1: every legacy route is its place plus an overlay
     expect(at('#/profiles/new')).toEqual({ place: 'title', panel: 'nouveau' });
   });
 
-  it('shows the camp, with its hero panel', () => {
+  it("shows the camp, with its hero panel and Hermès's stall (spec 2026-09-29 drachmes §2, R10)", () => {
     expect(at('#/p/3/camp')).toEqual({ place: 'camp', panel: null });
     expect(at('#/p/3/camp?panel=heros')).toEqual({ place: 'camp', panel: 'heros' });
+    expect(placeFor(matchRoute('#/p/3/camp?panel=etal'))).toEqual({ place: 'camp', panel: 'etal' });
     expect(at('#/p/3/camp?panel=nope')).toEqual({ place: 'camp', panel: null });
   });
 
@@ -88,7 +89,9 @@ describe('places (UI3 Ruling A1: every legacy route is its place plus an overlay
       tresors: 'Tes trésors',
       journal: 'Ton journal',
       lyre: 'La lyre',
+      etal: "L'étal d'Hermès",
     });
+    expect(OVERLAY_TITLES.etal).toBe("L'étal d'Hermès");
     // `portrait` and `page` are titled by the lieutenant / the entry itself (B1); a hotspot that
     // leads to another place (every hub place) names that place, not one of its overlays.
     const DYNAMIC = new Set(['portrait', 'page']);

@@ -865,7 +865,7 @@ export async function createFreshHeroApi(request: APIRequestContext, name: strin
 // an import attribute, which Playwright's transform does not add.
 const CONTENT_LINES: Record<string, { text: string }[]> = Object.assign(
   {},
-  ...['camp', 'library', 'delphi', 'war', 'nest', 'cabin', 'battle'].map(
+  ...['camp', 'library', 'delphi', 'war', 'nest', 'cabin', 'stall', 'battle'].map(
     (f) => (JSON.parse(readFileSync(new URL(`../../content/dialogue/${f}.json`, import.meta.url), 'utf-8')) as { lines: object }).lines,
   ),
 );
