@@ -53,6 +53,8 @@ const FILES = { camp, library, delphi, war, nest, cabin, stall, battle } as Reco
 const parsed = Object.entries(FILES).map(([n, raw]) => [n, parseDialogueFile(`${n}.json`, raw)] as const);
 
 export const LINES = Object.fromEntries(parsed.flatMap(([, f]) => Object.entries(f.lines))) as Record<DialogueKey, LineDef[]>;
-export const TOURS = Object.fromEntries(
-  parsed.filter(([n, f]) => f.tour && (TOUR_IDS as readonly string[]).includes(n)).map(([n, f]) => [n, f.tour!]),
-) as Record<TourId, TourStepDef[]>;
+/** Which content file holds each tour: a place's own, the muster's in battle.json (spec 2026-09-29
+ *  explanations §2, R11). */
+const TOUR_FILE: Record<TourId, string> = { camp: 'camp', library: 'library', delphi: 'delphi', war: 'war', nest: 'nest', cabin: 'cabin', muster: 'battle' };
+const byName = Object.fromEntries(parsed) as Record<string, DialogueFile>;
+export const TOURS = Object.fromEntries(TOUR_IDS.map((id) => [id, byName[TOUR_FILE[id]]?.tour ?? []])) as Record<TourId, TourStepDef[]>;

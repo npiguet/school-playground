@@ -16,7 +16,7 @@
   const ROMAN = ['', 'I', 'II', 'III'];
 </script>
 
-<fieldset class="paces" class:row>
+<fieldset class="paces" class:row data-tour-part="pace">
   <legend class="section">{MUSTER.paceHeading}</legend>
   <div class="grid" role="radiogroup" aria-label="Rythme de la dictée">
     {#each PACES as p (p)}

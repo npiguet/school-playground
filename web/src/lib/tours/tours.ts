@@ -13,6 +13,9 @@ import type { TourId } from '../dialogue/types';
 
 export const TOUR_OF: Partial<Record<SceneId, TourId>> = { camp: 'camp', library: 'library', delphi: 'delphi', war: 'war', nest: 'nest', cabin: 'cabin' };
 
+/** The muster's parts its tour lights (R11): the pace, the aids, the total. */
+export const MUSTER_TOUR_PARTS = ['pace', 'aids', 'bonus'] as const;
+
 /** Ruling E10: e2e switches the tours off unless a spec asks for them. */
 export function toursEnabled(): boolean {
   return (globalThis as { __discordeTours?: string }).__discordeTours !== 'off';

@@ -43,7 +43,7 @@ export const DIALOGUE_KEYS = [
 ] as const;
 export type DialogueKey = (typeof DIALOGUE_KEYS)[number];
 
-export const TOUR_IDS = ['camp', 'library', 'delphi', 'war', 'nest', 'cabin'] as const;
+export const TOUR_IDS = ['camp', 'library', 'delphi', 'war', 'nest', 'cabin', 'muster'] as const;
 export type TourId = (typeof TOUR_IDS)[number];
 
 /** The placeholders each key may use (content.test.ts); every other key uses none. */

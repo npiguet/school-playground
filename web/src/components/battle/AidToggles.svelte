@@ -26,7 +26,7 @@
   }
 </script>
 
-<fieldset class="aids" class:wide data-testid="muster-aids">
+<fieldset class="aids" class:wide data-testid="muster-aids" data-tour-part="aids">
   <legend class="section">{MUSTER.aidsHeading}</legend>
   <div class="list">
     {#each AID_KEYS as key (key)}

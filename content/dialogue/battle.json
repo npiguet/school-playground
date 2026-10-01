@@ -97,5 +97,12 @@
       { "speaker": "eris", "text": "Plus un son ? C'est mon œuvre, et j'en suis très fière." },
       { "speaker": "eris", "text": "Un petit sort sur la voix, et la voilà muette. Je suis ravie de mon coup !" }
     ]
-  }
+  },
+  "tour": [
+    { "speaker": "dragon", "target": "pace", "text": "Ton rythme : plus la Pythie lit vite, plus la gloire est grande. Choisis celui qui te va." },
+    { "speaker": "dragon", "target": "aids", "text": "Tes aides : cinq alliés pour relire. Touche une aide pour l'emporter, ou pour la laisser au camp." },
+    { "speaker": "dragon", "target": "aids", "text": "Chaque aide laissée au camp ajoute de la gloire : sa pastille dit combien. Tu la reprends quand tu veux." },
+    { "speaker": "dragon", "target": "bonus", "text": "Ici, toute la gloire en plus de cette dictée. Elle compte surtout quand ta copie est soignée." },
+    { "speaker": "dragon", "target": null, "text": "Tu choisis, et tu changes d'avis quand tu veux. En route pour la dictée !" }
+  ]
 }

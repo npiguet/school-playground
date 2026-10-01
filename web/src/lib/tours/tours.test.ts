@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOUR_OF, seenEntries, seenVersion, tourSeen, tourSteps, tourVersion, toursEnabled } from './tours';
+import { MUSTER_TOUR_PARTS, TOUR_OF, seenEntries, seenVersion, tourSeen, tourSteps, tourVersion, toursEnabled } from './tours';
 
 const egg = { name: null, stage: 'egg', tint: 'bronze' } as never;
 const young = { name: 'Brasier', stage: 'young', tint: 'olive' } as never;
@@ -54,6 +54,15 @@ describe('the first-visit tours (spec §8, Ruling E13)', () => {
     expect(tourSteps('library', young, 1).lines).toEqual([]);
     expect(tourSteps('cabin', young, 2).lines).toEqual([]);
     expect(tourSteps('cabin', young).lines).toHaveLength(6);
+  });
+
+  // Spec 2026-09-29 explanations §2 (R11): the muster's own tour, told by the dragon.
+  it('walks the muster through the pace, the aids and the total', () => {
+    const m = tourSteps('muster', young);
+    expect(m.targets).toEqual(['pace', 'aids', 'aids', 'bonus', null]);
+    expect(m.lines.every((l) => l.speaker === 'dragon')).toBe(true);
+    expect(MUSTER_TOUR_PARTS).toEqual(['pace', 'aids', 'bonus']);
+    expect(tourVersion('muster')).toBe(1);
   });
 
   it('can be switched off by the e2e hook only (Ruling E10)', () => {

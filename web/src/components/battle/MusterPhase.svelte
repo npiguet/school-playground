@@ -6,15 +6,19 @@
   // one), and a start bar that stays in view (plan Ruling R7): the glory this battle is worth, the
   // suggestion if any, « Commencer la dictée » and the grimoire's way (Ruling R8). The grimoire shows
   // only the aids and « Ouvrir le grimoire ». One screen, no scrolling, at 1280×800 and on the iPad.
+  // On the first dictation muster the dragon's tour takes the taunt's plate (spec 2026-09-29
+  // explanations §2, plan R11).
   import { untrack } from 'svelte';
   import OverlayVoice from '../scene/OverlayVoice.svelte';
   import AidToggles from './AidToggles.svelte';
+  import MusterTour from './MusterTour.svelte';
   import PaceMedallions from './PaceMedallions.svelte';
   import { AID_LABELS, bonusParts, suggestion, type RecentDefence } from '../../lib/aids';
   import { api } from '../../lib/api';
   import { audioSettings, setChannel } from '../../lib/audio/store.svelte';
   import { MUSTER } from '../../lib/battle/lines';
   import { battleStage, react } from '../../lib/battle/stage.svelte';
+  import { reducedMotion } from '../../lib/juice/motion';
   import { isProphecy } from '../../lib/dates';
   import { PACES, PACE_LABELS, type Pace } from '../../lib/dictation/script';
   import type { PlayState } from '../../lib/playState';
@@ -39,6 +43,8 @@
     corrupting,
     corruptError,
     taunt,
+    tour = null,
+    onTourDone = () => {},
     profileId,
     onContinue,
     onRestart,
@@ -63,6 +69,9 @@
     corruptError: string | null;
     /** Éris's line at the muster (Ruling C7), on her voice plate. */
     taunt: DialogueLine | null;
+    /** The muster's first-visit tour (R11), or null. */
+    tour?: { lines: DialogueLine[]; targets: (string | null)[] } | null;
+    onTourDone?: () => void;
     profileId: number;
     onContinue: () => void;
     onRestart: () => void;
@@ -108,6 +117,20 @@
     return '';
   }
 
+  // R11: the tour's step lights its part of the parchment (a gold outline), and only while it speaks.
+  let root = $state<HTMLDivElement>();
+  let tourTarget = $state<string | null>(null);
+  $effect(() => {
+    const t = tour ? tourTarget : null;
+    const node = root;
+    if (!t || !node) return;
+    const el = node.querySelector<HTMLElement>(`[data-tour-part="${t}"]`);
+    if (!el) return;
+    el.setAttribute('data-tour-lit', '');
+    el.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' });
+    return () => el.removeAttribute('data-tour-lit');
+  });
+
   // The two sides square up: the opponent taunts, the dragon braces (Ruling C10). Again for each new
   // battle on this muster (« Recommencer » resets the stage under it, final review I2).
   $effect(() => {
@@ -127,6 +150,7 @@
   data-testid="muster"
   data-layout={wide ? 'wide' : 'narrow'}
   bind:clientWidth={width}
+  bind:this={root}
 >
   {#if resume}
     <div class="resume">
@@ -160,7 +184,11 @@
       {/if}
     </header>
 
-    {#if taunt}<OverlayVoice line={taunt} testId="battle-voice" />{/if}
+    {#if tour && mode !== 'grimoire'}
+      <MusterTour lines={tour.lines} targets={tour.targets} onStep={(t) => (tourTarget = t)} onDone={onTourDone} />
+    {:else if taunt}
+      <OverlayVoice line={taunt} testId="battle-voice" />
+    {/if}
 
     <!-- UI5 Ruling E7: a muted voice is never a trap - the dictation keeps its pace but reads nothing
          aloud, so the muster says so and gives the voice back in one tap. -->
@@ -215,7 +243,7 @@
       </div>
       <div class="start-bar">
         <div class="bar-words">
-          <p class="total" data-testid="muster-bonus">
+          <p class="total" data-testid="muster-bonus" data-tour-part="bonus">
             {MUSTER.total(bonus.total)}
             {#if bonus.prophecy > 0}<span class="kit-tag prophecy-bonus" data-testid="muster-prophecy-bonus">{MUSTER.prophecyTag(bonus.prophecy)}</span>{/if}
           </p>
@@ -294,6 +322,13 @@
   .muster :global(.voice-text) {
     font-size: 17px;
     line-height: 1.3;
+  }
+  /* R11: the part the tour speaks of (the pace, the aids, the total), outlined in gold. */
+  .muster :global([data-tour-lit]) {
+    outline: 3px solid var(--gold-light);
+    outline-offset: 4px;
+    border-radius: 12px;
+    box-shadow: 0 0 18px color-mix(in srgb, var(--gold-light) 60%, transparent);
   }
   .voice-muted {
     margin: 0;

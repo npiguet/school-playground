@@ -44,6 +44,8 @@
   import { proofAids } from '../lib/battle/proofAids';
   import { rulesOf } from '../lib/rules';
   import { clockStart, clockStop, clockTick } from '../lib/world/playClock.svelte';
+  import { markTourSeen, shouldTour } from '../lib/tours/seen.svelte';
+  import { seenVersion, tourSteps } from '../lib/tours/tours';
   import type { PlayMode, Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
 
   let {
@@ -227,7 +229,9 @@
   }
 
   // The tap on « Commencer la dictée » unlocks the audio (lib/audio/gestures.ts): the voice plays through it.
+  // It ends the muster's tour too (R11: the tour is never a modal in the way).
   function startDictation() {
+    endMusterTour();
     if (!playState) return;
     playState.startedAt = new Date().toISOString();
     playState.phase = 'dictation';
@@ -441,6 +445,26 @@
     });
   });
 
+  // Spec 2026-09-29 explanations §2 (R11): the muster's own tour, once, on the first dictation muster
+  // (never a resume or the grimoire), once /camp has been asked (the dragon speaks in its own look).
+  let musterTour = $state<{ lines: DialogueLine[]; targets: (string | null)[] } | null>(null);
+  let musterTourAsked = false;
+  $effect(() => {
+    if (musterTourAsked || !campTried || phase !== 'muster' || mode !== 'dictation' || showResumeBanner || playState?.phase !== 'intro') return;
+    musterTourAsked = true;
+    untrack(() => {
+      if (!shouldTour(profile, 'muster')) return;
+      const steps = tourSteps('muster', camp?.dragon ?? null, seenVersion(profile.settings, 'muster'));
+      if (steps.lines.length > 0) musterTour = steps;
+      else void markTourSeen(profile, 'muster');
+    });
+  });
+  function endMusterTour() {
+    if (!musterTour) return;
+    musterTour = null;
+    void markTourSeen(profile, 'muster');
+  }
+
   // UI5 Ruling E14: what the dragon's explanations read at the victory (« Revoir » reads the same).
   const explainCtx = $derived(text ? explainContext(text.body, text.annotation as Annotation, profile.level) : null);
 
@@ -491,6 +515,8 @@
           {corrupting}
           {corruptError}
           {taunt}
+          tour={musterTour}
+          onTourDone={endMusterTour}
           profileId={profile.id}
           onContinue={continueSession}
           onRestart={restart}

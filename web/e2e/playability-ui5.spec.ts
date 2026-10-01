@@ -296,6 +296,14 @@ async function battleSection(w: Walk) {
   await page.goto(`/#/p/${w.battleHero}/play/${w.texts.muster}`);
   await expectBattle(page, 'muster');
   await combatantsSettled(page);
+  // Spec 2026-09-29 explanations §2 (R11): the first dictation muster is the dragon's tour, on the
+  // plate where Éris's line stands; skipped here, her line comes back (scenes-muster-tour.spec.ts
+  // walks it).
+  await expect(page.getByTestId('muster-tour')).toBeVisible();
+  await shot(w, 'e14-muster-tour');
+  await page.getByTestId('muster-tour-skip').click();
+  await expect(page.getByTestId('muster-tour')).toHaveCount(0);
+  await expect.poll(async () => (await (await page.request.get(`/api/profiles/${w.battleHero}`)).json()).settings.tours ?? []).toContain('muster');
   await expectLineOf(voice, 'battle.start');
   await shot(w, 'e14-muster-eris-start');
   await noRed(w, 'muster');
