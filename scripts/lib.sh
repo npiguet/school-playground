@@ -147,6 +147,38 @@ build_server_dev_image() {
   docker build -q -t "$SERVER_DEV_IMAGE" -f "$HOST_ROOT/server/Dockerfile.dev" "$HOST_ROOT/server" >/dev/null
 }
 
+# One Playwright run per stack, refused rather than queued (SP5 Task 6): a second run of the same
+# STACK rebuilds and then `down -v`s the very containers the first one is testing against (an
+# orphaned run once collided with a retry). The machine-wide lock below still queues runs of
+# different stacks. A mkdir lock holding the owner's PID and start time; a holder whose PID is gone
+# (killed, crashed) is taken over. `claim_stack_run` exits 3 when a live run holds it, and releases
+# it when the calling script exits; `release_stack_run` releases it early.
+STACK_RUN_LOCK="${TMPDIR:-${TMP:-/tmp}}/discorde-run-$STACK_NAME.lock"
+release_stack_run() {
+  if [ "$(sed -n 1p "$STACK_RUN_LOCK/owner" 2>/dev/null)" = "$$" ]; then
+    rm -rf "$STACK_RUN_LOCK"
+  fi
+}
+claim_stack_run() {
+  until mkdir "$STACK_RUN_LOCK" 2>/dev/null; do
+    local pid started
+    pid="$(sed -n 1p "$STACK_RUN_LOCK/owner" 2>/dev/null || true)"
+    started="$(sed -n 2p "$STACK_RUN_LOCK/owner" 2>/dev/null || true)"
+    # A live holder, or one that took the lock under a minute ago and is still writing its owner file.
+    if { [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; } ||
+      { [ -z "$pid" ] && [ -z "$(find "$STACK_RUN_LOCK" -maxdepth 0 -mmin +1 2>/dev/null)" ]; }; then
+      echo "playwright: another run of stack $STACK_NAME is in progress (PID ${pid:-?}, started ${started:-just now});"         "refusing to start a second one on the same stack. Wait for it to end, stop it, or use another STACK. Lock: $STACK_RUN_LOCK" >&2
+      exit 3
+    fi
+    echo "playwright: taking over the run lock of stack $STACK_NAME from PID ${pid:-?}, which is gone" >&2
+    rm -rf "$STACK_RUN_LOCK"
+  done
+  printf '%s
+%s
+' "$$" "$(date '+%Y-%m-%d %H:%M:%S')" > "$STACK_RUN_LOCK/owner"
+  trap release_stack_run EXIT
+}
+
 # One CPU-heavy run at a time on this machine, whatever the stack, worktree or caller: Playwright's
 # browsers (scripts/playwright.sh) and the audio tools' ffmpeg (tools/audio/run_docker.sh, Ruling
 # F4) all starve each other's rendering/encoding if they overlap, so both wait on the same lock. A
@@ -159,8 +191,10 @@ PLAYWRIGHT_LOCK="${TMPDIR:-${TMP:-/tmp}}/discorde-e2e.lock"
 with_playwright_lock() {
   local waited=0 said="" lock_owned=0
   local wait_max="${PLAYWRIGHT_LOCK_WAIT:-7200}"
+  local prev_exit
+  prev_exit="$(trap -p EXIT)"
   _playwright_lock_release() {
-    if [ "$lock_owned" = 1 ] && [ "$(sed -n 1p "$PLAYWRIGHT_LOCK/owner" 2>/dev/null)" = "$$" ]; then
+    if [ "${lock_owned:-0}" = 1 ] && [ "$(sed -n 1p "$PLAYWRIGHT_LOCK/owner" 2>/dev/null)" = "$$" ]; then
       rm -rf "$PLAYWRIGHT_LOCK"
     fi
     lock_owned=0
@@ -169,8 +203,8 @@ with_playwright_lock() {
     if mkdir "$PLAYWRIGHT_LOCK" 2>/dev/null; then
       printf '%s\n%s\n%s\n' "$$" "$STACK_NAME" "$(date '+%Y-%m-%d %H:%M:%S')" > "$PLAYWRIGHT_LOCK/owner"
       lock_owned=1
-      trap _playwright_lock_release EXIT
-      trap '_playwright_lock_release; exit 130' INT TERM
+      trap "_playwright_lock_release; release_stack_run" EXIT
+      trap '_playwright_lock_release; release_stack_run; exit 130' INT TERM
       break
     fi
     local pid stack started
@@ -209,6 +243,8 @@ with_playwright_lock() {
   "$@"
   local status=$?
   _playwright_lock_release
-  trap - EXIT INT TERM
+  # Hand the traps back as they were (claim_stack_run's EXIT trap, for one).
+  trap - INT TERM
+  if [ -n "$prev_exit" ]; then eval "$prev_exit"; else trap - EXIT; fi
   return $status
 }

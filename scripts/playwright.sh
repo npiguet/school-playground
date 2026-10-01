@@ -12,6 +12,8 @@ if ! grep -q "\"@playwright/test\": \"$PLAYWRIGHT_VERSION\"" "$ROOT/web/package.
   echo "PLAYWRIGHT_VERSION ($PLAYWRIGHT_VERSION, scripts/lib.sh) differs from @playwright/test in web/package.json" >&2
   exit 2
 fi
+# One run per stack: a second one would tear this one's containers down under it (scripts/lib.sh).
+claim_stack_run
 ensure_volumes
 cd "$ROOT"
 docker compose -f compose.e2e.yaml build app tts
