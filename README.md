@@ -523,7 +523,12 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   to tap; tapping one opens its panel over the scene. A strip at the top of every scene holds the
   hero chip (opens the hero panel), the XP laurel, the dragon and the lyre button (the sound plate:
   the three channels and « Ouvrir la lyre »). The first visit to each place is a short tour by its
-  character; « Refaire les visites du camp » in the lyre replays them.
+  character, and the battle's muster has its own (the pace, the aids and what leaving them is
+  worth); when a place gains something new, a hero
+  who already saw its tour hears only the new steps, once (a version per tour in `settings.tours`,
+  e.g. `"cabin:2"`). « Refaire les visites du camp » in the lyre replays them all, and « Le guide
+  du camp » there explains glory and the dragon's stages, the seals, the drachmes, the aids and
+  Éris's fights, with the numbers of `data/regles.json` as the server serves them.
 - **The camp** (`#/p/:id/camp`) is the hub once a hero is picked. Its places:
   - « Le nid du dragon » — the dragon's nest: its growth and care (tints).
   - « La tente des parchemins » — the library: « Tes parchemins » (the shelves, where a text is
@@ -537,6 +542,15 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
     former stats screen) and « La lyre » (the settings: the dictation voice's trial, the three sound
     channels, class, weekly goal, seal, tours, credits).
   - « Le sentier de la bataille » — the way to Éris herself, once she shows up.
+- **What next.** At the camp, the dragon ends its greeting with the most useful next goal, first
+  match wins: a name for a hatched dragon, a prophecy due within a week, an open fight against
+  Éris, the first text, a lieutenant's seal within reach (its window at least 70 % complete and
+  its share at target), the next stage (under a fifth of the way left), something affordable at
+  Hermès's stall, the week's sealed scrolls, the weekly goal, otherwise a warm word.
+- **How to earn it.** Nothing is hidden: every trophy, tint, gear, decor piece, accessory and
+  house not owned says in words how to get it (an empty plinth says where its lieutenant hides and
+  what the first seal asks; the trophies still to win show as silhouettes in the shelf's close
+  view; the next fight names its gear). No countdown, no pressure.
 - **Battles.** A text opens the battle stage (`#/p/:id/play/:textId`; the Grimoire at
   `#/p/:id/grimoire/:textId`): choose a pace and the review aids to take along, write the
   dictation, proofread it with the aids taken, then the victory (the copy's mistakes and the XP
@@ -562,15 +576,15 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
 - **Dragon growth** — the dragon's stage follows the hero's total XP: Œuf (0), Dragonnet (100),
   Jeune dragon (1 200), Dragon adulte (5 000), Dragon illustre (15 000), Dragon ancestral (40 000),
   thresholds in `data/regles.json`. A stage is never lost: a raised threshold or a restored backup
-  keeps the stage already reached, and a dragon grown before this rule keeps its stage. The HUD's laurel shows the way to the next stage; the XP ranks are gone. A growth the
-  hero has not seen on a victory (a lowered threshold, the catch-up after an update) is revealed once
+  keeps the stage already reached, and a dragon grown before this rule keeps its stage. The HUD's
+  laurel shows the way to the next stage; the XP ranks are gone. A growth the hero has not seen on a victory (a lowered threshold, the catch-up after an update) is revealed once
   at the camp, with the naming field for an unnamed dragon; the stage last seen is the hero's
   `settings.dragon_seen_stage`.
 - **Rewards are announced in advance** — every dragon tint, divine gear and cabin decor piece is on
   the cabin's trophy shelf (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can be
   earned; nothing is a gamble. A lieutenant's empty plinth there says what its first seal asks; the
-  bronze to orichalque trophies appear on the shelf once won, and the war tent's portrait of each
-  lieutenant says what its next seal asks.
+  bronze to orichalque trophies stand on the shelf once won (silhouettes in its close view until
+  then), and the war tent's portrait of each lieutenant says what its next seal asks.
 - **Art and sound** are served from the same origin: `web/public/art` (WebP, about 6.7 MB) and
   `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler. Dragon tints are a
   CSS `hue-rotate` filter on one cut-out. The sound settings are saved per hero on the server (and
