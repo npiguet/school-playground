@@ -20,6 +20,13 @@
       "y": 0.27832,
       "w": 0.21387,
       "h": 0.08887
+    },
+    "ancestral": {
+      "src": "chimere-cou_ancestral.webp",
+      "x": 0.54004,
+      "y": 0.2832,
+      "w": 0.14941,
+      "h": 0.08887
     }
   },
   "chimere-queue": {
@@ -43,6 +50,13 @@
       "y": 0.73633,
       "w": 0.12891,
       "h": 0.10449
+    },
+    "ancestral": {
+      "src": "chimere-queue_ancestral.webp",
+      "x": 0.11621,
+      "y": 0.74121,
+      "w": 0.10742,
+      "h": 0.10645
     }
   },
   "chimere-dos": {
@@ -59,6 +73,13 @@
       "y": 0.45605,
       "w": 0.25,
       "h": 0.1748
+    },
+    "illustre": {
+      "src": "chimere-dos_illustre.webp",
+      "x": 0.31738,
+      "y": 0.46484,
+      "w": 0.27637,
+      "h": 0.18555
     }
   },
   "chimere-tete": {
