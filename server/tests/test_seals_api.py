@@ -73,6 +73,14 @@ def test_three_days_of_guard_win_the_hydras_wooden_seal(client, settings):
     conn.close()
 
 
+def test_a_lieutenant_serves_only_what_the_client_reads(client):
+    # SP2 open item, closed in SP5 Task 6: the all-time counts and the last day were served but never read.
+    pid = make_profile(client, level="10H"); tid = make_text(client)
+    post(client, pid, tid, hydre_result(), day="2026-09-21")
+    assert set(hydre(camp(client, pid))) == {"key", "name", "categories", "available", "level", "level_reached_at",
+                                             "next", "bestiary_unlocked", "active_quest_id"}
+
+
 def test_the_next_seal_counts_only_days_after_the_last(client):
     pid = make_profile(client, level="10H"); tid = make_text(client)
     for day in ("2026-09-21", "2026-09-22", "2026-09-23"):

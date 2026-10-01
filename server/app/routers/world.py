@@ -110,10 +110,6 @@ def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row, rules: Rul
     out = []
     for key in LIEUTENANT_ORDER:
         cats = LIEUTENANTS[key]["categories"]
-        marks = ",".join("?" * len(cats))
-        row = conn.execute(f"SELECT SUM(errors_in_draft) t, SUM(caught) c, SUM(missed) m, MAX(day) last FROM profile_stat_day "
-                           f"WHERE profile_id = ? AND category IN ({marks})", (pid, *cats)).fetchone()
-        traps, caught, missed = row["t"] or 0, row["c"] or 0, row["m"] or 0
         level, reached_at = seals.get(key, (0, None))
         nxt = next_seal(conn, pid, key, level, reached_at, rules)
         # Spec 2026-09-29 lieutenant levels §5: the page opens at the first seal or a finished quest.
@@ -127,8 +123,7 @@ def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row, rules: Rul
             "key": key, "name": LIEUTENANTS[key]["name"], "categories": cats, "available": key in available,
             # Spec §1: the seal won (0 before the first) and the window toward the next (None after the fifth).
             "level": level, "level_reached_at": reached_at, "next": nxt,
-            "all_time": {"traps": traps, "caught": caught, "missed": missed, "rate": (caught / traps) if traps else None},
-            "last_day": row["last"], "bestiary_unlocked": bestiary_unlocked, "active_quest_id": active_quest["id"] if active_quest else None,
+            "bestiary_unlocked": bestiary_unlocked, "active_quest_id": active_quest["id"] if active_quest else None,
         })
     return out
 

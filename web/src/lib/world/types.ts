@@ -96,8 +96,6 @@ export interface LieutenantState {
   level_reached_at: string | null;
   /** The window toward the next seal; null after the fifth. */
   next: SealWindow | null;
-  all_time: { traps: number; caught: number; missed: number; rate: number | null };
-  last_day: string | null;
   bestiary_unlocked: boolean;
   active_quest_id: number | null;
 }

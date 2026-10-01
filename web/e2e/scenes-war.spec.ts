@@ -297,7 +297,6 @@ test('a sealed lieutenant: its trophy on the sheet and the portrait, the seal in
     json.lieutenants = json.lieutenants.map((l: { key: string }) =>
       l.key === 'hydre'
         ? { ...l, level: 2, level_reached_at: '2026-09-20T10:00:00+00:00', bestiary_unlocked: true,
-            all_time: { traps: 12, caught: 11, missed: 1, rate: 11 / 12 },
             next: { level: 3, days: 2, chances: 20, correct: 0.9, complete: false, need: { days: 6, chances: 45, correct: 0.91 } } }
         : l.key === 'echo'
           ? { ...l, level: 5, level_reached_at: '2026-09-25T10:00:00+00:00', bestiary_unlocked: true, next: null }
