@@ -208,3 +208,34 @@ seeds in `docs/art/style-guide.md`, "Accessories: echo").
   stage, slot and denoise: put the seed in the file name, or copy a kept result away before rerunning.
 - Lock: wait for Forge idle and for any e2e-priority flag OUTSIDE `with_lock.sh`, then hold the lock for
   one 3-image job (see the krea2 skill, "Lock rule addendum").
+
+## Notes from the Hydra's set (2026-10-01): extract options, gaps, standing parts
+
+Proven on the 16 Hydra overlays (emerald scale collar, bronze serpent tail ring, marsh saddle, serpent
+helmet; seeds in `docs/art/style-guide.md`, "Accessories: hydre").
+
+- **`--keep-white`** on any glossy item (polished bronze, glazed scales, bells): by default `extract`
+  drops near-white patches of 30+ px as painted white ground, which also eats an item's specular
+  highlights (holes in the scales of a collar). Leave it off only where the item stands out of the
+  silhouette over white ground (a crest), or drop white by hand there (see below).
+- **`--max-hole N` + negatives between the coils** for a ring of coils: by default every enclosed hole
+  is filled, so the repainted tail seen between two coils becomes part of the overlay (an untinted
+  skin patch). `--max-hole 40` fills only specks; add `--cut 'X,Y ...'` polygons for what SAM still
+  takes in.
+- **The reverse: a gap the extraction cut out of a solid item** (a dull patch of a saddle seat whose
+  colours match the original within the "same as original" threshold): the overlay shows the tinted
+  dragon through the leather. Fill the enclosed hole back from the result at full alpha, its softened
+  rim included (dilate the hole 4 px inside the object); 2 px left a faint ring.
+- **Standing parts beyond the slot's air** (a serpent rising from a crest, its head above the mask):
+  extract it as its own part with `--grow 6-8` (the default 2 px clipped its neck where it runs out of
+  the slot), then drop the white ground left beside it by hand (pixels with min channel > 200 in a
+  small box around it) since `--keep-white` was not used on that part.
+- **Floating heads on a head slot**: with the horns kept out of the mask, the model often hides a
+  crest serpent's body behind the horn and paints its head alone in the air (illustre 1311-1312,
+  ancestral 1411-1412). Reject those: once laid on the real picture the head floats beside the horn.
+- **Item spilling past the real outline**: at 0.75 the model sometimes widens a tail and wraps coils
+  around the wider one (ancestral 1422-1423). Before extracting, look at each result with the stage
+  cut-out's silhouette drawn on it (red outline over the result); reject coils outside it.
+- Lock and memory: one `with_lock.sh` call per 3-image job, Forge-idle wait outside the lock, 5 min
+  pause between jobs; `--cpu` for every extract, one at a time. A runner killed by the harness's
+  background time limit can leave its child alive: check the log, not only the task status.

@@ -555,3 +555,43 @@ WebPs and the manifest fragment `echo.json` in `assets/art/export/dragon/accesso
   ancestral, the horns being kept out of the head slot).
 - Kept results were cleaned by hand where SAM took in repainted skin (`tools/art/overlay_clean.py`
   polygons, recorded in each sidecar's `cleanup`).
+
+## Accessories: hydre
+
+The Hydra's set (the marsh serpent of Lerna: bronze serpents, emerald serpent scales, marsh
+leather), made with the art-overlays skill: inpainting on `dragon_<stage>.png` with the slot mask,
+`discorde-inked-clean`, V-scale 1, then `overlay.py extract --cpu` with hand points. One colour family
+for the four pieces: polished bright bronze, glossy emerald-green scales, dark brown leather, emerald
+eyes. One fixed item sentence per slot, only the dragon's stage words change (prompts in each
+sidecar). Files: `assets/art/dragon/accessories/hydre-<slot>_<stage>.png` (+ `.json`, and `_raw.png` /
+`_mask.png` from `tools/art/overlay_raw.py` where the generated picture was still on disk: every
+overlay except the four young ones), WebPs and the manifest fragment `hydre.json` in
+`assets/art/export/dragon/accessories/`. Contact sheet `docs/art/accessories-hydre.png`
+(`python tools/art/accessories_sheet.py hydre docs/art/accessories-hydre.png`).
+
+| Item (slot, denoise) | young | adult | illustre | ancestral |
+|---|---|---|---|---|
+| collier d'écailles (cou, 0.75) | 1101 | 1201 | 1303 | 1401 |
+| anneau de serpents (queue, 0.75) | 1121 | 1221 | 1322 | 1421 |
+| selle des marais (dos, 0.8) | 1132 | 1232 | 1333 | not made yet |
+| casque à serpents (tête, 0.85) | 1112 | 1212 | 1313 | 1413 |
+
+- **Cou**: a wide band of overlapping glossy emerald serpent scales, thin polished bronze rims top and
+  bottom, a small bronze serpent-head clasp. `--keep-white` keeps the scales' white highlights.
+  Rejected: ancestral 1402 (the lower rim crossed the band diagonally), 1403 (clasp hidden).
+- **Queue**: two slim bronze serpents coiled around the tail, heads meeting with emerald eyes.
+  `--max-hole 40` (only small holes filled: the repainted tail seen between the coils stays out,
+  with negative points on it), then `--cut`/`overlay_clean.py` polygons for what SAM still took in.
+  Illustre: coils and heads extracted apart and merged. Rejected: illustre 1321 (a narrow ring on a
+  tail redrawn thinner), 1323 (one loose loop); ancestral 1422-1423 (coils ~15 px past the real
+  tail's outline: the model widened the tail).
+- **Dos**: a small riding saddle of dark brown leather with stitched edges, raised front and back,
+  an emerald scale saddle cloth down the flank, bronze studs and a coiled-serpent medallion.
+  Illustre 1333: two enclosed patches of the seat matched the original's colours and were dropped by
+  the extraction; filled back from the result. Rejected: illustre 1331 (squeezed against the
+  shoulder), 1332 (a flat scale panel).
+- **Tête**: a smooth bronze dome with an emerald scale rim and a crest of coiled bronze serpents with
+  raised heads. Extracted in parts (dome, each standing serpent) and merged; serpents that stand out
+  of the slot's air need `--grow 6-8`. Rejected: illustre 1311-1312 and ancestral 1411-1412 (serpent
+  heads floating in the air, their bodies hidden behind the horn, which stays out of the head slot).
+- Hand clean-up polygons and the reasons for each pick are in each sidecar's `note`.

@@ -1,0 +1,119 @@
+{
+  "result": "r_queue_ancestral_s1421_1.png",
+  "generation": {
+    "prompt": "the tail of an ancient wise bronze-gold dragon with large overlapping scales like polished armour plates curling down in front of its hip, the tail's underside pale cream, wearing a tail ring around the tail: two slim serpents of polished bright bronze metal coiled tightly around the tail three times, their bodies engraved with fine scale lines, their two small heads meeting at the front with emerald-green eyes, the coils wrap closely around the tail and follow its curve, clean dark ink outline around the bronze serpents.\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.75,
+    "steps": 11,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 1421,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_ancestral.png",
+    "mask_file": "assets\\art\\dragon\\slots\\ancestral_queue.png"
+  },
+  "extract": {
+    "stage": "dragon_ancestral.png",
+    "slot_mask": "ancestral_queue.png",
+    "pos": [
+      [
+        167,
+        787
+      ],
+      [
+        204,
+        784
+      ],
+      [
+        128,
+        812
+      ],
+      [
+        120,
+        835
+      ],
+      [
+        228,
+        820
+      ],
+      [
+        225,
+        835
+      ],
+      [
+        145,
+        790
+      ]
+    ],
+    "neg": [
+      [
+        180,
+        820
+      ],
+      [
+        150,
+        830
+      ],
+      [
+        200,
+        850
+      ],
+      [
+        160,
+        860
+      ],
+      [
+        110,
+        870
+      ],
+      [
+        240,
+        860
+      ],
+      [
+        185,
+        792
+      ]
+    ],
+    "box": [
+      107,
+      759,
+      259,
+      865
+    ],
+    "hand_points": true,
+    "sam_mask": 0,
+    "diff": 28,
+    "novelty": 45,
+    "grow": 2,
+    "keep_white": false,
+    "max_hole": 40,
+    "cuts": null
+  },
+  "raw_crop": [
+    83,
+    735,
+    283,
+    889
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png",
+  "note": "Seeds 1421-1423 at 0.75, kept 1421 (two serpents arching over the tail and down both its sides, heads meeting on top, as on the illustre). Rejected 1422 and 1423: their coils spill ~15 px past the tail's left outline (the model widened the tail), they would hang in the air on the original silhouette. Extracted in one piece with --max-hole 40; overlay_clean.py --poly '140,762 218,762 218,779 208,777 196,775 188,776 183,778 170,780 160,782 150,785 140,790' (repainted scales above the heads)."
+}
