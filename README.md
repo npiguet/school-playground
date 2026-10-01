@@ -35,8 +35,9 @@ rewards. The whole game is a set of painted scenes with places to tap (see §8).
 - **Bibliothèque d'Alexandrie** — adopt scored excerpts from public-domain classics
   (Wikisource/Gutenberg) into the library. This is the only feature that needs internet access
   from the server.
-- **Camp and progression** — XP, Éris's lieutenants (one per error family) to neutralise,
-  quests from the Oracle of Delphi, a weekly goal, a break nudge after about 25 minutes of play,
+- **Camp and progression** — XP, Éris's lieutenants (one per error family), each with five seals
+  to win (bois, bronze, argent, or, orichalque) and a painted trophy for each, Éris's recurring
+  fights, quests from the Oracle of Delphi, a weekly goal, a break nudge after about 25 minutes of play,
   and a companion dragon that grows from the XP through six stages, from the egg to the Dragon
   ancestral (years of play).
 - **Music and sounds** — each place has its own music loop, with sound effects and the dictation
@@ -237,7 +238,13 @@ start-up. The full file with its defaults:
   "copy_belle_max_per_100": 2, "copy_correcte_max_per_100": 8,
   "aid_bonus": 0.20, "pace_bonus": {"1": 0, "2": 0.25, "3": 0.5}, "prophecy_bonus": 0.5,
   "chouette_hints": 3,
-  "dragon_stages": {"hatchling": 100, "young": 1200, "adult": 5000, "illustre": 15000, "ancestral": 40000}
+  "dragon_stages": {"hatchling": 100, "young": 1200, "adult": 5000, "illustre": 15000, "ancestral": 40000},
+  "levels": {"1": {"days": 3, "chances": 12, "correct": 0.85}, "2": {"days": 4, "chances": 25, "correct": 0.88},
+             "3": {"days": 6, "chances": 45, "correct": 0.91}, "4": {"days": 8, "chances": 70, "correct": 0.94},
+             "5": {"days": 10, "chances": 100, "correct": 0.97}},
+  "fights": [{"level": 1, "count": 2}, {"level": 1, "count": "all"}, {"level": 2, "count": 2}, {"level": 2, "count": "all"},
+             {"level": 3, "count": 2}, {"level": 3, "count": "all"}, {"level": 4, "count": 2}, {"level": 4, "count": "all"},
+             {"level": 5, "count": 2}, {"level": 5, "count": "all"}]
 }
 ```
 
@@ -251,6 +258,8 @@ start-up. The full file with its defaults:
 | `prophecy_bonus` | The XP bonus of a text played before its due date |
 | `chouette_hints` | The owl's hints per battle |
 | `dragon_stages` | The total XP at which the dragon reaches each stage (`hatchling` to `ancestral`; the egg is always 0). A partial object keeps the other stages' defaults; the stages must rise from one to the next (whole numbers up to 1 000 000), otherwise the whole table is ignored with a warning. A lowered threshold takes effect on the next camp visit; a raised one never shrinks a dragon |
+| `levels` | Each seal's window (`"1"` bois to `"5"` orichalque): `days` (days with a chance) and `chances` (whole numbers from 1), `correct` (the share right in the handed-in copies, above 0 and at most 1). A partial object keeps the other values; a wrong value is ignored with a warning. The defaults rise; a lowered value takes effect at the next session |
+| `fights` | Éris's ladder, in order: each fight asks `count` lieutenants (1 to 6, or `"all"`: every one awake at the class; a count above that asks them all) at seal `level` (1 to 5) or higher. 1 to 20 fights; one wrong entry and the whole ladder is ignored with a warning (a won fight is kept by its number). The first three fights give the divine gear |
 
 A key you leave out keeps its default. A file that is not valid JSON, or a value of the wrong type
 (e.g. `"0.3"` in quotes, a negative number, a share above 1), is ignored with a warning in the game's
@@ -536,25 +545,35 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   `Europe/Zurich`, configurable via `DISCORDE_TZ`). The week's reward is shown before any scroll is
   opened (no gamble), and a chosen quest stays open until the *next* consultation actually replaces
   it, not merely when a new week begins.
-- **Mastery rule** — an error family ("lieutenant") is neutralised once the player's most recent
-  qualifying days reach at least 3 distinct days and 10 draft errors, with a catch rate of at least
-  80% over that window. Neutralisation is permanent: nothing is ever taken away.
+- **Seals (lieutenant levels)** — each error family ("lieutenant") has five seals, each a material:
+  bois, bronze, argent, or, orichalque. Seal L+1 is judged on the days after seal L was won (Swiss
+  days with at least one chance for that lieutenant, newest first) until the window holds enough
+  days and chances; it is won when the share right in the handed-in copies reaches the target:
+  3 days / 12 chances / 85 %, 4 / 25 / 88 %, 6 / 45 / 91 %, 8 / 70 / 94 %, 10 / 100 / 97 %
+  (`levels` in `data/regles.json`). One seal per lieutenant per session; a seal is never lost.
+  Seal L pays 100 × L XP and the lieutenant's trophy in that material (the cabin's shelf). A
+  lieutenant neutralised before this rule became its wooden seal, and its relic its wooden trophy
+  (migration 006; the old `mastery` table is kept but no longer written).
+- **Éris's fights** — a ladder of ten by default (`fights` in `data/regles.json`): for each seal,
+  « at least 2 lieutenants at this seal », then « all of them », counted over the lieutenants awake
+  at the hero's class (Protée from 8H). A fight opens when its condition holds and every earlier one
+  is won; won fights stay won. Each pays 300 XP; the first three also give the Sandales d'Hermès,
+  the Égide and the Foudre de Zeus.
 - **Dragon growth** — the dragon's stage follows the hero's total XP: Œuf (0), Dragonnet (100),
   Jeune dragon (1 200), Dragon adulte (5 000), Dragon illustre (15 000), Dragon ancestral (40 000),
   thresholds in `data/regles.json`. A stage is never lost: a raised threshold or a restored backup
-  keeps the stage already reached, and a dragon grown from neutralisations before this rule keeps
-  its stage. The HUD's laurel shows the way to the next stage; the XP ranks are gone. A growth the
+  keeps the stage already reached, and a dragon grown before this rule keeps its stage. The HUD's laurel shows the way to the next stage; the XP ranks are gone. A growth the
   hero has not seen on a victory (a lowered threshold, the catch-up after an update) is revealed once
   at the camp, with the naming field for an unnamed dragon; the stage last seen is the hero's
   `settings.dragon_seen_stage`.
-- **Rewards are announced in advance** — every relic, dragon tint, divine gear and cabin decor piece
+- **Rewards are announced in advance** — every trophy, dragon tint, divine gear and cabin decor piece
   is on the cabin's trophy shelf (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can
   be earned; nothing is a gamble.
-- **Art and sound** are served from the same origin: `web/public/art` (WebP, about 5.8 MB) and
+- **Art and sound** are served from the same origin: `web/public/art` (WebP, about 6.7 MB) and
   `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler. Dragon tints are a
   CSS `hue-rotate` filter on one cut-out. The sound settings are saved per hero on the server (and
   remembered on the device for the title scene, before a hero is picked).
 - **`DISCORDE_TEST_HOOKS=1`** enables an `X-Discorde-Day` request header on `POST /api/sessions`,
-  letting the e2e suite fast-forward the multi-day mastery and weekly-goal logic. It's set only in
+  letting the e2e suite fast-forward the multi-day seals and weekly-goal logic. It's set only in
   `compose.e2e.yaml` (and under pytest) — **never** set it in production; without it the header is
   ignored.
