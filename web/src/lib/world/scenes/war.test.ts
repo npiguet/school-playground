@@ -43,4 +43,8 @@ describe('war tent (UI3 Ruling B4)', () => {
     expect(sealed(5).caption).toBe("Sceau d'orichalque");
     expect(sealed(0).caption).toBeNull();
   });
+
+  it('says a sealed lieutenant on a quest is on a quest (its pinned trophy already shows the seal)', () => {
+    expect(state('hydre', [lt('hydre', { level: 2, active_quest_id: 7 })])).toMatchObject({ caption: 'Quête en cours' });
+  });
 });

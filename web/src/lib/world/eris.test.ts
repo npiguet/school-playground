@@ -36,12 +36,18 @@ describe("Éris's dossier lines", () => {
     }
   });
 
-  it('bands follow the catch rate before the first seal, then the seal group (spec 2026-09-29 lieutenant levels §5)', () => {
-    const l = (traps: number, rate: number | null, level = 0) => ({ level, all_time: { traps, caught: 0, missed: 0, rate } });
+  it("bands follow the first seal's window before it (the gauges' chances and share), then the seal group (spec 2026-09-29 lieutenant levels §5, final review M7)", () => {
+    const need = { days: 3, chances: 12, correct: 0.85 };
+    const l = (chances: number, correct: number | null, level = 0) => ({
+      level,
+      next: level >= 5 ? null : { level: level + 1, days: 1, chances, correct, complete: false, need },
+    });
     expect(bandFor(l(2, 0))).toBe('none');
+    expect(bandFor(l(5, null))).toBe('none');
     expect(bandFor(l(5, 0.3))).toBe('strong');
     expect(bandFor(l(5, 0.5))).toBe('contested');
     expect(bandFor(l(5, 0.85))).toBe('weak');
+    expect(bandFor({ level: 0, next: null })).toBe('none');
     expect([1, 2, 3, 4, 5].map((lv) => bandFor(l(5, 0.1, lv)))).toEqual(['bois', 'bois', 'argent', 'argent', 'orichalque']);
   });
 

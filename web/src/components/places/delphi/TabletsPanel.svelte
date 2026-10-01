@@ -13,7 +13,7 @@
   import { sleepingLine } from '../../../lib/world/eris';
   import { fightLine, sealTitle } from '../../../lib/world/seals';
   import { romanTier } from '../../../lib/world/quests';
-  import { bossRewardId, bossRewardName } from '../../../lib/world/rewards';
+  import { bossRewardId, bossRewardName, bossTier } from '../../../lib/world/rewards';
   import { ApiError } from '../../../lib/api';
   import { href } from '../../../lib/routes';
   import { plural } from '../../../lib/text/french';
@@ -167,21 +167,19 @@
       <h3 class="kit-section">Éris</h3>
       <div class="kit-sheet boss-sheet" data-testid="board-boss">
         {#if camp.boss.tier_available !== null || camp.boss.active_quest_id !== null}
-          {@const rewardId = bossRewardId(camp.boss.tier_available, campStore.catalog)}
+          {@const tier = bossTier(camp)}
+          {@const rewardId = bossRewardId(tier, campStore.catalog)}
           <div class="boss-reward-line">
             {#if rewardId}<Medallion {rewardId} size={40} />{/if}
-            <span>
-              Combat {romanTier(camp.boss.tier_available ?? 1)} — récompense{'\u202f: '}{bossRewardName(
-                camp.boss.tier_available,
-                campStore.catalog,
-              )}
+            <span data-testid="board-boss-reward">
+              Combat {romanTier(tier ?? 1)} — récompense{'\u202f: '}{bossRewardName(tier, campStore.catalog)}
             </span>
           </div>
           <button type="button" class="kit-bronze" onclick={() => go(href('boss', { profileId: String(profile.id) }))}>
             Se rendre au bord du camp
           </button>
         {:else if camp.boss.next}
-          <p>Éris se cache. {fightLine(camp.boss.next)}</p>
+          <p>{fightLine(camp.boss.next)}</p>
         {:else}
           <p>Éris est vaincue à chaque combat. Elle boude.</p>
         {/if}

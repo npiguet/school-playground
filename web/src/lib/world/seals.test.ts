@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   MATERIALS,
   bonusChipLabel,
+  codexStamp,
   fightLine,
   firstSealLine,
   highestTrophies,
@@ -20,6 +21,7 @@ import {
   trophyId,
 } from './seals';
 import type { SealWindow } from './types';
+import { swissDay } from '../swissDay';
 
 const next = (o: Partial<SealWindow> & { level: number }): SealWindow => ({
   days: 0, chances: 0, correct: null, complete: false,
@@ -50,6 +52,30 @@ describe('the seals in words', () => {
     expect(sealProgressLine('sirenes', l(0, next({ level: 1, need: { days: 3, chances: 12, correct: 0.85 } })))).toBe('Pas encore croisées.');
     expect(sealProgressLine('protee', l(0, next({ level: 1, need: { days: 3, chances: 12, correct: 0.85 } })))).toBe('Pas encore croisé.');
     expect(sealProgressLine('hydre', l(5, null))).toBe('Il ne reste rien à conquérir ici.');
+  });
+
+  it('says the next seal waits for tomorrow when the last one was won today (R3: today no longer counts, final review I3)', () => {
+    // 23:30 UTC on 30 September is already 1 October in Zurich: the seal's day is the Swiss one.
+    const now = new Date('2026-10-01T09:00:00Z');
+    const won = (at: string, level = 1, need = { days: 4, chances: 25, correct: 0.88 }) => ({
+      level,
+      level_reached_at: at,
+      next: next({ level: level + 1, need }),
+    });
+    expect(swissDay(0, new Date('2026-09-30T23:30:00Z'))).toBe(swissDay(0, now));
+    expect(sealProgressLine('hydre', won('2026-09-30T23:30:00+00:00'), now)).toBe('Le sceau de bronze se prépare dès demain\u202f: 4 jours de garde et 25 pièges.');
+    expect(sealProgressLine('echo', won('2026-10-01T12:00:00+00:00', 3, { days: 1, chances: 1, correct: 0.94 }), now)).toBe("Le sceau d'or se prépare dès demain\u202f: 1 jour de garde et 1 piège.");
+    // Won an earlier Swiss day (21:30 UTC on 30 September is still the 30th in Zurich): the usual words.
+    expect(sealProgressLine('hydre', won('2026-09-30T21:30:00+00:00'), now)).toBe('Encore 4 jours de garde et 25 pièges avant le sceau de bronze.');
+    // The fifth seal won today: nothing is left, as any other day.
+    expect(sealProgressLine('hydre', { level: 5, level_reached_at: '2026-10-01T12:00:00+00:00', next: null }, now)).toBe('Il ne reste rien à conquérir ici.');
+  });
+
+  it("stamps the codex from the seal, else from the first seal's window, as the gauges count (final review M7)", () => {
+    expect(codexStamp({ level: 2, next: next({ level: 3 }) })).toBe('Sceau de bronze');
+    expect(codexStamp({ level: 0, next: next({ level: 1, days: 1, chances: 3 }) })).toBe('En cours');
+    expect(codexStamp({ level: 0, next: next({ level: 1 }) })).toBe('À découvrir');
+    expect(codexStamp(null)).toBe('À découvrir');
   });
 
   it('measures the three gauges against their targets, with the target mark', () => {

@@ -1,7 +1,14 @@
 // Reward words shared by the places (final review M3, M4): the boss's reward known in advance (SP3
 // decisions 9/12) on the hub, the quest wall and the battle screen, and the cabin shelf's count.
 import { plural } from '../text/french';
-import type { WorldCatalog } from './types';
+import type { CampResponse, WorldCatalog } from './types';
+
+/** The fight on offer or under way: the tier open, else the active boss quest's (an old fight resumed
+ *  after migration 006 has no tier open). Null when Éris hides. Shared by the wall and the battle screen. */
+export function bossTier(camp: CampResponse | null): number | null {
+  if (!camp) return null;
+  return camp.boss.tier_available ?? camp.quests.find((q) => q.kind === 'boss' && q.status === 'active')?.goal.tier ?? null;
+}
 
 /** The reward id a boss tier grants, or null (no tier, or the catalog not loaded yet). */
 export function bossRewardId(tier: number | null, catalog: WorldCatalog | null): string | null {

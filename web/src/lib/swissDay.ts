@@ -1,5 +1,5 @@
-// The e2e's Swiss local day (e2e/helpers.ts re-exports it). Here, with no imports, so vitest tests it
-// and the e2e helpers (plain node) can load it.
+// The Swiss local day, shared by the app (a seal won today, lib/world/seals.ts) and the e2e (e2e/helpers.ts
+// re-exports it). With no imports, so vitest tests it and the e2e helpers (plain node) can load it.
 
 /** The Swiss local day (YYYY-MM-DD), `daysAgo` calendar days before `now` (negative: after). The
  *  server's days and weeks are Europe/Zurich ones (server/app/clock.py, plan Decision 4): a UTC date is

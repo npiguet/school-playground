@@ -218,9 +218,9 @@ export function makeResult(o: { words?: number; draft?: number; caught?: number;
   };
 }
 
-/** The Swiss local day, `daysAgo` calendar days back (src/testing/swissDay.ts, unit-tested there): a
+/** The Swiss local day, `daysAgo` calendar days back (src/lib/swissDay.ts, unit-tested there): a
  *  UTC date misses this week's goal just after a Monday's midnight (paces fix round: world step 8). */
-export { swissDay } from '../src/testing/swissDay';
+export { swissDay } from '../src/lib/swissDay';
 
 // Posts a session straight to the API (bypassing dictation/proofreading), for specs that need to
 // drive quest/seal/boss progression across many sessions or specific days (SP3 Decision 5's

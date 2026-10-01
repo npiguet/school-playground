@@ -12,7 +12,7 @@
   import { initAudioSettings } from '../lib/audio/store.svelte';
   import { worldApi } from '../lib/world/api';
   import { campFor, campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
-  import { bossRewardId as rewardIdFor, bossRewardName } from '../lib/world/rewards';
+  import { bossRewardId as rewardIdFor, bossRewardName, bossTier } from '../lib/world/rewards';
   import { erisSays } from '../lib/world/voices';
   import { ApiError } from '../lib/api';
   import { href } from '../lib/routes';
@@ -38,8 +38,7 @@
 
   // This hero's camp snapshot only (final review I2): the store is shared across heroes.
   const camp = $derived(campFor(profile.id));
-  const activeBossQuest = $derived(camp?.quests.find((q) => q.kind === 'boss' && q.status === 'active') ?? null);
-  const tier = $derived(camp?.boss.tier_available ?? activeBossQuest?.goal.tier ?? 1);
+  const tier = $derived(bossTier(camp) ?? 1);
   const bossRewardId = $derived(rewardIdFor(tier, campStore.catalog));
   const battle = battleFor('eris', { mode: 'boss', encounter: 'eris' });
 

@@ -84,14 +84,16 @@ export const FORBIDDEN = [
   'faible',
 ];
 
-/** Bands a lieutenant's dossier line (R11): before the first seal on its all-time catch rate
- *  (Decision 19 thresholds); then on its seal group: bois-bronze, argent-or, orichalque. */
-export function bandFor(l: Pick<LieutenantState, 'level' | 'all_time'>): Band {
+/** Bands a lieutenant's dossier line (R11): before the first seal on that seal's window, the chances
+ *  and share the gauges count (Decision 19 thresholds; final review M7: the line and the gauges agree);
+ *  then on its seal group: bois-bronze, argent-or, orichalque. */
+export function bandFor(l: Pick<LieutenantState, 'level' | 'next'>): Band {
   if (l.level >= 5) return 'orichalque';
   if (l.level >= 3) return 'argent';
   if (l.level >= 1) return 'bois';
-  const { traps, rate } = l.all_time;
-  if (traps < 3 || rate === null) return 'none';
+  const chances = l.next?.chances ?? 0;
+  const rate = l.next?.correct ?? null;
+  if (chances < 3 || rate === null) return 'none';
   return rate < 0.4 ? 'strong' : rate < 0.8 ? 'contested' : 'weak';
 }
 

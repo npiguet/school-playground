@@ -301,7 +301,11 @@ test('a sealed lieutenant: its trophy on the sheet and the portrait, the seal in
             next: { level: 3, days: 2, chances: 20, correct: 0.9, complete: false, need: { days: 6, chances: 45, correct: 0.91 } } }
         : l.key === 'echo'
           ? { ...l, level: 5, level_reached_at: '2026-09-25T10:00:00+00:00', bestiary_unlocked: true, next: null }
-          : l,
+          : l.key === 'lethe'
+            // Final review I3: a seal won today (now, so the Swiss day too): the next one starts tomorrow.
+            ? { ...l, level: 1, level_reached_at: new Date().toISOString(),
+                next: { level: 2, days: 0, chances: 0, correct: null, complete: false, need: { days: 4, chances: 25, correct: 0.88 } } }
+            : l,
     );
     await route.fulfill({ response: res, json });
   });
@@ -335,6 +339,7 @@ test('a sealed lieutenant: its trophy on the sheet and the portrait, the seal in
   await expect(page.getByTestId('dossier-window-hydre')).toBeAttached();
   await expect(page.getByTestId('dossier-seal-echo')).toHaveText("Sceau d'orichalque");
   await expect(page.getByTestId('dossier-window-echo')).toHaveCount(0);
+  await expect(page.getByTestId('dossier-progress-lethe')).toHaveText('Le sceau de bronze se prépare dès demain\u202f: 4 jours de garde et 25 pièges.');
   await closeOverlay(page);
   await tap(page.getByTestId('war-bestiary'), testInfo);
   const card = page.getByTestId('overlay-codex').getByTestId('bestiary-card-hydre');

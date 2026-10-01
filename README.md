@@ -566,9 +566,11 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   hero has not seen on a victory (a lowered threshold, the catch-up after an update) is revealed once
   at the camp, with the naming field for an unnamed dragon; the stage last seen is the hero's
   `settings.dragon_seen_stage`.
-- **Rewards are announced in advance** — every trophy, dragon tint, divine gear and cabin decor piece
-  is on the cabin's trophy shelf (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can
-  be earned; nothing is a gamble.
+- **Rewards are announced in advance** — every dragon tint, divine gear and cabin decor piece is on
+  the cabin's trophy shelf (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can be
+  earned; nothing is a gamble. A lieutenant's empty plinth there says what its first seal asks; the
+  bronze to orichalque trophies appear on the shelf once won, and the war tent's portrait of each
+  lieutenant says what its next seal asks.
 - **Art and sound** are served from the same origin: `web/public/art` (WebP, about 6.7 MB) and
   `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler. Dragon tints are a
   CSS `hue-rotate` filter on one cut-out. The sound settings are saved per hero on the server (and

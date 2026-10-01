@@ -255,6 +255,30 @@ test('the tablets open the quest board; a launched quest shows on the tablets ba
   await expect(page.getByTestId('delphi-tablets-badge')).toHaveText('1');
 });
 
+// Final review I2: a fight begun before migration 006 has no tier open; the wall names it from its
+// quest, as the battle screen does (an intercepted /camp: the fights themselves are pinned by pytest).
+test('the wall names a fight under way with no tier open by its quest: « Combat II », its reward', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const json = await res.json();
+    json.boss = { ...json.boss, tier_available: null, active_quest_id: 9_999_999, next: null };
+    json.quests = [
+      ...json.quests,
+      {
+        id: 9_999_999, kind: 'boss', target: 'eris', week: null, status: 'active', goal: { tier: 2 },
+        progress: { sessions: 0, log: [] }, reward: { xp: 300, reward_id: 'egide', bestiary: false },
+        texts: [], created_at: '2026-09-20T12:00:00+00:00', completed_at: null,
+      },
+    ];
+    await route.fulfill({ response: res, json });
+  });
+  await page.goto(`/#/p/${id}/quetes`);
+  const board = page.getByTestId('overlay-tablets');
+  await expect(board.getByTestId('board-boss-reward')).toHaveText("Combat II — récompense\u202f: Égide");
+  await expect(board.getByTestId('board-boss').getByRole('button', { name: 'Se rendre au bord du camp' })).toBeVisible();
+});
+
 test('the nearest prophecy sits on the altar, clear of the places, the dialogue dock and the safe zone; « Te préparer » opens the dictation', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   // A long title - clamped to 2 lines by ProphecyCard's own `-webkit-line-clamp: 2` - is the card's

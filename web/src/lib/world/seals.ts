@@ -2,6 +2,7 @@
 // material. On screen a level is always its material (« le sceau de bronze de l'Hydre »), never a
 // number or the school's word. Pure: the camp's `lieutenants[].next` carries the window, the server
 // decides; these words only say it.
+import { swissDay } from '../swissDay';
 import { plural, rateText } from '../text/french';
 import { agree, genderFor, lieutenantName } from './eris';
 import { lowerLeadingArticle } from './quests';
@@ -86,12 +87,20 @@ export function sealFill(n: SealWindow): number {
 }
 
 /** What stands before the next seal, in words (spec §5, R12). At the fifth seal it sits under the
- *  plate or stamp that already names the seal, so it says only that nothing is left to win. */
-export function sealProgressLine(key: LieutenantKey, l: Pick<LieutenantState, 'level' | 'next'>): string {
+ *  plate or stamp that already names the seal, so it says only that nothing is left to win. A seal
+ *  won today: today's texts no longer count (R3), so the empty gauges say the next one starts tomorrow. */
+export function sealProgressLine(
+  key: LieutenantKey,
+  l: Pick<LieutenantState, 'level' | 'next'> & { level_reached_at?: string | null },
+  now: Date = new Date(),
+): string {
   const n = l.next;
   if (!n || l.level >= MAX_SEAL) return 'Il ne reste rien à conquérir ici.';
   if (l.level === 0 && n.days === 0) return `Pas encore ${agree('croisé', key)}.`;
   const seal = sealName(n.level);
+  if (l.level > 0 && l.level_reached_at && swissDay(0, new Date(l.level_reached_at)) === swissDay(0, now)) {
+    return `Le ${seal} se prépare dès demain\u202f: ${plural(n.need.days, 'jour', 'jours')} de garde et ${plural(n.need.chances, 'piège', 'pièges')}.`;
+  }
   const days = Math.max(0, n.need.days - n.days);
   const traps = Math.max(0, n.need.chances - n.chances);
   const parts = [days > 0 ? `${plural(days, 'jour', 'jours')} de garde` : null, traps > 0 ? plural(traps, 'piège', 'pièges') : null].filter(
@@ -100,6 +109,13 @@ export function sealProgressLine(key: LieutenantKey, l: Pick<LieutenantState, 'l
   if (parts.length > 0) return `Encore ${parts.join(' et ')} avant le ${seal}.`;
   if (sealReady(n)) return `Tout y est\u202f: défends encore un texte, et le ${seal} est à toi.`;
   return `Il ne te reste qu'à déjouer ${rateText(n.need.correct)} des pièges avant le ${seal}.`;
+}
+
+/** The codex's stamp on a monster's entry: its seal, else whether it was met in the first seal's
+ *  window, the chances the gauges count (final review M7). */
+export function codexStamp(l: Pick<LieutenantState, 'level' | 'next'> | null): string {
+  if (l && l.level > 0) return sealTitle(l.level);
+  return l?.next && l.next.chances > 0 ? 'En cours' : 'À découvrir';
 }
 
 const COUNT_WORDS = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six'];

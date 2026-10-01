@@ -20,8 +20,9 @@ function sheetState(key: LieutenantKey) {
     const l = camp?.lieutenants.find((x) => x.key === key);
     if (!l) return st();
     if (!l.available) return st({ locked: true, caption: sleepingCaption(key) });
-    if (l.level > 0) return st({ caption: sealTitle(l.level) });
+    // A quest first: the pinned trophy already shows the seal (final review I1).
     if (l.active_quest_id !== null) return st({ caption: 'Quête en cours' });
+    if (l.level > 0) return st({ caption: sealTitle(l.level) });
     return st();
   };
 }

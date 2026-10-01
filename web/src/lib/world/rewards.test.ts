@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { HOW_TO_WIN_IDS, bossRewardId, bossRewardName, howToWin, treasureCaption } from './rewards';
+import { HOW_TO_WIN_IDS, bossRewardId, bossRewardName, bossTier, howToWin, treasureCaption } from './rewards';
 import { REWARD_ICONS } from './art';
-import type { WorldCatalog } from './types';
+import type { CampResponse, QuestOut, WorldCatalog } from './types';
 
 const catalog = {
   boss_rewards: { '1': 'sandales_hermes' },
@@ -17,6 +17,16 @@ describe('reward words', () => {
     expect(bossRewardName(null, catalog)).toBe('une récompense');
     expect(bossRewardName(1, null)).toBe('une récompense');
     expect(bossRewardId(null, catalog)).toBeNull();
+  });
+
+  it('knows the fight under way when no tier is open (an old fight resumed after migration 006)', () => {
+    const camp = (tier_available: number | null, quests: Partial<QuestOut>[]) => ({ boss: { tier_available }, quests }) as unknown as CampResponse;
+    const boss = { kind: 'boss', status: 'active', goal: { tier: 2 } } as Partial<QuestOut>;
+    expect(bossTier(camp(3, [boss]))).toBe(3);
+    expect(bossTier(camp(null, [boss]))).toBe(2);
+    expect(bossTier(camp(null, [{ ...boss, status: 'done' }]))).toBeNull();
+    expect(bossTier(null)).toBeNull();
+    expect(bossRewardName(bossTier(camp(null, [{ ...boss, goal: { tier: 1 } }])), catalog)).toBe("Sandales d'Hermès");
   });
 
   it('counts the cabin treasures', () => {
