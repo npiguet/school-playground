@@ -68,9 +68,8 @@
   const grade = $derived(gradeText(reference.body, play.current, annotation));
   const passSets = $derived(typedPassSets(grade, annotation, trapWords, level));
   const tools = $derived(proofAids(aids, { hints, hintsUsed: play.hintsUsed, initialErrors: play.initialErrors }));
-  const activePass = $derived(tools.passes ? passes[play.passIndex] : null);
   // Les yeux d'Argus light their pass and dim the rest of the text (the old stage 1).
-  const spotlightPass = $derived(activePass);
+  const activePass = $derived(tools.passes ? passes[play.passIndex] : null);
   const hintsLeft = $derived(tools.hintsLeft);
   const spans = $derived(sentenceSpans(play.current));
 
@@ -609,8 +608,8 @@
       <TokenText
         text={play.current}
         {passSets}
-        activePass={spotlightPass}
-        dim={spotlightPass !== null}
+        {activePass}
+        dim={activePass !== null}
         {hintedTokenIndexes}
         {range}
         onEditToken={editToken}

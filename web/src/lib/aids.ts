@@ -21,10 +21,6 @@ export const AID_LABELS: Record<AidKey, { name: string; the: string; desc: strin
   palamede: { name: 'Les jetons de Palamède', the: 'les jetons de Palamède', desc: 'Combien de pièges se cachent dans le texte.' },
 };
 
-export function isAidKey(k: unknown): k is AidKey {
-  return typeof k === 'string' && (AID_KEYS as readonly string[]).includes(k);
-}
-
 /** A remembered or saved choice: the valid aids, once each, in the camp's order. Anything that is not a
  *  list (a new hero, a save from before the aids) is all five, as for a new hero (spec §3). */
 export function normalizeAids(raw: unknown): AidKey[] {
@@ -37,17 +33,9 @@ export function aidDesc(key: AidKey, rules: GameRules): string {
   return key === 'athena' ? `${plural(rules.chouette_hints, 'indice', 'indices')} pour repérer un piège.` : AID_LABELS[key].desc;
 }
 
-/** The aids' painted emblems (spec 2026-09-29 §5: the existing TOOL_ICONS plus tool-palamede). */
-export const AID_ICONS: Record<AidKey, string> = {
-  argus: TOOL_ICONS.argus,
-  ariane: TOOL_ICONS.ariane,
-  persee: TOOL_ICONS.persee,
-  athena: TOOL_ICONS.athena,
-  palamede: TOOL_ICONS.palamede,
-};
-
+/** The aid's painted emblem (spec 2026-09-29 §5: the existing TOOL_ICONS plus tool-palamede). */
 export function aidIcon(key: AidKey): string {
-  return AID_ICONS[key];
+  return TOOL_ICONS[key];
 }
 
 /** The glory this battle is worth on top of the text (spec §4): the pace, +20 % per aid left, the prophecy. */

@@ -24,6 +24,12 @@ test('create profile → add text → dictation → proofreading → results →
 
   // Dictation, pace 1 (two sentences, a breath group each)
   await page.getByTestId('pace-option-1').click();
+  // Spec 2026-09-29 §3: every aid but Argus (whose passes this walk uses) stays at the camp, and pays
+  // its glory on the victory (final review minor 8).
+  for (const aid of ['ariane', 'persee', 'athena', 'palamede']) {
+    await page.getByTestId(`aid-toggle-${aid}`).click();
+    await expect(page.getByTestId(`aid-toggle-${aid}`)).toHaveAttribute('aria-pressed', 'false');
+  }
   await page.getByRole('button', { name: 'Commencer la dictée' }).click();
   const ta = page.getByTestId('dictation-textarea');
   await expect(page.locator('body')).not.toContainText('clairière'); // reference never shown
@@ -61,6 +67,8 @@ test('create profile → add text → dictation → proofreading → results →
   await expect(page.getByTestId('results-catch-rate')).not.toContainText('50\u202f%');
   expect(await page.getByTestId('results-catch-rate').textContent()).not.toContain('50\u202f%');
   await expect(page.getByTestId('results-copy')).toHaveText('Ta copie\u202f: 1 faute sur 13 mots. Une copie correcte.');
+  // The four aids left at the camp: their own chip, worth something (13 words: +2 by spec §4).
+  await expect(page.getByTestId('xp-chip').filter({ hasText: 'Sans aides' })).toHaveText(/^Sans aides \+[1-9]\d*$/);
   await page.getByTestId('battle-revoir').click();
   await expect(page.getByTestId('overlay-revoir').getByText(/chantent/).first()).toBeVisible();
   await closeOverlay(page);

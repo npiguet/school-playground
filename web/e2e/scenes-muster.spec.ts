@@ -3,7 +3,7 @@
 // suggestion (never automatic), its memory.
 import type { APIRequestContext, Page, TestInfo } from '@playwright/test';
 import { test, expect } from './crashGuard';
-import { createProfileApi, createText, expectBattle, makeResult, postSession, swissDay, tap, uniqueName } from './helpers';
+import { createProfileApi, createText, expectBattle, makeResult, postSession, seedPlay, swissDay, tap, uniqueName } from './helpers';
 
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const ALL = ['argus', 'ariane', 'persee', 'athena', 'palamede'];
@@ -173,6 +173,26 @@ test('the aids taken last are chosen again, and a suggestion only suggests', asy
   await expect(page.getByTestId('aid-toggle-persee')).toHaveAttribute('aria-pressed', 'true');
   await expect(owl).not.toHaveAttribute('data-suggested', 'true');
   for (const aid of ['argus', 'palamede']) await expect(page.getByTestId(`aid-toggle-${aid}`)).toHaveAttribute('aria-pressed', 'false');
+});
+
+// Final review I2: « Rejouer ce texte » musters again without reloading the page; its suggestion reads
+// the defence just saved. One « copie à reprendre » before, a second one now: take one back.
+test('after « Rejouer ce texte », the suggestion counts the defence just played', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Mst8-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Deux copies à reprendre'), body: BODY, level: '10H' });
+  await postSession(request, { profileId: id, textId: text.id, day: swissDay(), result: makeResult({ draft: 12, caught: 0 }), aids: [] });
+  // Two mistakes left on 13 words: a copie à reprendre, played with every aid left at the camp.
+  const DRAFT = 'Les fées danse dans la clairière. Elles chante et les oiseaux les écoutent.';
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'results', draft: DRAFT, current: DRAFT, opponent: 'hydre', aids: [] });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'victory');
+  await expect(page.getByTestId('results-copy')).toContainText('Une copie à reprendre.');
+  const replay = page.getByTestId('victory-actions').getByRole('button', { name: 'Rejouer ce texte' });
+  await expect(replay).toBeVisible();
+  await tap(replay, testInfo);
+  await expectBattle(page, 'muster');
+  for (const aid of ALL) await expect(page.getByTestId(`aid-toggle-${aid}`)).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('muster-suggestion')).toHaveText("Tu pourrais reprendre le fil d'Ariane avec toi.");
 });
 
 test('each aid toggle is named by its aid alone, whatever its state, and described by its own line', async ({ page, request }, testInfo) => {

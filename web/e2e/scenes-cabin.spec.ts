@@ -122,6 +122,19 @@ test('the journal opens as a codex: the aids taken last, the tricks, the words, 
   await expect(page.getByTestId('cabin-journal')).toBeFocused();
 });
 
+// Final review minor 2: a null remembered choice (a hand-edited setting) reads as no choice yet.
+test('the journal reads a null remembered choice of aids as none yet', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.route('**/api/profiles/*/stats', async (route) => {
+    const res = await route.fetch();
+    const json = await res.json();
+    json.profile.settings = { ...json.profile.settings, aids: null };
+    await route.fulfill({ response: res, json });
+  });
+  await page.goto(`/#/p/${id}/stats`);
+  await expect(page.getByTestId('overlay-journal').getByTestId('journal-aids')).toContainText('Tu emportes toutes les aides.');
+});
+
 // UI3b playability #1, #14: Éris's tricks told by their monster with laurels, and the defences one
 // line per text (the journal is the one place for the counts, playability #3).
 test("the journal tells Éris's tricks by their monster, and each text once", async ({ page, request }, testInfo) => {

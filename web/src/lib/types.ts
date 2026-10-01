@@ -7,8 +7,8 @@ export type { ArgusPass, Annotation } from './grading/types';
 
 export interface ProfileSettings {
   /** Spec 2026-09-29 §3: the review aids taken last, pre-selected at the next muster (written by the
-   *  server with each session). Absent: all five. */
-  aids?: string[];
+   *  server with each session). Absent or null (a hand-edited setting): all five. */
+  aids?: string[] | null;
   /** Before UI5: one switch for the music and the effects. Read once to seed `audio` (Ruling E2); no longer written. */
   mute?: boolean;
   /** UI5 (spec §7): the three channels, always saved whole. */

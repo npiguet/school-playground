@@ -41,6 +41,7 @@
   import { bandFor } from '../lib/world/eris';
   import { campFor, campStore, loadCatalog, refreshCamp } from '../lib/world/campStore.svelte';
   import { normalizeAids } from '../lib/aids';
+  import { proofAids } from '../lib/battle/proofAids';
   import { rulesOf } from '../lib/rules';
   import { clockStart, clockStop, clockTick } from '../lib/world/playClock.svelte';
   import type { PlayMode, Profile, StatsResponse, TextFull, TrapWord } from '../lib/types';
@@ -338,8 +339,20 @@
       save();
       // Refreshes profileStore (the aids the server remembered for the next muster) and campStore so
       // the dragon/XP/quests the victory's spoils read (and the camp screen on return) are
-      // fresh with this session's progression already applied server-side.
-      await Promise.all([loadProfile(profile.id), refreshCamp(profile.id)]);
+      // fresh with this session's progression already applied server-side. The stats and the trap
+      // words too (final review I2): « Rejouer ce texte » musters again without a new load(), and its
+      // suggestion (recent_sessions), Argus's order and the trap words must include this session.
+      // The session is saved by now: a failed refresh keeps the old history rather than turning into
+      // a submission error (whose « Réessayer » would post the session twice).
+      const [, , st, tw] = await Promise.all([
+        loadProfile(profile.id).catch(() => null),
+        refreshCamp(profile.id),
+        api.profiles.stats(profile.id).catch(() => null),
+        api.profiles.trapWords(profile.id).catch(() => null),
+      ]);
+      if (left) return;
+      if (st) stats = st;
+      if (tw) trapWords = tw;
     } catch (e) {
       if (left || playState !== stateAtSubmit) return;
       submitError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
@@ -404,7 +417,8 @@
   // when his tokens were taken along; it drops only at the reckoning (the victory phase, Task 6).
   $effect(() => {
     if (phase === 'dictation' || phase === 'proofreading' || phase === 'muster') {
-      setHp(hpDuringPlay(aids.includes('palamede') ? (playState?.initialErrors ?? null) : null));
+      // The notches are the count the proofreading shows (one rule: proofAids).
+      setHp(hpDuringPlay(proofAids(aids, { hints: 0, hintsUsed: 0, initialErrors: playState?.initialErrors }).count));
     }
   });
 
