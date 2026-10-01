@@ -220,7 +220,7 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     // profile already has Hydre-category errors "today" (steps 4-5) - it can complete in fewer
     // than three of these calls; find whichever response actually neutralises her rather than
     // hard-coding which one.
-    let hatched: any = null;
+    let neutralising: any = null;
     for (const day of ['2026-09-21', '2026-09-22', '2026-09-23']) {
       const res = await postSession(request, {
         profileId: Number(profileId),
@@ -229,13 +229,13 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
         result: makeResult({ draft: 4, caught: 4, category: 'agreement:verb' }),
       });
       if (res.progression.neutralised.includes('hydre')) {
-        hatched = res;
+        neutralising = res;
         break;
       }
     }
-    expect(hatched).not.toBeNull();
+    expect(neutralising).not.toBeNull();
     // Neutralising the Hydra no longer grows the dragon (spec §1): it hatched from XP in step 5.
-    expect(hatched.progression.dragon).toEqual({ stage_before: 'hatchling', stage_after: 'hatchling', needs_name: true });
+    expect(neutralising.progression.dragon).toEqual({ stage_before: 'hatchling', stage_after: 'hatchling', needs_name: true });
 
     await page.goto(`/#/p/${profileId}/dragon`);
     await expect(page.getByTestId('dragon-stage')).toContainText('Dragonnet');

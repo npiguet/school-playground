@@ -109,7 +109,7 @@ often but not every session; low = rare, edge-case, or dev-only.
 | 53 | `web/src/components/Results.svelte:256` — "Ce qu'Éris a tenté" list, a caught error | "déjoué ✓" — unicode checkmark appended to French text | a | Shared olive SVG checkmark (see #43), placed after the text rather than baked into it | Medium |
 | 54 | `web/src/screens/ScanText.svelte:236` — verify step, a word the player has tapped/viewed | `✓ ` prefix (unicode checkmark) | a | Same shared SVG checkmark | Medium |
 | 55 | `web/src/components/scene/Hotspot.svelte:65,151-165` — hub scene plaque badge (e.g. quest count) | CSS-only numeric badge, no icon | c | Fine as-is | — |
-| 56 | Rank/level insignia — `server/app/world/catalog.py:47-49` `RANKS` (10 tiers, "Recrue du camp" → "Légende du camp"), shown in `ProgressionReveal.svelte` and `Dossier.svelte` | No icon of any kind — only the rank title text plus the laurel XP gauge (`LaurelBar`) | f | Optional: a tiered laurel-wreath insignia (e.g. 3-4 medallion border treatments reused across rank bands) rather than 10 bespoke icons — keeps the asset count sane | Medium |
+| 56 | **Obsolete (ranks removed in sub-project 3, 2026-09-29 dragon growth: the dragon's six painted stages replaced them).** Rank/level insignia — `server/app/world/catalog.py:47-49` `RANKS` (10 tiers, "Recrue du camp" → "Légende du camp"), shown in `ProgressionReveal.svelte` and `Dossier.svelte` | No icon of any kind — only the rank title text plus the laurel XP gauge (`LaurelBar`) | f | Optional: a tiered laurel-wreath insignia (e.g. 3-4 medallion border treatments reused across rank bands) rather than 10 bespoke icons — keeps the asset count sane | Medium |
 | 57 | Loading/empty/error text across `ProfilePicker.svelte`, `QuestBoard.svelte`, `Oracle.svelte`, `Cabin.svelte`, `Dossier.svelte`, `Bestiaire.svelte`, `Library.svelte` (e.g. "Les Muses cherchent…", "Aucune quête en cours…", "Impossible de charger…") | Plain French sentences, no icon | b/f | Acceptable as-is for a calm, book-like UI; if desired later, one shared small "closed scroll" (empty) and one "torn parchment" (error) motif could reinforce state, but this is not a gap that needs closing now | Low |
 
 ## 8. App icon
@@ -170,7 +170,7 @@ from scratch, that's noted below — but each still needs a new *icon-sized* fil
 
 **Rows that only need SVG or plain words (no new painted art):** rows 8, 9 (if done as SVG rather
 than painted), 11 (reuse), 12 (reuse), 19, 20, 22, 41, 43/53/54 (shared checkmark), 44, 45, 46, 48,
-52, 56 (tiered treatment, not per-rank art), 57.
+52, 56 (obsolete: the ranks were removed in sub-project 3), 57.
 
 **Already correct, used as the reference pattern for every SVG fix above:** `Hud.svelte`'s mute
 lyre, `Overlay.svelte`'s wax-seal close button, and `Camp.svelte`'s hero-panel medallions (rows

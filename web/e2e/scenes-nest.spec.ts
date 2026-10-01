@@ -27,7 +27,8 @@ test('the nest: the egg in the straw, its growth, its greeting; the exit leads b
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
   await expect(page.getByTestId('dragon-stage')).toHaveText('Œuf');
-  // UI3b playability #5: the camp's words (« ruses »), a sentence for its mood, a pinned sheet.
+  // UI3b playability #5 (XP since sub-project 3): the next stage and the XP toward it, a sentence for
+  // its mood, a pinned sheet.
   await expect(page.getByTestId('nest-growth')).toContainText('Prochaine étape\u202f: Dragonnet');
   await expect(page.getByTestId('nest-growth')).toContainText('0 sur 100 XP');
   await expect(page.getByTestId('nest-growth')).toContainText('Il frémit dans sa coquille.');
@@ -141,7 +142,16 @@ test('nest: ?debug outlines the dragon; no red; rotate screen', async ({ page, r
 
 // Spec 2026-09-29 dragon growth §3: each of the six stages in the straw bed, with its name and what it
 // is up to; the biggest stays clear of its growth sheet and below the HUD. The stage is set by
-// intercepting this hero's /camp (its XP is pinned by the server tests and world.spec).
+// intercepting this hero's /camp with an XP total that fits it (the real XP-driven growth is pinned by
+// the server tests and world.spec), so no impossible state (« 0 sur 100 XP » at the top) renders.
+const XP_AT: Record<string, { total: number; floor: number; next: number | null }> = {
+  egg: { total: 0, floor: 0, next: 100 },
+  hatchling: { total: 150, floor: 100, next: 1200 },
+  young: { total: 3100, floor: 1200, next: 5000 },
+  adult: { total: 6000, floor: 5000, next: 15000 },
+  illustre: { total: 20000, floor: 15000, next: 40000 },
+  ancestral: { total: 41000, floor: 40000, next: null },
+};
 const STAGES = [
   ['egg', 'Œuf', 'Il frémit dans sa coquille.'],
   ['hatchling', 'Dragonnet', 'Il est curieux.'],
@@ -158,6 +168,7 @@ test('the nest shows each of the six stages, clear of its growth sheet and of th
     const res = await route.fetch();
     const camp = await res.json();
     camp.dragon = { ...camp.dragon, stage, name: stage === 'egg' ? null : 'Braise' };
+    camp.xp = { ...camp.xp, ...XP_AT[stage] };
     await route.fulfill({ response: res, json: camp });
   });
   for (const [key, label, activity] of STAGES) {
@@ -187,12 +198,15 @@ test('the growth sheet: the next stage and the XP toward it; « Il a fini de gra
   await page.goto(`/#/p/${id}/dragon?debug`);
   await expectScene(page, 'nest');
   const sheet = page.getByTestId('nest-growth');
-  await expect(sheet).toContainText('Prochaine étape : Dragon adulte');
-  await expect(sheet).toContainText('1 900 sur 3 800 XP');
+  await expect(sheet).toContainText('Prochaine étape\u202f: Dragon adulte');
+  await expect(sheet).toContainText('1\u202f900 sur 3\u202f800 XP');
+  // Final review I2: a screen reader hears the count with its unit, not a bare 1900.
+  await expect(sheet.locator('[role="progressbar"]')).toHaveAttribute('aria-valuetext', '1\u202f900 sur 3\u202f800 XP');
   fake = { stage: 'ancestral', xp: { total: 41000, floor: 40000, next: null } };
   await page.reload();
   await expectScene(page, 'nest');
   await expect(sheet).toContainText('Il a fini de grandir.');
   await expect(sheet.locator('.growth-count')).toHaveCount(0);
   await expect(sheet.locator('[role="progressbar"]')).toHaveAttribute('data-state', 'ok');
+  await expect(sheet.locator('[role="progressbar"]')).toHaveAttribute('aria-valuetext', 'Il a fini de grandir.');
 });

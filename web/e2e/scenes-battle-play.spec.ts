@@ -41,7 +41,7 @@ test('the muster is an order of battle: Éris taunts, three pace medallions, no 
   const medallions = [
     ['Pas à pas', "Chaque groupe est lu deux fois, puis la Pythie t'attend. Une réécoute par groupe."],
     ['Par groupes', 'Chaque groupe est lu deux fois, puis la Pythie enchaîne. Tu peux faire une pause.'],
-    ["D'un bon pas", 'Des groupes plus longs, lus deux fois, sans bouton pause : la Pythie enchaîne.'],
+    ["D'un bon pas", 'Des groupes plus longs, lus deux fois, sans bouton pause\u202f: la Pythie enchaîne.'],
   ];
   for (const [i, [title, desc]] of medallions.entries()) {
     await expect(sheet.getByTestId(`pace-option-${i + 1}`).locator('.title')).toHaveText(title);
@@ -322,7 +322,7 @@ test('pace I: each group twice, then « Suivant »; one « Réécouter » a grou
   await expect(page.getByTestId('btn-finish-writing')).toBeVisible();
   await expect(page.getByTestId('dictation-progress')).toHaveText('Groupe 3 sur 3');
   await tap(next, testInfo);
-  await expect(page.getByTestId('dictation-status')).toHaveText("C'est fini ! Relis ton texte quand tu veux.");
+  await expect(page.getByTestId('dictation-status')).toHaveText("C'est fini\u202f! Relis ton texte quand tu veux.");
   expect(await said(page)).toEqual([G0, G0, G0, G1, G1, G1, S1, S1, S0, S1]);
   await expect(page.getByTestId('dictation-progress')).toHaveText('Lecture complète');
 });
