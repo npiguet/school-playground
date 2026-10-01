@@ -366,7 +366,7 @@
     if (playState && !playState.submitted) await submitSession();
   }
 
-  // Lieutenant key -> French name for the spoils' quest/neutralised titles (VictorySpoils);
+  // Lieutenant key -> French name for the spoils' quest titles and seal cards (VictorySpoils);
   // 'eris' is added for the boss quest title, which the camp's lieutenant list doesn't carry.
   const progressionNames = $derived.by(() => {
     const out: Record<string, string> = { eris: 'Éris' };
@@ -391,7 +391,7 @@
   // Ruling C2: the opponent is chosen once, then kept in the play state (saved with it from the
   // dictation on) so a reload or a resume faces the same one. An explicit encounter, or Éris's own
   // grimoire, needs no camp. A free text waits for this visit's /camp answer (fix round 1 #3): a
-  // cached snapshot may predate a lieutenant's waking or neutralisation.
+  // cached snapshot may predate a lieutenant's waking or seal.
   $effect(() => {
     if (!playState || playState.opponent) return;
     if (!pinned && mode !== 'grimoire' && !campTried) return;

@@ -16,6 +16,7 @@ import {
   redScan,
   seedPlay,
   setKeyboard,
+  swissDay,
   tap,
   uniqueName,
 } from './helpers';
@@ -383,12 +384,12 @@ const HATCH = {
 };
 
 // A victory the Muses have already counted (the play state keeps its progression), so the spoils
-// show exactly this one: a boss won or lost, a hatch, a stage change.
+// show exactly this one: a boss won or lost, a hatch, a stage change, a seal.
 function progression(o: Record<string, unknown> = {}) {
   return {
     xp: { session: 51, bonuses: [], total_before: 487, total_after: 538, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 },
     quests: [],
-    neutralised: [],
+    levels: [],
     rewards: [],
     dragon: { stage_before: 'hatchling', stage_after: 'hatchling', needs_name: false },
     weekly: { target: 5, done: 1, reached_now: false },
@@ -529,6 +530,56 @@ test('a victory saved before the stages resumes on the dragon\'s scale', async (
 test('a victory saved before the parts keeps its one text chip', async ({ page, request }, testInfo) => {
   const old = await counted(page, request, `Vic22-${testInfo.project.name}`, progression());
   await expect(old.getByTestId('xp-chip')).toHaveText(['Texte +51']);
+});
+
+// Spec 2026-09-29 lieutenant levels §5: the seal on the victory, its trophy, its chip.
+test('a seal on the victory: « Sceau de bronze ! », its trophy, its chip', async ({ page, request }, testInfo) => {
+  const sheet = await counted(
+    page,
+    request,
+    `Vic25-${testInfo.project.name}`,
+    progression({
+      levels: [{ lieutenant: 'hydre', level: 2, reward_id: 'trophy:hydre:2' }],
+      rewards: [{ id: 'trophy:hydre:2', kind: 'trophy', name: "Écaille de l'Hydre en bronze" }],
+      xp: { session: 51, bonuses: [{ reason: 'level', amount: 200, lieutenant: 'hydre', level: 2 }], total_before: 487, total_after: 738, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 },
+    }),
+  );
+  const card = sheet.getByTestId('reveal-level-hydre');
+  await expect(card).toContainText('Sceau de bronze\u202f!');
+  await expect(card).toContainText("Tu poses le sceau de bronze sur l'Hydre. Son trophée t'attend dans ta cabane.");
+  await expect(card.getByTestId('reveal-level-trophy')).toHaveAttribute('src', '/art/trophies/trophy-hydre-2.webp');
+  await expect(sheet.getByTestId('xp-chip')).toContainText(["Sceau de bronze\u202f: l'Hydre +200"]);
+  await expect(sheet.getByTestId('reveal-reward-trophy:hydre:2')).toHaveCount(0); // never twice as « Nouveau trésor »
+});
+
+// Review focus 5: a play state saved before the change.
+test('a victory saved before the seals shows the first seal', async ({ page, request }, testInfo) => {
+  const sheet = await counted(
+    page,
+    request,
+    `Vic26-${testInfo.project.name}`,
+    progression({ levels: undefined, neutralised: ['echo'], xp: { session: 51, bonuses: [{ reason: 'mastery', amount: 200 }], total_before: 487, total_after: 738, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 } }),
+  );
+  await expect(sheet.getByTestId('reveal-level-echo')).toContainText('Sceau de bois\u202f!');
+  await expect(sheet.getByTestId('xp-chip')).toContainText(['Premier sceau +200']);
+  await expect(sheet).not.toContainText(/undefined|Ruse neutralisée|neutralisée/);
+});
+
+// Spec §6: a real seal from seeded stats. Two days of guard against the Hydra before today (the API,
+// with the test clock); today's victory, posted by the sheet, is the third.
+test('a real seal on the victory, from seeded stats: « Sceau de bois ! » and its chip', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Sceau-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Veille'), body: REF, level: '10H' });
+  for (const daysAgo of [2, 1]) {
+    await postSession(request, { profileId: id, textId: text.id, day: swissDay(daysAgo), result: makeResult({ draft: 4, caught: 4, category: 'agreement:verb' }) });
+  }
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'results', draft: DRAFT, current: REF, opponent: 'hydre' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'victory');
+  const card = page.getByTestId('reveal-level-hydre');
+  await expect(card).toContainText('Sceau de bois\u202f!', { timeout: 15_000 });
+  await expect(card.getByTestId('reveal-level-trophy')).toHaveAttribute('src', '/art/trophies/trophy-hydre-1.webp');
+  await expect(page.getByTestId('xp-chip').filter({ hasText: 'Sceau de bois' })).toHaveText("Sceau de bois\u202f: l'Hydre +100");
 });
 
 // UI4 playability #4: the biggest win of the game - Éris's defeat line, her treasure once, on the

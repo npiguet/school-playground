@@ -240,7 +240,7 @@ async function proofSection(w: Walk) {
 
 async function victorySection(w: Walk) {
   const { page } = w;
-  // A lived-in victory: two days of the Hydra already foiled, so today's live session can neutralise it.
+  // A lived-in victory: two days of the Hydra already foiled, so today's live session can win its wooden seal.
   await page.goto(`/#/p/${w.profileId}/play/${w.texts.short}?encounter=hydre`);
   await expectBattle(page, 'muster');
   await page.getByTestId('pace-option-1').click();
@@ -264,8 +264,8 @@ async function victorySection(w: Walk) {
   await expectBattle(page, 'victory');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', /retreat|defeat/);
   await expect(page.getByTestId('reveal-xp')).toBeVisible();
-  if ((await page.locator('[data-testid^="reveal-neutralised-"]').count()) === 0) {
-    w.notes.push('c11/c12: the Hydra is not neutralised by this session (the server wants more); the spoils show without it');
+  if ((await page.locator('[data-testid^="reveal-level-"]').count()) === 0) {
+    w.notes.push("c11/c12: the Hydra's wooden seal does not come with this session (the server wants more); the spoils show without it");
   }
   await sheetSettled(page);
   await shot(w, 'c11-victory-reckoning-and-spoils');

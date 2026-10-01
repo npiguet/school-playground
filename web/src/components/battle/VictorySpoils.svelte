@@ -1,7 +1,7 @@
 <script lang="ts">
   // The victory's spoils (spec §3.6, plan Task 8; UI4 Task 6 moved it onto the victory sheet, built
   // from kit objects): a short, joyful, staggered sequence - XP rising on the dragon's laurel, quests touched,
-  // a lieutenant neutralised (permanent, spec ethics: nothing is ever lost), rewards not already
+  // a seal won on a lieutenant (never lost), rewards not already
   // shown, the dragon growing, the weekly goal and a boss outcome. Every reward here was already
   // known in advance (the quest board / lieutenant page / boss screen showed it before the player
   // committed) - this only confirms it happened.
@@ -15,16 +15,16 @@
   import OverlayVoice from '../scene/OverlayVoice.svelte';
   import { questNotCounted, VICTORY } from '../../lib/battle/lines';
   import type { OpponentId } from '../../lib/battle/battle';
-  import { ART, RELIC_OF } from '../../lib/world/art';
+  import { ART, trophyIcon } from '../../lib/world/art';
   import { campStore, loadCatalog } from '../../lib/world/campStore.svelte';
   import { rememberDragonSeen } from '../../lib/world/dragonSeen.svelte';
   import { stageLabel, stageXp, victoryGauge, victoryLaurel, type VictoryPhase } from '../../lib/world/dragon';
   import { lowerLeadingArticle, romanTier } from '../../lib/world/quests';
-  import { agree } from '../../lib/world/eris';
+  import { bonusChipLabel, levelUpLine, levelUps, sealCry } from '../../lib/world/seals';
   import { erisSays } from '../../lib/world/voices';
   import { playSfx } from '../../lib/juice/sfx';
   import { reducedMotion } from '../../lib/juice/motion';
-  import type { DragonOut, LieutenantKey, Progression } from '../../lib/world/types';
+  import type { DragonOut, Progression } from '../../lib/world/types';
   import type { Profile } from '../../lib/types';
 
   let {
@@ -38,22 +38,11 @@
 
   void loadCatalog();
 
-  const BONUS_LABELS: Record<string, string> = {
-    // Spec 2026-09-29 §4: the session's parts, then the existing bonuses.
-    text: 'Texte',
-    session: 'Texte',
-    pace: 'Rythme',
-    aids: 'Sans aides',
-    prophecy: 'Prophétie',
-    board: 'Quête',
-    oracle: 'Oracle',
-    boss: 'Éris vaincue',
-    mastery: 'Ruse neutralisée',
-    // Interim until the seals' chip (spec 2026-09-29 lieutenant levels §1, plan Task 6): never the raw key.
-    level: 'Sceau',
-    weekly: 'Objectif de la semaine',
-  };
   const XP_PARTS = ['text', 'pace', 'aids', 'prophecy'] as const;
+
+  // Spec 2026-09-29 lieutenant levels §5 (R16): the seals this session won, read once on mount (a
+  // victory saved before the change shows its neutralisations as their wooden seals).
+  const ups = levelUps(untrack(() => progression));
 
   // Boss card: the treasure Éris leaves behind, shown once, in her defeat's block.
   const bossReward = $derived(progression.boss?.won ? (progression.rewards.find((r) => r.kind === 'gear') ?? null) : null);
@@ -130,25 +119,15 @@
     return { xp: bonus?.amount ?? null, rewardName: reward?.name ?? null };
   }
 
-  // Screen-reader name for the neutralised card's relic medallion, which sits with no visible
-  // name of its own next to it (the card's own title/line already name the lieutenant, not the
-  // relic - review round 1 #2).
-  function relicName(key: string): string {
-    const id = RELIC_OF[key as LieutenantKey];
-    return campStore.catalog?.rewards[id]?.name ?? `Relique de ${names[key] ?? key}`;
-  }
-
-  // Rewards not already shown by the quest cards (their own `reward_id`), the neutralised cards
-  // (every relic-kind reward always comes from a neutralisation this session) or the boss block (its
-  // treasure, shown once with Éris's defeat: UI4 playability #4).
+  // Rewards not already shown by the quest cards (their own `reward_id`), the seal cards (every trophy
+  // comes from a seal this session; a relic only from a victory saved before the change) or the boss
+  // block (its treasure, shown once with Éris's defeat: UI4 playability #4).
   const shownRewardIds = $derived(
     new Set(progression.quests.filter((q) => q.completed && q.reward_id).map((q) => q.reward_id as string)),
   );
   const extraRewards = $derived(
-    // A seal's trophy (spec 2026-09-29 lieutenant levels §5) is never a « Nouveau trésor »: until the
-    // seal's own card (plan Task 6), the first seal shows on the neutralised card above.
     progression.rewards.filter(
-      (r) => r.kind !== 'relic' && !r.id.startsWith('trophy:') && !shownRewardIds.has(r.id) && r.id !== bossReward?.id,
+      (r) => r.kind !== 'trophy' && r.kind !== 'relic' && !shownRewardIds.has(r.id) && r.id !== bossReward?.id,
     ),
   );
 
@@ -170,9 +149,9 @@
   // always plays (mute is the only gate, inside `playSfx`); particles render nothing under
   // reduced motion (handled inside `Particles` itself).
   let xpBurstTrigger = $state(0);
-  // One trigger slot per lieutenant neutralised in this reveal, sized once from the progression
-  // passed in on mount (this component doesn't re-run its reveal if `progression` changes later).
-  let neutralisedTriggers = $state<number[]>(untrack(() => progression.neutralised.map(() => 0)));
+  // One trigger slot per seal won in this reveal, sized once from the progression passed in on mount
+  // (this component doesn't re-run its reveal if `progression` changes later).
+  let levelTriggers = $state<number[]>(ups.map(() => 0));
   let dragonSparkleTrigger = $state(0);
   let weeklyLaurelTrigger = $state(0);
 
@@ -198,11 +177,11 @@
       );
     }
     let t = 350;
-    progression.neutralised.forEach((_key, i) => {
+    ups.forEach((_u, i) => {
       timers.push(
         setTimeout(() => {
           playSfx('growth');
-          neutralisedTriggers[i] += 1;
+          levelTriggers[i] += 1;
         }, t),
       );
       t += 300;
@@ -270,7 +249,7 @@
       </div>
       <div class="bonuses">
         {#each bonusChips as b, i (i)}
-          <span class="kit-tag bonus" data-testid="xp-chip" style:--tag-tilt="{i % 2 ? 1.2 : -1.2}deg">{BONUS_LABELS[b.reason] ?? b.reason} +{b.amount}</span>
+          <span class="kit-tag bonus" data-testid="xp-chip" style:--tag-tilt="{i % 2 ? 1.2 : -1.2}deg">{bonusChipLabel(b, names)} +{b.amount}</span>
         {/each}
       </div>
     </div>
@@ -302,20 +281,22 @@
     </Reveal>
   {/each}
 
-  {#each progression.neutralised as key, i (key)}
+  {#each ups as u, i (u.lieutenant)}
     <Reveal delay={nextDelay()}>
-      <div class="neutralised" data-testid="reveal-neutralised-{key}">
-        <img
-          src={ART.lieutenants[key as keyof typeof ART.lieutenants] ?? ART.eris}
-          alt={names[key] ?? key}
-          class="lieutenant-art"
-        />
-        <div class="kit-sheet spoil neutralised-sheet">
-          <p class="spoil-title">{names[key] ?? key} — {agree('neutralisé', key as LieutenantKey)}{'\u202f!'}</p>
-          <p>{VICTORY.neutralised}</p>
-          <Medallion rewardId={RELIC_OF[key as LieutenantKey] ?? ''} size={56} label={relicName(key)} />
+      <!-- Spec 2026-09-29 lieutenant levels §5 (R16): the seal won, its trophy, like the relic's reveal before. -->
+      <div class="level-up" data-testid="reveal-level-{u.lieutenant}">
+        <img src={ART.lieutenants[u.lieutenant]} alt={names[u.lieutenant] ?? u.lieutenant} class="lieutenant-art" />
+        <div class="kit-sheet spoil level-sheet">
+          <img
+            class="trophy-art"
+            data-testid="reveal-level-trophy"
+            src={trophyIcon(u.lieutenant, u.level) ?? ''}
+            alt={campStore.catalog?.rewards[u.reward_id]?.name ?? sealCry(u.level)}
+          />
+          <p class="spoil-title">{sealCry(u.level)}</p>
+          <p>{levelUpLine(u.lieutenant, u.level)}</p>
         </div>
-        <Particles trigger={neutralisedTriggers[i]} kind="burst" />
+        <Particles trigger={levelTriggers[i]} kind="burst" />
       </div>
     </Reveal>
   {/each}
@@ -458,14 +439,20 @@
     font-weight: 700;
     color: var(--reward-ink);
   }
-  .neutralised {
+  .level-up {
     position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
   }
-  .neutralised-sheet {
+  .level-sheet {
     flex: 1;
+  }
+  .trophy-art {
+    width: 88px;
+    height: 88px;
+    object-fit: contain;
+    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.3));
   }
   .lieutenant-art {
     width: 96px;

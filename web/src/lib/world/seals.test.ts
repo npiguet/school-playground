@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { MATERIALS, fightLine, sealFill, sealGauges, sealName, sealProgressLine, sealReady, sealTitle, sealTitleOf, sealsName } from './seals';
+import {
+  MATERIALS,
+  bonusChipLabel,
+  fightLine,
+  levelChipLabel,
+  levelUpLine,
+  levelUps,
+  sealCry,
+  sealFill,
+  sealGauges,
+  sealName,
+  sealProgressLine,
+  sealReady,
+  sealTitle,
+  sealTitleOf,
+  sealsName,
+} from './seals';
 import type { SealWindow } from './types';
 
 const next = (o: Partial<SealWindow> & { level: number }): SealWindow => ({
@@ -52,5 +68,32 @@ describe('the seals in words', () => {
     expect(fightLine({ level: 1, missing: 1 })).toBe("Encore un sceau de bois et Éris t'attend.");
     expect(fightLine({ level: 3, missing: 6 })).toBe("Encore six sceaux d'argent et Éris t'attend.");
     expect(fightLine({ level: 5, missing: 7 })).toBe("Encore 7 sceaux d'orichalque et Éris t'attend.");
+  });
+
+  it('reveals a seal on the victory: its cry, its line, its chip (spec §1, §5, R16)', () => {
+    expect(sealCry(2)).toBe('Sceau de bronze\u202f!');
+    expect(levelUpLine('hydre', 2)).toBe("Tu poses le sceau de bronze sur l'Hydre. Son trophée t'attend dans ta cabane.");
+    expect(levelUpLine('sirenes', 3)).toBe("Tu poses le sceau d'argent sur les Sirènes. Leur trophée t'attend dans ta cabane.");
+    expect(levelUpLine('echo', 1)).toBe("Tu poses le sceau de bois sur Écho. Son trophée t'attend dans ta cabane.");
+    expect(levelChipLabel(2, "L'Hydre")).toBe("Sceau de bronze\u202f: l'Hydre");
+    expect(levelChipLabel(5, 'Les Sirènes')).toBe("Sceau d'orichalque\u202f: les Sirènes");
+  });
+
+  // Review focus 5: a victory saved before the seals carries `neutralised`, no `levels`.
+  it('reads the seals of a victory, and of one saved before the change', () => {
+    const up = { lieutenant: 'hydre', level: 2, reward_id: 'trophy:hydre:2' };
+    expect(levelUps({ levels: [up], neutralised: ['echo'] })).toEqual([up]);
+    expect(levelUps({ neutralised: ['echo'] })).toEqual([{ lieutenant: 'echo', level: 1, reward_id: 'trophy:echo:1' }]);
+    expect(levelUps({ levels: [{ lieutenant: 'medusa', level: 1, reward_id: 'x' }] })).toEqual([]);
+    expect(levelUps({})).toEqual([]);
+  });
+
+  it('labels every chip of the victory, the saved ones included', () => {
+    const names = { hydre: "L'Hydre" };
+    expect(bonusChipLabel({ reason: 'level', amount: 200, lieutenant: 'hydre', level: 2 }, names)).toBe("Sceau de bronze\u202f: l'Hydre");
+    expect(bonusChipLabel({ reason: 'level', amount: 100, lieutenant: 'echo', level: 1 }, {})).toBe('Sceau de bois\u202f: Écho');
+    expect(bonusChipLabel({ reason: 'mastery', amount: 200 }, names)).toBe('Premier sceau');
+    expect(bonusChipLabel({ reason: 'pace', amount: 8 }, names)).toBe('Rythme');
+    expect(bonusChipLabel({ reason: 'mystery', amount: 1 }, names)).toBe('mystery');
   });
 });

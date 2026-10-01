@@ -87,8 +87,11 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
   it('captions only the places with news, three at most, in priority order', () => {
     const won = { tier_available: null, tiers_won: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], active_quest_id: null, fights: 10, next: null };
     expect(campNews(camp({ xp: seasoned, oracle: chosen, boss: won }), null)).toEqual({ boss: 'Éris boude, loin du camp' });
-    // Ruling B-d: the locked path's caption is the battle's news, first of the three.
-    expect(campNews(camp({ xp: seasoned, oracle: chosen, boss: won, dragon: { ...hatchling, name: 'Braise' } }), null)).toEqual({ boss: 'Éris boude, loin du camp' });
+    // Ruling B-d: the battle's news comes first, an open fight's as a locked path's; the fourth news
+    // (the dragon's name) is the one left out.
+    const open = campNews(ready({ dragon: hatchling }), catalog);
+    expect(Object.keys(open)).toEqual(['boss', 'oracle', 'parchemins']);
+    expect(open.boss).toBe("Combat I\u202f: Sandales d'Hermès");
     expect(campNews(camp({ dragon: hatchling }), null)).toEqual({
       boss: "Encore deux sceaux de bois et Éris t'attend.",
       oracle: 'Trois rouleaux à ouvrir',

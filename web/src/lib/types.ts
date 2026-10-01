@@ -185,7 +185,7 @@ export interface SessionCreate {
 
 export interface SessionCreated {
   id: number;
-  /** SP3 Task 7: the progression this session earned (XP, quests, neutralisations, dragon stage,
+  /** SP3 Task 7: the progression this session earned (XP, quests, seals, dragon stage,
    *  weekly goal, boss outcome) - `undefined` until the server lane lands. */
   progression?: import('./world/types').Progression;
 }

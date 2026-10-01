@@ -47,7 +47,7 @@ describe("Éris's dossier lines", () => {
 
   it('knows who is awake at a class', () => {
     expect([isAwake('protee', '7H'), isAwake('protee', '8H'), isAwake('hydre', '5H')]).toEqual([false, true, true]);
-    // An unknown or empty class reads as awake, as the server's lieutenants_for_level would for no class.
+    // An unknown or empty class reads as awake, so nobody is hidden while the profile loads.
     expect([isAwake('protee', ''), isAwake('sirenes', 'zz')]).toEqual([true, true]);
   });
 

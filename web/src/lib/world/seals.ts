@@ -3,8 +3,9 @@
 // number or the school's word. Pure: the camp's `lieutenants[].next` carries the window, the server
 // decides; these words only say it.
 import { plural, rateText } from '../text/french';
-import { agree } from './eris';
-import type { LieutenantKey, LieutenantState, SealWindow } from './types';
+import { agree, genderFor, lieutenantName } from './eris';
+import { lowerLeadingArticle } from './quests';
+import { LIEUTENANT_ORDER, type LieutenantKey, type LieutenantState, type SealWindow } from './types';
 
 export const MATERIALS = ['bois', 'bronze', 'argent', 'or', 'orichalque'] as const;
 export const MAX_SEAL = MATERIALS.length;
@@ -109,4 +110,70 @@ export function fightLine(next: { level: number; missing: number }): string {
   const n = next.missing;
   const count = n < COUNT_WORDS.length ? COUNT_WORDS[n] : String(n);
   return `Encore ${count} ${n < 2 ? sealName(next.level) : sealsName(next.level)} et Éris t'attend.`;
+}
+
+const ON: Record<LieutenantKey, string> = {
+  hydre: "sur l'Hydre",
+  echo: 'sur Écho',
+  chimere: 'sur la Chimère',
+  protee: 'sur Protée',
+  sirenes: 'sur les Sirènes',
+  lethe: 'sur Léthé',
+};
+
+/** The victory's cry for a seal (spec §5): « Sceau de bronze ! ». */
+export function sealCry(level: number): string {
+  return `${sealTitle(level)}\u202f!`;
+}
+
+/** The seal's card on the victory (R16). */
+export function levelUpLine(key: LieutenantKey, level: number): string {
+  const their = genderFor(key) === 'fp' ? 'Leur' : 'Son';
+  return `Tu poses le ${sealName(level)} ${ON[key]}. ${their} trophée t'attend dans ta cabane.`;
+}
+
+/** The seal's XP chip: « Sceau de bronze : l'Hydre » (the victory adds « +200 »). */
+export function levelChipLabel(level: number, name: string): string {
+  return `${sealTitle(level)}\u202f: ${lowerLeadingArticle(name)}`;
+}
+
+const isKey = (k: string): k is LieutenantKey => (LIEUTENANT_ORDER as readonly string[]).includes(k);
+
+export interface LevelUp {
+  lieutenant: LieutenantKey;
+  level: number;
+  reward_id: string;
+}
+
+/** The seals a victory reveals; a victory saved before the change reveals its neutralisations as the
+ *  wooden seals they became (migration 006). */
+export function levelUps(p: { levels?: { lieutenant: string; level: number; reward_id: string }[]; neutralised?: string[] }): LevelUp[] {
+  // The id is joined, not templated: the French-spacing guard reads a template literal as copy.
+  const ups = p.levels ?? (p.neutralised ?? []).map((k) => ({ lieutenant: k, level: 1, reward_id: ['trophy', k, 1].join(':') }));
+  return ups.filter((u): u is LevelUp => isKey(u.lieutenant));
+}
+
+const CHIP_LABELS: Record<string, string> = {
+  // Spec 2026-09-29 §4 (sub-project 1): the session's parts, then the other bonuses.
+  text: 'Texte',
+  session: 'Texte',
+  pace: 'Rythme',
+  aids: 'Sans aides',
+  prophecy: 'Prophétie',
+  board: 'Quête',
+  oracle: 'Oracle',
+  boss: 'Éris vaincue',
+  weekly: 'Objectif de la semaine',
+  // A seal's bonus without its lieutenant (never sent by the server): never the raw key.
+  level: 'Sceau',
+  // A victory saved before the seals: its neutralisation's bonus was the first seal's.
+  mastery: 'Premier sceau',
+};
+
+/** Every XP chip's label (the victory adds « +N »): a seal names itself and its lieutenant. */
+export function bonusChipLabel(b: { reason: string; amount?: number; lieutenant?: string; level?: number }, names: Record<string, string>): string {
+  if (b.reason === 'level' && b.lieutenant && isKey(b.lieutenant) && b.level) {
+    return levelChipLabel(b.level, names[b.lieutenant] ?? lieutenantName(b.lieutenant));
+  }
+  return CHIP_LABELS[b.reason] ?? b.reason;
 }

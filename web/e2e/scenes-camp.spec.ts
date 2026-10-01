@@ -283,6 +283,38 @@ test('places and their labels sit inside the visible safe zone, never overlap, a
   await expect(page).toHaveURL(/\/tente-parchemins$/);
 });
 
+// Spec 2026-09-29 lieutenant levels §4 (R9): the battle path's caption is a sentence now. Its longest
+// (four seals of orichalque, set on this hero's /camp) stays on its plaque, inside the safe zone and
+// clear of every other place, at the same four sizes.
+test('the longest battle caption stays on its plaque, inside the safe zone', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const json = await res.json();
+    json.boss = { ...json.boss, tier_available: null, tiers_won: [1, 2, 3, 4, 5, 6, 7, 8, 9], next: { tier: 10, level: 5, missing: 4 } };
+    await route.fulfill({ response: res, json });
+  });
+  const caption = "Encore quatre sceaux d'orichalque et Éris t'attend.";
+  for (const size of [
+    { width: 1024, height: 768 },
+    { width: 1180, height: 820 },
+    { width: 1280, height: 720 },
+    { width: 1366, height: 1024 },
+  ]) {
+    const at = `${size.width}x${size.height}`;
+    await page.setViewportSize(size);
+    await openCamp(page, id);
+    const label = page.getByTestId('camp-boss').locator('.hotspot-label');
+    await expect(label.locator('.hotspot-caption'), at).toHaveText(caption);
+    await expectInSafeZone(page, 'camp', ALL);
+    expect(await labelOverlaps(page, 'camp'), at).toEqual([]);
+    // The caption sits inside its plaque: nothing spills past the dark band.
+    const [plate, text] = await Promise.all([label.boundingBox(), label.locator('.hotspot-caption').boundingBox()]);
+    expect(text!.x, at).toBeGreaterThanOrEqual(plate!.x);
+    expect(text!.x + text!.width, at).toBeLessThanOrEqual(plate!.x + plate!.width + 0.5);
+  }
+});
+
 test('HUD: laurel, dragon, sound toggle that survives leaving the camp', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCamp(page, id);

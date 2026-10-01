@@ -40,7 +40,7 @@ export interface PlayState {
   /** The errors Éris planted (SP2 Task 9, grimoire mode only); set once by `corrupt` and kept for
    *  the life of the session. No version bump: an optional field, absent in dictation mode. */
   plants?: Plant[];
-  /** SP3 Task 7: the progression `POST /api/sessions` returned (XP, quests, neutralisations,
+  /** SP3 Task 7: the progression `POST /api/sessions` returned (XP, quests, seals,
    *  dragon stage, weekly goal, boss outcome) - stored so a reload can still render it (Task 8).
    *  No version bump: an optional field, absent until a session is actually submitted. */
   progression?: Progression;

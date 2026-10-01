@@ -263,7 +263,6 @@ export const VICTORY = {
   tokFoiled: (w: string) => `${w}\u202f: déjoué, touche pour voir`,
   expected: (w: string) => `Il fallait\u202f: «\u202f${w}\u202f»`,
   forgotten: (w: string) => `Mot oublié\u202f: «\u202f${w}\u202f»`,
-  neutralised: 'Sa ruse ne te piège plus\u202f: trois jours de garde et 8 pièges sur 10 déjoués.',
   bossWon: 'Impossible\u202f! Garde ta pomme, je reviendrai avec de nouvelles ruses.',
   // UI4 playability #10: her exit, in her own voice on her plate (it was a narrator's note).
   bossLost: "Ha\u202f! Je garde ma pomme… pour cette fois. Le combat reste ouvert\u202f: reviens m'affronter quand tu veux.",

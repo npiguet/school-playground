@@ -61,7 +61,7 @@ def test_three_days_of_guard_win_the_hydras_wooden_seal(client, settings):
     assert {"reason": "level", "amount": 100, "lieutenant": "hydre", "level": 1} in p["xp"]["bonuses"]
     assert all(b["reason"] != "mastery" for b in p["xp"]["bonuses"])
     assert p["rewards"] == [{"id": "trophy:hydre:1", "kind": "trophy", "name": "Écaille de l'Hydre en bois"}]
-    assert p["neutralised"] == ["hydre"]                                    # compat until Task 6
+    assert "neutralised" not in p
     c = camp(client, pid)
     h = hydre(c)
     assert (h["level"], h["level_reached_at"]) == (1, "2026-09-23T12:00:00+00:00")

@@ -63,7 +63,7 @@
     submitting: boolean;
     /** The spoils play once, then fold away (a replay needs a fresh one). */
     revealDone: boolean;
-    /** Lieutenant key -> French name, for the spoils' quest and neutralised titles. */
+    /** Lieutenant key -> French name, for the spoils' quest and seal cards. */
     names: Record<string, string>;
     /** What the dragon's explanations of the traps still standing read (null: no text, none). */
     explainCtx: ExplainContext | null;

@@ -140,7 +140,8 @@ export interface Progression {
     /** Spec 2026-09-29 §4: the session XP broken down for the victory's chips (they add up to `session`).
      *  Absent from a victory saved before the change. */
     parts?: { text: number; pace: number; aids: number; prophecy: number };
-    bonuses: { reason: string; amount: number }[];
+    /** A seal's bonus names its lieutenant and seal (spec 2026-09-29 lieutenant levels §1). */
+    bonuses: { reason: string; amount: number; lieutenant?: string; level?: number }[];
     total_before: number;
     total_after: number;
     /** Spec 2026-09-29 dragon growth §2: the dragon's stages around this victory and the new stage's
@@ -163,7 +164,11 @@ export interface Progression {
     completed: boolean;
     reward_id: string | null;
   }[];
-  neutralised: string[];
+  /** Spec 2026-09-29 lieutenant levels §1: the seals this session won (absent from a victory saved
+   *  before the change). */
+  levels?: { lieutenant: string; level: number; reward_id: string }[];
+  /** A victory saved before the seals: the lieutenants it neutralised, now their wooden seal. */
+  neutralised?: string[];
   rewards: { id: string; kind: RewardKind; name: string }[];
   dragon: { stage_before: DragonStage; stage_after: DragonStage; needs_name: boolean };
   weekly: { target: number; done: number; reached_now: boolean };

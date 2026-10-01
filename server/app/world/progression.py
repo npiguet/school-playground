@@ -160,8 +160,6 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
                    "stage_before": stage_before, "stage_after": stage_after, "floor": floor, "next": nxt},
             "quests": quest_out,
             "levels": levels_out,
-            # Compat until Task 6: the victory's old card reads the lieutenants that won their first seal.
-            "neutralised": [u["lieutenant"] for u in levels_out if u["level"] == 1],
             "rewards": rewards,
             "dragon": {"stage_before": stage_before, "stage_after": stage_after, "needs_name": needs_name},
             "weekly": {"target": target, "done": done, "reached_now": reached_now}, "boss": boss_out,
