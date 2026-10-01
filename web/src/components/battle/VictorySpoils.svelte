@@ -12,7 +12,8 @@
   import Dragon from '../Dragon.svelte';
   import LaurelBar from '../ui/LaurelBar.svelte';
   import OverlayVoice from '../scene/OverlayVoice.svelte';
-  import { VICTORY } from '../../lib/battle/lines';
+  import { questNotCounted, VICTORY } from '../../lib/battle/lines';
+  import type { OpponentId } from '../../lib/battle/battle';
   import { ART, RELIC_OF } from '../../lib/world/art';
   import { worldApi } from '../../lib/world/api';
   import { campStore, loadCatalog, refreshCamp } from '../../lib/world/campStore.svelte';
@@ -332,9 +333,15 @@
     <Reveal delay={nextDelay()}>
       <div class="kit-sheet spoil" class:is-complete={q.completed} data-testid="reveal-quest-{q.id}">
         <p class="spoil-title">{questLabel(q)}</p>
-        <p>
-          {q.counted ? 'Ce texte compte\u202f: ' : 'Ce texte ne compte pas cette fois\u202f: '}{q.progress} / {q.goal ?? '?'}
-        </p>
+        {#if !q.counted && q.reason}
+          <!-- Final review minor 9: why it does not count, in the camp's voice. -->
+          <p data-testid="quest-reason">{questNotCounted(q.reason, q.target as OpponentId)}</p>
+          <p>Ta quête{'\u202f: '}{q.progress} / {q.goal ?? '?'}</p>
+        {:else}
+          <p>
+            {q.counted ? 'Ce texte compte\u202f: ' : 'Ce texte ne compte pas cette fois\u202f: '}{q.progress} / {q.goal ?? '?'}
+          </p>
+        {/if}
         {#if q.completed}
           <p class="kit-stamp accomplished">Quête accomplie{'\u202f!'}</p>
           {#if bonus.xp !== null || bonus.rewardName}

@@ -13,7 +13,7 @@
   import DialogueBox from '../scene/DialogueBox.svelte';
   import { DRAGON_REVIEW_HINT, dragonTally, opponentName, VICTORY, victoryTitle } from '../../lib/battle/lines';
   import type { OpponentId } from '../../lib/battle/battle';
-  import { reckoningSteps, reckoningVerdict } from '../../lib/battle/hp';
+  import { outcomeOf, reckoningSteps, reckoningVerdict } from '../../lib/battle/hp';
   import { react, strike } from '../../lib/battle/stage.svelte';
   import { emitBattle } from '../../lib/battle/events';
   import { spokenExplanation, type ExplainContext } from '../../lib/explain';
@@ -77,38 +77,46 @@
   } = $props();
 
 
-  // UI4 Ruling C3: the reckoning. The hold drops one strike per trap caught (client-side result, so
-  // it never waits for the server), then the opponent is routed, pushed back or still standing.
-  // For a boss fight the final pose waits for the server's verdict (progression.boss): a failed
-  // submission leaves it pending, never provisional (reckoningVerdict).
+  // UI4 Ruling C3 and spec 2026-09-29 ("the copy is what counts"): the reckoning. The outcome is the
+  // copy's verdict for a lieutenant (belle: routed, correcte: pushed back, à reprendre: still
+  // standing), the server's win or loss for Éris (progression.boss: a failed submission leaves it
+  // pending, never provisional, reckoningVerdict). The hold drops one strike per trap caught, down
+  // to where that outcome leaves it (reckoningSteps).
   const draft = $derived(result?.draftErrors.length ?? 0);
   const caught = $derived(result?.caught.length ?? 0);
-  // Spec 2026-09-29 §2: the copy line, from the mistakes left in the handed-in text.
-  const copy = $derived.by(() => {
-    if (!result) return '';
+  const copyOf = $derived.by(() => {
+    if (!result) return null;
     const left = result.finalErrors.length;
-    return VICTORY.copy(left, result.totalWords, copyVerdict(per100(left, result.totalWords), rulesOf(campStore.catalog)));
+    return { left, verdict: copyVerdict(per100(left, result.totalWords), rulesOf(campStore.catalog)) };
   });
+  // Spec 2026-09-29 §2: the copy line, from the mistakes left in the handed-in text.
+  const copy = $derived(result && copyOf ? VICTORY.copy(copyOf.left, result.totalWords, copyOf.verdict) : '');
   const verdict = $derived(
-    reckoningVerdict({ draft, caught }, { bossFight: encounter === 'eris', progression: playState.progression ?? null }),
+    copyOf ? reckoningVerdict(copyOf.verdict, { bossFight: encounter === 'eris', progression: playState.progression ?? null }) : null,
   );
   let struck = $state(false);
   // The outcome is announced once per mounted victory (a replay remounts it).
   let announced = false;
+  // The strikes play once, when the outcome is known (a boss fight's waits for the server).
+  let reckoned = false;
+  // Cleared when the victory unmounts only (a later change of the verdict must not cut them short).
+  let timers: ReturnType<typeof setTimeout>[] = [];
+  $effect(() => () => timers.forEach(clearTimeout));
 
   $effect(() => {
-    if (!result) return;
-    return untrack(() => {
-      const steps = reckoningSteps(draft, caught);
+    const o = verdict;
+    if (!result || !o || reckoned) return;
+    reckoned = true;
+    untrack(() => {
+      const steps = reckoningSteps(draft, caught, o);
       if (reduced) {
         // Reduced motion: the final state, without the strike-by-strike animation.
         if (steps.length) strike(steps.at(-1)!);
         struck = true;
         return;
       }
-      const timers = steps.map((v, i) => setTimeout(() => strike(v), 500 + i * 380));
+      timers = steps.map((v, i) => setTimeout(() => strike(v), 500 + i * 380));
       timers.push(setTimeout(() => (struck = true), 500 + steps.length * 380 + 150));
-      return () => timers.forEach(clearTimeout);
     });
   });
 
@@ -145,7 +153,13 @@
     if (!result) return [];
     const introduced = result.introduced.length;
     if (!picked) {
-      picked = [erisVictoryLine({ draft, catchRate: result.catchRate, introduced, mode }), dragonSays(speaker, dragonTally({ draft, caught, mode }))];
+      // Spoken once the outcome is known (the dialogue waits for the progression, so a boss's too);
+      // a boss fight whose submission failed has none yet and falls back to the copy's own verdict.
+      const outcome = verdict ?? outcomeOf(copyOf?.verdict ?? 'reprendre', null);
+      picked = [
+        erisVictoryLine({ outcome, draft, caught, introduced, mode }),
+        dragonSays(speaker, dragonTally({ draft, caught, mode, outcome })),
+      ];
       if (explainCtx) {
         for (const e of stillStanding(result.finalErrors, 2)) {
           // Spaced like its intro (a « guillemet » never ends a line alone). UI5 playability #4: the

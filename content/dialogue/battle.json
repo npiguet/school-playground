@@ -41,18 +41,18 @@
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Cette page m'a résisté. La prochaine, je la corromprai mieux." }
     ],
     "battle.victory": [
-      { "speaker": "eris", "text": "Impossible ! Tu as déjoué presque tous mes pièges. Ça ne se reproduira pas." },
-      { "speaker": "eris", "text": "Mes pièges, débusqués un par un… Les héros du camp deviennent agaçants." },
+      { "speaker": "eris", "text": "Impossible ! Ta copie ne garde presque rien de mes pièges. Ça ne se reproduira pas." },
+      { "speaker": "eris", "text": "Mes pièges n'ont presque pas pris… Les héros du camp deviennent agaçants." },
       { "speaker": "eris", "text": "Je retourne à mes plans. Et la prochaine fois, je cache mieux mes pièges !" },
-      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Quoi ?! Tu as trouvé tous mes dés-accords dans ce grimoire. Je le corromprai mieux la prochaine fois." },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Quoi ?! Ce grimoire ne garde presque rien de mes dés-accords. Je le corromprai mieux la prochaine fois." },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Mon beau grimoire, réparé page après page… Quel gâchis." },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Le grimoire respire à nouveau. Profitez-en, au camp : ça ne durera pas." }
     ],
     "battle.retreat": [
-      { "speaker": "eris", "text": "Hmpf. La moitié de mes pièges, déjoués. J'en cacherai mieux la prochaine fois." },
+      { "speaker": "eris", "text": "Hmpf. Ta copie me résiste. La prochaine fois, je cacherai mieux mes pièges." },
       { "speaker": "eris", "text": "Je recule… d'un pas. Un tout petit pas." },
       { "speaker": "eris", "text": "Quelques-uns de mes pièges tiennent encore. Je m'accroche à ceux-là." },
-      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Hmpf. La moitié de mes dés-accords retrouvés. Le grimoire garde encore quelques secrets…" },
+      { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Hmpf. Le grimoire se répare. Il garde encore quelques secrets…" },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Le grimoire se répare à moitié. L'autre moitié reste à moi." },
       { "speaker": "eris", "when": { "mode": ["grimoire"] }, "text": "Tu trouves mes dés-accords plus vite que je ne les sème. Presque." }
     ],

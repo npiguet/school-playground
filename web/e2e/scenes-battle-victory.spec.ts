@@ -268,6 +268,32 @@ test('nothing caught: still standing, still laurels, never a loss', async ({ pag
   await expect(page.locator('body')).not.toContainText(/manqué|raté|perdu/i);
 });
 
+// Final review I1 (spec 2026-09-29: the copy is what counts): the lieutenant answers the copy's
+// verdict, never the catch rate. One mistake left on 13 words, nothing caught: 7.7 per 100, a copie
+// correcte, so it is pushed back (not still standing).
+test('the copy decides: a copie correcte with nothing caught pushes the lieutenant back', async ({ page, request }, testInfo) => {
+  await victory(page, request, `Vic5b-${testInfo.project.name}`, HALF, 'hydre', HALF);
+  await expect(page.getByTestId('results-copy')).toHaveText('Ta copie : 1 faute sur 13 mots. Une copie correcte.');
+  await expect(page.getByTestId('victory-title')).toHaveText("L'Hydre recule !");
+  await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '75');
+  await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'retreat');
+});
+
+// One mistake left on 52 words, nothing caught: 1.9 per 100, a belle copie: the lieutenant is routed.
+const LONG = [REF, REF, REF, REF].join(' ');
+const LONG_ONE = [REF, REF, REF, HALF].join(' ');
+test('the copy decides: a belle copie routs the lieutenant even with nothing caught', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Vic5c-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Belle'), body: LONG, level: '10H' });
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'results', draft: LONG_ONE, current: LONG_ONE, opponent: 'chimere' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'victory');
+  await expect(page.getByTestId('results-copy')).toHaveText('Ta copie : 1 faute sur 52 mots. Une belle copie.');
+  await expect(page.getByTestId('victory-title')).toHaveText('Victoire !');
+  await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'defeat');
+});
+
 test('reduced motion: the hold and the laurels land at once', async ({ page, request }, testInfo) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await victory(page, request, `Vic6-${testInfo.project.name}`, HALF);
@@ -341,7 +367,14 @@ function progression(o: Record<string, unknown> = {}) {
   };
 }
 
-async function counted(page: import('@playwright/test').Page, request: import('@playwright/test').APIRequestContext, name: string, p: object, boss = false) {
+async function counted(
+  page: import('@playwright/test').Page,
+  request: import('@playwright/test').APIRequestContext,
+  name: string,
+  p: object,
+  boss = false,
+  current = boss ? REF : HALF,
+) {
   const id = await createProfileApi(request, uniqueName(name));
   const text = await createText(request, { title: uniqueName('Compté'), body: REF, level: '10H' });
   await seedPlay(page, {
@@ -349,7 +382,7 @@ async function counted(page: import('@playwright/test').Page, request: import('@
     textId: text.id,
     phase: 'results',
     draft: DRAFT,
-    current: boss ? REF : HALF,
+    current,
     opponent: boss ? 'eris' : 'hydre',
     encounter: boss ? 'eris' : null,
     progression: p,
@@ -375,6 +408,20 @@ test('the XP chips break the session down: text, pace, aids, prophecy, then the 
 
 // One seeded battle per test: seedPlay's init script runs on a new document only, and a second
 // page.goto that changes only the hash would open the second battle unseeded (at its muster).
+// Final review minor 9: a quest's text that does not count says why, in the camp's voice.
+test("a quest's text that does not count says why: too many of its traps left in the copy", async ({ page, request }, testInfo) => {
+  const sheet = await counted(
+    page,
+    request,
+    `Vic23-${testInfo.project.name}`,
+    progression({ quests: [{ id: 5, kind: 'board', target: 'hydre', counted: false, reason: 'copy', progress: 1, goal: 3, completed: false, reward_id: null }] }),
+  );
+  const quest = sheet.getByTestId('reveal-quest-5');
+  await expect(quest.getByTestId('quest-reason')).toHaveText("Trop de pièges de l'Hydre restent dans ta copie : ce texte ne compte pas pour la quête.");
+  await expect(quest).toContainText('Ta quête : 1 / 3');
+  await expect(quest).not.toContainText(/raté|manqué|perdu/i);
+});
+
 test('a bonus part at zero shows no chip', async ({ page, request }, testInfo) => {
   const sheet = await counted(
     page,
@@ -431,8 +478,22 @@ test('beating Éris: her defeat line and her treasure, once, in the parchment st
     .toBe(true);
 });
 
+// Final review I1: the fight is won or lost by the server's verdict on the copy, and the hold agrees
+// with it: a won fight with nothing caught still empties the bar, and Éris takes the defeat pose.
+test('a won fight against Éris empties her hold even with nothing caught', async ({ page, request }, testInfo) => {
+  const sheet = await counted(page, request, `Vic15b-${testInfo.project.name}`, progression({ boss: { tier: 1, won: true }, encounter: 'eris' }), true, DRAFT);
+  await expect(sheet.getByTestId('results-catch-rate')).toHaveText('Ses pièges se sont bien cachés cette fois');
+  await expect(page.getByTestId('victory-title')).toHaveText('Victoire !');
+  await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'defeat');
+});
+
 test('Éris escaping speaks for herself, on her plate', async ({ page, request }, testInfo) => {
   const sheet = await counted(page, request, `Vic15-${testInfo.project.name}`, progression({ boss: { tier: 1, won: false }, encounter: 'eris' }), true);
+  // Final review I1: a lost fight keeps her hold above zero, even with every trap caught.
+  await expect(page.getByTestId('victory-title')).toHaveText('Le combat continue');
+  await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'taunt');
+  await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '25');
   const boss = sheet.getByTestId('reveal-boss');
   await expect(boss.getByTestId('boss-voice')).toHaveAttribute('data-speaker', 'eris');
   await expect(boss).toContainText("Ha\u202f! Je garde ma pomme… pour cette fois. Le combat reste ouvert\u202f: reviens m'affronter quand tu veux.");
@@ -513,8 +574,8 @@ test('a fight Éris refuses says why, in her colour, and nothing is lost', async
   await expect(page).toHaveURL(/\/eris$/);
 });
 
-// UI5 Ruling E14: four traps in the draft, one caught (the plural of « fées »): 25 %, so Éris answers
-// with battle.caught. Then the tally, then the first trap still standing in text order, « dansent ».
+// UI5 Ruling E14: four traps in the draft, one caught (the plural of « fées »): three left on 13
+// words is a copie à reprendre, and with one caught Éris answers with battle.caught. Then the tally, then the first trap still standing in text order, « dansent ».
 const FOUR = 'Les fée danse dans la clairiere. Elles chante et les oiseaux les écoutent.';
 const ONE_CAUGHT = 'Les fées danse dans la clairiere. Elles chante et les oiseaux les écoutent.';
 

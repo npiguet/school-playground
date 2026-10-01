@@ -137,6 +137,9 @@ export interface Progression {
     kind: QuestKind;
     target: string;
     counted: boolean;
+    /** Why the text does not count (too few chances for the target, or too many mistakes left in
+     *  the copy); null when it counts. Absent from a victory saved before the reasons. */
+    reason?: 'chances' | 'copy' | null;
     progress: number;
     goal: number | null;
     completed: boolean;

@@ -82,31 +82,63 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   // and a genuine loss has a title that never claims she was pushed back, matching her own line
   // about the fight staying open.
   it('gives each boss outcome a title and a line that agree with each other', () => {
-    const won = outcomeOf({ draft: 5, caught: 5 }, { won: true });
+    const won = outcomeOf('reprendre', { won: true });
     expect(L.victoryTitle(won, 'eris')).toBe('Victoire\u202f!');
     expect(L.VICTORY.bossWon).not.toMatch(/recule|reculent/);
 
-    // A genuine loss, whatever she caught along the way (never the "push" half-victory title).
-    for (const caught of [0, 3, 5]) {
-      const lost = outcomeOf({ draft: 5, caught }, { won: false });
-      expect(L.victoryTitle(lost, 'eris'), `caught ${caught}`).toBe('Le combat continue');
+    // A genuine loss, whatever the copy (never the "push" half-victory title).
+    for (const copy of ['belle', 'correcte', 'reprendre'] as const) {
+      const lost = outcomeOf(copy, { won: false });
+      expect(L.victoryTitle(lost, 'eris'), copy).toBe('Le combat continue');
     }
     // Her line keeps the apple - the title must never say she was pushed back.
     expect(L.VICTORY.bossLost).toMatch(/pomme/);
     expect(L.VICTORY.bossLost).not.toMatch(/recule|reculent/);
   });
 
-  it('lets the dragon tell the tally in words', () => {
-    expect(L.dragonTally({ draft: 0, caught: 0, mode: 'dictation' })).toBe("Pas un piège dans ta dictée\u202f: Éris n'a rien pu glisser\u202f!");
-    expect(L.dragonTally({ draft: 5, caught: 5, mode: 'dictation' })).toBe("Tu as déjoué 5 pièges sur 5. Ses lieutenants s'en souviendront\u202f!");
+  it('lets the dragon tell the tally in words, closing on the outcome (the copy is what counts)', () => {
+    const t = (draft: number, caught: number, outcome: 'rout' | 'push' | 'standoff', mode: 'dictation' | 'grimoire' = 'dictation') =>
+      L.dragonTally({ draft, caught, mode, outcome });
+    expect(t(0, 0, 'rout')).toBe("Pas un piège dans ta dictée\u202f: Éris n'a rien pu glisser\u202f!");
+    expect(t(5, 5, 'rout')).toBe("Tu as déjoué 5 pièges sur 5. Ses lieutenants s'en souviendront\u202f!");
+    // A rout with little caught is still a victory in the dragon's words.
+    expect(t(4, 1, 'rout')).toBe("Tu as déjoué 1 piège sur 4. Ses lieutenants s'en souviendront\u202f!");
+    expect(t(3, 0, 'rout')).toBe("Ses pièges n'ont presque pas pris dans ta copie. Viens, on regarde les derniers ensemble dans «\u202fRevoir\u202f».");
     // UI4 playability #7: one trap left is « le dernier », never « les autres ».
-    expect(L.dragonTally({ draft: 2, caught: 1, mode: 'dictation' })).toBe('Tu as déjoué 1 piège sur 2. Le dernier se cache encore\u202f: on le débusquera ensemble.');
-    expect(L.dragonTally({ draft: 3, caught: 2, mode: 'grimoire' })).toBe('Tu as retrouvé 2 dés-accords sur 3. Le dernier se cache encore\u202f: on le débusquera ensemble.');
-    expect(L.dragonTally({ draft: 4, caught: 2, mode: 'dictation' })).toBe('Tu as déjoué 2 pièges sur 4. Les autres se cachent encore\u202f: on les débusquera ensemble.');
-    expect(L.dragonTally({ draft: 4, caught: 1, mode: 'grimoire' })).toBe(
-      'Tu as retrouvé 1 dés-accord sur 4. Chaque dés-accord retrouvé en fait un de moins pour la prochaine fois.',
-    );
-    expect(L.dragonTally({ draft: 3, caught: 0, mode: 'dictation' })).toBe('Ses pièges se sont bien cachés cette fois. Viens, on les regarde ensemble dans «\u202fRevoir\u202f».');
+    expect(t(2, 1, 'push')).toBe('Tu as déjoué 1 piège sur 2. Le dernier se cache encore\u202f: on le débusquera ensemble.');
+    expect(t(3, 2, 'push', 'grimoire')).toBe('Tu as retrouvé 2 dés-accords sur 3. Le dernier se cache encore\u202f: on le débusquera ensemble.');
+    expect(t(4, 2, 'push')).toBe('Tu as déjoué 2 pièges sur 4. Les autres se cachent encore\u202f: on les débusquera ensemble.');
+    // Every trap of the dictation caught, a copie correcte all the same (some slipped in at the proofreading).
+    expect(t(3, 3, 'push')).toBe('Tu as déjoué 3 pièges sur 3. Ta copie en garde encore quelques-uns\u202f: on les débusquera ensemble.');
+    // Pushed back with nothing caught (a copie correcte): the traps hid well, never a victory's words.
+    expect(t(4, 0, 'push')).toBe('Ses pièges se sont bien cachés cette fois. Viens, on les regarde ensemble dans «\u202fRevoir\u202f».');
+    expect(t(4, 1, 'standoff', 'grimoire')).toBe('Tu as retrouvé 1 dés-accord sur 4. Chaque dés-accord retrouvé en fait un de moins pour la prochaine fois.');
+    // Many caught, and still a copie à reprendre: never « Ses lieutenants s'en souviendront ».
+    expect(t(5, 5, 'standoff')).toBe('Tu as déjoué 5 pièges sur 5. Chaque piège déjoué en fait un de moins pour la prochaine fois.');
+    expect(t(3, 0, 'standoff')).toBe('Ses pièges se sont bien cachés cette fois. Viens, on les regarde ensemble dans «\u202fRevoir\u202f».');
+    for (const o of ['rout', 'push', 'standoff'] as const) {
+      for (const [d, c] of [[0, 0], [3, 0], [3, 1], [3, 3]]) {
+        for (const mode of ['dictation', 'grimoire'] as const) expect(GENDERED.test(t(d, c, o, mode))).toBe(false);
+      }
+    }
+  });
+
+  it("says why a quest's text does not count, the opponent's name agreed, without guilt", () => {
+    expect(L.questNotCounted('chances', 'hydre')).toBe("L'Hydre s'est peu montrée dans ce texte : il ne compte pas pour la quête.");
+    expect(L.questNotCounted('chances', 'protee')).toBe("Protée s'est peu montré dans ce texte : il ne compte pas pour la quête.");
+    expect(L.questNotCounted('chances', 'sirenes')).toBe('Les Sirènes se sont peu montrées dans ce texte : il ne compte pas pour la quête.');
+    expect(L.questNotCounted('copy', 'hydre')).toBe("Trop de pièges de l'Hydre restent dans ta copie : ce texte ne compte pas pour la quête.");
+    expect(L.questNotCounted('copy', 'chimere')).toBe('Trop de pièges de la Chimère restent dans ta copie : ce texte ne compte pas pour la quête.');
+    expect(L.questNotCounted('copy', 'sirenes')).toBe('Trop de pièges des Sirènes restent dans ta copie : ce texte ne compte pas pour la quête.');
+    expect(L.questNotCounted('copy', 'echo')).toBe("Trop de pièges d'Écho restent dans ta copie : ce texte ne compte pas pour la quête.");
+    expect(L.questNotCounted('copy', 'eris')).toBe("Trop de pièges d'Éris restent dans ta copie : ce texte ne compte pas pour la quête.");
+    for (const id of [...LIEUTENANT_ORDER, 'eris'] as const) {
+      for (const reason of ['chances', 'copy'] as const) {
+        const s = L.questNotCounted(reason, id);
+        expect(GENDERED.test(s), s).toBe(false);
+        expect(s, s).not.toMatch(/raté|manqué|perdu/i);
+      }
+    }
   });
 
   it('keeps the wordings the e2e reads', () => {

@@ -1,7 +1,10 @@
 // hp.ts — the opponent's hold on the text (UI4 Ruling C3, decided by the user on 2026-09-26): the bar
 // never grades live. It stays full through the muster, the dictation and the proofreading (with
 // Palamède's tokens it only carries the notches of the frozen count she already sees) and drops at the
-// reckoning, after the proofreading: one strike per trap caught. Pure.
+// reckoning, after the proofreading: one strike per trap caught, down to where the outcome leaves it.
+// The outcome itself is the copy's (spec 2026-09-29), no longer the catch rate. Pure.
+import type { CopyVerdict } from '../rules';
+
 export interface HpView {
   /** 1 = full hold, 0 = routed. */
   value: number;
@@ -20,37 +23,42 @@ export function hpDuringPlay(count: number | null): HpView {
 const MAX_STRIKES = 8;
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
-/** The hold after each strike of the reckoning: one per trap caught, grouped into at most eight. A
- *  perfect dictation (nothing planted) routs the opponent in one strike. */
-export function reckoningSteps(draft: number, caught: number): number[] {
-  if (draft === 0) return [0];
-  if (caught <= 0) return [];
-  const strikes = Math.min(caught, MAX_STRIKES);
-  const lost = Math.min(1, caught / draft);
+/** How much of the hold the reckoning takes, by outcome: a rout empties the bar, a push leaves part
+ *  of it (between a quarter and three quarters), a standoff never empties it. */
+function holdLost(draft: number, caught: number, outcome: Outcome): number {
+  if (outcome === 'rout') return 1;
+  const rate = draft > 0 ? Math.min(1, caught / draft) : 0;
+  return outcome === 'push' ? Math.min(0.75, Math.max(0.25, rate)) : Math.min(0.75, rate);
+}
+
+/** The hold after each strike of the reckoning: the traps caught are the strikes (one each, grouped
+ *  into at most eight; one for a rout or a push with nothing caught), and the outcome sets where the
+ *  bar ends (spec 2026-09-29: the copy is what counts). A standoff with nothing caught never strikes. */
+export function reckoningSteps(draft: number, caught: number, outcome: Outcome): number[] {
+  const lost = holdLost(draft, caught, outcome);
+  if (lost <= 0) return [];
+  const strikes = Math.min(Math.max(caught, 1), MAX_STRIKES);
   return Array.from({ length: strikes }, (_, i) => Math.max(0, round3(1 - (lost * (i + 1)) / strikes)));
 }
 
-// Closing item 2: a lost boss fight is always 'standoff', whatever she caught along the way. 'push'
-// (a lieutenant "on the back foot", partway to a rout) reads as ground won; the boss's win/loss is
-// binary (the server's `boss.won`), and a real loss must never borrow that half-victory title
-// ("Éris recule !") while her own line says she keeps the apple. 'standoff' ("Le combat continue")
-// fits a genuine defeat (she keeps the apple, but stays open to a rematch), and its opponent
-// reaction is a taunt, not a retreat.
-export function outcomeOf(r: { draft: number; caught: number }, boss: { won: boolean } | null): Outcome {
+/** The outcome of a fight (spec 2026-09-29, "the copy is what counts"). A lieutenant answers the copy
+ *  verdict: a belle copie routs it, a copie correcte pushes it back, a copie à reprendre leaves it
+ *  standing. Éris's win or loss is the server's (`boss.won`): a lost boss fight is always a standoff
+ *  (closing item 2: never the "push" half-victory title while her own line says she keeps the apple). */
+export function outcomeOf(copy: CopyVerdict, boss: { won: boolean } | null): Outcome {
   if (boss) return boss.won ? 'rout' : 'standoff';
-  if (r.draft === 0 || r.caught >= r.draft) return 'rout';
-  return r.caught > 0 ? 'push' : 'standoff';
+  return copy === 'belle' ? 'rout' : copy === 'correcte' ? 'push' : 'standoff';
 }
 
 /** The reckoning's verdict, or null while it must wait. A boss fight's outcome is the server's
  *  (progression.boss), so it waits for the session's progression: a failed submission gives no
  *  provisional outcome that a retry would then replace (UI5 hears one outcome per battle). */
 export function reckoningVerdict(
-  r: { draft: number; caught: number },
+  copy: CopyVerdict,
   o: { bossFight: boolean; progression: { boss: { won: boolean } | null } | null },
 ): Outcome | null {
   if (o.bossFight && !o.progression) return null;
-  return outcomeOf(r, o.progression?.boss ?? null);
+  return outcomeOf(copy, o.bossFight ? (o.progression?.boss ?? null) : null);
 }
 
 export const hpPercent = (hp: HpView) => Math.round(hp.value * 100);

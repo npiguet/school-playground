@@ -5,6 +5,7 @@ import { erisSays } from '../world/voices';
 import { frenchSpacing } from '../text/french';
 import { VICTORY } from '../battle/lines';
 import type { OpponentId } from '../battle/battle';
+import type { Outcome } from '../battle/hp';
 import type { DragonLook } from '../world/scenes/speakers';
 import type { DialogueLine } from '../scene/types';
 import type { PlayMode } from '../types';
@@ -13,16 +14,16 @@ import type { TokenError } from '../grading/types';
 import { sayKey } from './select';
 import type { DialogueKey } from './types';
 
-export function erisVictoryKey(o: { draft: number; catchRate: number | null }): DialogueKey {
-  if (o.draft === 0) return 'battle.perfect';
-  const r = o.catchRate ?? 0;
-  if (r >= 0.8) return 'battle.victory';
-  if (r >= 0.5) return 'battle.retreat';
-  if (r > 0) return 'battle.caught';
-  return 'battle.missed';
+/** Éris answers the reckoning's outcome (the copy's, spec 2026-09-29), coloured by what was caught:
+ *  a rout is her defeat (or the perfect dictation's), a push her step back, a standoff her traps
+ *  still holding (some caught, or none). */
+export function erisVictoryKey(o: { outcome: Outcome; draft: number; caught: number }): DialogueKey {
+  if (o.outcome === 'rout') return o.draft === 0 ? 'battle.perfect' : 'battle.victory';
+  if (o.outcome === 'push') return 'battle.retreat';
+  return o.caught > 0 ? 'battle.caught' : 'battle.missed';
 }
 
-export function erisVictoryLine(o: { draft: number; catchRate: number | null; introduced: number; mode: PlayMode }): DialogueLine {
+export function erisVictoryLine(o: { outcome: Outcome; draft: number; caught: number; introduced: number; mode: PlayMode }): DialogueLine {
   const line = sayKey(erisVictoryKey(o), { ctx: { mode: o.mode } });
   return o.introduced > 0 ? { ...line, text: `${line.text} ${frenchSpacing(VICTORY.erisIntroduced(o.introduced))}` } : line;
 }

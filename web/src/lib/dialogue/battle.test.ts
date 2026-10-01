@@ -8,20 +8,31 @@ import { frenchSpacing } from '../text/french';
 beforeEach(() => resetDialogueMemory());
 
 describe("Éris in battle (Ruling E14)", () => {
-  it('reacts to the reckoning, never live', () => {
-    expect(erisVictoryKey({ draft: 0, catchRate: null })).toBe('battle.perfect');
-    expect(erisVictoryKey({ draft: 5, catchRate: 0.8 })).toBe('battle.victory');
-    expect(erisVictoryKey({ draft: 5, catchRate: 0.6 })).toBe('battle.retreat');
-    expect(erisVictoryKey({ draft: 5, catchRate: 0.2 })).toBe('battle.caught');
-    expect(erisVictoryKey({ draft: 5, catchRate: 0 })).toBe('battle.missed');
-    expect(erisVictoryKey({ draft: 5, catchRate: null })).toBe('battle.missed');
+  it('reacts to the reckoning’s outcome (the copy’s), never live and never to the catch rate', () => {
+    expect(erisVictoryKey({ outcome: 'rout', draft: 0, caught: 0 })).toBe('battle.perfect');
+    expect(erisVictoryKey({ outcome: 'rout', draft: 5, caught: 5 })).toBe('battle.victory');
+    // A belle copie with nothing caught is still her defeat.
+    expect(erisVictoryKey({ outcome: 'rout', draft: 3, caught: 0 })).toBe('battle.victory');
+    // Pushed back, whatever was caught (a copie correcte).
+    expect(erisVictoryKey({ outcome: 'push', draft: 5, caught: 0 })).toBe('battle.retreat');
+    expect(erisVictoryKey({ outcome: 'push', draft: 5, caught: 5 })).toBe('battle.retreat');
+    // Still standing (a copie à reprendre): her traps hold, some caught or none.
+    expect(erisVictoryKey({ outcome: 'standoff', draft: 5, caught: 5 })).toBe('battle.caught');
+    expect(erisVictoryKey({ outcome: 'standoff', draft: 5, caught: 1 })).toBe('battle.caught');
+    expect(erisVictoryKey({ outcome: 'standoff', draft: 5, caught: 0 })).toBe('battle.missed');
+  });
+
+  it('never claims a catch in the lines of a rout or a push, which can come with nothing caught', () => {
+    for (const key of ['battle.victory', 'battle.retreat'] as const) {
+      for (const l of LINES[key]) expect(l.text, l.text).not.toMatch(/déjoué|débusqués|trouvé tous|retrouvés|La moitié de mes/);
+    }
   });
 
   it('speaks a grimoire line in a grimoire, and adds her aside for the traps she slipped in', () => {
-    const g = erisVictoryLine({ draft: 4, catchRate: 1, introduced: 0, mode: 'grimoire' });
+    const g = erisVictoryLine({ outcome: 'rout', draft: 4, caught: 4, introduced: 0, mode: 'grimoire' });
     expect(poolFor(LINES['battle.victory'], { mode: 'grimoire' }).map((x) => frenchSpacing(x.text))).toContain(g.text);
     expect(g).toMatchObject({ speaker: 'eris', key: 'battle.victory' });
-    expect(erisVictoryLine({ draft: 4, catchRate: 0.5, introduced: 2, mode: 'dictation' }).text).toMatch(/\(Et j'en ai glissé 2 pendant ta relecture\. Sournoise, je sais\.\)$/);
+    expect(erisVictoryLine({ outcome: 'push', draft: 4, caught: 2, introduced: 2, mode: 'dictation' }).text).toMatch(/\(Et j'en ai glissé 2 pendant ta relecture\. Sournoise, je sais\.\)$/);
   });
 
   it('opens the muster with her line, her retry line, or the lieutenant’s dossier line', () => {

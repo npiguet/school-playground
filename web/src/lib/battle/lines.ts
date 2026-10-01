@@ -3,9 +3,9 @@
 // UI copy (UI5 Ruling E11): the characters' event lines (Éris at the muster and after the reckoning,
 // the dragon's explanation intros) live in content/dialogue since UI5 (spec §8). Each section is
 // fenced by the task that renders it; a lane edits only its own fence.
-import { genderFor, lieutenantName } from '../world/eris';
+import { agree, genderFor, lieutenantName } from '../world/eris';
 import { listFr } from '../aids';
-import { plural, rateText } from '../text/french';
+import { de, plural, rateText } from '../text/french';
 import type { PlayMode } from '../types';
 import type { CopyVerdict } from '../rules';
 import type { OpponentId } from './battle';
@@ -188,8 +188,27 @@ const COPY_VERDICT: Record<CopyVerdict, string> = {
   reprendre: 'Une copie à reprendre.',
 };
 
+/** « de » before an opponent's name, the article folded in: « de l'Hydre », « de la Chimère »,
+ *  « des Sirènes », « d'Écho », « de Protée », « d'Éris ». */
+export function ofOpponent(id: OpponentId): string {
+  const name = opponentName(id);
+  if (name.startsWith('Les ')) return `des ${name.slice(4)}`;
+  if (name.startsWith("L'")) return `de l'${name.slice(2)}`;
+  if (name.startsWith('La ')) return `de la ${name.slice(3)}`;
+  return de(name);
+}
+
+/** Why a quest's text does not count this time (the server's `reason`), in the camp's voice: the
+ *  opponent showed too little in it, or too many of its traps stay in the copy. Never guilt. */
+export function questNotCounted(reason: 'chances' | 'copy', id: OpponentId): string {
+  if (reason === 'copy') return `Trop de pièges ${ofOpponent(id)} restent dans ta copie : ce texte ne compte pas pour la quête.`;
+  const many = id !== 'eris' && genderFor(id) === 'fp';
+  const shown = id === 'eris' ? 'montrée' : agree('montré', id);
+  return `${opponentName(id)} ${many ? 'se sont' : "s'est"} peu ${shown} dans ce texte : il ne compte pas pour la quête.`;
+}
+
 export const VICTORY = {
-  counting: 'Les Muses comptent les pièges déjoués…',
+  counting:'Les Muses comptent les pièges déjoués…',
   submitError: (e: string) => `Les Muses n'ont pas pu noter cette partie (${e}).`,
   retry: 'Réessayer',
   sending: 'Envoi en cours…',
@@ -249,21 +268,30 @@ export const VICTORY = {
   // UI4 playability #10: her exit, in her own voice on her plate (it was a narrator's note).
   bossLost: "Ha\u202f! Je garde ma pomme… pour cette fois. Le combat reste ouvert\u202f: reviens m'affronter quand tu veux.",
 } as const;
-export function dragonTally(o: { draft: number; caught: number; mode: PlayMode }): string {
+/** The dragon's tally follows the reckoning's outcome (the copy's, spec 2026-09-29): what was caught
+ *  is counted, and the closing words agree with the title (a rout is a victory even with little caught). */
+export function dragonTally(o: { draft: number; caught: number; mode: PlayMode; outcome: Outcome }): string {
   if (o.draft === 0) return "Pas un piège dans ta dictée\u202f: Éris n'a rien pu glisser\u202f!";
   const [one, many] = o.mode === 'grimoire' ? ['dés-accord', 'dés-accords'] : ['piège', 'pièges'];
   const verb = o.mode === 'grimoire' ? 'retrouvé' : 'déjoué';
-  if (o.caught === 0) return `Ses ${many} se sont bien cachés cette fois. Viens, on les regarde ensemble dans «\u202fRevoir\u202f».`;
+  if (o.caught === 0) {
+    if (o.outcome === 'rout') return `Ses ${many} n'ont presque pas pris dans ta copie. Viens, on regarde les derniers ensemble dans «\u202fRevoir\u202f».`;
+    return `Ses ${many} se sont bien cachés cette fois. Viens, on les regarde ensemble dans «\u202fRevoir\u202f».`;
+  }
   const head = `Tu as ${verb} ${plural(o.caught, one, many)} sur ${o.draft}.`;
-  const rate = o.caught / o.draft;
-  if (rate >= 0.8) return `${head} Ses lieutenants s'en souviendront\u202f!`;
+  if (o.outcome === 'rout') return `${head} Ses lieutenants s'en souviendront\u202f!`;
+  if (o.outcome === 'standoff') return `${head} Chaque ${one} ${verb} en fait un de moins pour la prochaine fois.`;
   // UI4 playability #7: one left is « le dernier » (piège and dés-accord are both masculine).
+  // Every trap of the dictation caught, and still a copie correcte: the ones slipped in at the
+  // proofreading are left.
+  const left = o.draft - o.caught;
   const rest =
-    o.draft - o.caught === 1
-      ? 'Le dernier se cache encore\u202f: on le débusquera ensemble.'
-      : 'Les autres se cachent encore\u202f: on les débusquera ensemble.';
-  if (rate >= 0.5) return `${head} ${rest}`;
-  return `${head} Chaque ${one} ${verb} en fait un de moins pour la prochaine fois.`;
+    left <= 0
+      ? 'Ta copie en garde encore quelques-uns\u202f: on les débusquera ensemble.'
+      : left === 1
+        ? 'Le dernier se cache encore\u202f: on le débusquera ensemble.'
+        : 'Les autres se cachent encore\u202f: on les débusquera ensemble.';
+  return `${head} ${rest}`;
 }
 export const DRAGON_REVIEW_HINT = 'Touche «\u202fRevoir\u202f» pour voir chaque piège, mot à mot.';
 
