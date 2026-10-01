@@ -300,6 +300,6 @@ seeds in `docs/art/style-guide.md`, "Accessories: protee").
   limited to x 650-770, y 15-135 (slot | cut-out alpha < 8 in that box): no seed of three redrew a horn
   and every feather tip stayed rounded inside the picture (3611-3613). Leave 10-15 px between the box
   and the picture's top.
-- A thin brow band and its clasp extract as their own part (own `--box` around the brow, positives on
-  band and clasp, negatives on the repainted skull dome above and the brow below): in one SAM call with
-  the feathers it kept only the band's near end.
+- The plume above the real horn and the brow band + clasp below it were extracted as two parts (each
+  its own `--box`; negatives on the repainted skull dome and the brow) and merged: the horn, kept out
+  of the mask, separates them, and the composite reads as a plume standing behind the horn.
