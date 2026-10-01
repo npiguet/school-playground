@@ -52,6 +52,20 @@
       "y": 0.02344,
       "w": 0.19531,
       "h": 0.14551
+    },
+    "adult": {
+      "src": "sirenes-tete_adult.webp",
+      "x": 0.55664,
+      "y": 0.0,
+      "w": 0.15625,
+      "h": 0.13867
+    },
+    "ancestral": {
+      "src": "sirenes-tete_ancestral.webp",
+      "x": 0.63477,
+      "y": 0.01367,
+      "w": 0.11621,
+      "h": 0.15234
     }
   },
   "sirenes-queue": {

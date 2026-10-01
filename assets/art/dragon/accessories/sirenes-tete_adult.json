@@ -1,0 +1,123 @@
+{
+  "result": "teteair_adult_s3216.png",
+  "generation": {
+    "prompt": "the head of a strong adult dragon with burnished bronze-gold scales, bright amber eyes and two long curved ivory horns, wearing a feather plume on top of its head between the horns: a thin band of polished silver across the top of the head just above the eyes with a small silver lyre-shaped clasp at its front, and rising from the clasp a tall spray of long bright azure-blue feathers with white tips that stands up and sweeps backward, the feathers are solid and opaque, a thick dark ink outline around the band and every feather, (violet:-1.5) (purple:-1.5).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.85,
+    "steps": 9,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 3216,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_adult.png",
+    "mask_file": "C:\\Users\\nicol\\.claude\\jobs\\9ac9a508\\tmp\\art-sirenes\\m_adult_tete.png"
+  },
+  "extract": {
+    "stage": "dragon_adult.png",
+    "slot_mask": "m_adult_tete.png",
+    "pos": [
+      [
+        600,
+        25
+      ],
+      [
+        640,
+        15
+      ],
+      [
+        650,
+        50
+      ],
+      [
+        680,
+        55
+      ],
+      [
+        705,
+        85
+      ],
+      [
+        640,
+        100
+      ],
+      [
+        600,
+        118
+      ],
+      [
+        680,
+        112
+      ],
+      [
+        620,
+        70
+      ]
+    ],
+    "neg": [
+      [
+        590,
+        60
+      ],
+      [
+        570,
+        90
+      ],
+      [
+        640,
+        130
+      ],
+      [
+        720,
+        120
+      ],
+      [
+        700,
+        30
+      ]
+    ],
+    "box": [
+      560,
+      0,
+      730,
+      135
+    ],
+    "hand_points": true,
+    "sam_mask": 2,
+    "diff": 28,
+    "novelty": 45,
+    "grow": 2,
+    "keep_white": true,
+    "max_hole": null,
+    "cuts": null
+  },
+  "clean_polys": [
+    "583,95 652,95 652,103 626,110 606,119 596,128 583,131"
+  ],
+  "clean_note": "overlay_clean.py erased these polygons (stage px) after extraction",
+  "note": "denoise 0.85 on the head slot united with the open air above the skull (slot | cut-out alpha < 8 inside x 550-730, y 0-115, m_adult_tete.png): the plain slot (3211-3213) flattened the plume against the slot's top; polygon erased repainted gold scales above the band's left end; near-white ground peeled off the plume's outer edge only (3 px, box 560,0,735,95: pixels with min channel > 200 and spread < 45 that touch transparency), so the white feather tips stay; rejected 3214 (plume hidden behind the horn, a horn redrawn in the air), 3215 (plume spilling past the air box), 3211-3213 plain slot (flattened or tiny plume); the plume reaches the top of the picture: the mask was faded over rows 0-7 (alpha x (y+1)/9) so the tips do not end in a hard cut, then overlay_raw.py rebuild",
+  "raw_crop": [
+    488,
+    0,
+    759,
+    205
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}
