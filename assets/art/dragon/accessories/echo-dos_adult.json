@@ -102,5 +102,5 @@
     591,
     671
   ],
-  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png (raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size)."
 }

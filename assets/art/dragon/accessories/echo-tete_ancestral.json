@@ -104,12 +104,12 @@
       ]
     ]
   },
-  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): --poly \"789,153 815,150 815,190 789,190\" (a grey strip of repainted brow below the right end of the band)",
+  "cleanup": "hand clean-up after extraction with tools/art/overlay_clean.py (erase polygons/circles in stage px, drop specks, re-soften cut edges): --poly \"789,153 815,150 815,190 789,190\" (a grey strip of repainted brow below the right end of the band)",
   "raw_crop": [
     588,
     46,
     836,
     233
   ],
-  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png (raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size)."
 }

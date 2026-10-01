@@ -96,12 +96,12 @@
       ]
     ]
   },
-  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): --poly \"480,255 510,258 515,276 528,280 532,300 530,330 480,330\" --poly \"525,296 548,296 552,292 568,292 570,300 562,306 550,312 543,318 530,322 522,310\" --poly \"652,298 670,298 670,322 655,322\" --poly \"550,290 565,290 570,293 572,300 567,303 553,303\" --poly \"590,302 606,302 606,312 598,312 592,308\" --poly \"500,245 513,245 513,256 500,258\" --poly \"620,308 632,308 632,330 620,330\" --poly \"652,300 662,300 662,322 652,322\" --poly \"520,277 533,280 533,302 520,302\" --poly \"542,300 562,300 558,307 546,316 540,314\" --poly \"525,262 537,265 538,272 527,272\" (repainted neck skin around the cowries and the conch)",
+  "cleanup": "hand clean-up after extraction with tools/art/overlay_clean.py (erase polygons/circles in stage px, drop specks, re-soften cut edges): --poly \"480,255 510,258 515,276 528,280 532,300 530,330 480,330\" --poly \"525,296 548,296 552,292 568,292 570,300 562,306 550,312 543,318 530,322 522,310\" --poly \"652,298 670,298 670,322 655,322\" --poly \"550,290 565,290 570,293 572,300 567,303 553,303\" --poly \"590,302 606,302 606,312 598,312 592,308\" --poly \"500,245 513,245 513,256 500,258\" --poly \"620,308 632,308 632,330 620,330\" --poly \"652,300 662,300 662,322 652,322\" --poly \"520,277 533,280 533,302 520,302\" --poly \"542,300 562,300 558,307 546,316 540,314\" --poly \"525,262 537,265 538,272 527,272\" (repainted neck skin around the cowries and the conch)",
   "raw_crop": [
     459,
     208,
     736,
     364
   ],
-  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png (raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size)."
 }

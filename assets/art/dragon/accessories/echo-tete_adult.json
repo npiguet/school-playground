@@ -86,12 +86,12 @@
       126
     ]
   },
-  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): second part (big scallop and right shell) --pos 671,73 683,57 701,89 683,109 690,100 --neg 715,117 667,121 639,85 --box 648 35 712 116, merged with overlay.py merge; then --drop-hue green --poly \"622,114 668,110 672,126 622,126\" (olive repainted skin under the band)",
+  "cleanup": "hand clean-up after extraction with tools/art/overlay_clean.py (erase polygons/circles in stage px, drop specks, re-soften cut edges): second part (big scallop and right shell) --pos 671,73 683,57 701,89 683,109 690,100 --neg 715,117 667,121 639,85 --box 648 35 712 116, merged with overlay.py merge; then --drop-hue green --poly \"622,114 668,110 672,126 622,126\" (olive repainted skin under the band)",
   "raw_crop": [
     488,
     6,
     759,
     205
   ],
-  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png (raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size)."
 }

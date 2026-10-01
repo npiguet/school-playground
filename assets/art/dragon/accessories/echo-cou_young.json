@@ -100,12 +100,12 @@
       ]
     ]
   },
-  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): second extract with --pos 585,409 583,416 693,393 697,403 --neg 599,387 555,401 623,415 671,367 for the two cowrie charms SAM left out, united (max alpha) inside boxes 574,393,600,428 and 682,378,710,412",
+  "cleanup": "hand clean-up after extraction with tools/art/overlay_clean.py (erase polygons/circles in stage px, drop specks, re-soften cut edges): second extract with --pos 585,409 583,416 693,393 697,403 --neg 599,387 555,401 623,415 671,367 for the two cowrie charms SAM left out, united (max alpha) inside boxes 574,393,600,428 and 682,378,710,412",
   "raw_crop": [
     456,
     296,
     743,
     451
   ],
-  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png (raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size)."
 }

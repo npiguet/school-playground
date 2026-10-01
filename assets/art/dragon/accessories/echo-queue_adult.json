@@ -100,13 +100,13 @@
       ]
     ]
   },
-  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): --poly \"222,812 230,812 230,824 222,824\" --min-part 15 (a fleck beside the right bell)",
-  "note": "inpainting and extraction mask = the slot mask united with itself shifted down 22 px (extmask.py), so the hanging bells are not cut flat by the slot bottom; extraction used that extended mask",
+  "cleanup": "hand clean-up after extraction with tools/art/overlay_clean.py (erase polygons/circles in stage px, drop specks, re-soften cut edges): --poly \"222,812 230,812 230,824 222,824\" --min-part 15 (a fleck beside the right bell)",
+  "note": "inpainting and extraction mask = the slot mask united with itself shifted down 22 px (tools/art/extmask.py <stage> queue 22 <out>), so the hanging bells are not cut flat by the slot bottom; extraction used that extended mask",
   "raw_crop": [
     103,
     705,
     272,
     871
   ],
-  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png (raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size)."
 }

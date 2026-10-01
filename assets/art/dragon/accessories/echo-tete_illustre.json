@@ -104,12 +104,12 @@
       ]
     ]
   },
-  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): --poly \"626,95 672,95 672,113 668,118 660,120 650,128 640,136 626,142\" --poly \"678,92 695,92 695,112 688,116 680,112\" --poly \"704,95 722,95 722,110 712,112 704,112\" --poly \"650,78 676,78 676,97 650,97\" then --poly \"628,105 662,105 662,125 652,132 637,140 628,142\" --poly \"662,104 700,104 700,112 690,113 680,115 670,119 662,123\" (repainted brow scales and two redrawn spines behind the shells; SAM mask 0 took them in)",
+  "cleanup": "hand clean-up after extraction with tools/art/overlay_clean.py (erase polygons/circles in stage px, drop specks, re-soften cut edges): --poly \"626,95 672,95 672,113 668,118 660,120 650,128 640,136 626,142\" --poly \"678,92 695,92 695,112 688,116 680,112\" --poly \"704,95 722,95 722,110 712,112 704,112\" --poly \"650,78 676,78 676,97 650,97\" then --poly \"628,105 662,105 662,125 652,132 637,140 628,142\" --poly \"662,104 700,104 700,112 690,113 680,115 670,119 662,123\" (repainted brow scales and two redrawn spines behind the shells; SAM mask 0 took them in)",
   "raw_crop": [
     568,
     46,
     830,
     223
   ],
-  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png (raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size)."
 }

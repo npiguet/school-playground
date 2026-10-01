@@ -176,3 +176,35 @@ tools/art/seg/.venv/Scripts/python tools/art/slots.py sheet
 On `overlay.py check`: no repainted skin around the item (a tinted dragon shows it at once), no
 light or dark rim, no missing part (crest tips, collar ends), the item reaches the body's outline
 and does not float, it covers no eye, and it matches the ink-and-paint style.
+
+## Notes from Écho's set (2026-10-01): hanging items, parts, raw + mask kept
+
+Proven on the 16 Écho overlays (conch pendant, bronze tail bells, cave-rock cape, shell diadem;
+seeds in `docs/art/style-guide.md`, "Accessories: echo").
+
+- **Keep the generated picture and the item mask next to every overlay** (the user repaints masks by
+  hand where the extraction is not perfect; erased pixels cannot be recovered, a mask can):
+  `python tools/art/overlay_raw.py save <item>_<stage>.png <result>.png <inpaint mask>.png` writes
+  `<item>_<stage>_raw.png` (the inpainted result, cropped to the inpainting mask's box plus the item's,
+  padded 24 px: every painted pixel) and `<item>_<stage>_mask.png` (the overlay's alpha, same crop), and
+  records `raw_crop` in the sidecar. After a mask is repainted: `overlay_raw.py rebuild <item>_<stage>.png`,
+  then `overlay.py crop` again. Commit both files with the overlay.
+- **Hanging parts (bells, charms) need room below the slot.** On the plain queue slot the bells were cut
+  flat by the mask's bottom edge (young, seeds 1131-1133). Inpaint and extract with the slot united with
+  itself shifted down: `python tools/art/extmask.py <stage> queue 22 <scratch>/m_<stage>_queue.png`.
+- **An item with separate small parts (a band and three bells) extracts cleanly one part at a time**:
+  one `overlay.py extract` per part with its own `--box` and 1-2 points (the other parts as negatives),
+  then `overlay.py merge`. One SAM call for the whole ornament took the repainted scales between the bells.
+- **Hand clean-up**: `tools/art/overlay_clean.py OVERLAY OUT --poly "x,y x,y ..."` erases polygons of
+  repainted skin (stage px, read off a magenta preview of the overlay at 3-5x with a 20 px tick grid) and
+  re-softens the cut edge; record the polygons in the sidecar. `--drop-hue bronze` is risky: it ate an
+  orange conch and the cowries' shading; prefer polygons.
+- **A tail ring must wrap the tail**: one result laid the band across the tail like a sash that stopped
+  ~20 px short of the far edge (illustre, 1341). The next seeds (1344-1349) all wrapped it; look for the
+  band reaching both outlines.
+- **Diadem / crown behind the horns**: with the horns kept out of the head slot, the band disappears
+  behind the horn and a tall shell stands behind it (ancestral 1413): this reads correctly, keep it.
+- Batch scripts that name results by index (`..._1.png`, `_2.png`) overwrite earlier seeds of the same
+  stage, slot and denoise: put the seed in the file name, or copy a kept result away before rerunning.
+- Lock: wait for Forge idle and for any e2e-priority flag OUTSIDE `with_lock.sh`, then hold the lock for
+  one 3-image job (see the krea2 skill, "Lock rule addendum").

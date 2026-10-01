@@ -86,13 +86,13 @@
       858
     ]
   },
-  "cleanup": "hand clean-up after extraction (erase polygons/circles in stage px, drop specks, re-soften cut edges): extracted in parts and merged (overlay.py merge): band as recorded (box 120 785 232 858); bell L --pos 135,854 135,871 --neg 155,861 144,831 --box 120 840 150 884; bell M --pos 155,861 --neg 135,854 169,846 --box 143 848 170 878; bell R --pos 214,860 --neg 199,846 --box 202 846 226 872",
-  "note": "inpainting and extraction mask = the slot mask united with itself shifted down 22 px (extmask.py). Seeds 1341-1343 rejected: the band ended ~20 px short of the tail's edge or crossed it as a sash; 1344 wraps the tail.",
+  "cleanup": "hand clean-up after extraction with tools/art/overlay_clean.py (erase polygons/circles in stage px, drop specks, re-soften cut edges): extracted in parts and merged (overlay.py merge): band as recorded (box 120 785 232 858); bell L --pos 135,854 135,871 --neg 155,861 144,831 --box 120 840 150 884; bell M --pos 155,861 --neg 135,854 169,846 --box 143 848 170 878; bell R --pos 214,860 --neg 199,846 --box 202 846 226 872",
+  "note": "inpainting and extraction mask = the slot mask united with itself shifted down 22 px (tools/art/extmask.py <stage> queue 22 <out>). Seeds 1341-1343 rejected: the band ended ~20 px short of the tail's edge or crossed it as a sash; 1344 wraps the tail.",
   "raw_crop": [
     80,
     730,
     284,
     908
   ],
-  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). Rebuild the overlay from an edited mask: raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size."
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png (raw pixels with the mask as alpha, pasted at (x0, y0) on a transparent picture the stage's size)."
 }
