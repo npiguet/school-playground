@@ -632,3 +632,43 @@ words change (prompts in each sidecar). Files: `assets/art/dragon/accessories/ch
   by the mask's top), 1505 (crest past the air box); all three air results redrew a blue horn beside
   the crest, kept out by the box and negative points.
 - Reasons for each pick, rejected seeds and clean-up polygons are in each sidecar's `note`.
+
+## Accessories: protee
+
+Protée's set (the shape-shifting old man of the sea: pearls, coral, sea-green fish scales), made with
+the art-overlays skill: inpainting on `dragon_<stage>.png` with the slot mask, `discorde-inked-clean`,
+V-scale 1, then `overlay.py extract --cpu --keep-white` with hand points. One colour family for the
+four pieces: creamy lustrous pearls, deep red-orange polished coral, glossy sea-green scales and
+enamel, mother-of-pearl. One fixed item sentence per slot, only the dragon's stage words change
+(prompts in each sidecar). Files: `assets/art/dragon/accessories/protee-<slot>_<stage>.png` (+ `.json`,
+`_raw.png`, `_mask.png`), WebPs and the manifest fragment `protee.json` in
+`assets/art/export/dragon/accessories/`. Contact sheet `docs/art/accessories-protee.png`
+(`python tools/art/accessories_sheet.py protee docs/art/accessories-protee.png`).
+
+| Item (slot, denoise) | young | adult | illustre | ancestral |
+|---|---|---|---|---|
+| collier de perles (cou, 0.75) | 2102 | 2201 | 2303 | 2402 |
+| anneau de corail (queue, 0.75 / 0.7) | 2125 | 2222 | 2324 (0.7) | 2423 (0.7) |
+| harnais d'écailles marines (dos, 0.8) | 2132 | 2232 | 2332 | 2436 |
+| couronne de corail (tête, 0.85) | 2111 | 2211 | 2311 | 2413 |
+
+- **Cou**: three rows of large pearls between two thin sea-green enamel bands, a round red coral
+  medallion at the front (half behind the beard on the ancestral). Rejected: adult 2202 (the finest,
+  but the model narrowed the throat and it stopped ~12 px short of the real outline), 2203 (short of
+  the back edge); ancestral 2403 (a scrap of collar).
+- **Queue**: a smooth polished coral cuff with three pearls. The first prompt (a coral band with
+  branches rising from it, young 2121-2123) gave a crescent of branches short of the tail's inner
+  edge; the cuff prompt weights `(coral branches:-1.5)`. On illustre and ancestral at 0.75 the model
+  redrew the tail as an open tube with a cream cross-section inside the ring (2321-2323): 0.7 helped,
+  and the cross-section stays out of the extraction (negative points; small parts dropped).
+- **Dos**: a pad of glossy sea-green fish scales on the back behind the wing with a pearl trim and a
+  mother-of-pearl medallion with a coral bead; on illustre and ancestral also an upright shoulder
+  strap carrying the medallion. Most rejections: the medallion cut by the slot's edge (young 2131,
+  2133; illustre 2331, 2333; ancestral 2434) or missing (ancestral 2431-2433).
+- **Tête**: a coral band around the skull between the horns with branching coral points and pearls.
+  Red coral against the bronze head extracts badly: SAM takes in the repainted skin, horn and head
+  spikes seen between the points, and white ground fringes the points in the air. Each crown was
+  cleaned with `tools/art/overlay_whitefringe.py` and `tools/art/overlay_dropcool.py` plus polygons.
+  Every ancestral seed also painted a coral tuft beside the near horn with its base hidden: erased
+  (it floats). The adult crown's tallest branches stand behind the far horn.
+- Reasons for each pick, rejected seeds and clean-up recipes are in each sidecar's `note`.

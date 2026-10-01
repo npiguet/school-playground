@@ -266,3 +266,28 @@ helmet; seeds in `docs/art/style-guide.md`, "Accessories: chimere").
 - Runners killed by the background time limit keep their child alive and waiting on the lock: before
   re-queuing a batch check the process table (`/proc/<pid>/cmdline`, since Git Bash `ps` shows only
   `bash`) and the log, and make every runner skip outputs that already exist.
+
+## Notes from Protée's set (2026-10-01): coral crowns, tubes in tail rings
+
+Proven on the 16 Protée overlays (pearl collar, coral tail cuff, sea-scale harness, coral crown;
+seeds in `docs/art/style-guide.md`, "Accessories: protee").
+
+- **A branching crown (coral, antlers) extracts with the head between its points**: SAM's mask takes
+  in the repainted skull, horn and the head's own spikes seen between the branches, plus the white
+  ground left beside the points in the air. For a red item, `tools/art/overlay_dropcool.py OV OUT x0
+  y0 x1 y1 --margin 35 --ink 90` drops pixels in the box that are not red-dominant (keeps bright
+  pearls and dark ink); `tools/art/overlay_whitefringe.py OV OUT x0 y0 x1 y1` peels near-white pixels
+  within 2 px of the outside. Keep both boxes above the band's lower edge, then look on bronze and
+  ecume at 3x. Record the boxes in the sidecar's `note`.
+- **Prompt a ring as a smooth cuff**: "coral branches rising from its upper edge" gave a crescent of
+  branches that did not wrap the tail; "a thick smooth cuff ... crossing the whole width of the tail
+  from one edge to the other" + `(coral branches:-1.5)` wrapped it on every stage.
+- **Tail rings on the illustre and ancestral tails**: at 0.75 the model often redraws the tail above
+  the ring as an open tube with a cream cross-section. Use 0.7 and keep the cross-section out
+  (negative points on it, then drop separate parts under ~400-600 px).
+- **A medallion on a harness or saddle is the part most often cut by the slot's edge** (5 of 15
+  dos results): check it is whole before extracting; another 3-seed batch beats repairing one.
+- Before saving, list the overlay's separate parts (`scipy.ndimage.label`, 8-connected): small far
+  parts (a repainted brow tuft, a coral fleck beside a horn) are easy to miss at 2x.
+- A head slot's horn exclusion makes the model paint a coral tuft in the air beside the near horn with
+  its base hidden on every ancestral seed; erase it (it floats once laid on the stage).

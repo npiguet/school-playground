@@ -112,7 +112,7 @@
     "max_hole": 30,
     "cuts": null
   },
-  "note": "Seeds 2211-2213 at 0.85, kept 2211 (coral band across the skull below the near horn, a crown of branches standing behind the horn and above the brow, pearls on the band; the closest to the young crown); 2212 leaned its branches and dipped the band toward the eye, 2213 bunched all branches on the brow. Extracted in one piece with --keep-white --max-hole 30. Clean-up (scratch scripts, recorded here): greyish pixels (saturation < 0.25, max channel < 190) dropped in the box 600,25-735,99 (repainted grey ground between the branches), the polygon 708,121 722,117 735,112 735,145 708,145 erased (a redrawn brow edge hanging below the band's end), then near-white pixels within 2 px of the outside dropped in 600,25-735,99 (white fringe around the branches, 489 px).",
+  "note": "Seeds 2211-2213 at 0.85, kept 2211 (coral band across the skull below the near horn, a crown of branches standing behind the horn and above the brow, pearls on the band; the closest to the young crown); 2212 leaned its branches and dipped the band toward the eye, 2213 bunched all branches on the brow. Extracted in one piece with --keep-white --max-hole 30. Clean-up (tools/art/overlay_whitefringe.py for the white fringe, overlay_dropcool.py for non-red pixels, polygons and small parts erased by hand; recorded here): greyish pixels (saturation < 0.25, max channel < 190) dropped in the box 600,25-735,99 (repainted grey ground between the branches), the polygon 708,121 722,117 735,112 735,145 708,145 erased (a redrawn brow edge hanging below the band's end), then near-white pixels within 2 px of the outside dropped in 600,25-735,99 (white fringe around the branches, 489 px).",
   "raw_crop": [
     488,
     6,

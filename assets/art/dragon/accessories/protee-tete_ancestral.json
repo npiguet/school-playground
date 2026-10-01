@@ -1,0 +1,111 @@
+{
+  "result": "r_tete_ancestral_s2411_3.png",
+  "generation": {
+    "prompt": "the head of an ancient wise bronze-gold dragon with calm amber eyes under heavy brows and two long ivory horns with silvery-white tips, wearing a crown on top of its head between the horns: a solid band of polished deep red-orange coral around the top of the skull, tall branching red-orange coral spikes standing up from the band like the points of a crown, small round white pearls set along the band, the band is solid with no dragon scales showing through, the crown's front edge sits just above the eyes, clean dark ink outline around the coral crown, (open frame:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+    "denoising_strength": 0.85,
+    "steps": 9,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 2413,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 48,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-inked-clean",
+    "init": "assets\\art\\dragon\\dragon_ancestral.png",
+    "mask_file": "assets\\art\\dragon\\slots\\ancestral_tete.png"
+  },
+  "extract": {
+    "stage": "dragon_ancestral.png",
+    "slot_mask": "ancestral_tete.png",
+    "pos": [
+      [
+        707,
+        134
+      ],
+      [
+        727,
+        136
+      ],
+      [
+        750,
+        131
+      ],
+      [
+        678,
+        131
+      ],
+      [
+        690,
+        109
+      ],
+      [
+        750,
+        86
+      ],
+      [
+        764,
+        100
+      ],
+      [
+        767,
+        131
+      ]
+    ],
+    "neg": [
+      [
+        715,
+        114
+      ],
+      [
+        683,
+        124
+      ],
+      [
+        721,
+        154
+      ],
+      [
+        777,
+        117
+      ]
+    ],
+    "box": [
+      612,
+      70,
+      812,
+      209
+    ],
+    "hand_points": true,
+    "sam_mask": 0,
+    "diff": 28,
+    "novelty": 45,
+    "grow": 4,
+    "keep_white": true,
+    "max_hole": 30,
+    "cuts": null
+  },
+  "note": "Seeds 2411-2413 at 0.85, kept 2413 (a coral band over the brow between the horns with tall coral points and pearls, the stage's own white brow spike showing through the crown's opening); all three also painted a tuft of coral branches in the air right of the near horn, its base hidden behind the horn: in 2413 it floated apart from the band once laid on the stage, so it was erased (polygon 742,55 800,55 800,134 752,134 745,120 742,100), as were dark scraps past the band's right end (766,134 780,134 780,160 766,160); 2411 and 2412 had a lower band with the same floating tuft. Extracted with --keep-white --max-hole 30 --grow 4; then (tools/art/overlay_whitefringe.py for the white fringe, overlay_dropcool.py for non-red pixels, polygons and small parts erased by hand; recorded here) white fringe within 2 px of the outside dropped above y 128, pixels in 660,95-742,132 whose red does not exceed green and blue by 35 and are neither bright nor ink dropped (repainted olive skin inside the crown, 220 px), and separate parts under 400 px dropped (incl. a 304 px repainted brow tuft at x 781-799, y 149-182).",
+  "raw_crop": [
+    588,
+    46,
+    836,
+    233
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}
