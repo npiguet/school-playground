@@ -6,6 +6,7 @@
 import { agree, genderFor, lieutenantName } from '../world/eris';
 import { listFr } from '../aids';
 import { de, plural, rateText } from '../text/french';
+import { drachmesText } from '../world/shop';
 import type { PlayMode } from '../types';
 import type { CopyVerdict } from '../rules';
 import type { OpponentId } from './battle';
@@ -312,7 +313,10 @@ export const CHALLENGE_AGAIN = [
 ];
 export const BOSS = {
   tier: (roman: string) => `Combat ${roman}`,
-  reward: (xp: number, name: string | null) => (name ? `Récompense si tu gagnes\u202f: ${xp} XP · ${name}` : `Récompense si tu gagnes\u202f: ${xp} XP`),
+  /** The fight's full stakes (spec 2026-09-29 drachmes §1): its XP, its drachmes (every won fight pays
+   *  them) and its gear when it has one. */
+  reward: (xp: number, drachmes: number, name: string | null) =>
+    `Récompense si tu gagnes\u202f: ${[`${xp} XP`, drachmes > 0 ? drachmesText(drachmes) : null, name].filter((p) => p !== null).join(' · ')}`,
   rules: (max: number) =>
     `Un long texte. Si ta copie garde ${plural(max, 'faute', 'fautes')} au plus pour 100 mots, Éris s'enfuit\u202f; sinon, tu pourras revenir l'affronter.`,
   start: 'Affronter Éris',

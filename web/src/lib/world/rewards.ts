@@ -26,7 +26,7 @@ export function bossRewardName(tier: number | null, catalog: WorldCatalog | null
   const name = id ? catalog?.rewards[id]?.name : undefined;
   if (name) return name;
   if (tier !== null && catalog && !id) {
-    const coins = rulesOf(catalog).drachmes?.boss ?? 0;
+    const coins = rulesOf(catalog).drachmes.boss;
     return coins > 0 ? `${catalog.quest_bonus.boss} XP et ${drachmesText(coins)}` : `${catalog.quest_bonus.boss} XP`;
   }
   return 'une récompense';

@@ -37,14 +37,16 @@ type ShopHouse = ShopCatalog['houses'][number];
 const houseOnSale = (h: ShopHouse, stage: DragonStage, owned: ReadonlySet<string>) =>
   stageAt(stage) >= stageAt(h.stage) && (h.after === null || owned.has(h.after));
 
-/** What a house waits for (R11): the dragon's stage, the house before it, or both. */
+// A house before another, with its article, by its reward id (`house:villa`, R1).
+const HOUSE_THE: Record<string, string> = { 'house:villa': 'la villa', 'house:palais': 'le palais' };
+
+/** What a house waits for (R11): the dragon's stage, the house before it (named from `h.after`), or both. */
 export function houseLockedLine(h: ShopHouse, stage: DragonStage, owned: ReadonlySet<string>): string {
   const grown = stageAt(stage) >= stageAt(h.stage);
-  const after = h.after === null || owned.has(h.after);
+  const before = h.after === null || owned.has(h.after) ? null : `après ${HOUSE_THE[h.after] ?? "la maison d'avant"}`;
   const when = `Quand ton dragon sera ${GROWN[h.stage] ?? h.stage}`;
-  if (!grown && !after) return `${when}, après la villa.`;
-  if (!grown) return `${when}.`;
-  return 'Après la villa.';
+  if (!grown) return before ? `${when}, ${before}.` : `${when}.`;
+  return before ? `${before.charAt(0).toUpperCase()}${before.slice(1)}.` : `${when}.`;
 }
 
 export type ItemState = 'owned' | 'on_sale' | 'short' | 'locked';

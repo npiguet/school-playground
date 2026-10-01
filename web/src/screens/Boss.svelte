@@ -67,6 +67,7 @@
       {tier}
       rewardId={bossRewardId}
       rewardXp={campStore.catalog?.quest_bonus.boss ?? 300}
+      rewardDrachmes={rulesOf(campStore.catalog).drachmes.boss}
       rewardName={bossRewardId ? bossRewardName(tier, campStore.catalog) : null}
       fightMax={rulesOf(campStore.catalog).fight_max_per_100}
       {starting}

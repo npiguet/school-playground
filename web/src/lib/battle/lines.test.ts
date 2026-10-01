@@ -204,8 +204,11 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
     expect(L.MUSTER.boss(1)).toBe("Combat contre Éris\u202f: elle s'enfuit si ta copie garde 1 faute au plus pour 100 mots.");
     expect(L.BOSS.rules(4)).toBe("Un long texte. Si ta copie garde 4 fautes au plus pour 100 mots, Éris s'enfuit\u202f; sinon, tu pourras revenir l'affronter.");
     for (const s of [L.MUSTER.boss(4), L.BOSS.rules(4)]) expect(s).not.toMatch(/Argus/);
-    expect(L.BOSS.reward(300, "Sandales d'Hermès")).toBe("Récompense si tu gagnes\u202f: 300 XP · Sandales d'Hermès");
-    expect(L.BOSS.reward(300, null)).toBe('Récompense si tu gagnes\u202f: 300 XP');
+    // Spec 2026-09-29 drachmes §1: every won fight pays its drachmes, the gear too for the first three.
+    expect(L.BOSS.reward(300, 30, "Sandales d'Hermès")).toBe("Récompense si tu gagnes\u202f: 300 XP · 30 drachmes · Sandales d'Hermès");
+    expect(L.BOSS.reward(300, 30, null)).toBe('Récompense si tu gagnes\u202f: 300 XP · 30 drachmes');
+    expect(L.BOSS.reward(300, 1, null)).toBe('Récompense si tu gagnes\u202f: 300 XP · 1 drachme');
+    expect(L.BOSS.reward(300, 0, null)).toBe('Récompense si tu gagnes\u202f: 300 XP');
     expect(L.CHALLENGE_AGAIN).toHaveLength(3);
     for (const line of [...Object.values(L.CHALLENGE_LINES), ...L.CHALLENGE_AGAIN]) expect(line).not.toMatch(/silence|neutralis/);
   });

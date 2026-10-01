@@ -142,10 +142,10 @@ test('the path to battle says what opens the next fight in words; a fourth fight
   expect(await labelOverlaps(page, 'camp')).toEqual([]);
 });
 
-// Spec 2026-09-29 drachmes \u00a71 (R14): the purse beside the XP laurel, in every place's HUD.
+// Spec 2026-09-29 drachmes §1 (R14): the purse beside the XP laurel, in every place's HUD.
 test('the HUD shows the purse beside the laurel', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  const text = await createText(request, { title: uniqueName(`Bourse ${testInfo.project.name}`), body: 'Les f\u00e9es dansent dans la clairi\u00e8re.', level: '10H' });
+  const text = await createText(request, { title: uniqueName(`Bourse ${testInfo.project.name}`), body: 'Les fées dansent dans la clairière.', level: '10H' });
   const res = await postSession(request, { profileId: id, textId: text.id, day: swissDay(0), result: makeResult({ words: 1000, draft: 4, caught: 4 }) });
   expect(res.progression.drachmes.balance).toBeGreaterThan(0);
   await page.goto(`/#/p/${id}/camp`);

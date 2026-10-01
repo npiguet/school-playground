@@ -430,8 +430,9 @@ test('the victory adds « +12 drachmes » after the XP chips', async ({ page, re
   const sheet = await counted(page, request, `Vic40-${testInfo.project.name}`, progression({}));
   await expect(sheet.getByTestId('drachme-chip')).toHaveText('+12 drachmes');
   await expect(sheet.getByTestId('drachme-chip').locator('img')).toHaveAttribute('src', '/art/icons/drachme.webp');
-  const [lastXp, coin] = [await sheet.getByTestId('xp-chip').last().boundingBox(), await sheet.getByTestId('drachme-chip').boundingBox()];
-  expect(coin!.x > lastXp!.x || coin!.y > lastXp!.y).toBe(true);
+  // After every XP chip, in the same row of tags: the last child of the chips' container.
+  await expect(sheet.locator('.bonuses > :last-child')).toHaveAttribute('data-testid', 'drachme-chip');
+  await expect(sheet.locator('.bonuses > [data-testid="xp-chip"]').first()).toBeVisible();
 });
 
 test('a victory saved before the drachmes shows no drachme chip', async ({ page, request }, testInfo) => {
@@ -738,7 +739,8 @@ test("Éris's lair: her challenge, the fight's stakes and the rules on the parch
   await expect(sheet.getByTestId('battle-voice')).toHaveAttribute('data-speaker', 'eris');
   await expect(sheet.getByTestId('battle-voice')).toContainText('Voyons si mes pièges tiennent');
   await expect(sheet.getByTestId('boss-tier')).toHaveText('Combat I');
-  await expect(sheet.getByTestId('boss-reward')).toContainText('Récompense si tu gagnes');
+  // Spec 2026-09-29 drachmes §1: the full stakes, the fight's drachmes included.
+  await expect(sheet.getByTestId('boss-reward')).toContainText("Récompense si tu gagnes\u202f: 300 XP · 30 drachmes · Sandales d'Hermès");
   await expect(sheet.getByTestId('boss-start')).toHaveText('Affronter Éris');
   await expect(sheet).toContainText("Un long texte. Si ta copie garde 4 fautes au plus pour 100 mots, Éris s'enfuit\u202f; sinon, tu pourras revenir l'affronter.");
   // UI4 playability #14: the « Combat I » banner above her plate, and the parchment hugs its content,

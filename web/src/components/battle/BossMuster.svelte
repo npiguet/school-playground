@@ -15,6 +15,7 @@
     tier,
     rewardId,
     rewardXp,
+    rewardDrachmes,
     rewardName,
     fightMax,
     starting,
@@ -25,6 +26,8 @@
     tier: number;
     rewardId: string | null;
     rewardXp: number;
+    /** Spec 2026-09-29 drachmes §1: what every won fight pays (the rules file). */
+    rewardDrachmes: number;
     rewardName: string | null;
     /** The fight's threshold, mistakes left per 100 words (the rules file). */
     fightMax: number;
@@ -45,7 +48,7 @@
   <OverlayVoice line={taunt} testId="battle-voice" />
   <p class="stakes" data-testid="boss-reward">
     {#if rewardId}<Medallion {rewardId} size={40} />{/if}
-    <span>{BOSS.reward(rewardXp, rewardName)}</span>
+    <span>{BOSS.reward(rewardXp, rewardDrachmes, rewardName)}</span>
   </p>
   <p class="rules">{BOSS.rules(fightMax)}</p>
   {#if startError}<p class="kit-note" data-tone="eris" role="alert">{startError}</p>{/if}

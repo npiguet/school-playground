@@ -47,6 +47,12 @@ describe('the purse and the stall in words', () => {
     expect(houseLockedLine(palais, 'adult', new Set(['house:villa']))).toBe('Quand ton dragon sera illustre.');
     expect(houseLockedLine(palais, 'illustre', new Set())).toBe('Après la villa.');
     expect(houseLockedLine(palais, 'young', new Set())).toBe('Quand ton dragon sera illustre, après la villa.');
+    const stages = ['egg', 'hatchling', 'young', 'adult', 'illustre', 'ancestral'] as const;
+    const lines = [
+      ...KEYS.flatMap((k) => [1, 2, 3, 4, 5].map((l) => lockedAccessoryLine(k, l))),
+      ...SHOP.houses.flatMap((h) => stages.flatMap((st) => [new Set<string>(), new Set(['house:villa'])].map((o) => houseLockedLine(h, st, o)))),
+    ];
+    for (const line of lines) expect(line).not.toMatch(/\d|niveau/i);
   });
 
   // Review focus 3.
