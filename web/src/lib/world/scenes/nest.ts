@@ -56,9 +56,10 @@ export function growth(xp: CampResponse['xp'], stage: DragonStage): { value: num
   return { ...g, label: `Prochaine étape\u202f: ${stageLabel(nextStage(stage))}`, count: `${thousands(g.value)} sur ${thousands(g.max)} XP` };
 }
 
-/** The dragon's greeting by its stage (UI5 Ruling E12); an unnamed hatchling asks for a name. */
+/** The dragon's greeting by its stage (UI5 Ruling E12); a hatched dragon without a name
+ *  asks for one, at any stage (a dragon that grew while unnamed still asks). */
 export function nestGreeting(d: DragonOut): DialogueLine[] {
-  return [d.stage === 'hatchling' && !d.name ? sayKey('nest.name', { dragon: d }) : sayKey('nest.enter', { dragon: d })];
+  return [d.stage !== 'egg' && !d.name ? sayKey('nest.name', { dragon: d }) : sayKey('nest.enter', { dragon: d })];
 }
 
 /** What the dragon says from its care overlay's voice plate (Ruling B5, immersion #23), in the

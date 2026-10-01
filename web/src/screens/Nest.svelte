@@ -47,6 +47,7 @@
           aria-label={g.label}
           aria-valuemin={0}
           aria-valuemax={g.max}
+          aria-valuetext={g.count ?? g.label}
           aria-valuenow={g.value}
           data-state={g.value >= g.max ? 'ok' : 'short'}
           style:--fill="{Math.min(100, (g.value / g.max) * 100)}%"

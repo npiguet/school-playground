@@ -148,13 +148,14 @@ export function nextStage(stage: DragonStage): DragonStage {
 
 /** What the dragon says of itself at its stage, in its own voice (UI3b playability #15: its plate
  *  names it, so it speaks in the first person; the egg speaks from inside its shell). The camp's
- *  greeting. `name` is null until it is named (a hatchling then asks for one). Spec 2026-09-29 dragon
+ *  greeting. `name` is null until it is named (a hatched dragon, at any stage, then asks for one). Spec 2026-09-29 dragon
  *  growth §3: once hatched and named, how far the next stage is, in words (never a number: the HUD
  *  carries them); « under 20 % » is strictly under a fifth of the stage's span. */
 export function stageLine(stage: DragonStage, name: string | null, xp: { total: number } & Scale): string {
   // UI5 playability #12: it follows `camp.enter`, which has already said hello.
   if (stage === 'egg') return "Chaque piège d'Éris déjoué me fait frémir dans ma coquille.";
-  if (stage === 'hatchling' && !name) return 'Au fait, tu me donnes un nom\u202f?';
+  // Hatched and unnamed, at any stage: a dragon that grew while unnamed still asks (final review I1).
+  if (!name) return 'Au fait, tu me donnes un nom\u202f?';
   if (stage === 'ancestral' || xp.next === null) return "J'ai tout lu, tout vu. Et je veille toujours sur toi.";
   // Whole numbers only (no 0.2 × span float at the boundary): under a fifth of the span remains.
   return 5 * (xp.next - xp.total) < xp.next - xp.floor ? 'Encore un peu de gloire et je grandis.' : 'Chaque texte bien défendu me fait grandir.';

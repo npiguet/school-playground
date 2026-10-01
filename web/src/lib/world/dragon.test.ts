@@ -36,6 +36,9 @@ describe('dragon helpers', () => {
     // UI3b playability #15: the dragon speaks in the first person under its own plate.
     expect(stageLine('egg', null, xp(40, 0, 100))).toBe("Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
     expect(stageLine('hatchling', null, xp(150, 100, 1200))).toBe('Au fait, tu me donnes un nom\u202f?');
+    // A dragon that grew past the hatchling without a name still asks for one (it was never asked).
+    expect(stageLine('young', null, xp(1300, 1200, 5000))).toBe('Au fait, tu me donnes un nom\u202f?');
+    expect(stageLine('ancestral', null, xp(41000, 40000, null))).toBe('Au fait, tu me donnes un nom\u202f?');
     // Spec 2026-09-29 dragon growth §3: how far the next stage is, in words; « under 20 % » is strict.
     expect(stageLine('hatchling', 'Braise', xp(150, 100, 1200))).toBe('Chaque texte bien défendu me fait grandir.');
     expect(stageLine('young', 'Braise', xp(4240, 1200, 5000))).toBe('Chaque texte bien défendu me fait grandir.'); // 760 of 3800 left: 20 %

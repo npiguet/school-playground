@@ -37,12 +37,15 @@ describe("dragon's nest (UI3 Ruling B5)", () => {
     expect(growth({ total: 41000, floor: 40000, next: null }, 'ancestral')).toEqual({ value: 1, max: 1, label: 'Il a fini de grandir.', count: null });
   });
 
-  it('greets by its stage, asks an unnamed hatchling\'s name (Ruling E12), and speaks in its care (immersion #23)', () => {
+  it('greets by its stage, asks an unnamed dragon\'s name at any hatched stage (Ruling E12), and speaks in its care (immersion #23)', () => {
     const [hello] = nestGreeting(egg);
     expect(hello).toMatchObject({ key: 'nest.enter', speaker: 'dragon', name: "L'œuf" });
     expect(LINES['nest.enter'].filter((l) => l.when?.stage?.includes('egg')).map((l) => frenchSpacing(l.text))).toContain(hello.text);
     expect(nestGreeting({ ...egg, stage: 'hatchling' })[0]).toMatchObject({ key: 'nest.name' });
     expect(variantsOf('nest.name')).toContain(nestGreeting({ ...egg, stage: 'hatchling' })[0].text);
+    // A dragon that grew past the hatchling unnamed still asks (final review I1).
+    expect(nestGreeting({ ...egg, stage: 'young' })[0]).toMatchObject({ key: 'nest.name' });
+    expect(nestGreeting({ ...egg, stage: 'ancestral' })[0]).toMatchObject({ key: 'nest.name' });
     expect(nestGreeting({ ...egg, stage: 'hatchling', name: 'Braise' })[0]).toMatchObject({ key: 'nest.enter', name: 'Braise' });
     expect(careLine(egg)).toMatchObject({ speaker: 'dragon', text: 'Je frémis dans la paille. Encore quelques textes défendus, et je sors de ma coquille.' });
     expect(careLine({ ...egg, stage: 'hatchling' }).text).toBe('Ici, tu peux me donner un nom et choisir ma teinte.');
