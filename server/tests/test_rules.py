@@ -46,6 +46,19 @@ def test_a_value_of_the_wrong_type_is_logged_and_its_default_kept(tmp_path, capl
         assert key in caplog.text, key
 
 
+def test_copy_limits_out_of_order_are_logged_and_both_defaults_apply(tmp_path, caplog):
+    text = json.dumps({"copy_belle_max_per_100": 9, "copy_correcte_max_per_100": 5, "aid_bonus": 0.3})
+    with caplog.at_level(logging.WARNING):
+        rules = load_rules(write(tmp_path, text))
+    assert rules.as_dict() == {**DEFAULTS, "aid_bonus": 0.3}
+    assert "copy_belle_max_per_100" in caplog.text and "copy_correcte_max_per_100" in caplog.text
+    # Only one of the pair given, and above the other's default: out of order all the same.
+    assert load_rules(write(tmp_path, '{"copy_belle_max_per_100": 10}')).as_dict() == DEFAULTS
+    # Equal limits are in order (no « copie correcte » band, by the owner's choice).
+    assert load_rules(write(tmp_path, '{"copy_belle_max_per_100": 5, "copy_correcte_max_per_100": 5}')).as_dict() == {
+        **DEFAULTS, "copy_belle_max_per_100": 5.0, "copy_correcte_max_per_100": 5.0}
+
+
 def test_nan_and_infinity_are_refused(tmp_path):
     assert load_rules(write(tmp_path, '{"aid_bonus": NaN, "fight_max_per_100": Infinity}')).as_dict() == DEFAULTS
 

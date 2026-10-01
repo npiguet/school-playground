@@ -243,7 +243,7 @@ start-up. The full file with its defaults:
 |---|---|
 | `quest_min_chances`, `quest_min_correct` | A quest session counts when the text gives the quest's lieutenant at least this many chances and at least this share of them is right in the handed-in copy |
 | `fight_max_per_100` | An Éris fight is won with at most this many mistakes left per 100 words |
-| `copy_belle_max_per_100`, `copy_correcte_max_per_100` | The victory's copy line: « belle copie » up to the first, « copie correcte » up to the second, « copie à reprendre » above |
+| `copy_belle_max_per_100`, `copy_correcte_max_per_100` | The victory's copy line and the lieutenant's fate: « belle copie » (routed) up to the first, « copie correcte » (pushed back) up to the second, « copie à reprendre » (still standing) above. The first must not be above the second: if it is, both are ignored with a warning and both defaults apply |
 | `aid_bonus` | The XP bonus for each review aid left at the camp |
 | `pace_bonus` | The XP bonus of each pace (`"1"` to `"3"`; a partial object keeps the other paces' defaults) |
 | `prophecy_bonus` | The XP bonus of a text played before its due date |

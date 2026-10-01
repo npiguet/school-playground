@@ -108,4 +108,13 @@ def load_rules(data_dir: Path) -> Rules:
                 log.warning("%s: %s = %r is ignored (wrong type or out of range); its default applies", path, key, value)
         else:
             log.warning("%s: unknown key %r is ignored", path, key)
-    return replace(Rules(), **values)
+    rules = replace(Rules(), **values)
+    if rules.copy_belle_max_per_100 > rules.copy_correcte_max_per_100:
+        # A « belle copie » limit above the « copie correcte » one would leave no correcte copy at all:
+        # the pair is one setting, so both fall back together.
+        log.warning("%s: copy_belle_max_per_100 (%s) is above copy_correcte_max_per_100 (%s): both defaults apply",
+                    path, rules.copy_belle_max_per_100, rules.copy_correcte_max_per_100)
+        default = Rules()
+        rules = replace(rules, copy_belle_max_per_100=default.copy_belle_max_per_100,
+                        copy_correcte_max_per_100=default.copy_correcte_max_per_100)
+    return rules
