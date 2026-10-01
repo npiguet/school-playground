@@ -19,22 +19,34 @@
   let { profile, onBought }: { profile: Profile; onBought: (kind: ItemKind) => void } = $props();
 
   const camp = $derived(campFor(profile.id));
+  // What the hero owns: null until /rewards has answered. A failed load never guesses (an empty list
+  // would offer « Acheter » on a piece already owned): the shelves wait, the error says why, and
+  // « Réessayer » asks again (the panel also asks again each time it opens).
   let owned = $state<RewardOut[] | null>(null);
+  let ownedFailed = $state(false);
   let error = $state('');
   const failure = (e: unknown) => (e instanceof ApiError ? e.detail : 'Une erreur est survenue.');
   async function loadOwned(id: number) {
     try {
       const list = await worldApi.rewards(id);
-      if (id === profile.id) owned = list;
+      if (id !== profile.id) return;
+      owned = list;
+      ownedFailed = false;
     } catch (e) {
       if (id !== profile.id) return;
-      owned ??= [];
+      if (owned === null) ownedFailed = true;
       error = failure(e);
     }
+  }
+  function retryOwned() {
+    error = '';
+    ownedFailed = false;
+    void loadOwned(profile.id);
   }
   $effect(() => {
     const id = profile.id;
     owned = null;
+    ownedFailed = false;
     void loadOwned(id);
   });
   const ownedIds = $derived(new Set((owned ?? []).map((r) => r.id)));
@@ -88,14 +100,18 @@
     } catch (e) {
       refused = true;
       error = failure(e);
+    }
+    // The purse, here and on the HUD, after any answer (review focus 1); after a refusal, what is
+    // owned too: another tablet may have bought since the stall opened. The question (its buttons
+    // disabled) stays until both have answered, then the focus goes back to the piece as it now is
+    // (its « Acheter » if it can still be bought, else the cubby itself), never to the page.
+    try {
+      await Promise.all([refreshCamp(profile.id), refused ? loadOwned(profile.id) : null]);
     } finally {
       buying = false;
       asking = null;
-      void focusPiece(it.id);
+      await focusPiece(it.id);
     }
-    // The purse, here and on the HUD, after any answer (review focus 1); after a refusal, what is
-    // owned too: another tablet may have bought since the stall opened.
-    await Promise.all([refreshCamp(profile.id), refused ? loadOwned(profile.id) : null]);
   }
 </script>
 
@@ -129,7 +145,9 @@
     {#if camp}<p class="purse" data-testid="stall-purse"><img class="coin" src={MARK_ICONS.drachme} alt="" draggable="false" />{purseLine(camp.drachmes)}</p>{/if}
   </div>
   {#if error}<p class="kit-note" data-tone="eris" role="alert" data-testid="stall-error">{error}</p>{/if}
-  {#if !shelves}
+  {#if ownedFailed}
+    <button type="button" class="kit-bronze is-quiet stall-retry" data-testid="stall-retry" onclick={retryOwned}>Réessayer</button>
+  {:else if !shelves}
     <p class="kit-note">Hermès déballe ses marchandises…</p>
   {:else}
     <section data-testid="stall-accessories">
@@ -255,6 +273,9 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
+  }
+  .stall-retry {
+    align-self: flex-start;
   }
   .stall-ask:focus-visible {
     outline: 3px solid var(--gold-light);

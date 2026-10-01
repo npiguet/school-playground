@@ -13,20 +13,16 @@
 // the label positions in camp.ts solve; scenes-camp.spec.ts proves labelOverlaps() is empty.
 // Hermès's stall (sub-project 4, `hub_camp.webp` now carries it; style guide phase 3: box x 10.5-21.8,
 // y 20.8-44.8) is clipped to the iPad safe zone on the left and ends at y 40, above the dragon's head,
-// which covers the counter below (R18). It starts at y 21.5 under the awning's edge, not y 21: its
-// plaque hangs above and, from y 21, its top edge sat 0.2 px inside the HUD band at 1280x720
-// (scenes-camp.spec.ts expectInSafeZone).
+// which covers the counter below (R18). Its name is inked on the counter (camp.ts, `on`), and the
+// temple's plaque slides right off it (camp.ts `labelDx`). The counter's foot (y 40-44.8) is not the
+// stall's: the nest's box keeps its top at y 42-44 there, since the grown dragon's head is drawn over
+// the counter's foot and a tap on the dragon belongs to the nest (Task 5 review, minor 1: kept).
 import type { ShapeMap } from '../../scene/types';
 
 export const CAMP_SHAPES = {
   dragon: { kind: 'polygon', points: [[12.5, 44], [23, 42], [25, 50], [24, 66], [12.5, 66]] },
-  stall: { kind: 'polygon', points: [[12.5, 21.5], [21.8, 21.5], [21.8, 40], [12.5, 40]] },
-  // The temple's box starts at x 27 (its third column and the top of the stairs), not at its left
-  // wall (x 22.5): the stall's plaque above the awning cannot move left of the safe zone and reaches
-  // x 26.6 at 1280x720, so a box from x 22.5 (or x 24, R18's fallback, measured: still over it) lay
-  // under that plaque, and the temple's own plaque, centred lower on the box, over the stall's right
-  // edge (scenes-stall.spec.ts labelOverlaps). The temple keeps a 9 x 17 % tap area.
-  oracle: { kind: 'polygon', points: [[27, 14], [36, 14], [36, 22], [33, 31], [27, 31]] },
+  stall: { kind: 'polygon', points: [[12.5, 21], [21.8, 21], [21.8, 40], [12.5, 40]] },
+  oracle: { kind: 'polygon', points: [[22.5, 14], [36, 14], [36, 22], [33, 31], [27, 31], [22.5, 22]] },
   parchemins: { kind: 'polygon', points: [[33, 42], [51, 42], [51, 61], [33, 61]] },
   dossier: { kind: 'polygon', points: [[54, 44], [74, 44], [74, 70], [54, 70]] },
   boss: { kind: 'polygon', points: [[65, 22], [75, 22], [75, 33], [65, 33]] },

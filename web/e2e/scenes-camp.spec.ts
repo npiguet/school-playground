@@ -286,6 +286,8 @@ test('places and their labels sit inside the visible safe zone, never overlap, a
         }),
       );
       for (const p of plaques) {
+        // Hermès's stall is not a place: its name is inked on its counter (Task 5 review I1).
+        if (p.id === 'camp-stall') continue;
         if (p.glow) expect(p.band, `${at} ${p.id}`).toMatch(/gradient/);
         else expect([p.band, p.edge], `${at} ${p.id}`).toEqual(['none', 'rgba(90, 58, 24, 0.9)']);
       }

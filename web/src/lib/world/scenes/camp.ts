@@ -77,8 +77,9 @@ function place(id: CampHotspotId, extra: (camp: CampResponse) => Partial<Hotspot
 export const CAMP_HOTSPOTS: HotspotDef[] = [
   { id: 'dragon', label: 'Le nid du dragon', target: 'dragon', shape: CAMP_SHAPES.dragon, labelPos: 'below', leader: true, state: place('dragon') },
   // Spec 2026-09-29 drachmes §2 (R10, R18): Hermès's stall opens as an overlay of the camp; no caption
-  // and no glow of its own: nothing here ever calls the player in.
-  { id: 'stall', label: "L'étal d'Hermès", target: 'camp', query: { panel: 'etal' }, shape: CAMP_SHAPES.stall, labelPos: 'above', leader: true, state: place('stall') },
+  // and no glow of its own: nothing here ever calls the player in. Its name is inked on its counter
+  // (`on`, Task 5 review I1, superseding R18's `above`): a plaque above the awning lay on the temple.
+  { id: 'stall', label: "L'étal d'Hermès", target: 'camp', query: { panel: 'etal' }, shape: CAMP_SHAPES.stall, labelPos: 'on', state: place('stall') },
   {
     id: 'oracle',
     label: 'Le chemin de Delphes',
@@ -86,6 +87,10 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
     shape: CAMP_SHAPES.oracle,
     labelPos: 'below',
     leader: true,
+    // Spec 2026-09-29 drachmes §2 (Task 5 review I1): the plaque slides right, down the stairs, off
+    // Hermès's stall and its inked name (its left edge from x 20 to x 24.8 at 1280x720, where the
+    // stall's name ends at x 24.2); its leader still starts under the temple.
+    labelDx: 35,
     state: place('oracle', (camp) => {
       const n = camp.quests.filter((q) => q.status === 'active').length;
       return { badge: n > 0 ? n : null };

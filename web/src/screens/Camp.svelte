@@ -101,7 +101,9 @@
     const to = hotspotHref(def, profile.id);
     if (!to) return;
     // Spec 2026-09-29 drachmes §2 (R10): the stall is an overlay of the camp: no night fade, no
-    // leaving (`go` plays the tap).
+    // leaving (`go` plays the tap). Any camp hotspot with a `query.panel` is taken to be an overlay
+    // of the camp itself (today only the stall's `?panel=etal`): a hotspot leading to another
+    // place's overlay must not set one, or it would skip the fade out of the camp.
     if (def.query?.panel) {
       go(to, 'panel');
       return;

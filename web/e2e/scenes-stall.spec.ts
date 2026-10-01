@@ -16,7 +16,7 @@ async function openStall(page: Page, id: number, testInfo: TestInfo) {
   await expect(page).toHaveURL(/\/camp\?panel=etal$/);
 }
 
-test('the stall: its plaque on the painted stall, three shelves, everything shown ahead', async ({ page, request }, testInfo) => {
+test('the stall: its name on the painted stall, three shelves, everything shown ahead', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.goto(`/#/p/${id}/camp`);
   await expectCamp(page);
@@ -29,7 +29,7 @@ test('the stall: its plaque on the painted stall, three shelves, everything show
   const stall = page.getByTestId('overlay-stall');
   await expectInWorldOverlay(page, 'overlay-stall', 'camp', true, 'table', 'hermes');
   await expectLineOf(stall.getByTestId('overlay-voice'), 'stall.enter');
-  await expect(stall.getByTestId('stall-purse')).toHaveText('Ta bourse : 0 drachme');
+  await expect(stall.getByTestId('stall-purse')).toHaveText('Ta bourse\u202f: 0 drachme');
   await expect(stall.getByRole('heading', { level: 3 })).toHaveText(['Parures du dragon', 'La maison', 'Décor']);
   const collar = stall.getByTestId('stall-item-accessory:hydre-cou');
   await expect(collar).toHaveAttribute('data-state', 'locked');
@@ -69,15 +69,17 @@ test('buying asks once, Hermès thanks, the piece is owned and the purse goes do
   const stall = page.getByTestId('overlay-stall');
   const amphora = stall.getByTestId('stall-item-decor:amphore');
   await tap(amphora.getByTestId('stall-buy-decor:amphore'), testInfo);
-  await expect(amphora).toContainText("Acheter l'amphore peinte pour 50 drachmes ?");
+  await expect(amphora).toContainText("Acheter l'amphore peinte pour 50 drachmes\u202f?");
   await tap(amphora.getByTestId('stall-cancel'), testInfo);
   await expect(amphora).toHaveAttribute('data-state', 'on_sale');
+  await expect(amphora.getByTestId('stall-buy-decor:amphore')).toBeFocused();
   await tap(amphora.getByTestId('stall-buy-decor:amphore'), testInfo);
   await tap(amphora.getByTestId('stall-confirm'), testInfo);
   await expect(amphora).toHaveAttribute('data-state', 'owned');
   await expect(amphora).toContainText('À toi');
+  await expect(amphora).toBeFocused();
   await expectLineOf(stall.getByTestId('overlay-voice'), 'stall.bought.decor');
-  await expect(stall.getByTestId('stall-purse')).toHaveText(`Ta bourse : ${before - 50} drachmes`);
+  await expect(stall.getByTestId('stall-purse')).toHaveText(`Ta bourse\u202f: ${before - 50} drachmes`);
   await expect(page.getByTestId('hud-drachmes')).toHaveText(String(before - 50));
   // The shelf in the cabin knows it: « Exposer » is there.
   await page.goto(`/#/p/${id}/cabane?panel=tresors`);
@@ -105,7 +107,10 @@ test('a purchase refused by the server says why and the purse refreshes', async 
   await tap(stall.getByTestId('stall-confirm'), testInfo);
   await expect(stall.getByTestId('stall-error')).toHaveText("Ta bourse n'est pas encore assez pleine pour cet objet.");
   await expect(stall.getByTestId('stall-purse')).toContainText(`${left} drachme`);
-  await expect(stall.getByTestId('stall-item-decor:chouette')).toHaveAttribute('data-state', 'short');
+  const owl = stall.getByTestId('stall-item-decor:chouette');
+  await expect(owl).toHaveAttribute('data-state', 'short');
+  // Fix round 1 I2: the focus waits for the refresh, then stays on the piece (no « Acheter » left: its cubby).
+  await expect(owl).toBeFocused();
   // What the other tablet bought is owned here too, once the refusal has refreshed the stall.
   for (const item of spent) await expect(stall.getByTestId(`stall-item-${item}`)).toHaveAttribute('data-state', 'owned');
 });

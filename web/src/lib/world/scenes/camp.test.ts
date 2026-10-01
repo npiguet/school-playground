@@ -59,16 +59,20 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
       stall: 'camp',
     });
     // UI3b playability #8: every place, the cabin too, has the same dark plaque pinned by a leader
-    // (the stall's hangs above its awning, R18: below it is the dragon's nest).
-    for (const h of CAMP_HOTSPOTS) expect([h.labelPos, h.leader], h.id).toEqual([h.id === 'stall' ? 'above' : 'below', true]);
-    // Playability #10: the battle path's plaque slides right, off the war tent's peak.
+    // (Hermès's stall is not a place: its name is inked on its counter, Task 5 review I1).
+    for (const h of CAMP_HOTSPOTS) expect([h.labelPos, h.leader], h.id).toEqual(h.id === 'stall' ? ['on', undefined] : ['below', true]);
+    // Playability #10: the battle path's plaque slides right, off the war tent's peak; the temple's
+    // slides right off the stall (Task 5 review I1).
     expect(CAMP_HOTSPOTS.find((h) => h.id === 'boss')!.labelDx).toBeGreaterThan(0);
+    expect(CAMP_HOTSPOTS.find((h) => h.id === 'oracle')!.labelDx).toBe(35);
   });
 
   it("puts Hermès's stall on its painted box, inside the safe zone, above the dragon (spec 2026-09-29 drachmes §2, R18)", () => {
     const stall = CAMP_HOTSPOTS.find((h) => h.id === 'stall')!;
-    expect(stall).toMatchObject({ label: "L'étal d'Hermès", target: 'camp', query: { panel: 'etal' }, labelPos: 'above', leader: true });
-    expect(CAMP_SHAPES.stall).toEqual({ kind: 'polygon', points: [[12.5, 21.5], [21.8, 21.5], [21.8, 40], [12.5, 40]] });
+    expect(stall).toMatchObject({ label: "L'étal d'Hermès", target: 'camp', query: { panel: 'etal' }, labelPos: 'on' });
+    expect(CAMP_SHAPES.stall).toEqual({ kind: 'polygon', points: [[12.5, 21], [21.8, 21], [21.8, 40], [12.5, 40]] });
+    // The temple keeps its whole painted box, its left wall included (Task 5 review I1).
+    expect(CAMP_SHAPES.oracle.points[0]).toEqual([22.5, 14]);
     expect(validateScene(CAMP_SCENE)).toEqual([]);
     // No caption and no glow of its own: nothing at the stall ever calls the player in.
     for (const c of [camp(), ready({ xp: seasoned }), camp({ drachmes: 900 })]) expect(state('stall', c, catalog)).toMatchObject({ caption: null, isNew: false });
