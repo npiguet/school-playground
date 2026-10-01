@@ -69,7 +69,11 @@ def store_stage(conn, profile_id, stage, now) -> None:
 def record_seen_stage(conn, profile_id, stage) -> None:
     """The victory shows the hatch or the new stage, so it is the stage the hero last saw
     (`settings.dragon_seen_stage`, final review I3): the camp's « grew while you were away » reveal
-    shows only a growth she has not seen. Read fresh: the session may have just written `aids`."""
+    shows only a growth she has not seen. Read fresh: the session may have just written `aids`.
+
+    Trade-off: the stage counts as seen as soon as the session is saved, before the victory card
+    shows. A hero who leaves before the card, or whose response is lost, gets no camp reveal for that
+    growth; accepted to avoid a race between the client's card and the camp's reveal."""
     row = conn.execute("SELECT settings_json FROM profile WHERE id = ?", (profile_id,)).fetchone()
     settings = {**json.loads(row["settings_json"] or "{}"), "dragon_seen_stage": stage}
     conn.execute("UPDATE profile SET settings_json = ? WHERE id = ?", (json.dumps(settings, ensure_ascii=False), profile_id))

@@ -2,16 +2,24 @@ import json
 import logging
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.rules import RULES_FILENAME, load_rules
 from app.world.dragon import DEFAULT_STAGE_XP
+from app.world.fights import DEFAULT_FIGHTS
+from app.world.seals import DEFAULT_LEVELS
 
+LEVEL_DEFAULTS = [{"days": 3, "chances": 12, "correct": 0.85}, {"days": 4, "chances": 25, "correct": 0.88},
+                  {"days": 6, "chances": 45, "correct": 0.91}, {"days": 8, "chances": 70, "correct": 0.94},
+                  {"days": 10, "chances": 100, "correct": 0.97}]
+FIGHT_DEFAULTS = [{"level": level, "count": count} for level in range(1, 6) for count in (2, "all")]
 STAGE_DEFAULTS = {"egg": 0, "hatchling": 100, "young": 1200, "adult": 5000, "illustre": 15000, "ancestral": 40000}
 DEFAULTS = {"quest_min_chances": 3, "quest_min_correct": 0.85, "fight_max_per_100": 4.0, "copy_belle_max_per_100": 2.0,
             "copy_correcte_max_per_100": 8.0, "aid_bonus": 0.2, "pace_bonus": {"1": 0.0, "2": 0.25, "3": 0.5},
-            "prophecy_bonus": 0.5, "chouette_hints": 3, "dragon_stages": STAGE_DEFAULTS}
+            "prophecy_bonus": 0.5, "chouette_hints": 3, "dragon_stages": STAGE_DEFAULTS,
+            "levels": LEVEL_DEFAULTS, "fights": FIGHT_DEFAULTS}
 
 
 def write(tmp_path: Path, text: str) -> Path:
@@ -130,3 +138,51 @@ def test_dragon_stages_that_do_not_rise_are_refused_whole(tmp_path, caplog):
 
 def test_dragon_stages_that_are_not_an_object_keep_the_built_in_ones(tmp_path):
     assert load_rules(write(tmp_path, '{"dragon_stages": [100, 1200], "chouette_hints": 2}')).as_dict() == {**DEFAULTS, "chouette_hints": 2}
+
+
+# Spec 2026-09-29 lieutenant levels §1, §4: the seals' thresholds and Éris's ladder live in the rules file.
+def test_the_built_in_seals_and_fights_mirror_the_spec():
+    assert DEFAULT_LEVELS == LEVEL_DEFAULTS and DEFAULT_FIGHTS == FIGHT_DEFAULTS and len(FIGHT_DEFAULTS) == 10
+
+
+def test_levels_from_the_file_keep_the_other_defaults(tmp_path):
+    rules = load_rules(write(tmp_path, '{"levels": {"2": {"chances": 30}, "5": {"days": 12, "correct": 0.95}}}'))
+    expected = [dict(r) for r in LEVEL_DEFAULTS]
+    expected[1]["chances"] = 30
+    expected[4].update(days=12, correct=0.95)
+    assert rules.levels == expected
+    assert rules.as_dict() == {**DEFAULTS, "levels": expected}
+
+
+def test_a_wrong_level_value_is_logged_and_its_default_kept(tmp_path, caplog):
+    text = json.dumps({"levels": {"1": {"days": 0, "chances": True, "correct": 1.5, "speed": 3, "correct ": 1},
+                                  "2": {"correct": 0}, "3": [4], "6": {"days": 3}, "4": {"days": 9}}})
+    with caplog.at_level(logging.WARNING):
+        rules = load_rules(write(tmp_path, text))
+    expected = [dict(r) for r in LEVEL_DEFAULTS]
+    expected[3]["days"] = 9
+    assert rules.levels == expected
+    for bit in ("'days'", "'chances'", "'correct'", "'speed'", "'2'", "'3'", "'6'"):
+        assert bit in caplog.text, bit
+
+
+def test_levels_that_are_not_an_object_keep_the_built_in_ones(tmp_path):
+    assert load_rules(write(tmp_path, '{"levels": [3, 4], "chouette_hints": 2}')).as_dict() == {**DEFAULTS, "chouette_hints": 2}
+
+
+def test_a_fight_ladder_from_the_file_replaces_the_built_in_one(tmp_path):
+    rules = load_rules(write(tmp_path, '{"fights": [{"level": 1, "count": 3}, {"level": 2, "count": "all"}]}'))
+    assert rules.fights == [{"level": 1, "count": 3}, {"level": 2, "count": "all"}]
+
+
+@pytest.mark.parametrize("ladder", [
+    "[]", '{"level": 1, "count": 2}', '[{"level": 6, "count": 2}]', '[{"level": 1, "count": 7}]',
+    '[{"level": 1, "count": 0}]', '[{"level": 1, "count": "tous"}]', '[{"level": true, "count": 2}]',
+    '[{"level": 1, "count": 2, "reward": "egide"}]', '[{"level": 1}]', '[{"level": 1, "count": 2}, 3]',
+    json.dumps([{"level": 1, "count": 2}] * 21),
+])
+def test_a_wrong_fight_ladder_is_refused_whole(tmp_path, caplog, ladder):
+    with caplog.at_level(logging.WARNING):
+        rules = load_rules(write(tmp_path, '{"fights": %s, "chouette_hints": 2}' % ladder))
+    assert rules.fights == FIGHT_DEFAULTS and rules.chouette_hints == 2
+    assert "fights must be a list" in caplog.text

@@ -41,7 +41,27 @@ REWARDS = {r["id"]: r for r in [
     _r("decor:trophee", "decor", "Trophée de la Pomme", "Une pomme d'or… en bois peint.", "Huit quêtes du mur"),
     _r("decor:fresque", "decor", "Fresque des Muses", "Les neuf Muses peintes sur ton mur.", "Sixième quête de l'Oracle"),
 ]}
-ORACLE_REWARDS = ["tint:ecume", "tint:olivier", "tint:braise", "tint:jade", "tint:argent", "decor:fresque"]
+# Spec 2026-09-29 lieutenant levels §1: five seals per lieutenant, each a material, each paying the
+# lieutenant's keepsake in that material (the art track's trophies: the old relic as a statuette).
+MATERIALS = ("bois", "bronze", "argent", "or", "orichalque")
+SEAL_TITLES = ("Sceau de bois", "Sceau de bronze", "Sceau d'argent", "Sceau d'or", "Sceau d'orichalque")
+OF_LIEUTENANT = {"hydre": "de l'Hydre", "echo": "d'Écho", "chimere": "de la Chimère", "protee": "de Protée",
+                 "sirenes": "des Sirènes", "lethe": "de Léthé"}
+TROPHY_OF = {"hydre": "Écaille de l'Hydre", "echo": "Voix d'Écho", "chimere": "Crinière de la Chimère",
+             "protee": "Perle de Protée", "sirenes": "Plume de Sirène", "lethe": "Pavot de Léthé"}
+_TROPHY_DESC = ("Un souvenir taillé dans le bois d'olivier.", "Un souvenir coulé dans le bronze, gravé de quelques traits.",
+                "Un souvenir d'argent poli, gravé de motifs.", "Un souvenir d'or, orné de reliefs et de pierres fines.",
+                "Un souvenir d'orichalque, le métal rouge de l'Atlantide, ciselé de filigranes.")
+
+
+def trophy_id(key: str, level: int) -> str:
+    return f"trophy:{key}:{level}"
+
+
+REWARDS.update({trophy_id(k, level): _r(trophy_id(k, level), "trophy", f"{TROPHY_OF[k]} en {MATERIALS[level - 1]}",
+                                        _TROPHY_DESC[level - 1], f"{SEAL_TITLES[level - 1]} {OF_LIEUTENANT[k]}")
+                for k in LIEUTENANT_ORDER for level in range(1, len(MATERIALS) + 1)})
+ORACLE_REWARDS =["tint:ecume", "tint:olivier", "tint:braise", "tint:jade", "tint:argent", "decor:fresque"]
 DECOR_ORDER = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee"]
 BOSS_REWARDS = {1: "sandales_hermes", 2: "egide", 3: "foudre_zeus"}
 QUEST_BONUS = {"board": 60, "oracle": 150, "boss": 300, "mastery": 200, "weekly": 40}

@@ -2,7 +2,8 @@
 `./data`), read once at start-up. Every key is optional: a missing key keeps its built-in default,
 and a malformed file or a value of the wrong type is logged and ignored, so a typo never stops the
 game. GET /api/world serves them to the client (the copy line, the bonuses, the owl's hints); the
-dragon's stage thresholds (`dragon_stages`) are served as the world's stage table."""
+dragon's stage thresholds (`dragon_stages`) are served as the world's stage table; the seals'
+thresholds (`levels`) and Éris's ladder (`fights`) are read by the server only."""
 from __future__ import annotations
 import json
 import logging
@@ -10,7 +11,10 @@ import math
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Callable
+from app.world.catalog import LIEUTENANT_ORDER
 from app.world.dragon import DEFAULT_STAGE_XP, STAGE_ORDER
+from app.world.fights import DEFAULT_FIGHTS, MAX_FIGHTS
+from app.world.seals import DEFAULT_LEVELS, MAX_LEVEL
 
 RULES_FILENAME = "regles.json"
 PACES = ("1", "2", "3")
@@ -34,6 +38,8 @@ class Rules:
     prophecy_bonus: float = 0.5
     chouette_hints: int = 3
     dragon_stages: dict[str, int] = field(default_factory=lambda: dict(DEFAULT_STAGE_XP))
+    levels: list[dict[str, Any]] = field(default_factory=lambda: [dict(r) for r in DEFAULT_LEVELS])
+    fights: list[dict[str, Any]] = field(default_factory=lambda: [dict(f) for f in DEFAULT_FIGHTS])
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -107,6 +113,45 @@ def _dragon_stages(raw: Any, path: Path) -> dict[str, int] | None:
     return out
 
 
+SEAL_KEYS = tuple(str(i) for i in range(1, MAX_LEVEL + 1))
+
+
+def _levels(raw: Any, path: Path) -> list[dict[str, Any]] | None:
+    """Spec 2026-09-29 lieutenant levels §1 (R2): each seal's days, chances and correct share; a wrong
+    value keeps its default, the others still apply."""
+    if not isinstance(raw, dict):
+        log.warning('%s: levels must be an object like {"2": {"chances": 30}}; the built-in seals apply', path)
+        return None
+    out = [dict(r) for r in DEFAULT_LEVELS]
+    for key, value in raw.items():
+        if key not in SEAL_KEYS or not isinstance(value, dict):
+            log.warning('%s: levels[%r] is ignored (the seals are "1" to "5", each an object like {"days": 3})', path, key)
+            continue
+        for name, v in value.items():
+            ok = (name in ("days", "chances") and _count(v) and v >= 1) or (name == "correct" and _share(v) and v > 0)
+            if not ok:
+                log.warning("%s: levels[%r][%r] = %r is ignored (days and chances are whole numbers from 1, correct a "
+                            "share above 0 and at most 1); its default applies", path, key, name, v)
+                continue
+            out[int(key) - 1][name] = float(v) if name == "correct" else v
+    return out
+
+
+def _fight(f: Any) -> bool:
+    return (isinstance(f, dict) and set(f) == {"level", "count"} and _count(f["level"]) and 1 <= f["level"] <= MAX_LEVEL
+            and (f["count"] == "all" or (_count(f["count"]) and 1 <= f["count"] <= len(LIEUTENANT_ORDER))))
+
+
+def _fights(raw: Any, path: Path) -> list[dict[str, Any]] | None:
+    """Spec §4 (R2): refused whole on any wrong entry: dropping one would renumber the fights after it,
+    and a won fight is stored by its number."""
+    if not isinstance(raw, list) or not 1 <= len(raw) <= MAX_FIGHTS or not all(_fight(f) for f in raw):
+        log.warning('%s: fights must be a list of 1 to %d fights like {"level": 1, "count": 2} (a seal from 1 to %d, '
+                    'a count from 1 to %d or "all"); the built-in fights apply', path, MAX_FIGHTS, MAX_LEVEL, len(LIEUTENANT_ORDER))
+        return None
+    return [{"level": f["level"], "count": f["count"]} for f in raw]
+
+
 def load_rules(data_dir: Path) -> Rules:
     path = data_dir / RULES_FILENAME
     if not path.is_file():
@@ -129,6 +174,14 @@ def load_rules(data_dir: Path) -> Rules:
             stages = _dragon_stages(value, path)
             if stages is not None:
                 values[key] = stages
+        elif key == "levels":
+            levels = _levels(value, path)
+            if levels is not None:
+                values[key] = levels
+        elif key == "fights":
+            fights = _fights(value, path)
+            if fights is not None:
+                values[key] = fights
         elif key in CHECKS:
             ok, cast = CHECKS[key]
             if ok(value):
