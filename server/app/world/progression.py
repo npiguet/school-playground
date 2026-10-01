@@ -7,7 +7,7 @@ from app.rules import Rules
 from app.schemas import AID_KEYS
 from app.world.catalog import BOSS_REWARDS, DECOR_ORDER, LIEUTENANTS, ORACLE_REWARDS, QUEST_BONUS, REWARDS
 from app.world.mastery import dragon_stage, is_neutralised, lieutenants_for_level, mastery_window, boss_tiers
-from app.world.quests import fight_won, session_counts_for
+from app.world.quests import fight_won, quest_miss_reason
 from app.world.xp import rank_for, session_xp
 
 
@@ -74,12 +74,12 @@ def _complete_quest(conn, q, profile_id, now, bonuses, rewards):
 
 def apply_progression(conn, profile, session_id, body, result, day, now, prophecy, rules: Rules) -> dict:
     pid = profile["id"]; level = profile["level"]; week = iso_week(day)
-    mode = getattr(body, "mode", "dictation")
+    mode = body.mode
     total_before = xp_total(conn, pid)
     rank_before = rank_for(total_before)[0]
     bonuses: list[dict] = []; rewards: list[dict] = []
     # 1. session XP (spec 2026-09-29 §4): a page opened before the aids sends none, and leaves none.
-    aids = getattr(body, "aids", None)
+    aids = body.aids
     aids_left = len(AID_KEYS) - len(aids) if aids is not None else 0
     xp = session_xp(result, body.pace_level, mode, prophecy, aids_left, rules)
     add_xp(conn, pid, xp.total, "session", now, session_id=session_id, week=week)
@@ -96,17 +96,22 @@ def apply_progression(conn, profile, session_id, body, result, day, now, prophec
             boss_out = {"tier": goal["tier"], "won": won}
             if won: _complete_quest(conn, q, pid, now, bonuses, rewards)
             conn.execute("UPDATE quest SET progress_json = ? WHERE id = ?", (json.dumps(progress), q["id"]))
-            quest_out.append({"id": q["id"], "kind": "boss", "target": "eris", "counted": won, "progress": 1 if won else 0, "goal": 1,
+            # A lost fight is always the copy's: too many mistakes left (spec 2026-09-29 §2).
+            quest_out.append({"id": q["id"], "kind": "boss", "target": "eris", "counted": won, "reason": None if won else "copy",
+                              "progress": 1 if won else 0, "goal": 1,
                               "completed": won, "reward_id": json.loads(q["reward_json"]).get("reward_id")})
             continue
         cats = LIEUTENANTS[q["target"]]["categories"]
-        ok = session_counts_for(by_cat, cats, rules)
+        # Why it does not count, if it does not (the victory says it in the camp's voice).
+        reason = quest_miss_reason(by_cat, cats, rules)
+        ok = reason is None
         if ok: progress["sessions"] += 1
         progress["log"].append({"session_id": session_id, "ok": ok})
         completed = progress["sessions"] >= goal["sessions"]
         conn.execute("UPDATE quest SET progress_json = ? WHERE id = ?", (json.dumps(progress), q["id"]))
         if completed: _complete_quest(conn, q, pid, now, bonuses, rewards)
-        quest_out.append({"id": q["id"], "kind": q["kind"], "target": q["target"], "counted": ok, "progress": progress["sessions"],
+        quest_out.append({"id": q["id"], "kind": q["kind"], "target": q["target"], "counted": ok, "reason": reason,
+                          "progress": progress["sessions"],
                           "goal": goal["sessions"], "completed": completed, "reward_id": json.loads(q["reward_json"]).get("reward_id")})
     # 3. mastery (permanent)
     available = lieutenants_for_level(level)

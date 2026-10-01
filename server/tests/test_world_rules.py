@@ -3,7 +3,7 @@ from app.world.mastery import (Window, boss_tiers, dragon_stage, is_neutralised,
                                next_stage_at, tier_available)
 from app.rules import Rules
 from app.world.xp import rank_for, session_xp
-from app.world.quests import density, fight_won, recommend_texts, session_counts_for
+from app.world.quests import density, fight_won, quest_miss_reason, recommend_texts, session_counts_for
 
 R = Rules()
 ODD = Rules(aid_bonus=0.33, pace_bonus={"1": 0.1, "2": 0.37, "3": 0.71}, prophecy_bonus=0.29)
@@ -122,6 +122,12 @@ def test_a_quest_session_counts_on_the_final_text():
     assert session_counts_for({}, ["homophone"], R) is False
     assert session_counts_for(bc(3), ["homophone"], Rules(quest_min_chances=4)) is False
     assert session_counts_for(bc(20, missed=3), ["homophone"], Rules(quest_min_correct=0.9)) is False
+    # Why not: too few chances, or too many mistakes left in the copy.
+    assert quest_miss_reason(bc(3), ["homophone"], R) is None
+    assert quest_miss_reason(bc(2), ["homophone"], R) == "chances"
+    assert quest_miss_reason({}, ["homophone"], R) == "chances"
+    assert quest_miss_reason({}, ["homophone"], Rules(quest_min_chances=0)) == "chances"   # no chance at all
+    assert quest_miss_reason(bc(20, missed=2, introduced=2), ["homophone"], R) == "copy"
 
 
 def test_a_fight_is_won_on_the_whole_text():

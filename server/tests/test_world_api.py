@@ -142,6 +142,7 @@ def test_boss_flow(client, settings):
     # Spec 2026-09-29 §2: the fight is judged on the copy. 6 mistakes left in 120 words (5 per 100) lose.
     lost = post(client, pid, long_text, hydre_result(draft=6, caught=0, left=6), quest_id=b["quest"]["id"], encounter="eris")["progression"]
     assert lost["boss"] == {"tier": 1, "won": False}
+    assert {k: lost["quests"][0][k] for k in ("counted", "reason")} == {"counted": False, "reason": "copy"}
     assert client.get(f"/api/profiles/{pid}/quests?status=active").json()[0]["kind"] == "boss"     # nothing lost
     # A quest stored before the change (an old "too easy" draw flagged it for the Grimoire) is judged
     # by the new rule, and its legacy keys never reach the client.

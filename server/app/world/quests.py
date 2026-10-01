@@ -5,12 +5,21 @@ from app.rules import Rules
 from app.world.measures import lieutenant_measure, mistakes_per_100
 
 
+def quest_miss_reason(by_category: dict, categories: list[str], rules: Rules) -> str | None:
+    """Why a quest session does not count, None when it does (spec 2026-09-29 §2): `"chances"` when
+    the text gave the target lieutenant too few chances, `"copy"` when too many of its mistakes are
+    left in the handed-in copy. The victory says which, in the camp's voice."""
+    m = lieutenant_measure(by_category, categories)
+    if m["chances"] < rules.quest_min_chances or m["correct"] is None:
+        return "chances"
+    return None if m["correct"] >= rules.quest_min_correct else "copy"
+
+
 def session_counts_for(by_category: dict, categories: list[str], rules: Rules) -> bool:
     """Spec 2026-09-29 §2: a quest session (board or Oracle) counts when the text gave the target
     lieutenant enough chances and its correct share of the handed-in copy is high enough. Active
     quests created before the change are judged by this rule too (their stored min_rate is ignored)."""
-    m = lieutenant_measure(by_category, categories)
-    return m["chances"] >= rules.quest_min_chances and m["correct"] is not None and m["correct"] >= rules.quest_min_correct
+    return quest_miss_reason(by_category, categories, rules) is None
 
 
 def fight_won(result: dict, rules: Rules) -> bool:

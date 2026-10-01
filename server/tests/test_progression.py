@@ -4,10 +4,12 @@ from app.db import DB_FILENAME
 from tests.test_sessions import make_profile, make_text, make_result   # SP1 helpers (reused/added for SP3)
 
 
-def hydre_result(draft=4, caught=4, words=120, left=0):
+def hydre_result(draft=4, caught=4, words=120, left=None):
     r = make_result()                       # SP1 helper returns a valid SessionResult dict
     r["totalWords"] = words; r["draftErrors"] = [{}] * draft; r["caught"] = [{}] * caught
-    r["finalErrors"] = [{}] * left
+    # The mistakes left in the handed-in copy: by default the draft's uncaught ones (as e2e makeResult),
+    # so finalErrors and byCategory describe the same copy.
+    r["finalErrors"] = [{}] * (draft - caught if left is None else left)
     r["catchRate"] = caught / draft if draft else None
     r["byCategory"] = {"agreement:verb": {"opportunities": 10, "draft": draft, "caught": caught, "missed": draft - caught, "introduced": 0}}
     return r
@@ -165,7 +167,25 @@ def test_quests_created_before_the_new_rule_are_judged_by_it(client, settings):
     # Caught 1 of 2 (the old rule's rate 0.5 < 0.9), but 9 of 10 chances right in the copy (0.9 >= 0.85).
     p = post(client, pid, tid, hydre_result(draft=2, caught=1))["progression"]
     assert next(x for x in p["quests"] if x["target"] == "hydre")["counted"] is True
+    # The one mistake left is in the copy too: 120 words, m = 100/120, effort 22, accuracy 24 × (1 − m/10)
+    # = 22, rereading 2.
+    assert p["xp"]["session"] == 46
     assert client.get(f"/api/profiles/{pid}/quests?status=active").json()[0]["goal"] == {"sessions": 3}
+
+
+def test_a_quest_session_that_does_not_count_says_why(client):
+    pid = make_profile(client, level="10H"); tid = make_text(client)
+    client.post(f"/api/profiles/{pid}/quests", json={"target": "hydre"})
+
+    def hydre_quest(result):
+        return next(x for x in post(client, pid, tid, result)["progression"]["quests"] if x["target"] == "hydre")
+
+    few = hydre_result(draft=0, caught=0)
+    few["byCategory"]["agreement:verb"]["opportunities"] = 2          # under quest_min_chances (3)
+    assert {k: hydre_quest(few)[k] for k in ("counted", "reason")} == {"counted": False, "reason": "chances"}
+    # 3 of 10 chances left in the copy: 70 % right, under quest_min_correct (85 %).
+    assert {k: hydre_quest(hydre_result(draft=4, caught=1))[k] for k in ("counted", "reason")} == {"counted": False, "reason": "copy"}
+    assert {k: hydre_quest(hydre_result())[k] for k in ("counted", "reason")} == {"counted": True, "reason": None}
 
 
 def test_the_session_keeps_its_xp_as_its_score(client):
