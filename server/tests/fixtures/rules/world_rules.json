@@ -22,6 +22,8 @@
       {"days": 8, "chances": 70, "correct": 0.94},
       {"days": 10, "chances": 100, "correct": 0.97}
     ],
-    "fights": [{"level": 1, "count": 3}, {"level": 2, "count": "all"}, {"level": 5, "count": 1}]
+    "fights": [{"level": 1, "count": 3}, {"level": 2, "count": "all"}, {"level": 5, "count": 1}],
+    "drachmes": {"xp_per_drachme": 10, "board": 5, "oracle": 15, "weekly": 5, "level": 10, "boss": 30},
+    "prices": {"accessory": {"cou": 40, "queue": 60, "dos": 90, "tete": 130}, "decor": 50, "villa": 300, "palais": 800}
   }
 }

@@ -4,7 +4,8 @@ and a malformed file or a value of the wrong type is logged and ignored, so a ty
 game. GET /api/world serves them to the client (the copy line, the bonuses, the owl's hints, the
 seals' thresholds `levels` for the shelf's words, Éris's ladder `fights`); the dragon's stage
 thresholds (`dragon_stages`) are also served as the world's stage table. The server alone decides
-the seals and opens the fights."""
+the seals and opens the fights; what pays drachmes (`drachmes`) and what things cost (`prices`) are
+served in `/api/world`'s `shop`."""
 from __future__ import annotations
 import json
 import logging
@@ -12,10 +13,12 @@ import math
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Callable
-from app.world.catalog import LIEUTENANT_ORDER
+from app.world.catalog import LIEUTENANT_ORDER, SLOTS
 from app.world.dragon import DEFAULT_STAGE_XP, STAGE_ORDER
+from app.world.drachmes import DEFAULT_DRACHMES
 from app.world.fights import DEFAULT_FIGHTS, MAX_FIGHTS
 from app.world.seals import DEFAULT_LEVELS, MAX_LEVEL
+from app.world.shop import default_prices
 
 RULES_FILENAME = "regles.json"
 PACES = ("1", "2", "3")
@@ -41,6 +44,8 @@ class Rules:
     dragon_stages: dict[str, int] = field(default_factory=lambda: dict(DEFAULT_STAGE_XP))
     levels: list[dict[str, Any]] = field(default_factory=lambda: [dict(r) for r in DEFAULT_LEVELS])
     fights: list[dict[str, Any]] = field(default_factory=lambda: [dict(f) for f in DEFAULT_FIGHTS])
+    drachmes: dict[str, int] = field(default_factory=lambda: dict(DEFAULT_DRACHMES))
+    prices: dict[str, Any] = field(default_factory=default_prices)
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -153,6 +158,44 @@ def _fights(raw: Any, path: Path) -> list[dict[str, Any]] | None:
     return [{"level": f["level"], "count": f["count"]} for f in raw]
 
 
+def _drachmes(raw: Any, path: Path) -> dict[str, int] | None:
+    """Spec 2026-09-29 drachmes §1 (R2): what each source pays; a wrong value keeps its default."""
+    if not isinstance(raw, dict):
+        log.warning('%s: drachmes must be an object like {"board": 5}; the built-in amounts apply', path)
+        return None
+    out = dict(DEFAULT_DRACHMES)
+    for key, v in raw.items():
+        least = 1 if key == "xp_per_drachme" else 0
+        if key not in DEFAULT_DRACHMES or not (_count(v) and v >= least):
+            log.warning("%s: drachmes[%r] = %r is ignored (keys %s; whole numbers, xp_per_drachme from 1); its default applies",
+                        path, key, v, ", ".join(DEFAULT_DRACHMES))
+            continue
+        out[key] = v
+    return out
+
+
+def _prices(raw: Any, path: Path) -> dict[str, Any] | None:
+    """Spec §2 (R2): the stall's prices; a wrong value keeps its default."""
+    if not isinstance(raw, dict):
+        log.warning('%s: prices must be an object like {"decor": 50}; the built-in prices apply', path)
+        return None
+    out = default_prices()
+    for key, v in raw.items():
+        if key == "accessory" and isinstance(v, dict):
+            for slot, p in v.items():
+                if slot in SLOTS and _count(p):
+                    out["accessory"][slot] = p
+                else:
+                    log.warning("%s: prices['accessory'][%r] = %r is ignored (slots %s, whole numbers); its default applies",
+                                path, slot, p, ", ".join(SLOTS))
+        elif key in ("decor", "villa", "palais") and _count(v):
+            out[key] = v
+        else:
+            log.warning("%s: prices[%r] = %r is ignored (accessory: an object of the four slots; decor, villa, palais: whole "
+                        "numbers); its default applies", path, key, v)
+    return out
+
+
 def load_rules(data_dir: Path) -> Rules:
     path = data_dir / RULES_FILENAME
     if not path.is_file():
@@ -183,6 +226,14 @@ def load_rules(data_dir: Path) -> Rules:
             fights = _fights(value, path)
             if fights is not None:
                 values[key] = fights
+        elif key == "drachmes":
+            drachmes = _drachmes(value, path)
+            if drachmes is not None:
+                values[key] = drachmes
+        elif key == "prices":
+            prices = _prices(value, path)
+            if prices is not None:
+                values[key] = prices
         elif key in CHECKS:
             ok, cast = CHECKS[key]
             if ok(value):

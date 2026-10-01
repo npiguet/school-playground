@@ -1,4 +1,4 @@
-"""World catalog: lieutenants, rewards, the seals' materials and trophies (plan Decisions 1, 6, 12, 20; spec 2026-09-29 lieutenant levels; the dragon's stages, which replaced the XP ranks, live in app.world.dragon). French labels are UI text served by GET /api/world."""
+"""World catalog: lieutenants, rewards, the seals' materials and trophies, the stall's accessories, decor and houses (spec 2026-09-29 drachmes) (plan Decisions 1, 6, 12, 20; spec 2026-09-29 lieutenant levels; the dragon's stages, which replaced the XP ranks, live in app.world.dragon). French labels are UI text served by GET /api/world."""
 LIEUTENANT_ORDER = ["hydre", "echo", "chimere", "protee", "sirenes", "lethe"]
 # `gender` is the lieutenant's narrative gender ('f'/'m'/'fp' - feminine, masculine, feminine
 # plural), the source of truth for player-facing French agreement (l'Hydre/Écho/la Chimère/les
@@ -34,6 +34,13 @@ REWARDS = {r["id"]: r for r in [
     _r("decor:bibliotheque", "decor", "Étagère d'Alexandrie", "Une étagère pour tes parchemins préférés.", "Six quêtes du mur"),
     _r("decor:trophee", "decor", "Trophée de la Pomme", "Une pomme d'or… en bois peint.", "Huit quêtes du mur"),
     _r("decor:fresque", "decor", "Fresque des Muses", "Les neuf Muses peintes sur ton mur.", "Sixième quête de l'Oracle"),
+    # Spec 2026-09-29 drachmes §2: Hermès's four pieces of decor and the two houses, sold at his stall.
+    _r("decor:amphore", "decor", "Amphore peinte", "Un héros y court en figures noires, sans jamais s'arrêter.", "L'étal d'Hermès"),
+    _r("decor:chouette", "decor", "Chouette de marbre", "La chouette d'Athéna veille sur tes parchemins, même la nuit.", "L'étal d'Hermès"),
+    _r("decor:mosaique", "decor", "Mosaïque des Muses", "Trois Muses en petites tuiles : la lyre, le rouleau et le masque.", "L'étal d'Hermès"),
+    _r("decor:bouclier", "decor", "Bouclier d'apparat", "Un bouclier de bronze poli, orné de Pégase. Il brille plus qu'il ne protège.", "L'étal d'Hermès"),
+    _r("house:villa", "house", "La villa", "Des murs peints d'une frise, deux fenêtres, et de la place pour six décors.", "L'étal d'Hermès"),
+    _r("house:palais", "house", "Le palais", "Des colonnes, un sol de mosaïque, une cour sous les arcades, et de la place pour neuf décors.", "L'étal d'Hermès"),
 ]}
 # Spec 2026-09-29 lieutenant levels §1: five seals per lieutenant, each a material, each paying the
 # lieutenant's keepsake in that material (the art track's trophies: the old relic as a statuette).
@@ -55,6 +62,48 @@ def trophy_id(key: str, level: int) -> str:
 REWARDS.update({trophy_id(k, level): _r(trophy_id(k, level), "trophy", f"{TROPHY_OF[k]} en {MATERIALS[level - 1]}",
                                         _TROPHY_DESC[level - 1], f"{SEAL_TITLES[level - 1]} {OF_LIEUTENANT[k]}")
                 for k in LIEUTENANT_ORDER for level in range(1, len(MATERIALS) + 1)})
+# Spec 2026-09-29 drachmes §2, §4 (art spec Phase 4): the dragon's accessories, one set of four per
+# lieutenant, each piece on sale from its lieutenant's seal (cou bronze, queue argent, dos or, tête
+# orichalque). Each entry: the name, and the name with its article (the stall's confirmation).
+STALL = "L'étal d'Hermès"
+SLOTS = ("cou", "queue", "dos", "tete")
+SLOT_LEVEL = {"cou": 2, "queue": 3, "dos": 4, "tete": 5}
+ACCESSORY_SETS: dict[str, dict[str, tuple[str, str]]] = {
+    "hydre": {"cou": ("Collier d'écailles vertes", "le collier d'écailles vertes"),
+              "queue": ("Anneau de serpents de bronze", "l'anneau de serpents de bronze"),
+              "dos": ("Selle de cuir des marais", "la selle de cuir des marais"),
+              "tete": ("Casque de bronze à crête de serpents", "le casque de bronze à crête de serpents")},
+    "echo": {"cou": ("Pendentif-conque", "le pendentif-conque"),
+             "queue": ("Clochettes de bronze", "les clochettes de bronze"),
+             "dos": ("Cape couleur de roche", "la cape couleur de roche"),
+             "tete": ("Diadème de coquillages", "le diadème de coquillages")},
+    "chimere": {"cou": ("Torque en cornes de chèvre", "le torque en cornes de chèvre"),
+                "queue": ("Garde-queue à tête de serpent", "le garde-queue à tête de serpent"),
+                "dos": ("Cape rouge braise", "la cape rouge braise"),
+                "tete": ("Casque à crinière de lion", "le casque à crinière de lion")},
+    "protee": {"cou": ("Collier de perles", "le collier de perles"),
+               "queue": ("Anneau de corail", "l'anneau de corail"),
+               "dos": ("Harnais d'écailles marines", "le harnais d'écailles marines"),
+               "tete": ("Couronne de corail", "la couronne de corail")},
+    "sirenes": {"cou": ("Pendentif en forme de lyre", "le pendentif en forme de lyre"),
+                "queue": ("Rubans de plumes", "les rubans de plumes"),
+                "dos": ("Harnais de plumes", "le harnais de plumes"),
+                "tete": ("Aigrette de plumes bleues", "l'aigrette de plumes bleues")},
+    "lethe": {"cou": ("Collier de pavots rouges", "le collier de pavots rouges"),
+              "queue": ("Petite lanterne d'argent", "la petite lanterne d'argent"),
+              "dos": ("Cape bleu nuit étoilée", "la cape bleu nuit étoilée"),
+              "tete": ("Couronne de pavots", "la couronne de pavots")},
+}
+_WORN_ON = {"cou": "à porter au cou", "queue": "à porter à la queue", "dos": "à porter sur le dos", "tete": "à porter sur la tête"}
+
+
+def accessory_id(key: str, slot: str) -> str:
+    return f"accessory:{key}-{slot}"
+
+
+REWARDS.update({accessory_id(k, s): _r(accessory_id(k, s), "accessory", ACCESSORY_SETS[k][s][0],
+                                       f"Une parure {OF_LIEUTENANT[k]}, {_WORN_ON[s]}.", STALL)
+                for k in LIEUTENANT_ORDER for s in SLOTS})
 ORACLE_REWARDS = ["tint:ecume", "tint:olivier", "tint:braise", "tint:jade", "tint:argent", "decor:fresque"]
 DECOR_ORDER = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee"]
 BOSS_REWARDS = {1: "sandales_hermes", 2: "egide", 3: "foudre_zeus"}

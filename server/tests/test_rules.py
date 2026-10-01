@@ -6,20 +6,24 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
-from app.rules import RULES_FILENAME, load_rules
+from app.rules import RULES_FILENAME, Rules, load_rules
 from app.world.dragon import DEFAULT_STAGE_XP
+from app.world.drachmes import DEFAULT_DRACHMES
 from app.world.fights import DEFAULT_FIGHTS
 from app.world.seals import DEFAULT_LEVELS
+from app.world.shop import DEFAULT_PRICES
 
 LEVEL_DEFAULTS = [{"days": 3, "chances": 12, "correct": 0.85}, {"days": 4, "chances": 25, "correct": 0.88},
                   {"days": 6, "chances": 45, "correct": 0.91}, {"days": 8, "chances": 70, "correct": 0.94},
                   {"days": 10, "chances": 100, "correct": 0.97}]
 FIGHT_DEFAULTS = [{"level": level, "count": count} for level in range(1, 6) for count in (2, "all")]
 STAGE_DEFAULTS = {"egg": 0, "hatchling": 100, "young": 1200, "adult": 5000, "illustre": 15000, "ancestral": 40000}
+DRACHME_DEFAULTS = {"xp_per_drachme": 10, "board": 5, "oracle": 15, "weekly": 5, "level": 10, "boss": 30}
+PRICE_DEFAULTS = {"accessory": {"cou": 40, "queue": 60, "dos": 90, "tete": 130}, "decor": 50, "villa": 300, "palais": 800}
 DEFAULTS = {"quest_min_chances": 3, "quest_min_correct": 0.85, "fight_max_per_100": 4.0, "copy_belle_max_per_100": 2.0,
             "copy_correcte_max_per_100": 8.0, "aid_bonus": 0.2, "pace_bonus": {"1": 0.0, "2": 0.25, "3": 0.5},
             "prophecy_bonus": 0.5, "chouette_hints": 3, "dragon_stages": STAGE_DEFAULTS,
-            "levels": LEVEL_DEFAULTS, "fights": FIGHT_DEFAULTS}
+            "levels": LEVEL_DEFAULTS, "fights": FIGHT_DEFAULTS, "drachmes": DRACHME_DEFAULTS, "prices": PRICE_DEFAULTS}
 
 
 def write(tmp_path: Path, text: str) -> Path:
@@ -208,3 +212,34 @@ def test_a_wrong_fight_ladder_is_refused_whole(tmp_path, caplog, ladder):
         rules = load_rules(write(tmp_path, '{"fights": %s, "chouette_hints": 2}' % ladder))
     assert rules.fights == FIGHT_DEFAULTS and rules.chouette_hints == 2
     assert "fights must be a list" in caplog.text
+
+
+# Spec 2026-09-29 drachmes §1, §2: what pays drachmes and what things cost live in the rules file.
+def test_the_built_in_drachmes_and_prices_mirror_the_spec():
+    assert DEFAULT_DRACHMES == DRACHME_DEFAULTS and DEFAULT_PRICES == PRICE_DEFAULTS
+
+
+def test_drachmes_and_prices_from_the_file_keep_the_other_defaults(tmp_path):
+    rules = load_rules(write(tmp_path, '{"drachmes": {"boss": 40, "xp_per_drachme": 8}, '
+                                       '"prices": {"accessory": {"tete": 150}, "villa": 250}}'))
+    assert rules.drachmes == {**DRACHME_DEFAULTS, "boss": 40, "xp_per_drachme": 8}
+    assert rules.prices == {**PRICE_DEFAULTS, "accessory": {**PRICE_DEFAULTS["accessory"], "tete": 150}, "villa": 250}
+    assert rules.as_dict() == {**DEFAULTS, "drachmes": rules.drachmes, "prices": rules.prices}
+    assert Rules().prices["accessory"]["tete"] == 130          # the built-in table is never shared and changed
+
+
+def test_a_wrong_drachme_or_price_value_is_logged_and_its_default_kept(tmp_path, caplog):
+    text = json.dumps({"drachmes": {"xp_per_drachme": 0, "board": -1, "oracle": True, "weekly": 2.5, "gift": 3, "level": 12},
+                       "prices": {"accessory": {"cou": "40", "aile": 10, "dos": 95}, "decor": -5, "villa": 1e3, "palais": 900,
+                                  "tapis": 10}})
+    with caplog.at_level(logging.WARNING):
+        rules = load_rules(write(tmp_path, text))
+    assert rules.drachmes == {**DRACHME_DEFAULTS, "level": 12}
+    assert rules.prices == {**PRICE_DEFAULTS, "accessory": {**PRICE_DEFAULTS["accessory"], "dos": 95}, "palais": 900}
+    for bit in ("'xp_per_drachme'", "'board'", "'oracle'", "'weekly'", "'gift'", "'cou'", "'aile'", "'decor'", "'villa'", "'tapis'"):
+        assert bit in caplog.text, bit
+
+
+def test_drachmes_or_prices_that_are_not_objects_keep_the_built_in_ones(tmp_path):
+    assert load_rules(write(tmp_path, '{"drachmes": [5], "prices": 40, "chouette_hints": 2}')).as_dict() == {**DEFAULTS, "chouette_hints": 2}
+    assert load_rules(write(tmp_path, '{"prices": {"accessory": 40}}')).prices == PRICE_DEFAULTS
