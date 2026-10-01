@@ -717,3 +717,53 @@ and the manifest fragment `sirenes.json` in `assets/art/export/dragon/accessorie
   band are extracted as two parts and merged; the white ground is peeled off the plume's outer edge only
   (`tools/art/overlay_whitefringe.py --px 1 --sat 45`), never over the whole box, so the white tips stay.
 - Reasons for each pick, rejected seeds and clean-up recipes are in each sidecar's `note`.
+
+## Accessories: lethe
+
+Léthé's set (the river of forgetting: sleep, poppies, night), made with the art-overlays skill:
+inpainting on `dragon_<stage>.png`, `discorde-inked-clean`, V-scale 1, then `overlay.py extract --cpu`
+with hand points, `--keep-white` on every piece (silver leaves, stars and metal). One colour family for
+the four pieces: deep night-blue velvet and enamel, bright scarlet poppies with black centres, polished
+silver, a few night-blue buds; `(violet:-2) (purple:-2)` keeps the blue from drifting to violet. One
+fixed item sentence per slot, only the dragon's stage words change (prompts in each sidecar). Files:
+`assets/art/dragon/accessories/lethe-<slot>_<stage>.png` (+ `.json`, `_raw.png`, `_mask.png`), WebPs and
+the manifest fragment `lethe.json` in `assets/art/export/dragon/accessories/`. Contact sheet
+`docs/art/accessories-lethe.png` (`python tools/art/accessories_sheet.py lethe docs/art/accessories-lethe.png`).
+
+| Item (slot, denoise) | young | adult | illustre | ancestral |
+|---|---|---|---|---|
+| collier de pavots rouges (cou, 0.75) | 2602 | 2700 | 2800 | 2903 |
+| petite lanterne d'argent (queue, 0.75, room below) | 2621 | 2724 | 2837 | 2935 |
+| cape bleu nuit étoilée (dos, 0.8) | 2640 | 2747 (slot grown 24 px) | 2843 (grown) | 2943 (grown) |
+| couronne de pavots (tête, 0.85) | 2662 | 2761 | 2860 | 2960 |
+
+- **Cou**: a wide band of night-blue velvet covered with scarlet poppies, small silver leaves between
+  them and a silver crescent-moon clasp at the throat. On the ancestral it passes behind the beard. The
+  usual failure is a thin strip under the jaw or along the slot's top edge (adult 2701, illustre
+  2801-2802, ancestral 2901, 2904-2905); also rejected young 2600-2601 (the collar painted only at the
+  neck's two edges), adult 2702, ancestral 2900 (a flat panel) and 2902.
+- **Queue**: a silver band with a night-blue enamel stripe around the tail and, on a short chain, a
+  round silver lantern with night-blue star-pierced panes and a small red poppy. Young and adult:
+  the queue slot united with itself shifted 40 px down (`tools/art/extmask.py <stage> queue 40`).
+  Illustre and ancestral: the slot's top edge crosses their tails and every band stopped on it, so
+  the mask is the tail's own silhouette in a box plus 40 px below (`tools/art/tailmask.py`). The band
+  and the lantern are extracted apart and merged. Bronze skin seen through the chain rings is dropped,
+  and the adult's band and lantern are traced by hand (SAM kept taking the tail behind them). On the young
+  the lantern hangs off the tail's outer edge, over the air. Rejected: lantern cut flat by the mask's
+  bottom (young 2620, adult 2720, 2722, 2725, ancestral 2920, 2933), a band short of the tail's far
+  outline (adult 2721, illustre 2820-2835, ancestral 2921-2922), young 2622, adult 2723 (lantern
+  hanging from a hidden band), illustre 2836 and 2838, ancestral 2934.
+- **Dos**: a short cape of night-blue velvet sprinkled with silver stars, a silver border along the
+  hem, fastened at the shoulder by a round silver brooch set with a red poppy. On adult, illustre and
+  ancestral the plain slot's edge runs through the shoulder where the brooch goes and cut it (adult
+  2741-2742, illustre 2840, 2842), so they use the slot grown 24 px inside the silhouette. The illustre
+  and ancestral brooches were still cut 2-4 px by its edge and were completed with
+  `tools/art/overlay_rim.py`. Also rejected: no brooch (adult 2743-2744, 2746, illustre 2841), a cape split in two
+  (young 2641, adult 2740, ancestral 2944), adult 2745, 2748 (repainted scales over the cape), illustre
+  2844-2845, ancestral 2945.
+- **Tête**: a slim silver circlet across the brow set with upright scarlet poppies, silver leaves and
+  night-blue buds, behind the far horn (the horns stay out of the head slot). The usual failure is a
+  poppy painted alone in the air beside the near horn (illustre 2861-2862, ancestral 2961-2962), which
+  floats once laid on the stage. On 2960 the cluster right of the near horn was erased, leaving one large
+  and one small poppy between the horns. Passed over: young 2660-2661, adult 2760 and 2762.
+- Reasons for each pick, clean-up polygons and hand tracings are in each sidecar's `note`.

@@ -1,0 +1,122 @@
+{
+  "lethe-cou": {
+    "young": {
+      "src": "lethe-cou_young.webp",
+      "x": 0.48438,
+      "y": 0.31445,
+      "w": 0.18652,
+      "h": 0.08398
+    },
+    "adult": {
+      "src": "lethe-cou_adult.webp",
+      "x": 0.49219,
+      "y": 0.23242,
+      "w": 0.14551,
+      "h": 0.07324
+    },
+    "illustre": {
+      "src": "lethe-cou_illustre.webp",
+      "x": 0.54297,
+      "y": 0.30762,
+      "w": 0.17871,
+      "h": 0.06445
+    },
+    "ancestral": {
+      "src": "lethe-cou_ancestral.webp",
+      "x": 0.54688,
+      "y": 0.27246,
+      "w": 0.14355,
+      "h": 0.05469
+    }
+  },
+  "lethe-queue": {
+    "young": {
+      "src": "lethe-queue_young.webp",
+      "x": 0.12109,
+      "y": 0.73242,
+      "w": 0.11328,
+      "h": 0.10547
+    },
+    "adult": {
+      "src": "lethe-queue_adult.webp",
+      "x": 0.13281,
+      "y": 0.71875,
+      "w": 0.10254,
+      "h": 0.12793
+    },
+    "illustre": {
+      "src": "lethe-queue_illustre.webp",
+      "x": 0.12695,
+      "y": 0.75977,
+      "w": 0.09473,
+      "h": 0.1377
+    },
+    "ancestral": {
+      "src": "lethe-queue_ancestral.webp",
+      "x": 0.11719,
+      "y": 0.79395,
+      "w": 0.11719,
+      "h": 0.10547
+    }
+  },
+  "lethe-dos": {
+    "young": {
+      "src": "lethe-dos_young.webp",
+      "x": 0.30176,
+      "y": 0.43262,
+      "w": 0.25293,
+      "h": 0.20996
+    },
+    "adult": {
+      "src": "lethe-dos_adult.webp",
+      "x": 0.28418,
+      "y": 0.43555,
+      "w": 0.29395,
+      "h": 0.2168
+    },
+    "illustre": {
+      "src": "lethe-dos_illustre.webp",
+      "x": 0.29395,
+      "y": 0.44824,
+      "w": 0.32324,
+      "h": 0.25977
+    },
+    "ancestral": {
+      "src": "lethe-dos_ancestral.webp",
+      "x": 0.27148,
+      "y": 0.44531,
+      "w": 0.34082,
+      "h": 0.25684
+    }
+  },
+  "lethe-tete": {
+    "young": {
+      "src": "lethe-tete_young.webp",
+      "x": 0.44922,
+      "y": 0.07227,
+      "w": 0.27441,
+      "h": 0.10645
+    },
+    "adult": {
+      "src": "lethe-tete_adult.webp",
+      "x": 0.50684,
+      "y": 0.05566,
+      "w": 0.20703,
+      "h": 0.10059
+    },
+    "illustre": {
+      "src": "lethe-tete_illustre.webp",
+      "x": 0.57617,
+      "y": 0.09277,
+      "w": 0.20605,
+      "h": 0.08008
+    },
+    "ancestral": {
+      "src": "lethe-tete_ancestral.webp",
+      "x": 0.62305,
+      "y": 0.10254,
+      "w": 0.13867,
+      "h": 0.07324
+    }
+  }
+}
