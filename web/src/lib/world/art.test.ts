@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { DRAGON_STAGES, type WorldCatalog } from './types';
+import { DRAGON_STAGES, LIEUTENANT_ORDER, type WorldCatalog } from './types';
 import {
   ADD_ICONS,
   ART,
@@ -16,6 +16,7 @@ import {
   lieutenantIcon,
   rewardIcon,
   rewardKindOf,
+  trophyIcon,
 } from './art';
 
 function flat(o: unknown): string[] {
@@ -32,8 +33,27 @@ describe('art map', () => {
     for (const p of nonScene()) expect(statSync('public' + p).size, p).toBeLessThan(150 * 1024);
   });
 
-  it('total non-scene art payload stays under 2.5 MB', () => {
-    expect(nonScene().reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThan(2.5 * 1024 * 1024);
+  it('total non-scene art payload stays under 3.5 MiB (raised for the 60 trophies, art spec Phase 3)', () => {
+    // Measured when the trophies came in (sub-project 2 Task 3): 3420882 bytes. Sub-project 4 raises it again for the accessories.
+    expect(nonScene().reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThan(3.5 * 1024 * 1024);
+  });
+
+  it('maps the 30 trophies twice, as icons and for the close view (spec 2026-09-29 lieutenant levels §1)', () => {
+    expect(Object.keys(ART.trophies.icons)).toEqual([...LIEUTENANT_ORDER]);
+    for (const k of LIEUTENANT_ORDER) {
+      expect(ART.trophies.icons[k]).toEqual([1, 2, 3, 4, 5].map((l) => `/art/trophies/trophy-${k}-${l}.webp`));
+      expect(ART.trophies.large[k]).toEqual([1, 2, 3, 4, 5].map((l) => `/art/trophies/large/trophy-${k}-${l}.webp`));
+    }
+    const onDisk = (dir: string) => readdirSync(`public/art/${dir}`).filter((f) => f.endsWith('.webp')).map((f) => `/art/${dir}/${f}`).sort();
+    expect(onDisk('trophies')).toEqual(flat(ART.trophies.icons).sort());
+    expect(onDisk('trophies/large')).toEqual(flat(ART.trophies.large).sort());
+    for (const p of flat(ART.trophies.icons)) expect(statSync('public' + p).size, p).toBeLessThanOrEqual(20 * 1024);
+    expect(trophyIcon('hydre', 2)).toBe('/art/trophies/trophy-hydre-2.webp');
+    expect(trophyIcon('lethe', 5, true)).toBe('/art/trophies/large/trophy-lethe-5.webp');
+    expect([trophyIcon('medusa', 1), trophyIcon('hydre', 0), trophyIcon('hydre', 6)]).toEqual([null, null, null]);
+    expect(rewardIcon('trophy:echo:3')).toBe('/art/trophies/trophy-echo-3.webp');
+    expect(rewardIcon('trophy:echo:9')).toBeNull();
+    expect(rewardKindOf('trophy:echo:3')).toBe('trophy');
   });
 
   it('paints the dragon at each of its six stages (spec 2026-09-29 dragon growth §3)', () => {
@@ -154,5 +174,6 @@ describe('reward kinds before the catalog has loaded (final review M6)', () => {
     const rewards = [...source.matchAll(/_r\("([^"]+)", "([a-z]+)"/g)].map((m) => [m[1], m[2]]);
     expect(rewards.length).toBeGreaterThan(15);
     for (const [id, kind] of rewards) expect(rewardKindOf(id), id).toBe(kind);
+    for (const k of LIEUTENANT_ORDER) for (const l of [1, 2, 3, 4, 5]) expect(rewardKindOf(`trophy:${k}:${l}`)).toBe('trophy');
   });
 });

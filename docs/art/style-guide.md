@@ -449,7 +449,8 @@ contact sheet `docs/art/slot-masks.png`, all 16 checked by eye.
 Trophies, house interiors, Hermès's stall, Hermès and the shop icons (art spec Phase 3). Recipes and
 what was rejected: `krea2` skill "Phase 3 recipes (progression redesign)", `art-cutout` skill
 "Phase 3 exports". The web copies are staged under `assets/art/export/` (not `web/public/art/`);
-the code task that wires each asset moves it. Contact sheets: `docs/art/trophies-sheet.png`,
+the code task that wires each asset moves it. The trophies are wired: `web/public/art/trophies/` (256 px) and
+`web/public/art/trophies/large/` (512 px), sub-project 2. Contact sheets: `docs/art/trophies-sheet.png`,
 `docs/art/phase3-sheet.png`.
 
 **Trophies** `assets/art/trophies/trophy-<lt>-<L>.png` (+ `_cut`, sidecar), 1024², style

@@ -2,7 +2,7 @@
 // Only the cut (alpha) variants are served for characters/dragon/lieutenants/emblems;
 // scenes are full-bleed backgrounds and keep their flat background.
 import type { Avatar } from '../levels';
-import type { LieutenantKey, RewardKind, WorldCatalog } from './types';
+import { LIEUTENANT_ORDER, type LieutenantKey, type RewardKind, type WorldCatalog } from './types';
 
 const icon = (name: string) => `/art/icons/${name}.webp`;
 
@@ -83,6 +83,15 @@ export const RELIC_OF: Record<LieutenantKey, string> = {
   lethe: 'pavot_lethe',
 };
 
+/** The lieutenants' trophies (spec 2026-09-29 lieutenant levels §1, art spec Phase 3): one per seal,
+ *  the old relic as a statuette in the seal's material; the icon (256 px) and the shelf's close view
+ *  (512 px), index = seal - 1. */
+const trophyPath = (key: LieutenantKey, level: number, large: boolean) => `/art/trophies/${large ? 'large/' : ''}trophy-${key}-${level}.webp`;
+const trophiesOf = (large: boolean) =>
+  Object.fromEntries(LIEUTENANT_ORDER.map((k) => [k, [1, 2, 3, 4, 5].map((l) => trophyPath(k, l, large))])) as Record<LieutenantKey, string[]>;
+export const TROPHY_ICONS = trophiesOf(false);
+export const TROPHY_LARGE = trophiesOf(true);
+
 export const ART = {
   eris: '/art/characters/eris_cut.webp',
   erisSmug: '/art/characters/eris_smug_cut.webp',
@@ -105,6 +114,7 @@ export const ART = {
     sirenes: '/art/lieutenants/sirenes_cut.webp',
     lethe: '/art/lieutenants/lethe_cut.webp',
   },
+  trophies: { icons: TROPHY_ICONS, large: TROPHY_LARGE },
   emblems: {
     argus: '/art/emblems/argus_cut.webp',
     ariane: '/art/emblems/ariane_cut.webp',
@@ -195,8 +205,17 @@ export function artFor(kind: 'lieutenant' | 'dragon' | 'scene' | 'emblem', key: 
   return path;
 }
 
+/** A lieutenant's trophy for a seal (1-5), or null for an unknown lieutenant or seal. */
+export function trophyIcon(key: string, level: number, large = false): string | null {
+  const list = (large ? TROPHY_LARGE : TROPHY_ICONS)[key as LieutenantKey];
+  return list && Number.isInteger(level) && level >= 1 && level <= list.length ? list[level - 1] : null;
+}
+
+const TROPHY_ID = /^trophy:([a-z]+):(\d)$/;
+
 export function rewardIcon(id: string): string | null {
-  return REWARD_ICONS[id] ?? null;
+  const m = TROPHY_ID.exec(id);
+  return REWARD_ICONS[id] ?? (m ? trophyIcon(m[1], Number(m[2])) : null);
 }
 
 export function avatarIcon(avatar: string): string {
@@ -213,6 +232,7 @@ export function lieutenantIcon(key: string): string | null {
 export function rewardKindOf(id: string, catalog?: WorldCatalog | null): RewardKind {
   const fromCatalog = catalog?.rewards[id]?.kind;
   if (fromCatalog) return fromCatalog;
+  if (id.startsWith('trophy:')) return 'trophy';
   if (id.startsWith('tint:')) return 'tint';
   if (id.startsWith('decor:')) return 'decor';
   return (Object.values(RELIC_OF) as string[]).includes(id) ? 'relic' : 'gear';
