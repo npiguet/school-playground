@@ -1,0 +1,195 @@
+{
+  "merged_parts": [
+    {
+      "result": "air2_s3611_3.png",
+      "generation": {
+        "prompt": "the head of an ancient wise dragon with large burnished bronze-gold scales like polished armour plates, calm amber eyes under heavy brows and very long sweeping ivory horns with silver tips, wearing a feather plume on top of its head between the horns: a thin band of polished silver across the top of the head just above the eyes with a small silver lyre-shaped clasp at its front, and rising from the clasp a tall spray of long bright azure-blue feathers with white tips that stands up and sweeps backward, the feathers are solid and opaque, a thick dark ink outline around the band and every feather, (violet:-1.5) (purple:-1.5).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+        "denoising_strength": 0.85,
+        "steps": 9,
+        "cfg_scale": 1.0,
+        "sampler_name": "Euler",
+        "scheduler": "Simple",
+        "width": 1024,
+        "height": 1024,
+        "seed": 3613,
+        "override_settings": {
+          "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+        },
+        "alwayson_scripts": {
+          "negpip": {
+            "args": [
+              true,
+              1.0
+            ]
+          }
+        },
+        "mask_blur": 4,
+        "inpainting_fill": 1,
+        "inpaint_full_res": true,
+        "inpaint_full_res_padding": 48,
+        "inpainting_mask_invert": 0,
+        "style": "discorde-inked-clean",
+        "init": "assets\\art\\dragon\\dragon_ancestral.png",
+        "mask_file": "C:\\Users\\nicol\\.claude\\jobs\\9ac9a508\\tmp\\art-sirenes-anc\\m_air2.png"
+      },
+      "extract": {
+        "stage": "dragon_ancestral.png",
+        "slot_mask": "m_air2.png",
+        "pos": [
+          [
+            665,
+            30
+          ],
+          [
+            690,
+            40
+          ],
+          [
+            715,
+            60
+          ],
+          [
+            700,
+            110
+          ],
+          [
+            720,
+            118
+          ]
+        ],
+        "neg": [
+          [
+            760,
+            60
+          ],
+          [
+            700,
+            85
+          ],
+          [
+            665,
+            140
+          ],
+          [
+            760,
+            150
+          ]
+        ],
+        "box": [
+          640,
+          10,
+          770,
+          135
+        ],
+        "hand_points": true,
+        "sam_mask": 2,
+        "diff": 28,
+        "novelty": 45,
+        "grow": 2,
+        "keep_white": true,
+        "max_hole": null,
+        "cuts": null
+      }
+    },
+    {
+      "result": "air2_s3611_3.png",
+      "generation": {
+        "prompt": "the head of an ancient wise dragon with large burnished bronze-gold scales like polished armour plates, calm amber eyes under heavy brows and very long sweeping ivory horns with silver tips, wearing a feather plume on top of its head between the horns: a thin band of polished silver across the top of the head just above the eyes with a small silver lyre-shaped clasp at its front, and rising from the clasp a tall spray of long bright azure-blue feathers with white tips that stands up and sweeps backward, the feathers are solid and opaque, a thick dark ink outline around the band and every feather, (violet:-1.5) (purple:-1.5).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+        "denoising_strength": 0.85,
+        "steps": 9,
+        "cfg_scale": 1.0,
+        "sampler_name": "Euler",
+        "scheduler": "Simple",
+        "width": 1024,
+        "height": 1024,
+        "seed": 3613,
+        "override_settings": {
+          "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+        },
+        "alwayson_scripts": {
+          "negpip": {
+            "args": [
+              true,
+              1.0
+            ]
+          }
+        },
+        "mask_blur": 4,
+        "inpainting_fill": 1,
+        "inpaint_full_res": true,
+        "inpaint_full_res_padding": 48,
+        "inpainting_mask_invert": 0,
+        "style": "discorde-inked-clean",
+        "init": "assets\\art\\dragon\\dragon_ancestral.png",
+        "mask_file": "C:\\Users\\nicol\\.claude\\jobs\\9ac9a508\\tmp\\art-sirenes-anc\\m_air2.png"
+      },
+      "extract": {
+        "stage": "dragon_ancestral.png",
+        "slot_mask": "m_air2.png",
+        "pos": [
+          [
+            690,
+            160
+          ],
+          [
+            705,
+            152
+          ],
+          [
+            720,
+            145
+          ],
+          [
+            740,
+            132
+          ],
+          [
+            748,
+            145
+          ]
+        ],
+        "neg": [
+          [
+            700,
+            135
+          ],
+          [
+            700,
+            173
+          ],
+          [
+            665,
+            150
+          ],
+          [
+            762,
+            150
+          ]
+        ],
+        "box": [
+          670,
+          115,
+          765,
+          175
+        ],
+        "hand_points": true,
+        "sam_mask": 2,
+        "diff": 28,
+        "novelty": 45,
+        "grow": 2,
+        "keep_white": true,
+        "max_hole": null,
+        "cuts": null
+      }
+    }
+  ],
+  "inpaint_mask_recipe": "m_air2.png = assets/art/dragon/slots/ancestral_tete.png united with the open air above the skull (dragon_ancestral_cut.png alpha < 8) inside the box x 650-770, y 15-135 (narrower than the first air mask x 660-819, y 5-130, so there is no room for a redrawn horn right of the skull and the feather tips stay inside the picture)",
+  "note": "seed 3613 (third of the 3611 batch), denoise 0.85, --keep-white; two parts merged (upper feathers above the real horn: box 640,10,770,135; brow band + lyre clasp + lower feathers: box 670,115,765,175), the real horn stays out of the mask so the plume stands behind it; rejected 3411 (feather tops cut flat by the picture top, silver lump right of the skull), 3412 and 3413 (a horn redrawn in the air right of the plume, untinted; 3413 was the runner-up after negatives on it), 3611 (blue-grey horn stub redrawn beside the clasp), 3612 (plume fanned wide over a repainted horn tip, clasp half hidden). 3411-3413 were generated by the young/adult agent with the wider air mask, same prompt",
+  "raw_crop": [
+    588,
+    0,
+    836,
+    233
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}
