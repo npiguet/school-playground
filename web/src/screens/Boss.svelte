@@ -8,7 +8,7 @@
   import BossMuster from '../components/battle/BossMuster.svelte';
   import { rulesOf } from '../lib/rules';
   import { battleFor } from '../lib/battle/battle';
-  import { CHALLENGE_LINES } from '../lib/battle/lines';
+  import { CHALLENGE_AGAIN, CHALLENGE_LINES } from '../lib/battle/lines';
   import { initAudioSettings } from '../lib/audio/store.svelte';
   import { worldApi } from '../lib/world/api';
   import { campFor, campStore, refreshCamp, loadCatalog } from '../lib/world/campStore.svelte';
@@ -68,11 +68,11 @@
       {tier}
       rewardId={bossRewardId}
       rewardXp={campStore.catalog?.quest_bonus.boss ?? 300}
-      rewardName={bossRewardName(tier, campStore.catalog)}
+      rewardName={bossRewardId ? bossRewardName(tier, campStore.catalog) : null}
       fightMax={rulesOf(campStore.catalog).fight_max_per_100}
       {starting}
       {startError}
-      taunt={erisSays(CHALLENGE_LINES[tier] ?? CHALLENGE_LINES[1])}
+      taunt={erisSays(CHALLENGE_LINES[tier] ?? CHALLENGE_AGAIN[(tier - 4) % CHALLENGE_AGAIN.length] ?? CHALLENGE_LINES[1])}
       onStart={start}
     />
   {/snippet}

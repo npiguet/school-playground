@@ -6,7 +6,7 @@ import type { CampResponse } from '../types';
 import type { DragonOut } from '../types';
 import { BARE_WALL, CABIN_HOTSPOTS, CABIN_SCENE, DECOR_SLOTS, MAX_DISPLAYED_DECOR, WALLS_FULL_LINE, cabinGreeting, journalLine, lyreLine, trophiesLine } from './cabin';
 
-const dragon = { name: 'Braise', tint: 'bronze', stage: 'young', neutralised: 2, available: 6, unlocked_tints: ['bronze'] } as DragonOut;
+const dragon = { name: 'Braise', tint: 'bronze', stage: 'young', unlocked_tints: ['bronze'] } as DragonOut;
 
 describe('the cabin (UI3 Ruling B6)', () => {
   it('is a valid scene whose plaque echoes the hub label', () => {

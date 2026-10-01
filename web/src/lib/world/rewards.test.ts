@@ -5,14 +5,15 @@ import type { WorldCatalog } from './types';
 
 const catalog = {
   boss_rewards: { '1': 'sandales_hermes' },
+  quest_bonus: { boss: 300 },
   rewards: { sandales_hermes: { id: 'sandales_hermes', kind: 'gear', name: "Sandales d'Hermès", desc: '', source: '' } },
 } as unknown as WorldCatalog;
 
 describe('reward words', () => {
-  it('names the boss reward known in advance, or says « une récompense »', () => {
+  it('names the boss reward known in advance: the gear of the first three fights, then its XP (spec 2026-09-29 lieutenant levels §4)', () => {
     expect(bossRewardId(1, catalog)).toBe('sandales_hermes');
     expect(bossRewardName(1, catalog)).toBe("Sandales d'Hermès");
-    expect(bossRewardName(2, catalog)).toBe('une récompense');
+    expect(bossRewardName(4, catalog)).toBe('300 XP');
     expect(bossRewardName(null, catalog)).toBe('une récompense');
     expect(bossRewardName(1, null)).toBe('une récompense');
     expect(bossRewardId(null, catalog)).toBeNull();

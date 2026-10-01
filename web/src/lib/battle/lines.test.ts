@@ -33,7 +33,7 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
 
   it('keeps Éris on her own tricks', () => {
     // Her muster and reckoning lines live in content/dialogue (UI5): content.test.ts checks them.
-    for (const s of [...Object.values(L.CHALLENGE_LINES), L.VICTORY.bossWon, L.VICTORY.bossLost, L.VICTORY.erisIntroduced(2)]) {
+    for (const s of [...Object.values(L.CHALLENGE_LINES), ...L.CHALLENGE_AGAIN, L.VICTORY.bossWon, L.VICTORY.bossLost, L.VICTORY.erisIntroduced(2)]) {
       for (const f of FORBIDDEN) expect(s.toLowerCase().includes(f), `${f} in ${s}`).toBe(false);
     }
   });
@@ -41,6 +41,7 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   it('lets Éris agree with herself in the feminine (UI5 playability #3)', () => {
     const eris = [
       ...Object.values(L.CHALLENGE_LINES),
+      ...L.CHALLENGE_AGAIN,
       L.VICTORY.bossWon,
       L.VICTORY.bossLost,
       L.VICTORY.erisIntroduced(2),
@@ -52,7 +53,7 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
   });
 
   it('keeps every static voice line short enough for its plate', () => {
-    for (const s of [...Object.values(L.CHALLENGE_LINES), L.DRAGON_REVIEW_HINT, L.MUSTER.voiceMuted]) {
+    for (const s of [...Object.values(L.CHALLENGE_LINES), ...L.CHALLENGE_AGAIN, L.DRAGON_REVIEW_HINT, L.MUSTER.voiceMuted]) {
       expect(s.length, s).toBeLessThanOrEqual(160);
     }
   });
@@ -203,5 +204,9 @@ describe('the battle speaks the camp, kindly (Rulings C7, C8)', () => {
     expect(L.MUSTER.boss(1)).toBe("Combat contre Éris\u202f: elle s'enfuit si ta copie garde 1 faute au plus pour 100 mots.");
     expect(L.BOSS.rules(4)).toBe("Un long texte. Si ta copie garde 4 fautes au plus pour 100 mots, Éris s'enfuit\u202f; sinon, tu pourras revenir l'affronter.");
     for (const s of [L.MUSTER.boss(4), L.BOSS.rules(4)]) expect(s).not.toMatch(/Argus/);
+    expect(L.BOSS.reward(300, "Sandales d'Hermès")).toBe("Récompense si tu gagnes\u202f: 300 XP · Sandales d'Hermès");
+    expect(L.BOSS.reward(300, null)).toBe('Récompense si tu gagnes\u202f: 300 XP');
+    expect(L.CHALLENGE_AGAIN).toHaveLength(3);
+    for (const line of [...Object.values(L.CHALLENGE_LINES), ...L.CHALLENGE_AGAIN]) expect(line).not.toMatch(/silence|neutralis/);
   });
 });

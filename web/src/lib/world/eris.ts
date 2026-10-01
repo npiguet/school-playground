@@ -189,9 +189,10 @@ export function sleepingLine(key: LieutenantKey, level?: string): string {
   return `${name} dort encore. ${g === 'f' ? 'Elle' : 'Il'} se réveillera ${when}.`;
 }
 
-/** Whether a lieutenant is awake at the hero's class (the server's `lieutenants_for_level`). */
+/** Whether a lieutenant is awake at the hero's class (the server's `lieutenants_for_level`); an unknown
+ *  or empty class reads as awake, so nobody is hidden while the profile loads. */
 export function isAwake(key: LieutenantKey, level: string): boolean {
-  return levelIndex(level) >= levelIndex(WAKES_AT[key]);
+  return levelIndex(level) < 0 || levelIndex(level) >= levelIndex(WAKES_AT[key]);
 }
 
 /** The short caption on a locked sheet or tablet. */

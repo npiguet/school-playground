@@ -74,8 +74,6 @@ def quest_out(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
 def dragon_out(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: Rules) -> dict:
     pid = profile["id"]
     dragon = ensure_dragon(conn, pid, now)
-    available = lieutenants_for_level(profile["level"])
-    n = sum(1 for v in levels_of(conn, pid).values() if v >= 1)  # compat until Task 5 (the camp's old « tricks before Éris »)
     # Spec 2026-09-29 dragon growth §1: the stage follows the total XP and never goes down; a stage
     # caught up here (a threshold lowered in regles.json) is stored.
     stage = grown_stage(dragon["stage"], xp_total(conn, pid), rules.dragon_stages)
@@ -83,8 +81,7 @@ def dragon_out(conn: sqlite3.Connection, profile: sqlite3.Row, now: str, rules: 
         store_stage(conn, pid, stage, now)
     owned = {r[0] for r in conn.execute("SELECT reward_id FROM reward WHERE profile_id = ?", (pid,))}
     unlocked_tints = ["bronze"] + [t for t in TINTS[1:] if f"tint:{t}" in owned]
-    return {"name": dragon["name"], "tint": dragon["tint"], "stage": stage, "neutralised": n, "available": len(available),
-            "unlocked_tints": unlocked_tints}
+    return {"name": dragon["name"], "tint": dragon["tint"], "stage": stage, "unlocked_tints": unlocked_tints}
 
 
 def lieutenant_states(conn: sqlite3.Connection, profile: sqlite3.Row, rules: Rules) -> list[dict]:

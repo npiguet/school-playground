@@ -161,7 +161,6 @@ def test_the_first_fight_opens_at_two_wooden_seals(client, settings):
     seal(settings, pid, "lethe", 3)
     b = camp(client, pid)["boss"]
     assert (b["tier_available"], b["next"]) == (1, None)
-    assert camp(client, pid)["dragon"]["neutralised"] == 2                  # compat until Task 5
 
 
 # Review focus 4.

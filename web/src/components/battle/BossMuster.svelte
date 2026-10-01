@@ -25,7 +25,7 @@
     tier: number;
     rewardId: string | null;
     rewardXp: number;
-    rewardName: string;
+    rewardName: string | null;
     /** The fight's threshold, mistakes left per 100 words (the rules file). */
     fightMax: number;
     starting: boolean;

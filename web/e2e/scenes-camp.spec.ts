@@ -85,13 +85,13 @@ test('every place routes to its screen and Back returns to the hub', async ({ pa
   await expect(boss.locator('img.hotspot-lock')).toHaveAttribute('src', '/art/icons/lock.webp');
 });
 
-test('the locked path to battle: the dragon says how many tricks remain', async ({ page, request }, testInfo) => {
+test('the locked path to battle: the dragon says what opens the first fight', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await openCamp(page, id);
   await page.getByTestId('dialogue-skip').click();
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
   const boss = page.getByTestId('camp-boss');
-  const line = 'Éris se cache encore. Neutralise encore 2 ruses et elle sortira.';
+  const line = "Encore deux sceaux de bois et Éris t'attend.";
   await tap(boss, testInfo);
   await expect(page).toHaveURL(/\/camp$/);
   await expect(page.getByTestId('dialogue-text')).toHaveText(line);
@@ -114,6 +114,29 @@ test('the locked path to battle: the dragon says how many tricks remain', async 
   await expect(page).toHaveURL(/\/camp$/);
   await tap(page.getByTestId('camp-parchemins'), testInfo); // the one-tap guard was never taken
   await expect(page).toHaveURL(/\/tente-parchemins$/);
+});
+
+// Spec 2026-09-29 lieutenant levels §4: the caption counts seals across lieutenants, never naming one;
+// after the third fight Éris pays XP only.
+test('the path to battle says what opens the next fight in words; a fourth fight pays its XP', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const text = await createText(request, { title: uniqueName(`Garde ${testInfo.project.name}`), body: BODY, level: '10H' });
+  for (const day of ['2026-08-03', '2026-08-04', '2026-08-05']) {
+    await postSession(request, { profileId: id, textId: text.id, day, result: makeResult({ draft: 4, caught: 4, category: 'agreement:verb' }) });
+  }
+  await openCamp(page, id);
+  const boss = page.getByTestId('camp-boss');
+  await expect(boss).toContainText("Encore un sceau de bois et Éris t'attend.");
+  await expect(boss).not.toContainText(/Hydre|Écho|Chimère|Protée|Sirènes|Léthé/);
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const json = await res.json();
+    json.boss = { ...json.boss, tier_available: 4, tiers_won: [1, 2, 3], next: null };
+    await route.fulfill({ response: res, json });
+  });
+  await page.reload();
+  await expectCamp(page);
+  await expect(boss).toContainText('Combat IV\u202f: 300 XP');
 });
 
 // Final review M11: "only one navigation" is proved by counting every hash change from before the

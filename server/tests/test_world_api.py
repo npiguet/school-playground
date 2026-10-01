@@ -30,7 +30,8 @@ def test_camp_for_new_profile(client):
     c = client.get(f"/api/profiles/{pid}/camp").json()
     assert c["xp"] == {"total": 0, "floor": 0, "next": 100}
     assert "next_stage_at" not in c["dragon"]
-    assert c["dragon"]["stage"] == "egg" and c["dragon"]["available"] == 5 and c["dragon"]["unlocked_tints"] == ["bronze"]
+    assert c["dragon"]["stage"] == "egg" and c["dragon"]["unlocked_tints"] == ["bronze"]
+    assert "neutralised" not in c["dragon"] and "available" not in c["dragon"]
     protee = next(l for l in c["lieutenants"] if l["key"] == "protee")
     assert protee["available"] is False and len(c["lieutenants"]) == 6
     assert all("stirring" not in l for l in c["lieutenants"])

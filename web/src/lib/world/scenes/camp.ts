@@ -7,9 +7,9 @@ import { stageLine } from '../dragon';
 import { HUB_PLACE, bossEngaged, nextStep, nextStepKey } from '../nextStep';
 import { sayKey } from '../../dialogue/select';
 import { nearestProphecy, prophecyWhen } from '../prophecy';
-import { romanTier, tricksBeforeEris } from '../quests';
+import { romanTier } from '../quests';
 import { bossRewardName } from '../rewards';
-import { plural } from '../../text/french';
+import { fightLine } from '../seals';
 import type { CampResponse, DragonStage, LieutenantKey, WorldCatalog } from '../types';
 import { st, type DialogueLine, type HotspotDef, type HotspotState, type SceneContext, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { dragonSays } from './speakers';
@@ -28,21 +28,16 @@ export function bossLocked(camp: CampResponse): boolean {
   return camp.boss.tier_available === null && camp.boss.active_quest_id === null;
 }
 
-/** What the dragon says when the locked path to battle is tapped (carry #16/M9). */
+/** What the dragon says when the locked path to battle is tapped (carry #16/M9; spec 2026-09-29
+ *  lieutenant levels §4, R9): the same words as the plaque's caption. */
 export function bossLockLine(camp: CampResponse): string {
-  if (camp.boss.tiers_won.length >= 3) return 'Éris est vaincue trois fois. Elle boude, loin du camp.';
-  const n = tricksBeforeEris(camp);
-  if (n <= 0) return 'Éris se cache encore. Continue de défendre tes textes.';
-  return `Éris se cache encore. Neutralise encore ${n === 1 ? 'une ruse' : `${n} ruses`} et elle sortira.`;
+  return camp.boss.next ? fightLine(camp.boss.next) : 'Éris est vaincue à chaque combat. Elle boude, loin du camp.';
 }
 
 /** The locked path's caption (final review M12, ethics: a lock says in advance how to get past it,
- *  without a tap): the tricks still to foil, as the dragon says it when tapped. Ruling B-d: it is
- *  the battle path's news, first of the three captions (campNews). */
+ *  without a tap): what opens the next fight, in words. Ruling B-d: first of the three captions. */
 export function bossLockCaption(camp: CampResponse): string | null {
-  if (camp.boss.tiers_won.length >= 3) return 'Éris boude, loin du camp';
-  const n = tricksBeforeEris(camp);
-  return n > 0 ? `Encore ${plural(n, 'ruse', 'ruses')}` : null;
+  return camp.boss.next ? fightLine(camp.boss.next) : 'Éris boude, loin du camp';
 }
 
 /** The open path's caption: the fight's number as the battle screen writes it (Roman, final review

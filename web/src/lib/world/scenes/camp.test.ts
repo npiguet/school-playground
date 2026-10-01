@@ -19,13 +19,13 @@ function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {
     profile: { id: 7, name: 'Ariane' } as CampResponse['profile'],
     xp: { total: 0, floor: 0, next: 100 },
-    dragon: { name: null, tint: 'bronze', stage: 'egg', neutralised: 0, available: 6, unlocked_tints: ['bronze'] },
+    dragon: { name: null, tint: 'bronze', stage: 'egg', unlocked_tints: ['bronze'] },
     lieutenants: [],
     quests: [],
     oracle: { week: '2026-W39', status: 'sealed', reward_id: null },
     prophecies: [],
     weekly: { week: '2026-W39', target: 3, done: 0, reached: false },
-    boss: { tier_available: null, tiers_won: [], active_quest_id: null },
+    boss: { tier_available: null, tiers_won: [], active_quest_id: null, fights: 10, next: { tier: 1, level: 1, missing: 2 } },
     rewards_count: 0,
     small_tricks: { traps: 0, caught: 0 },
     ...over,
@@ -36,7 +36,7 @@ const catalog = {
   rewards: { sandales: { id: 'sandales', kind: 'gear', name: "Sandales d'Hermès", desc: '', source: '' } },
 } as unknown as WorldCatalog;
 const state = (id: string, c: CampResponse | null, cat: WorldCatalog | null = null) => CAMP_HOTSPOTS.find((h) => h.id === id)!.state({ camp: c, catalog: cat });
-const ready = (over: Partial<CampResponse> = {}) => camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null }, ...over });
+const ready = (over: Partial<CampResponse> = {}) => camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null, fights: 10, next: null }, ...over });
 const seasoned = { total: 40, floor: 0, next: 100 };
 const chosen = { week: 'w', status: 'chosen' as const, reward_id: null };
 const hatchling = { ...camp().dragon, stage: 'hatchling' as const };
@@ -64,38 +64,45 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     for (const h of CAMP_HOTSPOTS) expect(h.state({ camp: null, catalog: null }).visible, h.id).toBe(true);
     expect(state('boss', null).locked).toBe(true);
     // Final review M12: the lock says how to get past it without a tap.
-    expect(state('boss', camp())).toMatchObject({ locked: true, caption: 'Encore 2 ruses', isNew: false });
+    expect(state('boss', camp())).toMatchObject({ locked: true, caption: "Encore deux sceaux de bois et Éris t'attend.", isNew: false });
     // Final review M10: the fight's number as the battle screen writes it (Roman).
     expect(state('boss', ready(), catalog)).toMatchObject({ locked: false, isNew: true, caption: "Combat I\u202f: Sandales d'Hermès" });
     expect(state('boss', ready(), null).caption).toBe('Combat I\u202f: une récompense');
   });
 
-  it("explains the locked path in the dragon's words", () => {
-    expect(bossLockLine(camp())).toBe('Éris se cache encore. Neutralise encore 2 ruses et elle sortira.');
-    expect(bossLockLine(camp({ dragon: { ...camp().dragon, neutralised: 1 } }))).toBe('Éris se cache encore. Neutralise encore une ruse et elle sortira.');
-    expect(bossLockLine(camp({ boss: { tier_available: null, tiers_won: [1, 2, 3], active_quest_id: null } }))).toBe('Éris est vaincue trois fois. Elle boude, loin du camp.');
-    expect(bossLockCaption(camp({ dragon: { ...camp().dragon, neutralised: 1 } }))).toBe('Encore 1 ruse');
-    expect(bossLockCaption(camp({ boss: { tier_available: null, tiers_won: [1, 2, 3], active_quest_id: null } }))).toBe('Éris boude, loin du camp');
+  it("says what opens the next fight in words, on the plaque and in the dragon's mouth (spec §4, R9)", () => {
+    const c = camp({ boss: { tier_available: null, tiers_won: [], active_quest_id: null, fights: 10, next: { tier: 1, level: 1, missing: 2 } } });
+    expect(bossLockCaption(c)).toBe("Encore deux sceaux de bois et Éris t'attend.");
+    expect(bossLockLine(c)).toBe("Encore deux sceaux de bois et Éris t'attend.");
+    const done = camp({ boss: { tier_available: null, tiers_won: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], active_quest_id: null, fights: 10, next: null } });
+    expect(bossLockCaption(done)).toBe('Éris boude, loin du camp');
+    expect(bossLockLine(done)).toBe('Éris est vaincue à chaque combat. Elle boude, loin du camp.');
+  });
+
+  it('a fight past the third shows its XP on the plaque (Combat IV)', () => {
+    const fourth = camp({ boss: { tier_available: 4, tiers_won: [1, 2, 3], active_quest_id: null, fights: 10, next: null } });
+    expect(state('boss', fourth, { ...catalog, quest_bonus: { boss: 300 } } as WorldCatalog).caption).toBe('Combat IV\u202f: 300 XP');
   });
 
   it('captions only the places with news, three at most, in priority order', () => {
-    const won = { tier_available: null, tiers_won: [1, 2, 3], active_quest_id: null };
+    const won = { tier_available: null, tiers_won: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], active_quest_id: null, fights: 10, next: null };
     expect(campNews(camp({ xp: seasoned, oracle: chosen, boss: won }), null)).toEqual({ boss: 'Éris boude, loin du camp' });
     // Ruling B-d: the locked path's caption is the battle's news, first of the three.
-    expect(campNews(camp({ xp: seasoned, oracle: chosen, dragon: { ...hatchling, name: 'Braise', neutralised: 6 } }), null)).toEqual({});
+    expect(campNews(camp({ xp: seasoned, oracle: chosen, boss: won, dragon: { ...hatchling, name: 'Braise' } }), null)).toEqual({ boss: 'Éris boude, loin du camp' });
     expect(campNews(camp({ dragon: hatchling }), null)).toEqual({
-      boss: 'Encore 2 ruses',
+      boss: "Encore deux sceaux de bois et Éris t'attend.",
       oracle: 'Trois rouleaux à ouvrir',
       parchemins: 'Choisis un texte à défendre',
     });
     const busy = ready({ xp: seasoned, prophecies: prophecy(2), dragon: hatchling });
     expect(campNews(busy, catalog)).toEqual({ boss: "Combat I\u202f: Sandales d'Hermès", oracle: `Une prophétie, ${prophecyWhen(2)}`, dragon: 'Il attend un nom' });
     expect(state('dossier', busy, catalog).caption).toBeNull();
-    expect(campNews(camp({ xp: seasoned, dragon: { ...hatchling, neutralised: 6 } }), null)).toEqual({
+    expect(campNews(camp({ xp: seasoned, boss: won, dragon: hatchling }), null)).toEqual({
+      boss: 'Éris boude, loin du camp',
       oracle: 'Trois rouleaux à ouvrir',
       dragon: 'Il attend un nom',
     });
-    expect(campNews(camp(), null)).toEqual({ boss: 'Encore 2 ruses', oracle: 'Trois rouleaux à ouvrir', parchemins: 'Choisis un texte à défendre' });
+    expect(campNews(camp(), null)).toEqual({ boss: "Encore deux sceaux de bois et Éris t'attend.", oracle: 'Trois rouleaux à ouvrir', parchemins: 'Choisis un texte à défendre' });
   });
 
   it('glows on at most one place: the one the shared next step names (Ruling B9)', () => {

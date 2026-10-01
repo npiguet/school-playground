@@ -84,10 +84,11 @@ export function sealFill(n: SealWindow): number {
   return Math.round((pct(n.days / n.need.days) + pct(n.chances / n.need.chances) + pct((n.correct ?? 0) / n.need.correct)) / 3);
 }
 
-/** What stands before the next seal, in words (spec §5, R12). */
+/** What stands before the next seal, in words (spec §5, R12). At the fifth seal it sits under the
+ *  plate or stamp that already names the seal, so it says only that nothing is left to win. */
 export function sealProgressLine(key: LieutenantKey, l: Pick<LieutenantState, 'level' | 'next'>): string {
   const n = l.next;
-  if (!n || l.level >= MAX_SEAL) return "Sceau d'orichalque. Il ne reste rien à conquérir ici.";
+  if (!n || l.level >= MAX_SEAL) return 'Il ne reste rien à conquérir ici.';
   if (l.level === 0 && n.days === 0) return `Pas encore ${agree('croisé', key)}.`;
   const seal = sealName(n.level);
   const days = Math.max(0, n.need.days - n.days);
@@ -98,4 +99,14 @@ export function sealProgressLine(key: LieutenantKey, l: Pick<LieutenantState, 'l
   if (parts.length > 0) return `Encore ${parts.join(' et ')} avant le ${seal}.`;
   if (sealReady(n)) return `Tout y est\u202f: défends encore un texte, et le ${seal} est à toi.`;
   return `Il ne te reste qu'à déjouer ${rateText(n.need.correct)} des pièges avant le ${seal}.`;
+}
+
+const COUNT_WORDS = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six'];
+
+/** What opens the next fight (spec §4, R9): the seals still missing, counted across the lieutenants,
+ *  never naming one. The battle path's caption and the dragon's line when the locked path is tapped. */
+export function fightLine(next: { level: number; missing: number }): string {
+  const n = next.missing;
+  const count = n < COUNT_WORDS.length ? COUNT_WORDS[n] : String(n);
+  return `Encore ${count} ${n < 2 ? sealName(next.level) : sealsName(next.level)} et Éris t'attend.`;
 }

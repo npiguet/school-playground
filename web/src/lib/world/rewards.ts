@@ -9,10 +9,14 @@ export function bossRewardId(tier: number | null, catalog: WorldCatalog | null):
   return catalog?.boss_rewards[String(tier)] ?? null;
 }
 
-/** The name of the reward a boss tier grants, or a generic phrase. */
+/** The name of the reward a boss tier grants: the gear of the first three fights, then its XP (spec
+ *  2026-09-29 lieutenant levels §4), or a generic phrase while the catalog loads. */
 export function bossRewardName(tier: number | null, catalog: WorldCatalog | null): string {
   const id = bossRewardId(tier, catalog);
-  return (id ? catalog?.rewards[id]?.name : undefined) ?? 'une récompense';
+  const name = id ? catalog?.rewards[id]?.name : undefined;
+  if (name) return name;
+  if (tier !== null && catalog && !id) return `${catalog.quest_bonus.boss} XP`;
+  return 'une récompense';
 }
 
 /** « 1 trésor », « 2 trésors », « Aucun trésor encore » (the cabin's shelf). */

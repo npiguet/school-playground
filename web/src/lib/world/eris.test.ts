@@ -47,6 +47,8 @@ describe("Éris's dossier lines", () => {
 
   it('knows who is awake at a class', () => {
     expect([isAwake('protee', '7H'), isAwake('protee', '8H'), isAwake('hydre', '5H')]).toEqual([false, true, true]);
+    // An unknown or empty class reads as awake, as the server's lieutenants_for_level would for no class.
+    expect([isAwake('protee', ''), isAwake('sirenes', 'zz')]).toEqual([true, true]);
   });
 
   // The line names whichever lieutenant sleeps, never a fixed one (review round 1 #1), and says

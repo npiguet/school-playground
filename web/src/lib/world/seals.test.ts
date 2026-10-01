@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MATERIALS, sealFill, sealGauges, sealName, sealProgressLine, sealReady, sealTitle, sealTitleOf, sealsName } from './seals';
+import { MATERIALS, fightLine, sealFill, sealGauges, sealName, sealProgressLine, sealReady, sealTitle, sealTitleOf, sealsName } from './seals';
 import type { SealWindow } from './types';
 
 const next = (o: Partial<SealWindow> & { level: number }): SealWindow => ({
@@ -30,7 +30,7 @@ describe('the seals in words', () => {
     expect(sealProgressLine('chimere', l(0, next({ level: 1, need: { days: 3, chances: 12, correct: 0.85 } })))).toBe('Pas encore croisée.');
     expect(sealProgressLine('sirenes', l(0, next({ level: 1, need: { days: 3, chances: 12, correct: 0.85 } })))).toBe('Pas encore croisées.');
     expect(sealProgressLine('protee', l(0, next({ level: 1, need: { days: 3, chances: 12, correct: 0.85 } })))).toBe('Pas encore croisé.');
-    expect(sealProgressLine('hydre', l(5, null))).toBe("Sceau d'orichalque. Il ne reste rien à conquérir ici.");
+    expect(sealProgressLine('hydre', l(5, null))).toBe('Il ne reste rien à conquérir ici.');
   });
 
   it('measures the three gauges against their targets, with the target mark', () => {
@@ -45,5 +45,12 @@ describe('the seals in words', () => {
     expect(sealReady(next({ level: 2, days: 4, chances: 25, correct: 22 / 25, complete: true }))).toBe(true);
     expect(sealReady(next({ level: 2, days: 4, chances: 25, correct: 0.9, complete: false }))).toBe(false);
     expect(sealFill(next({ level: 2, days: 2, chances: 25, correct: 0.44 }))).toBe(67); // (50 + 100 + 50) / 3
+  });
+
+  it('says what opens the next fight, never naming a lieutenant (spec §4, R9)', () => {
+    expect(fightLine({ level: 1, missing: 2 })).toBe("Encore deux sceaux de bois et Éris t'attend.");
+    expect(fightLine({ level: 1, missing: 1 })).toBe("Encore un sceau de bois et Éris t'attend.");
+    expect(fightLine({ level: 3, missing: 6 })).toBe("Encore six sceaux d'argent et Éris t'attend.");
+    expect(fightLine({ level: 5, missing: 7 })).toBe("Encore 7 sceaux d'orichalque et Éris t'attend.");
   });
 });

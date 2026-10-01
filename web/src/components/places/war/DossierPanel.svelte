@@ -2,9 +2,10 @@
   // Éris's dossier on the player (spec §2, §3.6), laid on the war tent's map table (UI3 Ruling B4,
   // WarTent.svelte): « Ses points faibles » as one pinned sheet per lieutenant. UI3b playability #3:
   // her file is her sentences and one gauge per sheet (what still stands before the next seal, spec
-  // 2026-09-29 lieutenant levels §5); the counts themselves live in one place, the journal (« Lire ton journal »), so the
-  // same numbers never show three ways. Degrades gracefully: when the world API can't be reached the
-  // per-lieutenant sheets are skipped but the rest of her file still renders.
+  // 2026-09-29 lieutenant levels §5); the counts themselves live in one place, the journal (« Lire
+  // ton journal »), so the same numbers never show three ways. Degrades gracefully: when the world
+  // API can't be reached the per-lieutenant sheets are skipped but the rest of her file still
+  // renders.
   import Reveal from '../../juice/Reveal.svelte';
   import LieutenantBadge from '../../LieutenantBadge.svelte';
   import OverlayVoice from '../../scene/OverlayVoice.svelte';

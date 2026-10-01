@@ -14,11 +14,20 @@ export function lowerLeadingArticle(name: string): string {
   return name.replace(LEADING_ARTICLE, (m) => m.toLowerCase());
 }
 
-const ROMAN_TIERS = ['', 'I', 'II', 'III', 'IV', 'V'];
+const ROMAN: [number, string][] = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
 
-/** Roman numeral for a boss tier (1 -> 'I', 2 -> 'II', 3 -> 'III', ...). */
+/** Roman numeral for a fight (1 -> 'I', 10 -> 'X'); the ladder holds 20 fights at most (R8). */
 export function romanTier(n: number): string {
-  return ROMAN_TIERS[n] ?? String(n);
+  if (!Number.isInteger(n) || n < 1 || n > 39) return String(n);
+  let out = '';
+  let rest = n;
+  for (const [value, digits] of ROMAN) {
+    while (rest >= value) {
+      out += digits;
+      rest -= value;
+    }
+  }
+  return out;
 }
 
 /** A quest's display title. `names` maps a lieutenant key (and, for boss quests, `'eris'`) to its
@@ -50,11 +59,4 @@ export function rewardLabel(q: QuestOut, catalog: WorldCatalog): string {
   }
   if (q.reward.bestiary) parts.push('page du bestiaire');
   return parts.join(' · ');
-}
-
-/** How many tricks are still to foil before Éris comes out of hiding (the boss rule, SP3 decision
- *  8): one tier per third of the available lieutenants. One source for the quest wall and the hub. */
-export function tricksBeforeEris(camp: CampResponse): number {
-  const need = Math.ceil((camp.dragon.available * (camp.boss.tiers_won.length + 1)) / 3);
-  return Math.max(0, need - camp.dragon.neutralised);
 }

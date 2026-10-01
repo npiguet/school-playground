@@ -9,11 +9,11 @@ function camp(over: Partial<CampResponse> = {}): CampResponse {
     quests: [],
     prophecies: [],
     oracle: { week: 'w', status: 'chosen', reward_id: null },
-    boss: { tier_available: null, tiers_won: [], active_quest_id: null },
+    boss: { tier_available: null, tiers_won: [], active_quest_id: null, fights: 10, next: null },
     ...over,
   } as unknown as CampResponse;
 }
-const open = { tier_available: 1, tiers_won: [], active_quest_id: null };
+const open = { tier_available: 1, tiers_won: [], active_quest_id: null, fights: 10, next: null };
 const sealed = { week: 'w', status: 'sealed' as const, reward_id: null };
 const prophecy = (days: number) => [{ text_id: 1, title: 'La mer', due_date: '2026-09-29', days_left: days }];
 const fresh = { total: 0 } as CampResponse['xp'];
@@ -40,7 +40,7 @@ describe('one next step for the whole camp (Ruling B9, order amended by the cont
   });
 
   it('never points at a battle already engaged', () => {
-    const engaged = camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: 9 }, quests: [{ id: 9, kind: 'boss', status: 'active' }] as CampResponse['quests'] });
+    const engaged = camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: 9, fights: 10, next: null }, quests: [{ id: 9, kind: 'boss', status: 'active' }] as CampResponse['quests'] });
     expect(nextStep(engaged)).toBeNull();
   });
 

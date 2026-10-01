@@ -301,13 +301,19 @@ export const DRAGON_REVIEW_HINT = 'Touche «\u202fRevoir\u202f» pour voir chaqu
 
 // ===== Boss (Task 7) =====
 export const CHALLENGE_LINES: Record<number, string> = {
-  1: 'Deux de mes ruses réduites au silence\u202f? Voyons si mes pièges tiennent quand ils jouent tous ensemble.',
+  1: 'Deux de mes lieutenants portent un sceau\u202f? Voyons si mes pièges tiennent quand ils jouent tous ensemble.',
   2: 'Encore toi. Cette fois mes pièges sont mieux cachés, et le texte est long. Très long.',
   3: "Le Grand Désaccord. Toutes mes ruses, un seul texte, et la pomme d'or en jeu. Après ça, je ne reviendrai pas. (Si.)",
 };
+/** R17: the fights after the third, in turn. */
+export const CHALLENGE_AGAIN = [
+  'Encore des sceaux sur mes lieutenants\u202f? Je reviens, et mes pièges ont appris de nouveaux tours.',
+  'Tu collectionnes les sceaux, je collectionne les revanches. Un long texte, rien que pour toi.',
+  'Mes lieutenants portent du métal précieux, maintenant. Moi, je garde ma pomme. Viens la chercher.',
+];
 export const BOSS = {
   tier: (roman: string) => `Combat ${roman}`,
-  reward: (xp: number, name: string) => `Récompense si tu gagnes\u202f: ${xp} XP · ${name}`,
+  reward: (xp: number, name: string | null) => (name ? `Récompense si tu gagnes\u202f: ${xp} XP · ${name}` : `Récompense si tu gagnes\u202f: ${xp} XP`),
   rules: (max: number) =>
     `Un long texte. Si ta copie garde ${plural(max, 'faute', 'fautes')} au plus pour 100 mots, Éris s'enfuit\u202f; sinon, tu pourras revenir l'affronter.`,
   start: 'Affronter Éris',

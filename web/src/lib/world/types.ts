@@ -104,8 +104,6 @@ export interface DragonOut {
   name: string | null;
   tint: Tint;
   stage: DragonStage;
-  neutralised: number;
-  available: number;
   unlocked_tints: Tint[];
 }
 
@@ -129,7 +127,9 @@ export interface CampResponse {
   oracle: { week: string; status: 'sealed' | 'chosen'; reward_id: string | null };
   prophecies: OracleOut['prophecies'];
   weekly: { week: string; target: number; done: number; reached: boolean };
-  boss: { tier_available: number | null; tiers_won: number[]; active_quest_id: number | null };
+  /** Spec 2026-09-29 lieutenant levels §4: the ladder's length, and what opens the next fight (null
+   *  once a fight is open or every fight is won). */
+  boss: { tier_available: number | null; tiers_won: number[]; active_quest_id: number | null; fights: number; next: { tier: number; level: number; missing: number } | null };
   rewards_count: number;
   small_tricks: { traps: number; caught: number };
 }

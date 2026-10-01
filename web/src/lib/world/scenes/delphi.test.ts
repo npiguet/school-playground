@@ -11,7 +11,7 @@ function camp(over: Partial<CampResponse> = {}): CampResponse {
     oracle: { week: 'w', status: 'sealed', reward_id: null },
     quests: [],
     prophecies: [],
-    boss: { tier_available: null, tiers_won: [], active_quest_id: null },
+    boss: { tier_available: null, tiers_won: [], active_quest_id: null, fights: 10, next: null },
     ...over,
   } as CampResponse;
 }
@@ -42,7 +42,7 @@ describe('Delphi (UI3 Ruling A1, A10)', () => {
     expect(state('pythia', camp({ oracle: chosen }))).toMatchObject({ isNew: false, caption: 'Quête en cours' });
     // A new hero's next step is the tent; an open battle outranks the scrolls.
     expect(state('pythia', camp({ xp: { total: 0 } as CampResponse['xp'] }))).toMatchObject({ isNew: false, caption: 'Trois rouleaux à ouvrir' });
-    expect(state('pythia', camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null } })).isNew).toBe(false);
+    expect(state('pythia', camp({ boss: { tier_available: 1, tiers_won: [], active_quest_id: null, fights: 10, next: null } })).isNew).toBe(false);
     // A prophecy within a week comes first, the week chosen or not, even for a new hero.
     expect(state('pythia', camp({ oracle: chosen, prophecies: soon }))).toMatchObject({ isNew: true, caption: 'Une prophétie, dans 2 jours' });
     expect(state('pythia', camp({ xp: { total: 0 } as CampResponse['xp'], prophecies: soon })).isNew).toBe(true);

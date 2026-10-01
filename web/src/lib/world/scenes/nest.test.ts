@@ -6,7 +6,7 @@ import { variantsOf } from '../../../testing/dialogue';
 import { DRAGON_STAGES, type CampResponse, type DragonOut } from '../types';
 import { NEST_HOTSPOTS, NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from './nest';
 
-const egg = { name: null, tint: 'bronze', stage: 'egg', neutralised: 0, available: 6, unlocked_tints: ['bronze'] } as DragonOut;
+const egg = { name: null, tint: 'bronze', stage: 'egg', unlocked_tints: ['bronze'] } as DragonOut;
 const state = (d: DragonOut) => NEST_HOTSPOTS[0].state({ camp: { dragon: d } as CampResponse, catalog: null });
 
 describe("dragon's nest (UI3 Ruling B5)", () => {

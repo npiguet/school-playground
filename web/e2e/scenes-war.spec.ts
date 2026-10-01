@@ -325,7 +325,7 @@ test('a sealed lieutenant: its trophy on the sheet and the portrait, the seal in
   await expect(sheet.getByTestId('lieutenant-next')).toHaveText("Encore 4 jours de garde et 25 pièges avant le sceau d'argent.");
   await closeOverlay(page);
   await tap(page.getByTestId('war-echo'), testInfo);
-  await expect(sheet.getByTestId('lieutenant-next')).toHaveText("Sceau d'orichalque. Il ne reste rien à conquérir ici.");
+  await expect(sheet.getByTestId('lieutenant-next')).toHaveText('Il ne reste rien à conquérir ici.');
   await expect(sheet.getByTestId('lieutenant-gauges')).toHaveCount(0);
   await expect(sheet.getByTestId('overlay-voice')).toContainText('Cinq sceaux sur Écho');
   await closeOverlay(page);

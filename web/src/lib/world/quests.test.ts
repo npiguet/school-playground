@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lowerLeadingArticle, questProgressLabel, questTitle, rewardLabel, romanTier, tricksBeforeEris } from './quests';
+import { lowerLeadingArticle, questProgressLabel, questTitle, rewardLabel, romanTier } from './quests';
 import type { CampResponse } from './types';
 
 const names = { hydre: "L'Hydre", echo: 'Écho' };
@@ -52,8 +52,8 @@ describe('quest labels', () => {
     expect(lowerLeadingArticle('Écho')).toBe('Écho');
   });
 
-  it('counts the tricks still to foil before Éris comes out (the wall and the hub agree)', () => {
-    const c = (neutralised: number, won: number[] = []) => ({ dragon: { neutralised, available: 6 }, boss: { tiers_won: won } }) as unknown as CampResponse;
-    expect([tricksBeforeEris(c(0)), tricksBeforeEris(c(1)), tricksBeforeEris(c(2)), tricksBeforeEris(c(2, [1]))]).toEqual([2, 1, 0, 2]);
+  it('writes every fight of the ladder in Roman numerals (R8: ten fights by default, twenty at most)', () => {
+    expect([1, 2, 3, 4, 5, 6, 9, 10, 14, 19, 20].map(romanTier)).toEqual(['I', 'II', 'III', 'IV', 'V', 'VI', 'IX', 'X', 'XIV', 'XIX', 'XX']);
+    expect([0, -1, 2.5, 40].map(romanTier)).toEqual(['0', '-1', '2.5', '40']);
   });
 });
