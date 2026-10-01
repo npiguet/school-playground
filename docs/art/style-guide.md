@@ -596,3 +596,39 @@ overlay except the four young ones), WebPs and the manifest fragment `hydre.json
   of the slot's air need `--grow 6-8`. Rejected: illustre 1311-1312 and ancestral 1411-1412 (serpent
   heads floating in the air, their bodies hidden behind the horn, which stays out of the head slot).
 - Hand clean-up polygons and the reasons for each pick are in each sidecar's `note`.
+
+## Accessories: chimere
+
+The Chimera's set (lion, goat and serpent, fire), made with the art-overlays skill: inpainting on
+`dragon_<stage>.png` with the slot mask, `discorde-inked-clean`, V-scale 1, then `overlay.py extract
+--cpu` with hand points. One colour family for the four pieces: deep ember-red (horn, enamel, wool),
+polished gold, golden-tawny lion's mane. One fixed item sentence per slot, only the dragon's stage
+words change (prompts in each sidecar). Files: `assets/art/dragon/accessories/chimere-<slot>_<stage>.png`
+(+ `.json`, `_raw.png`, `_mask.png`), WebPs and the manifest fragment `chimere.json` in
+`assets/art/export/dragon/accessories/`. Contact sheet `docs/art/accessories-chimere.png`
+(`python tools/art/accessories_sheet.py chimere docs/art/accessories-chimere.png`).
+
+| Item (slot, denoise) | young | adult | illustre | ancestral |
+|---|---|---|---|---|
+| torque en cornes de chèvre (cou, 0.75) | 1211 | 1303 (0.85) | 1401 | 1500 (clasp merged) |
+| garde-queue à tête de serpent (queue, 0.75) | 1221 | 1301 | 1401 | 1500 (lower plates merged) |
+| cape rouge braise (dos, 0.75) | 1240 | 1300 | 1403 | 1501 |
+| casque à crinière de lion (tête, 0.85) | 1265 (helmet + band merged) | 1301 | composite: 1401 dome + 1404 crest | composite: 1500 dome + 1504 crest |
+
+- **Cou**: a torque of two ridged ember-red goat horns joined by gold bands, a small gold flame clasp
+  at the throat. Adult at 0.85: at 0.75 (1300-1302) the torque came out too small and low.
+- **Queue**: a sleeve of ember-red enamelled scales edged with gold, ending in a gold serpent head
+  biting the tail. Illustre: a polygon erased a repainted dorsal spike above the guard.
+- **Dos**: a short ember-red wool cape with a gold flame border, fastened by a gold lion-head brooch.
+  Most rejections: brooch missing or cut by the slot edge, or the cape split in two.
+- **Tête**: a smooth ember-red dome with a gold brow band and a tall lion's-mane crest on a gold
+  holder. On illustre and ancestral the plain head slot gives no crest (no room above the skull) and
+  an air-extended mask (slot united with the open air above the skull in a box) redraws the horns and
+  paints open domes, so the kept helmet is a composite: dome and band extracted from a plain-slot
+  result, crest and holder from an air-mask result (`teteB` prompt), merged; the raw is the plain
+  result with the crest's pixels pasted in (recorded in the sidecar). Ancestral 1504: the 1-3 px of
+  air between the holder and the real horn filled from the result and inked. Near-white ground
+  between the crest's strands dropped (adult, illustre, ancestral). Rejected: 1503 (crest flattened
+  by the mask's top), 1505 (crest past the air box); all three air results redrew a blue horn beside
+  the crest, kept out by the box and negative points.
+- Reasons for each pick, rejected seeds and clean-up polygons are in each sidecar's `note`.

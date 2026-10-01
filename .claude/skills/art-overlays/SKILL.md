@@ -239,3 +239,30 @@ helmet; seeds in `docs/art/style-guide.md`, "Accessories: hydre").
 - Lock and memory: one `with_lock.sh` call per 3-image job, Forge-idle wait outside the lock, 5 min
   pause between jobs; `--cpu` for every extract, one at a time. A runner killed by the harness's
   background time limit can leave its child alive: check the log, not only the task status.
+
+## Notes from the Chimera's set (2026-10-01): crests on the big heads, composite raws
+
+Proven on the 16 Chimera overlays (goat-horn torque, serpent tail guard, ember-red cape, lion-mane
+helmet; seeds in `docs/art/style-guide.md`, "Accessories: chimere").
+
+- **Head items on illustre and ancestral need air above the skull, but only for the standing part.**
+  The plain head slot gives a dome with no crest (no room). A mask united with the open air above the
+  skull (slot | stage cut-out alpha < 8 inside a hand-placed box) gives a tall crest, but the model then
+  redraws a horn in the air (untinted, blue) and paints open-frame domes. So: dome and brow band
+  extracted from a plain-slot result, crest and holder from an air-mask result (its own `--box` around
+  the crest, negatives on the redrawn horn), `overlay.py merge`. The crest stands behind the real horn,
+  which stays out of both masks.
+- **A merged overlay from two results needs a composite raw**: `overlay_raw.py save` refuses a raw whose
+  pixels differ from the overlay's. Build it as the plain result with each other part's pixels pasted in
+  (where that part's alpha > 0), plus the overlay's own pixels wherever a clean-up changed them; record
+  the recipe in the sidecar's `note`, and save the raw over the air mask's box (it is the larger mask).
+- **Gap between a pasted part and the real outline**: the crest's holder, extracted from the air result,
+  sat 1-3 px above the real horn (the result's own horn was redrawn there), showing a thin line of
+  background. Fill pixels within 4 px of both the part and the stage body (cut-out alpha > 250) from the
+  result, then paint the pale ones dark ink (over air) or drop them (over the body).
+- **Crests over white ground need a near-white defringe**: hair strands painted on the white background
+  keep white between them; drop pixels with min channel > 200 and spread < 45 inside a box around the
+  crest only, and fade the new edge 1 px. Never on the whole overlay (it eats highlights).
+- Runners killed by the background time limit keep their child alive and waiting on the lock: before
+  re-queuing a batch check the process table (`/proc/<pid>/cmdline`, since Git Bash `ps` shows only
+  `bash`) and the log, and make every runner skip outputs that already exist.

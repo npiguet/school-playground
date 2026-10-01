@@ -1,0 +1,198 @@
+{
+  "merged_parts": [
+    {
+      "result": "tete_ancestral_s1500.png",
+      "generation": {
+        "prompt": "the head of an ancient wise dragon with large burnished bronze-gold scales like polished armour plates, calm amber eyes under heavy brows and very long sweeping ivory horns with silver tips, wearing an ancient Greek helmet on top of its head between the horns: one solid rounded dome of smooth polished deep ember-red enamelled metal that completely covers the top of the skull, a thick dark ink outline all around it, a wide band of polished gold with a dark ink outline runs all along the helmet's lower edge just above the brow ridges, a tall thick crest of shaggy golden-tawny lion's mane hair on a gold holder running from front to back, the helmet's front edge sits just above the eyes, the dome is smooth and plain with no scales showing through, (open frame:-2) (visor:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+        "denoising_strength": 0.85,
+        "steps": 9,
+        "cfg_scale": 1.0,
+        "sampler_name": "Euler",
+        "scheduler": "Simple",
+        "width": 1024,
+        "height": 1024,
+        "seed": 1500,
+        "override_settings": {
+          "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+        },
+        "alwayson_scripts": {
+          "negpip": {
+            "args": [
+              true,
+              1.0
+            ]
+          }
+        },
+        "mask_blur": 4,
+        "inpainting_fill": 1,
+        "inpaint_full_res": true,
+        "inpaint_full_res_padding": 48,
+        "inpainting_mask_invert": 0,
+        "style": "discorde-inked-clean",
+        "init": "assets\\art\\dragon\\dragon_ancestral.png",
+        "mask_file": "assets\\art\\dragon\\slots\\ancestral_tete.png"
+      },
+      "extract": {
+        "stage": "dragon_ancestral.png",
+        "slot_mask": "ancestral_tete.png",
+        "pos": [
+          [
+            690,
+            110
+          ],
+          [
+            705,
+            105
+          ],
+          [
+            700,
+            135
+          ],
+          [
+            680,
+            140
+          ],
+          [
+            725,
+            140
+          ],
+          [
+            660,
+            108
+          ]
+        ],
+        "neg": [
+          [
+            700,
+            175
+          ],
+          [
+            750,
+            158
+          ],
+          [
+            638,
+            152
+          ],
+          [
+            740,
+            112
+          ]
+        ],
+        "box": [
+          612,
+          70,
+          812,
+          209
+        ],
+        "hand_points": true,
+        "sam_mask": 0,
+        "diff": 28,
+        "novelty": 45,
+        "grow": 2,
+        "keep_white": false,
+        "max_hole": null,
+        "cuts": null
+      }
+    },
+    {
+      "result": "teteair_ancestral_s1504.png",
+      "generation": {
+        "prompt": "the head of an ancient wise dragon with large burnished bronze-gold scales like polished armour plates, calm amber eyes under heavy brows and very long sweeping ivory horns with silver tips, wearing an ancient Greek helmet on top of its head between the horns: one solid rounded dome of smooth polished deep ember-red enamelled metal that completely covers the top of the skull, a thick dark ink outline all around it, a wide band of polished gold with a dark ink outline runs all along the helmet's lower edge just above the brow ridges, a tall thick crest of shaggy golden-tawny lion's mane hair on a gold holder running from front to back, the helmet's front edge sits just above the eyes, the dome is smooth and plain with no scales showing through, (open frame:-2) (visor:-2).\n\nStyle: a painterly young-adult fantasy novel cover illustration, gouache and acrylic on paper with rich painted light, soft cel shading with warm and cool colour variation inside every shape, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers. Line work: one clean medium-weight dark ink outline of even thickness runs continuously around the whole silhouette, every contour smooth, confident and closed, interior lines finer than the outline, hair drawn as a few thick solid locks with inked edges, wing membranes opaque with inked edges, nothing glows, mists or smokes into the background, the figure is isolated on a flat plain pure white background with no cast shadow, (sketchy lines:-2) (rough brush strokes:-2) (scratchy hatching:-2) (thick heavy outline:-1.5) (shadow:-2).",
+        "denoising_strength": 0.85,
+        "steps": 9,
+        "cfg_scale": 1.0,
+        "sampler_name": "Euler",
+        "scheduler": "Simple",
+        "width": 1024,
+        "height": 1024,
+        "seed": 1504,
+        "override_settings": {
+          "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+        },
+        "alwayson_scripts": {
+          "negpip": {
+            "args": [
+              true,
+              1.0
+            ]
+          }
+        },
+        "mask_blur": 4,
+        "inpainting_fill": 1,
+        "inpaint_full_res": true,
+        "inpaint_full_res_padding": 48,
+        "inpainting_mask_invert": 0,
+        "style": "discorde-inked-clean",
+        "init": "assets\\art\\dragon\\dragon_ancestral.png",
+        "mask_file": "C:\\Users\\nicol\\.claude\\jobs\\9ac9a508\\tmp\\art-chimere\\m_ancestral_tete.png"
+      },
+      "extract": {
+        "stage": "dragon_ancestral.png",
+        "slot_mask": "m_ancestral_tete.png",
+        "pos": [
+          [
+            690,
+            30
+          ],
+          [
+            720,
+            20
+          ],
+          [
+            750,
+            30
+          ],
+          [
+            770,
+            45
+          ],
+          [
+            675,
+            50
+          ],
+          [
+            735,
+            75
+          ]
+        ],
+        "neg": [
+          [
+            790,
+            95
+          ],
+          [
+            785,
+            120
+          ],
+          [
+            700,
+            95
+          ]
+        ],
+        "box": [
+          640,
+          5,
+          800,
+          92
+        ],
+        "hand_points": true,
+        "sam_mask": 2,
+        "diff": 28,
+        "novelty": 45,
+        "grow": 2,
+        "keep_white": false,
+        "max_hole": null,
+        "cuts": null
+      }
+    }
+  ],
+  "note": "composite of two results: the dome and gold brow band from tete_ancestral_s1500 (plain head slot, denoise 0.85) and the lion-mane crest with its gold holder from teteair_ancestral_s1504 (prompt teteB_ancestral, the head slot united with the open air above the skull, m_ancestral_tete.png); the crest stands behind the horn, which stays out of both masks. Clean-up on the crest part: the 1-3 px gap of air between the holder and the horn filled with the result's own pixels (seal: within 4 px of the crest and of the body, box 685,55,765,95), near-white strands dropped (defringe box 640,5,810,62), then the pale pixels of that seal strip (box 675,58,765,95) painted dark ink over the air or dropped over the horn. raw = tete_ancestral_s1500 with the crest's pixels from 1504 (composite), plus the overlay's own pixels where the clean-up changed them (the inked seal strip), so the raw holds every overlay pixel. Rejected: 1503 (crest flattened at the top of the mask), 1505 (crest spread past the air box, a redrawn blue horn); all three air results redrew a blue horn right of the crest, kept out by the box and negative points.",
+  "raw_crop": [
+    588,
+    0,
+    844,
+    233
+  ],
+  "raw_crop_note": "<item>_raw.png = the inpainted result cropped to raw_crop (stage px x0, y0, x1, y1); <item>_mask.png = the overlay's alpha over the same crop (white = item). After repainting the mask: python tools/art/overlay_raw.py rebuild <item>.png"
+}

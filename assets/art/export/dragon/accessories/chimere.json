@@ -103,6 +103,20 @@
       "y": 0.02734,
       "w": 0.14551,
       "h": 0.11816
+    },
+    "illustre": {
+      "src": "chimere-tete_illustre.webp",
+      "x": 0.61133,
+      "y": 0.00391,
+      "w": 0.17383,
+      "h": 0.16797
+    },
+    "ancestral": {
+      "src": "chimere-tete_ancestral.webp",
+      "x": 0.63086,
+      "y": 0.00391,
+      "w": 0.15918,
+      "h": 0.16504
     }
   }
 }
