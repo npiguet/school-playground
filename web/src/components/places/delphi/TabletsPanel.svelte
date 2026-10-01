@@ -107,7 +107,7 @@
   <OverlayVoice line={VOICES.wall}>
     <span data-testid="board-reward">Chaque monstre défié rapporte {boardXp} XP et une page du bestiaire.</span>
     {#if decor}
-      <span data-testid="board-decor">Encore {plural(decor.n, 'quête', 'quêtes')}, et ta cabane gagne un trésor{'\u202f: '}{decor.name}.</span>
+      <span data-testid="board-decor">Encore {plural(decor.n, 'quête', 'quêtes')}, et ta maison gagne un trésor{'\u202f: '}{decor.name}.</span>
     {/if}
   </OverlayVoice>
 

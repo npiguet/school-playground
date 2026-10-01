@@ -65,7 +65,7 @@
     { "speaker": "dragon", "target": "dossier", "text": "La tente de guerre : le dossier d'Éris et le bestiaire de ses monstres." },
     { "speaker": "dragon", "target": "dragon", "when": { "stage": ["egg"] }, "text": "Mon nid. J'éclorai après tes premiers textes défendus, et tu me donneras un nom." },
     { "speaker": "dragon", "target": "dragon", "when": { "stage": ["hatchling", "young", "adult", "illustre", "ancestral"] }, "text": "Mon nid. Viens m'y voir quand tu veux." },
-    { "speaker": "dragon", "target": "cabin", "text": "Ta cabane : tes trésors, ton journal, et la lyre pour régler la voix et les sons." },
+    { "speaker": "dragon", "target": "cabin", "text": "Ta maison : tes trésors, ton journal, et la lyre pour régler la voix et les sons." },
     { "speaker": "dragon", "target": "boss", "text": "Le sentier de la bataille. Quand Éris se montrera, c'est là qu'on l'affrontera." },
     { "speaker": "dragon", "target": null, "text": "À toi de choisir où aller : touche un lieu du camp !" }
   ]

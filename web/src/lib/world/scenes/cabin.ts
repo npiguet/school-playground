@@ -5,6 +5,7 @@ import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
 import { st, type Box, type DialogueLine, type HotspotDef, type HotspotShape, type SceneDef } from '../../scene/types';
 import { treasureCaption } from '../rewards';
+import { HOUSE_NAMES } from '../shop';
 import type { DragonOut, House } from '../types';
 import { CABIN_SHAPES, PALAIS_SHAPES, VILLA_SHAPES } from './cabin.shapes';
 import { dragonSays } from './speakers';
@@ -32,7 +33,7 @@ export const CABIN_HOTSPOTS: HotspotDef[] = houseHotspots(CABIN_SHAPES);
 
 export const CABIN_SCENE: SceneDef = {
   id: 'cabin',
-  title: 'Ta cabane',
+  title: HOUSE_NAMES.cabin,
   background: ART.scenes.cabin,
   layers: [],
   hotspots: CABIN_HOTSPOTS,
@@ -42,8 +43,8 @@ export const CABIN_SCENE: SceneDef = {
 };
 
 /** Spec 2026-09-29 drachmes §3 (R21): the houses bought from Hermès, the cabin place in a richer room. */
-export const VILLA_SCENE: SceneDef = { ...CABIN_SCENE, title: 'Ta villa', background: ART.scenes.villa, hotspots: houseHotspots(VILLA_SHAPES) };
-export const PALAIS_SCENE: SceneDef = { ...CABIN_SCENE, title: 'Ton palais', background: ART.scenes.palais, hotspots: houseHotspots(PALAIS_SHAPES) };
+export const VILLA_SCENE: SceneDef = { ...CABIN_SCENE, title: HOUSE_NAMES.villa, background: ART.scenes.villa, hotspots: houseHotspots(VILLA_SHAPES) };
+export const PALAIS_SCENE: SceneDef = { ...CABIN_SCENE, title: HOUSE_NAMES.palais, background: ART.scenes.palais, hotspots: houseHotspots(PALAIS_SHAPES) };
 
 /** The room of the highest house owned (the camp's `house`). */
 export function houseScene(house: House): SceneDef {
@@ -90,11 +91,11 @@ export const BARE_WALLS: Record<House, Record<string, Box>> = {
 
 /** Where the displayed decor hangs in each room (medallion centres, art %), one piece per slot, each
  *  on its room's BARE_WALLS, clear of the places and their plaques (cabin.test.ts proves it). The
- *  cabin: between the windows above the lyre's plaque, the wall left of the left window, twice on the
- *  right-hand wall. */
+ *  cabin: between the windows above the lyre's plaque (x 60.2: right of the left lintel's end at
+ *  x ~= 58), the wall left of the left window, twice on the right-hand wall. */
 export const DECOR_SLOTS: Record<House, { x: number; y: number }[]> = {
   cabin: [
-    { x: 60, y: 27 },
+    { x: 60.2, y: 27 },
     { x: 84.5, y: 45 },
     { x: 43.8, y: 35 },
     { x: 84.5, y: 53 },

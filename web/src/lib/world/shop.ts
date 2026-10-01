@@ -8,6 +8,13 @@ import { sealNameOf } from './seals';
 import { DRAGON_STAGES, LIEUTENANT_ORDER, type CampResponse, type DragonStage, type House, type LieutenantKey, type ShopCatalog } from './types';
 
 export const HOUSE_NAMES: Record<House, string> = { cabin: 'Ta cabane', villa: 'Ta villa', palais: 'Ton palais' };
+const HOUSE_OF: Record<House, string> = { cabin: 'de la cabane', villa: 'de la villa', palais: 'du palais' };
+
+/** The room's own shelf follows the house (spec 2026-09-29 drachmes §3): its decor section's title. */
+export const houseDecorTitle = (house: House): string => `Objets ${HOUSE_OF[house]}`;
+
+/** The empty shelf's note, in the house the hero lives in. */
+export const houseEmptyLine = (house: House): string => `${HOUSE_NAMES[house]} attend ses premiers trésors.`;
 
 /** « 1 drachme », « 1 117 drachmes ». */
 export function drachmesText(n: number): string {

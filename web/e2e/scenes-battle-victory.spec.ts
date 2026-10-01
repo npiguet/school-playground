@@ -564,7 +564,7 @@ test('a seal on the victory: « Sceau de bronze ! », its trophy, its chip', asy
   );
   const card = sheet.getByTestId('reveal-level-hydre');
   await expect(card).toContainText('Sceau de bronze\u202f!');
-  await expect(card).toContainText("Tu poses le sceau de bronze sur l'Hydre. Son trophée t'attend dans ta cabane.");
+  await expect(card).toContainText("Tu poses le sceau de bronze sur l'Hydre. Son trophée t'attend chez toi.");
   await expect(card.getByTestId('reveal-level-trophy')).toHaveAttribute('src', '/art/trophies/trophy-hydre-2.webp');
   await expect(sheet.getByTestId('xp-chip')).toContainText(["Sceau de bronze\u202f: l'Hydre +200"]);
   await expect(sheet.getByTestId('reveal-reward-trophy:hydre:2')).toHaveCount(0); // never twice as « Nouveau trésor »

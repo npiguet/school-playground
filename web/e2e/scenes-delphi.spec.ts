@@ -229,7 +229,7 @@ test('the tablets open the quest board; a launched quest shows on the tablets ba
   await expect(board.getByTestId('board-reward')).toHaveCount(1);
   await expect(board.getByText(/Récompense\u202f: \d+ XP/)).toHaveCount(0);
   await expect(board.getByTestId('board-decor')).toHaveCount(1);
-  await expect(board.getByTestId('board-decor')).toContainText(/Encore \d+ quêtes?, et ta cabane gagne un trésor/);
+  await expect(board.getByTestId('board-decor')).toContainText(/Encore \d+ quêtes?, et ta maison gagne un trésor/);
   // Re-review N13: the Pythia says the rule and the treasure; no empty « En cours » over the wall.
   await expect(board.getByTestId('overlay-voice')).toHaveAttribute('data-speaker', 'pythia');
   await expect(board.getByTestId('overlay-voice').getByTestId('board-reward')).toContainText('Chaque monstre défié rapporte');

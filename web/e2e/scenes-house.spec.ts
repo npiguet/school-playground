@@ -59,12 +59,18 @@ test('buy the villa at the stall, hang a sixth piece in it', async ({ page, requ
   // The camp's plaque and the room follow the house.
   await page.goto(`/#/p/${id}/camp`);
   await expect(page.getByTestId('camp-cabin')).toContainText('Ta villa');
+  for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }]) {
+    await page.setViewportSize(size);
+    await expect.poll(() => labelOverlaps(page, 'camp'), { message: `camp ${size.width}x${size.height}` }).toEqual([]);
+  }
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto(`/#/p/${id}/cabane`);
   await expectScene(page, 'cabin');
   await expect(page.locator('[data-testid="scene-cabin"] .stage-plaque')).toHaveText('Ta villa');
   await expect(page.locator('[data-testid="scene-cabin"] .art-bg')).toHaveAttribute('src', '/art/scenes/villa.webp');
   // The sixth piece, from the shelf.
   await tap(page.getByTestId('cabin-trophies'), testInfo);
+  await expect(page.getByTestId('overlay-trophies').getByRole('heading', { level: 3 })).toContainText(['Objets de la villa']);
   await tap(page.getByTestId('cabin-equip-decor:bouclier'), testInfo);
   await expect(page.getByTestId('cabin-equip-decor:bouclier')).toHaveText('Ranger');
   await expect(page.getByTestId('cabin-walls-full')).toHaveCount(0);
@@ -73,7 +79,7 @@ test('buy the villa at the stall, hang a sixth piece in it', async ({ page, requ
   await expect(page.locator('[data-testid^="cabin-decor-"]')).toHaveCount(6);
   for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }]) {
     await page.setViewportSize(size);
-    expect(await labelOverlaps(page, 'cabin'), `${size.width}x${size.height}`).toEqual([]);
+    await expect.poll(() => labelOverlaps(page, 'cabin'), { message: `${size.width}x${size.height}` }).toEqual([]);
     await expectMedalsOffPlaques(page, size);
   }
   expect(await redScan(page)).toEqual([]);
@@ -87,13 +93,19 @@ test('buy the villa at the stall, hang a sixth piece in it', async ({ page, requ
 /** No hung medallion over a place's plaque (the shelf's carries its caption, the tallest) nor under
  *  the room's name. */
 async function expectMedalsOffPlaques(page: Page, size: { width: number; height: number }) {
-  const plaques = await page.locator('[data-testid="scene-cabin"] :is(.hotspot-label, .stage-plaque)').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()));
-  const medals = await page.locator('[data-testid^="cabin-decor-"]').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()));
-  for (const m of medals) {
-    for (const p of plaques) {
-      expect(m.right <= p.left || m.left >= p.right || m.bottom <= p.top || m.top >= p.bottom, `${size.width}x${size.height} ${JSON.stringify(m)} on ${JSON.stringify(p)}`).toBe(true);
-    }
-  }
+  // Plaques and medallions are read in one evaluate, and polled: setViewportSize may return before
+  // WebKit has laid out the new size (two separate reads once straddled it, the plaques still at
+  // 1180x820 and the medallions at 1280x720); a medallion really over a plaque stays there.
+  const overlaps = () =>
+    page.evaluate(() => {
+      const rects = (sel: string) => Array.from(document.querySelectorAll(sel)).map((e) => e.getBoundingClientRect());
+      const plaques = rects('[data-testid="scene-cabin"] :is(.hotspot-label, .stage-plaque)');
+      const out: string[] = [];
+      for (const m of rects('[data-testid^="cabin-decor-"]'))
+        for (const p of plaques) if (!(m.right <= p.left || m.left >= p.right || m.bottom <= p.top || m.top >= p.bottom)) out.push(`${JSON.stringify(m)} on ${JSON.stringify(p)}`);
+      return out;
+    });
+  await expect.poll(overlaps, { message: `${size.width}x${size.height}` }).toEqual([]);
 }
 
 test("the palais's room: its places and nine slots", async ({ page, request }, testInfo) => {
@@ -120,7 +132,7 @@ test("the palais's room: its places and nine slots", async ({ page, request }, t
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
   for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }]) {
     await page.setViewportSize(size);
-    expect(await labelOverlaps(page, 'cabin'), `${size.width}x${size.height}`).toEqual([]);
+    await expect.poll(() => labelOverlaps(page, 'cabin'), { message: `${size.width}x${size.height}` }).toEqual([]);
     await expectMedalsOffPlaques(page, size);
   }
   await page.setViewportSize({ width: 1280, height: 720 });

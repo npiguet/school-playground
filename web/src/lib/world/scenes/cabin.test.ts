@@ -107,6 +107,9 @@ describe('the cabin (UI3 Ruling B6)', () => {
     const greeting = cabinGreeting(dragon);
     expect(greeting).toEqual([expect.objectContaining({ key: 'cabin.enter', speaker: 'dragon', name: 'Braise' })]);
     expect(variantsOf('cabin.enter')).toContain(greeting[0].text);
+    // Task 7 fix round 1: the greeting is heard in every house, so it names none of them.
+    expect(variantsOf('cabin.enter').length).toBeGreaterThanOrEqual(3);
+    for (const v of variantsOf('cabin.enter')) expect(v).not.toMatch(/cabane|villa|palais/i);
     expect(trophiesLine(dragon, null, 30).text).toBe("Chaque sceau que tu gagnes pose un trophée sur l'étagère.");
     expect(trophiesLine(dragon, 0, 30).text).toBe("Chaque sceau que tu gagnes pose un trophée sur l'étagère. Le premier sera en bois\u202f!");
     expect(trophiesLine(dragon, 2, 30).text).toBe("Chaque sceau que tu gagnes pose un trophée sur l'étagère. Il en reste 28 à gagner\u202f!");

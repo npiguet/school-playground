@@ -29,7 +29,7 @@ REWARDS = {r["id"]: r for r in [
     _r("sandales_hermes", "gear", "Sandales d'Hermès", "Des sandales ailées\u202f: rien ne t'échappe.", "Vaincre Éris (première fois)"),
     _r("egide", "gear", "Égide", "Le bouclier d'Athéna, contre tous les dés-accords.", "Vaincre Éris (deuxième fois)"),
     _r("foudre_zeus", "gear", "Foudre de Zeus", "La foudre en personne. Éris n'a plus qu'à bien se tenir.", "Vaincre Éris (troisième fois)"),
-    _r("decor:lanterne", "decor", "Lanterne d'Hestia", "Une lanterne qui éclaire ta cabane.", "Deux quêtes du mur"),
+    _r("decor:lanterne", "decor", "Lanterne d'Hestia", "Une lanterne qui éclaire ta maison.", "Deux quêtes du mur"),
     _r("decor:tapis", "decor", "Tapis de Pénélope", "Un tapis tissé avec patience.", "Quatre quêtes du mur"),
     _r("decor:bibliotheque", "decor", "Étagère d'Alexandrie", "Une étagère pour tes parchemins préférés.", "Six quêtes du mur"),
     _r("decor:trophee", "decor", "Trophée de la Pomme", "Une pomme d'or… en bois peint.", "Huit quêtes du mur"),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HOUSE_NAMES, confirmQuestion, drachmeChip, drachmesText, houseLockedLine, kindOfItem, lockedAccessoryLine, purseLine, stallShelves } from './shop';
+import { HOUSE_NAMES, confirmQuestion, houseDecorTitle, houseEmptyLine, drachmeChip, drachmesText, houseLockedLine, kindOfItem, lockedAccessoryLine, purseLine, stallShelves } from './shop';
 import type { CampResponse, LieutenantState, ShopCatalog } from './types';
 
 const SLOTS = ['cou', 'queue', 'dos', 'tete'] as const;
@@ -35,6 +35,13 @@ describe('the purse and the stall in words', () => {
     expect([drachmeChip(12), drachmeChip(1)]).toEqual(['+12 drachmes', '+1 drachme']);
     expect(confirmQuestion({ the: 'la couronne de pavots', price: 130 })).toBe('Acheter la couronne de pavots pour 130 drachmes\u202f?');
     expect(HOUSE_NAMES).toEqual({ cabin: 'Ta cabane', villa: 'Ta villa', palais: 'Ton palais' });
+    // Task 7 fix round 1: the room's own shelf follows the house.
+    expect([houseDecorTitle('cabin'), houseDecorTitle('villa'), houseDecorTitle('palais')]).toEqual(['Objets de la cabane', 'Objets de la villa', 'Objets du palais']);
+    expect([houseEmptyLine('cabin'), houseEmptyLine('villa'), houseEmptyLine('palais')]).toEqual([
+      'Ta cabane attend ses premiers trésors.',
+      'Ta villa attend ses premiers trésors.',
+      'Ton palais attend ses premiers trésors.',
+    ]);
     expect([kindOfItem('accessory:hydre-cou'), kindOfItem('decor:amphore'), kindOfItem('house:villa')]).toEqual(['accessory', 'decor', 'house']);
   });
 

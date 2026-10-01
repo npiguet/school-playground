@@ -36,7 +36,9 @@
   // The hero's rewards, fetched once here for both the walls and the shelf (final review M15).
   let owned = $state<RewardOut[] | null>(null);
   let rewardsError = $state('');
-  // Until /camp answers, the cabin (R21): the places arrive from the camp, which has loaded it.
+  // Until /camp answers, the cabin (R21): the places arrive from the camp, which has loaded it. The
+  // shelf does not refuse a piece by the cabin's four walls meanwhile: the server decides.
+  const houseKnown = $derived(campFor(profile.id) !== null);
   const house = $derived(campFor(profile.id)?.house ?? 'cabin');
   const scene = $derived(houseScene(house));
   const slots = $derived(DECOR_SLOTS[house]);
@@ -95,7 +97,7 @@
 
 {#if panel === 'tresors'}
   <Overlay variant="table" size="wide" title={OVERLAY_TITLES.tresors} testId="overlay-trophies" voice={dragon ? trophiesLine(dragon, ownedTrophies, maxTrophies) : null} onClose={close} returnFocus={hotspotSelector('cabin', 'trophies')}>
-    <TrophiesPanel {profile} {owned} maxDecor={MAX_DISPLAYED_DECOR[house]} loadError={rewardsError} onUpdated={updated} />
+    <TrophiesPanel {profile} {owned} {house} maxDecor={houseKnown ? MAX_DISPLAYED_DECOR[house] : null} loadError={rewardsError} onUpdated={updated} />
   </Overlay>
 {:else if panel === 'journal'}
   <Overlay variant="codex" title={OVERLAY_TITLES.journal} testId="overlay-journal" voice={dragon ? journalLine(dragon) : null} onClose={close} returnFocus={from.of('journal') === 'heros' ? '[data-testid="hero-journal"]' : hotspotSelector('cabin', 'journal')}>

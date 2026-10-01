@@ -113,9 +113,9 @@ describe('the seals in words', () => {
 
   it('reveals a seal on the victory: its cry, its line, its chip (spec §1, §5, R16)', () => {
     expect(sealCry(2)).toBe('Sceau de bronze\u202f!');
-    expect(levelUpLine('hydre', 2)).toBe("Tu poses le sceau de bronze sur l'Hydre. Son trophée t'attend dans ta cabane.");
-    expect(levelUpLine('sirenes', 3)).toBe("Tu poses le sceau d'argent sur les Sirènes. Leur trophée t'attend dans ta cabane.");
-    expect(levelUpLine('echo', 1)).toBe("Tu poses le sceau de bois sur Écho. Son trophée t'attend dans ta cabane.");
+    expect(levelUpLine('hydre', 2)).toBe("Tu poses le sceau de bronze sur l'Hydre. Son trophée t'attend chez toi.");
+    expect(levelUpLine('sirenes', 3)).toBe("Tu poses le sceau d'argent sur les Sirènes. Leur trophée t'attend chez toi.");
+    expect(levelUpLine('echo', 1)).toBe("Tu poses le sceau de bois sur Écho. Son trophée t'attend chez toi.");
     expect(levelChipLabel(2, "L'Hydre")).toBe("Sceau de bronze\u202f: l'Hydre");
     expect(levelChipLabel(5, 'Les Sirènes')).toBe("Sceau d'orichalque\u202f: les Sirènes");
   });
@@ -143,8 +143,8 @@ describe('the seals in words', () => {
     ].map((b) => bonusChipLabel(b, names));
     expect(chips).toEqual(["Sceau de bronze\u202f: l'Hydre", 'Sceau de bois\u202f: Écho']);
     expect(two.map((u) => levelUpLine(u.lieutenant as 'hydre' | 'echo', u.level))).toEqual([
-      "Tu poses le sceau de bronze sur l'Hydre. Son trophée t'attend dans ta cabane.",
-      "Tu poses le sceau de bois sur Écho. Son trophée t'attend dans ta cabane.",
+      "Tu poses le sceau de bronze sur l'Hydre. Son trophée t'attend chez toi.",
+      "Tu poses le sceau de bois sur Écho. Son trophée t'attend chez toi.",
     ]);
   });
 

@@ -16,19 +16,30 @@
   import { rulesOf } from '../../../lib/rules';
   import { WALLS_FULL_LINE } from '../../../lib/world/scenes/cabin';
   import { howToWin } from '../../../lib/world/rewards';
-  import { LIEUTENANT_ORDER, type LieutenantKey, type RewardKind, type RewardOut, type Tint } from '../../../lib/world/types';
+  import { houseDecorTitle, houseEmptyLine } from '../../../lib/world/shop';
+  import { LIEUTENANT_ORDER, type House, type LieutenantKey, type RewardKind, type RewardOut, type Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import type { Profile } from '../../../lib/types';
 
   // `owned`: null while the cabin's /rewards has not answered; `loadError` when it could not;
-  // `maxDecor`: the pieces the walls of the hero's house hold (spec 2026-09-29 drachmes §3).
+  // `house`: the house the hero lives in, whose name the shelf's own words follow; `maxDecor`: the
+  // pieces its walls hold, null while /camp has not said which house it is (the server decides then)
+  // (spec 2026-09-29 drachmes §3).
   let {
     profile,
     owned,
+    house,
     maxDecor,
     loadError = '',
     onUpdated,
-  }: { profile: Profile; owned: RewardOut[] | null; maxDecor: number; loadError?: string; onUpdated: (reward: RewardOut) => void } = $props();
+  }: {
+    profile: Profile;
+    owned: RewardOut[] | null;
+    house: House;
+    maxDecor: number | null;
+    loadError?: string;
+    onUpdated: (reward: RewardOut) => void;
+  } = $props();
 
   const ownedById = $derived.by(() => {
     const m = new Map<string, RewardOut>();
@@ -36,11 +47,11 @@
     return m;
   });
 
-  const SECTIONS: { kind: RewardKind; title: string }[] = [
+  const sections: { kind: RewardKind; title: string }[] = $derived([
     { kind: 'gear', title: 'Armes et armures divines' },
-    { kind: 'decor', title: 'Objets de la cabane' },
+    { kind: 'decor', title: houseDecorTitle(house) },
     { kind: 'tint', title: 'Teintes' },
-  ];
+  ]);
 
   const highest = $derived(highestTrophies(owned ?? []));
   const firstSeal = $derived(firstSealLine(rulesOf(campStore.catalog).levels[0]));
@@ -86,7 +97,7 @@
     if (!current) return;
     equipError = '';
     wallsFull = false;
-    if (current.kind === 'decor' && !current.equipped && displayedDecor >= maxDecor) {
+    if (current.kind === 'decor' && !current.equipped && maxDecor !== null && displayedDecor >= maxDecor) {
       wallsFull = true;
       return;
     }
@@ -111,7 +122,7 @@
 
   {#if isEmpty}
     <!-- The rest (each reward announced ahead, nothing drawn by lot) is the cabin tour's step 1 (UI5 Ruling E13). -->
-    <p class="kit-note">Ta cabane attend ses premiers trésors.</p>
+    <p class="kit-note">{houseEmptyLine(house)}</p>
   {/if}
 
   <section data-testid="cabin-trophy-shelf">
@@ -172,7 +183,7 @@
     {/if}
   </section>
 
-  {#each SECTIONS as section (section.kind)}
+  {#each sections as section (section.kind)}
     <section>
       <h3 class="kit-section">{section.title}</h3>
       {#if section.kind === 'decor' && wallsFull}

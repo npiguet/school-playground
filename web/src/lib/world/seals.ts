@@ -150,7 +150,7 @@ export function sealCry(level: number): string {
 /** The seal's card on the victory (R16). */
 export function levelUpLine(key: LieutenantKey, level: number): string {
   const their = genderFor(key) === 'fp' ? 'Leur' : 'Son';
-  return `Tu poses le ${sealName(level)} ${ON[key]}. ${their} trophée t'attend dans ta cabane.`;
+  return `Tu poses le ${sealName(level)} ${ON[key]}. ${their} trophée t'attend chez toi.`;
 }
 
 /** The seal's XP chip: « Sceau de bronze : l'Hydre » (the victory adds « +200 »). */

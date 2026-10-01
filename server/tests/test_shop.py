@@ -40,6 +40,12 @@ def test_the_shop_decor_and_the_two_houses():
     assert not is_item("decor:tapis") and not is_item("egide") and not is_item("trophy:hydre:1")
 
 
+def test_no_reward_names_the_cabin_a_villa_or_palais_owner_left():
+    """Spec 2026-09-29 drachmes §3 (Task 7 fix round 1): a description is read in every house."""
+    assert REWARDS["decor:lanterne"]["desc"] == "Une lanterne qui éclaire ta maison."
+    assert [r["id"] for r in REWARDS.values() if "cabane" in (r["name"] + r["desc"] + r["source"]).lower()] == []
+
+
 def test_prices_come_from_the_rules():
     r = Rules()
     assert [price_of(accessory_id("hydre", s), r) for s in SLOTS] == [40, 60, 90, 130]
