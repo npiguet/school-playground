@@ -80,10 +80,16 @@
 
   // UI5 (spec §7, Ruling E4): each place plays its loop, and takes the mixer back from a battle or a
   // speech (no leftover duck). Nothing sounds before the first tap (Ruling E3): the mixer waits.
+  // Keyed on the track, not the scene object: the camp and the nest swap their scene object when
+  // /camp arrives (spec 2026-10-02 nest by stage), which must not re-run e.scene() (it holds the voice).
+  const music = $derived(scene.ambience.music);
   $effect(() => {
-    const track = scene.ambience.music;
+    const track = music;
     untrack(() => withAudio((e) => e.scene(track)));
   });
+  // The same for the particles: a new scene object with the same preset must not rebuild FxCanvas's
+  // loop (scenes-camp « portrait shows the rotate screen »: the loop is built once per place).
+  const particles = $derived(scene.ambience.particles);
 
   // UI3 Ruling A6: a place stays mounted under its overlays, so the one-tap-at-a-time guard is
   // released on every route change (the camp is unmounted by its own navigation anyway).
@@ -92,13 +98,17 @@
     runtime.activating = false;
   });
 
+  // Fetch ahead the scenes the player is likely to open next (spec §4 performance; lib/scene/warm.ts
+  // keeps them, since the browser's cache does not), 800 ms after the place opens; a list that grows
+  // later (the camp learns the dragon's stage from /camp) is warmed as it changes (warm is idempotent).
+  let warmReady = $state(false);
   onMount(() => {
-    // Fetch ahead the scenes the player is likely to open next (spec §4 performance; lib/scene/warm.ts
-    // keeps them, since the browser's cache does not).
-    const t = setTimeout(() => {
-      for (const src of scene.preload) warm(src);
-    }, 800);
+    const t = setTimeout(() => (warmReady = true), 800);
     return () => clearTimeout(t);
+  });
+  $effect(() => {
+    if (!warmReady) return;
+    for (const src of scene.preload) warm(src);
   });
 
   function onPointerMove(e: PointerEvent) {
@@ -178,18 +188,20 @@
   onpointerup={onPointerUp}
   onpointercancel={resetPointer}
 >
-  {#if hasBands}
+  {#if hasBands && scene.background}
     <img class="stage-backdrop" data-testid="stage-backdrop" src={scene.background} alt="" aria-hidden="true" />
   {/if}
   <div class="stage-content">
     <SceneTransition kind="zoom">
       <div class="art" style="left:{box.left}px;top:{box.top}px;width:{box.width}px;height:{box.height}px">
-        <img class="art-bg" src={scene.background} alt="" draggable="false" />
+        {#if scene.background}
+          <img class="art-bg" src={scene.background} alt="" draggable="false" />
+        {/if}
         {#each scene.layers as layer (layer.id)}
           <SceneLayer {layer} />
         {/each}
         {#if !runtime.reduced}
-          <FxCanvas preset={scene.ambience.particles} />
+          <FxCanvas preset={particles} />
         {/if}
         <h1 class="kit-plaque stage-plaque">{scene.title}</h1>
         {@render children?.()}

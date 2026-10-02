@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from 'node:fs';
 import { DRAGON_STAGES, LIEUTENANT_ORDER, type WorldCatalog } from './types';
 import {
   ADD_ICONS,
@@ -19,9 +19,17 @@ import {
 } from './art';
 import { ACCESSORY_MANIFEST, accessorySrc } from './accessories';
 
-/** A WebP's pixel size from its header (VP8X, VP8L or VP8), without a dependency. */
+/** A WebP's pixel size from its header (VP8X, VP8L or VP8), without a dependency. Reads only the
+ *  first 32 bytes: the accessory test calls it 192 times on pictures up to 300 KB, and reading them
+ *  whole through the npm container's bind mount passed vitest's 5 s timeout on a cold cache. */
 function webpSize(file: string): { w: number; h: number } {
-  const b = readFileSync(file);
+  const b = Buffer.alloc(32);
+  const fd = openSync(file, 'r');
+  try {
+    readSync(fd, b, 0, 32, 0);
+  } finally {
+    closeSync(fd);
+  }
   const chunk = b.toString('ascii', 12, 16);
   if (chunk === 'VP8X') return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3) };
   if (chunk === 'VP8L') {
@@ -113,7 +121,11 @@ describe('art map', () => {
     expect(ART.scenes.libraryTent).toBe('/art/scenes/library_tent.webp');
     expect(ART.scenes.delphi).toBe('/art/scenes/delphi.webp');
     expect(ART.scenes.warTent).toBe('/art/scenes/war_tent.webp');
-    expect(ART.scenes.nest).toBe('/art/scenes/nest.webp');
+    // Spec 2026-10-02 nest by stage: one painting per stage, 2048x1152; the old single nest is gone.
+    expect(ART.nest).toEqual(Object.fromEntries(DRAGON_STAGES.map((s) => [s, `/art/scenes/nest_${s}.webp`])));
+    for (const p of Object.values(ART.nest)) expect(webpSize('public' + p), p).toEqual({ w: 2048, h: 1152 });
+    expect(existsSync('public/art/scenes/nest.webp')).toBe(false);
+    expect('nest' in ART.scenes).toBe(false);
     expect(ART.scenes.cabin).toBe('/art/scenes/cabin.webp');
     expect(ART.characters).toEqual({ pythia: '/art/characters/pythia_cut.webp', owl: '/art/characters/owl_cut.webp', hermes: '/art/characters/hermes_cut.webp' });
     expect([ART.scenes.villa, ART.scenes.palais]).toEqual(['/art/scenes/villa.webp', '/art/scenes/palais.webp']);

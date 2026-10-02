@@ -1,0 +1,35 @@
+{
+  "prompt": "wide shot, eye level, warm golden sunset light. subject: an ancient dragon's lair in a vast monumental cavern hall deep inside a mountain, colossal ruined and unfinished Greek marble columns and broken arches rising into warm shadows, long sunset light pouring in through a great opening high in the rock. A huge shallow nest of whole olive trunks, golden straw and old red fleeces on the flat stone floor, slightly left of the centre of the picture, spanning from about one fifth to two thirds of its width, the middle of the nest is completely empty and open, a broad flat bed of golden straw waiting for an enormous dragon, the nest lies close to the viewer in the foreground, its front rim at the bottom edge, (its straw floor running almost to the bottom edge of the picture:1.5). Around the nest, never in its middle, an enormous hoard: (great mountains of gold coins:1.5) heaped high on the far left and spilling across the stone floor toward the viewer on both sides, golden cups, crowns, bronze shields and painted amphorae half buried in the gold; (many huge long red and gold banners with Greek-key borders:1.5) hang from the columns and the arches on the left and at the back. On the right, from about two thirds of the width to the right edge, a tall smooth face of plain warm cave wall with nothing on it. (dragon:-3) (creature:-3) (animal:-2) (bird:-2) (egg:-3) (egg shell:-3) Composition: a wide 16:9 game background seen from a little distance, all the important objects are grouped in the middle of the picture, the outer eighth on the far left and on the far right holds only soft background scenery such as plain wall, foliage or sky; the ground in the lower part of the picture continues naturally with the same texture and light but with few small details; the top edge is calm. (people:-2) (text:-3) (letters:-3) (signs:-3) (busy details:-2)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "simple",
+  "width": 2048,
+  "height": 1152,
+  "seed": 1652,
+  "tiling": false,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
+    }
+  },
+  "style": "discorde-illustration"
+}

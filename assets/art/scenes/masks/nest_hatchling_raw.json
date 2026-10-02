@@ -1,0 +1,30 @@
+{
+  "prompt": "The rounded top of a big dragon's eggshell, broken off and empty, lying tipped on its side on the bare sun-warmed limestone rock just beside a small straw nest: a hollow dome of shell covered in overlapping burnished bronze-gold and dark blue-green scales like a pine cone, its jagged broken rim facing the viewer so the pale cream inside of the empty shell shows, and three or four small curved scaly shell fragments lying flat on the rock around it, with soft shadows under them, the same style, warm golden sunset light and perspective as the surrounding picture. (dragon:-3) (creature:-3) (bird:-3) (people:-3) (text:-3) (white eggshell:-2) (whole egg:-2) (ring:-2) (bracelet:-2) (crown:-2)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "denoising_strength": 0.95,
+  "steps": 9,
+  "cfg_scale": 1.0,
+  "sampler_name": "Euler",
+  "scheduler": "Simple",
+  "width": 1024,
+  "height": 1024,
+  "seed": 1654,
+  "override_settings": {
+    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  },
+  "alwayson_scripts": {
+    "negpip": {
+      "args": [
+        true,
+        1.0
+      ]
+    }
+  },
+  "mask_blur": 6,
+  "inpainting_fill": 1,
+  "inpaint_full_res": true,
+  "inpaint_full_res_padding": 200,
+  "inpainting_mask_invert": 0,
+  "style": "discorde-illustration",
+  "init": "assets/art/scenes/nest_egg.png",
+  "mask_file": "assets/art/scenes/masks/nest_hatchling_shell_inpaint.png"
+}

@@ -135,7 +135,7 @@ All under `assets/art/`. `*_cut.png` = same image with the white background remo
 | Lieutenants | `lieutenants/{hydre,echo,chimere,protee,sirenes,lethe}.png` + `_cut` | 768×1344 |
 | Scenes: camp (hub, dawn), Delphes, Alexandrie, Parchemins, Argus sanctuary, battle | `scenes/{camp,delphes,alexandrie,parchemins,argus,battle}.png` | 1344×768 |
 | Emblems: Yeux d'Argus, Fil d'Ariane, Bouclier de Persée, Chouette d'Athéna, golden apple | `emblems/{argus,ariane,persee,athena,apple}.png` + `_cut` | 1024×1024 |
-| Scenes UI (UI2): title gates, camp hub, nest, Delphi, library tent, war tent, cabin, Éris's lair, 3 battle backdrops | `scenes/{title_gates,hub_camp,nest,delphi,library_tent,war_tent,cabin,eris_lair,battle_river,battle_coast,battle_temple}.png` | 2048×1152 |
+| Scenes UI (UI2): title gates, camp hub, nest (six, one per stage: "The nest by stage" below), Delphi, library tent, war tent, cabin, Éris's lair, 3 battle backdrops | `scenes/{title_gates,hub_camp,nest_<stage>,delphi,library_tent,war_tent,cabin,eris_lair,battle_river,battle_coast,battle_temple}.png` | 2048×1152 |
 | Pythia, Athena's owl | `characters/{pythia,owl}.png` + `_cut` | 768×1344, 1024² |
 | Props: votive tablets, codex on a lectern, trophy shelf | `props/{votive_tablets,codex_lectern,trophy_shelf}.png` + `_cut` | 1024², 768×1344, 1344×768 |
 | Marble texture tile | `textures/marble.png` | 1024² |
@@ -155,10 +155,45 @@ unchanged `cutout.py`. The scene WebPs are exported at 2048 px wide, q88, 190–
 web/public/art/scenes --max-px 2048 --quality 88` from a staging folder, so the old scene WebPs are
 not rewritten.
 
-**Seeds** (the sidecars hold the exact prompts): title_gates 602, hub_camp 601, nest 603,
+**Seeds** (the sidecars hold the exact prompts): title_gates 602, hub_camp 601, nest 603 (replaced by the nest by stage, 2026-10-02),
 delphi 604, library_tent 605, war_tent 806, cabin 507, eris_lair 608, battle_river 509,
 battle_coast 510, battle_temple 511, pythia 701, owl 802, votive_tablets 703,
 codex_lectern 704, trophy_shelf 705, marble 902 (style `discorde-texture`). 28 generations in total.
+
+**The nest by stage (spec 2026-10-02 nest by stage):** one painting per dragon stage,
+`scenes/nest_{egg,hatchling,young,adult,illustre,ancestral}.png`, same light, palette and style as the
+old `nest.png` (seed 603, removed), `--vscale 1.0`, 8 steps, **Krea2 Variance off** (the old `nest.json`
+sidecar showed it was off; `--variance 1.2` at 2048x1152 turned every painting into a blocky mosaic).
+Picked seeds: egg 1663, young 1681, adult 1623, illustre 1633, ancestral 1652 (the sidecars hold the
+prompts; the egg, young and ancestral picks come from reworked prompts, see the tips below). The
+hatchling's painting is the egg's with the broken shell inpainted in two passes (seed 1654, see the
+next paragraph). Each prompt names the empty spot's place and its floor's height and a calm
+stretch on the growth sheet's side; check every variant with `tools/art/nest_preview.py` (the stage's
+sprite at its place, the hotspot, the sheet's band). The dragon's place per stage was set with the
+user on these paintings: egg w 16 feet 54, hatchling 21/55, young 38/77.8 (x 51.5), adult 40/81.2,
+illustre 44/88.9, ancestral 47/94 (art %; plan 2026-10-02 nest by stage, Tasks 4-5: the young's,
+adult's and illustre's feet lowered a little so the picture clears the HUD, `HUD_LINE` 10 %, and the
+painted head clears it on the shortest art box, 640 px tall, ruling N3). Served as
+`web/public/art/scenes/nest_<stage>.webp` (2048 px, q88, 210-293 KB each, within the 600 KB budget).
+
+**The hatchling's nest** (`nest_hatchling.png`) is `nest_egg.png` with the egg's broken top cap and a
+scaly fragment on the bare rock right of the nest's front rim, right of the dragon's spot, by the krea2
+skill's two passes: pass 1 `masks/nest_hatchling_shell_inpaint.png` (rounded box px 1290-1556 x
+718-850, radius 40), only masked, 1024x1024 crop, padding 200, `--mask-blur 6`, denoise 0.95, 9 steps,
+seed 1654 (pass-1 pick: `masks/nest_hatchling_raw.png`); pass 2 `masks/nest_hatchling_shell_refine.png`
+(grown 24 px left, 8 px top so the fallen olive leaf stays untouched, 24 px right, 20 px bottom: px
+1266-1580 x 710-870), denoise 0.5, 16 steps, `--mask-blur 4`, same seed. The refine mask must also
+grow toward the left: without it, 147 px of pass 1's blur-6 feather stayed outside it and kept the
+halo. 0 px differ from the egg's painting outside the refine mask's feather (changed box px
+1256-1591 x 700-881). The shell is the cap: the hatchling sprite already sits in the shell's bottom half.
+Prompt (in the sidecar): "The rounded top of a big dragon's eggshell, broken off and empty, lying
+tipped on its side on the bare sun-warmed limestone rock just beside a small straw nest: a hollow
+dome of shell covered in overlapping burnished bronze-gold and dark blue-green scales ... its jagged
+broken rim facing the viewer so the pale cream inside of the empty shell shows ..." with `(ring:-2)
+(bracelet:-2) (crown:-2)`. The plan's first prompt ("a curved cap ... its broken edge turned up")
+filled the wide box with a closed scaly band like a bracelet (seeds 1651-1653); asking for the dome
+tipped on its side with the rim toward the viewer gave a readable cap. The cap is a little darker
+and bluer than `dragon_egg_cut.webp`'s gold top; the user found it fine.
 
 **Composition sentence** appended to every scene prompt (it's in the sidecars):
 *"Composition: a wide 16:9 game background seen from a little distance, all the important objects
@@ -198,6 +233,31 @@ Prompt tips from this batch:
   It reads as texture, not text, and was accepted.
 - Textures: `discorde-texture` (in `styles/`) plus "uniform all over so it can repeat". Marble
   worked. Parchment got a vignette and bronze turned into honeycomb, so CSS does those better.
+- **Nest by stage: the nest's height in the picture.** "Its straw floor lying about four fifths of
+  the way down the picture" alone does not hold: Krea puts the nest at mid-height, and the dragon's
+  feet line ends up on the bare floor in front of it. "The nest lies close to the viewer (in the
+  foreground) and fills the lower part of the picture, its front rim at / almost touching the bottom
+  edge, (its straw floor lying about ... of the way down the picture:1.5)" pulled it down on the
+  ledge (young 1614-1616) and the summit (1644); in caves it only half worked (adult 1625).
+- **A small nest reads small only with small things around it.** "A small round nest ... filling
+  only about one third of the picture's width" plus "scattered pebbles, a few tiny wildflowers, fine
+  blades of grass and a fallen olive leaf on the rock beside it" (egg 1661-1663); without them a nest
+  reads person-sized. "(small round nest:1.5) ... one quarter of the width" overshoots (young
+  1671-1673: smaller than the dragon and hidden behind it).
+- **Keep a hoard out of the dragon's spot:** "at the far left end of the nest only, never in its
+  middle or behind it, a small hoard: ..." (illustre 1634+). "Around the rim" put the shield and
+  amphora on the back rim, inside the dragon's box.
+- **A dragon standing in a big nest (young 1681-1683):** "seen from very close ... (its front rim is
+  cut off by the bottom edge of the picture:1.5) ... (its wide flat straw floor runs all the way down
+  to the bottom edge of the picture:1.5)" never cut the rim off, but the straw spilled forward past
+  the ring, which gives a straw floor low enough for the feet. Big boulders, the cliff and the sea
+  far below with `(flowers:-2) (pebbles:-2)` make the young read big; tiny flowers next to the nest
+  made it read as small as the hatchling (1615).
+- **A Smaug-style hoard hall:** "a vast monumental cavern hall deep inside a mountain, colossal
+  ruined and unfinished Greek marble columns and broken arches", "(great mountains of gold coins:1.5)
+  heaped high on the far left and spilling across the stone floor toward the viewer on both sides,
+  golden cups, crowns, bronze shields and painted amphorae half buried in the gold", "(many huge long
+  red and gold banners with Greek-key borders:1.5)" (ancestral 1651-1654).
 
 Not yet made (candidates for a later batch): the Muses, per-stage dragon colour variants, a
 title/hero banner 1536×640. Player avatars and small item icons are done (see Icons below).

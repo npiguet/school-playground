@@ -17,7 +17,7 @@
 - All six keep the nest's warm light and palette (`assets/art/scenes/nest.json`: warm golden sunset, `discorde-illustration`, `--vscale 1.0`, 8 steps).
 - The hatchling's painting is made from the chosen egg painting by the two-pass inpaint method of the krea2 skill (the shell only).
 - 2-3 variants per stage are shown to the user, who picks, **before** the code is tuned on them (Task 1 and Task 2 end in an explicit STOP).
-- Starting sizes (art % of the 16:9 frame; the square sprite's height on screen is its width x 16/9): egg w 12 feet 62, hatchling 18/66, young 26/72, adult 34/80, illustre 40/86, ancestral 47/94; centre x 50 up to young, around **x 44** from adult. Tuned on the chosen paintings; the head always stays below the HUD.
+- Starting sizes (art % of the 16:9 frame; the square sprite's height on screen is its width x 16/9): egg w 16 feet 54, hatchling 21/55, young 38/77.8, adult 40/81.2, illustre 44/88.9, ancestral 47/94 (set with the user in Task 1, 2026-10-02; the young, adult and illustre feet lowered in Task 4 so their boxes clear `HUD_LINE` 10, then the young's and the illustre's in Task 5 so their painted heads clear the HUD on the shortest supported art box, 640 px tall, ruling N3: `HUD_LINE_SHORT` 11.2 with `SPRITE_TOP_MARGIN`); centre x 50 up to the hatchling (51.5 for the young, so its box clears the sheet), around **x 44** from adult. Tuned on the chosen paintings; the head always stays below the HUD (`HUD_LINE = 10` art %: Task 4 measured the real `header.hud` at 71.5 px of a 720 px art box, 9.9 %, not the 64 px first assumed).
 - From the adult stage the growth sheet moves to the side of the frame (the right, since the dragon shifts left); the sheet never overlaps the dragon or the HUD at any stage.
 - The dragon layer stays depth 0, idle `none`.
 - CLAUDE.md: no "pre-existing" problems (fix or report every failure or warning you meet); `vitest` and `svelte-check` must end with **0 errors and 0 warnings**; no emoji anywhere the player can see.
@@ -43,7 +43,7 @@
 1. **Which side the sheet goes to from the adult:** the right (x 68.5-87.5), since the dragon shifts left to x 44.
 2. **`ART.scenes.nest[stage]` "or the like":** `ART.nest[stage]` at the root of `ART`. `ART.scenes` stays a flat string map, because `artFor('scene', key)` reads it as `Record<string, string>`.
 3. **Before /camp says the stage:** no painting at all (the night and « Les Muses préparent le camp… »), not the egg's nest, so a grown dragon never flashes the wrong nest.
-4. **"The HUD line":** for the dragon's head it is the real HUD, 9 % of a 1280x720 art box (`HUD_LINE`; the e2e measures the real one). For the hotspot it is the existing 14 % band (`HUD_BAND`). At 47 % wide the ancestral's box reaches y 10.4, above the 14 % band.
+4. **"The HUD line":** for the dragon's head it is the real HUD, 10 % of a 1280x720 art box (`HUD_LINE`, 71.5 px measured in Task 4; the e2e measures the real one). For the hotspot it is the existing 14 % band (`HUD_BAND`). At 47 % wide the ancestral's box reaches y 10.4, above the 14 % band.
 5. **The hatchling's shell** is the egg's broken top cap plus a few fragments, right of the dragon, because the hatchling sprite already sits in the bottom half of its shell.
 6. **"The hotspot covers the dragon":** the ellipse is centred inside the dragon's box, at least 0.6 of its width and 0.5 of its height. Its bottom stays at or above y 70 so the plaque below it clears the dialogue dock, which means the big dragons' ellipse covers head to belly, not the feet.
 7. **Tuning limits:** y may move ±4 and w ±3 from the spec's starting values, keeping the sizes growing at every stage.
@@ -60,14 +60,15 @@
 | `assets/art/scenes/nest.png/.json`, `web/public/art/scenes/nest.webp` | Delete (Task 3) | The old single painting. |
 | `web/public/art/scenes/nest_<stage>.webp` | Create (Task 3) | The six served WebPs. |
 | `web/src/lib/world/art.ts` | Modify (Task 3) | `ART.nest: Record<DragonStage, string>`; `ART.scenes.nest` goes. |
-| `web/src/lib/world/scenes/nest.ts` | Modify (Tasks 3-4) | `nestScene(stage)`, `NEST_STAGE_SCENES`, `NEST_STAGES`, `HUD_LINE`, `SHEET_X`, `SHEET_TOP`, `dragonTop`, `nestDragonLayer`. |
+| `web/src/lib/world/scenes/nest.ts` | Modify (Tasks 3-5) | `nestScene(stage)`, `NEST_STAGE_SCENES`, `NEST_STAGES`, `HUD_LINE`, `HUD_LINE_SHORT`, `SHEET_X`, `SHEET_TOP`, `dragonTop`, `dragonHead`, `nestDragonLayer`. |
+| `web/src/lib/world/scenes/nest.sprites.ts` | Create (Task 5) | `SPRITE_TOP_MARGIN`: each sprite's transparent rows above the head (the e2e checks them on the files). |
 | `web/src/lib/world/scenes/nest.shapes.ts` | Modify (Task 4) | The dragon hotspot's ellipse per stage. |
 | `web/src/lib/world/scenes/camp.ts` | Modify (Task 3) | `campScene(stage)`: the camp's preload with the current stage's nest painting. |
 | `web/src/lib/world/scenes/index.ts` | Modify (Task 3) | Re-export `NEST_STAGE_SCENES` for the budget test. |
 | `web/src/components/scene/SceneStage.svelte` | Modify (Task 3) | No `<img>` for an empty background; preload warms a list that changes after mount; the music effect keyed on the track only. |
 | `web/src/screens/Nest.svelte` | Modify (Tasks 3-4) | The scene from the stage; the growth sheet's side and box from `NEST_STAGES` / `SHEET_X`. |
 | `web/src/screens/Camp.svelte` | Modify (Task 3) | The scene from `campScene(stage)`. |
-| Tests: `nest.test.ts`, `camp.test.ts`, `art.test.ts`, `budget.test.ts`, `web/e2e/scenes-nest.spec.ts`, `web/e2e/scenes-preload.spec.ts` | Modify | As in each task. |
+| Tests: `nest.test.ts`, `camp.test.ts`, `art.test.ts`, `budget.test.ts`, `web/e2e/scenes-nest.spec.ts`, `web/e2e/scenes-preload.spec.ts`, `web/e2e/helpers.ts` | Modify | As in each task. |
 | Docs: `docs/art/scenes.md`, `docs/art/style-guide.md`, `README.md` | Modify | Landmarks per painting, seeds and prompt notes, the art folder's size. |
 
 No PWA precache list exists in this repository (no service worker, no `VitePWA`); `web/src/artReferenced.test.ts` (every scene WebP referenced from the sources) and `web/src/lib/world/scenes/budget.test.ts` (600 KB per scene) are the lists that must agree with the files. No e2e spec names `nest.webp`.
@@ -96,7 +97,7 @@ Create `tools/art/nest_preview.py`:
 SceneLayer: x = the layer's centre, y = its bottom edge, w = its width, all in art % of the 16:9
 frame; the sprite is square, so its height is w x 16/9 in % of the frame's height. Draws, on top:
 the feet line (green) across the layer's width, the hotspot ellipse (yellow), the growth sheet's
-band (cyan), the HUD line at 9 % (red), the 4:3 safe zone x 12.5-87.5 (white) and the dialogue dock
+band (cyan), the HUD line at 10 % (red), the 4:3 safe zone x 12.5-87.5 (white) and the dialogue dock
 x 27-87.5, y 80-100 (magenta); --grid adds a 5 % grid with labels every 10 % for measuring
 landmarks (docs/art/scenes.md).
 
@@ -110,7 +111,7 @@ from PIL import Image, ImageDraw
 
 SHEET = {"left": (13.5, 19.0), "right": (68.5, 19.0)}  # x, w (art %), rods included: nest.ts SHEET_X
 SHEET_TOP, SHEET_BOTTOM = 18.0, 45.0  # the sheet's top (nest.ts SHEET_TOP) and its usual bottom
-HUD_LINE = 9.0  # nest.ts HUD_LINE
+HUD_LINE = 10.0  # nest.ts HUD_LINE
 SAFE = (12.5, 87.5)
 DOCK = (27.0, 80.0, 87.5, 100.0)
 
@@ -122,7 +123,7 @@ def main() -> None:
     ap.add_argument("--x", type=float, required=True)
     ap.add_argument("--y", type=float, required=True)
     ap.add_argument("--w", type=float, required=True)
-    ap.add_argument("--ellipse", help="cx,cy,rx,ry in art %")
+    ap.add_argument("--ellipse", help="cx,cy,rx,ry in art %%")
     ap.add_argument("--sheet", choices=["left", "right"])
     ap.add_argument("--grid", action="store_true")
     ap.add_argument("--out", type=Path, required=True)
@@ -224,7 +225,7 @@ for pair in egg:1601 young:1611 adult:1621 illustre:1631 ancestral:1641; do
   idle; sleep 5; idle   # idle twice in a row, outside the lock
   sh tools/art/with_lock.sh python .claude/skills/krea2/generate.py \
     --prompt-file "$W/assets/art/web/nest_variants/nest_$s.txt" --style discorde-illustration \
-    --size 2048x1152 --steps 8 --vscale 1.0 --variance 1.2 --seed $seed --count 3 \
+    --size 2048x1152 --steps 8 --vscale 1.0 --seed $seed --count 3 \
     --out "$W/assets/art/web/nest_variants/nest_$s.png"
 done > C:/Users/nicol/.claude/jobs/9ac9a508/tmp/nest-art.log 2>&1
 ```
@@ -277,7 +278,7 @@ In `docs/art/style-guide.md`, under "Scenes UI (UI2, 2026-09-24)", after the **S
 ```markdown
 **The nest by stage (spec 2026-10-02 nest by stage):** one painting per dragon stage,
 `scenes/nest_{egg,hatchling,young,adult,illustre,ancestral}.png`, same light, palette and style as the
-old `nest.png` (seed 603, removed), `--vscale 1.0 --variance 1.2`, 8 steps. Picked seeds: egg <seed>,
+old `nest.png` (seed 603, removed), `--vscale 1.0`, 8 steps, Krea2 Variance off. Picked seeds: egg <seed>,
 young <seed>, adult <seed>, illustre <seed>, ancestral <seed> (the sidecars hold the prompts). The
 hatchling's painting is the egg's with the broken shell inpainted in two passes (see below). Each
 prompt names the empty spot's place and its floor's height ("its straw floor lying about four fifths
@@ -309,17 +310,19 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: `assets/art/scenes/nest_egg.png` (Task 1), `tools/art/img2img.py`, `tools/art/nest_preview.py`.
 - Produces: `assets/art/scenes/nest_hatchling.png` (2048x1152), identical to the egg's painting outside the shell.
 
-The hatchling sprite (`dragon_hatchling_cut.webp`) already sits in the **bottom half** of its shell, so the painted shell is the egg's broken-off **top cap and a few fragments**, in the egg's own scales (bronze-gold and dark blue-green, like `dragon_egg_cut.webp`), lying beside the nest on the right of the dragon (the sheet is on the left). The hatchling's box is x 41-59, y 34-66 (w 18, feet 66): the shell stays right of x 60.
+The hatchling sprite (`dragon_hatchling_cut.webp`) already sits in the **bottom half** of its shell, so the painted shell is the egg's broken-off **top cap and a few fragments**, in the egg's own scales (bronze-gold and dark blue-green, like `dragon_egg_cut.webp`), lying beside the nest on the right of the dragon (the sheet is on the left). The hatchling's box is x 39.5-60.5, y 17.7-55 (w 21, feet 55, on `nest_egg.png` seed 1663, set with the user in Task 1): the shell stays right of x 61.
+
+**Done 2026-10-02 (approved by the user, seed 1654):** inpaint box px (1290, 718, 1556, 850) (wider for the egg's scale, top below the olive leaf, bottom above the rock's dark lip); refine grown (left, top, right, bottom) = (24, 8, 24, 20) px = px (1266, 710, 1580, 870): 8 px on top to spare the leaf, and 24 px on the **left** too, since with no left growth 147 px of pass 1's blur-6 feather stayed outside the refine mask (the left edge, x 61.8 %, is still clear of the dragon's box at x 60.5 %). The prompt became the "rounded top ... tipped on its side ... broken rim facing the viewer" one (the first gave scaly bracelets, seeds 1651-1653; pass 1 then ran seeds 1654-1656). Check: 0 px changed outside the refine feather, changed box px (1256, 700, 1591, 881) = x 61.3-77.7 %, y 60.8-76.5 % (Task 4's **Broken shell** row). Settings in `assets/art/scenes/nest_hatchling.json`, method record in `docs/art/style-guide.md`.
 
 - [ ] **Step 1: Draw the two masks**
 
-Default box (art %): x 61-71, y 53-67 = px 1240-1460 x 600-780. Before drawing, open `nest_preview.py --grid` on `nest_egg.png` and move the box so its bottom sits on the straw or rock floor beside the nest and it holds no landmark; keep x >= 60 and <= 87.5. Then:
+Default box (art %): x 64-74, y 60-72 = px 1311-1516 x 691-829 (on 1663 the small nest spans about x 30-67, y 31-67; this box is the bare rock right of its front rim, just below the fallen olive leaf). Before drawing, open `nest_preview.py --grid` on `nest_egg.png` and move the box so its bottom sits on the straw or rock floor beside the nest and it holds no landmark; keep x >= 61 and <= 87.5. Then:
 
 ```bash
 python - <<'EOF'
 from PIL import Image, ImageDraw
 W, H = 2048, 1152
-box = (1240, 600, 1460, 780)          # pass 1: the shell's spot (adjusted on the painting)
+box = (1311, 691, 1516, 829)          # pass 1: the shell's spot (adjusted on the painting)
 grow = (0, 24, 24, 24)                # pass 2: grown 24 px on top, right and bottom, never left toward the dragon
 for name, (l, t, r, b) in {
     "inpaint": box,
@@ -383,7 +386,7 @@ print("changed box:", diff.getbbox())
 EOF
 ```
 
-Expected: `changed px outside: 0`, and the changed box inside the refine mask's grown box. Then preview: `python tools/art/nest_preview.py --painting assets/art/web/nest_variants/nest_hatchling_p2.png --stage hatchling --x 50 --y 66 --w 18 --ellipse 50,50,8.5,15 --sheet left --out assets/art/web/nest_variants/preview_hatchling_final.png`. Read it: no halo, crisp edge, the shell beside (not under) the dragon, outside the yellow ellipse and the cyan band.
+Expected: `changed px outside: 0`, and the changed box inside the refine mask's grown box. Then preview: `python tools/art/nest_preview.py --painting assets/art/web/nest_variants/nest_hatchling_p2.png --stage hatchling --x 50 --y 55 --w 21 --ellipse 50,36.5,9.5,18.5 --sheet left --out assets/art/web/nest_variants/preview_hatchling_final.png`. Read it: no halo, crisp edge, the shell beside (not under) the dragon, outside the yellow ellipse and the cyan band.
 
 - [ ] **Step 6: STOP — show the shell to the user**
 
@@ -746,7 +749,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: `nestScene`, `BY_STAGE`, `dragonHotspot` (Task 3); `SAFE_ZONE`, `HUD_BAND`, `DIALOGUE_DOCK` from `web/src/lib/scene/geometry.ts`.
 - Produces:
   - `NEST_STAGES: Record<DragonStage, { x: number; y: number; w: number; sheet: 'left' | 'right' }>` (art %).
-  - `HUD_LINE = 9` (art %), `SHEET_TOP = 18`, `SHEET_X: { left: { x: 13.5, w: 19 }, right: { x: 68.5, w: 19 } }`.
+  - `HUD_LINE = 10` (art %; the real HUD measures 71.5 px of a 720 px art box, Task 4), `SHEET_TOP = 18`, `SHEET_X: { left: { x: 13.5, w: 19 }, right: { x: 68.5, w: 19 } }`.
   - `dragonTop(stage: DragonStage): number` — the layer's top edge in art %.
   - `nestDragonLayer(stage)` unchanged in signature: `{ x, y, scale: w, depth: 0, idle: 'none' }`.
   - `NEST_SHAPES: Record<DragonStage, { dragon: EllipseShape }>`.
@@ -821,19 +824,19 @@ Run the unit tests (background). Expected: FAIL — `NEST_STAGES`, `HUD_LINE`, `
 
 For each stage, start from the values below and run `nest_preview.py --grid` on `assets/art/scenes/nest_<stage>.png` (Task 1 Step 5's command lines, with `--grid`); Read each preview and adjust until:
 - the sprite's feet stand on the painted straw or rock floor (move `y`, at most ±4 from the start) across the green line's width;
-- the painted landmarks read at the right size next to the dragon (straw blades, the shell, rocks): `w` may move by at most ±3 from the start, keeping every stage bigger than the one before and `dragonTop >= 9`;
+- the painted landmarks read at the right size next to the dragon (straw blades, the shell, rocks): `w` may move by at most ±3 from the start, keeping every stage bigger than the one before and `dragonTop >= 10` (`HUD_LINE`);
 - `x` keeps the dragon in its empty spot (around 50 up to young, around 44 from adult);
 - the ellipse sits on the dragon's body (head to belly) and the test rules of Step 1 hold (`cy + ry <= 70`, `cy - ry >= 14`, `2rx >= 0.6w`, `2ry >= 0.5h`, clear of the cyan band).
 
-Start values (the spec's table; ellipses from the sprites' figures):
+Start values (the spec's table; ellipses from the sprites' figures). All six rows were set with the user in Task 1 on the picked paintings (egg and hatchling on `nest_egg.png` 1663, young 1681, adult 1623, illustre 1633, ancestral 1652; `tmp` ladder sheet `review_ladder.png`), and every row already passes Step 1's checks: the egg and the hatchling's shell sit down in the small nest's hollow, the young stands in the straw of its big close-up nest (its box top at 10.24 with its feet at 77.8, just below the HUD line), the bigger dragons stand on the floor just in front of their nests. Keep x, y and w unless a check fails (then say so); move only the ellipses, within the rules:
 
 | stage | x | y | w | sheet | ellipse cx, cy, rx, ry |
 |---|---|---|---|---|---|
-| egg | 50 | 62 | 12 | left | 50, 51, 6.5, 10.5 |
-| hatchling | 50 | 66 | 18 | left | 50, 50, 8.5, 15 |
-| young | 50 | 72 | 26 | left | 50, 47, 12, 21 |
-| adult | 44 | 80 | 34 | right | 44, 45, 15, 25 |
-| illustre | 44 | 86 | 40 | right | 44, 43, 17, 27 |
+| egg | 50 | 54 | 16 | left | 50, 40, 7, 14 |
+| hatchling | 50 | 55 | 21 | left | 50, 36.5, 9.5, 18.5 |
+| young | 51.5 | 77.8 | 38 | left | 51.5, 37, 13, 23 |
+| adult | 44 | 81.2 | 40 | right | 44, 40, 15, 22 |
+| illustre | 44 | 88.9 | 44 | right | 44, 42, 17, 24 |
 | ancestral | 44 | 94 | 47 | right | 44, 42.5, 20, 27.5 |
 
 Write each stage's final preview to `assets/art/web/nest_variants/tuned_<stage>.png` (`--out`, with `--grid` off). Then write the tuned values into Steps 4-5's code (the code below shows the start values; replace any number you tuned, nothing else).
@@ -849,17 +852,17 @@ Replace the `// R11: ...` comment, the `WIDTH` table and `nestDragonLayer` with:
  *  sheet stands beside the dragon on the left; from the adult it moves to the right side of the frame
  *  and the dragon shifts left. Tuned on the paintings with tools/art/nest_preview.py. */
 export const NEST_STAGES: Record<DragonStage, { x: number; y: number; w: number; sheet: 'left' | 'right' }> = {
-  egg: { x: 50, y: 62, w: 12, sheet: 'left' },
-  hatchling: { x: 50, y: 66, w: 18, sheet: 'left' },
-  young: { x: 50, y: 72, w: 26, sheet: 'left' },
-  adult: { x: 44, y: 80, w: 34, sheet: 'right' },
-  illustre: { x: 44, y: 86, w: 40, sheet: 'right' },
+  egg: { x: 50, y: 54, w: 16, sheet: 'left' },
+  hatchling: { x: 50, y: 55, w: 21, sheet: 'left' },
+  young: { x: 51.5, y: 77.8, w: 38, sheet: 'left' },
+  adult: { x: 44, y: 81.2, w: 40, sheet: 'right' },
+  illustre: { x: 44, y: 88.9, w: 44, sheet: 'right' },
   ancestral: { x: 44, y: 94, w: 47, sheet: 'right' },
 };
 
-/** The HUD's bottom edge in art % where it reaches lowest: 64 px (8 px padding, a 48 px row, 8 px)
- *  of a 1280x720 art box, 8.9 %. The dragon's head stays below it (the e2e measures the real HUD). */
-export const HUD_LINE = 9;
+/** The HUD's bottom edge in art % where it reaches lowest: 71.5 px (as the e2e measures `header.hud`:
+ *  8 px padding, its row, 8 px) of a 1280x720 art box, 9.9 %. The dragon's picture stays below it. */
+export const HUD_LINE = 10;
 /** The growth sheet's top, and its band on each side (art %, its rods included), inside the 4:3 safe
  *  zone and clear of the HUD. */
 export const SHEET_TOP = 18;
@@ -895,11 +898,11 @@ import type { DragonStage } from '../types';
 import type { EllipseShape } from '../../scene/types';
 
 export const NEST_SHAPES: Record<DragonStage, { dragon: EllipseShape }> = {
-  egg: { dragon: { kind: 'ellipse', cx: 50, cy: 51, rx: 6.5, ry: 10.5 } },
-  hatchling: { dragon: { kind: 'ellipse', cx: 50, cy: 50, rx: 8.5, ry: 15 } },
-  young: { dragon: { kind: 'ellipse', cx: 50, cy: 47, rx: 12, ry: 21 } },
-  adult: { dragon: { kind: 'ellipse', cx: 44, cy: 45, rx: 15, ry: 25 } },
-  illustre: { dragon: { kind: 'ellipse', cx: 44, cy: 43, rx: 17, ry: 27 } },
+  egg: { dragon: { kind: 'ellipse', cx: 50, cy: 40, rx: 7, ry: 14 } },
+  hatchling: { dragon: { kind: 'ellipse', cx: 50, cy: 36.5, rx: 9.5, ry: 18.5 } },
+  young: { dragon: { kind: 'ellipse', cx: 51.5, cy: 37, rx: 13, ry: 23 } },
+  adult: { dragon: { kind: 'ellipse', cx: 44, cy: 40, rx: 15, ry: 22 } },
+  illustre: { dragon: { kind: 'ellipse', cx: 44, cy: 42, rx: 17, ry: 24 } },
   ancestral: { dragon: { kind: 'ellipse', cx: 44, cy: 42.5, rx: 20, ry: 27.5 } },
 };
 ```
@@ -965,7 +968,7 @@ ancestral), from y 18.
 
 ```bash
 git add web/src/lib/world/scenes/nest.ts web/src/lib/world/scenes/nest.shapes.ts web/src/lib/world/scenes/nest.test.ts web/src/screens/Nest.svelte docs/art/scenes.md
-git commit -m "The nest grows with the dragon: one table of its place per stage (NEST_STAGES, the dragon from 12 % to 47 % of the width, tuned on the paintings), its hotspot per stage, the growth sheet at the right side of the frame from the adult stage; the landmarks of the six paintings in docs/art/scenes.md
+git commit -m "The nest grows with the dragon: one table of its place per stage (NEST_STAGES, the dragon from 16 % to 47 % of the width, tuned on the paintings), its hotspot per stage, the growth sheet at the right side of the frame from the adult stage; the landmarks of the six paintings in docs/art/scenes.md
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
@@ -978,39 +981,111 @@ In the task report, list the six final previews (`assets/art/web/nest_variants/t
 
 ### Task 5: End-to-end: each stage on its own painting, clear of the sheet and the HUD; the cold open; the camp's warm-up
 
+(This task is written as built, after its review: pre-flight ruling N1, controller ruling N3 and fix round 1.)
+
 **Files:**
-- Modify: `web/e2e/scenes-nest.spec.ts:2-14` (imports), `:143-186` (the six-stages test), new tests at the end
-- Modify: `web/e2e/scenes-preload.spec.ts`
+- Modify: `web/e2e/scenes-nest.spec.ts` (imports, the six-stages test, new tests), `web/e2e/scenes-preload.spec.ts`, `web/e2e/helpers.ts` (`watchNests`)
+- Create: `web/src/lib/world/scenes/nest.sprites.ts` (`SPRITE_TOP_MARGIN`)
+- Modify: `web/src/lib/world/scenes/nest.ts` (`HUD_LINE_SHORT`, `dragonHead`; young feet 77.8, illustre 88.9), `nest.test.ts`, `docs/art/scenes.md` (the young's and the illustre's Dragon spot rows)
 
 **Interfaces:**
 - Consumes: `data-side` on `nest-growth` (Task 4), `.art-bg` absent for an empty background (Task 3), `campScene` warm-up (Task 3); helpers `measureBoxes`, `expectInSafeZone`, `labelOverlaps`, `tap`, `expectScene`, `expectCamp`.
-- Produces: nothing new for other tasks.
+- Produces: `watchNests(page)` in `web/e2e/helpers.ts`; `HUD_LINE_SHORT`, `dragonHead(stage)` (nest.ts) and `SPRITE_TOP_MARGIN` (nest.sprites.ts).
 
-- [ ] **Step 1: The six stages on their own paintings**
+- [x] **Step 1: The six stages on their own paintings, and the head on the shortest art box**
 
-Add `labelOverlaps` to the helper imports. Replace the comment above `XP_AT` (lines 143-146) and the test `the nest shows each of the six stages, clear of its growth sheet and of the HUD` (lines 164-186) with:
+Ruling N3: the smallest supported art box is 640 px tall (a 1024x640 window). The HUD stays 71.5 px, 11.2 % of it, so the dragon's painted head (its picture's top plus the sprite's transparent rows) must clear 11.2 %. The young's feet move to 77.8 and the illustre's to 88.9 (the smallest values that clear; adult and ancestral clear by 1.1 and 1.6 px). At 640 px the heads measure egg 174.4, hatchling 118.9, young 71.9, adult 72.6, illustre 71.8, ancestral 73.1 px against the HUD's 71.5.
+
+`nest.sprites.ts`:
 
 ```ts
-// Spec 2026-09-29 dragon growth §3 and spec 2026-10-02 nest by stage: each of the six stages on its
-// own painting, with its name and what it is up to; the dragon and its growth sheet clear of each
-// other and of the HUD, the hotspot on the dragon. The stage is set by intercepting this hero's /camp
-// with an XP total that fits it (the real XP-driven growth is pinned by the server tests and
-// world.spec), so no impossible state (« 0 sur 100 XP » at the top) renders.
+// The dragon sprites' transparent margin above the head, apart from nest.ts so the e2e can import it
+// without the app's modules (web/e2e/scenes-nest.spec.ts checks it against the files themselves).
+import type { DragonStage } from '../types';
+
+/** Each stage's sprite (`art/dragon/dragon_<stage>_cut.webp`, 1024x1024): its transparent rows above
+ *  the head, as a fraction of its height. Measured with Pillow as the first row with a pixel whose
+ *  alpha is above 128 (egg row 61, hatchling 25, young 15, adult 18, illustre 7, ancestral 12); the
+ *  e2e (scenes-nest "short screen") measures the same row in the browser and fails, within one row,
+ *  when a new cut changes it. */
+export const SPRITE_TOP_MARGIN: Record<DragonStage, number> = {
+  egg: 61 / 1024,
+  hatchling: 25 / 1024,
+  young: 15 / 1024,
+  adult: 18 / 1024,
+  illustre: 7 / 1024,
+  ancestral: 12 / 1024,
+};
 ```
+
+`nest.ts` (after `HUD_LINE`, and after `dragonTop`):
+
+```ts
+/** The HUD's bottom edge in art % on the shortest art box the nest supports, 640 px tall (a 1024x640
+ *  window, controller ruling N3): the HUD stays 71.5 px, 11.2 % of it. The dragon's painted head
+ *  (its picture's top plus the sprite's transparent margin, nest.sprites.ts `SPRITE_TOP_MARGIN`)
+ *  stays below it. */
+export const HUD_LINE_SHORT = (71.5 / 640) * 100;
+
+/** The top of the dragon's painted head, art %: its picture's top plus the sprite's margin. */
+export function dragonHead(stage: DragonStage): number {
+  const { w } = NEST_STAGES[stage];
+  return dragonTop(stage) + SPRITE_TOP_MARGIN[stage] * ((w * 16) / 9);
+}
+```
+
+`nest.test.ts`, in the "seats the dragon" test after the `HUD_LINE` check:
+
+```ts
+      // Controller ruling N3: on the shortest art box (640 px) the HUD reaches 11.2 %; the painted
+      // head still clears it.
+      expect(dragonHead(s), `${s}: the painted head below the HUD on a 640 px art box`).toBeGreaterThanOrEqual(HUD_LINE_SHORT);
+```
+
+In `scenes-nest.spec.ts` add `labelOverlaps` and `watchNests` to the helper imports, `import type { Page } from '@playwright/test'` and `import { SPRITE_TOP_MARGIN } from '../src/lib/world/scenes/nest.sprites'`; the comment above `XP_AT` says each stage is on its own painting; replace the six-stages test with:
 
 ```ts
 const SHEET_RIGHT = new Set(['adult', 'illustre', 'ancestral']);
 
-test('the nest shows each of the six stages on its own painting, clear of its growth sheet and of the HUD', async ({ page, request }, testInfo) => {
-  const id = await createProfileApi(request, heroName(testInfo.project.name));
-  let stage: string = 'egg';
+/** Routes this hero's /camp to the stage `stage()` returns, with an XP total that fits it. */
+async function fakeStage(page: Page, id: number, stage: () => string) {
   await page.route(`**/api/profiles/${id}/camp`, async (route) => {
     const res = await route.fetch();
     const camp = await res.json();
-    camp.dragon = { ...camp.dragon, stage, name: stage === 'egg' ? null : 'Braise' };
-    camp.xp = { ...camp.xp, ...XP_AT[stage] };
+    const s = stage();
+    camp.dragon = { ...camp.dragon, stage: s, name: s === 'egg' ? null : 'Braise' };
+    camp.xp = { ...camp.xp, ...XP_AT[s] };
     await route.fulfill({ response: res, json: camp });
   });
+}
+
+/** The top of the dragon's painted body (its first row at least half opaque: `row` of the sprite's
+ *  `rows`) and the HUD's bottom edge, in viewport px: the sprite's transparent margin above the head
+ *  may pass under the HUD. The rows come from the stage's sprite file itself and the box from the
+ *  layer's wrapper (the same square box), so a living dragon's canvas in the layer changes nothing. */
+async function headAndHud(page: Page, stage: string): Promise<{ head: number; hud: number; art: number; row: number; rows: number }> {
+  return page.evaluate(async (s) => {
+    const img = new Image();
+    img.src = `/art/dragon/dragon_${s}_cut.webp`;
+    await img.decode();
+    const c = document.createElement('canvas');
+    [c.width, c.height] = [img.naturalWidth, img.naturalHeight];
+    const g = c.getContext('2d')!;
+    g.drawImage(img, 0, 0);
+    const a = g.getImageData(0, 0, c.width, c.height).data;
+    let row = 0;
+    find: for (; row < c.height; row++) for (let x = 0; x < c.width; x++) if (a[(row * c.width + x) * 4 + 3] > 128) break find;
+    const r = document.querySelector('[data-testid="nest-dragon-layer"]')!.getBoundingClientRect();
+    const hud = document.querySelector('header.hud')!.getBoundingClientRect();
+    const art = document.querySelector('[data-testid="scene-nest"] .art')!.getBoundingClientRect();
+    return { head: r.top + (row / c.height) * r.height, hud: hud.bottom, art: art.height, row, rows: c.height };
+  }, stage);
+}
+
+test('the nest shows each of the six stages on its own painting, clear of its growth sheet and of the HUD', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let stage: string = 'egg';
+  await fakeStage(page, id, () => stage);
   for (const [key, label, activity] of STAGES) {
     stage = key;
     await page.goto(`/#/p/${id}/dragon?debug`);
@@ -1060,11 +1135,60 @@ test('the nest shows each of the six stages on its own painting, clear of its gr
   await tap(page.getByTestId('nest-dragon'), testInfo);
   await expect(page.getByTestId('overlay-care')).toBeVisible();
 });
+
+// Task 4 review and controller ruling N3: the HUD is a fixed 71.5 px, so on a short screen it reaches
+// lower in the art (11.2 % of a 640 px art box against 9.9 % of a 720 px one). A 1024x640 window (a
+// small laptop's browser) is the shortest art box the nest supports: the dragon's painted head still
+// clears the HUD there (nest.ts HUD_LINE_SHORT, nest.sprites.ts SPRITE_TOP_MARGIN).
+test("the dragon's head clears the HUD on a short screen (1024x640)", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let stage: string = 'egg';
+  await fakeStage(page, id, () => stage);
+  await page.setViewportSize({ width: 1024, height: 640 });
+  const seen: { key: (typeof STAGES)[number][0]; head: number; hud: number; art: number; row: number; rows: number }[] = [];
+  for (const [key, label] of STAGES) {
+    stage = key;
+    await page.goto(`/#/p/${id}/dragon?debug`);
+    await page.reload();
+    await expectScene(page, 'nest');
+    await expect(page.getByTestId('dragon-stage')).toHaveText(label);
+    seen.push({ key, ...(await headAndHud(page, key)) });
+  }
+  const said = seen.map((m) => `${m.key}: head ${m.head.toFixed(1)} px, HUD bottom ${m.hud.toFixed(1)} px, art ${m.art.toFixed(0)} px tall`).join('; ');
+  testInfo.annotations.push({ type: 'measures', description: said });
+  for (const m of seen) {
+    // nest.sprites.ts SPRITE_TOP_MARGIN (the unit rule's margin) is the sprite file's own, within a row.
+    expect(Math.abs(m.row - SPRITE_TOP_MARGIN[m.key] * m.rows), `${m.key}: SPRITE_TOP_MARGIN matches the sprite (row ${m.row} of ${m.rows})`).toBeLessThanOrEqual(1);
+    // No tolerance on purpose: the young and the illustre clear the HUD by 0.3-0.4 px at 640 px, so
+    // the usual 2 px slack would let a head under the HUD pass.
+    expect(m.head, `${m.key}: the painted head below the HUD (${said})`).toBeGreaterThanOrEqual(m.hud);
+  }
+});
 ```
 
-- [ ] **Step 2: The cold open of a grown dragon's nest (Review Focus 1)**
+- [x] **Step 2: The cold open of a grown dragon's nest (Review Focus 1)**
 
-Append to `scenes-nest.spec.ts`:
+In `web/e2e/helpers.ts`:
+
+```ts
+// Spec 2026-10-02 nest by stage: every nest painting the page asks for (`nest_<stage>`, one entry per
+// request: the server sends no-store, so a painting fetched twice shows twice), and those still on
+// their way. Install before the navigation; wait for `pending` to empty before reading `fetched`.
+export function watchNests(page: Page): { fetched: string[]; pending: Set<Request> } {
+  const out = { fetched: [] as string[], pending: new Set<Request>() };
+  page.on('request', (r) => {
+    const m = r.url().match(/\/art\/scenes\/(nest\w*)\.webp$/)?.[1];
+    if (!m) return;
+    out.fetched.push(m);
+    out.pending.add(r);
+  });
+  page.on('requestfinished', (r) => out.pending.delete(r));
+  page.on('requestfailed', (r) => out.pending.delete(r));
+  return out;
+}
+```
+
+Appended to `scenes-nest.spec.ts` (ruling N1: wait for the scene to settle, then compare the whole list, one entry per request, so a double fetch fails too):
 
 ```ts
 test("a grown dragon's nest opened cold shows no other stage's painting while /camp is on its way (spec 2026-10-02 nest by stage)", async ({ page, request }, testInfo) => {
@@ -1079,25 +1203,26 @@ test("a grown dragon's nest opened cold shows no other stage's painting while /c
     await held;
     await route.fulfill({ response: res, json: camp });
   });
-  const nests: string[] = [];
-  page.on('request', (r) => {
-    const m = r.url().match(/\/art\/scenes\/(nest\w*)\.webp$/);
-    if (m) nests.push(m[1]);
-  });
+  const nests = watchNests(page);
   await page.goto(`/#/p/${id}/dragon?debug`);
   await expectScene(page, 'nest');
   await expect(page.getByTestId('place-status')).toBeVisible();
   await expect(page.locator('[data-testid="scene-nest"] .art-bg')).toHaveCount(0);
   release();
-  await expect(page.locator('[data-testid="scene-nest"] .art-bg')).toHaveAttribute('src', '/art/scenes/nest_adult.webp');
+  const bg = page.locator('[data-testid="scene-nest"] .art-bg');
+  await expect(bg).toHaveAttribute('src', '/art/scenes/nest_adult.webp');
   await expect(page.getByTestId('nest-dragon')).toBeVisible();
-  expect([...new Set(nests)]).toEqual(['nest_adult']);
+  // Pre-flight N1: once the painting is decoded and no nest painting is still on its way, the whole
+  // list of nest paintings fetched is the adult's alone (not a wait for a first match).
+  await bg.evaluate((img: HTMLImageElement) => img.decode());
+  await expect.poll(() => nests.pending.size).toBe(0);
+  expect(nests.fetched).toEqual(['nest_adult']);
 });
 ```
 
-- [ ] **Step 3: The camp warms the stage's nest, even late (Review Focus 2)**
+- [x] **Step 3: The camp warms the stage's nest, even late (Review Focus 2)**
 
-Append to `web/e2e/scenes-preload.spec.ts`:
+Appended to `web/e2e/scenes-preload.spec.ts` (with `watchNests` imported from `./helpers`):
 
 ```ts
 test("the camp warms the nest painting of the dragon's stage, even when /camp arrives after the warm-up timer (spec 2026-10-02 nest by stage)", async ({ page, request }, testInfo) => {
@@ -1110,34 +1235,27 @@ test("the camp warms the nest painting of the dragon's stage, even when /camp ar
     await new Promise((r) => setTimeout(r, 1500)); // after SceneStage's 800 ms warm-up timer
     await route.fulfill({ response: res, json: camp });
   });
-  const nests: string[] = [];
-  page.on('request', (r) => {
-    const m = r.url().match(/\/art\/scenes\/(nest\w*)\.webp$/);
-    if (m) nests.push(m[1]);
-  });
+  const nests = watchNests(page);
   await page.goto(`/#/p/${id}/camp`);
   await expectCamp(page);
-  await expect.poll(() => [...new Set(nests)]).toEqual(['nest_illustre']);
+  // The stage's nest is warmed; once it has arrived and no nest painting is still on its way, the
+  // whole list is that one (no stale nest.webp, no other stage), not a wait for a first match.
+  await expect.poll(() => nests.fetched.includes('nest_illustre')).toBe(true);
+  await expect.poll(() => nests.pending.size).toBe(0);
+  expect(nests.fetched).toEqual(['nest_illustre']);
 });
 ```
 
-- [ ] **Step 4: Run the nest, preload and neighbouring specs**
+- [x] **Step 4: Run the nest, preload and neighbouring specs**
 
 Run (background): `PW_WORKERS=1 STACK=nest scripts/playwright.sh scenes-nest scenes-preload scenes-camp scenes-parure scenes-tours scenes-parity > C:/Users/nicol/.claude/jobs/9ac9a508/tmp/nest-e2e.log 2>&1`
 Expected: every test PASS on desktop and ipad. A failing geometry check means a value of Task 4 is off: fix the value (and its unit test still passes), never loosen the check. A failure in a neighbouring spec (camp music, tours, parure) is ours too: fix it.
 
-- [ ] **Step 5: Run the unit tests and the type check once more**
+- [x] **Step 5: Run the unit tests and the type check once more**
 
 Run both (background). Expected: PASS, 0 errors, 0 warnings.
 
-- [ ] **Step 6: Commit**
-
-```bash
-git add web/e2e/scenes-nest.spec.ts web/e2e/scenes-preload.spec.ts
-git commit -m "e2e: each of the six stages on its own nest painting, the dragon, its hotspot and the growth sheet clear of each other and of the HUD (also on a 4:3 iPad), a tap on the ancestral opens its care; a grown dragon's nest opened cold never shows another stage's painting; the camp warms the stage's nest even when /camp arrives late
-
-Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
-```
+- [x] **Step 6: Commit**
 
 ---
 

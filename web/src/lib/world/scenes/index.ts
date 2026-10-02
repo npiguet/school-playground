@@ -15,3 +15,6 @@ export const SCENES: SceneDef[] = [CAMP_SCENE, TITLE_SCENE, LIBRARY_SCENE, DELPH
 
 /** Spec 2026-09-29 drachmes §3: the cabin place's two other rooms (SCENES keeps the seven places). */
 export const HOUSE_SCENES: SceneDef[] = [VILLA_SCENE, PALAIS_SCENE];
+
+/** Spec 2026-10-02 nest by stage: the nest place painted for each stage (SCENES keeps the egg's). */
+export { NEST_STAGE_SCENES } from './nest';

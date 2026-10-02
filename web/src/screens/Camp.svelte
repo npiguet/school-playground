@@ -20,7 +20,7 @@
   import StallPanel from '../components/places/camp/StallPanel.svelte';
   import { sayKey } from '../lib/dialogue/select';
   import type { ItemKind } from '../lib/world/shop';
-  import { CAMP_SCENE, bossLockLine, campDragonLayer, campGreeting, weeklyCaption } from '../lib/world/scenes/camp';
+  import { CAMP_SCENE, bossLockLine, campDragonLayer, campGreeting, campScene, weeklyCaption } from '../lib/world/scenes/camp';
   import { dragonSays } from '../lib/world/scenes/speakers';
   import { campFor } from '../lib/world/campStore.svelte';
   import { dragonRevealFor, markDragonSeen, type CampReveal } from '../lib/world/dragonSeen.svelte';
@@ -49,6 +49,8 @@
   // SceneStage owns the ?debug flag and hands it back through PlaceScene.
   let debug = $state(false);
   let place: PlaceScene | undefined = $state();
+  // Spec 2026-10-02 nest by stage: the camp warms the nest painting of the dragon's stage.
+  const scene = $derived(campScene(campFor(profile.id)?.dragon.stage ?? null));
 
   // Final review I3: what the camp would reveal of the dragon now (null once seen), and the reveal on
   // show. It waits for the camp tour and any open overlay (one modal at a time), and never opens under
@@ -154,7 +156,7 @@
   });
 </script>
 
-<PlaceScene bind:this={place} {profile} scene={CAMP_SCENE} bind:debug showExit={false} {greet} onHero={openHero}>
+<PlaceScene bind:this={place} {profile} {scene} bind:debug showExit={false} {greet} onHero={openHero}>
   {#snippet children(ctx)}
     {#if ctx.camp}
       <SceneLayer
