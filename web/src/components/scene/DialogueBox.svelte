@@ -8,6 +8,7 @@
   import { DIALOGUE_DOCK } from '../../lib/scene/geometry';
   import { advance, typedLength } from '../../lib/scene/typewriter';
   import type { DialogueLine } from '../../lib/scene/types';
+  import { tintedDragon } from '../../lib/living/stillTint';
   import Icon from '../ui/Icon.svelte';
 
   let {
@@ -92,7 +93,7 @@
     class:fill={dock === 'fill'}
     style={dock === 'art' ? `left:${DIALOGUE_DOCK.x}%;width:${DIALOGUE_DOCK.w}%;max-height:${DIALOGUE_DOCK.h - 2}%` : undefined}
   >
-    <img class="portrait" src={line.portrait} alt="" style="filter:{line.portraitFilter ?? 'none'}" />
+    <img class="portrait" use:tintedDragon={{ src: line.portrait, tint: line.portraitTint ?? null }} alt="" />
     <button
       type="button"
       class="advance"

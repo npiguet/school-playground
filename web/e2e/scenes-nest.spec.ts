@@ -16,6 +16,7 @@ import {
   labelOverlaps,
   watchNests,
 } from './helpers';
+import { dragonSrc, dragonTint, settledDragon, webgl2Available } from './dragon';
 
 // UI3b Task 4 (scenes spec §3 Dragon's nest, §10). desktop + ipad.
 
@@ -61,9 +62,9 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(care.getByTestId('dragon-tint-how')).toHaveText("Les autres teintes se gagnent dans les quêtes de l'Oracle.");
   await expect(care.getByTestId('dragon-tint-ecume')).toHaveAccessibleName(/Écume.*quêtes de l'Oracle/);
   await expect(care.getByTestId('dragon-tint-ecume').locator('img[src="/art/icons/lock.webp"]')).toBeVisible();
-  // Fix round 1: the tint filters the egg picture only. Nothing around it is filtered, so the ring
-  // keeps its own colour (a filtered ring turned violet, Éris's colour) and the lock stays readable;
-  // a locked egg is grey, never tinted.
+  // Fix round 1: the tint is painted on the egg picture itself (OKLCH, use:tintedDragon), and only a
+  // locked egg carries a CSS filter, its grey. Nothing around the egg is filtered, so the ring keeps
+  // its own colour (a filtered ring turned violet, Éris's colour) and the lock stays readable.
   const token = (name: string) =>
     page.evaluate((n) => {
       const probe = document.createElement('span');
@@ -87,6 +88,7 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-circle')).toHaveCSS('border-top-color', await token('--ink-soft'));
   await expect(care.getByTestId('dragon-tint-ecume').locator('.lock')).toHaveCSS('filter', 'none');
   await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveCSS('filter', /grayscale\(1\)/);
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveAttribute('data-tint', 'bronze');
   await expect(care.getByTestId('dragon-tint-bronze').locator('.swatch-egg')).toHaveCSS('filter', 'none');
   await closeOverlay(page);
   await expect(page.getByTestId('nest-dragon')).toBeFocused();
@@ -112,6 +114,11 @@ test('a name being typed survives a tint tapped (a new camp snapshot) (final rev
   await care.getByTestId('dragon-tint-ecume').click();
   await expect(care.getByTestId('dragon-tint-ecume')).toHaveClass(/selected/);
   await expect(input).toHaveValue('Aile');
+  // The tinted still pictures (living-dragon final review): the won écume swatch's egg and the HUD's
+  // dragon are painted in écume once their tinted copy is made (`bronze` meanwhile: polled).
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveAttribute('data-tint', 'ecume');
+  await expect(page.getByTestId('hud-dragon').locator('img')).toHaveAttribute('data-tint', 'ecume');
+  await expect.poll(() => dragonTint(page.getByTestId('nest-dragon-layer'))).toBe('ecume');
   expect(await redScan(page)).toEqual([]);
 });
 
@@ -213,7 +220,8 @@ test('the nest shows each of the six stages on its own painting, clear of its gr
     await page.reload();
     await expectScene(page, 'nest');
     await expect(page.locator('[data-testid="scene-nest"] .art-bg')).toHaveAttribute('src', `/art/scenes/nest_${key}.webp`);
-    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', `/art/dragon/dragon_${key}_cut.webp`);
+    // dragonSrc: the picture asked for, whether the layer holds the still picture or a living canvas.
+    await expect.poll(() => dragonSrc(page.getByTestId('nest-dragon-layer'))).toBe(`/art/dragon/dragon_${key}_cut.webp`);
     await expect(page.getByTestId('dragon-stage')).toHaveText(label);
     await expect(page.getByTestId('nest-growth')).toContainText(activity);
     const right = SHEET_RIGHT.has(key);
@@ -338,4 +346,32 @@ test("a grown dragon's nest opened cold shows no other stage's painting while /c
   await bg.evaluate((img: HTMLImageElement) => img.decode());
   await expect.poll(() => nests.pending.size).toBe(0);
   expect(nests.fetched).toEqual(['nest_adult']);
+});
+
+// Spec 2026-10-02 living dragon: where the browser offers WebGL2 the hatched dragon lives on a canvas;
+// where it does not, it keeps the still picture. The egg never lives. living-dragon.spec.ts proves the
+// canvas itself on Chromium.
+test('a hatched dragon lives where the browser has WebGL2; the egg is always the still picture', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let stage = 'adult';
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage, name: stage === 'egg' ? null : 'Braise' };
+    await route.fulfill({ response: res, json: camp });
+  });
+  await page.goto(`/#/p/${id}/dragon`);
+  await expectScene(page, 'nest');
+  const layer = page.getByTestId('nest-dragon-layer');
+  const gl = await webgl2Available(page);
+  testInfo.annotations.push({ type: 'webgl2', description: String(gl) });
+  expect(await settledDragon(layer)).toBe(gl ? 'living' : 'still');
+  await expect(layer.locator('.dragon-base')).toHaveCount(1);
+  await expect(layer.getByRole('img', { name: 'Braise', exact: true })).toBeVisible();
+  stage = 'egg';
+  await page.reload();
+  await expectScene(page, 'nest');
+  expect(await settledDragon(layer)).toBe('still');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(layer.locator('canvas')).toHaveCount(0);
 });

@@ -1,6 +1,7 @@
 # The living dragon (design)
 
-Date: 2026-10-02. Status: spike approved by the user (watched live), awaiting the written review.
+Date: 2026-10-02. Status: approved by the user (spike watched live, written review done) and implemented on the
+living-dragon branch.
 Spike: `C:\Users\nicol\.claude\jobs\9ac9a508\tmp\spike-living` (FINDINGS.md, index.html, rig.json,
 tools/make_weights.py); throwaway, to be ported, not copied wholesale.
 
@@ -17,7 +18,8 @@ small wing lift, a tail swish, a breathing chest.
 - Amplitude: **1.5x the spike's 1x** (head about 2.25 + 0.75 deg, wings about 2.4-2.7 deg, tail about
   3.6 + 0.9 deg, chest +2.4 % wide / +1.2 % tall, lift 3.6 px on the 1024 frame).
 - The worn pieces move with the dragon as rigid passengers (no stretching, the saddle included).
-- The tint looks exactly as today and never recolours the pieces.
+- The tint is the user's OKLCH presets at full strength (chosen 2026-10-02 in the lab, plan Ruling
+  L9), the same on the living dragon and on every still picture, and never recolours the pieces.
 - The egg, reduced motion, no WebGL2, a lost context or a failed shader: today's still picture
   (DragonFigure's markup), unchanged.
 
@@ -34,8 +36,15 @@ small wing lift, a tail swish, a breathing chest.
   the spike). Each rig is checked on its debug overlay.
 - **Pieces:** composited into a second texture in `DRAW_ORDER`; each piece is skinned rigidly with the
   dragon's weights at its anchor point.
-- **Tint:** `TINT_FILTERS` stay the single source; their CSS functions become colour matrices in the
-  fragment shader, on the dragon texture only.
+- **Tint** (plan Ruling L9, 2026-10-02: the user preferred OKLCH to the CSS filters, "It looks more
+  natural than the CSS shift"): `TINT_SPECS` (`web/src/lib/world/dragon.ts`, an OKLCH hue shift, chroma
+  and lightness factors per tint, strength 1; bronze none) is the single source. The fragment shader
+  tints the dragon texture only with the steps of the CPU reference (`web/src/lib/living/tint.ts`);
+  every still picture of the dragon (DragonFigure, the HUD and dialogue portraits, the swatch eggs) is
+  tinted once on a canvas with that same reference (`use:tintedDragon`,
+  `web/src/lib/living/stillTint.ts`), so the canvas and the still picture match. `LivingDragon` takes
+  the tint's name (`tint: Tint`) and shows it in `data-tint`; a still picture's `img` carries
+  `data-src` and `data-tint` too. The CSS filters (`TINT_FILTERS`) and their colour matrices are gone.
 - **Component:** `LivingDragon` replaces the base `<img>` inside `DragonFigure` for the nest and
   camp layers, keeps the box, sizing and `.dragon-figure` wrapper (mood animations still apply);
   `role="img"` and the alt as `aria-label`; the worn pieces listed in a data attribute for tests.
@@ -47,7 +56,9 @@ small wing lift, a tail swish, a breathing chest.
 
 ## Tests
 
-- Unit: the tint matrices match the CSS functions; each rig bakes; pinned feet get zero weight; a
+- Unit: the presets are exact; the still tint equals the CPU reference; no preset turns the
+  dragon's colours into Éris's violet (OKLCH hue band, a chroma under 0.04 read as grey; the known
+  exceptions were accepted by the user on 2026-10-02); each rig bakes; pinned feet get zero weight; a
   piece's weights are rigid.
 - e2e: the nest and camp render a canvas for a hatched dragon and the still picture for the egg,
   under reduced motion and with WebGL2 disabled; the worn pieces are listed; two frames differ over
@@ -59,7 +70,12 @@ small wing lift, a tail swish, a breathing chest.
 Big flaps or a true head turn (they need the art split into parts); the battle combatants; the camp
 dragon's size (later).
 
-## Open item noticed
+## Open item noticed (resolved)
 
-The « écume » tint (`hue-rotate(190deg) saturate(.9)`) gives a blue leaning towards periwinkle; it is
-outside the violet band the tests guard (violet is Éris's) but worth a look by eye.
+Resolved on 2026-10-02: the user chose the OKLCH presets now in `TINT_SPECS` by eye, écume
+included, and accepted the violet guard's known exceptions listed below.
+
+The « écume » tint (first `hue-rotate(190deg) saturate(.9)`, now OKLCH shift 165, chroma 0.9) gives a
+blue leaning towards periwinkle; its body colours are outside the violet band the tests guard (violet
+is Éris's) but worth a look by eye, with the known exceptions of the violet guard (braise's darkest
+shadows, the blue-green highlights under jade, olivier and écume).

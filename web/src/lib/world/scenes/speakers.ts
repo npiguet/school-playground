@@ -2,7 +2,6 @@
 // tinted cut-out as the dialogue portrait (carry rec. 7: the same image as its scene layer). Used by
 // the camp's greeting, the war tent's locked sheets, the hub's locked path and the nest.
 import { ART } from '../art';
-import { TINT_FILTERS } from '../dragon';
 import type { DragonOut } from '../types';
 import type { DialogueLine } from '../../scene/types';
 
@@ -14,7 +13,7 @@ export function dragonSpeaker(d: DragonLook): Omit<DialogueLine, 'text'> {
     speaker: 'dragon',
     name: d.name ?? (d.stage === 'egg' ? "L'œuf" : 'Ton dragon'),
     portrait: ART.dragon[d.stage],
-    portraitFilter: TINT_FILTERS[d.tint],
+    portraitTint: d.tint,
   };
 }
 

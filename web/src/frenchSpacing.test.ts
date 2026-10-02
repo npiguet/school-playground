@@ -29,6 +29,8 @@ const EXCLUDE: Record<string, string> = {
   // URL templates (`#/p/${id}/…?…`) and storage keys (`${hero}:${place}`).
   'src/lib/routes.ts': 'URLs',
   'src/lib/tours/seen.svelte.ts': 'storage keys',
+  // The living dragon's GLSL shaders (`a ? b : c;` everywhere) and English WebGL diagnostics, never shown.
+  'src/lib/living/renderer.ts': 'GLSL sources',
 };
 
 const BAD_SPACE = /[ \u00a0][:;!?»]|«[ \u00a0]/g;

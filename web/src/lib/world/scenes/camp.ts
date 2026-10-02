@@ -170,7 +170,8 @@ const WIDTH: Record<DragonStage, number> = { egg: 6, hatchling: 7, young: 8, adu
 
 /** The dragon's cut-out seated in the painted nest (carry rec. 7, immersion Deferred #23:
  *  docs/art/scenes.md ≈ (17, 50), feet on the straw at y 55). Depth 0 and no idle: it sits still in
- *  its place's box, as a parallax or a breath read as floating (playtest 2026-10-02). */
+ *  its place's box, as a parallax or a breath read as floating (playtest 2026-10-02); the hatched
+ *  dragon moves on its own instead (LivingDragon, spec 2026-10-02 living dragon). */
 export function campDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 'src' | 'alt'> {
   return { x: 17, y: 55, scale: WIDTH[stage], depth: 0, idle: 'none' };
 }

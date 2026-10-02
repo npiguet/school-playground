@@ -28,9 +28,10 @@
   import { whatNext } from '../lib/world/nextStep';
   import { overlayState } from '../lib/scene/overlayState.svelte';
   import { VICTORY } from '../lib/battle/lines';
-  import { TINT_FILTERS, dragonCaption } from '../lib/world/dragon';
+  import { dragonCaption } from '../lib/world/dragon';
   import { ART } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
+  import { livingStage } from '../lib/living/stages';
   import type { CampResponse } from '../lib/world/types';
   import type { DialogueLine, HotspotDef, SceneLayerDef } from '../lib/scene/types';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
@@ -160,8 +161,9 @@
     {#if ctx.camp}
       <SceneLayer
         layer={dragonLayer(ctx.camp)}
-        filter={TINT_FILTERS[ctx.camp.dragon.tint]}
+        tint={ctx.camp.dragon.tint}
         overlays={accessoryLayers(ctx.camp.dragon.worn, ctx.camp.dragon.stage)}
+        living={livingStage(ctx.camp.dragon.stage)}
         testId="camp-dragon-layer"
       />
     {/if}

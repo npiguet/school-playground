@@ -1,31 +1,35 @@
-// The dragon companion: tints (CSS filters on the same cut image, decision 11 - never a new
+// The dragon companion: tints (OKLCH settings for the same cut image, decision 11 - never a new
 // generation), stage labels/camp speech lines and name validation. Pure functions/data only, no
 // DOM/store access, so `Dragon.svelte`, the nest and its care panel, the trophy shelf and
 // the victory's spoils (`battle/VictorySpoils.svelte`) all share the same wording and this file stays trivially testable.
 import { DRAGON_STAGES, type DragonOut, type DragonStage, type Progression, type Tint } from './types';
+import type { OklchSpec } from '../living/tint';
 
 export type Mood = 'idle' | 'happy' | 'sleepy';
 
 // Violet is reserved for Éris (decision 11) - never offered as a dragon tint. `bronze` is the
-// unlockable-by-default original colour (`none`); the other five are earned via Oracle quests
-// (`ORACLE_REWARDS` in `server/app/world/catalog.py`), in this exact order.
-export const TINT_FILTERS: Record<Tint, string> = {
-  bronze: 'none',
-  ecume: 'hue-rotate(190deg) saturate(.9)',
-  olivier: 'hue-rotate(70deg) saturate(.8)',
-  braise: 'hue-rotate(-25deg) saturate(1.3)',
-  jade: 'hue-rotate(120deg) saturate(.9)',
-  argent: 'saturate(0) brightness(1.15)',
+// unlockable-by-default original colour (no tint: null); the other five are earned via Oracle quests
+// (`ORACLE_REWARDS` in `server/app/world/catalog.py`), in this exact order. Each recolours the same cut
+// picture (decision 11 - never a new generation) in OKLCH, at full strength (living/tint.ts): the
+// user's choice of 2026-10-02 after comparing the methods in the lab ("I'm OK with keeping the OKLCH
+// variations, with strength at 100%. It looks more natural than the CSS shift."), with Argent at shift
+// -166, chroma 0.52, lightness 1.36, Olivier at 50 and Écume at 165; Braise and Jade keep the panel's
+// starting values (the hue the old CSS filter gave the bronze), which the user left as they were.
+export const TINT_SPECS: Record<Tint, OklchSpec | null> = {
+  bronze: null,
+  ecume: { shift: 165, chroma: 0.9, lightness: 1 },
+  olivier: { shift: 50, chroma: 0.8, lightness: 1 },
+  braise: { shift: -33, chroma: 1.3, lightness: 1 },
+  jade: { shift: 101, chroma: 0.9, lightness: 1 },
+  argent: { shift: -166, chroma: 0.52, lightness: 1.36 },
 };
 
-/** The filter of a tint's egg picture (the care panel's swatches, the trophy shelf's tint cubbies):
- *  its tint once won, greyed while locked. Applied to the egg's `<img>` only, never to the swatch
- *  around it: the gold ring and the painted lock keep their own colours (fix round 1: a filtered
- *  ring turned violet, Éris's colour, and a tinted lock was barely readable). */
+/** The CSS filter of a locked tint's egg picture (the care panel's swatches, the trophy shelf's tint
+ *  cubbies): grey, never tinted; a won tint's egg is tinted like the dragon (TINT_SPECS). Applied to
+ *  the egg's `<img>` only, never to the swatch around it: the gold ring and the painted lock keep their
+ *  own colours (fix round 1: a filtered ring turned violet, Éris's colour, and a tinted lock was barely
+ *  readable). */
 export const LOCKED_EGG_FILTER = 'grayscale(1) opacity(0.55)';
-export function eggFilter(tint: Tint, unlocked: boolean): string {
-  return unlocked ? TINT_FILTERS[tint] : LOCKED_EGG_FILTER;
-}
 
 /** Flat colour swatches for the tint rewards (UI3 Ruling A12): a tint is a colour, not an object.
  *  Braise is an ember orange, never a red. */

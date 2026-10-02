@@ -1,6 +1,7 @@
 .git
 **/node_modules
 web/dist
+web/dist-lab
 web/test-results
 web/playwright-report
 data

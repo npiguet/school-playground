@@ -12,7 +12,7 @@
   import LaurelBar from '../ui/LaurelBar.svelte';
   import SoundPlate from './SoundPlate.svelte';
   import { ART, MARK_ICONS } from '../../lib/world/art';
-  import { TINT_FILTERS } from '../../lib/world/dragon';
+  import { tintedDragon } from '../../lib/living/stillTint';
   import { hudDrachmes, hudXp } from '../../lib/scene/hud';
   import { href } from '../../lib/routes';
   import type { CampResponse } from '../../lib/world/types';
@@ -71,7 +71,7 @@
         href={href('dragon', { profileId: String(profile.id) })}
         aria-label="Ton dragon"
       >
-        <img src={ART.dragon[camp.dragon.stage]} alt="" style="filter:{TINT_FILTERS[camp.dragon.tint]}" />
+        <img use:tintedDragon={{ src: ART.dragon[camp.dragon.stage], tint: camp.dragon.tint }} alt="" />
       </a>
     {/if}
     <!-- Playability #9: a bronze lyre (struck through when music and effects are muted), not an emoji. -->

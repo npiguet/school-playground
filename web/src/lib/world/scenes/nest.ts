@@ -99,9 +99,10 @@ export function dragonHead(stage: DragonStage): number {
   return dragonTop(stage) + SPRITE_TOP_MARGIN[stage] * ((w * 16) / 9);
 }
 
-/** The dragon's cut-out on its stage's painting. Depth 0 and no idle: it sits still on its painting,
- *  as a parallax or a breath read as floating (playtest 2026-10-02). The living dragon (spec
- *  2026-10-02 living dragon) renders inside this same box. */
+/** The dragon's cut-out on its stage's painting. Depth 0 and no idle: the box never drifts, as a
+ *  parallax or a breath read as floating (playtest 2026-10-02). A hatched dragon moves on its own
+ *  inside this same box (LivingDragon, spec 2026-10-02 living dragon); the egg, and any dragon under
+ *  reduced motion or without WebGL2, stays still. */
 export function nestDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 'src' | 'alt'> {
   const { x, y, w } = NEST_STAGES[stage];
   return { x, y, scale: w, depth: 0, idle: 'none' };
