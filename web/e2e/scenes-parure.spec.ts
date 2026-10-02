@@ -161,3 +161,33 @@ test('a refused change of piece puts the previous one back and says why', async 
   await expect(layer.locator('img.dragon-overlay[data-item="hydre-cou"]')).toHaveCount(1);
   await expect(layer.locator('img.dragon-overlay[data-item="sirenes-cou"]')).toHaveCount(0);
 });
+
+// SP4 Task 8: the pieces owned could not be read. The parure never guesses « nothing owned » (it would
+// send to Hermès a hero who owns a collar): it says so, and « Réessayer » brings the pieces.
+test('the parure could not read the pieces owned: it says so, and « Réessayer » brings them', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const piece = { id: 'accessory:hydre-cou', kind: 'accessory', name: "Collier d'écailles vertes", desc: '', source: 'stall', granted_at: '2026-08-03T10:00:00', equipped: false };
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage: 'adult', name: 'Braise', worn: [] };
+    await route.fulfill({ response: res, json: camp });
+  });
+  let calls = 0;
+  await page.route(`**/api/profiles/${id}/rewards`, async (route) => {
+    calls += 1;
+    if (calls === 1) await route.abort('failed');
+    else await route.fulfill({ json: [piece] });
+  });
+  await page.goto(`/#/p/${id}/dragon?panel=soin`);
+  const care = page.getByTestId('overlay-care');
+  await expect(care.getByTestId('parure-error')).toHaveText('Une erreur est survenue.');
+  await expect(care.getByTestId('dragon-parure-how')).toHaveCount(0);
+  await tap(care.getByTestId('parure-retry'), testInfo);
+  await expect(care.getByTestId('parure-hydre-cou')).toContainText("Collier d'écailles vertes");
+  await expect(care.getByTestId('parure-error')).toHaveCount(0);
+  await expect(care.getByTestId('parure-retry')).toHaveCount(0);
+  await expect(care.getByTestId('dragon-parure-how')).toHaveCount(0);
+  expect(calls).toBe(2);
+  await expect(care.getByTestId('parure-cou-rien')).toBeFocused();
+});

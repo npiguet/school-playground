@@ -10,7 +10,7 @@
   import { ART, MARK_ICONS } from '../../../lib/world/art';
   import { SLOTS, SLOT_NAMES, accessoryPicture, wears, wornAfter } from '../../../lib/world/accessories';
   import { worldApi } from '../../../lib/world/api';
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { campFor, campStore, refreshCamp, replaceCamp } from '../../../lib/world/campStore.svelte';
   import { useToast } from '../../../lib/ui/toast.svelte';
   import { TINT_NAMES, eggFilter, validName } from '../../../lib/world/dragon';
@@ -95,11 +95,32 @@
   }
 
   // The pieces owned, fetched once per hero (R20); the worn ones come with the camp (`dragon.worn`).
+  // A failed load never guesses « nothing owned » (it would send to Hermès a hero who owns a collar,
+  // and hide the piece worn): the rows wait, the error says why, « Réessayer » asks again (as the stall).
   let owned = $state<RewardOut[] | null>(null);
+  let ownedError = $state('');
+  let parureRows = $state<HTMLElement | undefined>();
+  async function loadOwned(id: number) {
+    try {
+      const list = await worldApi.rewards(id);
+      if (id === profile.id) owned = list;
+    } catch (e) {
+      if (id === profile.id) ownedError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
+    }
+  }
+  // The button is gone once pressed: the focus goes to « Réessayer » again if it still fails, else to
+  // the first slot's « Rien », never to the page.
+  async function retryOwned() {
+    ownedError = '';
+    await loadOwned(profile.id);
+    await tick();
+    parureRows?.querySelector<HTMLElement>('[data-testid="parure-retry"], [role="radio"]')?.focus();
+  }
   $effect(() => {
     const id = profile.id;
     owned = null;
-    worldApi.rewards(id).then((list) => (owned = list)).catch(() => (owned = []));
+    ownedError = '';
+    void loadOwned(id);
   });
   const itemOf = (id: string) => id.slice('accessory:'.length);
   const piecesIn = (slot: Slot) => (owned ?? []).filter((r) => r.kind === 'accessory' && itemOf(r.id).endsWith(`-${slot}`));
@@ -196,11 +217,15 @@
       {/if}
     </section>
 
-    <section class="parure-section" data-testid="dragon-parure">
+    <section class="parure-section" data-testid="dragon-parure" bind:this={parureRows}>
       <h3 class="kit-section">Sa parure</h3>
       {#if !wears(dragon.stage)}<p class="parure-note">Il portera sa parure dès qu'il sera un jeune dragon.</p>{/if}
       {#if parureError}<p class="kit-note" data-tone="eris" role="alert">{parureError}</p>{/if}
-      {#each SLOTS as slot (slot)}
+      {#if ownedError}
+        <p class="kit-note" data-tone="eris" role="alert" data-testid="parure-error">{ownedError}</p>
+        <button type="button" class="kit-bronze is-quiet parure-retry" data-testid="parure-retry" onclick={retryOwned}>Réessayer</button>
+      {/if}
+      {#each owned ? SLOTS : [] as slot (slot)}
         <div class="parure-slot" role="radiogroup" aria-label={SLOT_NAMES[slot]} data-testid="parure-{slot}">
           <span class="parure-slot-name">{SLOT_NAMES[slot]}</span>
           <div class="parure-choices">
@@ -427,5 +452,8 @@
   .parure-how {
     font-style: italic;
     color: var(--reward-ink);
+  }
+  .parure-retry {
+    align-self: flex-start;
   }
 </style>
