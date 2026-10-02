@@ -17,7 +17,7 @@
 - All six keep the nest's warm light and palette (`assets/art/scenes/nest.json`: warm golden sunset, `discorde-illustration`, `--vscale 1.0`, 8 steps).
 - The hatchling's painting is made from the chosen egg painting by the two-pass inpaint method of the krea2 skill (the shell only).
 - 2-3 variants per stage are shown to the user, who picks, **before** the code is tuned on them (Task 1 and Task 2 end in an explicit STOP).
-- Starting sizes (art % of the 16:9 frame; the square sprite's height on screen is its width x 16/9): egg w 16 feet 54, hatchling 21/55, young 38/77, adult 40/80.5, illustre 44/88, ancestral 47/94 (set with the user in Task 1, 2026-10-02); centre x 50 up to the hatchling (51.5 for the young, so its box clears the sheet), around **x 44** from adult. Tuned on the chosen paintings; the head always stays below the HUD.
+- Starting sizes (art % of the 16:9 frame; the square sprite's height on screen is its width x 16/9): egg w 16 feet 54, hatchling 21/55, young 38/77.6, adult 40/81.2, illustre 44/88.3, ancestral 47/94 (set with the user in Task 1, 2026-10-02; the young, adult and illustre feet lowered in Task 4 so their boxes clear `HUD_LINE` 10); centre x 50 up to the hatchling (51.5 for the young, so its box clears the sheet), around **x 44** from adult. Tuned on the chosen paintings; the head always stays below the HUD (`HUD_LINE = 10` art %: Task 4 measured the real `header.hud` at 71.5 px of a 720 px art box, 9.9 %, not the 64 px first assumed).
 - From the adult stage the growth sheet moves to the side of the frame (the right, since the dragon shifts left); the sheet never overlaps the dragon or the HUD at any stage.
 - The dragon layer stays depth 0, idle `none`.
 - CLAUDE.md: no "pre-existing" problems (fix or report every failure or warning you meet); `vitest` and `svelte-check` must end with **0 errors and 0 warnings**; no emoji anywhere the player can see.
@@ -43,7 +43,7 @@
 1. **Which side the sheet goes to from the adult:** the right (x 68.5-87.5), since the dragon shifts left to x 44.
 2. **`ART.scenes.nest[stage]` "or the like":** `ART.nest[stage]` at the root of `ART`. `ART.scenes` stays a flat string map, because `artFor('scene', key)` reads it as `Record<string, string>`.
 3. **Before /camp says the stage:** no painting at all (the night and « Les Muses préparent le camp… »), not the egg's nest, so a grown dragon never flashes the wrong nest.
-4. **"The HUD line":** for the dragon's head it is the real HUD, 9 % of a 1280x720 art box (`HUD_LINE`; the e2e measures the real one). For the hotspot it is the existing 14 % band (`HUD_BAND`). At 47 % wide the ancestral's box reaches y 10.4, above the 14 % band.
+4. **"The HUD line":** for the dragon's head it is the real HUD, 10 % of a 1280x720 art box (`HUD_LINE`, 71.5 px measured in Task 4; the e2e measures the real one). For the hotspot it is the existing 14 % band (`HUD_BAND`). At 47 % wide the ancestral's box reaches y 10.4, above the 14 % band.
 5. **The hatchling's shell** is the egg's broken top cap plus a few fragments, right of the dragon, because the hatchling sprite already sits in the bottom half of its shell.
 6. **"The hotspot covers the dragon":** the ellipse is centred inside the dragon's box, at least 0.6 of its width and 0.5 of its height. Its bottom stays at or above y 70 so the plaque below it clears the dialogue dock, which means the big dragons' ellipse covers head to belly, not the feet.
 7. **Tuning limits:** y may move ±4 and w ±3 from the spec's starting values, keeping the sizes growing at every stage.
@@ -748,7 +748,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: `nestScene`, `BY_STAGE`, `dragonHotspot` (Task 3); `SAFE_ZONE`, `HUD_BAND`, `DIALOGUE_DOCK` from `web/src/lib/scene/geometry.ts`.
 - Produces:
   - `NEST_STAGES: Record<DragonStage, { x: number; y: number; w: number; sheet: 'left' | 'right' }>` (art %).
-  - `HUD_LINE = 9` (art %), `SHEET_TOP = 18`, `SHEET_X: { left: { x: 13.5, w: 19 }, right: { x: 68.5, w: 19 } }`.
+  - `HUD_LINE = 10` (art %; the real HUD measures 71.5 px of a 720 px art box, Task 4), `SHEET_TOP = 18`, `SHEET_X: { left: { x: 13.5, w: 19 }, right: { x: 68.5, w: 19 } }`.
   - `dragonTop(stage: DragonStage): number` — the layer's top edge in art %.
   - `nestDragonLayer(stage)` unchanged in signature: `{ x, y, scale: w, depth: 0, idle: 'none' }`.
   - `NEST_SHAPES: Record<DragonStage, { dragon: EllipseShape }>`.
@@ -823,19 +823,19 @@ Run the unit tests (background). Expected: FAIL — `NEST_STAGES`, `HUD_LINE`, `
 
 For each stage, start from the values below and run `nest_preview.py --grid` on `assets/art/scenes/nest_<stage>.png` (Task 1 Step 5's command lines, with `--grid`); Read each preview and adjust until:
 - the sprite's feet stand on the painted straw or rock floor (move `y`, at most ±4 from the start) across the green line's width;
-- the painted landmarks read at the right size next to the dragon (straw blades, the shell, rocks): `w` may move by at most ±3 from the start, keeping every stage bigger than the one before and `dragonTop >= 9`;
+- the painted landmarks read at the right size next to the dragon (straw blades, the shell, rocks): `w` may move by at most ±3 from the start, keeping every stage bigger than the one before and `dragonTop >= 10` (`HUD_LINE`);
 - `x` keeps the dragon in its empty spot (around 50 up to young, around 44 from adult);
 - the ellipse sits on the dragon's body (head to belly) and the test rules of Step 1 hold (`cy + ry <= 70`, `cy - ry >= 14`, `2rx >= 0.6w`, `2ry >= 0.5h`, clear of the cyan band).
 
-Start values (the spec's table; ellipses from the sprites' figures). All six rows were set with the user in Task 1 on the picked paintings (egg and hatchling on `nest_egg.png` 1663, young 1681, adult 1623, illustre 1633, ancestral 1652; `tmp` ladder sheet `review_ladder.png`), and every row already passes Step 1's checks: the egg and the hatchling's shell sit down in the small nest's hollow, the young stands in the straw of its big close-up nest (its head at 9.4, just below the HUD line), the bigger dragons stand on the floor just in front of their nests. Keep x, y and w unless a check fails (then say so); move only the ellipses, within the rules:
+Start values (the spec's table; ellipses from the sprites' figures). All six rows were set with the user in Task 1 on the picked paintings (egg and hatchling on `nest_egg.png` 1663, young 1681, adult 1623, illustre 1633, ancestral 1652; `tmp` ladder sheet `review_ladder.png`), and every row already passes Step 1's checks: the egg and the hatchling's shell sit down in the small nest's hollow, the young stands in the straw of its big close-up nest (its box top at 10.04 with its feet at 77.6, just below the HUD line), the bigger dragons stand on the floor just in front of their nests. Keep x, y and w unless a check fails (then say so); move only the ellipses, within the rules:
 
 | stage | x | y | w | sheet | ellipse cx, cy, rx, ry |
 |---|---|---|---|---|---|
 | egg | 50 | 54 | 16 | left | 50, 40, 7, 14 |
 | hatchling | 50 | 55 | 21 | left | 50, 36.5, 9.5, 18.5 |
-| young | 51.5 | 77 | 38 | left | 51.5, 37, 13, 23 |
-| adult | 44 | 80.5 | 40 | right | 44, 40, 15, 22 |
-| illustre | 44 | 88 | 44 | right | 44, 42, 17, 24 |
+| young | 51.5 | 77.6 | 38 | left | 51.5, 37, 13, 23 |
+| adult | 44 | 81.2 | 40 | right | 44, 40, 15, 22 |
+| illustre | 44 | 88.3 | 44 | right | 44, 42, 17, 24 |
 | ancestral | 44 | 94 | 47 | right | 44, 42.5, 20, 27.5 |
 
 Write each stage's final preview to `assets/art/web/nest_variants/tuned_<stage>.png` (`--out`, with `--grid` off). Then write the tuned values into Steps 4-5's code (the code below shows the start values; replace any number you tuned, nothing else).
@@ -853,15 +853,15 @@ Replace the `// R11: ...` comment, the `WIDTH` table and `nestDragonLayer` with:
 export const NEST_STAGES: Record<DragonStage, { x: number; y: number; w: number; sheet: 'left' | 'right' }> = {
   egg: { x: 50, y: 54, w: 16, sheet: 'left' },
   hatchling: { x: 50, y: 55, w: 21, sheet: 'left' },
-  young: { x: 51.5, y: 77, w: 38, sheet: 'left' },
-  adult: { x: 44, y: 80.5, w: 40, sheet: 'right' },
-  illustre: { x: 44, y: 88, w: 44, sheet: 'right' },
+  young: { x: 51.5, y: 77.6, w: 38, sheet: 'left' },
+  adult: { x: 44, y: 81.2, w: 40, sheet: 'right' },
+  illustre: { x: 44, y: 88.3, w: 44, sheet: 'right' },
   ancestral: { x: 44, y: 94, w: 47, sheet: 'right' },
 };
 
-/** The HUD's bottom edge in art % where it reaches lowest: 64 px (8 px padding, a 48 px row, 8 px)
- *  of a 1280x720 art box, 8.9 %. The dragon's head stays below it (the e2e measures the real HUD). */
-export const HUD_LINE = 9;
+/** The HUD's bottom edge in art % where it reaches lowest: 71.5 px (as the e2e measures `header.hud`:
+ *  8 px padding, its row, 8 px) of a 1280x720 art box, 9.9 %. The dragon's picture stays below it. */
+export const HUD_LINE = 10;
 /** The growth sheet's top, and its band on each side (art %, its rods included), inside the 4:3 safe
  *  zone and clear of the HUD. */
 export const SHEET_TOP = 18;
