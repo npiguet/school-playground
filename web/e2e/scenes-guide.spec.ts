@@ -85,10 +85,19 @@ for (const [width, height] of [
       const r = regions.nth(i);
       const scrolls = await r.evaluate((e) => /auto|scroll/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight + 1);
       // Only a region that scrolls is a Tab stop: one that does not would be a stop with nothing to do.
+      // A stop is a named region (SP5 residual): the book's body by the guide's title, a page by its
+      // first heading.
+      const cls = (await r.getAttribute('class')) ?? '';
+      const name = cls.includes('overlay-body') ? 'Le guide du camp' : cls.includes('page-left') ? TITLES[0] : TITLES[2];
       if (scrolls) {
         await expect(r).toHaveAttribute('tabindex', '0');
+        await expect(r).toHaveRole('region');
+        await expect(r).toHaveAccessibleName(name);
         scrolling.push(i);
-      } else await expect(r).not.toHaveAttribute('tabindex');
+      } else {
+        await expect(r).not.toHaveAttribute('tabindex');
+        await expect(r).not.toHaveAttribute('role');
+      }
     }
     expect(scrolling.length, 'the guide is longer than the book').toBeGreaterThan(0);
     // From the seal, Tab reaches each scrolling region in turn; PageDown and End scroll it.
