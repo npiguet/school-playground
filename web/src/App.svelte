@@ -137,10 +137,17 @@
            play/B in the app, or Back and Forward between them, is a fresh battle. -->
       {:else if (route.name === 'play' || route.name === 'grimoire' || route.name === 'boss') && !battleScreens}
         <!-- The battle screens' chunks, still loading (the night backdrop) or failed (a reload). -->
-        <div class="gate-night" role={battleFailed ? 'alert' : undefined} data-testid="battle-loading">
+        <div
+          class="gate-night"
+          role={battleFailed ? 'alert' : undefined}
+          aria-busy={battleFailed ? undefined : 'true'}
+          data-testid="battle-loading"
+        >
           {#if battleFailed}
             <p class="kit-ribbon">Impossible de charger le combat.</p>
             <button class="kit-bronze" type="button" onclick={() => location.reload()}>Recharger</button>
+          {:else}
+            <p class="kit-ribbon">Les Muses préparent le combat…</p>
           {/if}
         </div>
       {:else if route.name === 'play' && battleScreens}

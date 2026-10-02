@@ -18,7 +18,7 @@ import {
   heroNamer,
   swissDay,
 } from './helpers';
-import { dragonSrc, settledDragon } from './dragon';
+import { dragonSrc, settledDragon, webgl2Available } from './dragon';
 
 // UI1 (scenes spec §9, §10): the camp as a hub scene, in both WebKit projects (desktop 1280x720
 // and iPad landscape 1180x820). Every place is a real button that routes to its place, Back
@@ -569,6 +569,15 @@ test('portrait shows the rotate screen instead of the scene', async ({ page, req
 
 test('reduced motion: no idle bob, no particles; the dragon never drifts', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
+  // A hatched dragon, so reduced motion has a living dragon to keep still (the egg never lives); every
+  // stage already seen, so no « grew while you were away » reveal covers the camp.
+  expect((await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'ancestral' } } })).ok()).toBeTruthy();
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage: 'adult', name: 'Braise' };
+    await route.fulfill({ response: res, json: camp });
+  });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openCamp(page, id);
   const stage = page.getByTestId('scene-camp');
@@ -578,6 +587,9 @@ test('reduced motion: no idle bob, no particles; the dragon never drifts', async
   await expect(page.getByTestId('fx-canvas')).toHaveCount(0);
   expect(await label.evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
   await expect(dragon).toBeVisible();
+  // Spec 2026-10-02 living dragon: reduced motion keeps the still picture, no canvas.
+  expect(await settledDragon(dragon)).toBe('still');
+  await expect(dragon.locator('canvas')).toHaveCount(0);
 
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect(stage).toHaveAttribute('data-reduced-motion', 'false');
@@ -592,8 +604,9 @@ test('reduced motion: no idle bob, no particles; the dragon never drifts', async
     await stage.dispatchEvent('pointermove', { pointerType: 'touch', isPrimary: true, clientX: 60, clientY: 60, bubbles: true });
   }
   await expect(dragon).toHaveAttribute('data-offset', '0,0');
-  // The figure itself: no idle animation on the living canvas or the still picture, whichever shows.
-  await settledDragon(dragon);
+  // The figure itself, living again where the browser has WebGL2: no idle animation on the canvas or
+  // the still picture, whichever shows.
+  await expect(dragon.locator('.dragon-figure')).toHaveAttribute('data-motion', (await webgl2Available(page)) ? 'living' : 'still');
   expect(await dragon.locator('.dragon-base').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
   expect(await dragon.locator('.dragon-figure').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
 });

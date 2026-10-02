@@ -3,7 +3,9 @@ import { defineConfig, devices } from '@playwright/test';
 // Main e2e run (scripts/playwright.sh, part of scripts/check.sh), four projects: two WebKit ones
 // (scenes spec §10) and two Chromium. `desktop` runs every functional spec (Desktop Safari
 // 1280x720, the pre-UI1 setup); `ipad` runs the scene specs (scenes-*.spec.ts) at iPad landscape
-// 1180x820 with touch; `chromium` runs the one history test whose bug only Chromium shows (below).
+// 1180x820 with touch; `chromium` runs the one history test whose bug only Chromium shows (below)
+// and the failed battle chunk's reload, which recovers there (WebKit keeps the failed chunk for the
+// page: scenes-battle-play.spec.ts).
 // Playability walks (playability*.spec.ts) write review screenshots and only run through
 // playwright.playability.config.ts. The real-voice specs (voice-*.spec.ts) only run through
 // playwright.voice.config.ts.
@@ -66,8 +68,8 @@ export default defineConfig({
     // fails without it.
     {
       name: 'chromium',
-      testMatch: ['**/scenes-library.spec.ts'],
-      grep: /Back leaves the tent in one press/,
+      testMatch: ['**/scenes-library.spec.ts', '**/scenes-battle-play.spec.ts'],
+      grep: /Back leaves the tent in one press|a chunk that fails offers a reload/,
       use: { ...devices['Desktop Chrome'] },
     },
     {
