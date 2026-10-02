@@ -1061,10 +1061,12 @@ async function fakeStage(page: Page, id: number, stage: () => string) {
 
 /** The top of the dragon's painted body (its first row at least half opaque: `row` of the sprite's
  *  `rows`) and the HUD's bottom edge, in viewport px: the sprite's transparent margin above the head
- *  may pass under the HUD. */
-async function headAndHud(page: Page): Promise<{ head: number; hud: number; art: number; row: number; rows: number }> {
-  return page.evaluate(async () => {
-    const img = document.querySelector<HTMLImageElement>('[data-testid="nest-dragon-layer"] img.dragon-base')!;
+ *  may pass under the HUD. The rows come from the stage's sprite file itself and the box from the
+ *  layer's wrapper (the same square box), so a living dragon's canvas in the layer changes nothing. */
+async function headAndHud(page: Page, stage: string): Promise<{ head: number; hud: number; art: number; row: number; rows: number }> {
+  return page.evaluate(async (s) => {
+    const img = new Image();
+    img.src = `/art/dragon/dragon_${s}_cut.webp`;
     await img.decode();
     const c = document.createElement('canvas');
     [c.width, c.height] = [img.naturalWidth, img.naturalHeight];
@@ -1073,11 +1075,11 @@ async function headAndHud(page: Page): Promise<{ head: number; hud: number; art:
     const a = g.getImageData(0, 0, c.width, c.height).data;
     let row = 0;
     find: for (; row < c.height; row++) for (let x = 0; x < c.width; x++) if (a[(row * c.width + x) * 4 + 3] > 128) break find;
-    const r = img.getBoundingClientRect();
+    const r = document.querySelector('[data-testid="nest-dragon-layer"]')!.getBoundingClientRect();
     const hud = document.querySelector('header.hud')!.getBoundingClientRect();
     const art = document.querySelector('[data-testid="scene-nest"] .art')!.getBoundingClientRect();
     return { head: r.top + (row / c.height) * r.height, hud: hud.bottom, art: art.height, row, rows: c.height };
-  });
+  }, stage);
 }
 
 test('the nest shows each of the six stages on its own painting, clear of its growth sheet and of the HUD', async ({ page, request }, testInfo) => {
@@ -1144,13 +1146,13 @@ test("the dragon's head clears the HUD on a short screen (1024x640)", async ({ p
   await fakeStage(page, id, () => stage);
   await page.setViewportSize({ width: 1024, height: 640 });
   const seen: { key: (typeof STAGES)[number][0]; head: number; hud: number; art: number; row: number; rows: number }[] = [];
-  for (const [key] of STAGES) {
+  for (const [key, label] of STAGES) {
     stage = key;
     await page.goto(`/#/p/${id}/dragon?debug`);
     await page.reload();
     await expectScene(page, 'nest');
-    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', `/art/dragon/dragon_${key}_cut.webp`);
-    seen.push({ key, ...(await headAndHud(page)) });
+    await expect(page.getByTestId('dragon-stage')).toHaveText(label);
+    seen.push({ key, ...(await headAndHud(page, key)) });
   }
   const said = seen.map((m) => `${m.key}: head ${m.head.toFixed(1)} px, HUD bottom ${m.hud.toFixed(1)} px, art ${m.art.toFixed(0)} px tall`).join('; ');
   testInfo.annotations.push({ type: 'measures', description: said });

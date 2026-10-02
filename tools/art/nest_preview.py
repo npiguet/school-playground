@@ -8,7 +8,7 @@ x 27-87.5, y 80-100 (magenta); --grid adds a 5 % grid with labels every 10 % for
 landmarks (docs/art/scenes.md).
 
   python tools/art/nest_preview.py --painting assets/art/scenes/nest_adult.png --stage adult \
-      --x 44 --y 80 --w 34 --ellipse 44,45,15,25 --sheet right --out <scratch>/adult.png
+      --x 44 --y 81.2 --w 40 --ellipse 44,40,15,22 --sheet right --out <scratch>/adult.png
 """
 import argparse
 from pathlib import Path

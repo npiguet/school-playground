@@ -885,7 +885,6 @@ export async function expectLineOf(box: Locator, key: string, vars: Record<strin
   await expect.poll(async () => variants.includes(((await text.first().textContent()) ?? '').trim())).toBe(true);
 }
 
-
 // Spec 2026-10-02 nest by stage: every nest painting the page asks for (`nest_<stage>`, one entry per
 // request: the server sends no-store, so a painting fetched twice shows twice), and those still on
 // their way. Install before the navigation; wait for `pending` to empty before reading `fetched`.

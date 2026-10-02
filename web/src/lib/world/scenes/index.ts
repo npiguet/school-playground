@@ -4,7 +4,7 @@ import { CABIN_SCENE, PALAIS_SCENE, VILLA_SCENE } from './cabin';
 import { CAMP_SCENE } from './camp';
 import { DELPHI_SCENE } from './delphi';
 import { LIBRARY_SCENE } from './library';
-import { NEST_SCENE, NEST_STAGE_SCENES } from './nest';
+import { NEST_SCENE } from './nest';
 import { TITLE_SCENE } from './title';
 import { WAR_SCENE } from './war';
 
@@ -17,4 +17,4 @@ export const SCENES: SceneDef[] = [CAMP_SCENE, TITLE_SCENE, LIBRARY_SCENE, DELPH
 export const HOUSE_SCENES: SceneDef[] = [VILLA_SCENE, PALAIS_SCENE];
 
 /** Spec 2026-10-02 nest by stage: the nest place painted for each stage (SCENES keeps the egg's). */
-export { NEST_STAGE_SCENES };
+export { NEST_STAGE_SCENES } from './nest';

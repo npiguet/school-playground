@@ -170,8 +170,10 @@ hatchling's painting is the egg's with the broken shell inpainted in two passes 
 next paragraph). Each prompt names the empty spot's place and its floor's height and a calm
 stretch on the growth sheet's side; check every variant with `tools/art/nest_preview.py` (the stage's
 sprite at its place, the hotspot, the sheet's band). The dragon's place per stage was set with the
-user on these paintings: egg w 16 feet 54, hatchling 21/55, young 38/77 (x 51.5), adult 40/80.5, illustre
-44/88, ancestral 47/94 (art %; plan 2026-10-02 nest by stage, Task 4). Served as
+user on these paintings: egg w 16 feet 54, hatchling 21/55, young 38/77.8 (x 51.5), adult 40/81.2,
+illustre 44/88.9, ancestral 47/94 (art %; plan 2026-10-02 nest by stage, Tasks 4-5: the young's,
+adult's and illustre's feet lowered a little so the picture clears the HUD, `HUD_LINE` 10 %, and the
+painted head clears it on the shortest art box, 640 px tall, ruling N3). Served as
 `web/public/art/scenes/nest_<stage>.webp` (2048 px, q88, 210-293 KB each, within the 600 KB budget).
 
 **The hatchling's nest** (`nest_hatchling.png`) is `nest_egg.png` with the egg's broken top cap and a

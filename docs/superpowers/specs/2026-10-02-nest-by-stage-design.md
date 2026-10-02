@@ -28,9 +28,9 @@ sits next to a shell as big as itself.
   |---|---|---|---|
   | egg | 16 | ~28 | 54 |
   | hatchling | 21 | ~37 | 55 |
-  | young | 38 | ~68 | 77 |
-  | adult | 40 | ~71 | 80.5 |
-  | illustre | 44 | ~78 | 88 |
+  | young | 38 | ~68 | 77 (tuned: 77.8) |
+  | adult | 40 | ~71 | 80.5 (tuned: 81.2) |
+  | illustre | 44 | ~78 | 88 (tuned: 88.9) |
   | ancestral | 47 | ~84 | 94 |
 
   Set with the user on the chosen paintings (2026-10-02): a bigger egg in a small nest, sitting down
