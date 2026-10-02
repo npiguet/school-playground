@@ -92,3 +92,14 @@ weights view, pause and a time slider.
   reaches x 390, inside the head polygon.
 - ancestral: the head polygon reaches the frame's top so the right horn's tip takes the head's weight
   (a test checks it); the feet box starts at x 224 for the left foot's claws (about x 245).
+- every stage: each wing's claw tip and the far tips of its edges are probed in `rigs.test.ts`
+  (weight >= 0.9 on the wing); add a probe when you move a tip. Only opaque pixels inside a polygon
+  count (the background takes its nearest opaque pixel's weight), so a tip a few pixels outside the
+  polygon is lost: run the polygon well past it. The hatchling's right claw tip sits 126 px from its
+  pivot, so that wing ramps over [30, 140].
+- illustre and ancestral: the front claw tip curls under the left horn, a few pixels below it. The
+  head polygon's left edge runs between the horn's underside and the claw (about y 75 at x 450,
+  y 105 to 110 at x 500), then down at x 505 (illustre) or 535 (ancestral), left of the crest spikes
+  and right of the claw tip; the ancestral's claw tip keeps under 0.1 of the head (a test checks it).
+- illustre: the left wing's lower finger touches the tail's tip at about (115, 855); the tail polygon
+  starts at x 122 so the finger above y 820 stays on the wing.

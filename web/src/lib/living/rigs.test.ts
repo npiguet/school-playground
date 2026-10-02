@@ -89,6 +89,32 @@ describe('the rigs', () => {
     for (const [x, y] of [[603, 14], [606, 22]]) expect(weightsAt(rigOf('ancestral').weights, x, y)[HEAD], `(${x}, ${y})`).toBeGreaterThanOrEqual(0.9);
   });
 
+  // Each wing's claw tip and the far tips of its edges, read off the grid views (playtest 2026-10-02:
+  // the user saw claw tips and wing edges left behind, and the ancestral's front claw tip on the head).
+  const WING_TIPS: [string, 'wingL' | 'wingR', string, number, number][] = [
+    ['hatchling', 'wingL', 'lower tip of the leading edge', 162, 660],
+    ['hatchling', 'wingR', 'claw tip', 693, 324],
+    ['hatchling', 'wingR', 'lower tip', 860, 620],
+    ['young', 'wingL', 'claw tip', 318, 142],
+    ['young', 'wingL', 'lower tip', 107, 767],
+    ['young', 'wingR', 'claw tip', 891, 194],
+    ['young', 'wingR', 'lower tip', 884, 741],
+    ['adult', 'wingR', 'lower tip', 895, 752],
+    ['illustre', 'wingL', 'claw tip', 476, 148],
+    ['illustre', 'wingL', 'lower finger beside the tail', 103, 810],
+    ['illustre', 'wingR', 'claw tip', 946, 187],
+    ['illustre', 'wingR', 'lower tip', 814, 730],
+    ['ancestral', 'wingL', 'claw tip', 510, 155],
+    ['ancestral', 'wingR', 'claw tip', 972, 172],
+  ];
+  it.each(WING_TIPS)('%s: the %s carries its %s (%i, %i)', (stage, bone, _what, x, y) => {
+    expect(weightsAt(rigOf(stage).weights, x, y)[BONES.indexOf(bone)]).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it("keeps the head off the ancestral's front claw tip, under the horn", () => {
+    expect(weightsAt(rigOf('ancestral').weights, 510, 155)[HEAD]).toBeLessThanOrEqual(0.1);
+  });
+
   it('animates a stage only when its rig is baked, never the egg', () => {
     expect(livingStage('egg')).toBeNull();
     expect(livingStage('adult')).toBe('adult');
