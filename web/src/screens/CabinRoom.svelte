@@ -17,7 +17,7 @@
   import LyrePanel from '../components/places/cabin/LyrePanel.svelte';
   import HeroPanel from '../components/places/cabin/HeroPanel.svelte';
   import GuidePanel from '../components/places/cabin/GuidePanel.svelte';
-  import { DECOR_SLOTS, MAX_DISPLAYED_DECOR, cabinGreeting, guideLine, houseScene, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
+  import { DECOR_SLOTS, cabinGreeting, guideLine, houseScene, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
   import { campFor } from '../lib/world/campStore.svelte';
   import { isAwake } from '../lib/world/eris';
   import { LIEUTENANT_ORDER } from '../lib/world/types';
@@ -37,14 +37,13 @@
   // The hero's rewards, fetched once here for both the walls and the shelf (final review M15).
   let owned = $state<RewardOut[] | null>(null);
   let rewardsError = $state('');
-  // Until /camp answers, the cabin (R21): the places arrive from the camp, which has loaded it. The
-  // shelf does not refuse a piece by the cabin's four walls meanwhile: the server decides.
-  const houseKnown = $derived(campFor(profile.id) !== null);
+  // Until /camp answers, the cabin (R21): the places arrive from the camp, which has loaded it.
   const house = $derived(campFor(profile.id)?.house ?? 'cabin');
   const scene = $derived(houseScene(house));
   const slots = $derived(DECOR_SLOTS[house]);
-  // One piece per wall slot (the house's walls hold 4, 6 or 9, server-enforced); a piece left on
-  // display beyond them stays on the shelf rather than hanging over another.
+  // One piece per wall slot (4, 6 or 9 by house; the server sets no limit since spec 2026-10-02 house
+  // treasures, whose Task 6 stands each piece at its own place): a piece on display beyond the slots
+  // stays on the shelf rather than hanging over another.
   const displayed = $derived((owned ?? []).filter((r) => r.kind === 'decor' && r.equipped).slice(0, slots.length));
 
   // Only the hero id is tracked: the rewards reload for a new hero; a piece the shelf puts on
@@ -100,7 +99,7 @@
 
 {#if panel === 'tresors'}
   <Overlay variant="table" size="wide" title={OVERLAY_TITLES.tresors} testId="overlay-trophies" voice={dragon ? trophiesLine(dragon, ownedTrophies, maxTrophies) : null} onClose={close} returnFocus={hotspotSelector('cabin', 'trophies')}>
-    <TrophiesPanel {profile} {owned} {house} maxDecor={houseKnown ? MAX_DISPLAYED_DECOR[house] : null} loadError={rewardsError} onUpdated={updated} />
+    <TrophiesPanel {profile} {owned} {house} loadError={rewardsError} onUpdated={updated} />
   </Overlay>
 {:else if panel === 'journal'}
   <Overlay variant="codex" title={OVERLAY_TITLES.journal} testId="overlay-journal" voice={dragon ? journalLine(dragon) : null} onClose={close} returnFocus={from.of('journal') === 'heros' ? '[data-testid="hero-journal"]' : hotspotSelector('cabin', 'journal')}>

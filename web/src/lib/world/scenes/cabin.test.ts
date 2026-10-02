@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { boxInside, boxesOverlap, shapeBox } from '../../scene/geometry';
 import { variantsOf } from '../../../testing/dialogue';
 import { validateScene } from '../../scene/validate';
@@ -10,10 +9,8 @@ import {
   CABIN_HOTSPOTS,
   CABIN_SCENE,
   DECOR_SLOTS,
-  MAX_DISPLAYED_DECOR,
   PALAIS_SCENE,
   VILLA_SCENE,
-  WALLS_FULL_LINE,
   cabinGreeting,
   guideLine,
   houseScene,
@@ -48,11 +45,10 @@ describe('the three houses', () => {
     }
   });
 
-  it('the slots agree with the server: four, six, nine', () => {
-    const py = readFileSync('../server/app/world/shop.py', 'utf-8');
-    expect(py).toContain('MAX_DECOR = {"cabin": 4, "villa": 6, "palais": 9}');
-    expect(MAX_DISPLAYED_DECOR).toEqual({ cabin: 4, villa: 6, palais: 9 });
-    for (const h of ['cabin', 'villa', 'palais'] as const) expect(DECOR_SLOTS[h]).toHaveLength(MAX_DISPLAYED_DECOR[h]);
+  it('keeps no display limit (spec 2026-10-02 house treasures)', async () => {
+    const mod = await import('./cabin');
+    expect('MAX_DISPLAYED_DECOR' in mod).toBe(false);
+    expect('WALLS_FULL_LINE' in mod).toBe(false);
   });
 
   // A 52 px medallion is ~4.1 % of the art's width and ~7.2 % of its height at 1280x720: each slot's
@@ -155,11 +151,5 @@ describe('the cabin (UI3 Ruling B6)', () => {
     // Two pieces never hang on the same spot.
     for (const [i, a] of DECOR_SLOTS.cabin.entries())
       for (const b of DECOR_SLOTS.cabin.slice(i + 1)) expect(boxesOverlap({ x: a.x - 2.05, y: a.y - 3.65, w: 4.1, h: 7.3 }, { x: b.x - 2.05, y: b.y - 3.65, w: 4.1, h: 7.3 })).toBe(false);
-  });
-
-  it('holds one piece per wall spot and says so in words when they are all taken', () => {
-    expect(MAX_DISPLAYED_DECOR.cabin).toBe(4);
-    expect(MAX_DISPLAYED_DECOR.cabin).toBe(DECOR_SLOTS.cabin.length);
-    expect(WALLS_FULL_LINE).toBe("Les murs sont pleins\u202f: range d'abord une pièce.");
   });
 });

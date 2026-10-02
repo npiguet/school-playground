@@ -25,7 +25,7 @@ from app.world.fights import next_fight, open_fight
 from app.world.progression import boss_tiers_won, ensure_dragon, grant_reward, store_stage, weekly_done, xp_total
 from app.world.quests import density, recommend_texts
 from app.world.seals import LEVEL_XP, level_rows, levels_of, lieutenants_for_level, next_seal
-from app.world.shop import MAX_DECOR, affordable, house_of, is_item, on_sale, parse_accessory, price_of, shop_catalog, worn
+from app.world.shop import affordable, house_of, is_item, on_sale, parse_accessory, price_of, shop_catalog, worn
 
 router = APIRouter(prefix="/api", tags=["world"])
 
@@ -33,9 +33,6 @@ BOSS_MESSAGE = "Éris ne se montre pas encore. Gagne d'abord d'autres sceaux sur
 TWO_QUESTS_MESSAGE = "Deux quêtes à la fois, c'est déjà beaucoup. Termine-en une ou range-la."
 ALREADY_ACTIVE_MESSAGE = "Cette quête est déjà en cours."
 TINT_LOCKED_MESSAGE = "Cette teinte n'est pas encore débloquée."
-# The walls of each house hold MAX_DECOR pieces (spec 2026-09-29 drachmes §3; DECOR_SLOTS in
-# web/src/lib/world/scenes/cabin.ts); one more would hang over the first.
-WALLS_FULL_MESSAGE = "Les murs sont pleins\u202f: range d'abord une pièce."
 ORACLE_ALREADY_CONSULTED = "L'Oracle a déjà parlé cette semaine. Reviens lundi."
 # Spec 2026-09-29 drachmes §2 (R5, R7): Hermès's refusals, said to the player.
 OWNED_MESSAGE = "Tu l'as déjà."
@@ -497,19 +494,14 @@ def _kind(reward_id: str) -> str | None:
     return REWARDS.get(reward_id, {}).get("kind")
 
 
-def _displayed_decor(conn: sqlite3.Connection, profile_id: int) -> int:
-    """How many pieces of decor hang on the house's walls (a stale catalog id counts as none)."""
-    rows = conn.execute("SELECT reward_id FROM reward WHERE profile_id = ? AND equipped = 1", (profile_id,)).fetchall()
-    return sum(1 for r in rows if _kind(r["reward_id"]) == "decor")
-
-
 @router.patch("/profiles/{profile_id}/rewards/{reward_id}")
 def patch_reward(profile_id: int, reward_id: str, body: RewardPatch, db: sqlite3.Connection = Depends(get_db)):
     fetch_profile(db, profile_id)
     if reward_id not in REWARDS:
         raise HTTPException(404, "Reward not found")
-    # The count and the update are one transaction under the write lock (final review M18): two
-    # PATCHes at once cannot both see three pieces on the walls and hang a fifth.
+    # Under the write lock (final review M18): an accessory put on and the other of its slot taken
+    # off are one transaction. Decor is never refused for lack of room: every house has a place for
+    # every piece (spec 2026-10-02 house treasures).
     begin_write(db)
     row = db.execute("SELECT * FROM reward WHERE profile_id = ? AND reward_id = ?", (profile_id, reward_id)).fetchone()
     if row is None:
@@ -519,11 +511,6 @@ def patch_reward(profile_id: int, reward_id: str, body: RewardPatch, db: sqlite3
     if kind == "house":
         db.rollback()
         raise HTTPException(409, HOUSE_MESSAGE)
-    if body.equipped and not row["equipped"] and kind == "decor":
-        # Spec 2026-09-29 drachmes §3: the walls of the house the hero lives in.
-        if _displayed_decor(db, profile_id) >= MAX_DECOR[house_of(owned_ids(db, profile_id))]:
-            db.rollback()
-            raise HTTPException(409, WALLS_FULL_MESSAGE)
     if body.equipped and kind == "accessory":
         # Spec §4 (R7): one piece per slot; putting one on takes off the other of its slot, in the same transaction.
         slot = parse_accessory(reward_id)[1]

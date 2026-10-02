@@ -49,7 +49,6 @@ const ODD = {
       { id: 'house:villa', key: 'villa', stage: 'adult', after: null, price: 350, the: '' },
       { id: 'house:palais', key: 'palais', stage: 'illustre', after: 'house:villa', price: 900, the: '' },
     ],
-    max_decor: { cabin: 5, villa: 7, palais: 10 },
   },
 } as unknown as WorldCatalog;
 
@@ -83,7 +82,11 @@ describe('le guide du camp (spec 2026-09-29 explanations §3)', () => {
     expect(d).toContain('Le décor coûte 55 drachmes la pièce');
     expect(d).toContain('La villa, 350 drachmes');
     expect(d).toContain('le palais, 900 drachmes');
-    expect(d).toContain('5 pièces dans la cabane, 7 dans la villa, 10 dans le palais');
+    // Spec 2026-10-02 house treasures: every house has a place for every piece, a bigger one is grander.
+    expect(d).toContain('Chaque maison a une place pour chacun de tes trésors\u202f: plus elle est grande, plus la pièce est belle.');
+    expect(d).not.toMatch(/pièces dans la cabane|murs portent/);
+    expect(s).toContain('Il pose aussi un trophée à sa place dans ta maison.');
+    expect(s).not.toContain('étagère de ta cabane');
     const a = text(ODD, 'aides');
     expect(a).toContain('30\u202f% de gloire');
     expect(a).toContain('10\u202f% au rythme \u00ab\u202fPar groupes\u202f\u00bb et 20\u202f% au rythme \u00ab\u202fD\'un bon pas\u202f\u00bb');

@@ -124,15 +124,6 @@ export const DECOR_SLOTS: Record<House, { x: number; y: number }[]> = {
   ],
 };
 
-/** The walls hold one piece per slot (spec 2026-09-29 drachmes §3; the server's MAX_DECOR in
- *  server/app/world/shop.py refuses one more with the same line). */
-export const MAX_DISPLAYED_DECOR: Record<House, number> = {
-  cabin: DECOR_SLOTS.cabin.length,
-  villa: DECOR_SLOTS.villa.length,
-  palais: DECOR_SLOTS.palais.length,
-};
-export const WALLS_FULL_LINE = "Les murs sont pleins\u202f: range d'abord une pièce.";
-
 // UI3b playability #7: the cabin is home, and the dragon (the narrator, spec §2.5) speaks here too:
 // a greeting once per page load, and a line on the voice plate of the shelf, the journal and the
 // lyre (the hero panel is a short menu and has none).

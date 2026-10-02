@@ -14,7 +14,6 @@ SHORT = "Ta bourse n'est pas encore assez pleine pour cet objet."
 NOT_ON_SALE = "Hermès ne vend pas encore cet objet."
 OWNED = "Tu l'as déjà."
 HOUSE = "Ta maison n'est pas un objet à exposer."
-WALLS_FULL = "Les murs sont pleins\u202f: range d'abord une pièce."
 QUEST_DECOR = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee", "decor:fresque"]
 SHOP_DECOR = ["decor:amphore", "decor:chouette", "decor:mosaique", "decor:bouclier"]
 
@@ -277,21 +276,17 @@ def test_a_house_is_not_put_on_display(client, settings):
     assert (r.status_code, r.json()["detail"]) == (409, HOUSE)
 
 
-# Review focus 5.
-def test_the_walls_hold_four_six_or_nine_pieces_by_house(client, settings):
-    pid = make_profile(client, level="10H")
-    own(settings, pid, *QUEST_DECOR, *SHOP_DECOR)
-    for d in QUEST_DECOR[:4]:
-        assert wear(client, pid, d).status_code == 200
-    assert (wear(client, pid, QUEST_DECOR[4]).status_code, wear(client, pid, QUEST_DECOR[4]).json()["detail"]) == (409, WALLS_FULL)
-    own(settings, pid, "house:villa")
-    assert wear(client, pid, QUEST_DECOR[4]).status_code == 200 and wear(client, pid, SHOP_DECOR[0]).status_code == 200
-    r = wear(client, pid, SHOP_DECOR[1])                                               # the seventh, in the villa
-    assert (r.status_code, r.json()["detail"]) == (409, WALLS_FULL)
-    own(settings, pid, "house:palais")
-    for d in SHOP_DECOR[1:]:
-        assert wear(client, pid, d).status_code == 200                                 # nine in the palais
-    assert sum(1 for x in client.get(f"/api/profiles/{pid}/rewards").json() if x["kind"] == "decor" and x["equipped"]) == 9
+# Spec 2026-10-02 house treasures: no display limit, in any house. Each house on its own (a hero
+# per house), so the villa and the palais are tested as themselves, not as a cabin moved into.
+def test_every_house_displays_all_nine_pieces(client, settings):
+    for houses in ([], ["house:villa"], ["house:villa", "house:palais"]):
+        pid = make_profile(client, level="10H")
+        own(settings, pid, *houses, *QUEST_DECOR, *SHOP_DECOR)
+        assert camp(client, pid)["house"] == ("palais" if len(houses) == 2 else "villa" if houses else "cabin")
+        for d in [*QUEST_DECOR, *SHOP_DECOR]:
+            r = wear(client, pid, d)
+            assert (r.status_code, r.json()["equipped"]) == (200, True), (houses, d)
+        assert sum(1 for x in client.get(f"/api/profiles/{pid}/rewards").json() if x["kind"] == "decor" and x["equipped"]) == 9
 
 
 # SP4 final review M5: the cabin's « N trésors » counts what the trophy shelf shows (gear, decor, tints,

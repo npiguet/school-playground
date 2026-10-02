@@ -410,30 +410,38 @@ for (const o of [
   });
 }
 
-test('the walls hold four pieces: a fifth « Exposer » says so and hangs nothing', async ({ page, request }, testInfo) => {
+// Spec 2026-10-02 house treasures: no display limit; the shelf only ever says what the server says.
+test('a fifth piece goes on display; a refusal from the server is said word for word', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const row = (rid: string, equipped: boolean) => ({ id: rid, kind: 'decor', name: rid, desc: '', source: '', granted_at: '2026-09-21T12:00:00+00:00', equipped });
-  const shown = ['decor:lanterne', 'decor:tapis', 'decor:bibliotheque', 'decor:trophee'];
+  const state = new Map<string, boolean>([
+    ['decor:lanterne', true], ['decor:tapis', true], ['decor:bibliotheque', true], ['decor:trophee', true],
+    ['decor:fresque', false], ['decor:amphore', false],
+  ]);
+  let refuse = false;
   const patches: string[] = [];
   await page.route(`**/api/profiles/${id}/rewards**`, (route) => {
-    if (route.request().method() === 'PATCH') {
-      patches.push(route.request().url());
-      return route.fulfill({ status: 409, json: { detail: "Les murs sont pleins\u202f: range d'abord une pièce." } });
+    const req = route.request();
+    if (req.method() === 'PATCH') {
+      patches.push(req.url());
+      if (refuse) return route.fulfill({ status: 409, json: { detail: "Ta maison n'est pas un objet à exposer." } });
+      const rid = decodeURIComponent(req.url().split('/rewards/')[1]);
+      state.set(rid, (req.postDataJSON() as { equipped: boolean }).equipped);
+      return route.fulfill({ json: row(rid, state.get(rid)!) });
     }
-    return route.fulfill({ json: [...shown.map((rid) => row(rid, true)), row('decor:fresque', false)] });
+    return route.fulfill({ json: [...state].map(([rid, on]) => row(rid, on)) });
   });
   await page.goto(`/#/p/${id}/cabane?panel=tresors`);
   const shelf = page.getByTestId('overlay-trophies');
   const fresque = shelf.getByTestId('cabin-equip-decor:fresque');
   await expect(fresque).toHaveText('Exposer');
-  await expect(fresque).toBeEnabled(); // never disabled without a word
-  await expect(shelf.getByTestId('cabin-walls-full')).toHaveCount(0);
-  await fresque.click();
-  await expect(shelf.getByTestId('cabin-walls-full')).toHaveText("Les murs sont pleins\u202f: range d'abord une pièce.");
-  await expect(fresque).toHaveText('Exposer');
-  expect(patches, 'the client refuses before asking the server').toEqual([]);
-  await closeOverlay(page);
-  await expectScene(page, 'cabin');
-  for (const rid of shown) await expect(page.getByTestId(`cabin-decor-${rid}`)).toBeVisible();
-  await expect(page.getByTestId('cabin-decor-decor:fresque')).toHaveCount(0);
+  await tap(fresque, testInfo);
+  await expect(fresque).toHaveText('Ranger');
+  refuse = true;
+  const amphore = shelf.getByTestId('cabin-equip-decor:amphore');
+  await tap(amphore, testInfo);
+  await expect(shelf.getByRole('alert')).toHaveText("Ta maison n'est pas un objet à exposer.");
+  await expect(amphore).toHaveText('Exposer');
+  expect(patches, 'both asked the server').toHaveLength(2);
+  expect(await redScan(page)).toEqual([]);
 });

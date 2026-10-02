@@ -73,7 +73,6 @@ test('buy the villa at the stall, hang a sixth piece in it', async ({ page, requ
   await expect(page.getByTestId('overlay-trophies').getByRole('heading', { level: 3 })).toContainText(['Objets de la villa']);
   await tap(page.getByTestId('cabin-equip-decor:bouclier'), testInfo);
   await expect(page.getByTestId('cabin-equip-decor:bouclier')).toHaveText('Ranger');
-  await expect(page.getByTestId('cabin-walls-full')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('overlay-trophies')).toHaveCount(0);
   await expect(page.locator('[data-testid^="cabin-decor-"]')).toHaveCount(6);

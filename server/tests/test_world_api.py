@@ -201,27 +201,29 @@ def test_camp_survives_a_concurrent_first_visit_sealing_the_oracle(client, setti
     assert r.json()["oracle"]["status"] == "sealed"
 
 
-def test_the_cabin_walls_hold_four_pieces_of_decor(client, settings):
-    # UI3b ruling: four wall spots (DECOR_SLOTS); a fifth piece would hang over the first.
+def test_decor_on_display_before_the_limit_went_stays_and_all_nine_fit(client, settings):
+    # Spec 2026-10-02 house treasures: no display limit. A hero who had four pieces on the cabin's
+    # walls under the old limit keeps them displayed (the flag is the only state, no migration),
+    # and the other five go on display too.
+    from app.world.catalog import REWARDS
     pid = make_profile(client)
-    decor = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee", "decor:fresque"]
+    decor = [rid for rid, r in REWARDS.items() if r["kind"] == "decor"]
+    assert len(decor) == 9
     conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
-    for rid in [*decor, "sandales_hermes"]:
-        conn.execute("INSERT INTO reward(profile_id, reward_id, source, granted_at) VALUES (?,?,?,?)",
-                     (pid, rid, "test", "2026-09-21T12:00:00+00:00"))
+    for i, rid in enumerate([*decor, "sandales_hermes"]):
+        conn.execute("INSERT INTO reward(profile_id, reward_id, source, granted_at, equipped) VALUES (?,?,?,?,?)",
+                     (pid, rid, "test", "2026-09-21T12:00:00+00:00", int(i < 4)))
     conn.commit(); conn.close()
     patch = lambda rid, on: client.patch(f"/api/profiles/{pid}/rewards/{rid}", json={"equipped": on})
-    for rid in decor[:4]:
-        assert patch(rid, True).status_code == 200
-    full = patch("decor:fresque", True)
-    assert full.status_code == 409 and full.json()["detail"] == "Les murs sont pleins\u202f: range d'abord une pièce."
-    assert not next(r for r in client.get(f"/api/profiles/{pid}/rewards").json() if r["id"] == "decor:fresque")["equipped"]
-    # Gear is worn, not hung; a piece already on the wall can be patched again.
+    shown = lambda: {r["id"] for r in client.get(f"/api/profiles/{pid}/rewards").json() if r["equipped"]}
+    assert shown() == set(decor[:4])
+    for rid in decor[4:]:
+        assert patch(rid, True).json()["equipped"] is True
     assert patch("sandales_hermes", True).json()["equipped"] is True
-    assert patch("decor:tapis", True).status_code == 200
-    # Putting one away frees its spot.
+    assert shown() == {*decor, "sandales_hermes"}
+    # A piece put away comes off, and goes back on.
     assert patch("decor:tapis", False).json()["equipped"] is False
-    assert patch("decor:fresque", True).json()["equipped"] is True
+    assert patch("decor:tapis", True).json()["equipped"] is True
 
 
 def test_a_lieutenant_asleep_at_the_heros_class_cannot_be_challenged(client):
@@ -258,53 +260,3 @@ def test_a_reward_that_left_the_catalog_is_skipped_not_a_500(client, settings):
     assert listed.status_code == 200 and [r["id"] for r in listed.json()] == ["decor:lanterne"]
     assert client.patch(f"/api/profiles/{pid}/rewards/decor:lanterne", json={"equipped": True}).json()["equipped"] is True
     assert client.patch(f"/api/profiles/{pid}/rewards/decor:retired", json={"equipped": False}).status_code == 404
-
-
-def test_two_pieces_hung_at_once_cannot_both_take_the_last_spot(client, settings, monkeypatch):
-    # Final review M18: the count and the update were two steps; two PATCHes at once could both
-    # count three pieces and both hang theirs. Each request here pauses right after its count until
-    # the other has counted too (or a second has passed): without the write lock both would count
-    # three; with it, the second only counts once the first has committed.
-    import threading
-    from app.db import connect
-    from app.routers import world
-    from app.schemas import RewardPatch
-
-    pid = make_profile(client)
-    decor = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee", "decor:fresque"]
-    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
-    for i, rid in enumerate(decor):
-        conn.execute("INSERT INTO reward(profile_id, reward_id, source, granted_at, equipped) VALUES (?,?,?,?,?)",
-                     (pid, rid, "test", "2026-09-21T12:00:00+00:00", int(i < 3)))
-    conn.commit(); conn.close()
-
-    counted = threading.Barrier(2)
-    real = world._displayed_decor
-
-    def count_then_wait(c, profile_id):
-        n = real(c, profile_id)
-        try:
-            counted.wait(timeout=1)
-        except threading.BrokenBarrierError:
-            pass
-        return n
-
-    monkeypatch.setattr(world, "_displayed_decor", count_then_wait)
-    results: dict[str, int] = {}
-
-    def hang(rid: str) -> None:
-        c = connect(settings.data_dir / DB_FILENAME)
-        try:
-            world.patch_reward(pid, rid, RewardPatch(equipped=True), db=c)
-            results[rid] = 200
-        except world.HTTPException as e:
-            results[rid] = e.status_code
-        finally:
-            c.close()
-
-    threads = [threading.Thread(target=hang, args=(rid,)) for rid in decor[3:]]
-    for t in threads: t.start()
-    for t in threads: t.join(timeout=60)
-    assert sorted(results.values()) == [200, 409]
-    on_walls = [r["id"] for r in client.get(f"/api/profiles/{pid}/rewards").json() if r["equipped"]]
-    assert len(on_walls) == 4

@@ -29,7 +29,6 @@ export interface ShopCatalog {
   accessories: { id: string; item: string; lieutenant: string; slot: Slot; level: number; price: number; the: string }[];
   decor: { id: string; price: number; the: string }[];
   houses: { id: string; key: 'villa' | 'palais'; stage: DragonStage; after: string | null; price: number; the: string }[];
-  max_decor: Record<House, number>;
 }
 
 export interface WorldCatalog {
