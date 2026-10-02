@@ -18,7 +18,7 @@ describe("dragon's nest (UI3 Ruling B5)", () => {
   });
 
   it('seats the dragon in the straw bed, bigger as it grows', () => {
-    expect(nestDragonLayer('egg')).toMatchObject({ x: 50, y: 62, depth: 1 });
+    expect(nestDragonLayer('egg')).toMatchObject({ x: 50, y: 62, depth: 0, idle: 'none' });
     const widths = DRAGON_STAGES.map((s) => nestDragonLayer(s).scale);
     expect(widths.every((w, i) => i === 0 || w > widths[i - 1]), 'bigger at every stage').toBe(true);
     expect(widths[5]).toBeLessThanOrEqual(34);

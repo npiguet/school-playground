@@ -566,7 +566,7 @@ test('portrait shows the rotate screen instead of the scene', async ({ page, req
   await page.setViewportSize(landscape);
 });
 
-test('reduced motion: no parallax, no idle bob, no particles', async ({ page, request }, testInfo) => {
+test('reduced motion: no idle bob, no particles; the dragon never drifts', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openCamp(page, id);
@@ -577,35 +577,21 @@ test('reduced motion: no parallax, no idle bob, no particles', async ({ page, re
   await expect(page.getByTestId('fx-canvas')).toHaveCount(0);
   expect(await label.evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
   await expect(dragon).toBeVisible();
-  await page.mouse.move(20, 20);
-  await page.mouse.move(60, 40);
-  await expect(dragon).toHaveAttribute('data-offset', '0,0');
 
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect(stage).toHaveAttribute('data-reduced-motion', 'false');
   await expect(page.getByTestId('fx-canvas')).toHaveCount(1);
   expect(await label.evaluate((el) => getComputedStyle(el).animationName)).not.toBe('none');
+  // Playtest 2026-10-02: the dragon sits still in its nest (depth 0, no idle), whatever the pointer
+  // does; the parallax itself is proven on the owl (scenes-library.spec.ts).
   if (testInfo.project.name === 'desktop') {
-    // Hover parallax is a pointer-device behaviour.
     await page.mouse.move(10, 10);
   } else {
-    // Final review M9: on the iPad the parallax follows a touch drag. Playwright's WebKit has no
-    // touch-move API (only tap), so the drag is the touch pointer events the stage listens to.
     await stage.dispatchEvent('pointerdown', { pointerType: 'touch', isPrimary: true, clientX: 600, clientY: 400, bubbles: true });
     await stage.dispatchEvent('pointermove', { pointerType: 'touch', isPrimary: true, clientX: 60, clientY: 60, bubbles: true });
   }
-  await expect(dragon).not.toHaveAttribute('data-offset', '0,0');
-  // Round 1 review #8: data-offset alone only proves the art-% math (parallaxOffset()) ran; the
-  // visible transform (off.x/100 * runtime.artW) is checked directly. `.scene-layer`'s transform
-  // eases over 0.35s, so poll rather than read it once.
-  await expect
-    .poll(() => dragon.evaluate((el) => getComputedStyle(el).transform))
-    .not.toBe('matrix(1, 0, 0, 1, 0, 0)');
-  if (testInfo.project.name === 'ipad') {
-    // Lifting the finger eases the layers back to rest.
-    await stage.dispatchEvent('pointerup', { pointerType: 'touch', isPrimary: true, clientX: 60, clientY: 60, bubbles: true });
-    await expect(dragon).toHaveAttribute('data-offset', '0,0');
-  }
+  await expect(dragon).toHaveAttribute('data-offset', '0,0');
+  expect(await dragon.locator('img.dragon-base').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
 });
 
 test('the path to battle opens once Éris can be fought; badges sit on their plaque', async ({ page, request }, testInfo) => {

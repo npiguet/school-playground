@@ -418,13 +418,14 @@ test('« Entrer » turns on tilt parallax when the device allows it', async ({ p
   await page.goto('/');
   await enterTitle(page);
   await expect(page.getByTestId('scene-title')).toHaveAttribute('data-tilt', 'on');
-  await page.goto(`/#/p/${id}/camp`); // same document: the permission holds for the session
-  await expectCamp(page);
-  const dragon = page.getByTestId('camp-dragon-layer');
-  await expect(dragon).toBeVisible();
+  await page.goto(`/#/p/${id}/tente-parchemins`); // same document: the permission holds for the session
+  await expectScene(page, 'library');
+  // The owl is a depth-1 layer; the camp's dragon sits still (playtest 2026-10-02).
+  const owl = page.getByTestId('scene-library').locator('.scene-layer');
+  await expect(owl).toBeVisible();
   await tiltBy(page, 40, 0); // resting pose
   await tiltBy(page, 50, 10);
-  await expect(dragon).not.toHaveAttribute('data-offset', '0,0');
+  await expect(owl).not.toHaveAttribute('data-offset', '0,0');
 });
 
 test('no tilt when it is refused', async ({ page }) => {
