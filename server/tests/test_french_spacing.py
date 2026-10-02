@@ -14,7 +14,7 @@ from pathlib import Path
 
 APP = Path(__file__).resolve().parent.parent / "app"
 
-BAD_SPACE = re.compile(r"[  ][:;!?»]|«[  ]")
+BAD_SPACE = re.compile(r"[ \u00a0][:;!?»]|«[ \u00a0]")
 # A missing space: a letter, digit or « ) » right against « ; ! ? » », « right against a word, or
 # a word right against « : » then a space (« Wikisource: … »). `?.`, `??`, a URL's `?page=` are code.
 NO_SPACE = [re.compile(r"(?:[^\W_]|\))[;!?»](?![.?=\w])"), re.compile(r"«[^\W_]"), re.compile(r"[^\W_]:\s")]

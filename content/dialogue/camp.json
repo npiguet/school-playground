@@ -98,7 +98,7 @@
     { "speaker": "dragon", "target": "dragon", "when": { "stage": ["hatchling", "young", "adult", "illustre", "ancestral"] }, "text": "Mon nid. Viens m'y voir quand tu veux." },
     { "speaker": "dragon", "target": "cabin", "text": "Ta maison : tes trésors, ton journal, et la lyre pour régler la voix et les sons." },
     { "speaker": "hermes", "target": "stall", "since": 2, "text": "L'étal d'Hermès, c'est le mien ! Ici, tu échanges ce que tes textes te rapportent contre des parures, du décor, et même une maison." },
-    { "speaker": "dragon", "target": "stall", "since": 2, "text": "Tes textes te rapportent des drachmes : ta bourse est en haut de l'écran. Un sceau met une parure en vente chez Hermès, et quand je grandis, une plus belle maison." },
+    { "speaker": "dragon", "target": "stall", "since": 2, "text": "Tes textes remplissent ta bourse de drachmes. Dès le sceau de bronze, chaque sceau met une parure en vente chez Hermès, et quand je grandis, une plus belle maison." },
     { "speaker": "dragon", "target": "boss", "text": "Le sentier de la bataille. Quand Éris se montrera, c'est là qu'on l'affrontera." },
     { "speaker": "dragon", "target": null, "text": "À toi de choisir où aller : touche un lieu du camp !" }
   ]

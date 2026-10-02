@@ -3,8 +3,8 @@
     "stall.enter": [
       { "speaker": "hermes", "text": "Bienvenue à mon étal ! Regarde tout à ton aise, rien ne presse." },
       { "speaker": "hermes", "text": "Ah, te voilà ! J'arrive de l'Olympe avec quelques merveilles. Prends ton temps." },
-      { "speaker": "hermes", "text": "Mes sandales ont fait le tour de la Grèce pour remplir ces étagères. Regarde, simplement." },
-      { "speaker": "hermes", "text": "Salut à toi ! Chaque objet ici a sa petite histoire. Demande-moi, je les connais toutes." }
+      { "speaker": "hermes", "text": "J'ai fait le tour de la Grèce pour remplir ces étagères. Regarde, simplement." },
+      { "speaker": "hermes", "text": "Salut à toi ! Chaque objet ici vient d'un coin différent de la Grèce. Choisis sans te presser." }
     ],
     "stall.bought.accessory": [
       { "speaker": "hermes", "text": "Belle parure ! Passe au nid pour en habiller ton dragon." },
@@ -14,7 +14,7 @@
     ],
     "stall.bought.decor": [
       { "speaker": "hermes", "text": "Un bel objet pour une belle demeure. Il t'attend parmi tes trésors." },
-      { "speaker": "hermes", "text": "Livré par mes sandales ailées ! Ouvre tes trésors pour l'exposer au mur." },
+      { "speaker": "hermes", "text": "Livré à tire-d'aile ! Ouvre tes trésors pour l'exposer au mur." },
       { "speaker": "hermes", "text": "Tes murs vont briller ! L'objet t'attend parmi tes trésors, dans ta maison." },
       { "speaker": "hermes", "text": "Voilà qui fera parler tout le camp. Tu le trouveras parmi tes trésors." }
     ],

@@ -216,8 +216,9 @@ reboot. Everything else comes from the images:
   The others (`DISCORDE_DATA_DIR=/data`, `DISCORDE_CONTENT_DIR=/app/content`,
   `DISCORDE_STATIC_DIR=/app/static`, `SPACY_MODEL=fr_dep_news_trf`) describe the image's layout;
   leave them alone, like the build stamp (`DISCORDE_BUILD_COMMIT`, `DISCORDE_BUILD_DATE`, and
-  `TTS_BUILD_COMMIT`, `TTS_BUILD_DATE` on `tts`), which the build args set. `DISCORDE_ALEXANDRIA_OFFLINE_DIR` and `DISCORDE_TEST_HOOKS` are for the test
-  suite only; never set them in production. `TTS_STUB` is for the test suite only.
+  `TTS_BUILD_COMMIT`, `TTS_BUILD_DATE` on `tts`), which the build args set.
+  `DISCORDE_ALEXANDRIA_OFFLINE_DIR` and `DISCORDE_TEST_HOOKS` are for the test suite only; never
+  set them in production. `TTS_STUB` is for the test suite only.
 - **RAM:** the game's container uses about 0.95 GB once started (measured at rest, with the language
   model loaded). Analysing a new text, a scan or an Alexandria adoption runs that model again, so
   leave it some room above that. The voice's container uses about 0.59 GB at rest and up to 0.89 GB
@@ -532,8 +533,9 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   hero chip (opens the hero panel), the XP laurel, the purse (the drachme coin and the balance), the
   dragon and the lyre button (the sound plate: the three channels and « Ouvrir la lyre »). The first
   visit to each place is a short tour by its character, and the battle's muster has its own (the
-  pace, the aids and what leaving them is worth); when a place gains something new, a hero who already saw its tour hears only the new
-  steps, once (a version per tour in `settings.tours`, e.g. `"cabin:2"`). « Refaire les visites du
+  pace, the aids and what leaving them is worth); when a place gains something new, a hero who
+  already saw its tour hears only the new steps, once (a version per tour in `settings.tours`,
+  e.g. `"cabin:2"`). « Refaire les visites du
   camp » in the lyre replays them all, and « Le guide du camp » there explains glory and the
   dragon's stages, the seals, the drachmes, the aids and Éris's fights, with the numbers the server
   serves (`data/regles.json` and the catalogue).
@@ -549,16 +551,18 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
     quêtes ».
   - « La tente de guerre » — Éris's lieutenants on their portrait wall, « Le dossier d'Éris » and
     « Le bestiaire ».
-  - « Ta cabane » (« Ta villa », « Ton palais » once bought) — « Tes trésors » (every reward),
-    « Ton journal » (the hero's all-time counts, the former stats screen) and « La lyre » (the
+  - « Ta cabane » (« Ta villa », « Ton palais » once bought) — « Tes trésors » (trophies, gear,
+    decor and tints), « Ton journal » (the hero's all-time counts, the former stats screen) and « La lyre » (the
     settings: the dictation voice's trial, the three sound channels, class, weekly goal, seal, tours,
     credits).
   - « Le sentier de la bataille » — the way to Éris herself, once she shows up.
 - **What next.** At the camp, the dragon ends its greeting with the most useful next goal, first
   match wins: a name for a hatched dragon, a prophecy due within a week, an open fight against
   Éris, the first text, a lieutenant's seal within reach (its window at least 70 % complete and
-  its share at target), the next stage (under a fifth of the way left), something affordable at
-  Hermès's stall, the week's sealed scrolls, the weekly goal, otherwise a warm word.
+  its share at target), the next stage (under a fifth of the way left), something newly affordable
+  at Hermès's stall (a piece the dragon has not named before: `settings.shop_seen` keeps the ones
+  named, so a full purse is not pointed at the stall at every visit), the week's sealed scrolls,
+  the weekly goal, otherwise a warm word.
 - **How to earn it.** Nothing is hidden: every trophy, tint, gear, decor piece, accessory and
   house not owned says in words how to get it (an empty plinth says where its lieutenant hides and
   what the first seal asks; the trophies still to win show as silhouettes in the shelf's close
@@ -608,8 +612,9 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   `settings.dragon_seen_stage`.
 - **Rewards are announced in advance** — every trophy, dragon tint, divine gear and piece of decor
   (the accessories and the houses are at Hermès's stall) is on the cabin's trophy shelf
-  (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can be earned; nothing is a gamble. A lieutenant's empty plinth there says what its first seal asks; the
-  bronze to orichalque trophies stand on the shelf once won (silhouettes in its close view until
+  (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can be earned; nothing is a
+  gamble. A lieutenant's empty plinth there says what its first seal asks; the bronze to
+  orichalque trophies stand on the shelf once won (silhouettes in its close view until
   then), and the war tent's portrait of each lieutenant says what its next seal asks.
 - **Art and sound** are served from the same origin: `web/public/art` (WebP, about 8.1 MB) and
   `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler. Dragon tints are a

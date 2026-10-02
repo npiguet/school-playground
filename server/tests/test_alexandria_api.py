@@ -191,7 +191,7 @@ def test_refresh_stops_annotating_once_the_refresh_budget_is_spent(settings):
     calls.clear()
     result = refresh_work(conn, work, ManyPages(), slow_annotate, load_lexicon(settings.content_dir),
                           refresh_budget_s=5.0, clock=clock)
-    assert len(calls) == 1 and "après un rouleau :" in result["error"]
+    assert len(calls) == 1 and "après un rouleau\u202f:" in result["error"]
 
 
 def test_refresh_reports_a_timeout_when_the_budget_is_spent_before_any_page(settings):

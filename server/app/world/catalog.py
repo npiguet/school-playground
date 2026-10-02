@@ -37,7 +37,7 @@ REWARDS = {r["id"]: r for r in [
     # Spec 2026-09-29 drachmes §2: Hermès's four pieces of decor and the two houses, sold at his stall.
     _r("decor:amphore", "decor", "Amphore peinte", "Un héros y court en figures noires, sans jamais s'arrêter.", "L'étal d'Hermès"),
     _r("decor:chouette", "decor", "Chouette de marbre", "La chouette d'Athéna veille sur tes parchemins, même la nuit.", "L'étal d'Hermès"),
-    _r("decor:mosaique", "decor", "Mosaïque des Muses", "Trois Muses en petites tuiles : la lyre, le rouleau et le masque.", "L'étal d'Hermès"),
+    _r("decor:mosaique", "decor", "Mosaïque des Muses", "Trois Muses en petites tuiles\u202f: la lyre, le rouleau et le masque.", "L'étal d'Hermès"),
     _r("decor:bouclier", "decor", "Bouclier d'apparat", "Un bouclier de bronze poli, orné de Pégase. Il brille plus qu'il ne protège.", "L'étal d'Hermès"),
     _r("house:villa", "house", "La villa", "Des murs peints d'une frise, deux fenêtres, et de la place pour six décors.", "L'étal d'Hermès"),
     _r("house:palais", "house", "Le palais", "Des colonnes, un sol de mosaïque, une cour sous les arcades, et de la place pour neuf décors.", "L'étal d'Hermès"),

@@ -28,7 +28,7 @@ test('earn, buy the Hydra\'s collar, wear it: the dragon wears it in the camp, u
   const collar = stall.getByTestId('stall-item-accessory:hydre-cou');
   await expect(collar.locator('img.stall-pic')).toHaveAttribute('src', /\/art\/dragon\/accessories\/hydre-cou_/);
   await tap(collar.getByTestId('stall-buy-accessory:hydre-cou'), testInfo);
-  await expect(collar).toContainText("Acheter le collier d'écailles vertes pour 40 drachmes ?");
+  await expect(collar).toContainText("Acheter le collier d'écailles vertes pour 40 drachmes\u202f?");
   await tap(collar.getByTestId('stall-confirm'), testInfo);
   await expect(collar).toHaveAttribute('data-state', 'owned');
   // The nest: put it on.

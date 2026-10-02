@@ -27,7 +27,7 @@
   // one comes into the page empty and each step's words are written into it a moment later.
   let announced = $state('');
   $effect(() => {
-    const words = line ? `${line.name} : ${line.text}` : '';
+    const words = line ? `${line.name}\u202f: ${line.text}` : '';
     const timer = setTimeout(() => (announced = words), 100);
     return () => clearTimeout(timer);
   });

@@ -66,7 +66,7 @@ def test_the_limit_is_ten_thousand_characters():
 
 
 def test_the_game_s_french_spacing_becomes_plain_spaces():
-    assert normalise("Bonjour ! « Point »") == "Bonjour ! « Point »"
+    assert normalise("Bonjour\u202f! «\u00a0Point\u00a0»") == "Bonjour ! « Point »"
 
 
 def test_a_breath_group_that_goes_on_keeps_its_ending():

@@ -132,7 +132,17 @@ describe('the dialogue content (spec §8)', () => {
     expect(lines.length).toBeGreaterThanOrEqual(12);
     for (const { where, line } of lines) {
       expect(line.text, where).not.toMatch(/\d|drachme|prix|promo|remise|réduc|solde|vite|dernière|dernier|plus que|seulement|aujourd'hui|demain|bientôt|avant que|stock|rare/i);
+      // SP4 final review M7: the « Sandales d'Hermès » are the hero's (Éris's first fight), never his
+      // own in his lines; and the stall has no talk, so he never invites one.
+      expect(line.text, where).not.toMatch(/sandale|demande-moi|parle-moi|pose-moi/i);
     }
+  });
+
+  // SP4 final review M7: what the lines tell of the stall and the house is true and unambiguous.
+  it('says the wooden seal sells nothing, and the bigger houses hold more decor', () => {
+    const stallStep = TOURS.camp.find((l) => l.target === 'stall' && l.speaker === 'dragon')!;
+    expect(stallStep.text).toContain('Dès le sceau de bronze');
+    for (const { where, line } of every) expect(line.text, where).not.toMatch(/\bplus de murs\b|^Un sceau met/i);
   });
 
   it('lets Éris agree with herself in the feminine (UI5 playability #3)', () => {
