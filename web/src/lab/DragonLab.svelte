@@ -1,7 +1,9 @@
 <script lang="ts">
   // Every stage with a rig, living side by side (the dragon-rig skill, "The lab"): amplitude, tint,
   // the worn pieces, the weights view, pause and a time slider. For the rig review and the human look.
+  // Above them, the Teintes panel compares the tint methods (TintPanel.svelte).
   import LivingDragon from '../components/LivingDragon.svelte';
+  import TintPanel from './TintPanel.svelte';
   import { ART } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
   import { TINT_FILTERS, TINT_NAMES } from '../lib/world/dragon';
@@ -25,6 +27,8 @@
 
 <main>
   <h1>Le dragon vivant</h1>
+  <TintPanel {stages} />
+  <h2>Les stades</h2>
   <div class="controls">
     <label>Amplitude <input type="range" min="0" max="3" step="0.05" bind:value={amplitude} /> {amplitude.toFixed(2)}x</label>
     <label>Teinte

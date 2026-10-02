@@ -8,13 +8,14 @@
   // WebGL2, a shader, a load, a tint it cannot express, a lost context: plan Ruling R4), after which
   // DragonFigure unmounts it. A new stage or picture starts afresh, `pending` again, on a new canvas
   // (Ruling L2; a disposed canvas's context is lost for good). The loop draws at most 30 frames a second
-  // and stops while the page is hidden or the canvas is off-screen. `amplitude`, `time` and
-  // `showWeights` serve the lab.
+  // and stops while the page is hidden or the canvas is off-screen. `amplitude`, `time`,
+  // `showWeights` and `tintSpec` (a tint method in place of `filter`'s CSS matrices) serve the lab.
   import { onMount, untrack } from 'svelte';
   import type { OverlayLayer } from '../lib/world/accessories';
   import { buildAtlas, loadImage, pieceDraws, placePieces } from '../lib/living/atlas';
   import { AMPLITUDE, frameDue, poseAt } from '../lib/living/pose';
   import { DragonRenderer } from '../lib/living/renderer';
+  import { tintText, type TintSpec } from '../lib/living/tint';
   import { loadRig, type LivingStage, type Motion, type Rig } from '../lib/living/rigs';
   import { MARGIN } from '../lib/living/skin';
 
@@ -27,6 +28,7 @@
     amplitude = AMPLITUDE,
     time = null,
     showWeights = false,
+    tintSpec = null,
     onmotion,
   }: {
     stage: LivingStage;
@@ -37,6 +39,7 @@
     amplitude?: number;
     time?: number | null;
     showWeights?: boolean;
+    tintSpec?: TintSpec | null;
     onmotion: (m: Motion) => void;
   } = $props();
 
@@ -53,6 +56,7 @@
   let visible = !document.hidden;
   let onScreen = true;
   let piecesKey = '';
+  let tintKey = '';
   let piecesToken = 0;
   let tryId = 0; // the current try at the living path; any teardown or new try moves it on
   const started = performance.now();
@@ -116,10 +120,13 @@
     last = null;
   }
 
-  function applyTint(css: string): void {
-    if (!renderer || css === applied.filter) return;
-    renderer.setTint(css);
-    applied.filter = css;
+  function applyTint(css: string, spec: TintSpec | null): void {
+    const key = spec ? tintText('lab', spec) : css;
+    if (!renderer || key === tintKey) return;
+    if (spec) renderer.setTintSpec(spec);
+    else renderer.setTint(css);
+    tintKey = key;
+    applied.filter = key;
     last = null;
   }
 
@@ -142,6 +149,7 @@
     last = null;
     piecesKey = '';
     piecesToken += 1;
+    tintKey = '';
     applied.filter = '';
     applied.worn = '';
     motion = 'pending';
@@ -152,7 +160,7 @@
         if (disposed) return;
         rig = r;
         renderer = new DragonRenderer(cv, sprite, r);
-        applyTint(filter);
+        applyTint(filter, tintSpec);
         await applyPieces(overlays);
         if (disposed) return;
         resize();
@@ -209,9 +217,10 @@
   // A tint picked or a piece changed while the dragon is on screen: in place, no remount.
   $effect(() => {
     const css = filter;
+    const spec = tintSpec ? { ...tintSpec } : null;
     untrack(() => {
       try {
-        applyTint(css);
+        applyTint(css, spec);
       } catch {
         still();
       }
