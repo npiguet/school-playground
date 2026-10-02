@@ -120,6 +120,26 @@ _abort_install() {
   _unlock_install
 }
 
+# The command of the trap set on a signal, in _TRAP_CMD ('' when none): `trap -p` prints it quoted
+# for re-use, so the shell unquotes it.
+_trap_command() {
+  _TRAP_CMD=""
+  local spec
+  spec="$(trap -p "$1")"
+  if [ -n "$spec" ]; then
+    eval "set -- $spec"
+    _TRAP_CMD="$3"
+  fi
+}
+# Hands traps back as they were: each argument is what `trap -p <signal>` printed before (or '').
+_restore_traps() {
+  trap - EXIT INT TERM
+  local spec
+  for spec in "$@"; do
+    if [ -n "$spec" ]; then eval "$spec"; fi
+  done
+}
+
 ensure_volumes() {
   docker volume inspect "$NPM_CACHE_VOLUME" >/dev/null 2>&1 || docker volume create "$NPM_CACHE_VOLUME" >/dev/null
   node_modules_ready && return 0
@@ -130,14 +150,22 @@ ensure_volumes() {
     return 0
   fi
   echo "== $NODE_MODULES_VOLUME has no complete install, or one older than package-lock.json: npm ci"
-  trap '_abort_install; exit 130' INT TERM
-  trap '_abort_install' EXIT
+  # The caller's traps survive the install (claim_stack_run's EXIT release, for one): its EXIT
+  # command runs after the abort, and all three traps are handed back once npm ci is done. An
+  # interrupt exits, so the EXIT trap does the cleaning.
+  local prev_exit prev_int prev_term
+  prev_exit="$(trap -p EXIT)"
+  prev_int="$(trap -p INT)"
+  prev_term="$(trap -p TERM)"
+  _trap_command EXIT
+  trap "_abort_install${_TRAP_CMD:+; $_TRAP_CMD}" EXIT
+  trap 'exit 130' INT TERM
   docker volume create "$NODE_MODULES_VOLUME" >/dev/null
   if ! run_npm ci >/dev/null || ! node_modules_ready; then
     echo "npm ci failed for $NODE_MODULES_VOLUME; the partial volume was removed" >&2
     exit 1
   fi
-  trap - INT TERM EXIT
+  _restore_traps "$prev_exit" "$prev_int" "$prev_term"
   _unlock_install
 }
 
@@ -167,15 +195,14 @@ claim_stack_run() {
     # A live holder, or one that took the lock under a minute ago and is still writing its owner file.
     if { [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; } ||
       { [ -z "$pid" ] && [ -z "$(find "$STACK_RUN_LOCK" -maxdepth 0 -mmin +1 2>/dev/null)" ]; }; then
-      echo "playwright: another run of stack $STACK_NAME is in progress (PID ${pid:-?}, started ${started:-just now});"         "refusing to start a second one on the same stack. Wait for it to end, stop it, or use another STACK. Lock: $STACK_RUN_LOCK" >&2
+      echo "playwright: another run of stack $STACK_NAME is in progress (PID ${pid:-?}, started ${started:-just now});" \
+        "refusing to start a second one on the same stack. Wait for it to end, stop it, or use another STACK. Lock: $STACK_RUN_LOCK" >&2
       exit 3
     fi
     echo "playwright: taking over the run lock of stack $STACK_NAME from PID ${pid:-?}, which is gone" >&2
     rm -rf "$STACK_RUN_LOCK"
   done
-  printf '%s
-%s
-' "$$" "$(date '+%Y-%m-%d %H:%M:%S')" > "$STACK_RUN_LOCK/owner"
+  printf '%s\n%s\n' "$$" "$(date '+%Y-%m-%d %H:%M:%S')" > "$STACK_RUN_LOCK/owner"
   trap release_stack_run EXIT
 }
 
@@ -191,8 +218,12 @@ PLAYWRIGHT_LOCK="${TMPDIR:-${TMP:-/tmp}}/discorde-e2e.lock"
 with_playwright_lock() {
   local waited=0 said="" lock_owned=0
   local wait_max="${PLAYWRIGHT_LOCK_WAIT:-7200}"
-  local prev_exit
+  local prev_exit prev_int prev_term caller_exit
   prev_exit="$(trap -p EXIT)"
+  prev_int="$(trap -p INT)"
+  prev_term="$(trap -p TERM)"
+  _trap_command EXIT
+  caller_exit="$_TRAP_CMD"
   _playwright_lock_release() {
     if [ "${lock_owned:-0}" = 1 ] && [ "$(sed -n 1p "$PLAYWRIGHT_LOCK/owner" 2>/dev/null)" = "$$" ]; then
       rm -rf "$PLAYWRIGHT_LOCK"
@@ -203,8 +234,10 @@ with_playwright_lock() {
     if mkdir "$PLAYWRIGHT_LOCK" 2>/dev/null; then
       printf '%s\n%s\n%s\n' "$$" "$STACK_NAME" "$(date '+%Y-%m-%d %H:%M:%S')" > "$PLAYWRIGHT_LOCK/owner"
       lock_owned=1
-      trap "_playwright_lock_release; release_stack_run" EXIT
-      trap '_playwright_lock_release; release_stack_run; exit 130' INT TERM
+      # The caller's EXIT command (claim_stack_run's release, for one) still runs on the way out.
+      # An interrupt releases here, where lock_owned is in scope, then exits through that trap.
+      trap "_playwright_lock_release${caller_exit:+; $caller_exit}" EXIT
+      trap '_playwright_lock_release; exit 130' INT TERM
       break
     fi
     local pid stack started
@@ -244,7 +277,6 @@ with_playwright_lock() {
   local status=$?
   _playwright_lock_release
   # Hand the traps back as they were (claim_stack_run's EXIT trap, for one).
-  trap - INT TERM
-  if [ -n "$prev_exit" ]; then eval "$prev_exit"; else trap - EXIT; fi
+  _restore_traps "$prev_exit" "$prev_int" "$prev_term"
   return $status
 }

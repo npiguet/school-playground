@@ -44,7 +44,8 @@ walk() {
   fi
   "${E2E[@]}" logs --no-color app > "$MARKS/app.log" 2>&1 || true
   "${E2E[@]}" logs --no-color tts > "$MARKS/tts.log" 2>&1 || true
-  # Here, not in the EXIT trap: with_playwright_lock replaces that trap, then clears it (preflight #5).
+  # Here, inside the lock, not only in the EXIT trap (which with_playwright_lock keeps and hands
+  # back, so it runs again at exit, harmlessly): the stack must be down before the lock is released.
   "${E2E[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
   return $status
 }
