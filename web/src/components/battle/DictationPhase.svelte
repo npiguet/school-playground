@@ -42,6 +42,7 @@
     layout,
     onFinish,
     onQuit,
+    onRestart,
     onLeaveToCamp,
     onProgress,
   }: {
@@ -60,7 +61,10 @@
     /** The stage's layout (UI4 Ruling C4): `compact` folds the controls into one bar. */
     layout: BattleLayout;
     onFinish: () => void;
+    /** « Oui, quitter »: Play saves the dictation and leaves the battle. */
     onQuit: () => void;
+    /** « Tout recommencer » on the quit confirm: this attempt is dropped, back to the muster. */
+    onRestart: () => void;
     /** Éris's card's way back to the camp (spec 2026-09-27 §5.3). */
     onLeaveToCamp: () => void;
     /** Ruling M20 / closing item 1: the step and the replay count to save, each time either moves. */
@@ -288,12 +292,19 @@
 
   // P1-4: the dictation has no HUD (deliberate minimalism) and was otherwise a dead end - the only
   // way out was the browser's back gesture. The draft is saved as she types (P1-3), so leaving is
-  // safe; the confirm just makes that explicit rather than silent.
+  // safe; the confirm just makes that explicit rather than silent. The user's report 2026-10-02:
+  // « Oui, quitter » leaves the battle, and the confirm also offers « Tout recommencer » (the resume
+  // ribbon's, here too).
   let confirmQuit = $state(false);
 
   function confirmedQuit() {
     voice.cancel();
     onQuit();
+  }
+
+  function restartFromQuit() {
+    voice.cancel();
+    onRestart();
   }
 </script>
 
@@ -377,7 +388,8 @@
       <p>{DICTATION.quitAsk}</p>
       <div class="confirm-actions">
         <button type="button" class="kit-bronze" data-testid="btn-quit-confirm" onclick={confirmedQuit} use:focusOnMount>{DICTATION.quitYes}</button>
-        <button type="button" class="kit-bronze is-quiet" onclick={() => (confirmQuit = false)}>{DICTATION.quitNo}</button>
+        <button type="button" class="kit-bronze is-quiet" data-testid="btn-quit-cancel" onclick={() => (confirmQuit = false)}>{DICTATION.quitNo}</button>
+        <button type="button" class="kit-bronze is-quiet" data-testid="btn-quit-restart" onclick={restartFromQuit}>{DICTATION.quitRestart}</button>
       </div>
     </div>
   {/if}

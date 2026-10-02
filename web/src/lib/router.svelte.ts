@@ -1,6 +1,7 @@
 // Tiny in-house hash router (spec's "Decisions" #10): reactive current route +
 // navigation helper. No third-party router dependency.
 import { matchRoute, type Route } from './routes';
+import { noteBattleOrigin } from './battle/origin';
 
 const initialHash = typeof location === 'undefined' ? '' : location.hash;
 
@@ -13,8 +14,11 @@ export const router = $state<{ route: Route; hash: string }>({
 
 export function startRouter() {
   window.addEventListener('hashchange', () => {
+    const left = router.hash;
     router.hash = location.hash;
     router.route = matchRoute(location.hash);
+    // Where a battle was opened from, for its « Quitter » (lib/battle/origin.ts).
+    noteBattleOrigin(left, router.route, history);
   });
 }
 

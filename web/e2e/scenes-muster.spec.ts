@@ -3,7 +3,7 @@
 // suggestion (never automatic), its memory.
 import type { APIRequestContext, Page, TestInfo } from '@playwright/test';
 import { test, expect } from './crashGuard';
-import { createProfileApi, createText, expectBattle, makeResult, postSession, seedPlay, swissDay, tap, uniqueName } from './helpers';
+import { createProfileApi, createText, expectBattle, expectCamp, makeResult, postSession, seedPlay, swissDay, tap, uniqueName } from './helpers';
 
 const BODY = 'Les fées dansent dans la clairière. Elles chantent et les oiseaux les écoutent.';
 const ALL = ['argus', 'ariane', 'persee', 'athena', 'palamede'];
@@ -138,12 +138,16 @@ test('each aid left at the camp adds its bonus to the glory of the battle, pace 
 });
 
 test('the aids chosen go with the battle and come back with its resume ribbon', async ({ page, request }, testInfo) => {
-  await muster(page, request, testInfo);
+  const { id, text } = await muster(page, request, testInfo);
   for (const aid of ['athena', 'argus']) await tap(page.getByTestId(`aid-toggle-${aid}`), testInfo);
   await tap(page.getByTestId('btn-start'), testInfo);
   await expectBattle(page, 'dictation');
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
   await tap(page.getByTestId('btn-quit-confirm'), testInfo);
+  // Opened by its own link, the battle leaves for the camp; she opens it again.
+  await expectCamp(page);
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
   await expect(page.getByTestId('muster-aids-reminder')).toHaveText(
     "Tes aides\u202f: le fil d'Ariane, le bouclier de Persée et les jetons de Palamède.",
   );

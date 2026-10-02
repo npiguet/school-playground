@@ -3,7 +3,7 @@
   // victory on one battle stage (Ruling C1: a phase change, or the « Revoir » panel, never remounts
   // it). The phases are components of their own with full prop contracts, so the lanes restyling
   // them never edit this controller (Ruling C13).
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import BattleStage from '../components/battle/BattleStage.svelte';
   import MusterPhase from '../components/battle/MusterPhase.svelte';
   import DictationPhase from '../components/battle/DictationPhase.svelte';
@@ -13,6 +13,7 @@
   import { api, ApiError } from '../lib/api';
   import { battleFor, isOpponentId, opponentFor, type BattlePhase, type OpponentId } from '../lib/battle/battle';
   import { emitBattle } from '../lib/battle/events';
+  import { battleOriginOf, quitTarget } from '../lib/battle/origin';
   import { hpDuringPlay } from '../lib/battle/hp';
   import { STAGE } from '../lib/battle/lines';
   import { musterLine } from '../lib/dialogue/battle';
@@ -160,6 +161,8 @@
   });
 
   function restart() {
+    // A draft save still pending must not bring the old attempt back.
+    saveDraftDebounced.cancel();
     const opponent = playState?.opponent;
     clearPlayState(profile.id, id, mode);
     // A replay is the same battle: the same opponent and encounter, fresh combatants, a full hold.
@@ -176,6 +179,17 @@
     corruptError = null;
     revealDone = false;
     left = false;
+    void focusMuster();
+  }
+
+  // The button that started a restart (the ribbon's, the quit confirm's, the victory's) is gone with
+  // its phase: the focus goes on to the new muster's start, unless its tour is speaking (R11: the
+  // tour's plate leads, then hands the focus on itself). Without scrolling: a narrow muster scrolls,
+  // and Éris's line at its top is the first thing to read.
+  async function focusMuster() {
+    await tick();
+    if (musterTour) return;
+    document.querySelector<HTMLElement>('[data-testid="btn-start"], [data-testid="btn-open-grimoire"]')?.focus({ preventScroll: true });
   }
 
   /** The player leaves this battle for good: nothing of it is kept (a victory's saved results would
@@ -238,28 +252,26 @@
     save();
   }
 
-  // P1-4: "Quitter" on the dictation screen. The draft is already saved (debounced, P1-3);
-  // this just makes leaving explicit and re-shows the resume banner, exactly as a fresh page
-  // load with a saved 'dictation' state would.
-  function quitDictation() {
+  // The user's report 2026-10-02: « Oui, quitter » (the dictation's or the proofreading's) leaves the
+  // battle, saved as it stands (the draft's pending save flushed now), for the place it was opened
+  // from (lib/battle/origin.ts). Opening the text again later shows the resume ribbon, as a page load
+  // with a saved state does. The voice is already stopped (DictationPhase's confirm).
+  function saveAndLeave() {
+    saveDraftDebounced.cancel();
     save();
-    showResumeBanner = true;
     emitBattle({ kind: 'leave' });
+  }
+
+  function quitBattle() {
+    saveAndLeave();
+    go(quitTarget(battleOriginOf(history.state), profile.id));
   }
 
   // Spec 2026-09-27 §5.3: Éris's card's way back to the camp leaves as « Quitter » does (the draft kept
-  // behind the resume ribbon), then goes home.
+  // behind the resume ribbon), but always for the camp, as it says.
   function leaveDictationForCamp() {
-    quitDictation();
+    saveAndLeave();
     go(href('camp', { profileId: String(profile.id) }));
-  }
-
-  // UI4 Ruling C15: « Quitter » on the proofreading, quitDictation's twin (the play state is saved
-  // on every edit already).
-  function quitProofreading() {
-    save();
-    showResumeBanner = true;
-    emitBattle({ kind: 'leave' });
   }
 
   // Grimoire intro's "Ouvrir le grimoire" button: Éris has already corrupted the text server-side
@@ -535,7 +547,8 @@
           replaysLeft={playState.dictationReplaysLeft}
           bind:text={playState.draft}
           onFinish={onDictationFinish}
-          onQuit={quitDictation}
+          onQuit={quitBattle}
+          onRestart={restart}
           onLeaveToCamp={leaveDictationForCamp}
           onProgress={(step, replaysLeft) => {
             if (playState) {
@@ -556,7 +569,7 @@
           {mode}
           {layout}
           onDone={onProofreadingDone}
-          onQuit={quitProofreading}
+          onQuit={quitBattle}
         />
       {:else}
         <VictoryPhase

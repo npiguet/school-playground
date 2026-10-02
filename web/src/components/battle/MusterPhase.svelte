@@ -88,9 +88,11 @@
   // asked for the encounter only): whether a grimoire counts for a quest is the server's rule.
   const grimoireQuery = $derived(encounter ? { encounter } : undefined);
 
-  // « Continuer » resumes a saved dictation at its saved pace, so the ribbon names it (pace-bug report
-  // 2026-09-27, open item 1); « Recommencer » is the way to another. A grimoire has no pace.
-  const continueLabel = $derived(mode === 'dictation' ? MUSTER.continueAt(PACE_LABELS[playState.pace].title) : MUSTER.continue);
+  // « Reprendre mon brouillon » resumes a saved dictation at its saved pace, so the ribbon names it
+  // (pace-bug report 2026-09-27, open item 1); « Tout recommencer » is the way to another. A saved
+  // proofreading (a grimoire's always is) has no pace left: « Reprendre ma relecture ».
+  const proofreading = $derived(playState.phase === 'proofreading');
+  const continueLabel = $derived(proofreading ? MUSTER.continueProof : MUSTER.continueAt(PACE_LABELS[playState.pace].title));
 
   // Spec §5: two columns from a 40 rem parchment (1280×800, the iPad in landscape), one below it (Ruling R6).
   const REM = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
@@ -139,7 +141,7 @@
   }
 
   // The two sides square up: the opponent taunts, the dragon braces (Ruling C10). Again for each new
-  // battle on this muster (« Recommencer » resets the stage under it, final review I2).
+  // battle on this muster (« Tout recommencer » resets the stage under it, final review I2).
   $effect(() => {
     void battleStage.generation;
     untrack(() => {
@@ -163,7 +165,7 @@
     <div class="resume">
       <h2 class="muster-title">{text.title}</h2>
       <div class="resume-sheet" data-testid="battle-resume">
-        <p class="kit-ribbon">{MUSTER.resume}</p>
+        <p class="kit-ribbon">{MUSTER.resume(proofreading)}</p>
         <div class="actions">
           <button type="button" class="kit-bronze" data-testid="battle-resume-continue" onclick={onContinue}>{continueLabel}</button>
           <button type="button" class="kit-bronze is-quiet" data-testid="battle-resume-restart" onclick={onRestart}>{MUSTER.restart}</button>
