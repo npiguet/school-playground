@@ -1,4 +1,5 @@
-import type { Page, Request } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { SPRITE_TOP_MARGIN } from '../src/lib/world/scenes/nest.sprites';
 import { test, expect } from './crashGuard';
 import {
   closeOverlay,
@@ -13,6 +14,7 @@ import {
   tap,
   heroNamer,
   labelOverlaps,
+  watchNests,
 } from './helpers';
 
 // UI3b Task 4 (scenes spec §3 Dragon's nest, §10). desktop + ipad.
@@ -166,21 +168,6 @@ const STAGES = [
 
 const SHEET_RIGHT = new Set(['adult', 'illustre', 'ancestral']);
 
-/** Every nest painting the page asks for (`nest_<stage>`), and those still on their way. */
-function watchNests(page: Page): { fetched: string[]; pending: Set<Request> } {
-  const out = { fetched: [] as string[], pending: new Set<Request>() };
-  const nest = (r: Request) => r.url().match(/\/art\/scenes\/(nest\w*)\.webp$/)?.[1];
-  page.on('request', (r) => {
-    const m = nest(r);
-    if (!m) return;
-    out.fetched.push(m);
-    out.pending.add(r);
-  });
-  page.on('requestfinished', (r) => out.pending.delete(r));
-  page.on('requestfailed', (r) => out.pending.delete(r));
-  return out;
-}
-
 /** Routes this hero's /camp to the stage `stage()` returns, with an XP total that fits it. */
 async function fakeStage(page: Page, id: number, stage: () => string) {
   await page.route(`**/api/profiles/${id}/camp`, async (route) => {
@@ -193,9 +180,10 @@ async function fakeStage(page: Page, id: number, stage: () => string) {
   });
 }
 
-/** The top of the dragon's painted body (its first row at least half opaque) and the HUD's bottom
- *  edge, in viewport px: the sprite's transparent margin above the head may pass under the HUD. */
-async function headAndHud(page: Page): Promise<{ head: number; hud: number; art: number }> {
+/** The top of the dragon's painted body (its first row at least half opaque: `row` of the sprite's
+ *  `rows`) and the HUD's bottom edge, in viewport px: the sprite's transparent margin above the head
+ *  may pass under the HUD. */
+async function headAndHud(page: Page): Promise<{ head: number; hud: number; art: number; row: number; rows: number }> {
   return page.evaluate(async () => {
     const img = document.querySelector<HTMLImageElement>('[data-testid="nest-dragon-layer"] img.dragon-base')!;
     await img.decode();
@@ -209,7 +197,7 @@ async function headAndHud(page: Page): Promise<{ head: number; hud: number; art:
     const r = img.getBoundingClientRect();
     const hud = document.querySelector('header.hud')!.getBoundingClientRect();
     const art = document.querySelector('[data-testid="scene-nest"] .art')!.getBoundingClientRect();
-    return { head: r.top + (row / c.height) * r.height, hud: hud.bottom, art: art.height };
+    return { head: r.top + (row / c.height) * r.height, hud: hud.bottom, art: art.height, row, rows: c.height };
   });
 }
 
@@ -270,13 +258,13 @@ test('the nest shows each of the six stages on its own painting, clear of its gr
 // Task 4 review and controller ruling N3: the HUD is a fixed 71.5 px, so on a short screen it reaches
 // lower in the art (11.2 % of a 640 px art box against 9.9 % of a 720 px one). A 1024x640 window (a
 // small laptop's browser) is the shortest art box the nest supports: the dragon's painted head still
-// clears the HUD there (nest.ts HUD_LINE_SHORT, SPRITE_TOP_MARGIN).
+// clears the HUD there (nest.ts HUD_LINE_SHORT, nest.sprites.ts SPRITE_TOP_MARGIN).
 test("the dragon's head clears the HUD on a short screen (1024x640)", async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   let stage: string = 'egg';
   await fakeStage(page, id, () => stage);
   await page.setViewportSize({ width: 1024, height: 640 });
-  const seen: { key: string; head: number; hud: number; art: number }[] = [];
+  const seen: { key: (typeof STAGES)[number][0]; head: number; hud: number; art: number; row: number; rows: number }[] = [];
   for (const [key] of STAGES) {
     stage = key;
     await page.goto(`/#/p/${id}/dragon?debug`);
@@ -287,7 +275,13 @@ test("the dragon's head clears the HUD on a short screen (1024x640)", async ({ p
   }
   const said = seen.map((m) => `${m.key}: head ${m.head.toFixed(1)} px, HUD bottom ${m.hud.toFixed(1)} px, art ${m.art.toFixed(0)} px tall`).join('; ');
   testInfo.annotations.push({ type: 'measures', description: said });
-  for (const m of seen) expect(m.head, `${m.key}: the painted head below the HUD (${said})`).toBeGreaterThanOrEqual(m.hud);
+  for (const m of seen) {
+    // nest.sprites.ts SPRITE_TOP_MARGIN (the unit rule's margin) is the sprite file's own, within a row.
+    expect(Math.abs(m.row - SPRITE_TOP_MARGIN[m.key] * m.rows), `${m.key}: SPRITE_TOP_MARGIN matches the sprite (row ${m.row} of ${m.rows})`).toBeLessThanOrEqual(1);
+    // No tolerance on purpose: the young and the illustre clear the HUD by 0.3-0.4 px at 640 px, so
+    // the usual 2 px slack would let a head under the HUD pass.
+    expect(m.head, `${m.key}: the painted head below the HUD (${said})`).toBeGreaterThanOrEqual(m.hud);
+  }
 });
 
 test('the growth sheet: the next stage and the XP toward it; « Il a fini de grandir. » at the top', async ({ page, request }, testInfo) => {
@@ -341,5 +335,5 @@ test("a grown dragon's nest opened cold shows no other stage's painting while /c
   // list of nest paintings fetched is the adult's alone (not a wait for a first match).
   await bg.evaluate((img: HTMLImageElement) => img.decode());
   await expect.poll(() => nests.pending.size).toBe(0);
-  expect([...new Set(nests.fetched)]).toEqual(['nest_adult']);
+  expect(nests.fetched).toEqual(['nest_adult']);
 });

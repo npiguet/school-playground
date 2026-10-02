@@ -1,6 +1,5 @@
-import type { Request } from '@playwright/test';
 import { test, expect } from './crashGuard';
-import { createProfileApi, expectCamp, expectScene, heroNamer, tap } from './helpers';
+import { createProfileApi, expectCamp, expectScene, heroNamer, tap, watchNests } from './helpers';
 
 // The server tells the browser to store nothing (server/app/static.py, `no-store`), so the camp's
 // warm-up of the next places (SceneStage's preload, spec §4 performance) only helps if the page itself
@@ -33,22 +32,12 @@ test("the camp warms the nest painting of the dragon's stage, even when /camp ar
     await new Promise((r) => setTimeout(r, 1500)); // after SceneStage's 800 ms warm-up timer
     await route.fulfill({ response: res, json: camp });
   });
-  const nests: string[] = [];
-  const pending = new Set<Request>();
-  const nest = (r: Request) => r.url().match(/\/art\/scenes\/(nest\w*)\.webp$/)?.[1];
-  page.on('request', (r) => {
-    const m = nest(r);
-    if (!m) return;
-    nests.push(m);
-    pending.add(r);
-  });
-  page.on('requestfinished', (r) => pending.delete(r));
-  page.on('requestfailed', (r) => pending.delete(r));
+  const nests = watchNests(page);
   await page.goto(`/#/p/${id}/camp`);
   await expectCamp(page);
   // The stage's nest is warmed; once it has arrived and no nest painting is still on its way, the
   // whole list is that one (no stale nest.webp, no other stage), not a wait for a first match.
-  await expect.poll(() => nests.includes('nest_illustre')).toBe(true);
-  await expect.poll(() => pending.size).toBe(0);
-  expect([...new Set(nests)]).toEqual(['nest_illustre']);
+  await expect.poll(() => nests.fetched.includes('nest_illustre')).toBe(true);
+  await expect.poll(() => nests.pending.size).toBe(0);
+  expect(nests.fetched).toEqual(['nest_illustre']);
 });
