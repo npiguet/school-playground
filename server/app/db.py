@@ -44,7 +44,11 @@ def _migrations() -> list[tuple[int, Path]]:
     """The numbered migrations, in order: `NNN_name.sql`, or `NNN_name.py` for a data migration that
     needs Python (migration 008 computes Swiss days); one file per number."""
     files = [p for p in MIGRATIONS_DIR.iterdir() if p.suffix in (".sql", ".py") and p.name[:1].isdigit()]
-    return sorted((int(p.name.split("_", 1)[0]), p) for p in files)
+    numbered = sorted((int(p.name.split("_", 1)[0]), p) for p in files)
+    for (v1, p1), (v2, p2) in zip(numbered, numbered[1:]):
+        if v1 == v2:   # the second would be skipped silently, as already applied
+            raise RuntimeError(f"Two migrations share the number {v1:03d}: {p1.name} and {p2.name}")
+    return numbered
 
 
 def _load_python_migration(path: Path) -> Callable[[sqlite3.Connection], None]:
@@ -57,7 +61,12 @@ def _load_python_migration(path: Path) -> Callable[[sqlite3.Connection], None]:
 
 
 def migrate(conn: sqlite3.Connection, upto: int | None = None) -> int:
-    """Runs the migrations not applied yet, up to `upto` included when given (tests build older schemas)."""
+    """Runs the migrations not applied yet, up to `upto` included when given (tests build older schemas).
+    Each migration opens and commits its own transaction, so the connection must have none open: a
+    caller's pending writes would be committed with (or rolled back by) a migration. At start-up there
+    is none (connect() runs only PRAGMAs); any other caller gets a RuntimeError instead."""
+    if conn.in_transaction:
+        raise RuntimeError("migrate() needs a connection without an open transaction: commit or roll back first")
     conn.execute("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
     current = conn.execute("SELECT COALESCE(MAX(version), 0) FROM schema_version").fetchone()[0]
     for version, path in _migrations():
@@ -75,9 +84,7 @@ def migrate(conn: sqlite3.Connection, upto: int | None = None) -> int:
                                    f"INSERT INTO schema_version(version, applied_at) VALUES ({version}, datetime('now'));\nCOMMIT;")
             else:
                 up = _load_python_migration(path)
-                if conn.in_transaction:
-                    conn.commit()
-                conn.execute("BEGIN")
+                conn.execute("BEGIN")   # none is open: checked on entry, and each migration commits its own
                 up(conn)
                 conn.execute("INSERT INTO schema_version(version, applied_at) VALUES (?, datetime('now'))", (version,))
                 conn.commit()

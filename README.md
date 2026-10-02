@@ -52,8 +52,8 @@ Run the game on your Windows PC, for trying it out or playing on the home networ
    The first two lines stamp the build with its commit and date, which the lyre's credits and
    `/api/health` show ("Which version is running?" in §2); without them the stamp says `unknown`
    and the game works the same. The first build takes several minutes (it downloads Tesseract, the
-   French transformer spaCy language model and the voice's model, Kokoro-82M). Later builds reuse the cache. The images are
-   tagged `discorde:local` and `discorde-tts:local`.
+   French transformer spaCy language model and the voice's model, Kokoro-82M). Later builds reuse
+   the cache. The images are tagged `discorde:local` and `discorde-tts:local`.
 3. Open <http://localhost:38417> in Edge or Chrome. The 35 seed texts are loaded on the first start.
    The game uses port 38417 on purpose, an uncommon one, so it doesn't clash with other services.
 4. **Play from the iPad** on the same Wi-Fi: find the PC's IP address (`ipconfig`, "IPv4
@@ -114,8 +114,8 @@ images work the same.
 (Don't pipe `docker save` in Windows PowerShell 5.1: its pipes re-encode binary data and corrupt the
 file; `-o` writes it directly.) The game's image takes about 3.9 GB on disk once loaded (mostly the
 `fr_dep_news_trf` spaCy model with its CPU build of PyTorch, and Tesseract), and the voice's image
-takes about 1.3 GB (its model and the ONNX runtime). Copy the `.tar` onto the NAS, into an SMB share or over SSH with Windows'
-built-in `scp`:
+takes about 1.3 GB (its model and the ONNX runtime). Copy the `.tar` onto the NAS, into an SMB
+share or over SSH with Windows' built-in `scp`:
 
 ```powershell
 scp "discorde-$v.tar" admin@<nas-ip>:/mnt/<pool>/<share>/
@@ -315,8 +315,8 @@ tap « Réessayer », then to fetch a parent if the voice stays silent. The card
 Then:
 
 1. Open `http://<server>:38417/api/tts/health`.
-   `{"voice":"ready","engine":"kokoro-82m-v1.0-onnx-direct","build":{...}}` means the voice is fine again (`build`
-   names the voice's version, see "Which version is running?"): tap
+   `{"voice":"ready","engine":"kokoro-82m-v1.0-onnx-direct","build":{...}}` means the voice is
+   fine again (`build` names the voice's version, see "Which version is running?"): tap
    « Réessayer » on the card. `{"voice":"loading"}`: wait a minute and try again.
    `{"voice":"unreachable"}`: the container is not running. `{"voice":"error"}`: it could not load
    its model; its logs say why.
@@ -578,16 +578,17 @@ after the villa, 4 / 6 / 9 wall slots for cabin / villa / palais).
 ### Seals: the window algorithm
 
 `server/app/world/seals.py`. Per lieutenant and per Swiss day (`profile_stat_day`, summed over the
-lieutenant's categories and both modes, dictation and Grimoire), `chances` = the opportunities the texts gave it and `mistakes` = its
-mistakes left in the handed-in copies (missed + introduced). Seal L+1 is judged on the days strictly
-after the day seal L was won (none for the first), newest first, taken until the window holds
-`levels[L].days` days **and** `levels[L].chances` chances; it is won when that window is complete and
-(chances − mistakes) ÷ chances ≥ `correct` (with a 1e-9 tolerance). After each saved session, every
-lieutenant awake at the hero's class (Protée from 8H) gains at most one seal, written only over the
-seal before it (`lieutenant_level`), paying `LEVEL_XP` × L XP, `drachmes.level` × L drachmes and the
-trophy `trophy:<lieutenant>:<L>`. A seal is never lost. The war tent's gauges and the what-next line
-(« within reach »: window at least 70 % full in days and chances, share at target) read the same
-window from `/camp` (`lieutenants[].next`).
+lieutenant's categories and both modes, dictation and Grimoire), `chances` = the opportunities the
+texts gave it and `mistakes` = its mistakes left in the handed-in copies (missed + introduced).
+Seal L+1 is judged on the days strictly after the day seal L was won (none for the first), newest
+first, taken until the window holds `levels[L].days` days **and** `levels[L].chances` chances; it
+is won when that window is complete and (chances − mistakes) ÷ chances ≥ `correct` (with a 1e-9
+tolerance). After each saved session, every lieutenant awake at the hero's class (Protée from 8H)
+gains at most one seal, written only over the seal before it (`lieutenant_level`), paying
+`LEVEL_XP` × L XP, `drachmes.level` × L drachmes and the trophy `trophy:<lieutenant>:<L>`. A seal
+is never lost. The war tent's gauges and the what-next line (« within reach »: window at least 70 %
+full in days and chances, share at target) read the same window from `/camp`
+(`lieutenants[].next`).
 
 ### Éris's fights: the ladder
 
@@ -598,15 +599,16 @@ to N−1 are won (a won fight is a `boss` quest `done`, stored by its tier numbe
 whatever the ladder says later). `POST /api/profiles/{id}/boss` starts the open fight (or returns the
 one already under way) on a text of at least 150 words at the hero's class or the one below, least
 played first, then longest. The fight is won with at most `fight_max_per_100` mistakes left per 100
-words; its muster offers no pace below the class's default one (`defaultPace`). Each win pays `QUEST_BONUS["boss"]` XP and
-`drachmes.boss`; tiers 1 to 3 also give the divine gear (`BOSS_REWARDS`: `sandales_hermes`, `egide`,
-`foudre_zeus`).
+words; its muster offers no pace below the class's default one (`defaultPace`). Each win pays
+`QUEST_BONUS["boss"]` XP and `drachmes.boss`; tiers 1 to 3 also give the divine gear
+(`BOSS_REWARDS`: `sandales_hermes`, `egide`, `foudre_zeus`).
 
 ### Migrations 006 to 008, the drachme ledger and the stats' mode
 
 Migrations run at start-up (`server/app/migrations/`), each in one transaction with its
 `schema_version` row: `NNN_name.sql`, or `NNN_name.py` (a function `up(conn)`, for a data migration
 that needs Python; it uses `conn.execute` only, never `executescript`, a commit, `BEGIN` or a `PRAGMA`).
+Two files with one number are refused, and so is a connection with a transaction already open.
 
 - **006 (seals)** creates `lieutenant_level`: every lieutenant neutralised under the old rule became
   seal 1 (bois), won when it was neutralised, and its relic became its wooden trophy. The old
@@ -619,10 +621,14 @@ that needs Python; it uses `conn.execute` only, never `executescript`, a commit,
   `category`, `mode`), so the child's own mistakes (dictations) are told apart from the ones Éris
   planted (Grimoire corrompu, whose « draft errors » are hers). The tables are rebuilt and their
   counters split by replaying the Grimoire sessions still on record (`result_json.byCategory`, on the
-  session's Swiss day of `finished_at`). Whatever those sessions cannot explain stays in `dictation`:
-  sessions recorded without `byCategory`, sessions deleted with their text, malformed results. A
-  Grimoire share above the old counter (inconsistent data) is clamped to it. For every old row, the new
-  rows sum exactly to its counters; an all-zero dictation remainder beside a Grimoire row is not kept.
+  session's Swiss day of `finished_at`): each day row's Grimoire share is clamped to that row, and
+  the all-time row's share is the sum of its kept day shares, clamped to the all-time row. A
+  Grimoire session finished before migration 005 was applied (its `schema_version.applied_at`)
+  counts no `introduced`: the server did not store it then. Whatever those sessions cannot explain
+  stays in `dictation`: sessions recorded without `byCategory`, sessions deleted with their text,
+  malformed results. For every old row, the new rows sum exactly to its counters; an all-zero
+  dictation remainder beside a Grimoire row is not kept. The migration carries its own copy of the
+  Swiss-day computation, so it stays what it was when later code changes.
 
 The balance is the ledger's sum. `reason` is `grant`, `session` (round(session XP ÷ `xp_per_drachme`),
 halves up), `board`, `oracle`, `weekly`, `level`, `boss` (one row per part, `ref` = `session:<id>`) or

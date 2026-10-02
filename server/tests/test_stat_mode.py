@@ -55,6 +55,8 @@ def summed(conn, table):
 def old_db(tmp_path):
     """A database at migration 007 with a mixed history, as a hero's real play leaves it."""
     conn = _db_before(tmp_path / "old.sqlite3", 8)
+    # Migration 005 (the server stores `introduced`) was applied before all of this history.
+    conn.execute("UPDATE schema_version SET applied_at = '2026-08-01 00:00:00' WHERE version = 5")
     for pid, name in ((1, "Io"), (2, "Ada")):
         conn.execute("INSERT INTO profile(id, name, avatar, level, help_stage, created_at) VALUES (?, ?, 'chouette', '10H', 0, 'now')",
                      (pid, name))
@@ -111,6 +113,82 @@ def test_migration_008_splits_the_counters_by_mode_and_keeps_every_sum(old_db):
     }
     assert {r[0] for r in old_db.execute("SELECT updated_at FROM profile_stat WHERE profile_id = 1 AND category = 'homophone'")} \
         == {"2026-09-03T08:00:00+00:00"}
+    # The all-time Grimoire rows are the sum of the day rows' (fix round 1, I1).
+    assert {k: v for k, v in per_mode_sums(old_db).items() if k[1] == "grimoire"} == \
+        {k: v for k, v in rows(old_db, "profile_stat").items() if k[1] == "grimoire"}
+
+
+def per_mode_sums(conn):
+    """The day rows summed per (profile, mode, category): what profile_stat must hold per mode."""
+    return {tuple(r[:3]): tuple(r[3:]) for r in conn.execute(
+        f"SELECT profile_id, mode, category, {', '.join(f'SUM({c})' for c in COUNTERS)} FROM profile_stat_day "
+        "GROUP BY profile_id, mode, category")}
+
+
+def record(conn, pid, mode, finished_at, counts, introduced_stored):
+    """A session as the server of that time saved it: the session row, and its counts added to both
+    stats tables (before migration 005 the tables had no `introduced`, the result_json always had it)."""
+    from app.clock import local_day
+    add_session(conn, pid, mode, finished_at, json.dumps({"byCategory": {"homophone": by_cat(*counts)}}))
+    cols = COUNTERS if introduced_stored else COUNTERS[:4]
+    vals = counts[:len(cols)]
+    sets = ", ".join(f"{c} = {c} + excluded.{c}" for c in cols)
+    conn.execute(f"INSERT INTO profile_stat(profile_id, category, {', '.join(cols)}, updated_at) VALUES (?, 'homophone', "
+                 f"{', '.join('?' * len(cols))}, ?) ON CONFLICT(profile_id, category) DO UPDATE SET {sets}",
+                 (pid, *vals, finished_at))
+    conn.execute(f"INSERT INTO profile_stat_day(profile_id, day, category, {', '.join(cols)}) VALUES (?, ?, 'homophone', "
+                 f"{', '.join('?' * len(cols))}) ON CONFLICT(profile_id, day, category) DO UPDATE SET {sets}",
+                 (pid, local_day(finished_at), *vals))
+
+
+def test_migration_008_never_gives_eris_the_mistakes_introduced_before_005_stored_them(tmp_path):
+    # A database from before migration 005: the client already sent `introduced`, the server dropped it.
+    conn = _db_before(tmp_path / "old.sqlite3", 5)
+    conn.execute("INSERT INTO profile(id, name, avatar, level, help_stage, created_at) VALUES (1, 'Io', 'chouette', '10H', 0, 'now')")
+    conn.execute("INSERT INTO text(id, title, body, source, level, created_at) VALUES (1, 'T', 'Un texte.', 'custom', '8H', 'now')")
+    record(conn, 1, "grimoire", "2026-09-05T10:00:00+00:00", (4, 2, 1, 1, 2), introduced_stored=False)
+    record(conn, 1, "dictation", "2026-09-05T11:00:00+00:00", (5, 2, 2, 0, 1), introduced_stored=False)
+    record(conn, 1, "grimoire", "2026-09-10T08:00:00+00:00", (3, 1, 1, 0, 1), introduced_stored=False)
+    conn.commit()
+    assert migrate(conn, upto=7) == 7
+    conn.execute("UPDATE schema_version SET applied_at = '2026-09-10 12:00:00' WHERE version = 5")
+    # After 005, the same day as the last Grimoire, then later.
+    record(conn, 1, "dictation", "2026-09-10T15:00:00+00:00", (6, 3, 2, 1, 2), introduced_stored=True)
+    record(conn, 1, "dictation", "2026-09-20T10:00:00+00:00", (2, 1, 0, 1, 2), introduced_stored=True)
+    record(conn, 1, "grimoire", "2026-09-21T10:00:00+00:00", (3, 2, 1, 1, 1), introduced_stored=True)
+    conn.commit()
+    before_stat, before_day = summed(conn, "profile_stat"), summed(conn, "profile_stat_day")
+    assert migrate(conn) >= 8
+    assert summed(conn, "profile_stat") == before_stat and summed(conn, "profile_stat_day") == before_day
+    assert rows(conn, "profile_stat") == {(1, "dictation", "homophone"): (13, 6, 4, 2, 4),   # every introduced is hers
+                                          (1, "grimoire", "homophone"): (10, 5, 3, 2, 1)}    # only the post-005 one
+    assert rows(conn, "profile_stat_day") == {
+        (1, "dictation", "2026-09-05", "homophone"): (5, 2, 2, 0, 0),
+        (1, "grimoire", "2026-09-05", "homophone"): (4, 2, 1, 1, 0),
+        (1, "dictation", "2026-09-10", "homophone"): (6, 3, 2, 1, 2),
+        (1, "grimoire", "2026-09-10", "homophone"): (3, 1, 1, 0, 0),
+        (1, "dictation", "2026-09-20", "homophone"): (2, 1, 0, 1, 2),
+        (1, "grimoire", "2026-09-21", "homophone"): (3, 2, 1, 1, 1),
+    }
+    assert per_mode_sums(conn) == rows(conn, "profile_stat")
+    conn.close()
+
+
+def load_008():
+    import importlib.util
+    from app.db import MIGRATIONS_DIR
+    spec = importlib.util.spec_from_file_location("m008", MIGRATIONS_DIR / "008_stat_mode.py")
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize("stamp", [
+    "2026-03-28T23:30:00+00:00", "2026-03-29T00:59:59+00:00", "2026-03-29T01:00:00+00:00", "2026-03-29T22:30:00+00:00",
+    "2026-10-24T21:59:59+00:00", "2026-10-24T22:00:00+00:00", "2026-10-25T22:59:00+00:00", "2026-10-25T23:00:00+00:00",
+    "2026-09-01T12:00:00+00:00", "2026-09-01T23:30:00.123456+00:00", "2026-09-01T23:30:00", "2026-09-02T01:15:00+02:00"])
+def test_migration_008_dates_a_session_exactly_like_the_writer(stamp):
+    from app.clock import local_day
+    assert load_008().swiss_day(stamp) == local_day(stamp)
 
 
 def test_migration_008_runs_once(old_db):

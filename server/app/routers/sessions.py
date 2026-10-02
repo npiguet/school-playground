@@ -52,8 +52,9 @@ def create_session(body: SessionCreate, request: Request, db: sqlite3.Connection
     grimoire = body.mode == "grimoire"
     apply_session_to_stats(db, body.profile_id, body.result, day, finished_at, body.mode)
     # In the Grimoire the draft errors are Éris's plants, not the child's mistakes: they feed the
-    # category stats (in the 'grimoire' rows, migration 008) but never create or reset a mot-piège (a trap word is planted 3× more often,
-    # so counting plants as misses would pin it in box 1 forever).
+    # category stats (in the 'grimoire' rows, migration 008) but never create or reset a mot-piège
+    # (a trap word is planted 3× more often, so counting plants as misses would pin it in box 1
+    # forever).
     update_trap_words(db, body.profile_id, body.result, text["body"], finished_at, record_misses=not grimoire)
 
     prophecy = bool(text["due_date"]) and text["due_date"] > day   # Decision 10: "before its date" (SP3 batch review M9)
