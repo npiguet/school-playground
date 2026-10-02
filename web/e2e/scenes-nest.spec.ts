@@ -193,6 +193,26 @@ async function fakeStage(page: Page, id: number, stage: () => string) {
   });
 }
 
+/** The top of the dragon's painted body (its first row at least half opaque) and the HUD's bottom
+ *  edge, in viewport px: the sprite's transparent margin above the head may pass under the HUD. */
+async function headAndHud(page: Page): Promise<{ head: number; hud: number; art: number }> {
+  return page.evaluate(async () => {
+    const img = document.querySelector<HTMLImageElement>('[data-testid="nest-dragon-layer"] img.dragon-base')!;
+    await img.decode();
+    const c = document.createElement('canvas');
+    [c.width, c.height] = [img.naturalWidth, img.naturalHeight];
+    const g = c.getContext('2d')!;
+    g.drawImage(img, 0, 0);
+    const a = g.getImageData(0, 0, c.width, c.height).data;
+    let row = 0;
+    find: for (; row < c.height; row++) for (let x = 0; x < c.width; x++) if (a[(row * c.width + x) * 4 + 3] > 128) break find;
+    const r = img.getBoundingClientRect();
+    const hud = document.querySelector('header.hud')!.getBoundingClientRect();
+    const art = document.querySelector('[data-testid="scene-nest"] .art')!.getBoundingClientRect();
+    return { head: r.top + (row / c.height) * r.height, hud: hud.bottom, art: art.height };
+  });
+}
+
 test('the nest shows each of the six stages on its own painting, clear of its growth sheet and of the HUD', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   let stage: string = 'egg';
@@ -245,6 +265,29 @@ test('the nest shows each of the six stages on its own painting, clear of its gr
   // Review Focus 4: the sheet beside the ancestral never swallows the tap on it.
   await tap(page.getByTestId('nest-dragon'), testInfo);
   await expect(page.getByTestId('overlay-care')).toBeVisible();
+});
+
+// Task 4 review and controller ruling N3: the HUD is a fixed 71.5 px, so on a short screen it reaches
+// lower in the art (11.2 % of a 640 px art box against 9.9 % of a 720 px one). A 1024x640 window (a
+// small laptop's browser) is the shortest art box the nest supports: the dragon's painted head still
+// clears the HUD there (nest.ts HUD_LINE_SHORT, SPRITE_TOP_MARGIN).
+test("the dragon's head clears the HUD on a short screen (1024x640)", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let stage: string = 'egg';
+  await fakeStage(page, id, () => stage);
+  await page.setViewportSize({ width: 1024, height: 640 });
+  const seen: { key: string; head: number; hud: number; art: number }[] = [];
+  for (const [key] of STAGES) {
+    stage = key;
+    await page.goto(`/#/p/${id}/dragon?debug`);
+    await page.reload();
+    await expectScene(page, 'nest');
+    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', `/art/dragon/dragon_${key}_cut.webp`);
+    seen.push({ key, ...(await headAndHud(page)) });
+  }
+  const said = seen.map((m) => `${m.key}: head ${m.head.toFixed(1)} px, HUD bottom ${m.hud.toFixed(1)} px, art ${m.art.toFixed(0)} px tall`).join('; ');
+  testInfo.annotations.push({ type: 'measures', description: said });
+  for (const m of seen) expect(m.head, `${m.key}: the painted head below the HUD (${said})`).toBeGreaterThanOrEqual(m.hud);
 });
 
 test('the growth sheet: the next stage and the XP toward it; « Il a fini de grandir. » at the top', async ({ page, request }, testInfo) => {

@@ -5,7 +5,7 @@ import { frenchSpacing } from '../../text/french';
 import { variantsOf } from '../../../testing/dialogue';
 import { DRAGON_STAGES, type CampResponse, type DragonOut } from '../types';
 import { DIALOGUE_DOCK, HUD_BAND, SAFE_ZONE } from '../../scene/geometry';
-import { HUD_LINE, NEST_SCENE, NEST_STAGES, SHEET_X, careLine, dragonTop, growth, nestDragonLayer, nestGreeting, nestScene } from './nest';
+import { HUD_LINE, HUD_LINE_SHORT, NEST_SCENE, NEST_STAGES, SHEET_X, careLine, dragonHead, dragonTop, growth, nestDragonLayer, nestGreeting, nestScene } from './nest';
 import { NEST_SHAPES } from './nest.shapes';
 
 const egg = { name: null, tint: 'bronze', stage: 'egg', unlocked_tints: ['bronze'], worn: [] } as DragonOut;
@@ -32,6 +32,9 @@ describe("dragon's nest (UI3 Ruling B5)", () => {
       expect(nestDragonLayer(s), s).toEqual({ x, y, scale: w, depth: 0, idle: 'none' });
       expect(dragonTop(s), s).toBeCloseTo(y - (w * 16) / 9, 5);
       expect(dragonTop(s), `${s}: the head below the HUD`).toBeGreaterThanOrEqual(HUD_LINE);
+      // Controller ruling N3: on the shortest art box (640 px) the HUD reaches 11.2 %; the painted
+      // head still clears it.
+      expect(dragonHead(s), `${s}: the painted head below the HUD on a 640 px art box`).toBeGreaterThanOrEqual(HUD_LINE_SHORT);
       expect(y, `${s}: the feet in the frame`).toBeLessThanOrEqual(100);
       expect(x - w / 2, `${s}: inside the safe zone`).toBeGreaterThanOrEqual(SAFE_ZONE.x);
       expect(x + w / 2, `${s}: inside the safe zone`).toBeLessThanOrEqual(SAFE_ZONE.x + SAFE_ZONE.w);

@@ -67,15 +67,31 @@ export const NEST_STAGE_SCENES: SceneDef[] = DRAGON_STAGES.map((s) => BY_STAGE[s
 export const NEST_STAGES: Record<DragonStage, { x: number; y: number; w: number; sheet: 'left' | 'right' }> = {
   egg: { x: 50, y: 54, w: 16, sheet: 'left' },
   hatchling: { x: 50, y: 55, w: 21, sheet: 'left' },
-  young: { x: 51.5, y: 77.6, w: 38, sheet: 'left' },
+  young: { x: 51.5, y: 77.8, w: 38, sheet: 'left' },
   adult: { x: 44, y: 81.2, w: 40, sheet: 'right' },
-  illustre: { x: 44, y: 88.3, w: 44, sheet: 'right' },
+  illustre: { x: 44, y: 88.9, w: 44, sheet: 'right' },
   ancestral: { x: 44, y: 94, w: 47, sheet: 'right' },
 };
 
 /** The HUD's bottom edge in art % where it reaches lowest: 71.5 px (as the e2e measures `header.hud`:
  *  8 px padding, its row, 8 px) of a 1280x720 art box, 9.9 %. The dragon's picture stays below it. */
 export const HUD_LINE = 10;
+/** The HUD's bottom edge in art % on the shortest art box the nest supports, 640 px tall (a 1024x640
+ *  window, controller ruling N3): the HUD stays 71.5 px, 11.2 % of it. The dragon's painted head
+ *  (its picture's top plus the sprite's transparent margin, `SPRITE_TOP_MARGIN`) stays below it. */
+export const HUD_LINE_SHORT = (71.5 / 640) * 100;
+/** Each stage's sprite (`art/dragon/dragon_<stage>_cut.webp`, 1024x1024): its transparent rows above
+ *  the head, as a fraction of its height. Measured with Pillow as the first row with a pixel whose
+ *  alpha is above 128 (egg row 61, hatchling 25, young 15, adult 18, illustre 7, ancestral 12); the
+ *  e2e (scenes-nest "short screen") measures the same row in the browser. Re-measure on a new cut. */
+export const SPRITE_TOP_MARGIN: Record<DragonStage, number> = {
+  egg: 61 / 1024,
+  hatchling: 25 / 1024,
+  young: 15 / 1024,
+  adult: 18 / 1024,
+  illustre: 7 / 1024,
+  ancestral: 12 / 1024,
+};
 /** The growth sheet's top, and its band on each side (art %, its rods included), inside the 4:3 safe
  *  zone and clear of the HUD. */
 export const SHEET_TOP = 18;
@@ -85,6 +101,12 @@ export const SHEET_X = { left: { x: 13.5, w: 19 }, right: { x: 68.5, w: 19 } } a
 export function dragonTop(stage: DragonStage): number {
   const { y, w } = NEST_STAGES[stage];
   return y - (w * 16) / 9;
+}
+
+/** The top of the dragon's painted head, art %: its picture's top plus the sprite's margin. */
+export function dragonHead(stage: DragonStage): number {
+  const { w } = NEST_STAGES[stage];
+  return dragonTop(stage) + SPRITE_TOP_MARGIN[stage] * ((w * 16) / 9);
 }
 
 /** The dragon's cut-out on its stage's painting. Depth 0 and no idle: it sits still on its painting,

@@ -84,7 +84,7 @@ every other landmark is the egg's.
 
 | Landmark | x | y | w | h | Notes |
 |---|---|---|---|---|---|
-| **Dragon spot** | 32.5 | 10 | 38 | 67.6 | Empty straw; the straw spills toward the viewer. Young: feet at y 77.6, centred at x 51.5, width 38 (its picture's top at 10, just below the HUD) |
+| **Dragon spot** | 32.5 | 10.2 | 38 | 67.6 | Empty straw; the straw spills toward the viewer. Young: feet at y 77.8, centred at x 51.5, width 38 (its painted head at 11.2, just below the HUD on a 640 px art box) |
 | Nest (whole) | 15 | 32 | 67 | 48 | Woven twigs around a straw bed |
 | Boulder behind the nest | 31 | 7 | 51 | 53 | Decorative, the dragon stands in front of it |
 | Pale cliff (the sheet) | 0 | 0 | 21 | 80 | The growth sheet (x 13.5-32.5, from y 18) hangs on the cliff and the boulder's edge |
@@ -107,7 +107,7 @@ every other landmark is the egg's.
 
 | Landmark | x | y | w | h | Notes |
 |---|---|---|---|---|---|
-| **Dragon spot** | 22 | 10.1 | 44 | 78.2 | Empty floor in front of the nest. Illustre: feet at y 88.3, centred at x 44, width 44 |
+| **Dragon spot** | 22 | 10.7 | 44 | 78.2 | Empty floor in front of the nest. Illustre: feet at y 88.9, centred at x 44, width 44 |
 | Nest (whole) | 6 | 40 | 60 | 40 | Twigs and straw, behind the dragon |
 | Banners | 5 | 0 | 26 | 50 | Decorative, red and gold meander banners |
 | Amphora | 40 | 28 | 5 | 14 | Decorative, mostly behind the dragon's wing |
