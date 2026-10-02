@@ -60,6 +60,51 @@ written by Les Muses de la Discorde instead of translated.
 | 033-muses-polypheme | 9H | Les Muses de la Discorde — Textes originaux (remplace l'Odyssée de Bérard, indisponible) | original |
 | 034-muses-nausicaa | 10H | Les Muses de la Discorde — Textes originaux (remplace l'Odyssée de Bérard, indisponible) | original |
 | 035-muses-circe | 10H | Les Muses de la Discorde — Textes originaux (remplace l'Odyssée de Bérard, indisponible) | original |
+| 036-perrault-chaperon-rouge-galette | 6H | Adapté de « Le Petit Chaperon rouge », Charles Perrault (domaine public) — passage of 001 | https://fr.wikisource.org/wiki/Contes_de_Perrault_(éd._1902)/Le_petit_Chaperon_rouge |
+| 037-andersen-vilain-petit-canard-ete | 6H | Adapté de « Le Vilain Petit Canard », Hans Christian Andersen, trad. David Soldi (domaine public) — passage of 002 | https://fr.wikisource.org/wiki/Contes_d’Andersen/Le_Vilain_Petit_Canard |
+| 038-perrault-chat-botte-faucheurs | 6H | Adapté de « Le Maître Chat ou le Chat botté », Charles Perrault (domaine public) — passage of 004 | https://fr.wikisource.org/wiki/Contes_de_Perrault_(éd._1902)/Le_maître_Chat_ou_le_Chat_botté |
+| 039-grimm-musiciens-breme-chat | 6H | Adapté de « Les Musiciens de Brême », Jacob et Wilhelm Grimm, trad. Frédéric Baudry (domaine public) — passage of 005 | https://fr.wikisource.org/wiki/Contes_choisis_des_frères_Grimm/Les_Musiciens_de_Brême |
+| 040-daudet-chevre-reine | 6H | Adapté de « La Chèvre de monsieur Seguin », Alphonse Daudet (domaine public) — passage of 008 and the next sentences | https://fr.wikisource.org/wiki/Lettres_de_mon_moulin/La_chèvre_de_monsieur_Seguin |
+| 041-muses-argus-gardien | 6H | Adapté de « Argus aux cent yeux », Les Muses de la Discorde (029) | original |
+| 042-muses-pomme-festin | 6H | Adapté de « La pomme d'or », Les Muses de la Discorde (027) | original |
+| 043-muses-dragon-oeuf | 6H | Adapté de « Le dragon des Muses », Les Muses de la Discorde (028) | original |
+| 044-carroll-alice-lapin-blanc | 6H | Adapté de « Alice au pays des merveilles », Lewis Carroll, trad. Henri Bué (domaine public) — passage of 006 | https://fr.wikisource.org/wiki/Alice_au_pays_des_merveilles/1 |
+| 045-perrault-chaperon-rouge-grand-mere | 7H | Adapté de « Le Petit Chaperon rouge », Charles Perrault (domaine public) — the Loup at the grandmother's, to the end | https://fr.wikisource.org/wiki/Contes_de_Perrault_(éd._1902)/Le_petit_Chaperon_rouge |
+| 046-andersen-vilain-petit-canard-cygne | 7H | Adapté de « Le Vilain Petit Canard », Hans Christian Andersen, trad. David Soldi (domaine public) — the ending, the swans | https://fr.wikisource.org/wiki/Contes_d’Andersen/Le_Vilain_Petit_Canard |
+| 047-daudet-chevre-soir | 7H | Adapté de « La Chèvre de monsieur Seguin », Alphonse Daudet (domaine public) — passage of 009 and the horn before it | https://fr.wikisource.org/wiki/Lettres_de_mon_moulin/La_chèvre_de_monsieur_Seguin |
+| 048-kipling-mowgli-petit-homme | 7H | Adapté de « Les Frères de Mowgli », Rudyard Kipling, trad. Louis Fabulet et Robert d'Humières (domaine public) — the man-cub in the wolves' cave | https://fr.wikisource.org/wiki/Le_Livre_de_la_jungle_(trad._Fabulet_et_Humières)/Les_Frères_de_Mowgli |
+| 049-kipling-rikki-tikki-nag | 7H | Adapté de « Rikki-Tikki-Tavi », Rudyard Kipling, trad. Louis Fabulet et Robert d'Humières (domaine public) — right after 012: Nag and Nagaina | https://fr.wikisource.org/wiki/Le_Livre_de_la_jungle_(trad._Fabulet_et_Humières)/«_Rikki-Tikki-Tavi_» |
+| 050-perrault-chat-botte-ogre | 7H | Adapté de « Le Maître Chat ou le Chat botté », Charles Perrault (domaine public) — the ogre's castle | https://fr.wikisource.org/wiki/Contes_de_Perrault_(éd._1902)/Le_maître_Chat_ou_le_Chat_botté |
+| 051-grimm-musiciens-breme-voleurs | 7H | Adapté de « Les Musiciens de Brême », Jacob et Wilhelm Grimm, trad. Frédéric Baudry (domaine public) — the robbers' house | https://fr.wikisource.org/wiki/Contes_choisis_des_frères_Grimm/Les_Musiciens_de_Brême |
+| 052-muses-fil-ariane-labyrinthe | 7H | Adapté de « Le fil d'Ariane », Les Muses de la Discorde (030) | original |
+| 053-muses-polypheme-caverne | 7H | Adapté de « Dans l'antre de Polyphème », Les Muses de la Discorde (033) | original |
+
+## Adaptations for 6H and 7H (036-053)
+
+A text's class follows its verb tenses (`app.nlp.tenses`, Plan d'études romand): a passé simple
+makes it 8H, so after that rule only one seed text was left at 6H and one at 7H. Files 036-053 are
+**retellings for the youngest classes**, written by Les Muses de la Discorde, unlike the excerpts
+above (which keep the source's wording). Each keeps its source's plot, characters and best images;
+the source text itself (001-035) stays untouched for the older classes.
+
+- **Tenses.** 6H retellings (036-044) use only the présent (the story's events), the imparfait
+  (background and description), the futur proche, the futur simple and the conditionnel présent;
+  no passé simple, passé composé, plus-que-parfait, subjonctif, impératif or other compound tense.
+  7H retellings (045-053) may add the passé composé and the impératif, and each has at least one.
+- **Readability.** Every 6H retelling meets `app.alexandria.score.level_for`'s 6H limits (at most
+  12 words a sentence on average, a rare-word ratio of at most 0.04), every 7H one its 7H limits
+  (15 words, 0.05). Lengths follow the 5H-7H excerpts (126-194 words).
+- **Checked.** Each file's `level` is its final level: the tense detector finds no tense above it
+  (`scripts/py.sh python -m app.tools.tense_levels --verbose`).
+- **Fields.** `original` stays `false` for a retelling of a public-domain work, with its author,
+  translator, death years and `source_url`, so the public-domain rule above still applies to it;
+  `work` adds « adapté par Les Muses de la Discorde » (the credits line reads, e.g., « Charles
+  Perrault, Contes de Perrault, adapté par Les Muses de la Discorde »). A retelling of one of the
+  game's own texts (041-043, 052, 053) is `original: true`, like its source. Two extra fields:
+  `adapted_from` (« Adapté de « … », author, trad. … (domaine public) : the passage ») and `adapter`.
+- **Titles** keep the work's name with a subtitle of their own, so they never repeat an excerpt's.
+- At most three retellings per work and per class; 7H ones use other episodes of the same works
+  where the 6H one already took the excerpt's passage.
 
 ## Death years verified for this import
 
@@ -74,8 +119,9 @@ Verne 1905 · Guy de Maupassant 1893 · George Sand 1876 · Alexandre Dumas
 
 ## Editing notes
 
-Every non-original passage is cut from its source at real sentence
-boundaries; no wording is invented or paraphrased. Within that rule, the
+Every non-original excerpt (001-026) is cut from its source at real
+sentence boundaries; no wording is invented or paraphrased (the retellings
+036-053 are the exception by design, see above). Within that rule, the
 following kinds of edits were made while assembling each file — this
 section replaces an earlier, less precise "verbatim, never edited" claim
 with an accurate list of what was actually done:
@@ -149,7 +195,7 @@ with an accurate list of what was actually done:
 - **`034-muses-nausicaa`** (original text, not a reuse): `couvrant sa
   nudité d'un rameau feuillu` simplified to `couvert d'un rameau feuillu`.
 
-None of the 35 bodies contain digits — numbers, where a source used any,
+None of the 53 bodies contain digits — numbers, where a source used any,
 were avoided by choosing a different cut rather than spelling them out.
 `server/app/tools/seed_check.py` annotates every file with spaCy and
 reports/flags passages under the minimum verb and nominal-group counts
