@@ -2,7 +2,7 @@
 // shared by the camp hub, Delphi's altar and the Pythia's overlay (final review M3: they used to
 // live in the camp scene module).
 import type { CampResponse } from './types';
-import { weekdayOf } from '../text/french';
+import { rateText, weekdayOf } from '../text/french';
 
 /** When a prophecy falls due, in words (playability #16: a real plural, no « jour(s) »). */
 export function prophecyWhen(daysLeft: number): string {
@@ -15,13 +15,15 @@ export function prophecyWhen(daysLeft: number): string {
 
 /** The bonus a prophecy still offers, as a tag on its strip (re-review N6, ruling W-f): « Défendue
  *  avant lundi : +50 % d'XP ». The server pays it for a dictation finished strictly before the due
- *  date (sessions.py, xp.py x1.5), so on the day itself there is no tag - and nothing to regret.
+ *  date (sessions.py, xp.py), so on the day itself there is no tag - and nothing to regret. `bonus`
+ *  is the served `prophecy_bonus` (data/regles.json), null until the catalogue has come: no client
+ *  copy of the figure is ever printed (SP4 final review M8), and a bonus set to 0 shows no tag.
  *  The weekday alone names the day only within the week; further off, « son jour » (the strip
  *  already shows the date). */
-export function prophecyBonus(p: CampResponse['prophecies'][number]): string | null {
-  if (p.days_left <= 0) return null;
+export function prophecyBonus(p: CampResponse['prophecies'][number], bonus: number | null): string | null {
+  if (p.days_left <= 0 || bonus === null || bonus <= 0) return null;
   const day = p.days_left < 7 ? weekdayOf(p.due_date) : null;
-  return `Défendue avant ${day ?? 'son jour'}\u202f: +50\u202f% d'XP`;
+  return `Défendue avant ${day ?? 'son jour'}\u202f: +${rateText(bonus)} d'XP`;
 }
 
 /** The prophecy a place shows: the one falling due first. */

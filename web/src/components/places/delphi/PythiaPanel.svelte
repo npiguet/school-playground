@@ -26,6 +26,7 @@
   import { playSfx, unlockAudio } from '../../../lib/juice/sfx';
   import { href } from '../../../lib/routes';
   import { prophecyBonus, prophecyWhen } from '../../../lib/world/prophecy';
+  import { rulesOf } from '../../../lib/rules';
   import { scrollTitle } from '../../../lib/world/scenes/delphi';
   import type { Profile } from '../../../lib/types';
 
@@ -173,7 +174,7 @@
       <h3 id="oracle-prophecies-title" class="sr-only">Prophéties</h3>
       <ul class="prophecy-list">
         {#each prophecies as p (p.text_id)}
-          {@const bonus = prophecyBonus(p)}
+          {@const bonus = prophecyBonus(p, campStore.catalog ? rulesOf(campStore.catalog).prophecy_bonus : null)}
           <li class="kit-sheet prophecy-row" data-testid="oracle-prophecy-{p.text_id}">
             <p>
               <span class="prophecy-title">{'«\u202f'}{p.title}{'\u202f»'}</span>

@@ -82,7 +82,8 @@ def create_text(body: TextCreate, request: Request, db: sqlite3.Connection = Dep
         raise HTTPException(422, "unknown level")
     text = body.body.strip()
     if word_count(text) < 5:
-        raise HTTPException(422, "text is too short")
+        # Said to the player at the pupitre and the lens (they show the server's reason as it is).
+        raise HTTPException(422, "Ce texte est trop court\u202f: il faut au moins cinq mots.")
     if has_digits(text):
         raise HTTPException(422, "Écris les nombres en lettres")
 

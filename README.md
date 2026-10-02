@@ -6,43 +6,35 @@ home network. The game UI is in French; this README is in English.
 
 ## 1. What it is
 
-The player is a young demigod fighting Éris, goddess of Discord, who breaks grammatical
-agreements in texts. Each hero (profile) has their own progress, dictations, proofreading tools and
-rewards. The whole game is a set of painted scenes with places to tap (see §8). Main features:
+The player is a young demigod fighting Éris, goddess of Discord, who breaks grammatical agreements in
+texts: she writes a dictation read aloud by the game's voice, proofreads it with a choice of review
+aids, and grows a companion dragon from the glory earned. Each hero (profile) keeps their own
+progress, settings and rewards. The game is two containers (the game, a FastAPI server that also
+serves the Svelte single-page app, and its voice) played in Safari on an iPad over plain HTTP on the
+home network. **How to play, every place of the camp and every rule as the child sees it are in
+[MANUEL.md](MANUEL.md)** (in French, written for the player); this README is the technical side.
 
-- **Heroes** — several players on one server, each with a name, an emblem, a school class (5H to
-  11H) and an optional 4-digit seal (not security, just to stop siblings playing on the wrong hero).
-- **Les parchemins** — the shared library of texts, in the parchment tent: curated seed passages,
-  texts typed or pasted at *Le pupitre*, scanned handouts (*La lentille*), and excerpts adopted from
-  the Bibliothèque d'Alexandrie (*Le portail*).
-- **Dictation** with 3 paces, each reading the text in breath groups, every group twice, then the
-  whole text once: « Pas à pas » (she taps « Suivant » after each group, one extra « Réécouter »
-  a group), « Par groupes » (moves on by itself, with a pause button) and « D'un bon pas » (longer
-  groups, no pause button). A French voice (Kokoro-82M) reads it, synthesised by the server in its
-  second container.
-- **Proofreading** — five review aids, each taken along or left at the camp before the battle (the
-  choice is remembered per hero, and each aid left adds 20 % to the battle's XP bonus): *Les yeux
-  d'Argus* (a spotlight over one word category at a time: verbs, nominal groups, homophones, trap
-  words), *Le fil d'Ariane* (tap a verb, then its subject), *Le bouclier de Persée* (sentence by
-  sentence, last to first), *La chouette d'Athéna* (a few hints) and *Les jetons de Palamède* (how
-  many traps hide in the text). The copy is judged as at school, on the mistakes left in it.
-- **Scan a handout** — photograph a printed page (camera or photo library), OCR it with Tesseract,
-  and check the recognised text against the photo before it becomes the answer key.
-- **Dictée préparée** — a text can carry the date of a class test; until that date it shows as the
-  Oracle's prophecy.
-- **Grimoire corrompu** — a proofreading-only mode on an already-correct text, with errors planted
-  by Éris and weighted toward the player's own weak spots.
-- **Bibliothèque d'Alexandrie** — adopt scored excerpts from public-domain classics
-  (Wikisource/Gutenberg) into the library. This is the only feature that needs internet access
-  from the server.
-- **Camp and progression** — XP, Éris's lieutenants (one per error family), each with five seals
-  to win (bois, bronze, argent, or, orichalque) and a painted trophy for each, Éris's recurring
-  fights, drachmes to spend at Hermès's stall (the dragon's accessories, the villa and the palais,
-  decor), quests from the Oracle of Delphi, a weekly goal, a break nudge after about 25 minutes of play,
-  and a companion dragon that grows from the XP through six stages, from the egg to the Dragon
-  ancestral (years of play).
-- **Music and sounds** — each place has its own music loop, with sound effects and the dictation
-  voice on three separate volume channels (see §8).
+What matters technically:
+
+- **Heroes** — several players on one server; a hero's optional 4-digit seal is not security, it only
+  stops siblings playing on the wrong hero.
+- **Texts** — a shared library: 35 curated seed passages (`content/seed/`), texts typed at the desk,
+  scanned handouts and Alexandria excerpts. Every text is analysed once, when it is added, by spaCy's
+  French transformer model (`fr_dep_news_trf`) on the server; the grading runs in the browser
+  against that annotation (accepting the 1990 spelling reform's variants, `content/reform1990.json`).
+- **The voice** — Kokoro-82M's French voice in its own container (`tts/`), synthesising a line at a
+  time and caching it; the game never falls back to the device's voice (§2, "If the voice goes
+  silent").
+- **Scans** — photos of a printed handout, OCR'd by Tesseract (French) on the server, then checked by
+  the player against the photo before they become the answer key. Printed text only.
+- **Bibliothèque d'Alexandrie** — scored excerpts of public-domain classics fetched from Wikisource
+  and Project Gutenberg: the only feature that needs internet access from the server.
+- **Grimoire corrompu** — the server plants errors in a correct text (lexicon and agreement chains),
+  weighted toward the hero's weakest categories.
+- **Progression** — XP, the dragon's six stages, lieutenant seals, Éris's fights, drachmes and
+  Hermès's stall, the Oracle's week and quests, all decided server-side; the tunable numbers live in
+  `data/regles.json` (§2, "The rules file"). §8 is the technical reference.
+- **Art and sound** — painted WebP scenes and AAC music and effects, all bundled in the image (§8).
 
 ## Quick start on Windows (Docker Desktop)
 
@@ -82,7 +74,7 @@ Everyday commands (from the repository folder):
 | Start it again | `docker compose start` |
 | Update after pulling new code | the three lines of step 2 (the stamp, then `docker compose up -d --build`) |
 | See the logs | `docker compose logs -f` (both containers), or `docker compose logs -f tts` for the voice alone |
-| Check it's healthy | open <http://localhost:38417/api/health> (answers `{"status":"ok","build":{"commit":"b68ecc8","date":"2026-09-29"}}`) |
+| Check it's healthy | <http://localhost:38417/api/health> answers `{"status":"ok","build":{"commit":"b68ecc8","date":"2026-09-29"}}` |
 | Check the voice | open <http://localhost:38417/api/tts/health> (answers `{"voice":"ready",...}`; see "If the voice goes silent") |
 
 Heroes, progress, custom texts and scans are stored in a Docker volume named after the folder,
@@ -525,103 +517,135 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
 - Alexandria needs the server to reach Wikisource and Project Gutenberg; everything else works
   without internet.
 
-## 8. World and progression
+## 8. World and progression (technical reference)
 
-- **Scenes, not pages.** The game opens on a title scene (« Entrer »), then the heroes' shields:
-  pick a hero, see them all, or forge a new one. Each place is a painted scene with labelled places
-  to tap; tapping one opens its panel over the scene. A strip at the top of every scene holds the
-  hero chip (opens the hero panel), the XP laurel, the purse (the drachme coin and the balance), the
-  dragon and the lyre button (the sound plate: the three channels and « Ouvrir la lyre »). The first
-  visit to each place is a short tour by its character, and the battle's muster has its own (the
-  pace, the aids and what leaving them is worth); when a place gains something new, a hero who
-  already saw its tour hears only the new steps, once (a version per tour in `settings.tours`,
-  e.g. `"cabin:2"`). « Refaire les visites du
-  camp » in the lyre replays them all, and « Le guide du camp » there explains glory and the
-  dragon's stages, the seals, the drachmes, the aids and Éris's fights, with the numbers the server
-  serves (`data/regles.json` and the catalogue).
-- **The camp** (`#/p/:id/camp`) is the hub once a hero is picked. Its places:
-  - « Le nid du dragon » — the dragon's nest: its growth and its care, « Sa teinte » (the tints)
-    and « Sa parure » (the accessories it wears, bought at Hermès's stall).
-  - « L'étal d'Hermès » — Hermès's stall: the purse and his three shelves, « Parures du dragon »,
-    « La maison » and « Décor ».
-  - « La tente des parchemins » — the library: « Tes parchemins » (the shelves, where a text is
-    picked for a battle), « Le pupitre » (type or paste a text), « La lentille » (scan a handout)
-    and « Le portail » (Alexandria).
-  - « Le chemin de Delphes » — the temple: « La Pythie » (the Oracle's week) and « Le mur des
-    quêtes ».
-  - « La tente de guerre » — Éris's lieutenants on their portrait wall, « Le dossier d'Éris » and
-    « Le bestiaire ».
-  - « Ta cabane » (« Ta villa », « Ton palais » once bought) — « Tes trésors » (trophies, gear,
-    decor and tints), « Ton journal » (the hero's all-time counts, the former stats screen) and « La lyre » (the
-    settings: the dictation voice's trial, the three sound channels, class, weekly goal, seal, tours,
-    credits).
-  - « Le sentier de la bataille » — the way to Éris herself, once she shows up.
-- **What next.** At the camp, the dragon ends its greeting with the most useful next goal, first
-  match wins: a name for a hatched dragon, a prophecy due within a week, an open fight against
-  Éris, the first text, a lieutenant's seal within reach (its window at least 70 % complete and
-  its share at target), the next stage (under a fifth of the way left), something newly affordable
-  at Hermès's stall (a piece the dragon has not named before: `settings.shop_seen` keeps the ones
-  named, so a full purse is not pointed at the stall at every visit), the week's sealed scrolls,
-  the weekly goal, otherwise a warm word.
-- **How to earn it.** Nothing is hidden: every trophy, tint, gear, decor piece, accessory and
-  house not owned says in words how to get it (an empty plinth says where its lieutenant hides and
-  what the first seal asks; the trophies still to win show as silhouettes in the shelf's close
-  view; the next fight names its gear). No countdown, no pressure.
-- **Battles.** A text opens the battle stage (`#/p/:id/play/:textId`; the Grimoire at
-  `#/p/:id/grimoire/:textId`): choose a pace and the review aids to take along, write the
-  dictation, proofread it with the aids taken, then the victory (the copy's mistakes and the XP
-  earned) and « Revoir » to go over each trap.
-- **Oracle week** — Delphi's three scrolls reset every ISO week (Monday–Sunday, local time in
-  `Europe/Zurich`, configurable via `DISCORDE_TZ`). The week's reward is shown before any scroll is
-  opened (no gamble), and a chosen quest stays open until the *next* consultation actually replaces
-  it, not merely when a new week begins.
-- **Seals (lieutenant levels)** — each error family ("lieutenant") has five seals, each a material:
-  bois, bronze, argent, or, orichalque. Seal L+1 is judged on the days after seal L was won (Swiss
-  days with at least one chance for that lieutenant, newest first) until the window holds enough
-  days and chances; it is won when the share right in the handed-in copies reaches the target:
-  3 days / 12 chances / 85 %, 4 / 25 / 88 %, 6 / 45 / 91 %, 8 / 70 / 94 %, 10 / 100 / 97 %
-  (`levels` in `data/regles.json`). One seal per lieutenant per session; a seal is never lost.
-  Seal L pays 100 × L XP and the lieutenant's trophy in that material (the cabin's shelf). A
-  lieutenant neutralised before this rule became its wooden seal, and its relic its wooden trophy
-  (migration 006; the old `mastery` table is kept but no longer written).
-- **Éris's fights** — a ladder of ten by default (`fights` in `data/regles.json`): for each seal,
-  « at least 2 lieutenants at this seal », then « all of them », counted over the lieutenants awake
-  at the hero's class (Protée from 8H). A fight opens when its condition holds and every earlier one
-  is won; won fights stay won. Each pays 300 XP; the first three also give the Sandales d'Hermès,
-  the Égide and the Foudre de Zeus.
-- **Drachmes and Hermès's stall** — XP is never spent; drachmes are. A session pays its XP ÷ 10
-  (rounded, halves up), a board quest 5, an Oracle quest 15, the weekly goal 5, a seal L 10 × L, an
-  Éris fight won 30 (`drachmes` in `data/regles.json`); every hero started with a tenth of the XP
-  already won (migration 007). The balance is the sum of a ledger (`drachme_event`) and never goes
-  below zero. Hermès's stall, painted into the camp, sells the dragon's accessories (one set of four
-  per lieutenant, each piece on sale from its lieutenant's seal: cou bronze, queue argent, dos or,
-  tête orichalque; Protée's from 8H), the villa (from the adult dragon) and the palais (from the
-  illustre dragon, after the villa), and four pieces of decor, at the prices in `prices`.
-- **The house and the parure** — the cabin place shows the highest house owned, each room with more
-  wall slots for decor (cabin 4, villa 6, palais 9). The nest's care dresses the dragon: one piece
-  per slot or none, drawn over the tinted dragon in its own colours, from the young dragon on. The
-  overlays and their manifest come from the art track (`tools/art/overlay.py crop`, then
-  `python tools/art/accessory_manifest.py` writes `web/src/lib/world/accessories.json`).
-- **Dragon growth** — the dragon's stage follows the hero's total XP: Œuf (0), Dragonnet (100),
-  Jeune dragon (1 200), Dragon adulte (5 000), Dragon illustre (15 000), Dragon ancestral (40 000),
-  thresholds in `data/regles.json`. A stage is never lost: a raised threshold or a restored backup
-  keeps the stage already reached, and a dragon grown before this rule keeps its stage. The HUD's
-  laurel shows the way to the next stage; the XP ranks are gone. A growth the hero has not seen on
-  a victory (a lowered threshold, the catch-up after an update) is revealed once at the camp, with
-  the naming field for an unnamed dragon; the stage last seen is the hero's
-  `settings.dragon_seen_stage`.
-- **Rewards are announced in advance** — every trophy, dragon tint, divine gear and piece of decor
-  (the accessories and the houses are at Hermès's stall) is on the cabin's trophy shelf
-  (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can be earned; nothing is a
-  gamble. A lieutenant's empty plinth there says what its first seal asks; the bronze to
-  orichalque trophies stand on the shelf once won (silhouettes in its close view until
-  then), and the war tent's portrait of each lieutenant says what its next seal asks.
-- **Art and sound** are served from the same origin: `web/public/art` (WebP, about 8.1 MB) and
-  `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler. Dragon tints are a
-  CSS `hue-rotate` filter on one cut-out; the accessories it wears are drawn over it unfiltered.
-  The sound settings are saved per hero on the server (and remembered on the device for the title
-  scene, before a hero is picked).
-- **`DISCORDE_TEST_HOOKS=1`** enables an `X-Discorde-Day` request header on `POST /api/sessions`,
-  letting the e2e suite fast-forward the multi-day seals and weekly-goal logic. It's set only in
-  `compose.e2e.yaml` (and under pytest) — **never** set it in production; without it the header is
-  ignored.
+What each place does and every rule as the player meets them are in [MANUEL.md](MANUEL.md); this
+section is what a developer needs. The default numbers below are the rules file's (§2), which the
+server applies and serves (`GET /api/world`: `rules`, `stages`, `shop`, `quest_bonus`, `level_xp`);
+the client reads them there, so a changed rules file reaches every screen and « Le guide du camp ».
+
+### Routes
+
+A tiny hash router (`web/src/lib/routes.ts`); every place is a painted scene and its panels are
+overlays (`web/src/lib/world/places.ts`), so a deep link, a reload and Back reopen the same overlay.
+
+| Route | Scene and overlay |
+|---|---|
+| `#/` (`?panel=tous`), `#/profiles/new` | Title scene: the heroes' shields, all heroes, the forge |
+| `#/p/:id/camp` (`?panel=heros`, `?panel=etal`) | The camp hub; the hero panel, Hermès's stall |
+| `#/p/:id/tente-parchemins`, `/parchemins`, `/texts/new`, `/texts/scan`, `/alexandria[/:workId]` | Library tent and its panels |
+| `#/p/:id/temple`, `/delphes`, `/quetes` | Delphi; the Pythia (Oracle week, prophecies), the quest wall |
+| `#/p/:id/tente-de-guerre`, `/dossier`, `/bestiaire[/:key]`, `/monstres/:key` | War tent; dossier, bestiary, a lieutenant's portrait |
+| `#/p/:id/dragon` (`?panel=soin`) | The nest; the dragon's care (name, tint, parure) |
+| `#/p/:id/cabane` (`?panel=tresors`, `heros`, `guide`), `/stats`, `/settings` | The house; trophies, hero, guide, journal, lyre |
+| `#/p/:id/play/:textId`, `#/p/:id/grimoire/:textId` | The battle stage (dictation or Grimoire) |
+| `#/p/:id/eris` | Éris's lair (starts or resumes the open fight) |
+
+`play` and `grimoire` take `?quest=`, `?encounter=` (a lieutenant, or `eris`) and `?focus=` (the
+lieutenant the Grimoire's plants aim at, from its portrait); `?panel=revoir` opens the « Revoir »
+scroll inside the same battle (`battleKey` ignores `panel`).
+
+### Per-hero settings (`profile.settings_json`)
+
+A JSON object; `PATCH /api/profiles/{id}` merges the keys it is given into it.
+
+- `tours` — the place tours seen: a bare id is version 1, `"id:N"` version N (`web/src/lib/tours/`).
+  A tour's version is the newest `since` of its steps in `content/dialogue/*.json`, so a hero who saw
+  an older version hears only the newer steps, once. The lyre's replay sets `tours: []` (and
+  `onboarded: false`; a legacy `onboarded: true` counts as version 1 of the camp's tour).
+- `dragon_seen_stage` — the stage the hero last saw. The server writes it when a session grows the
+  dragon (the victory shows it); the camp reveals once any growth beyond it (a lowered threshold, a
+  catch-up) and writes it.
+- `shop_seen` — the stall item ids the dragon's what-next line has already named, so it names the
+  stall only for an item newly affordable (`camp.affordable`, `nextStep.ts`).
+- `aids` — the review aids taken along last time (`argus`, `ariane`, `persee`, `athena`, `palamede`),
+  written by the server with each session and pre-selected at the next muster.
+- `audio` — `{music, sfx, voice}`, each `{volume: 0..1, muted}`; a legacy `mute: true` mutes music
+  and effects. Before a hero is picked, the title scene uses the device's last values (local storage).
+- `weekly_goal` — texts per week, 2 to 5 (3 when unset).
+
+### Server-side rules
+
+All tunable numbers are in the rules file (§2, "The rules file"). Fixed in code: a session's XP
+(`server/app/world/xp.py`: effort 10 + words ÷ 10, accuracy words ÷ 5 × max(0, 1 − mistakes per 100
+÷ 10), rereading 2 per trap caught; the pace, aid and prophecy bonuses multiply accuracy + rereading
+only), the quest and fight XP (`QUEST_BONUS` in `catalog.py`: board 60, Oracle 150, weekly goal 40,
+Éris fight 300), a seal's XP (`LEVEL_XP` × L, 100), the board quests' decor every second quest done,
+the Oracle's six rewards in order, and the stall's catalogue (`server/app/world/shop.py`: accessories
+on sale from seals 2 to 5 by slot, the villa from the adult dragon, the palais from the illustre one
+after the villa, 4 / 6 / 9 wall slots for cabin / villa / palais).
+
+### Seals: the window algorithm
+
+`server/app/world/seals.py`. Per lieutenant and per Swiss day (`profile_stat_day`, summed over the
+lieutenant's categories), `chances` = the opportunities the texts gave it and `mistakes` = its
+mistakes left in the handed-in copies (missed + introduced). Seal L+1 is judged on the days strictly
+after the day seal L was won (none for the first), newest first, taken until the window holds
+`levels[L].days` days **and** `levels[L].chances` chances; it is won when that window is complete and
+(chances − mistakes) ÷ chances ≥ `correct` (with a 1e-9 tolerance). After each saved session, every
+lieutenant awake at the hero's class (Protée from 8H) gains at most one seal, written only over the
+seal before it (`lieutenant_level`), paying `LEVEL_XP` × L XP, `drachmes.level` × L drachmes and the
+trophy `trophy:<lieutenant>:<L>`. A seal is never lost. The war tent's gauges and the what-next line
+(« within reach »: window at least 70 % full in days and chances, share at target) read the same
+window from `/camp` (`lieutenants[].next`).
+
+### Éris's fights: the ladder
+
+`server/app/world/fights.py`. `fights` is an ordered list of `{level, count}` (default: for each seal
+1 to 5, `count` 2 then `"all"`). Counts are over the lieutenants awake at the hero's class; `"all"`, or
+a count above that number, asks every one of them. Fight N opens when its condition holds and fights 1
+to N−1 are won (a won fight is a `boss` quest `done`, stored by its tier number, so it stays won
+whatever the ladder says later). `POST /api/profiles/{id}/boss` starts the open fight (or returns the
+one already under way) on a text of at least 150 words at the hero's class or the one below, least
+played first, then longest. The fight is won with at most `fight_max_per_100` mistakes left per 100
+words; its muster offers no pace below the class's default one (`defaultPace`). Each win pays `QUEST_BONUS["boss"]` XP and
+`drachmes.boss`; tiers 1 to 3 also give the divine gear (`BOSS_REWARDS`: `sandales_hermes`, `egide`,
+`foudre_zeus`).
+
+### Migrations 006 and 007, and the drachme ledger
+
+Migrations run at start-up (`server/app/migrations/`).
+
+- **006 (seals)** creates `lieutenant_level`: every lieutenant neutralised under the old rule became
+  seal 1 (bois), won when it was neutralised, and its relic became its wooden trophy. The old
+  `mastery` table is kept but no longer written; XP is untouched.
+- **007 (drachmes)** creates `drachme_event` (`profile_id`, `amount`, `reason`, `ref`, `created_at`)
+  and gives every hero a one-off starting grant of a tenth of the XP already won (rounded down, none
+  under 10 XP).
+
+The balance is the ledger's sum. `reason` is `grant`, `session` (round(session XP ÷ `xp_per_drachme`),
+halves up), `board`, `oracle`, `weekly`, `level`, `boss` (one row per part, `ref` = `session:<id>`) or
+`purchase` (negative, `ref` = the item). `POST /api/profiles/{id}/purchases` reads the balance and
+writes the purchase under one write lock, so concurrent purchases never overdraw it.
+
+### The accessory overlays
+
+The dragon's accessories are transparent overlays drawn over the tinted dragon, unfiltered, back to
+front in the draw order `queue`, `dos`, `cou`, `tete`, from the young dragon on. Pipeline (the
+`art-overlays` skill has the details):
+
+1. `tools/art/overlay.py extract` cuts a painted accessory out of an inpainted stage picture with the
+   slot's mask; `overlay.py crop <overlay> --webp <file> --manifest <fragment> --item <lt>-<slot>
+   --stage <stage>` writes its WebP crop to `web/public/art/dragon/accessories/` and its box (x, y, w,
+   h as fractions of the stage picture) into the lieutenant's fragment,
+   `assets/art/export/dragon/accessories/<lieutenant>.json`.
+2. `python tools/art/accessory_manifest.py` merges the six fragments into
+   `web/src/lib/world/accessories.json`, refusing a fragment that misses an item or a stage (young,
+   adult, illustre, ancestral) or names another lieutenant's item.
+
+The server serves the worn pieces as the manifest's item keys (`dragon.worn`, e.g. `hydre-cou`), one
+per slot.
+
+### Art and sound
+
+Art and sound are served from the same origin, bundled in the image: `web/public/art` (WebP, about
+8.1 MB) and `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler
+(`web/src/lib/world/readmeSizes.test.ts` checks both figures). Dragon tints are a CSS `hue-rotate`
+filter on one cut-out per stage. Every static file is sent with `Cache-Control: no-store`
+(`server/app/static.py`, §2 "Which version is running?").
+
+### `DISCORDE_TEST_HOOKS`
+
+`DISCORDE_TEST_HOOKS=1` enables an `X-Discorde-Day` request header on `POST /api/sessions`, letting the
+e2e suite fast-forward the multi-day seals and weekly-goal logic. It's set only in `compose.e2e.yaml`
+(and under pytest) — **never** set it in production; without it the header is ignored.

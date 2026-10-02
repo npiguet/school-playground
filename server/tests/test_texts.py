@@ -33,7 +33,8 @@ def test_list_orders_by_level_and_fills_history(client):
 
 def test_validation(client):
     base = {"title": "T", "body": FEES, "level": "8H", "source": "custom"}
-    assert client.post("/api/texts", json={**base, "body": "Trop court."}).status_code == 422
+    r = client.post("/api/texts", json={**base, "body": "Trop court."})
+    assert r.status_code == 422 and r.json()["detail"] == "Ce texte est trop court\u202f: il faut au moins cinq mots."
     r = client.post("/api/texts", json={**base, "body": "Il y a 3 chats qui dorment ici."})
     assert r.status_code == 422 and "nombres en lettres" in r.text
     assert client.post("/api/texts", json={**base, "source": "seed"}).status_code == 422
