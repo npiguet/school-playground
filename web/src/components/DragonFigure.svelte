@@ -53,10 +53,13 @@
   let motion = $state<Motion>('pending');
   let Living = $state<LivingComponent | null>(null);
   // A new stage, a new picture or reduced motion lifted (`living` back from null): a fresh try, even
-  // after a failure.
+  // after a failure. By value: the props read through the parent's expressions change with every
+  // camp snapshot (a tint picked, a piece put on) even when the stage and picture stay the same.
+  const livingNow = $derived(living);
+  const srcNow = $derived(src);
   $effect(() => {
-    void living;
-    void src;
+    void livingNow;
+    void srcNow;
     motion = 'pending';
   });
   // The component's chunk, on the first living stage; a chunk that fails to load is a failure too.

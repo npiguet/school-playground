@@ -207,11 +207,17 @@
     };
   });
 
+  // The stage and the picture by value: a prop read straight from the parent's expression (the scene
+  // layer's `layer.src`) changes with every new camp snapshot, the same string or not (a tint picked,
+  // a piece put on); only a new value may start a new try (Task 8: the canvas was remounted).
+  const stageNow = $derived(stage);
+  const srcNow = $derived(src);
+
   // The living path, afresh for each stage and picture (Ruling L2: after a failure too).
   $effect(() => {
     const el = host;
-    const s = stage;
-    const url = src;
+    const s = stageNow;
+    const url = srcNow;
     if (!el) return;
     return untrack(() => start(el, s, url));
   });
