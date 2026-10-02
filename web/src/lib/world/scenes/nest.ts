@@ -43,9 +43,11 @@ export const NEST_SCENE: SceneDef = {
 // R11: the nest's dragon spot is x 34-68; the square picture at 28 % keeps its top below the HUD.
 const WIDTH: Record<DragonStage, number> = { egg: 10, hatchling: 16, young: 21, adult: 26, illustre: 27, ancestral: 28 };
 
-/** The dragon's cut-out in the straw bed (docs/art/scenes.md: feet at y 62, centred at x 50). */
+/** The dragon's cut-out in the straw bed (docs/art/scenes.md: feet at y 62, centred at x 50). Depth 0
+ *  and no idle: it sits still on its painting, as a parallax or a breath read as floating (playtest
+ *  2026-10-02). */
 export function nestDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 'src' | 'alt'> {
-  return { x: 50, y: 62, scale: WIDTH[stage], depth: 1, idle: 'breathe' };
+  return { x: 50, y: 62, scale: WIDTH[stage], depth: 0, idle: 'none' };
 }
 
 /** The growth sheet (was DragonScreen's; spec 2026-09-29 dragon growth §2): the next stage and the XP

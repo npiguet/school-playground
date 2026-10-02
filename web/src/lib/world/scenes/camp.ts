@@ -153,10 +153,10 @@ export const CAMP_SCENE: SceneDef = {
 const WIDTH: Record<DragonStage, number> = { egg: 6, hatchling: 7, young: 8, adult: 9, illustre: 9.5, ancestral: 10 };
 
 /** The dragon's cut-out seated in the painted nest (carry rec. 7, immersion Deferred #23:
- *  docs/art/scenes.md ≈ (17, 50), feet on the straw at y 55). Depth 1 keeps it inside its place's
- *  box (UI1 final review M2). */
+ *  docs/art/scenes.md ≈ (17, 50), feet on the straw at y 55). Depth 0 and no idle: it sits still in
+ *  its place's box, as a parallax or a breath read as floating (playtest 2026-10-02). */
 export function campDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 'src' | 'alt'> {
-  return { x: 17, y: 55, scale: WIDTH[stage], depth: 1, idle: 'breathe' };
+  return { x: 17, y: 55, scale: WIDTH[stage], depth: 0, idle: 'none' };
 }
 
 /** The camp's greeting (Ruling E12; spec 2026-09-29 explanations §1): her name, the dragon's stage, the

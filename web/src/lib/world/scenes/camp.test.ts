@@ -234,7 +234,7 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
   });
 
   it('seats the dragon in the painted nest, on a shallow plane; preloads every place it leads to', () => {
-    expect(campDragonLayer('egg')).toMatchObject({ x: 17, y: 55, depth: 1 });
+    expect(campDragonLayer('egg')).toMatchObject({ x: 17, y: 55, depth: 0, idle: 'none' });
     const widths = DRAGON_STAGES.map((s) => campDragonLayer(s).scale);
     expect(widths.every((w, i) => i === 0 || w > widths[i - 1]), 'bigger at every stage').toBe(true);
     // Final review M14: none of the hub's destinations loads cold on its first tap.

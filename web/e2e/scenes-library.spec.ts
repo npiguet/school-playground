@@ -573,3 +573,40 @@ test("a slow answer for an earlier level never replaces the later level's scroll
   await expect(cards).toContainText('Rouleau du dixième degré');
   await expect(levels.getByRole('radio', { name: '10H', exact: true })).toBeChecked();
 });
+
+test('the owl follows the pointer (parallax), and stays put under reduced motion', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openTent(page, id);
+  const stage = page.getByTestId('scene-library');
+  // OWL_LAYER is the tent's only cut-out layer (depth 1); the camp's and the nest's dragon sit still.
+  const owl = stage.locator('.scene-layer');
+  await expect(owl).toHaveCount(1);
+  const drag = async (x: number, y: number) => {
+    if (testInfo.project.name === 'desktop') {
+      await page.mouse.move(x, y);
+    } else {
+      // Final review M9: on the iPad the parallax follows a touch drag. Playwright's WebKit has no
+      // touch-move API (only tap), so the drag is the touch pointer events the stage listens to.
+      await stage.dispatchEvent('pointerdown', { pointerType: 'touch', isPrimary: true, clientX: 600, clientY: 400, bubbles: true });
+      await stage.dispatchEvent('pointermove', { pointerType: 'touch', isPrimary: true, clientX: x, clientY: y, bubbles: true });
+    }
+  };
+  await drag(20, 20);
+  await drag(60, 40);
+  await expect(owl).toHaveAttribute('data-offset', '0,0');
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect(stage).toHaveAttribute('data-reduced-motion', 'false');
+  await drag(10, 10);
+  await expect(owl).not.toHaveAttribute('data-offset', '0,0');
+  // Round 1 review #8: data-offset alone only proves the art-% math (parallaxOffset()) ran; the
+  // visible transform (off.x/100 * runtime.artW) is checked directly. `.scene-layer`'s transform
+  // eases over 0.35s, so poll rather than read it once.
+  await expect.poll(() => owl.evaluate((el) => getComputedStyle(el).transform)).not.toBe('matrix(1, 0, 0, 1, 0, 0)');
+  if (testInfo.project.name === 'ipad') {
+    // Lifting the finger eases the layers back to rest.
+    await stage.dispatchEvent('pointerup', { pointerType: 'touch', isPrimary: true, clientX: 10, clientY: 10, bubbles: true });
+    await expect(owl).toHaveAttribute('data-offset', '0,0');
+  }
+});
