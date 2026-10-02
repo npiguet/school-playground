@@ -18,7 +18,7 @@ What matters technically:
 
 - **Heroes** — several players on one server; a hero's optional 4-digit seal is not security, it only
   stops siblings playing on the wrong hero.
-- **Texts** — a shared library: 35 curated seed passages (`content/seed/`), texts typed at the desk,
+- **Texts** — a shared library: 53 curated seed passages (`content/seed/`), texts typed at the desk,
   scanned handouts and Alexandria excerpts. Every text is analysed once, when it is added, by spaCy's
   French transformer model (`fr_dep_news_trf`) on the server; the grading runs in the browser
   against that annotation (accepting the 1990 spelling reform's variants, `content/reform1990.json`).
@@ -54,7 +54,7 @@ Run the game on your Windows PC, for trying it out or playing on the home networ
    and the game works the same. The first build takes several minutes (it downloads Tesseract, the
    French transformer spaCy language model and the voice's model, Kokoro-82M). Later builds reuse
    the cache. The images are tagged `discorde:local` and `discorde-tts:local`.
-3. Open <http://localhost:38417> in Edge or Chrome. The 35 seed texts are loaded on the first start.
+3. Open <http://localhost:38417> in Edge or Chrome. The 53 seed texts are loaded on the first start.
    The game uses port 38417 on purpose, an uncommon one, so it doesn't clash with other services.
 4. **Play from the iPad** on the same Wi-Fi: find the PC's IP address (`ipconfig`, "IPv4
    Address", e.g. `192.168.1.20`) and open `http://192.168.1.20:38417` in Safari. If it doesn't
@@ -481,10 +481,11 @@ yourself first.
 
 ## 6. Content & licences
 
-- **Seed passages** (`content/seed/`) — 35 curated dictation texts. Every non-original passage is
-  public-domain: both the original author and the translator (when there is one) died before 1956
-  (Swiss law: life + 70 years). See `content/seed/README.md` for the full source list, death years
-  and editing notes.
+- **Seed passages** (`content/seed/`) — 53 curated dictation texts: 35 excerpts and originals, and
+  18 retellings for the youngest classes (6H and 7H, written in the tenses those classes know).
+  Every non-original passage is public-domain, or retells a public-domain one: both the original
+  author and the translator (when there is one) died before 1956 (Swiss law: life + 70 years). See
+  `content/seed/README.md` for the full source list, death years and editing notes.
 - **Lexique 3.83** (`content/lexique/`) — the vendored, trimmed lexicon that powers word-form and
   homophone lookups is derived from Lexique 3.83 (New, Pallier, Brysbaert & Ferrand), licensed
   CC BY-SA 4.0; see `content/lexique/LICENSE.md` for attribution and how the derived file was built.
@@ -622,6 +623,10 @@ because the tagger mis-reads tenses (the small model calls « regarda » a parti
 - a simple tense counts when every verb reading the Lexique gives that form, under every lemma, is
   that one tense (« prit », « fut »); never « il finit » (présent or passé simple) nor « il vit »,
   « je vis » (vivre présent, voir passé simple): spaCy's lemma never settles a form two verbs share.
+  Measured on 2026-10-02 over the 53 seed texts and 80 Alexandria excerpts with `fr_dep_news_trf`:
+  no text sits too low for it (a past narration always has unambiguous forms too), while counting
+  « dit », « sourit », « choisit »... would wrongly raise 13 texts told in the présent, so there is
+  no context rule.
   A form that is also another word (« le fût », « soit... soit ») counts only after a subject
   pronoun or with a subject;
 - the passé simple's person comes from the same readings (« fut » 3rd person, « fus » 1st or 2nd; a
