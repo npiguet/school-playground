@@ -626,7 +626,9 @@ because the tagger mis-reads tenses (the small model calls « regarda » a parti
   pronoun or with a subject;
 - the passé simple's person comes from the same readings (« fut » 3rd person, « fus » 1st or 2nd; a
   form that may be either counts for nothing);
-- a compound tense is a participle and its auxiliary (its `aux:tense` child, else avoir or être just
+- a compound tense is a past participle (a word the Lexique knows as one: never « il a envie »,
+  « elle a si peur », « il est content », whatever the parser hangs on the auxiliary) and its
+  auxiliary (its `aux:tense` child, else avoir or être just
   before it past the negation and the adverbs), read in the auxiliary's tense (« avait marché »
   plus-que-parfait, « eût agi » subjonctif plus-que-parfait), the auxiliary read as avoir or être
   only (« nous nous sommes levés » is never sommer); être counts only for the verbs that take it and
@@ -635,8 +637,9 @@ because the tagger mis-reads tenses (the small model calls « regarda » a parti
 - the impératif, never unambiguous in the Lexique, is a form with an imperative reading that opens
   its clause (or that the parser makes a clause head) with no subject; never a question
   (« Viens-tu ? », « Mange-t-il ? », spaCy splitting « -t » from « -il ») nor a subject inversion
-  (« Arrive alors un grand loup »: a verb that takes its subject after it, followed by a noun
-  group). « Ayez fini », the impératif passé, counts as impératif.
+  (« Arrive alors un grand loup », and the speech tags after a quote: « Impossible ? crie l'ogre »,
+  « s'écrie Cosette »: a verb that takes its subject after it, followed by a noun group). « Ayez
+  fini », the impératif passé, counts as impératif.
 
 Every write applies it: `POST /api/texts` (pupitre, lens), the seed import, the Alexandria refresh
 (each scroll, `online_chunk`) and the adoption (the text keeps the scroll's levels). Migration 009

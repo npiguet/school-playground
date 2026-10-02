@@ -95,6 +95,11 @@ _INVERTED = {"-je", "-tu", "-il", "-elle", "-on", "-ils", "-elles", "-t", "-t-",
 _INVERSION_VERBS = _ETRE_VERBS | {
     "vivre", "régner", "exister", "suivre", "commencer", "manquer", "suffire", "retentir", "résonner",
     "souffler", "surgir", "paraître", "briller", "approcher", "éclater",
+    # Speech tags after a quote: « Impossible ? crie l'ogre », « s'écrie Cosette ».
+    "dire", "crier", "s'écrier", "écrier", "demander", "répondre", "murmurer", "ajouter", "reprendre",
+    "répliquer", "soupirer", "hurler", "chuchoter", "s'exclamer", "exclamer", "lancer", "déclarer",
+    "expliquer", "gronder", "rugir", "conclure", "poursuivre", "continuer", "interroger", "insister",
+    "grogner", "gémir", "pleurer", "rire", "sourire", "s'étonner", "étonner", "souffler", "bredouiller",
 }
 _ADVERB_POS = {"ADV"}
 _NOUN_GROUP_POS = {"DET", "NOUN", "PROPN", "NUM"}
@@ -186,9 +191,13 @@ class _Text:
 
 
 def _is_participle(text: _Text, t: dict) -> bool:
+    codes = text.codes(t)
+    if "par:pas" not in codes:
+        # Whatever the parser hangs on an auxiliary: « il a envie », « elle a si peur », « il est
+        # content » are présent, a compound tense needs a past participle.
+        return False
     if any(c["dep"] in _TENSE_AUX_DEPS for c in text.kids(t)):
         return True
-    codes = text.codes(t)
     # « plus » (plaire) and « tu » (taire) are participles too, never in « je n'ai plus », « as-tu ».
     if "par:pas" not in codes or t["pos"] not in _PARTICIPLE_POS:
         return False

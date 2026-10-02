@@ -57,6 +57,15 @@ def tenses_of(nlp, lexicon):
     ("Nous nous sommes levés tôt.", {"passe_compose": 1}),
     ("Vous vous étiez trompés de chemin.", {"plus_que_parfait": 1}),
     ("Il faut que vous ayez fini avant midi.", {"subjonctif_passe": 1}),
+    # avoir + a noun (« avoir envie, faim, peur, raison, besoin ») and être + an adjective are présent:
+    # a compound tense needs a past participle.
+    ("Le petit chat a envie de jouer.", {}),
+    ("Elle a si peur du loup.", {}),
+    ("Les enfants ont faim et soif.", {}),
+    ("Il a froid aux pieds.", {}),
+    ("Tu as raison, mon ami.", {}),
+    ("Le jardin a besoin de pluie.", {}),
+    ("Elle est contente et il est triste.", {}),
     # A passive is its auxiliary's simple tense; an adjective participle is no tense.
     ("Il fut tué par le géant.", {"passe_simple_3": 1}),
     ("La porte est fermée.", {}),
@@ -87,6 +96,15 @@ def tenses_of(nlp, lexicon):
     ("Viens-tu avec nous ?", {}),
     ("Arrive alors un grand loup.", {}),
     ("Vient ensuite la nuit.", {}),
+    # A speech tag after a quote, its subject inverted, is no order either.
+    ("« Impossible ? crie l'ogre.", {}),
+    ("« Pourquoi ? » demande le petit garçon.", {}),
+    ("« Attends un peu, murmure la chèvre.", {"imperatif": 1}),   # « Attends », not « murmure »
+    ("« Quelle chance ! s'écrie Cosette.", {}),
+    ("« Et le loup ? » ajoute Pierre.", {}),
+    # ... while the same verbs giving an order still count.
+    ("« Crie plus fort ! »", {"imperatif": 1}),
+    ("Réponds vite à ta mère.", {"imperatif": 1}),
     ("Le chat mange la souris.", {}),
     ("Nous chantons et dansons toute la nuit.", {}),
 ])
