@@ -9,6 +9,8 @@ from app.stats import argus_order
 from app.world.measures import mistakes_per_100
 
 router = APIRouter(prefix="/api/profiles", tags=["stats"])
+MODES = ("dictation", "grimoire")
+MODE_COUNTERS = ("occurrences", "errors_in_draft", "caught", "missed", "introduced")
 
 
 def _trap_words(db: sqlite3.Connection, profile_id: int) -> list[dict]:
@@ -21,12 +23,20 @@ def _trap_words(db: sqlite3.Connection, profile_id: int) -> list[dict]:
 def get_stats(profile_id: int, db: sqlite3.Connection = Depends(get_db)):
     profile = fetch_profile(db, profile_id)
 
-    categories = []
+    # Migration 008: each category's counters are the sum of both modes, as before; `by_mode` tells the
+    # child's own mistakes (dictation) apart from Éris's planted ones (grimoire).
+    by_category: dict[str, dict] = {}
     for r in db.execute(
-            "SELECT category, occurrences, errors_in_draft, caught, missed FROM profile_stat "
+            f"SELECT category, mode, {', '.join(MODE_COUNTERS)} FROM profile_stat "
             "WHERE profile_id = ? AND category NOT LIKE 'derived:%' ORDER BY category", (profile_id,)):
-        row = dict(r)
+        modes = by_category.setdefault(r["category"], {m: dict.fromkeys(MODE_COUNTERS, 0) for m in MODES})
+        modes[r["mode"]] = {k: r[k] for k in MODE_COUNTERS}
+    categories = []
+    for category, modes in by_category.items():
+        row = {"category": category,
+               **{k: sum(modes[m][k] for m in MODES) for k in ("occurrences", "errors_in_draft", "caught", "missed")}}
         row["catch_rate"] = row["caught"] / row["errors_in_draft"] if row["errors_in_draft"] > 0 else None
+        row["by_mode"] = modes
         categories.append(row)
 
     # Spec 2026-09-29 §3: the muster's suggestion reads each defence's aids and its copy.

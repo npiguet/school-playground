@@ -2,7 +2,7 @@ import re
 import sqlite3
 from datetime import datetime, timedelta
 import pytest
-from app.db import MIGRATIONS_DIR, connect, migrate
+from app.db import connect, migrate
 
 
 def table_names(conn):
@@ -97,14 +97,7 @@ def test_a_write_waits_out_a_lock_held_longer_than_sqlites_default(tmp_path):
 def _db_before(path, version):
     """A database as the game left it before migration `version`: the earlier migrations only."""
     conn = connect(path)
-    conn.execute("CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
-    for f in sorted(MIGRATIONS_DIR.glob("*.sql")):
-        v = int(f.name.split("_", 1)[0])
-        if v >= version:
-            break
-        conn.executescript(f.read_text(encoding="utf-8"))
-        conn.execute("INSERT INTO schema_version(version, applied_at) VALUES (?, 'then')", (v,))
-    conn.commit()
+    assert migrate(conn, upto=version - 1) == version - 1
     return conn
 
 

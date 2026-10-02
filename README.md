@@ -578,7 +578,7 @@ after the villa, 4 / 6 / 9 wall slots for cabin / villa / palais).
 ### Seals: the window algorithm
 
 `server/app/world/seals.py`. Per lieutenant and per Swiss day (`profile_stat_day`, summed over the
-lieutenant's categories), `chances` = the opportunities the texts gave it and `mistakes` = its
+lieutenant's categories and both modes, dictation and Grimoire), `chances` = the opportunities the texts gave it and `mistakes` = its
 mistakes left in the handed-in copies (missed + introduced). Seal L+1 is judged on the days strictly
 after the day seal L was won (none for the first), newest first, taken until the window holds
 `levels[L].days` days **and** `levels[L].chances` chances; it is won when that window is complete and
@@ -602,9 +602,11 @@ words; its muster offers no pace below the class's default one (`defaultPace`). 
 `drachmes.boss`; tiers 1 to 3 also give the divine gear (`BOSS_REWARDS`: `sandales_hermes`, `egide`,
 `foudre_zeus`).
 
-### Migrations 006 and 007, and the drachme ledger
+### Migrations 006 to 008, the drachme ledger and the stats' mode
 
-Migrations run at start-up (`server/app/migrations/`).
+Migrations run at start-up (`server/app/migrations/`), each in one transaction with its
+`schema_version` row: `NNN_name.sql`, or `NNN_name.py` (a function `up(conn)`, for a data migration
+that needs Python; it uses `conn.execute` only, never `executescript`, a commit, `BEGIN` or a `PRAGMA`).
 
 - **006 (seals)** creates `lieutenant_level`: every lieutenant neutralised under the old rule became
   seal 1 (bois), won when it was neutralised, and its relic became its wooden trophy. The old
@@ -612,11 +614,27 @@ Migrations run at start-up (`server/app/migrations/`).
 - **007 (drachmes)** creates `drachme_event` (`profile_id`, `amount`, `reason`, `ref`, `created_at`)
   and gives every hero a one-off starting grant of a tenth of the XP already won (rounded down, none
   under 10 XP).
+- **008 (stats' mode, `008_stat_mode.py`)** adds `mode` (`dictation` | `grimoire`) to the primary key
+  of `profile_stat` (`profile_id`, `category`, `mode`) and `profile_stat_day` (`profile_id`, `day`,
+  `category`, `mode`), so the child's own mistakes (dictations) are told apart from the ones Éris
+  planted (Grimoire corrompu, whose « draft errors » are hers). The tables are rebuilt and their
+  counters split by replaying the Grimoire sessions still on record (`result_json.byCategory`, on the
+  session's Swiss day of `finished_at`). Whatever those sessions cannot explain stays in `dictation`:
+  sessions recorded without `byCategory`, sessions deleted with their text, malformed results. A
+  Grimoire share above the old counter (inconsistent data) is clamped to it. For every old row, the new
+  rows sum exactly to its counters; an all-zero dictation remainder beside a Grimoire row is not kept.
 
 The balance is the ledger's sum. `reason` is `grant`, `session` (round(session XP ÷ `xp_per_drachme`),
 halves up), `board`, `oracle`, `weekly`, `level`, `boss` (one row per part, `ref` = `session:<id>`) or
 `purchase` (negative, `ref` = the item). `POST /api/profiles/{id}/purchases` reads the balance and
 writes the purchase under one write lock, so concurrent purchases never overdraw it.
+
+A saved session adds its `byCategory` counts into the rows of its own `mode`. Every reader sums both
+modes, so the game plays as before: the seals and the fights they open, the Oracle's weak point,
+Éris's aim in the Grimoire (`POST /api/texts/{id}/corrupt`), the camp's small tricks, the journal and
+the Argus pass order. `GET /api/profiles/{id}/stats` keeps each category's counters as that sum and
+adds `by_mode` (`dictation` and `grimoire`, each with `occurrences`, `errors_in_draft`, `caught`,
+`missed`, `introduced`); nothing in the game shows the split yet.
 
 ### The accessory overlays
 

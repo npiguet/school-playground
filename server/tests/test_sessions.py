@@ -65,7 +65,9 @@ def test_session_updates_stats_history_and_trap_words(client):
     assert "progression" in session
     stats = client.get(f"/api/profiles/{p['id']}/stats").json()
     verb = next(c for c in stats["categories"] if c["category"] == "agreement:verb")
-    assert verb == {"category": "agreement:verb", "occurrences": 3, "errors_in_draft": 2, "caught": 1, "missed": 1, "catch_rate": 0.5}
+    assert verb == {"category": "agreement:verb", "occurrences": 3, "errors_in_draft": 2, "caught": 1, "missed": 1, "catch_rate": 0.5,
+                    "by_mode": {"dictation": {"occurrences": 3, "errors_in_draft": 2, "caught": 1, "missed": 1, "introduced": 0},
+                                "grimoire": {"occurrences": 0, "errors_in_draft": 0, "caught": 0, "missed": 0, "introduced": 0}}}
     # Spec 2026-09-29 §4: the session's score is its XP (the score 100 the body posts is ignored).
     xp = session["progression"]["xp"]["session"]
     assert xp != 100 and stats["totals"] == {"sessions": 1, "score": xp, "caught": 1}

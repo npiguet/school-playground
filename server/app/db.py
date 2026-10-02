@@ -1,8 +1,9 @@
-"""SQLite access: one connection per request, numbered SQL migrations in app/migrations."""
+"""SQLite access: one connection per request, numbered migrations (SQL, or Python for data) in app/migrations."""
 from __future__ import annotations
+import importlib.util
 import sqlite3
 from pathlib import Path
-from typing import Iterator
+from typing import Callable, Iterator
 from fastapi import Request
 
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
@@ -39,20 +40,47 @@ def begin_write(conn: sqlite3.Connection) -> None:
         conn.execute("BEGIN IMMEDIATE")
 
 
-def migrate(conn: sqlite3.Connection) -> int:
+def _migrations() -> list[tuple[int, Path]]:
+    """The numbered migrations, in order: `NNN_name.sql`, or `NNN_name.py` for a data migration that
+    needs Python (migration 008 computes Swiss days); one file per number."""
+    files = [p for p in MIGRATIONS_DIR.iterdir() if p.suffix in (".sql", ".py") and p.name[:1].isdigit()]
+    return sorted((int(p.name.split("_", 1)[0]), p) for p in files)
+
+
+def _load_python_migration(path: Path) -> Callable[[sqlite3.Connection], None]:
+    """A Python migration's `up(conn)`. It runs inside the migration's transaction, so it uses
+    conn.execute only: no executescript (it commits first), no commit, no BEGIN, no PRAGMA."""
+    spec = importlib.util.spec_from_file_location(f"app_migration_{path.stem}", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.up
+
+
+def migrate(conn: sqlite3.Connection, upto: int | None = None) -> int:
+    """Runs the migrations not applied yet, up to `upto` included when given (tests build older schemas)."""
     conn.execute("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
     current = conn.execute("SELECT COALESCE(MAX(version), 0) FROM schema_version").fetchone()[0]
-    for path in sorted(MIGRATIONS_DIR.glob("*.sql")):
-        version = int(path.name.split("_", 1)[0])
+    for version, path in _migrations():
         if version <= current:
             continue
+        if upto is not None and version > upto:
+            break
         # One transaction per migration, its version row included: a migration that fails (or a process
         # killed in the middle) leaves the database as it was before it, and the next start runs it
         # again. executescript() alone commits statement by statement. No migration may hold its own
         # BEGIN/COMMIT or a PRAGMA that cannot run in a transaction.
         try:
-            conn.executescript(f"BEGIN;\n{path.read_text(encoding='utf-8')}\n"
-                               f"INSERT INTO schema_version(version, applied_at) VALUES ({version}, datetime('now'));\nCOMMIT;")
+            if path.suffix == ".sql":
+                conn.executescript(f"BEGIN;\n{path.read_text(encoding='utf-8')}\n"
+                                   f"INSERT INTO schema_version(version, applied_at) VALUES ({version}, datetime('now'));\nCOMMIT;")
+            else:
+                up = _load_python_migration(path)
+                if conn.in_transaction:
+                    conn.commit()
+                conn.execute("BEGIN")
+                up(conn)
+                conn.execute("INSERT INTO schema_version(version, applied_at) VALUES (?, datetime('now'))", (version,))
+                conn.commit()
         except BaseException:
             if conn.in_transaction:
                 conn.rollback()
