@@ -3,7 +3,7 @@
 SceneLayer: x = the layer's centre, y = its bottom edge, w = its width, all in art % of the 16:9
 frame; the sprite is square, so its height is w x 16/9 in % of the frame's height. Draws, on top:
 the feet line (green) across the layer's width, the hotspot ellipse (yellow), the growth sheet's
-band (cyan), the HUD line at 9 % (red), the 4:3 safe zone x 12.5-87.5 (white) and the dialogue dock
+band (cyan), the HUD line at 10 % (red), the 4:3 safe zone x 12.5-87.5 (white) and the dialogue dock
 x 27-87.5, y 80-100 (magenta); --grid adds a 5 % grid with labels every 10 % for measuring
 landmarks (docs/art/scenes.md).
 
@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw
 
 SHEET = {"left": (13.5, 19.0), "right": (68.5, 19.0)}  # x, w (art %), rods included: nest.ts SHEET_X
 SHEET_TOP, SHEET_BOTTOM = 18.0, 45.0  # the sheet's top (nest.ts SHEET_TOP) and its usual bottom
-HUD_LINE = 9.0  # nest.ts HUD_LINE
+HUD_LINE = 10.0  # nest.ts HUD_LINE
 SAFE = (12.5, 87.5)
 DOCK = (27.0, 80.0, 87.5, 100.0)
 

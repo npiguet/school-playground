@@ -180,7 +180,15 @@ test('the nest shows each of the six stages, clear of its growth sheet and of th
     await expect(page.getByTestId('dragon-stage')).toHaveText(label);
     await expect(page.getByTestId('nest-growth')).toContainText(activity);
     const b = await measureBoxes(page, { growth: '[data-testid="nest-growth"]', layer: '[data-testid="nest-dragon-layer"] img.dragon-base', hud: 'header.hud' });
-    expect(b.growth!.x + b.growth!.width, `${key}: the growth sheet left of the dragon`).toBeLessThanOrEqual(b.layer!.x + 2);
+    // Spec 2026-10-02 nest by stage: beside the dragon on the left up to the young, at the right side
+    // of the frame from the adult (Task 5 widens this test to the paintings and the hotspot).
+    if (['adult', 'illustre', 'ancestral'].includes(key)) {
+      await expect(page.getByTestId('nest-growth')).toHaveAttribute('data-side', 'right');
+      expect(b.growth!.x, `${key}: the growth sheet right of the dragon`).toBeGreaterThanOrEqual(b.layer!.x + b.layer!.width - 2);
+    } else {
+      await expect(page.getByTestId('nest-growth')).toHaveAttribute('data-side', 'left');
+      expect(b.growth!.x + b.growth!.width, `${key}: the growth sheet left of the dragon`).toBeLessThanOrEqual(b.layer!.x + 2);
+    }
     expect(b.layer!.y, `${key}: the dragon's picture below the HUD`).toBeGreaterThanOrEqual(b.hud!.y + b.hud!.height - 2);
   }
 });

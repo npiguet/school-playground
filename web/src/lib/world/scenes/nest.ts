@@ -1,6 +1,7 @@
 // The dragon's nest (scenes UI spec §3 "Dragon's nest scene", UI3 Ruling B5): the dragon at its
-// stage, in its tint, in the straw bed; its growth on a parchment in the scene; its name, tint and
-// parure in the `soin` overlay (#/p/:id/dragon?panel=soin), where it speaks from the voice plate.
+// stage, in its tint, on its stage's painting (spec 2026-10-02 nest by stage); its growth on a
+// parchment in the scene; its name, tint and parure in the `soin` overlay (#/p/:id/dragon?panel=soin),
+// where it speaks from the voice plate.
 import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
 import { dragonCaption, gaugeOf, nextStage, stageLabel } from '../dragon';
@@ -42,7 +43,7 @@ const NEST_BASE: Omit<SceneDef, 'background' | 'hotspots'> = {
 // Spec 2026-10-02 nest by stage: the nest painted for the dragon's stage. One object per stage, so the
 // screen's derived scene stays the same object while the stage does not change.
 const BY_STAGE = Object.fromEntries(
-  DRAGON_STAGES.map((s) => [s, { ...NEST_BASE, background: ART.nest[s], hotspots: [dragonHotspot(NEST_SHAPES.dragon)] }]),
+  DRAGON_STAGES.map((s) => [s, { ...NEST_BASE, background: ART.nest[s], hotspots: [dragonHotspot(NEST_SHAPES[s].dragon)] }]),
 ) as Record<DragonStage, SceneDef>;
 
 /** While /camp has not said the dragon's stage: no painting (the stage's night and « Les Muses
@@ -58,14 +59,40 @@ export const NEST_SCENE: SceneDef = BY_STAGE.egg;
 /** The six nests, in stage order (the budget test checks each painting). */
 export const NEST_STAGE_SCENES: SceneDef[] = DRAGON_STAGES.map((s) => BY_STAGE[s]);
 
-// R11: the nest's dragon spot is x 34-68; the square picture at 28 % keeps its top below the HUD.
-const WIDTH: Record<DragonStage, number> = { egg: 10, hatchling: 16, young: 21, adult: 26, illustre: 27, ancestral: 28 };
+/** The dragon's place in each nest painting (spec 2026-10-02 nest by stage; docs/art/scenes.md
+ *  "nest_<stage>"), art % of the 16:9 frame: `x` its centre, `y` its feet line, `w` its width (the
+ *  square sprite stands w x 16/9 tall); `sheet` the growth sheet's side. Up to the young stage the
+ *  sheet stands beside the dragon on the left; from the adult it moves to the right side of the frame
+ *  and the dragon shifts left. Tuned on the paintings with tools/art/nest_preview.py. */
+export const NEST_STAGES: Record<DragonStage, { x: number; y: number; w: number; sheet: 'left' | 'right' }> = {
+  egg: { x: 50, y: 54, w: 16, sheet: 'left' },
+  hatchling: { x: 50, y: 55, w: 21, sheet: 'left' },
+  young: { x: 51.5, y: 77.6, w: 38, sheet: 'left' },
+  adult: { x: 44, y: 81.2, w: 40, sheet: 'right' },
+  illustre: { x: 44, y: 88.3, w: 44, sheet: 'right' },
+  ancestral: { x: 44, y: 94, w: 47, sheet: 'right' },
+};
 
-/** The dragon's cut-out in the straw bed (docs/art/scenes.md: feet at y 62, centred at x 50). Depth 0
- *  and no idle: it sits still on its painting, as a parallax or a breath read as floating (playtest
- *  2026-10-02). */
+/** The HUD's bottom edge in art % where it reaches lowest: 71.5 px (as the e2e measures `header.hud`:
+ *  8 px padding, its row, 8 px) of a 1280x720 art box, 9.9 %. The dragon's picture stays below it. */
+export const HUD_LINE = 10;
+/** The growth sheet's top, and its band on each side (art %, its rods included), inside the 4:3 safe
+ *  zone and clear of the HUD. */
+export const SHEET_TOP = 18;
+export const SHEET_X = { left: { x: 13.5, w: 19 }, right: { x: 68.5, w: 19 } } as const;
+
+/** The top edge of the dragon's layer, art %. */
+export function dragonTop(stage: DragonStage): number {
+  const { y, w } = NEST_STAGES[stage];
+  return y - (w * 16) / 9;
+}
+
+/** The dragon's cut-out on its stage's painting. Depth 0 and no idle: it sits still on its painting,
+ *  as a parallax or a breath read as floating (playtest 2026-10-02). The living dragon (spec
+ *  2026-10-02 living dragon) renders inside this same box. */
 export function nestDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 'src' | 'alt'> {
-  return { x: 50, y: 62, scale: WIDTH[stage], depth: 0, idle: 'none' };
+  const { x, y, w } = NEST_STAGES[stage];
+  return { x, y, scale: w, depth: 0, idle: 'none' };
 }
 
 /** The growth sheet (was DragonScreen's; spec 2026-09-29 dragon growth §2): the next stage and the XP

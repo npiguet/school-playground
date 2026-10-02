@@ -4,7 +4,9 @@ import { LINES } from '../../dialogue/content';
 import { frenchSpacing } from '../../text/french';
 import { variantsOf } from '../../../testing/dialogue';
 import { DRAGON_STAGES, type CampResponse, type DragonOut } from '../types';
-import { NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting, nestScene } from './nest';
+import { DIALOGUE_DOCK, HUD_BAND, SAFE_ZONE } from '../../scene/geometry';
+import { HUD_LINE, NEST_SCENE, NEST_STAGES, SHEET_X, careLine, dragonTop, growth, nestDragonLayer, nestGreeting, nestScene } from './nest';
+import { NEST_SHAPES } from './nest.shapes';
 
 const egg = { name: null, tint: 'bronze', stage: 'egg', unlocked_tints: ['bronze'], worn: [] } as DragonOut;
 const state = (d: DragonOut) => nestScene(d.stage).hotspots[0].state({ camp: { dragon: d } as CampResponse, catalog: null });
@@ -24,11 +26,59 @@ describe("dragon's nest (UI3 Ruling B5)", () => {
     expect(NEST_SCENE).toBe(nestScene('egg'));
   });
 
-  it('seats the dragon in the straw bed, bigger as it grows', () => {
-    expect(nestDragonLayer('egg')).toMatchObject({ x: 50, y: 62, depth: 0, idle: 'none' });
-    const widths = DRAGON_STAGES.map((s) => nestDragonLayer(s).scale);
+  it('seats the dragon on its painting, much bigger at every stage, its head below the HUD (spec 2026-10-02 nest by stage)', () => {
+    for (const s of DRAGON_STAGES) {
+      const { x, y, w } = NEST_STAGES[s];
+      expect(nestDragonLayer(s), s).toEqual({ x, y, scale: w, depth: 0, idle: 'none' });
+      expect(dragonTop(s), s).toBeCloseTo(y - (w * 16) / 9, 5);
+      expect(dragonTop(s), `${s}: the head below the HUD`).toBeGreaterThanOrEqual(HUD_LINE);
+      expect(y, `${s}: the feet in the frame`).toBeLessThanOrEqual(100);
+      expect(x - w / 2, `${s}: inside the safe zone`).toBeGreaterThanOrEqual(SAFE_ZONE.x);
+      expect(x + w / 2, `${s}: inside the safe zone`).toBeLessThanOrEqual(SAFE_ZONE.x + SAFE_ZONE.w);
+    }
+    const widths = DRAGON_STAGES.map((s) => NEST_STAGES[s].w);
     expect(widths.every((w, i) => i === 0 || w > widths[i - 1]), 'bigger at every stage').toBe(true);
-    expect(widths[5]).toBeLessThanOrEqual(34);
+    // She still looks at the dragon first: the ancestral fills nearly half the frame's width.
+    expect(NEST_STAGES.ancestral.w).toBeGreaterThanOrEqual(40);
+  });
+
+  it('keeps the growth sheet beside the dragon up to the young stage and at the side from the adult, never over the dragon', () => {
+    expect(DRAGON_STAGES.map((s) => NEST_STAGES[s].sheet)).toEqual(['left', 'left', 'left', 'right', 'right', 'right']);
+    for (const s of DRAGON_STAGES) {
+      const { x, w, sheet } = NEST_STAGES[s];
+      const band = SHEET_X[sheet];
+      const e = NEST_SHAPES[s].dragon;
+      expect(band.x, s).toBeGreaterThanOrEqual(SAFE_ZONE.x);
+      expect(band.x + band.w, s).toBeLessThanOrEqual(SAFE_ZONE.x + SAFE_ZONE.w);
+      if (sheet === 'left') {
+        expect(band.x + band.w, `${s}: the sheet left of the dragon`).toBeLessThanOrEqual(x - w / 2);
+        expect(band.x + band.w, `${s}: the sheet left of the hotspot (Review Focus 4)`).toBeLessThanOrEqual(e.cx - e.rx);
+      } else {
+        expect(band.x, `${s}: the sheet right of the dragon`).toBeGreaterThanOrEqual(x + w / 2);
+        expect(band.x, `${s}: the sheet right of the hotspot (Review Focus 4)`).toBeGreaterThanOrEqual(e.cx + e.rx);
+        // The dragon shifts the other way, left of the frame's centre.
+        expect(x, s).toBeLessThan(50);
+      }
+    }
+  });
+
+  it('covers the dragon with its hotspot at every stage, its plaque clear of the HUD and the dialogue dock', () => {
+    for (const s of DRAGON_STAGES) {
+      const { x, y, w } = NEST_STAGES[s];
+      const top = dragonTop(s);
+      const e = NEST_SHAPES[s].dragon;
+      expect(nestScene(s).hotspots[0].shape, s).toBe(e);
+      expect(e.cx, `${s}: centred on the dragon`).toBeGreaterThan(x - w / 2);
+      expect(e.cx, `${s}: centred on the dragon`).toBeLessThan(x + w / 2);
+      expect(e.cy, `${s}: centred on the dragon`).toBeGreaterThan(top);
+      expect(e.cy, `${s}: centred on the dragon`).toBeLessThan(y);
+      expect(2 * e.rx, `${s}: as wide as most of the dragon`).toBeGreaterThanOrEqual(0.6 * w);
+      expect(2 * e.ry, `${s}: as tall as half the dragon`).toBeGreaterThanOrEqual(0.5 * (y - top));
+      expect(e.cy - e.ry, `${s}: below the HUD band`).toBeGreaterThanOrEqual(HUD_BAND);
+      // Review Focus 3: the plaque hangs below the ellipse (a 16 px leader and two lines, ~9 % of a
+      // 720 px art box), so the ellipse ends 10 % above the dialogue dock.
+      expect(e.cy + e.ry, `${s}: room for the plaque above the dialogue dock`).toBeLessThanOrEqual(DIALOGUE_DOCK.y - 10);
+    }
   });
 
   it('asks for a name once it has hatched, and says who it is otherwise', () => {
