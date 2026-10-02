@@ -1,12 +1,16 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Main e2e run (scripts/playwright.sh, part of scripts/check.sh), three projects: two WebKit ones
-// (scenes spec §10) and one Chromium. `desktop` runs every functional spec (Desktop Safari
+// Main e2e run (scripts/playwright.sh, part of scripts/check.sh), four projects: two WebKit ones
+// (scenes spec §10) and two Chromium. `desktop` runs every functional spec (Desktop Safari
 // 1280x720, the pre-UI1 setup); `ipad` runs the scene specs (scenes-*.spec.ts) at iPad landscape
 // 1180x820 with touch; `chromium` runs the one history test whose bug only Chromium shows (below).
 // Playability walks (playability*.spec.ts) write review screenshots and only run through
 // playwright.playability.config.ts. The real-voice specs (voice-*.spec.ts) only run through
 // playwright.voice.config.ts.
+// `chromium-gl` runs living-dragon.spec.ts on Chromium with SwiftShader's WebGL2 (spec 2026-10-02
+// living dragon: the canvas, its frames, its tint, its failures); the WebKit projects may lack WebGL2,
+// so `desktop` leaves that spec out (the e2e image's WebKit has it: the scene specs read the dragon in
+// either form, web/e2e/dragon.ts, and scenes-nest.spec.ts checks the form matches the browser).
 export default defineConfig({
   testDir: './e2e',
   testIgnore: ['**/playability*.spec.ts', '**/voice-*.spec.ts'],
@@ -39,7 +43,12 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Safari'] } },
+    {
+      name: 'desktop',
+      // A project's testIgnore replaces the top-level one: repeat it.
+      testIgnore: ['**/playability*.spec.ts', '**/voice-*.spec.ts', '**/living-dragon.spec.ts'],
+      use: { ...devices['Desktop Safari'] },
+    },
     {
       name: 'ipad',
       testMatch: ['**/scenes-*.spec.ts'],
@@ -60,6 +69,11 @@ export default defineConfig({
       testMatch: ['**/scenes-library.spec.ts'],
       grep: /Back leaves the tent in one press/,
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'chromium-gl',
+      testMatch: ['**/living-dragon.spec.ts'],
+      use: { ...devices['Desktop Chrome'], launchOptions: { args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] } },
     },
   ],
 });
