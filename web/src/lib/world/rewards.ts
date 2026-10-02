@@ -32,6 +32,20 @@ export function bossRewardName(tier: number | null, catalog: WorldCatalog | null
   return 'une récompense';
 }
 
+/** « 150 XP » for a quest bonus the server serves (`quest_bonus[key]`), or '' before the catalogue
+ *  has come: the client keeps no copy of the rule (SP4 final review M8). */
+export function questXpText(catalog: WorldCatalog | null, key: string): string {
+  const xp = catalog?.quest_bonus[key];
+  return typeof xp === 'number' ? `${xp} XP` : '';
+}
+
+/** `rest` led by the served bonus (« 60 XP et rest »); just `rest` while there is no number to say. */
+export function withQuestXp(catalog: WorldCatalog | null, key: string, rest: string): string {
+  const xp = questXpText(catalog, key);
+  if (!xp) return rest;
+  return rest ? `${xp} et ${rest}` : xp;
+}
+
 /** « 1 trésor », « 2 trésors », « Aucun trésor encore » (the cabin's shelf). */
 export function treasureCaption(n: number): string {
   return n <= 0 ? 'Aucun trésor encore' : plural(n, 'trésor', 'trésors');

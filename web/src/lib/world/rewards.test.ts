@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HOW_TO_WIN_IDS, bossRewardId, bossRewardName, bossTier, howToEarn, nextFightTier, treasureCaption } from './rewards';
+import { HOW_TO_WIN_IDS, bossRewardId, bossRewardName, bossTier, howToEarn, questXpText, withQuestXp, nextFightTier, treasureCaption } from './rewards';
 import { REWARD_ICONS } from './art';
 import { DEFAULT_RULES } from '../rules';
 import { sealHowLine } from './seals';
@@ -97,5 +97,23 @@ describe('every thing not owned says how to earn it (spec 2026-09-29 explanation
     // Every kind of the shelf and the stall is there: trophies, tints, gear, decor, accessories, houses.
     const kinds = new Set(lines.map(([where]) => where.split(':')[0].split(' ')[0]));
     for (const k of ['trophy', 'tint', 'accessory', 'house', 'decor', 'sandales_hermes', 'egide', 'foudre_zeus']) expect([...kinds].some((x) => x.startsWith(k)), k).toBe(true);
+  });
+});
+
+describe('a quest bonus is the served one or nothing', () => {
+  const served = { quest_bonus: { board: 70, oracle: 160, boss: 300 } } as unknown as WorldCatalog;
+
+  it('prints no number before the catalogue, the served value after', () => {
+    expect(questXpText(null, 'board')).toBe('');
+    expect(questXpText(served, 'board')).toBe('70 XP');
+    expect(questXpText(served, 'oracle')).toBe('160 XP');
+    expect(questXpText(served, 'weekly')).toBe('');
+  });
+
+  it('joins the XP to the rest of the line only when there is some', () => {
+    expect(withQuestXp(null, 'board', 'une page du bestiaire')).toBe('une page du bestiaire');
+    expect(withQuestXp(served, 'board', 'une page du bestiaire')).toBe('70 XP et une page du bestiaire');
+    expect(withQuestXp(null, 'oracle', '')).toBe('');
+    expect(withQuestXp(served, 'oracle', '')).toBe('160 XP');
   });
 });

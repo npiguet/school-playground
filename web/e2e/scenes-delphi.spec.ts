@@ -408,3 +408,44 @@ for (const place of [
     await expect(page.getByTestId('hud-xp')).toBeVisible();
   });
 }
+
+// SP4 final re-review: the oracle's and the board's earnings are the served ones. Before the catalogue
+// (/api/world held back) the panels print no XP figure; once it arrives, the served value.
+test('the Pythia and the quest board print no XP before the catalogue, the served value after', async ({ page, request }, testInfo) => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/api/world', async (route) => {
+    await gate;
+    const world = await (await route.fetch()).json();
+    world.quest_bonus.oracle = 170;
+    world.quest_bonus.board = 70;
+    await route.fulfill({ json: world });
+  });
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/delphes`);
+  const oracle = page.getByTestId('overlay-pythia');
+  await expect(oracle.getByTestId('scroll-open')).toHaveCount(3);
+  await expect(oracle.getByTestId('oracle-reward')).toHaveCount(0);
+  await expect(oracle).not.toContainText(/\d+ XP/);
+  release();
+  await expect(oracle.getByTestId('oracle-reward')).toContainText('170 XP');
+  await page.goto(`/#/p/${id}/quetes`);
+  await expect(page.getByTestId('overlay-tablets').getByTestId('board-reward')).toHaveText('Chaque monstre défié rapporte 70 XP et une page du bestiaire.');
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+});
+
+test('the quest board prints no XP before the catalogue', async ({ page, request }, testInfo) => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/api/world', async (route) => {
+    await gate;
+    await route.continue();
+  });
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/quetes`);
+  const reward = page.getByTestId('overlay-tablets').getByTestId('board-reward');
+  await expect(reward).toHaveText('Chaque monstre défié rapporte une page du bestiaire.');
+  release();
+  await expect(reward).toHaveText(/rapporte \d+ XP et une page du bestiaire\./);
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+});

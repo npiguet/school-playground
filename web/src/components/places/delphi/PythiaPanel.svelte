@@ -16,6 +16,7 @@
   import { worldApi } from '../../../lib/world/api';
   import { campFor, campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type OracleOut, type ScrollKey } from '../../../lib/world/types';
+  import { questXpText } from '../../../lib/world/rewards';
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
   import { confirmChoiceLabel, sleepingCaption } from '../../../lib/world/eris';
   import { ApiError } from '../../../lib/api';
@@ -156,12 +157,13 @@
     }
   }
 
-  function oracleRewardLine(): string {
-    const bonus = campStore.catalog?.quest_bonus.oracle ?? 150;
+  /** The week's scroll reward as the server serves it; '' until the catalogue has come. */
+  const rewardLine = $derived.by(() => {
+    const xp = questXpText(campStore.catalog, 'oracle');
     const rewardId = oracle?.reward_id ?? null;
     const name = rewardId ? campStore.catalog?.rewards[rewardId]?.name : undefined;
-    return name ? `${bonus} XP · ${name}` : `${bonus} XP`;
-  }
+    return [xp, name].filter(Boolean).join(' · ');
+  });
 </script>
 
 {#snippet propheciesSection(prophecies: OracleOut['prophecies'])}
@@ -198,10 +200,12 @@
     <section data-testid="oracle-scrolls" aria-labelledby="oracle-scrolls-title">
       <h3 id="oracle-scrolls-title" class="sr-only">Les trois rouleaux</h3>
       <!-- Playability #8: the reward once, with its medallion, in dark bronze. -->
-      <div class="reward-line" data-testid="oracle-reward">
-        {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} size={36} />{/if}
-        <span>Cette semaine, le rouleau que tu ouvres rapporte{'\u202f: '}{oracleRewardLine()}</span>
-      </div>
+      {#if rewardLine}
+        <div class="reward-line" data-testid="oracle-reward">
+          {#if oracle.reward_id}<Medallion rewardId={oracle.reward_id} size={36} />{/if}
+          <span>Cette semaine, le rouleau que tu ouvres rapporte{'\u202f: '}{rewardLine}</span>
+        </div>
+      {/if}
       {#if consultError}<p class="kit-note" data-tone="eris" role="alert">{consultError}</p>{/if}
 
       <div class="scrolls-wrap" bind:this={scrollsEl}>

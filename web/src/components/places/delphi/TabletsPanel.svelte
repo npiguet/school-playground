@@ -13,7 +13,7 @@
   import { sleepingLine } from '../../../lib/world/eris';
   import { fightLine, sealTitle } from '../../../lib/world/seals';
   import { romanTier } from '../../../lib/world/quests';
-  import { bossRewardId, bossRewardName, bossTier } from '../../../lib/world/rewards';
+  import { bossRewardId, bossRewardName, bossTier, withQuestXp } from '../../../lib/world/rewards';
   import { ApiError } from '../../../lib/api';
   import { href } from '../../../lib/routes';
   import { plural } from '../../../lib/text/french';
@@ -97,7 +97,7 @@
 
   const decor = $derived(nextDecor());
 
-  const boardXp = $derived(campStore.catalog?.quest_bonus.board ?? 60);
+  const boardReward = $derived(withQuestXp(campStore.catalog, 'board', 'une page du bestiaire'));
 
 </script>
 
@@ -105,7 +105,7 @@
   <!-- Playability #10, re-review N13: the wall's reward and the cabin's next treasure, said once, by
        the Pythia (the wall was the only overlay without a voice). -->
   <OverlayVoice line={VOICES.wall}>
-    <span data-testid="board-reward">Chaque monstre défié rapporte {boardXp} XP et une page du bestiaire.</span>
+    <span data-testid="board-reward">Chaque monstre défié rapporte {boardReward}.</span>
     {#if decor}
       <span data-testid="board-decor">Encore {plural(decor.n, 'quête', 'quêtes')}, et ta maison gagne un trésor{'\u202f: '}{decor.name}.</span>
     {/if}

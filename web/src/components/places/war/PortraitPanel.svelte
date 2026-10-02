@@ -13,7 +13,8 @@
   import { worldApi } from '../../../lib/world/api';
   import { campFor, campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
   import { LIEUTENANT_ORDER, type LieutenantKey, type QuestOut } from '../../../lib/world/types';
-  import { sealGauges, sealProgressLine, sealTitle } from '../../../lib/world/seals';
+  import { withQuestXp } from '../../../lib/world/rewards';
+  import { sealGauges,sealProgressLine, sealTitle } from '../../../lib/world/seals';
   import { entry as bestiaryEntry } from '../../../lib/world/bestiary';
   import { lengthOf } from '../../../lib/library/shelf';
   import { useToast } from '../../../lib/ui/toast.svelte';
@@ -37,7 +38,7 @@
     lieutenantState?.name ?? catalogEntry?.name ?? bestiaryEntry(lieutenantKey)?.name ?? lieutenantKey,
   );
   const art = $derived(isKnownKey ? ART.lieutenants[lieutenantKey as LieutenantKey] : ART.erisSmug);
-  const questXp = $derived(campStore.catalog?.quest_bonus.board ?? 60);
+  const questReward = $derived(withQuestXp(campStore.catalog, 'board', 'une page du bestiaire'));
 
   const level = $derived(lieutenantState?.level ?? 0);
   const gauges = $derived(lieutenantState?.next ? sealGauges(lieutenantState.next) : null);
@@ -140,7 +141,7 @@
         >
           {lieutenantState.active_quest_id ? 'Quête en cours' : 'Lancer une quête'}
         </button>
-        <p class="reward-line">Récompense{'\u202f: '}{questXp} XP et une page du bestiaire</p>
+        <p class="reward-line" data-testid="portrait-reward">Récompense{'\u202f: '}{questReward}</p>
 
         {#if recommendedTexts && recommendedTexts.length > 0}
           <button

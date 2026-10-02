@@ -98,7 +98,8 @@
   });
   // UI4 playability #2: the headline is all she earned (the laurel's own move), the tags its breakdown.
   // Spec 2026-09-29 drachmes §1 (R15): what the session paid in drachmes; none on a victory saved before.
-  const drachmesEarned = $derived(progression.drachmes?.earned ?? 0);
+  const weeklyBonus = $derived(progression.xp.bonuses.find((b) => b.reason === 'weekly')?.amount);
+  const drachmesEarned =$derived(progression.drachmes?.earned ?? 0);
   const xpEarned = $derived(
     Math.max(0, progression.xp.total_after - progression.xp.total_before) ||
       progression.xp.session + progression.xp.bonuses.reduce((sum, b) => sum + b.amount, 0),
@@ -355,7 +356,7 @@
           {#each Array.from({ length: progression.weekly.target }) as _, i (i)}<span class="leaf"></span>{/each}
         </span>
         <p class="spoil-title">
-          Objectif de la semaine atteint{'\u202f!'} +{progression.xp.bonuses.find((b) => b.reason === 'weekly')?.amount ?? 40} XP
+          Objectif de la semaine atteint{'\u202f!'}{#if weeklyBonus !== undefined} +{weeklyBonus} XP{/if}
         </p>
         <Particles trigger={weeklyLaurelTrigger} kind="laurel" />
       </div>

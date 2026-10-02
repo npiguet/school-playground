@@ -346,3 +346,22 @@ test('a sealed lieutenant: its trophy on the sheet and the portrait, the seal in
   await expect(card.getByTestId('bestiary-locked')).toHaveCount(0);
   expect(await redScan(page)).toEqual([]);
 });
+
+// SP4 final re-review: the portrait's quest line is the served bonus, with no number before the catalogue.
+test("a lieutenant's quest line prints no XP before the catalogue, the served value after", async ({ page, request }, testInfo) => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/api/world', async (route) => {
+    await gate;
+    const world = await (await route.fetch()).json();
+    world.quest_bonus.board = 70;
+    await route.fulfill({ json: world });
+  });
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/monstres/hydre`);
+  const reward = page.getByTestId('overlay-portrait').getByTestId('portrait-reward');
+  await expect(reward).toHaveText('Récompense\u202f: une page du bestiaire');
+  release();
+  await expect(reward).toHaveText('Récompense\u202f: 70 XP et une page du bestiaire');
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+});
