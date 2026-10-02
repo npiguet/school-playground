@@ -2,7 +2,9 @@
   // A positioned cut-out (scenes UI spec §4): x = centre, y = bottom edge, scale = width, in art %.
   // Parallax offset by depth; no parallax and no idle animation under reduced motion. The dragon's
   // layer also carries the pieces it wears (`overlays`, spec 2026-09-29 drachmes §4, R19): the idle
-  // animation is on the figure, so they breathe with it.
+  // animation is on the figure, so they breathe with it. Only the dragon's layer (the one given
+  // `overlays`, even none) is a DragonFigure; every other layer (the Pythia, the owl...) stays a
+  // plain picture (SP4 Task 6 review, minor 4).
   import DragonFigure from '../DragonFigure.svelte';
   import type { OverlayLayer } from '../../lib/world/accessories';
   import { parallaxOffset } from '../../lib/scene/geometry';
@@ -12,11 +14,12 @@
   let {
     layer,
     filter = 'none',
-    overlays = [],
+    overlays = null,
     testId,
-  }: { layer: SceneLayerDef; filter?: string; overlays?: OverlayLayer[]; testId?: string } = $props();
+  }: { layer: SceneLayerDef; filter?: string; overlays?: OverlayLayer[] | null; testId?: string } = $props();
 
   const rt = useSceneRuntime();
+  const idle = $derived(`scene-layer-img idle-${rt.reduced ? 'none' : layer.idle}`);
   const off = $derived(rt.reduced || rt.debug ? { x: 0, y: 0 } : parallaxOffset(layer.depth, rt.nx, rt.ny));
   // Parallax animates a `transform` (compositor-only) rather than `left`/`bottom` (layout), so it
   // never triggers layout/paint on every pointer-move frame. `off` is in art %; converted here to
@@ -31,7 +34,11 @@
   data-offset="{off.x},{off.y}"
   style="left:{layer.x - layer.scale / 2}%;bottom:{100 - layer.y}%;width:{layer.scale}%;transform:translate({offPx.x}px,{offPx.y}px)"
 >
-  <DragonFigure src={layer.src} alt={layer.alt} {filter} {overlays} className="scene-layer-img idle-{rt.reduced ? 'none' : layer.idle}" />
+  {#if overlays}
+    <DragonFigure src={layer.src} alt={layer.alt} {filter} {overlays} className={idle} />
+  {:else}
+    <img class={idle} src={layer.src} alt={layer.alt} draggable="false" style:filter />
+  {/if}
 </div>
 
 <style>
@@ -44,5 +51,8 @@
   .scene-layer :global(.scene-layer-img) {
     display: block;
     width: 100%;
+  }
+  img.scene-layer-img {
+    height: auto;
   }
 </style>

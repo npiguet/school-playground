@@ -25,7 +25,7 @@ test('the nest: the egg in the straw, its growth, its greeting; the exit leads b
   // UI5 Ruling E12: one of the egg's nest.enter lines.
   await expectLineOf(page.getByTestId('dialogue-box'), 'nest.enter');
   await page.getByTestId('dialogue-skip').click();
-  await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
   await expect(page.getByTestId('dragon-stage')).toHaveText('Œuf');
   // UI3b playability #5 (XP since sub-project 3): the next stage and the XP toward it, a sentence for
   // its mood, a pinned sheet.
@@ -176,10 +176,10 @@ test('the nest shows each of the six stages, clear of its growth sheet and of th
     await page.goto(`/#/p/${id}/dragon?debug`);
     await page.reload();
     await expectScene(page, 'nest');
-    await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('src', `/art/dragon/dragon_${key}_cut.webp`);
+    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', `/art/dragon/dragon_${key}_cut.webp`);
     await expect(page.getByTestId('dragon-stage')).toHaveText(label);
     await expect(page.getByTestId('nest-growth')).toContainText(activity);
-    const b = await measureBoxes(page, { growth: '[data-testid="nest-growth"]', layer: '[data-testid="nest-dragon-layer"] img', hud: 'header.hud' });
+    const b = await measureBoxes(page, { growth: '[data-testid="nest-growth"]', layer: '[data-testid="nest-dragon-layer"] img.dragon-base', hud: 'header.hud' });
     expect(b.growth!.x + b.growth!.width, `${key}: the growth sheet left of the dragon`).toBeLessThanOrEqual(b.layer!.x + 2);
     expect(b.layer!.y, `${key}: the dragon's picture below the HUD`).toBeGreaterThanOrEqual(b.hud!.y + b.hud!.height - 2);
   }

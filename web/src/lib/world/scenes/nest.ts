@@ -1,6 +1,6 @@
 // The dragon's nest (scenes UI spec §3 "Dragon's nest scene", UI3 Ruling B5): the dragon at its
-// stage, in its tint, in the straw bed; its growth on a parchment in the scene; its name and tint in
-// the `soin` overlay (#/p/:id/dragon?panel=soin), where it speaks from the voice plate.
+// stage, in its tint, in the straw bed; its growth on a parchment in the scene; its name, tint and
+// parure in the `soin` overlay (#/p/:id/dragon?panel=soin), where it speaks from the voice plate.
 import { SCENE_MUSIC } from '../../audio/catalog';
 import { ART } from '../art';
 import { dragonCaption, gaugeOf, nextStage, stageLabel } from '../dragon';

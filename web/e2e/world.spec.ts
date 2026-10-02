@@ -69,7 +69,7 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
       await expect(tour).toHaveCount(0);
 
       await expect(page.getByTestId('hud-xp')).toContainText('Œuf · 0 XP');
-      await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
+      await expect(page.getByTestId('camp-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
       await expect(page.getByTestId('camp-weekly')).toContainText('0 / 3');
 
       const match = page.url().match(/\/p\/(\d+)\//);
@@ -215,7 +215,7 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     await page.goto(`/#/p/${profileId}/dragon?panel=soin`);
     await expect(page.getByTestId('dragon-tint-ecume')).toBeEnabled();
     await page.getByTestId('dragon-tint-ecume').click();
-    await expect(page.getByTestId('nest-dragon-layer').locator('img')).toHaveAttribute('style', /hue-rotate\(190deg\)/);
+    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('style', /hue-rotate\(190deg\)/);
 
     await page.goto(`/#/p/${profileId}/cabane?panel=tresors`);
     await expect(page.getByTestId('cabin-reward-tint:ecume')).toHaveAttribute('data-owned', 'true');
@@ -256,7 +256,7 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     await expect(page.getByTestId('dragon-name-input')).toHaveValue('Braise');
 
     await page.goto(`/#/p/${profileId}/camp`);
-    await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('alt', 'Braise');
+    await expect(page.getByTestId('camp-dragon-layer').locator('img.dragon-base')).toHaveAttribute('alt', 'Braise');
 
     await page.goto(`/#/p/${profileId}/dossier`);
     await expect(page.getByTestId('dossier-line-hydre')).toContainText('Mon Hydre porte un sceau');

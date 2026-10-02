@@ -380,7 +380,7 @@ test('HUD: laurel, dragon, sound toggle that survives leaving the camp', async (
   await expect(opener.locator('[data-icon="lyre"]')).toBeVisible();
 
   // UI3 Ruling B3: what the dragon is up to now lives in the nest; the hub seats its cut-out.
-  await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(page.getByTestId('camp-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
 
   await page.getByTestId('hud-dragon').click();
   await expect(page).toHaveURL(/\/dragon$/);
@@ -621,7 +621,7 @@ test('the path to battle opens once Éris can be fought; badges sit on their pla
   // "sandales_hermes" -> "Sandales d'Hermès" per server/app/world/catalog.py), not just the
   // tier number.
   await expect(boss).toContainText("Combat I : Sandales d'Hermès");
-  await expect(page.getByTestId('camp-dragon-layer').locator('img')).not.toHaveAttribute('src', /dragon_egg/);
+  await expect(page.getByTestId('camp-dragon-layer').locator('img.dragon-base')).not.toHaveAttribute('src', /dragon_egg/);
 
   // Playability #5, UI3 Ruling B3: the quest count is pinned to the top-right corner of the Delphi
   // plaque (the chimère board quest). UI3b playability #17: the two wooden seals won are one gold
@@ -738,7 +738,7 @@ test('no red on the hub, its greeting or the hero panel', async ({ page, request
 test("HUD: the laurel is the dragon's growth, named by its stage, full at the last stage", async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   // Every faked stage already seen: no « grew while you were away » reveal over the laurel.
-  await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'ancestral' } } });
+  expect((await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'ancestral' } } })).ok()).toBeTruthy();
   let fake: { stage: string; xp: { total: number; floor: number; next: number | null } } = { stage: 'young', xp: { total: 3100, floor: 1200, next: 5000 } };
   await page.route(`**/api/profiles/${id}/camp`, async (route) => {
     const res = await route.fetch();
@@ -782,7 +782,7 @@ test('a dragon that hatched while she was away is revealed once at the camp; she
   const hatch = await postSession(request, { profileId: id, textId: text.id, day: '2026-08-03', result: makeResult({ words: 300 }) });
   expect(hatch.progression.dragon.stage_after).toBe('hatchling');
   // That session's victory was never shown (as for a stage caught up after an update).
-  await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'egg' } } });
+  expect((await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'egg' } } })).ok()).toBeTruthy();
 
   await page.goto(`/#/p/${id}/camp`);
   await expectCamp(page);
@@ -800,7 +800,7 @@ test('a dragon that hatched while she was away is revealed once at the camp; she
   await tap(reveal.getByTestId('camp-reveal-continue'), testInfo);
   await expect(reveal).toHaveCount(0);
   await expect(page.getByTestId('dialogue-box')).toBeVisible();
-  await expect(page.getByTestId('camp-dragon-layer').locator('img')).toHaveAttribute('alt', 'Braise');
+  await expect(page.getByTestId('camp-dragon-layer').locator('img.dragon-base')).toHaveAttribute('alt', 'Braise');
   await expect.poll(() => seenStageOf(request, id)).toBe('hatchling');
 
   await page.reload();
@@ -811,7 +811,7 @@ test('a dragon that hatched while she was away is revealed once at the camp; she
 
 test('a named dragon grown two stages while she was away: the stage named, no name asked; the seal closes it for good', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'hatchling' } } });
+  expect((await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'hatchling' } } })).ok()).toBeTruthy();
   await page.route(`**/api/profiles/${id}/camp`, async (route) => {
     const res = await route.fetch();
     const camp = await res.json();

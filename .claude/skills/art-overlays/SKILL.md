@@ -62,11 +62,35 @@ tools/art/seg/.venv/Scripts/python tools/art/overlay.py extract assets/art/drago
 # 4. check (look at it: no skin patch, no halo, nothing missing, sits on the body, tints)
 tools/art/seg/.venv/Scripts/python tools/art/overlay.py check assets/art/dragon/dragon_young_cut.png \
   assets/art/dragon/accessories/<item>_young.png --out $S/check.png
-# 5. crop + manifest (staged under assets/art/export, see art-cutout)
+# 5. crop: the WebP goes straight where the game reads it, the entry into its lieutenant's fragment
+#    (<lt> = the item's lieutenant, e.g. hydre for hydre-cou)
 tools/art/seg/.venv/Scripts/python tools/art/overlay.py crop assets/art/dragon/accessories/<item>_young.png \
-  --webp assets/art/export/dragon/accessories/<item>_young.webp \
-  --manifest assets/art/export/dragon/accessories.json --item <item> --stage young
+  --webp web/public/art/dragon/accessories/<item>_young.webp \
+  --manifest assets/art/export/dragon/accessories/<lt>.json --item <item> --stage young
+# 6. merge the six fragments into the game's manifest, then re-run the art test (fit + size budget)
+python tools/art/accessory_manifest.py
+scripts/npm.sh run test -- src/lib/world/art.test.ts src/lib/world/accessories.test.ts
 ```
+
+## Where the game reads the overlays
+
+- **Pictures:** `web/public/art/dragon/accessories/<item>_<stage>.webp` (24 items x 4 stages,
+  `young` to `ancestral`; the egg and the hatchling wear nothing). Nothing else may sit in that
+  folder: the art test refuses a file the manifest does not name.
+- **Fragments (source of truth for the entries):** six per-lieutenant files,
+  `assets/art/export/dragon/accessories/<lt>.json` (`hydre`, `echo`, `chimere`, `protee`, `sirenes`,
+  `lethe`), each holding its four items (`<lt>-cou`, `-queue`, `-dos`, `-tete`) and, for each, the
+  four stages `{src, x, y, w, h}`. `overlay.py crop --manifest` writes into them and keeps the other
+  entries.
+- **The game's manifest:** `web/src/lib/world/accessories.json`, bundled. Never edit it by hand:
+  `tools/art/accessory_manifest.py` (stdlib, run from the repo root) merges the six fragments into
+  it and refuses a fragment that misses an item or a stage or names another lieutenant's item.
+- **To redo one overlay:** steps 1-4 as above, then step 5 with the same item and stage (it
+  re-exports the WebP into `web/public/art/dragon/accessories/` and replaces the entry in the
+  fragment), then step 6 (re-merge, re-run the art test). The test measures each crop's real size
+  against its fractions and the whole non-scene art against its budget (4.5 MiB, in
+  `web/src/lib/world/art.test.ts`, with the measured total written beside it); if a redone
+  overlay breaks it, say so rather than quietly raising the number.
 
 ## Inpainting settings (proven)
 

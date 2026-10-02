@@ -2,8 +2,8 @@
 // pieces; the egg keeps its pieces without showing them. desktop + ipad.
 import { test, expect } from './crashGuard';
 import {
-  createProfileApi, createText, expectBattle, expectCamp, expectOverlayTapTargets, heroNamer, makeResult, postSession, redScan, seedPlay, tap,
-  uniqueName,
+  createProfileApi, createText, expectBattle, expectCamp, expectOverlayTapTargets, expectScene, heroNamer, makeResult, postSession, redScan, seedPlay,
+  tap, uniqueName,
 } from './helpers';
 
 const heroName = heroNamer('Parure');
@@ -109,4 +109,55 @@ test('a tinted dragon keeps its pieces in their own colours; the egg keeps them 
   await page.goto(`/#/p/${id}/dragon?panel=soin`);
   await expect(page.getByTestId('dragon-parure')).toContainText("Il portera sa parure dès qu'il sera un jeune dragon.");
   await expect(page.getByTestId('dragon-parure-how')).toHaveText('Hermès vend des parures à son étal, dans le camp.');
+});
+
+// SP4 Task 6 review, minor 4 (ruling): only the dragon's layer is a dressed figure; the Pythia and the
+// owl stay plain pictures.
+test("only the dragon's layer is a figure; the other scene layers stay plain pictures", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  for (const [route, scene] of [
+    ['temple', 'delphi'],
+    ['tente-parchemins', 'library'],
+  ] as const) {
+    await page.goto(`/#/p/${id}/${route}`);
+    await expectScene(page, scene);
+    const layers = page.getByTestId(`scene-${scene}`).locator('.scene-layer');
+    await expect(layers.locator('> img.scene-layer-img')).toHaveCount(1);
+    await expect(layers.locator('.dragon-figure')).toHaveCount(0);
+  }
+  await page.goto(`/#/p/${id}/dragon`);
+  await expect(page.getByTestId('nest-dragon-layer').locator('.dragon-figure img.dragon-base')).toBeVisible();
+});
+
+// SP4 Task 6 review, minor 3: a change the server refuses puts the previous piece back and says why.
+test('a refused change of piece puts the previous one back and says why', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  // This hero owns two collars and wears the Hydra's; the server refuses to change it.
+  const piece = (item: string, equipped: boolean) => ({
+    id: `accessory:${item}`, kind: 'accessory', name: item, desc: '', source: 'stall', granted_at: '2026-08-03T10:00:00', equipped,
+  });
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage: 'adult', name: 'Braise', worn: ['hydre-cou'] };
+    await route.fulfill({ response: res, json: camp });
+  });
+  await page.route(`**/api/profiles/${id}/rewards`, (route) => route.fulfill({ json: [piece('hydre-cou', true), piece('sirenes-cou', false)] }));
+  let refused = 0;
+  await page.route(`**/api/profiles/${id}/rewards/accessory:sirenes-cou`, async (route) => {
+    refused += 1;
+    await route.fulfill({ status: 409, json: { detail: 'Hermès garde encore ce collier.' } });
+  });
+  await page.goto(`/#/p/${id}/dragon?panel=soin`);
+  const care = page.getByTestId('overlay-care');
+  await expect(care.getByTestId('parure-hydre-cou')).toHaveAttribute('aria-checked', 'true');
+  await tap(care.getByTestId('parure-sirenes-cou'), testInfo);
+  await expect(care.getByRole('alert')).toHaveText('Hermès garde encore ce collier.');
+  expect(refused).toBe(1);
+  await expect(care.getByTestId('parure-hydre-cou')).toHaveAttribute('aria-checked', 'true');
+  await expect(care.getByTestId('parure-sirenes-cou')).toHaveAttribute('aria-checked', 'false');
+  // The dragon behind the panel wears the Hydra's collar again, not the refused one.
+  const layer = page.getByTestId('nest-dragon-layer');
+  await expect(layer.locator('img.dragon-overlay[data-item="hydre-cou"]')).toHaveCount(1);
+  await expect(layer.locator('img.dragon-overlay[data-item="sirenes-cou"]')).toHaveCount(0);
 });

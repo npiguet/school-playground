@@ -2,7 +2,7 @@
   // The dragon's nest (scenes UI spec §3, UI3 Ruling B5): the dragon in the straw bed at its stage
   // and tint, its growth on a sheet pinned to the cliff (UI3b playability #5: the war tent's pinned
   // parchment and its laurel gauge, not a web card), a tap on it opens its care
-  // (#/p/:id/dragon?panel=soin: name and tint), where it speaks. It greets once per page load with
+  // (#/p/:id/dragon?panel=soin: name, tint and parure), where it speaks. It greets once per page load with
   // its stage line.
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import SceneLayer from '../components/scene/SceneLayer.svelte';
