@@ -140,7 +140,7 @@ describe('art map', () => {
     expect(ART.scenes.hubCamp).toBe('/art/scenes/hub_camp.webp');
     expect(existsSync('public/art/scenes/hub_camp_stall.webp')).toBe(false);
     expect(statSync('public' + ART.characters.hermes).size).toBeLessThanOrEqual(80 * 1024);
-    for (const id of ['amphore', 'chouette', 'mosaique', 'bouclier']) expect(statSync(`public/art/icons/decor-${id}.webp`).size, id).toBeLessThanOrEqual(20 * 1024);
+    for (const id of ['amphore', 'chouette', 'mosaique', 'bouclier', 'trophee']) expect(statSync(`public/art/icons/decor-${id}.webp`).size, id).toBeLessThanOrEqual(20 * 1024);
   });
 
   it('ships the overlay textures and objects within their budgets (immersion wave W3)', () => {

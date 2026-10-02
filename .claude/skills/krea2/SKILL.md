@@ -331,7 +331,10 @@ fallback is a hard composite: generate with `mask_blur` 0 and paste only the obj
 - **Silver and polished bronze get multicolour blotches** (blue, green, orange patches) from the
   style's "warm and cool colour variation inside every shape", at every seed, even with
   `(patina:-3) (blotches:-3) (colourful patches:-3) (multicoloured:-3)` and "one even metal colour
-  all over". For bronze the patches read as reflections and were accepted (decor-bouclier). For
+  all over". For bronze the patches read as reflections and were accepted on the 256 px icon
+  (`icons/decor-bouclier`); on the large room piece (`treasures/decor-bouclier`) they read as
+  blotches, and `python tools/art/colorize.py <src.png> <dst.png>` (luminance onto one golden-bronze
+  gradient, blended 0.75) on the generated PNG before the cut-out removed them. For
   silver, which is nearly neutral, desaturate the generated PNG (`ImageEnhance.Color(0.3)`, then
   `Contrast(1.08)`) before the cut-out and say so in the sidecar (`postprocess`): the relief stays
   and it reads as silver (drachme). The trophies' silver level did not need it (small engraved

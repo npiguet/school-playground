@@ -32,5 +32,5 @@
     }
   },
   "style": "discorde-inked-clean",
-  "postprocess": "luminance mapped onto one golden-bronze gradient (PIL ImageOps.colorize black (38,20,8) bp 10, mid (190,128,50) mp 130, white (255,255,255) wp 252), blended 0.75 over the original (.claude jobs shieldpp2.py): removes the style's multicolour blotches; Color 0.3 read as silver"
+  "postprocess": "python tools/art/colorize.py on the generated PNG before the cut-out (golden bronze, blend 0.75): the luminance mapped onto one golden-bronze gradient, blended over the original, removes the style's multicolour blotches; Color 0.3 read as silver"
 }

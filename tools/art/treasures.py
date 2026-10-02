@@ -22,7 +22,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-from icons import DARK, PARCHMENT
+from icons import DARK, PARCHMENT, save_webp
 
 SRC = Path("assets/art/treasures")
 # Staged export: the code task that wires the treasures moves them into web/public/art/treasures/.
@@ -36,7 +36,7 @@ BIG = (768, 90 * 1024)
 SMALL = (512, 50 * 1024)
 MOSAIC = (672, 90 * 1024)   # its tiles are all fine detail: 90.5 KiB at q50 at 768 px, about q62 at 672
 QUALITIES = list(range(82, 49, -4)) + [50]   # 82, 78, ..., 54, 50
-# id -> ((long side px, budget bytes), real width in cm: the sheet's scale and the rooms' (Task 5)).
+# id -> ((long side px, budget bytes), real width in cm for the contact sheet's common scale).
 PIECES = {
     "decor-lanterne": (SMALL, 22),
     "decor-tapis": (BIG, 220),
@@ -51,6 +51,11 @@ PIECES = {
     "egide": (SMALL, 80),
     "foudre_zeus": (SMALL, 25),
 }
+# REAL_CM is only the contact sheet's scale (one centimetre = the same number of pixels for every
+# piece, so their relative sizes can be judged). The game never reads it: each piece is sized to its
+# place in each room, measured in house treasures Task 5 into web/src/lib/world/scenes/treasure-places.json
+# (that measurement starts from these widths as a first guess and caps each to its painted fixture,
+# so a room's place, not this table, is the piece's size).
 REAL_CM = {k: cm for k, (_, cm) in PIECES.items()}
 
 
@@ -71,16 +76,11 @@ def webp() -> bool:
         if scale < 1:
             img = img.resize((round(img.width * scale), round(img.height * scale)), Image.LANCZOS)
         dst = DST / f"{pid}.webp"
-        for q in QUALITIES:
-            img.save(dst, "WEBP", quality=q, method=6)
-            if dst.stat().st_size <= budget:
-                break
-        size = dst.stat().st_size
+        q, size, ok = save_webp(img, dst, budget, QUALITIES)
         total += size
         flag = ""
-        if size > budget:
+        if not ok:
             over.append(pid)
-            dst.unlink()
             flag = f"  OVER BUDGET ({budget / 1024:.0f} KiB) at q{q}: removed"
         print(f"{dst}  {img.width}x{img.height}  aspect {img.height / img.width:.4f}  q{q}  {size / 1024:.1f} KiB{flag}")
     print(f"total: {total / 1024:.1f} KiB")
