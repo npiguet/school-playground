@@ -80,7 +80,11 @@ def tint_oklch(rgb: np.ndarray, shift: float, chroma: float, lightness: float) -
     L = np.clip(lab[..., 0] * lightness, 0, 1)
     C = np.hypot(lab[..., 1], lab[..., 2]) * chroma
     h = np.arctan2(lab[..., 2], lab[..., 1]) + math.radians(shift)
-    ok = lambda c: np.all((_lch_linear(L, c, h) >= -1e-4) & (_lch_linear(L, c, h) <= 1 + 1e-4), -1)
+
+    def ok(c):
+        lin = _lch_linear(L, c, h)
+        return np.all((lin >= -1e-4) & (lin <= 1 + 1e-4), -1)
+
     out = ~ok(C)
     lo, hi = np.zeros_like(C), C.copy()
     for _ in range(16):

@@ -147,7 +147,7 @@ issues. Use `transformers` in a separate venv (Neo wants its own Python; don't s
 - Neither is tested yet in this project. GPU recommended (it shares VRAM with Forge; run it while
   Forge is idle).
 
-**Pipeline for an aligned overlay** (the object alone, so the dragon's CSS tint does not recolour it
+**Pipeline for an aligned overlay** (the object alone, so the dragon's tint does not recolour it
 and repainted skin is not kept):
 1. Mask the slot tightly on the stage picture (by hand, or segment "neck"/"head" and dilate).
 2. Inpaint as above with a fixed seed.
@@ -155,8 +155,8 @@ and repainted skin is not kept):
    actually changed versus the original.
 4. Write an RGBA layer the size of the stage picture: the result's pixels where the object is, alpha
    0 elsewhere, edge softened 1–2 px. It lines up with the stage picture pixel for pixel.
-5. Check it composited on the stage picture and on a tinted copy (the CSS `hue-rotate` filters in
-   `web/src/lib/world/dragon.ts`).
+5. Check it composited on the stage picture and on tinted copies (`tools/art/overlay.py check`,
+   which applies the game's OKLCH tints, `TINT_SPECS` in `web/src/lib/world/dragon.ts`).
 
 ## Style files
 

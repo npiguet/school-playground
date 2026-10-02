@@ -53,12 +53,51 @@ describe('dragon helpers', () => {
     const violet = (h: number) => h >= from || h <= to;
     const hex = (s: string): Rgb => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16) / 255) as unknown as Rgb;
     expect(violet(rgbToOklch(hex('#5b2c83'))[2])).toBe(true);
-    // The bronze swatch, then the colours that make each stage's dragon (from the cut pictures: the
-    // pixel colour at the 10th and 50th percentile of their OKLCH hue, the reds of the shadows and the
-    // body's bronze; egg, hatchling, young, adult, illustre, ancestral).
-    const dragon = ['#b8863b', '#724529', '#937447', '#6b3a24', '#876336', '#7c3f1f', '#765b34', '#884129', '#6a492b', '#6a3722', '#715030', '#54271a', '#654727'];
+    // An OKLCH colour with a chroma under 0.04 reads as a grey, not as violet (ruling L10): it is
+    // under a third of Éris's own violet's chroma (0.142) and under the bronze dragon's median
+    // chroma (0.043-0.063 by stage), so its hue is a faint cast on a grey, not a colour of its own.
+    const FLOOR = 0.04;
+    expect(rgbToOklch(hex('#5b2c83'))[1]).toBeGreaterThan(3 * FLOOR);
+    // The bronze swatch, then each stage's dragon as the cut pictures paint it: the pixel colour at the
+    // 1st, 10th, 50th, 90th and 99th percentile of their OKLCH hue (opaque pixels of chroma over
+    // 0.03), from the red shadows to the blue-green highlights of the upper tail.
+    const DRAGON: Record<string, string[]> = {
+      swatch: ['#b8863b'],
+      egg: ['#522a1c', '#724529', '#937447', '#555734', '#20394b'],
+      hatchling: ['#73372c', '#6b3a24', '#876336', '#7a6c38', '#496560'],
+      young: ['#5d2d23', '#7c3f1f', '#765b34', '#75643a', '#3f5c64'],
+      adult: ['#62332e', '#884129', '#6a492b', '#8e7a54', '#4c6779'],
+      illustre: ['#472a25', '#6a3722', '#715030', '#c4b27f', '#4e573a'],
+      ancestral: ['#48231f', '#54271a', '#654727', '#87704a', '#2d4863'],
+    };
+    // Known exceptions, awaiting the user's decision (2026-10-02): the user's own presets turn these
+    // sampled colours (the hue tails, never the body's bronze) into Éris's band at a chroma above the
+    // floor. Braise turns the darkest red shadows (1st percentile) to a wine red at OKLCH 354-360
+    // (HSV 333-338, past the wheel's 329 only at full saturation); jade, olivier and écume turn the
+    // blue-green highlights (99th percentile) to a mauve or a dusky lavender. Their values are not
+    // changed here: the list must stay exactly this, so a new violet colour, or one gone, fails.
+    const KNOWN = [
+      'braise #73372c',
+      'braise #5d2d23',
+      'braise #62332e',
+      'braise #472a25',
+      'braise #48231f',
+      'jade #20394b',
+      'jade #2d4863',
+      'ecume #4e573a',
+      'olivier #2d4863',
+    ];
+    const found: string[] = [];
     for (const [tint, spec] of Object.entries(TINT_SPECS)) {
-      for (const c of dragon) {
+      for (const c of Object.values(DRAGON).flat()) {
+        const [, C, h] = rgbToOklch(tintPixel(spec, hex(c)));
+        if (C >= FLOOR && violet(h)) found.push(`${tint} ${c}`);
+      }
+    }
+    expect(found.sort()).toEqual([...KNOWN].sort());
+    // The body's bronze (the swatch and each stage's median) never turns violet, whatever the chroma.
+    for (const [tint, spec] of Object.entries(TINT_SPECS)) {
+      for (const c of [DRAGON.swatch[0], ...Object.values(DRAGON).slice(1).map((cs) => cs[2])]) {
         const h = rgbToOklch(tintPixel(spec, hex(c)))[2];
         expect(violet(h), `${tint} on ${c}: OKLCH hue ${h.toFixed(1)}`).toBe(false);
       }

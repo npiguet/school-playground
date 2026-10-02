@@ -65,14 +65,24 @@ describe('createStillTints', () => {
     expect(render).toHaveBeenCalledTimes(3);
   });
 
-  it('gives an untinted picture as it is, and tries a failed one again', async () => {
-    const render = vi.fn().mockRejectedValueOnce(new Error('no canvas')).mockResolvedValueOnce('blob:a');
+  it('gives an untinted picture as it is, and never tries a failed one again in the session', async () => {
+    const render = vi.fn().mockRejectedValueOnce(new Error('no canvas')).mockResolvedValue('blob:b');
     const tints = createStillTints(render);
     expect(tints.peek('/a.webp', null)).toBe('/a.webp');
     expect(await tints.get('/a.webp', null)).toBe('/a.webp');
     await expect(tints.get('/a.webp', SPEC)).rejects.toThrow('no canvas');
     expect(tints.peek('/a.webp', SPEC)).toBeNull();
-    expect(await tints.get('/a.webp', SPEC)).toBe('blob:a');
+    await expect(tints.get('/a.webp', SPEC)).rejects.toThrow('no canvas');
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(await tints.get('/b.webp', SPEC)).toBe('blob:b');
+    expect(render).toHaveBeenCalledTimes(2);
+  });
+
+  it('keys a tint on its exact numbers, not on a rounded line', async () => {
+    const render = vi.fn((src: string, spec: OklchSpec) => Promise.resolve(`blob:${src}:${spec.chroma}`));
+    const tints = createStillTints(render);
+    expect(await tints.get('/a.webp', { ...SPEC, chroma: 0.901 })).toBe('blob:/a.webp:0.901');
+    expect(await tints.get('/a.webp', { ...SPEC, chroma: 0.904 })).toBe('blob:/a.webp:0.904');
     expect(render).toHaveBeenCalledTimes(2);
   });
 });

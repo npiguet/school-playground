@@ -68,8 +68,10 @@ bool inGamut(vec3 c) { return all(greaterThanEqual(c, vec3(-1e-4))) && all(lessT
 vec3 tint(vec3 rgb) {
   vec3 lab = oklab(toLinear(rgb));
   float L = clamp(lab.x * uLightness, 0.0, 1.0);
-  float C = length(lab.yz) * uChroma;
-  float h = atan(lab.z, lab.y) + radians(uShift);
+  float C0 = length(lab.yz);
+  float C = C0 * uChroma;
+  // atan(0, 0) is undefined in GLSL: a grey has no hue to turn.
+  float h = C0 > 1e-7 ? atan(lab.z, lab.y) + radians(uShift) : 0.0;
   if (!inGamut(oklchLinear(L, C, h))) {
     float lo = 0.0;
     float hi = C;

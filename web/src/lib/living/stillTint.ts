@@ -4,11 +4,15 @@
 // (un-premultiplied) colours, so each pixel is tinted as it is; fully transparent ones are skipped.
 // The result is cached per picture and tint for the session, and a picture asked twice while it is
 // being made is made once. Until it is ready the untinted picture shows (a bronze dragon); a picture
-// that cannot be tinted (no canvas, a failed load) stays untinted.
+// that cannot be tinted (no canvas, a failed load) stays untinted for the session, never tried again.
+// The cache is bounded by the game's pictures: at most the six stages and the egg's swatches under
+// the five tints, about 35 PNG blobs of about 1.2 MB each (some 40 MB at worst, a few MB in a usual
+// session: one dragon, one tint). Its object URLs are never revoked: a picture once shown may be
+// shown again at any moment, and the page's end frees them.
 import type { Action } from 'svelte/action';
 import { TINT_SPECS } from '../world/dragon';
 import type { Tint } from '../world/types';
-import { tintOklch, tintText, type OklchSpec } from './tint';
+import { tintOklch, type OklchSpec } from './tint';
 
 /** Pixels tinted between two pauses: about a tenth of a 1024 x 1024 sprite, so the page stays responsive. */
 const CHUNK = 1 << 17;
@@ -36,11 +40,14 @@ export function tintPixels(data: Uint8ClampedArray, spec: OklchSpec, memo = new 
 export type TintRender = (src: string, spec: OklchSpec) => Promise<string>;
 
 /** The cache of tinted pictures: `peek` answers at once (the URL once made, else null), `get` makes it
- *  at most once per picture and tint (a failed try is forgotten, so a later one may try again). */
+ *  at most once per picture and tint. A failed try is remembered for the session: the same picture
+ *  and tint fail again at once, never re-rendered on every update of its `<img>`. */
 export function createStillTints(render: TintRender) {
   const done = new Map<string, string>();
   const making = new Map<string, Promise<string>>();
-  const keyOf = (src: string, spec: OklchSpec) => `${src} ${tintText('', spec)}`;
+  const failed = new Map<string, unknown>();
+  // The exact numbers (a lab slider's 0.005 apart are two tints).
+  const keyOf = (src: string, spec: OklchSpec) => `${src} ${spec.shift} ${spec.chroma} ${spec.lightness}`;
   return {
     peek(src: string, spec: OklchSpec | null): string | null {
       return spec ? (done.get(keyOf(src, spec)) ?? null) : src;
@@ -50,6 +57,7 @@ export function createStillTints(render: TintRender) {
       const key = keyOf(src, spec);
       const hit = done.get(key);
       if (hit) return Promise.resolve(hit);
+      if (failed.has(key)) return Promise.reject(failed.get(key));
       let job = making.get(key);
       if (!job) {
         job = render(src, spec).then(
@@ -60,6 +68,7 @@ export function createStillTints(render: TintRender) {
           },
           (e: unknown) => {
             making.delete(key);
+            failed.set(key, e);
             throw e;
           },
         );

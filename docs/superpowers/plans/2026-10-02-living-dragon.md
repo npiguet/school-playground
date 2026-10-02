@@ -17,7 +17,7 @@
 - The feet never move: every mesh vertex inside a stage's feet box has weight 0 for all six bones.
 - **The ancestral's horn tip takes the head's weight** (it lags in the spike).
 - The worn pieces are rigid passengers (dragon weights at the piece's anchor), drawn in `DRAW_ORDER` (`queue`, `dos`, `cou`, `tete`), never tinted, never stretched (the saddle included).
-- The tint looks exactly as today: `TINT_FILTERS` (`web/src/lib/world/dragon.ts`) stays the single source; its CSS functions become colour matrices in the fragment shader, on the dragon texture only.
+- The tint (Ruling L9): `TINT_SPECS` (`web/src/lib/world/dragon.ts`, OKLCH, strength 1) is the single source. The living dragon's fragment shader tints the dragon texture only; every still picture of the dragon is tinted the same way on a canvas (`use:tintedDragon`, `web/src/lib/living/stillTint.ts`), so the canvas and the still picture match.
 - The egg, reduced motion, no WebGL2, a lost context, a failed shader: today's still picture (`DragonFigure`'s markup: `img.dragon-base` + `img.dragon-overlay`), unchanged.
 - `LivingDragon` keeps the box, sizing and `.dragon-figure` wrapper (mood animations still apply); `role="img"`, the alt as `aria-label`; the worn pieces listed in a data attribute (`data-worn`) for tests.
 - The battle combatants (`Combatant.svelte`, `BattleStage.svelte`), the victory's and the camp reveal's `Dragon.svelte`, and the HUD's portrait keep their still picture. The camp dragon's size does not change.
@@ -29,7 +29,7 @@
 
 ## Review Focus
 
-1. **A tint or a piece changed while the dragon is on screen** (the care panel open over the nest, a refused change reverting): the canvas updates in place (no remount, no flash to the still picture), `data-filter`/`data-worn` follow, the dragon keeps living. Pinned by `living-dragon.spec.ts` "a tint picked in the care panel..." and "a piece put on in the care panel..." (Task 8).
+1. **A tint or a piece changed while the dragon is on screen** (the care panel open over the nest, a refused change reverting): the canvas updates in place (no remount, no flash to the still picture), `data-tint`/`data-worn` follow, the dragon keeps living. Pinned by `living-dragon.spec.ts` "a tint picked in the care panel..." and "a piece put on in the care panel..." (Task 8).
 2. **Reduced motion toggled live** (the OS switch, no reload): the canvas goes, the still picture comes, and back, with exactly one `.dragon-base` at any time (no strict-mode double match, no leaked context). Pinned by "reduced motion switched on and off..." (Task 8).
 3. **A lost WebGL context or a shader that fails to compile** (an iPad under memory pressure, a driver bug): the still picture appears, never a blank box. Pinned by "a lost context..." and "a shader that fails..." (Task 8).
 4. **Many visits** (camp to nest and back twenty times in one session): every mount releases its context, so the browser never hits its live-context cap ("Too many active WebGL contexts") and the dragon still lives at the end. Pinned by "twenty visits..." (Task 8).
@@ -42,18 +42,20 @@
 - **R1 Weights format.** The spec allows one RGBA PNG or per-vertex weights, whichever is smaller: per-vertex weights win (65 x 65 vertices x 6 bones = 25 350 bytes, against about 120 KB for one PNG). They ship as base64 inside `web/src/lib/living/rig/dragon_<stage>.json` (with the pivots and the feet box), imported lazily (`import.meta.glob`, one chunk per stage), not under `web/public/art` (the README size test requires that folder to be all WebP) and never decoded through a canvas (no colour management can touch the bytes).
 - **R2 Rigid pieces.** The pieces are composited into a second texture, a 1024 atlas of four 512 px cells (one piece per slot, at most four); each piece is drawn as its own quad, in `DRAW_ORDER`, after the dragon, skinned with one uniform weight vector: the dragon's per-vertex weights interpolated at the piece's **anchor = the centre of its manifest box**. Every manifest crop fits a cell (largest: about 253 px), and a unit test guards it.
 - **R3 Loading.** While the rig, sprite and pieces load, `DragonFigure` shows its still markup and the living canvas waits hidden; the first drawn frame swaps them (`data-motion` on `.dragon-figure`: `pending`, `living` or `still`). The class `dragon-base` sits on exactly one element at a time: the `<img>` until the swap, the living wrapper after it.
-- **R4 Failure is final for a mount.** No WebGL2, a shader or link error, a rig/sprite/piece that fails to load, a tint the matrices cannot express, a lost context: the still picture, for the life of that mount (no context restore). A new stage or reduced motion lifted mounts a fresh try.
+- **R4 Failure is final for a mount.** No WebGL2, a shader or link error, a rig/sprite/piece that fails to load, a lost context: the still picture, for the life of that mount (no context restore). A new stage or reduced motion lifted mounts a fresh try.
 - **R5 Reduced motion** comes from the scene runtime (`useSceneRuntime().reduced`, live with the OS switch): `SceneLayer` passes no living stage under it.
 - **R6 Pin and feet.** A rig's pin is a rectangle with a blur; its feet box is the rectangle inset by 3 x blur on the top and both sides (snapped inward to the 16 px vertex grid), down to the frame's bottom; the baker hard-zeroes every weight there. The hatchling, whose tail is hidden in its shell, has no tail region (zero tail weight); its pin is the shell.
 - **R7 Tooling.** The baker and its debug helpers go into a sibling skill, `.claude/skills/dragon-rig/SKILL.md` (art-overlays is about painting pieces; it gets a one-line pointer). `tools/art/rig.py` runs in the art tools' container: `tools/art/run_docker.sh rig <grid|bake|debug|sheet>`. Its scratch output (`tools/art/rig-out/`) is gitignored; the five debug views are kept as one sheet, `docs/art/dragon-rig.png`.
 - **R8 Live review.** The spike-style page is ported as a dev-only lab (`web/lab.html` + `web/src/lab/`), built by `web/vite.lab.config.ts` into the gitignored `web/dist-lab/` and served with the host's `python -m http.server`; the game's own build never includes it.
+- **L9 The tint is OKLCH (2026-10-02, after Tasks 1-5).** The user compared the methods in the lab's Teintes panel and chose OKLCH at full strength over the CSS filters ("It looks more natural than the CSS shift"). `TINT_SPECS: Record<Tint, OklchSpec | null>` replaces `TINT_FILTERS` and `TINT_STRENGTH` everywhere: argent shift -166, chroma 0.52, lightness 1.36; olivier 50, 0.8, 1; écume 165, 0.9, 1; braise -33, 1.3, 1; jade 101, 0.9, 1; bronze null (no tint). `tint.ts` keeps only the OKLCH reference (`tintOklch`, `tintPixel`, `tintText`); the renderer's `setTint(spec: OklchSpec | null)`; `LivingDragon`'s prop `tint: Tint` (and the lab's `tintSpec` override) with `data-tint` (the tint applied) in place of `data-filter`. The still pictures (DragonFigure, the HUD and dialogue portraits, the care panel's and the trophy shelf's eggs) are tinted once on a canvas by the same CPU reference through `use:tintedDragon={{ src, tint }}`, cached per picture and tint for the session: their `img` carries `data-src` (the picture asked for) and `data-tint` (the tint its pixels carry, `bronze` while the tinted copy is being made), and its `src` is the tinted copy's object URL. Done in commit 4824506; Tasks 7 and 8 below are written for it. The violet guard (`dragon.test.ts`, ruling L10: a chroma under 0.04 reads as grey) lists the colours the presets turn into Éris's band as known exceptions awaiting the user's decision.
 - **R9 e2e browsers.** The canvas checks run on a new Playwright project, `chromium-gl` (Desktop Chrome, SwiftShader WebGL2, `living-dragon.spec.ts` only). The WebKit projects (`desktop`, `ipad`) may or may not have WebGL2: their specs read the dragon through helpers that accept either form, and one test asserts that what they show matches what the browser offers (living exactly when WebGL2 is there).
 
 ## File structure
 
 | File | Responsibility |
 |---|---|
-| `web/src/lib/living/tint.ts` (+ `tint.test.ts`) | CSS filter string to two column-major 3x3 colour matrices; the CPU reference of the shader's tint |
+| `web/src/lib/living/tint.ts` (+ `tint.test.ts`) | The OKLCH tint (Ruling L9): the CPU reference of the shader's tint and of the still pictures' |
+| `web/src/lib/living/stillTint.ts` (+ `stillTint.test.ts`) | The still pictures' tint on a canvas, its session cache, the `tintedDragon` action (`data-src`, `data-tint`) |
 | `web/src/lib/living/skin.ts` (+ `skin.test.ts`) | Frame/grid constants, bone order, 2D affine maps, CPU skinning, per-vertex weight lookup, the mesh buffers |
 | `web/src/lib/living/pose.ts` (+ `pose.test.ts`) | `AMPLITUDE`, the idle motion `poseAt(t)`, the 30 fps gate `frameDue` |
 | `web/src/lib/living/rigs.ts` (+ `rigs.test.ts`) | Living stages, the `Motion` type, rig file decoding, lazy loading, `livingStage()` |
@@ -66,7 +68,7 @@
 | `web/lab.html`, `web/src/lab/main.ts`, `web/src/lab/DragonLab.svelte`, `web/vite.lab.config.ts` | The dev-only lab |
 | `tools/art/rig.json`, `tools/art/rig.py`, `tools/art/run_docker.sh` | Rig source, baker, its runner |
 | `.claude/skills/dragon-rig/SKILL.md` | How to author, bake and check a rig |
-| `web/e2e/dragon.ts` | e2e helpers: the dragon's settled form, its src/filter/worn either way, screenshot comparison |
+| `web/e2e/dragon.ts` | e2e helpers: the dragon's settled form, its src/tint/worn either way, screenshot comparison |
 | `web/e2e/living-dragon.spec.ts` | The canvas e2e (chromium-gl) |
 | `web/playwright.config.ts` | The `chromium-gl` project; `desktop` ignores `living-dragon.spec.ts` |
 
@@ -88,13 +90,15 @@
 
 ### Task 1: Tint matrices
 
+> Superseded by Ruling L9 (2026-10-02, after Tasks 1-5): the tint is `TINT_SPECS` (`web/src/lib/world/dragon.ts`, OKLCH hue shift, chroma and lightness, strength 1), the single source for the living dragon's shader and the still pictures alike; the CSS filters, their colour matrices and `TINT_STRENGTH` are gone. The code below is the history of this task; the shipped `tint.ts` is the reference.
+
 **Files:**
 - Create: `web/src/lib/living/tint.ts`
 - Test: `web/src/lib/living/tint.test.ts`
 
 **Interfaces:**
-- Consumes: `TINT_FILTERS: Record<Tint, string>` from `web/src/lib/world/dragon.ts`.
-- Produces: `type Mat3` (9 numbers), `IDENTITY: Mat3`, `filterStep(fn: string, value: number): Mat3` (row-major), `parseFilter(css: string): { fn: string; value: number }[]`, `filterMatrices(css: string): [Mat3, Mat3]` (column-major, for `uniformMatrix3fv(loc, false, m)`; throws on anything it cannot express), `applyTint(ms: [Mat3, Mat3], rgb: readonly [number, number, number]): [number, number, number]` (the shader's tint on one colour, 0..1, clamped after each step).
+- Consumes (as first done; now `TINT_SPECS: Record<Tint, OklchSpec | null>`, Ruling L9): `TINT_FILTERS: Record<Tint, string>` from `web/src/lib/world/dragon.ts`.
+- Produces (as first done; now `type OklchSpec`, `rgbToOklch`, `oklchToRgb`, `tintOklch`, `tintPixel`, `tintText`, `GAMUT_STEPS`, Ruling L9): `type Mat3` (9 numbers), `IDENTITY: Mat3`, `filterStep(fn: string, value: number): Mat3` (row-major), `parseFilter(css: string): { fn: string; value: number }[]`, `filterMatrices(css: string): [Mat3, Mat3]` (column-major, for `uniformMatrix3fv(loc, false, m)`; throws on anything it cannot express), `applyTint(ms: [Mat3, Mat3], rgb: readonly [number, number, number]): [number, number, number]` (the shader's tint on one colour, 0..1, clamped after each step).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1140,13 +1144,15 @@ git commit -m "Living dragon, rigs: tools/art/rig.py bakes tools/art/rig.json in
 
 ### Task 4: Piece atlas and the WebGL2 renderer
 
+> The tint part is superseded by Ruling L9 (2026-10-02, after Tasks 1-5): the tint is `TINT_SPECS` (`web/src/lib/world/dragon.ts`, OKLCH hue shift, chroma and lightness, strength 1), the single source for the living dragon's shader and the still pictures alike; the CSS filters, their colour matrices and `TINT_STRENGTH` are gone: the shader runs `tintOklch`'s steps on the dragon texture, and `setTint(spec: OklchSpec | null)` replaces `setTint(css)`. The shipped `renderer.ts` is the reference.
+
 **Files:**
 - Create: `web/src/lib/living/atlas.ts`, `web/src/lib/living/atlas.test.ts`, `web/src/lib/living/renderer.ts`
 
 **Interfaces:**
-- Consumes: `OverlayLayer` and `ACCESSORY_MANIFEST` (`web/src/lib/world/accessories.ts`); `FRAME`, `MARGIN`, `buildMesh`, `weightsAt`, `skinPoint` (Task 2); `filterMatrices` (Task 1); `Rig` (Task 3).
+- Consumes: `OverlayLayer` and `ACCESSORY_MANIFEST` (`web/src/lib/world/accessories.ts`); `FRAME`, `MARGIN`, `buildMesh`, `weightsAt`, `skinPoint` (Task 2); `GAMUT_STEPS`, `type OklchSpec` (Task 1, Ruling L9; first `filterMatrices`); `Rig` (Task 3).
 - Produces (`atlas.ts`): `ATLAS = 1024`, `ATLAS_CELL = 512`, `interface PiecePlacement { item: string; src: string; frame: [number, number, number, number]; atlas: [number, number, number, number]; atlasUv: [number, number, number, number]; anchor: [number, number] }` (frame and atlas as x0, y0, x1, y1 / x, y, w, h in px), `interface PieceDraw { frame: readonly [number, number, number, number]; atlasUv: readonly [number, number, number, number]; weights: Float32Array }`, `placePieces(overlays: readonly OverlayLayer[]): PiecePlacement[]`, `pieceDraws(placed: readonly PiecePlacement[], weights: Uint8Array): PieceDraw[]`, `loadImage(src: string): Promise<HTMLImageElement>`, `buildAtlas(placed: readonly PiecePlacement[]): Promise<HTMLCanvasElement>`.
-- Produces (`renderer.ts`): `class DragonRenderer { constructor(canvas: HTMLCanvasElement, sprite: TexImageSource, rig: Rig); setTint(css: string): void; setPieces(atlas: TexImageSource | null, pieces: readonly PieceDraw[]): void; resize(px: number): void; draw(bones: Float32Array, showWeights?: boolean): void; dispose(): void }` (the constructor and `setTint` throw on failure).
+- Produces (`renderer.ts`): `class DragonRenderer { constructor(canvas: HTMLCanvasElement, sprite: TexImageSource, rig: Rig); setTint(spec: OklchSpec | null): void; setPieces(atlas: TexImageSource | null, pieces: readonly PieceDraw[]): void; resize(px: number): void; draw(bones: Float32Array, showWeights?: boolean): void; dispose(): void }` (the constructor throws on failure).
 
 - [ ] **Step 1: Write the failing atlas test**
 
@@ -1587,13 +1593,15 @@ git commit -m "Living dragon, renderer: the WebGL2 port of the spike (sprite on 
 
 ### Task 5: `LivingDragon` and the dev lab
 
+> The tint part is superseded by Ruling L9 (2026-10-02, after Tasks 1-5): the tint is `TINT_SPECS` (`web/src/lib/world/dragon.ts`, OKLCH hue shift, chroma and lightness, strength 1), the single source for the living dragon's shader and the still pictures alike; the CSS filters, their colour matrices and `TINT_STRENGTH` are gone: the prop `tint: Tint` (and the lab's `tintSpec?: OklchSpec | null` override) replaces `filter`, `data-tint` replaces `data-filter`, and the lab's Teintes panel holds the OKLCH sliders. The code below is updated for the contract; the shipped component is the reference.
+
 **Files:**
 - Create: `web/src/components/LivingDragon.svelte`, `web/lab.html`, `web/src/lab/main.ts`, `web/src/lab/DragonLab.svelte`, `web/vite.lab.config.ts`
 - Modify: `web/tsconfig.json` (include `vite.lab.config.ts`), `.gitignore` (`web/dist-lab/`)
 
 **Interfaces:**
-- Consumes: `DragonRenderer` (Task 4), `placePieces`, `pieceDraws`, `buildAtlas`, `loadImage` (Task 4), `loadRig`, `LIVING_STAGES`, `livingStage`, `type LivingStage`, `type Motion` (Task 3), `AMPLITUDE`, `poseAt`, `frameDue` (Task 2), `MARGIN` (Task 2), `OverlayLayer`, `accessoryLayers` (`world/accessories.ts`), `ART` (`world/art.ts`), `TINT_FILTERS`, `TINT_NAMES` (`world/dragon.ts`).
-- Produces: `LivingDragon.svelte` with props `{ stage: LivingStage; src: string; alt: string; filter: string; overlays: OverlayLayer[]; amplitude?: number; time?: number | null; showWeights?: boolean; onmotion: (m: Motion) => void }`. Markup contract (used by Task 7's helpers and Task 8): wrapper `div.dragon-living` (gains `dragon-base` once living; `pending` while not) with `role="img"`, `aria-label={alt}`, `data-src`, `data-filter` (the filter applied), `data-worn` (the pieces on the canvas, space-separated, draw order); inside it one `canvas` with `data-frames` (frames drawn so far).
+- Consumes: `DragonRenderer` (Task 4), `placePieces`, `pieceDraws`, `buildAtlas`, `loadImage` (Task 4), `loadRig`, `LIVING_STAGES`, `livingStage`, `type LivingStage`, `type Motion` (Task 3), `AMPLITUDE`, `poseAt`, `frameDue` (Task 2), `MARGIN` (Task 2), `OverlayLayer`, `accessoryLayers` (`world/accessories.ts`), `ART` (`world/art.ts`), `TINT_SPECS`, `TINT_NAMES` (`world/dragon.ts`, Ruling L9).
+- Produces: `LivingDragon.svelte` with props `{ stage: LivingStage; src: string; alt: string; tint: Tint; overlays: OverlayLayer[]; amplitude?: number; time?: number | null; showWeights?: boolean; onmotion: (m: Motion) => void }`. Markup contract (used by Task 7's helpers and Task 8): wrapper `div.dragon-living` (gains `dragon-base` once living; `pending` while not) with `role="img"`, `aria-label={alt}`, `data-src`, `data-tint` (the tint applied, Ruling L9), `data-worn` (the pieces on the canvas, space-separated, draw order); inside it one `canvas` with `data-frames` (frames drawn so far).
 
 - [ ] **Step 1: Write the component**
 
@@ -1605,7 +1613,7 @@ git commit -m "Living dragon, renderer: the WebGL2 port of the spike (sprite on 
   // the same square box as the still picture, the canvas overflowing it by the 3.5 % margin so a wing
   // tip may move out. It tells DragonFigure how it goes (onmotion): `pending` while loading (the still
   // picture shows, this waits hidden), `living` from its first frame, `still` on any failure (no
-  // WebGL2, a shader, a load, a tint it cannot express, a lost context: plan Ruling R4), after which
+  // WebGL2, a shader, a load, a lost context: plan Ruling R4), after which
   // DragonFigure unmounts it. The loop draws at most 30 frames a second and stops while the page is
   // hidden or the canvas is off-screen. `amplitude`, `time` and `showWeights` serve the lab.
   import { onMount } from 'svelte';
@@ -1615,12 +1623,14 @@ git commit -m "Living dragon, renderer: the WebGL2 port of the spike (sprite on 
   import { DragonRenderer } from '../lib/living/renderer';
   import { loadRig, type LivingStage, type Motion, type Rig } from '../lib/living/rigs';
   import { MARGIN } from '../lib/living/skin';
+  import { TINT_SPECS } from '../lib/world/dragon';
+  import type { Tint } from '../lib/world/types';
 
   let {
     stage,
     src,
     alt,
-    filter,
+    tint,
     overlays,
     amplitude = AMPLITUDE,
     time = null,
@@ -1630,7 +1640,7 @@ git commit -m "Living dragon, renderer: the WebGL2 port of the spike (sprite on 
     stage: LivingStage;
     src: string;
     alt: string;
-    filter: string;
+    tint: Tint;
     overlays: OverlayLayer[];
     amplitude?: number;
     time?: number | null;
@@ -1641,7 +1651,7 @@ git commit -m "Living dragon, renderer: the WebGL2 port of the spike (sprite on 
   let host = $state<HTMLDivElement>();
   let canvas = $state<HTMLCanvasElement>();
   let motion = $state<Motion>('pending');
-  let applied = $state({ filter: '', worn: '' });
+  let applied = $state({ tint: '', worn: '' });
 
   let renderer: DragonRenderer | null = null;
   let rig: Rig | null = null;
@@ -1713,10 +1723,10 @@ git commit -m "Living dragon, renderer: the WebGL2 port of the spike (sprite on 
     last = null;
   }
 
-  function applyTint(css: string): void {
-    if (!renderer || css === applied.filter) return;
-    renderer.setTint(css);
-    applied.filter = css;
+  function applyTint(name: Tint): void {
+    if (!renderer || name === applied.tint) return;
+    renderer.setTint(TINT_SPECS[name]);
+    applied.tint = name;
     last = null;
   }
 
@@ -1731,7 +1741,7 @@ git commit -m "Living dragon, renderer: the WebGL2 port of the spike (sprite on 
         if (disposed) return;
         rig = r;
         renderer = new DragonRenderer(cv, sprite, r);
-        applyTint(filter);
+        applyTint(tint);
         await applyPieces(overlays);
         if (disposed) return;
         resize();
@@ -1770,9 +1780,9 @@ git commit -m "Living dragon, renderer: the WebGL2 port of the spike (sprite on 
 
   // A tint picked or a piece changed while the dragon is on screen: in place, no remount.
   $effect(() => {
-    const css = filter;
+    const name = tint;
     try {
-      applyTint(css);
+      applyTint(name);
     } catch {
       still();
     }
@@ -1791,7 +1801,7 @@ git commit -m "Living dragon, renderer: the WebGL2 port of the spike (sprite on 
   role="img"
   aria-label={alt}
   data-src={src}
-  data-filter={applied.filter}
+  data-tint={applied.tint}
   data-worn={applied.worn}
 >
   <canvas bind:this={canvas} aria-hidden="true" style="left:{-MARGIN * 100}%;top:{-MARGIN * 100}%;width:{100 + 2 * MARGIN * 100}%;height:{100 + 2 * MARGIN * 100}%"></canvas>
@@ -1858,14 +1868,14 @@ mount(DragonLab, { target });
   import LivingDragon from '../components/LivingDragon.svelte';
   import { ART } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
-  import { TINT_FILTERS, TINT_NAMES } from '../lib/world/dragon';
+  import { TINT_NAMES, TINT_SPECS } from '../lib/world/dragon';
   import { AMPLITUDE } from '../lib/living/pose';
   import { LIVING_STAGES, livingStage, type Motion } from '../lib/living/rigs';
   import type { Tint } from '../lib/world/types';
 
   const WORN = ['lethe-queue', 'sirenes-dos', 'hydre-cou', 'echo-tete'];
   const stages = LIVING_STAGES.filter((s) => livingStage(s) !== null);
-  const tints = Object.keys(TINT_FILTERS) as Tint[];
+  const tints = Object.keys(TINT_SPECS) as Tint[];
   const MOTION_WORDS: Record<Motion, string> = { pending: 'chargement', living: 'vivant', still: 'image fixe' };
 
   let amplitude = $state(AMPLITUDE);
@@ -1900,7 +1910,7 @@ mount(DragonLab, { target });
             stage={s}
             src={ART.dragon[s]}
             alt={s}
-            filter={TINT_FILTERS[tint]}
+            {tint}
             overlays={pieces ? accessoryLayers(WORN, s) : []}
             {amplitude}
             time={paused ? at : null}
@@ -2119,7 +2129,7 @@ git commit -m "Living dragon, rigs for every hatched stage: the hatchling (no ta
 
 **Interfaces:**
 - Consumes: `LivingDragon.svelte` and its markup contract (Task 5); `livingStage`, `type LivingStage`, `type Motion` (Task 3).
-- Produces: `DragonFigure` prop `living?: LivingStage | null` (default `null`: today's markup) and `data-motion` (`pending` | `living` | `still`) on `.dragon-figure`; `SceneLayer` prop `living?: LivingStage | null`. e2e helpers (`web/e2e/dragon.ts`): `type Settled = 'living' | 'still'`, `settledDragon(layer: Locator): Promise<Settled>`, `dragonSrc(layer): Promise<string | null>`, `dragonFilter(layer): Promise<string>`, `dragonWorn(layer): Promise<string[]>`, `webgl2Available(page: Page): Promise<boolean>`, `isolateDragon(page: Page, sceneId: string, layerTestId: string): Promise<void>`, `interface Region { x0: number; y0: number; x1: number; y1: number }` (fractions of a screenshot), `compareShots(page: Page, a: Buffer, b: Buffer, region?: Region): Promise<{ maxDiff: number; meanA: number[]; meanB: number[] }>`.
+- Produces: `DragonFigure` prop `living?: LivingStage | null` (default `null`: today's markup) and `data-motion` (`pending` | `living` | `still`) on `.dragon-figure`; `SceneLayer` prop `living?: LivingStage | null`. e2e helpers (`web/e2e/dragon.ts`): `type Settled = 'living' | 'still'`, `settledDragon(layer: Locator): Promise<Settled>`, `dragonSrc(layer): Promise<string | null>`, `dragonTint(layer): Promise<string>` (Ruling L9), `dragonWorn(layer): Promise<string[]>`, `webgl2Available(page: Page): Promise<boolean>`, `isolateDragon(page: Page, sceneId: string, layerTestId: string): Promise<void>`, `interface Region { x0: number; y0: number; x1: number; y1: number }` (fractions of a screenshot), `compareShots(page: Page, a: Buffer, b: Buffer, region?: Region): Promise<{ maxDiff: number; meanA: number[]; meanB: number[] }>`.
 
 - [ ] **Step 1: Write the e2e helpers**
 
@@ -2128,7 +2138,9 @@ git commit -m "Living dragon, rigs for every hatched stage: the hatchling (no ta
 // The dragon on the nest's and the camp's layer is either living (a canvas in div.dragon-living, spec
 // 2026-10-02 living dragon) or the still picture (img.dragon-base + img.dragon-overlay): which one
 // depends on the browser's WebGL2, reduced motion and the stage. These helpers wait for it to settle
-// and read its picture, tint and pieces from whichever form it took.
+// and read its picture, tint and pieces from whichever form it took. Both forms carry `data-src` (the
+// picture asked for) and `data-tint` (the tint applied; on the still picture, `bronze` while its tinted
+// copy is being made: poll it), Ruling L9.
 import { expect, type Locator, type Page } from '@playwright/test';
 
 export type Settled = 'living' | 'still';
@@ -2140,14 +2152,13 @@ export async function settledDragon(layer: Locator): Promise<Settled> {
 }
 
 export async function dragonSrc(layer: Locator): Promise<string | null> {
-  return (await settledDragon(layer)) === 'living'
-    ? layer.locator('.dragon-base').getAttribute('data-src')
-    : layer.locator('img.dragon-base').getAttribute('src');
+  await settledDragon(layer);
+  return layer.locator('.dragon-base').getAttribute('data-src');
 }
 
-export async function dragonFilter(layer: Locator): Promise<string> {
-  if ((await settledDragon(layer)) === 'living') return (await layer.locator('.dragon-base').getAttribute('data-filter')) ?? '';
-  return layer.locator('img.dragon-base').evaluate((el) => (el as HTMLElement).style.filter || 'none');
+export async function dragonTint(layer: Locator): Promise<string> {
+  await settledDragon(layer);
+  return (await layer.locator('.dragon-base').getAttribute('data-tint')) ?? '';
 }
 
 export async function dragonWorn(layer: Locator): Promise<string[]> {
@@ -2260,9 +2271,10 @@ Expected: FAIL on `desktop` and `ipad` (no `data-motion` on `.dragon-figure`).
 
 ```svelte
 <script lang="ts">
-  // The dragon as drawn on screen (spec 2026-09-29 drachmes §4, R19): its stage picture under the tint's
-  // CSS filter, and the pieces it wears on top, unfiltered (a tint recolours the dragon, never its
-  // gear). The overlays are percentages of the picture's own box, so the figure scales as one.
+  // The dragon as drawn on screen (spec 2026-09-29 drachmes §4, R19): its stage picture in its tint
+  // (OKLCH, tinted once on a canvas: living/stillTint.ts; `null` for a figure never tinted, an enemy),
+  // and the pieces it wears on top, untinted (a tint recolours the dragon, never its gear). The
+  // overlays are percentages of the picture's own box, so the figure scales as one.
   // `className` carries the caller's animation (idle, mood), so the pieces move with the dragon.
   // Spec 2026-10-02 living dragon: given a `living` stage (the nest's and the camp's layers), it mounts
   // LivingDragon in place of the picture; the still markup shows while it loads (`data-motion`
@@ -2270,12 +2282,14 @@ Expected: FAIL on `desktop` and `ipad` (no `data-motion` on `.dragon-figure`).
   // egg, reduced motion and every other caller (the battle, the victory, the reveal) pass none.
   import LivingDragon from './LivingDragon.svelte';
   import type { OverlayLayer } from '../lib/world/accessories';
+  import { tintedDragon } from '../lib/living/stillTint';
   import type { LivingStage, Motion } from '../lib/living/rigs';
+  import type { Tint } from '../lib/world/types';
 
   let {
     src,
     alt,
-    filter = 'none',
+    tint = null,
     overlays = [],
     className = '',
     style = '',
@@ -2283,7 +2297,7 @@ Expected: FAIL on `desktop` and `ipad` (no `data-motion` on `.dragon-figure`).
   }: {
     src: string;
     alt: string;
-    filter?: string;
+    tint?: Tint | null;
     overlays?: OverlayLayer[];
     className?: string;
     style?: string;
@@ -2301,11 +2315,12 @@ Expected: FAIL on `desktop` and `ipad` (no `data-motion` on `.dragon-figure`).
 <div class="dragon-figure {className}" {style} data-motion={shown}>
   {#if living && motion !== 'still'}
     {#key living}
-      <LivingDragon stage={living} {src} {alt} {filter} {overlays} onmotion={(m) => (motion = m)} />
+      <!-- A living stage is only ever given with the dragon's tint (the nest's and the camp's layers). -->
+      <LivingDragon stage={living} {src} {alt} tint={tint ?? 'bronze'} {overlays} onmotion={(m) => (motion = m)} />
     {/key}
   {/if}
   {#if shown !== 'living'}
-    <img class="dragon-base" {src} {alt} style:filter draggable="false" />
+    <img class="dragon-base" use:tintedDragon={{ src, tint }} {alt} draggable="false" />
     {#each overlays as o (o.item)}
       <img
         class="dragon-overlay"
@@ -2323,7 +2338,7 @@ Expected: FAIL on `desktop` and `ipad` (no `data-motion` on `.dragon-figure`).
 
 (the `<style>` block stays as it is).
 
-`web/src/components/scene/SceneLayer.svelte`: add to the header comment `The dragon's layer may also be given a living stage (spec 2026-10-02 living dragon): under reduced motion it passes none, so the still picture shows.`; add the prop `living = null` typed `living?: LivingStage | null` (import `type LivingStage` from `../../lib/living/rigs`); pass it on: `<DragonFigure src={layer.src} alt={layer.alt} {filter} {overlays} className={idle} living={rt.reduced ? null : living} />`.
+`web/src/components/scene/SceneLayer.svelte`: add to the header comment `The dragon's layer may also be given a living stage (spec 2026-10-02 living dragon): under reduced motion it passes none, so the still picture shows.`; add the prop `living = null` typed `living?: LivingStage | null` (import `type LivingStage` from `../../lib/living/rigs`); pass it on: `<DragonFigure src={layer.src} alt={layer.alt} {tint} {overlays} className={idle} living={rt.reduced ? null : living} />`.
 
 `web/src/screens/Nest.svelte`: import `livingStage` from `../lib/living/rigs`; add `living={livingStage(d.stage)}` to the dragon's `SceneLayer`. `web/src/screens/Camp.svelte`: same import; add `living={livingStage(ctx.camp.dragon.stage)}` to the dragon's `SceneLayer`.
 
@@ -2335,7 +2350,7 @@ Comments: in `nest.ts` the layer's doc becomes `Depth 0 and no idle on the layer
 - `scenes-camp.spec.ts:594`: `dragon.locator('img.dragon-base')` becomes `dragon.locator('.dragon-base')`.
 - `scenes-camp.spec.ts:610`: becomes `expect(await dragonSrc(page.getByTestId('camp-dragon-layer'))).not.toMatch(/dragon_egg/);`.
 - `scenes-camp.spec.ts:789` and `world.spec.ts:259`: become `await expect(page.getByTestId('camp-dragon-layer').getByRole('img', { name: 'Braise', exact: true })).toBeVisible();`.
-- `world.spec.ts:218`: becomes `await expect.poll(() => dragonFilter(page.getByTestId('nest-dragon-layer'))).toMatch(/hue-rotate\(190deg\)/);`.
+- `world.spec.ts:218-220` (now `data-tint` `ecume` and a `blob:` src on `img.dragon-base`, Ruling L9): becomes `await expect.poll(() => dragonTint(page.getByTestId('nest-dragon-layer'))).toBe('ecume');`.
 - `scenes-parure.spec.ts:45-51` (the collar in the camp) becomes:
 
 ```ts
@@ -2354,22 +2369,26 @@ Comments: in `nest.ts` the layer's doc becomes `Depth 0 and no idle on the layer
 ```
 
 - `scenes-parure.spec.ts:87-88`: `await expect(page.getByTestId('nest-dragon-layer').locator('.dragon-base')).toBeVisible();` and `await expect.poll(() => dragonWorn(page.getByTestId('nest-dragon-layer'))).toEqual([]);`.
-- `scenes-parure.spec.ts:102-108`: becomes
+- `scenes-parure.spec.ts:102-112` (Ruling L9 already reads `data-tint`, `data-src` and the `blob:` src there): becomes
 
 ```ts
   const layer = page.getByTestId('nest-dragon-layer');
   await expect.poll(() => dragonWorn(layer)).toEqual(['lethe-tete']);
-  expect(await dragonFilter(layer)).not.toBe('none');
-  if ((await settledDragon(layer)) === 'still') await expect(layer.locator('img.dragon-overlay[data-item="lethe-tete"]')).toHaveCSS('filter', 'none');
+  await expect.poll(() => dragonTint(layer)).toBe('braise');
+  if ((await settledDragon(layer)) === 'still') {
+    await expect(layer.locator('img.dragon-base')).toHaveAttribute('src', /^blob:/);
+    await expect(layer.locator('img.dragon-overlay[data-item="lethe-tete"]')).toHaveCSS('filter', 'none');
+  }
   stage = 'egg';
   await page.reload();
-  await expect(layer.locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('data-src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('data-tint', 'braise');
   await expect(layer.locator('img.dragon-overlay')).toHaveCount(0);
 ```
 
 - `scenes-parure.spec.ts:129`: `'.dragon-figure img.dragon-base'` becomes `'.dragon-figure .dragon-base'`.
 - `scenes-parure.spec.ts:160-162`: `await expect.poll(() => dragonWorn(layer)).toEqual(['hydre-cou']);` (one line replaces both counts).
-- Unchanged, and why: `scenes-nest.spec.ts:28`, `scenes-camp.spec.ts:383`, `world.spec.ts:72`, `scenes-parure.spec.ts:107-108` (the egg: always the still picture); `scenes-camp.spec.ts:779, 820` and `scenes-parure.spec.ts:79-80` (the reveal's and the victory's `Dragon.svelte`: never living).
+- Unchanged, and why: `scenes-nest.spec.ts:28`, `scenes-camp.spec.ts:383`, `world.spec.ts:72` (the bronze egg: always the still picture, its `src` the plain picture); `scenes-camp.spec.ts:779, 820` and `scenes-parure.spec.ts:79-80` (the reveal's and the victory's `Dragon.svelte`: never living).
 
 - [ ] **Step 5: Run the unit gate and the touched e2e**
 
@@ -2387,8 +2406,8 @@ In `README.md`, after "### The accessory overlays" and before "### Art and sound
 In the nest and on the camp, the hatched dragon moves slowly and slightly: head, wings, tail and
 breath, on periods that never line up, its feet still and its pieces riding along as rigid
 passengers. One WebGL2 canvas per dragon draws its single sprite on a 64 x 64 mesh skinned by six
-bones (`web/src/lib/living/`, `components/LivingDragon.svelte`); the tint is `TINT_FILTERS` turned
-into colour matrices, on the dragon only. The egg, reduced motion, a browser without WebGL2, a lost
+bones (`web/src/lib/living/`, `components/LivingDragon.svelte`); the tint is `TINT_SPECS` (OKLCH, the
+same steps as the still pictures' canvas tint), on the dragon only. The egg, reduced motion, a browser without WebGL2, a lost
 context or a shader that fails keep the still picture. The rigs are hand-authored in
 `tools/art/rig.json` and baked by `tools/art/run_docker.sh rig bake` into
 `web/src/lib/living/rig/` (the `dragon-rig` skill); the lab page (`web/lab.html`, built by
@@ -2411,7 +2430,7 @@ git commit -m "The nest and the camp come alive: DragonFigure mounts LivingDrago
 - Modify: `web/playwright.config.ts`
 
 **Interfaces:**
-- Consumes: the helpers of Task 7 (`web/e2e/dragon.ts`); the baked rigs' `feet` (Task 3/6 JSON); `TINT_FILTERS` (`web/src/lib/world/dragon.ts`); `ACCESSORY_MANIFEST` (`web/src/lib/world/accessories.ts`); `createProfileApi`, `expectCamp`, `expectScene`, `heroNamer` (`web/e2e/helpers.ts`); `test`, `expect` (`web/e2e/crashGuard.ts`).
+- Consumes: the helpers of Task 7 (`web/e2e/dragon.ts`); the baked rigs' `feet` (Task 3/6 JSON); `TINT_SPECS` (`web/src/lib/world/dragon.ts`, Ruling L9); `ACCESSORY_MANIFEST` (`web/src/lib/world/accessories.ts`); `createProfileApi`, `expectCamp`, `expectScene`, `heroNamer` (`web/e2e/helpers.ts`); `test`, `expect` (`web/e2e/crashGuard.ts`).
 - Produces: the `chromium-gl` project.
 
 - [ ] **Step 1: Add the project**
@@ -2433,14 +2452,14 @@ In `web/playwright.config.ts`, extend the header comment with: `` `chromium-gl` 
 // Spec 2026-10-02 living dragon, "Tests" (e2e) and the plan's Review Focus: the nest and the camp draw a
 // hatched dragon on a canvas and the egg as the still picture; reduced motion and no WebGL2 keep the
 // still picture; the worn pieces are listed; two frames differ over time and the feet do not; the tint
-// matches the still picture's CSS filter and never touches the pieces; a lost context or a failing
+// matches the still picture's (both OKLCH, Ruling L9) and never touches the pieces; a lost context or a failing
 // shader fall back; the loop stops when hidden or off-screen; twenty visits never exhaust contexts.
 // chromium-gl only (SwiftShader WebGL2).
 import type { Page } from '@playwright/test';
 import { test, expect } from './crashGuard';
 import { createProfileApi, expectCamp, expectScene, heroNamer } from './helpers';
-import { compareShots, dragonFilter, dragonWorn, isolateDragon, settledDragon } from './dragon';
-import { TINT_FILTERS } from '../src/lib/world/dragon';
+import { compareShots, dragonTint, dragonWorn, isolateDragon, settledDragon } from './dragon';
+import { TINT_SPECS } from '../src/lib/world/dragon';
 import MANIFEST from '../src/lib/world/accessories.json';
 import hatchling from '../src/lib/living/rig/dragon_hatchling.json';
 import young from '../src/lib/living/rig/dragon_young.json';
@@ -2498,7 +2517,8 @@ test('reduced motion and a browser without WebGL2 keep the still picture, its ti
   await openNest(page, id);
   expect(await settledDragon(nest(page))).toBe('still');
   await expect(nest(page).locator('canvas')).toHaveCount(0);
-  await expect(nest(page).locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_adult_cut.webp');
+  await expect(nest(page).locator('img.dragon-base')).toHaveAttribute('data-src', '/art/dragon/dragon_adult_cut.webp');
+  await expect(nest(page).locator('img.dragon-base')).toHaveAttribute('data-tint', 'braise');
   await expect(nest(page).locator('img.dragon-overlay[data-item="hydre-cou"]')).toHaveCSS('filter', 'none');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.addInitScript(() => {
@@ -2510,7 +2530,7 @@ test('reduced motion and a browser without WebGL2 keep the still picture, its ti
   await openNest(page, id);
   expect(await settledDragon(nest(page))).toBe('still');
   await expect(nest(page).locator('img.dragon-overlay[data-item="hydre-cou"]')).toHaveCount(1);
-  expect(await dragonFilter(nest(page))).toBe(TINT_FILTERS.braise);
+  await expect.poll(() => dragonTint(nest(page))).toBe('braise');
 });
 
 test('the worn pieces are listed on the canvas, back to front', async ({ page, request }, testInfo) => {
@@ -2542,7 +2562,7 @@ test('each stage moves over time, and its feet never do', async ({ page, request
   }
 });
 
-test('the tint on the canvas matches the still picture under the same CSS filter, and never touches the pieces', async ({ page, request }, testInfo) => {
+test('the tint on the canvas matches the still picture under the same tint, and never touches the pieces', async ({ page, request }, testInfo) => {
   test.setTimeout(240_000);
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   let tint = 'bronze';
@@ -2550,12 +2570,14 @@ test('the tint on the canvas matches the still picture under the same CSS filter
   const e = MANIFEST['sirenes-dos'].adult;
   // The saddle's box, its inner 60 %: the piece's own pixels on both pictures.
   const saddle = { x0: e.x + 0.2 * e.w, y0: e.y + 0.2 * e.h, x1: e.x + 0.8 * e.w, y1: e.y + 0.8 * e.h };
-  for (const t of Object.keys(TINT_FILTERS)) {
+  for (const t of Object.keys(TINT_SPECS)) {
     tint = t;
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openNest(page, id);
     await isolateDragon(page, 'nest', 'nest-dragon-layer');
     await expect(figure(page)).toHaveAttribute('data-motion', 'still');
+    // The still picture's tinted copy is made on a canvas: wait for it (Ruling L9).
+    await expect(nest(page).locator('img.dragon-base')).toHaveAttribute('data-tint', t);
     const still = await nest(page).locator('.dragon-base').screenshot();
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await expect(figure(page)).toHaveAttribute('data-motion', 'living');
@@ -2661,7 +2683,7 @@ test('a tint picked in the care panel recolours the living dragon in place', asy
   await expect(figure(page)).toHaveAttribute('data-motion', 'living');
   await nest(page).locator('canvas').evaluate((c) => ((c as HTMLCanvasElement).dataset.mark = 'first'));
   await page.getByTestId('dragon-tint-ecume').click();
-  await expect.poll(() => dragonFilter(nest(page))).toBe(TINT_FILTERS.ecume);
+  await expect.poll(() => dragonTint(nest(page))).toBe('ecume');
   await expect(nest(page).locator('canvas')).toHaveAttribute('data-mark', 'first');
   await expect(figure(page)).toHaveAttribute('data-motion', 'living');
 });
@@ -2709,7 +2731,7 @@ Expected: every test PASS on `chromium-gl` (and the spec runs on no other projec
 
 ```bash
 git add web/e2e/living-dragon.spec.ts web/playwright.config.ts
-git commit -m "Living dragon e2e on Chromium with SwiftShader WebGL2: a canvas for a hatched dragon and the still picture for the egg, under reduced motion and without WebGL2; the pieces listed back to front; every stage moves while its feet do not; the canvas's tint matches the CSS filter and leaves the saddle untinted; a lost context or a failing shader fall back; no frame while hidden or off-screen, at most 30 fps; twenty visits keep their contexts; tint and pieces change in place"
+git commit -m "Living dragon e2e on Chromium with SwiftShader WebGL2: a canvas for a hatched dragon and the still picture for the egg, under reduced motion and without WebGL2; the pieces listed back to front; every stage moves while its feet do not; the canvas's tint matches the still picture's (OKLCH) and leaves the saddle untinted; a lost context or a failing shader fall back; no frame while hidden or off-screen, at most 30 fps; twenty visits keep their contexts; tint and pieces change in place"
 ```
 
 ---
@@ -2740,6 +2762,6 @@ Record the user's verdict. Merge into `master` only once the user approves (merg
 
 ## Self-review
 
-- **Spec coverage.** What she sees: motion and amplitude (Task 2, constants and tests), five stages (Tasks 3, 6), feet (Tasks 3, 6 unit; Task 8 e2e), pieces rigid (Task 4 unit, Task 8 e2e), tint (Task 1 unit, Task 8 e2e), fallbacks (Task 7 wiring, Task 8 e2e). How: technique (Tasks 2, 4), rigs and baker (Tasks 3, 6), the horn tip (Task 3 test), pieces in `DRAW_ORDER` (Task 4), tint from `TINT_FILTERS` (Tasks 1, 4), component and wrapper, `role="img"`, `aria-label`, `data-worn` (Tasks 5, 7), battle untouched (Task 7: only nest/camp pass `living`), cost control (Tasks 2, 5, 8), tooling into a skill (Task 3, R7). Tests: unit (Tasks 1-4, 6), e2e (Tasks 7, 8), the human look (Tasks 6, 9). Out of scope respected. The écume open item is shown in Task 9.
+- **Spec coverage.** What she sees: motion and amplitude (Task 2, constants and tests), five stages (Tasks 3, 6), feet (Tasks 3, 6 unit; Task 8 e2e), pieces rigid (Task 4 unit, Task 8 e2e), tint (Task 1 unit, Task 8 e2e), fallbacks (Task 7 wiring, Task 8 e2e). How: technique (Tasks 2, 4), rigs and baker (Tasks 3, 6), the horn tip (Task 3 test), pieces in `DRAW_ORDER` (Task 4), tint from `TINT_SPECS` (Tasks 1, 4, Ruling L9), component and wrapper, `role="img"`, `aria-label`, `data-worn` (Tasks 5, 7), battle untouched (Task 7: only nest/camp pass `living`), cost control (Tasks 2, 5, 8), tooling into a skill (Task 3, R7). Tests: unit (Tasks 1-4, 6), e2e (Tasks 7, 8), the human look (Tasks 6, 9). Out of scope respected. The écume open item is shown in Task 9.
 - **Placeholders.** The `<form>` in Task 7's commit message is filled from the run's annotation (measured, not known in advance); the three new rigs carry starting values to be corrected by eye, with a check list as acceptance.
 - **Type consistency.** `Motion`, `LivingStage`, `Rig`, `RigFile`, `Pivots`, `PieceDraw`, `PiecePlacement`, `DragonRenderer` methods, the helpers' names are the same in every task that names them.
