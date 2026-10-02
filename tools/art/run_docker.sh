@@ -10,6 +10,7 @@
 #   tools/art/run_docker.sh webify  [extra webify.py args]
 #   tools/art/run_docker.sh icons   [webp|sheet|app|all]     # web/public/art/icons/*.webp (256 px), docs/art/icons-sheet.png, web/public/icons/*.png
 #   tools/art/run_docker.sh uiart   [webp|sheet]              # web/public/art/{textures,ui}/*.webp, docs/art/ui-art-sheet.png
+#   tools/art/run_docker.sh rig     grid|bake|debug|sheet [--stage S]   # the living dragon's rigs (the dragon-rig skill)
 #   tools/art/run_docker.sh all
 set -eu
 REPO=$(cd "$(dirname "$0")/../.." && (pwd -W 2>/dev/null || pwd))
@@ -28,8 +29,9 @@ case "$MODE" in
   webify) CMD="python tools/art/webify.py $*" ;;
   icons)  CMD="python tools/art/icons.py ${*:-all}" ;;
   uiart)  CMD="python tools/art/uiart.py ${*:-webp}" ;;
+  rig)    CMD="python tools/art/rig.py $*" ;;
   all)    CMD="python tools/art/cutout.py $TARGETS && python tools/art/webify.py && python tools/art/icons.py all" ;;
-  *) echo "usage: $0 cutout|webify|icons|uiart|all [args]" >&2; exit 2 ;;
+  *) echo "usage: $0 cutout|webify|icons|uiart|rig|all [args]" >&2; exit 2 ;;
 esac
 MSYS_NO_PATHCONV=1 docker run --rm -v "$REPO:/work" -w /work \
   -v art-pip-cache:/root/.cache/pip -v art-rembg-cache:/root/.rembg \

@@ -91,6 +91,7 @@ scripts/npm.sh run test -- src/lib/world/art.test.ts src/lib/world/accessories.t
   against its fractions and the whole non-scene art against its budget (4.5 MiB, in
   `web/src/lib/world/art.test.ts`, with the measured total written beside it); if a redone
   overlay breaks it, say so rather than quietly raising the number.
+- **On the living dragon:** the pieces ride the animated dragon as rigid passengers (weights at the centre of their box); rigs and motion are the dragon-rig skill.
 
 ## Inpainting settings (proven)
 
