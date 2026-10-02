@@ -4,17 +4,24 @@ import { LINES } from '../../dialogue/content';
 import { frenchSpacing } from '../../text/french';
 import { variantsOf } from '../../../testing/dialogue';
 import { DRAGON_STAGES, type CampResponse, type DragonOut } from '../types';
-import { NEST_HOTSPOTS, NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from './nest';
+import { NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting, nestScene } from './nest';
 
 const egg = { name: null, tint: 'bronze', stage: 'egg', unlocked_tints: ['bronze'], worn: [] } as DragonOut;
-const state = (d: DragonOut) => NEST_HOTSPOTS[0].state({ camp: { dragon: d } as CampResponse, catalog: null });
+const state = (d: DragonOut) => nestScene(d.stage).hotspots[0].state({ camp: { dragon: d } as CampResponse, catalog: null });
 
 describe("dragon's nest (UI3 Ruling B5)", () => {
-  it('is a valid scene whose plaque echoes the hub label; the dragon opens its care', () => {
-    expect(validateScene(NEST_SCENE)).toEqual([]);
-    expect(NEST_SCENE).toMatchObject({ id: 'nest', title: 'Le nid du dragon', background: '/art/scenes/nest.webp' });
-    expect(NEST_SCENE.preload).toEqual(['/art/scenes/hub_camp.webp']);
-    expect(NEST_HOTSPOTS.map((h) => [h.id, h.target, h.query, h.label])).toEqual([['dragon', 'dragon', { panel: 'soin' }, 'Ton dragon']]);
+  it('paints the nest of its stage, a valid scene whose plaque echoes the hub label; the dragon opens its care (spec 2026-10-02 nest by stage)', () => {
+    for (const s of DRAGON_STAGES) {
+      const scene = nestScene(s);
+      expect(validateScene(scene), s).toEqual([]);
+      expect(scene, s).toMatchObject({ id: 'nest', title: 'Le nid du dragon', background: `/art/scenes/nest_${s}.webp`, preload: ['/art/scenes/hub_camp.webp'] });
+      expect(scene.hotspots.map((h) => [h.id, h.target, h.query, h.label]), s).toEqual([['dragon', 'dragon', { panel: 'soin' }, 'Ton dragon']]);
+      // One object per stage: the screen's $derived scene never changes while the stage does not.
+      expect(nestScene(s), s).toBe(scene);
+    }
+    // Review Focus 1: before /camp says the stage, no painting (never the egg's for a grown dragon).
+    expect(nestScene(null)).toMatchObject({ id: 'nest', title: 'Le nid du dragon', background: '', hotspots: [] });
+    expect(NEST_SCENE).toBe(nestScene('egg'));
   });
 
   it('seats the dragon in the straw bed, bigger as it grows', () => {

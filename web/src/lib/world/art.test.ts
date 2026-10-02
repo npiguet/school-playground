@@ -113,7 +113,11 @@ describe('art map', () => {
     expect(ART.scenes.libraryTent).toBe('/art/scenes/library_tent.webp');
     expect(ART.scenes.delphi).toBe('/art/scenes/delphi.webp');
     expect(ART.scenes.warTent).toBe('/art/scenes/war_tent.webp');
-    expect(ART.scenes.nest).toBe('/art/scenes/nest.webp');
+    // Spec 2026-10-02 nest by stage: one painting per stage, 2048x1152; the old single nest is gone.
+    expect(ART.nest).toEqual(Object.fromEntries(DRAGON_STAGES.map((s) => [s, `/art/scenes/nest_${s}.webp`])));
+    for (const p of Object.values(ART.nest)) expect(webpSize('public' + p), p).toEqual({ w: 2048, h: 1152 });
+    expect(existsSync('public/art/scenes/nest.webp')).toBe(false);
+    expect('nest' in ART.scenes).toBe(false);
     expect(ART.scenes.cabin).toBe('/art/scenes/cabin.webp');
     expect(ART.characters).toEqual({ pythia: '/art/characters/pythia_cut.webp', owl: '/art/characters/owl_cut.webp', hermes: '/art/characters/hermes_cut.webp' });
     expect([ART.scenes.villa, ART.scenes.palais]).toEqual(['/art/scenes/villa.webp', '/art/scenes/palais.webp']);

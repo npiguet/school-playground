@@ -135,7 +135,7 @@ All under `assets/art/`. `*_cut.png` = same image with the white background remo
 | Lieutenants | `lieutenants/{hydre,echo,chimere,protee,sirenes,lethe}.png` + `_cut` | 768×1344 |
 | Scenes: camp (hub, dawn), Delphes, Alexandrie, Parchemins, Argus sanctuary, battle | `scenes/{camp,delphes,alexandrie,parchemins,argus,battle}.png` | 1344×768 |
 | Emblems: Yeux d'Argus, Fil d'Ariane, Bouclier de Persée, Chouette d'Athéna, golden apple | `emblems/{argus,ariane,persee,athena,apple}.png` + `_cut` | 1024×1024 |
-| Scenes UI (UI2): title gates, camp hub, nest, Delphi, library tent, war tent, cabin, Éris's lair, 3 battle backdrops | `scenes/{title_gates,hub_camp,nest,delphi,library_tent,war_tent,cabin,eris_lair,battle_river,battle_coast,battle_temple}.png` | 2048×1152 |
+| Scenes UI (UI2): title gates, camp hub, nest (six, one per stage: "The nest by stage" below), Delphi, library tent, war tent, cabin, Éris's lair, 3 battle backdrops | `scenes/{title_gates,hub_camp,nest_<stage>,delphi,library_tent,war_tent,cabin,eris_lair,battle_river,battle_coast,battle_temple}.png` | 2048×1152 |
 | Pythia, Athena's owl | `characters/{pythia,owl}.png` + `_cut` | 768×1344, 1024² |
 | Props: votive tablets, codex on a lectern, trophy shelf | `props/{votive_tablets,codex_lectern,trophy_shelf}.png` + `_cut` | 1024², 768×1344, 1344×768 |
 | Marble texture tile | `textures/marble.png` | 1024² |
@@ -155,15 +155,15 @@ unchanged `cutout.py`. The scene WebPs are exported at 2048 px wide, q88, 190–
 web/public/art/scenes --max-px 2048 --quality 88` from a staging folder, so the old scene WebPs are
 not rewritten.
 
-**Seeds** (the sidecars hold the exact prompts): title_gates 602, hub_camp 601, nest 603,
+**Seeds** (the sidecars hold the exact prompts): title_gates 602, hub_camp 601, nest 603 (replaced by the nest by stage, 2026-10-02),
 delphi 604, library_tent 605, war_tent 806, cabin 507, eris_lair 608, battle_river 509,
 battle_coast 510, battle_temple 511, pythia 701, owl 802, votive_tablets 703,
 codex_lectern 704, trophy_shelf 705, marble 902 (style `discorde-texture`). 28 generations in total.
 
 **The nest by stage (spec 2026-10-02 nest by stage):** one painting per dragon stage,
 `scenes/nest_{egg,hatchling,young,adult,illustre,ancestral}.png`, same light, palette and style as the
-old `nest.png` (seed 603, removed), `--vscale 1.0`, 8 steps, **Krea2 Variance off** (`nest.json`'s
-sidecar shows it was off; `--variance 1.2` at 2048x1152 turned every painting into a blocky mosaic).
+old `nest.png` (seed 603, removed), `--vscale 1.0`, 8 steps, **Krea2 Variance off** (the old `nest.json`
+sidecar showed it was off; `--variance 1.2` at 2048x1152 turned every painting into a blocky mosaic).
 Picked seeds: egg 1663, young 1615, adult 1623, illustre 1633, ancestral 1652 (the sidecars hold the
 prompts; the egg, young and ancestral picks come from reworked prompts, see the tips below). The
 hatchling's painting is the egg's with the broken shell inpainted in two passes (seed 1654, see the
@@ -171,7 +171,8 @@ next paragraph). Each prompt names the empty spot's place and its floor's height
 stretch on the growth sheet's side; check every variant with `tools/art/nest_preview.py` (the stage's
 sprite at its place, the hotspot, the sheet's band). The dragon's place per stage was set with the
 user on these paintings: egg w 16 feet 54, hatchling 21/55, young 36/73, adult 40/80.5, illustre
-44/88, ancestral 47/94 (art %; plan 2026-10-02 nest by stage, Task 4).
+44/88, ancestral 47/94 (art %; plan 2026-10-02 nest by stage, Task 4). Served as
+`web/public/art/scenes/nest_<stage>.webp` (2048 px, q88, 210-307 KB each, within the 600 KB budget).
 
 **The hatchling's nest** (`nest_hatchling.png`) is `nest_egg.png` with the egg's broken top cap and a
 scaly fragment on the bare rock right of the nest's front rim, right of the dragon's spot, by the krea2

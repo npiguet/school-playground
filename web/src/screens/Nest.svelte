@@ -9,7 +9,7 @@
   import Hotspot from '../components/scene/Hotspot.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
   import CarePanel from '../components/places/nest/CarePanel.svelte';
-  import { NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from '../lib/world/scenes/nest';
+  import { careLine, growth, nestDragonLayer, nestGreeting, nestScene } from '../lib/world/scenes/nest';
   import { ART } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
   import { TINT_FILTERS, dragonCaption, stageActivity, stageLabel } from '../lib/world/dragon';
@@ -25,12 +25,14 @@
 
   let debug = $state(false);
   const dragon = $derived(campFor(profile.id)?.dragon ?? null);
+  // Spec 2026-10-02 nest by stage: the nest painted for the dragon's stage (none until /camp says it).
+  const scene = $derived(nestScene(dragon?.stage ?? null));
   const greet = (camp: CampResponse | null) => (camp ? nestGreeting(camp.dragon) : null);
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
   const close = () => closePanel(sceneHref('nest', profile.id));
 </script>
 
-<PlaceScene {profile} scene={NEST_SCENE} bind:debug {greet}>
+<PlaceScene {profile} {scene} bind:debug {greet}>
   {#snippet children(ctx)}
     {#if ctx.camp}
       {@const d = ctx.camp.dragon}
@@ -61,7 +63,7 @@
         <p class="nest-activity">{stageActivity(d.stage)}</p>
       </div>
     {/if}
-    {#each NEST_SCENE.hotspots as def (def.id)}
+    {#each scene.hotspots as def (def.id)}
       <Hotspot {def} status={def.state(ctx)} sceneId="nest" onActivate={activate} />
     {/each}
   {/snippet}

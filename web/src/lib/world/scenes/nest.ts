@@ -6,18 +6,19 @@ import { ART } from '../art';
 import { dragonCaption, gaugeOf, nextStage, stageLabel } from '../dragon';
 import { sayKey } from '../../dialogue/select';
 import { thousands } from '../../text/french';
-import type { CampResponse, DragonOut, DragonStage } from '../types';
-import { st, type DialogueLine, type HotspotDef, type SceneDef, type SceneLayerDef } from '../../scene/types';
+import { DRAGON_STAGES, type CampResponse, type DragonOut, type DragonStage } from '../types';
+import { st, type DialogueLine, type HotspotDef, type HotspotShape, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { dragonSays } from './speakers';
 import { NEST_SHAPES } from './nest.shapes';
 
-export const NEST_HOTSPOTS: HotspotDef[] = [
-  {
+/** The dragon in its nest: tap it for its care (« Ton dragon », `?panel=soin`). */
+function dragonHotspot(shape: HotspotShape): HotspotDef {
+  return {
     id: 'dragon',
     label: 'Ton dragon',
     target: 'dragon',
     query: { panel: 'soin' },
-    shape: NEST_SHAPES.dragon,
+    shape,
     labelPos: 'below',
     leader: true,
     state: ({ camp }) => {
@@ -26,19 +27,36 @@ export const NEST_HOTSPOTS: HotspotDef[] = [
       if (d.stage !== 'egg' && !d.name) return st({ isNew: true, caption: 'Il attend un nom' });
       return st({ caption: dragonCaption(d) });
     },
-  },
-];
+  };
+}
 
-export const NEST_SCENE: SceneDef = {
+const NEST_BASE: Omit<SceneDef, 'background' | 'hotspots'> = {
   id: 'nest',
   title: 'Le nid du dragon',
-  background: ART.scenes.nest,
   layers: [],
-  hotspots: NEST_HOTSPOTS,
   ambience: { particles: 'embers', music: SCENE_MUSIC.nest },
   narrator: { enter: 'nest.enter', tour: 'nest' },
   preload: [ART.scenes.hubCamp],
 };
+
+// Spec 2026-10-02 nest by stage: the nest painted for the dragon's stage. One object per stage, so the
+// screen's derived scene stays the same object while the stage does not change.
+const BY_STAGE = Object.fromEntries(
+  DRAGON_STAGES.map((s) => [s, { ...NEST_BASE, background: ART.nest[s], hotspots: [dragonHotspot(NEST_SHAPES.dragon)] }]),
+) as Record<DragonStage, SceneDef>;
+
+/** While /camp has not said the dragon's stage: no painting (the stage's night and « Les Muses
+ *  préparent le camp… »), never another stage's nest flashing first; no hotspot yet. */
+const WAITING: SceneDef = { ...NEST_BASE, background: '', hotspots: [] };
+
+export function nestScene(stage: DragonStage | null): SceneDef {
+  return stage ? BY_STAGE[stage] : WAITING;
+}
+
+/** The registry's nest (scenes/index.ts SCENES: one scene per place). */
+export const NEST_SCENE: SceneDef = BY_STAGE.egg;
+/** The six nests, in stage order (the budget test checks each painting). */
+export const NEST_STAGE_SCENES: SceneDef[] = DRAGON_STAGES.map((s) => BY_STAGE[s]);
 
 // R11: the nest's dragon spot is x 34-68; the square picture at 28 % keeps its top below the HUD.
 const WIDTH: Record<DragonStage, number> = { egg: 10, hatchling: 16, young: 21, adult: 26, illustre: 27, ancestral: 28 };
