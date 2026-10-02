@@ -33,7 +33,7 @@ function camp(over: Partial<CampResponse> = {}): CampResponse {
     small_tricks: { traps: 0, caught: 0 },
     drachmes: 0,
     house: 'cabin',
-    affordable: 0,
+    affordable: [],
     ...over,
   };
 }
@@ -186,6 +186,14 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     const lines = campGreeting('Ariane', calm);
     expect(lines.map((l) => l.key)).toEqual(['camp.enter', undefined, 'camp.weekly', 'camp.next.none']);
     expect(new Set(lines.map((l) => l.text)).size).toBe(lines.length);
+  });
+
+  // SP4 final review I1: the stall is named for a piece not named before, never again for the same ones.
+  it('names the stall once for the same pieces, then the week speaks', () => {
+    const hatched = { dragon: { ...camp().dragon, stage: 'hatchling' as const, name: 'Braise' }, xp: { total: 300, floor: 100, next: 1200 }, oracle: chosen };
+    const c = camp({ ...hatched, affordable: ['decor:amphore'] });
+    expect(campGreeting('Ariane', c).at(-1)!.key).toBe('camp.next.shop');
+    expect(campGreeting('Ariane', c, ['decor:amphore']).at(-1)!.key).toBe('camp.next.weekly');
   });
 
   it('speaks the seal line with its lieutenant and its seal', () => {

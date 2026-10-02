@@ -161,10 +161,11 @@ export function campDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 
 
 /** The camp's greeting (Ruling E12; spec 2026-09-29 explanations §1): her name, the dragon's stage, the
  *  week's goal when reached, then the most useful next goal (R1). R7: when that goal is the name or the
- *  stage, the stage line is left out, so nothing is said twice. */
-export function campGreeting(profileName: string, camp: CampResponse): DialogueLine[] {
+ *  stage, the stage line is left out, so nothing is said twice. `shopSeen`: the stall's pieces the
+ *  dragon already named (shopSeen.svelte.ts, SP4 final review I1). */
+export function campGreeting(profileName: string, camp: CampResponse, shopSeen: readonly string[] = []): DialogueLine[] {
   const d = camp.dragon;
-  const next = whatNext(camp);
+  const next = whatNext(camp, shopSeen);
   const lines = [sayKey('camp.enter', { vars: { hero: profileName }, dragon: d })];
   // A seal within reach already says « Encore un peu »: the stage line takes its far wording then.
   if (next.kind !== 'name' && next.kind !== 'stage') lines.push(dragonSays(d, stageLine(d.stage, camp.xp, next.kind !== 'seal' && nearNextStage(camp.xp))));

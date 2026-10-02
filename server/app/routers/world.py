@@ -322,7 +322,10 @@ def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends
     rules = request.app.state.rules
     tier_avail = open_fight(rules.fights, levels, available, won)
     active_boss = db.execute("SELECT id FROM quest WHERE profile_id = ? AND kind = 'boss' AND status = 'active'", (pid,)).fetchone()
-    rewards_count = db.execute("SELECT COUNT(*) FROM reward WHERE profile_id = ?", (pid,)).fetchone()[0]
+    # The cabin's « N trésors »: what the trophy shelf shows (SP4 final review M5), never the dragon's
+    # parure (worn in the nest) or the house (the room itself).
+    rewards_count = sum(1 for r in db.execute("SELECT reward_id FROM reward WHERE profile_id = ?", (pid,))
+                        if _kind(r["reward_id"]) in SHELF_KINDS)
     dragon, owned = dragon_and_owned(db, profile, now, rules)   # may persist a caught-up stage (see dragon_out)
     db.commit()
     purse = balance(db, pid)
@@ -338,8 +341,9 @@ def get_camp(profile_id: int, request: Request, db: sqlite3.Connection = Depends
         "rewards_count": rewards_count,
         # Spec 2026-09-29 drachmes §1, §3: the purse and the highest house owned.
         "drachmes": purse, "house": house_of(owned),
-        # Spec 2026-09-29 explanations §1 case 5 (R5): how many of the stall's items the purse can buy now.
-        "affordable": len(affordable(owned=owned, levels=levels, awake=available, stage=dragon["stage"], balance=purse, rules=rules)),
+        # Spec 2026-09-29 explanations §1 case 5 (R5): the stall's items the purse can buy now, by id (the
+        # dragon's what-next line names the stall only for an id it has not pointed out yet, SP4 final review I1).
+        "affordable": affordable(owned=owned, levels=levels, awake=available, stage=dragon["stage"], balance=purse, rules=rules),
         "small_tricks": small_tricks(db, pid),
     }
 
@@ -476,6 +480,10 @@ def post_purchase(profile_id: int, body: Purchase, request: Request, db: sqlite3
     row = db.execute("SELECT granted_at, equipped FROM reward WHERE profile_id = ? AND reward_id = ?", (pid, body.item)).fetchone()
     return {"reward": {**REWARDS[body.item], "granted_at": row["granted_at"], "equipped": bool(row["equipped"])},
             "drachmes": balance(db, pid)}
+
+
+# The kinds the cabin's trophy shelf shows (web TrophiesPanel: the trophies, gear, decor and tints).
+SHELF_KINDS = frozenset({"trophy", "gear", "decor", "tint"})
 
 
 def _kind(reward_id: str) -> str | None:

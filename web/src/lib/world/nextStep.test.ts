@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { LIEUTENANT_ORDER, type CampResponse, type LieutenantState } from './types';
-import { HUB_PLACE, nextStep, sealWithinReach, whatNext } from './nextStep';
+import { HUB_PLACE, newlyAffordable, nextStep, sealWithinReach, whatNext } from './nextStep';
+
+const TWO = ['decor:amphore', 'decor:chouette'];
 
 function camp(over: Partial<CampResponse> = {}): CampResponse {
   return {
@@ -66,7 +68,7 @@ function state(o: Record<string, unknown> = {}): CampResponse {
     oracle: { week: 'w', status: 'chosen', reward_id: null },
     weekly: { week: 'w', target: 3, done: 3, reached: true },
     boss: bossClosed,
-    affordable: 0,
+    affordable: [],
     ...o,
   } as unknown as CampResponse;
 }
@@ -80,7 +82,7 @@ describe("the dragon's what-next line (spec 2026-09-29 explanations §1)", () =>
       boss: { ...bossClosed, tier_available: 1, next: null },
       xp: { total: 0, floor: 0, next: 100 },
       lieutenants: withLt({ echo: { next: win(3, 18, 0.9) } }),
-      affordable: 2,
+      affordable: TWO,
       oracle: { week: 'w', status: 'sealed', reward_id: null },
       weekly: { week: 'w', target: 3, done: 1, reached: false },
     };
@@ -91,7 +93,7 @@ describe("the dragon's what-next line (spec 2026-09-29 explanations §1)", () =>
       { xp: { total: 1150, floor: 100, next: 1200 } },
       { lieutenants: withLt({}) },
       { xp: { total: 300, floor: 100, next: 1200 } },
-      { affordable: 0 },
+      { affordable: [] },
       { oracle: { week: 'w', status: 'chosen', reward_id: null } },
       { weekly: { week: 'w', target: 3, done: 3, reached: true } },
     ];
@@ -158,23 +160,47 @@ describe("the dragon's what-next line (spec 2026-09-29 explanations §1)", () =>
       boss: [bossClosed, { ...bossClosed, tier_available: 1, next: null }],
       xp: [{ total: 0, floor: 0, next: 100 }, { total: 300, floor: 100, next: 1200 }, { total: 1150, floor: 100, next: 1200 }],
       lieutenants: [withLt({}), withLt({ echo: { next: win(3, 18, 0.9) } })],
-      affordable: [0, 2],
+      affordable: [[], TWO],
       oracle: [sealed, { week: 'w', status: 'chosen', reward_id: null }],
       weekly: [{ week: 'w', target: 3, done: 3, reached: true }, { week: 'w', target: 3, done: 1, reached: false }],
+      // SP4 final review I1: the stall's ids the dragon already pointed out (not a camp field).
+      shopSeen: [[], TWO],
     };
     let combos: Record<string, unknown>[] = [{}];
     for (const [k, values] of Object.entries(axes)) combos = combos.flatMap((c) => values.map((v) => ({ ...c, [k]: v })));
     let checked = 0;
-    for (const o of combos) {
+    for (const { shopSeen, ...o } of combos) {
       const c = state(o);
       const step = nextStep(c);
       if (step === null) continue;
       checked++;
-      const kind = whatNext(c).kind;
+      const kind = whatNext(c, shopSeen as string[]).kind;
       if (step === 'scrolls' && ['seal', 'stage', 'shop'].includes(kind)) continue;
       expect(kind, JSON.stringify(o)).toBe(step);
     }
-    expect(checked).toBeGreaterThan(300);
+    expect(checked).toBeGreaterThan(600);
+  });
+
+  // SP4 final review I1 (ruling a): Hermès never pushes. The stall is named only for an item that has
+  // become affordable since the dragon last named it; otherwise the line falls through.
+  it('names the stall only for a piece it has not pointed out yet', () => {
+    const calm = { oracle: { week: 'w', status: 'chosen', reward_id: null }, weekly: { week: 'w', target: 3, done: 1, reached: false } };
+    expect(whatNext(state({ ...calm, affordable: TWO }), [])).toEqual({ kind: 'shop', key: 'camp.next.shop' });
+    // The same pieces, already named: the week's goal speaks instead.
+    expect(whatNext(state({ ...calm, affordable: TWO }), TWO).kind).toBe('weekly');
+    expect(whatNext(state({ ...calm, affordable: ['decor:amphore'] }), TWO).kind).toBe('weekly');
+    // A new piece joins (the villa within reach): the stall again.
+    expect(whatNext(state({ ...calm, affordable: [...TWO, 'house:villa'] }), TWO).kind).toBe('shop');
+    // Nothing affordable never names it, whatever was seen; a missing or junk setting counts as nothing seen.
+    expect(whatNext(state({ ...calm, affordable: [] }), []).kind).toBe('weekly');
+    expect(whatNext(state({ ...calm, affordable: TWO })).kind).toBe('shop');
+    expect(whatNext(state({ ...calm, affordable: TWO }), 'decor:amphore' as unknown as string[]).kind).toBe('shop');
+    expect(newlyAffordable(state({ affordable: [...TWO, 'house:villa'] }), ['decor:amphore', 7])).toEqual(['decor:chouette', 'house:villa']);
+  });
+
+  it('falls through to the sealed scrolls, or nothing, once the pieces were named', () => {
+    expect(whatNext(state({ affordable: TWO, oracle: sealed }), TWO).kind).toBe('scrolls');
+    expect(whatNext(state({ affordable: TWO }), TWO).kind).toBe('none');
   });
 
   it("counts the week's texts in words", () => {

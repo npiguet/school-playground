@@ -75,8 +75,18 @@ export function sealWithinReach(camp: Pick<CampResponse, 'lieutenants'>): { key:
 /** « un texte », « deux textes » (R6), digits past six. */
 const texts = (n: number) => `${countWord(n)} ${n < 2 ? 'texte' : 'textes'}`;
 
-/** The dragon's what-next line (spec §1, R1): a pure function of the camp, first match wins. */
-export function whatNext(camp: CampResponse): NextLine {
+/** The stall's affordable ids the dragon has not pointed out yet (SP4 final review I1, ruling a): what
+ *  re-arms the shop line. `seen` is the hero's saved setting, any value: a missing or junk one names
+ *  nothing seen. */
+export function newlyAffordable(camp: Pick<CampResponse, 'affordable'>, seen: unknown = []): string[] {
+  const named = new Set(Array.isArray(seen) ? seen.filter((s): s is string => typeof s === 'string') : []);
+  return camp.affordable.filter((id) => !named.has(id));
+}
+
+/** The dragon's what-next line (spec §1, R1): a pure function of the camp and of the stall's pieces
+ *  already pointed out (`shopSeen`), first match wins. The stall is named only for a piece that has
+ *  become affordable since the dragon last named it: Hermès never pushes (SP4 final review I1). */
+export function whatNext(camp: CampResponse, shopSeen: unknown = []): NextLine {
   const d = camp.dragon;
   if (d.stage !== 'egg' && !d.name) return { kind: 'name', key: 'camp.next.name' };
   const p = prophecySoon(camp);
@@ -95,7 +105,7 @@ export function whatNext(camp: CampResponse): NextLine {
     };
   }
   if (nearNextStage(camp.xp)) return { kind: 'stage', key: 'camp.next.stage' };
-  if (camp.affordable > 0) return { kind: 'shop', key: 'camp.next.shop' };
+  if (newlyAffordable(camp, shopSeen).length > 0) return { kind: 'shop', key: 'camp.next.shop' };
   if (scrollsSealed(camp)) return { kind: 'scrolls', key: 'camp.next.scrolls' };
   if (!camp.weekly.reached) return { kind: 'weekly', key: 'camp.next.weekly', vars: { texts: texts(Math.max(1, camp.weekly.target - camp.weekly.done)) } };
   return { kind: 'none', key: 'camp.next.none' };

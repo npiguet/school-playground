@@ -9,6 +9,8 @@ CREATE TABLE drachme_event (
   ref TEXT,                      -- session:<id> | the item bought | NULL for the grant
   created_at TEXT NOT NULL);
 CREATE INDEX drachme_event_profile ON drachme_event(profile_id);
+-- The grant's time is ISO 8601 to the millisecond (SQLite's %f is SS.SSS); the rows Python writes later
+-- carry microseconds (isoformat()). Both parse with datetime.fromisoformat (test_db.py pins it).
 INSERT INTO drachme_event(profile_id, amount, reason, ref, created_at)
   SELECT profile_id, SUM(amount) / 10, 'grant', NULL, strftime('%Y-%m-%dT%H:%M:%f+00:00', 'now')
   FROM xp_event GROUP BY profile_id HAVING SUM(amount) >= 10;

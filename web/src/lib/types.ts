@@ -23,6 +23,9 @@ export interface ProfileSettings {
   /** Final review I3 (sub-project 3): the dragon's stage the hero last saw, written by a victory that
    *  shows it grow and by the camp's « grew while you were away » reveal. Absent: never shown. */
   dragon_seen_stage?: string | null;
+  /** SP4 final review I1: the stall's pieces (reward ids) the dragon's what-next line has already
+   *  pointed out; an affordable piece not in it names the stall again. Absent: none named yet. */
+  shop_seen?: string[];
 }
 
 export interface Profile {

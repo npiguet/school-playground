@@ -1,4 +1,6 @@
+import re
 import sqlite3
+from datetime import datetime, timedelta
 import pytest
 from app.db import MIGRATIONS_DIR, connect, migrate
 
@@ -171,6 +173,10 @@ def test_migration_007_grants_a_tenth_of_the_xp(tmp_path):
     assert migrate(conn) >= 7
     assert [tuple(r) for r in conn.execute("SELECT profile_id, amount, reason, ref FROM drachme_event ORDER BY profile_id")] == [
         (1, 123, "grant", None)]
+    # SP4 final review M9a: the grant's time is ISO 8601 in UTC, to the millisecond (SQLite's %f).
+    created = conn.execute("SELECT created_at FROM drachme_event").fetchone()[0]
+    assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}\+00:00", created), created
+    assert datetime.fromisoformat(created).utcoffset() == timedelta(0)
     assert migrate(conn) >= 7                                                 # idempotent
     assert conn.execute("SELECT COUNT(*) FROM drachme_event").fetchone()[0] == 1
 

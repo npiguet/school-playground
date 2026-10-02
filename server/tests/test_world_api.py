@@ -34,7 +34,7 @@ def test_camp_for_new_profile(client):
     c = client.get(f"/api/profiles/{pid}/camp").json()
     assert c["xp"] == {"total": 0, "floor": 0, "next": 100}
     assert (c["drachmes"], c["house"], c["dragon"]["worn"]) == (0, "cabin", [])
-    assert c["affordable"] == 0
+    assert c["affordable"] == []
     assert "next_stage_at" not in c["dragon"]
     assert c["dragon"]["stage"] == "egg" and c["dragon"]["unlocked_tints"] == ["bronze"]
     assert "neutralised" not in c["dragon"] and "available" not in c["dragon"]

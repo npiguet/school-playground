@@ -154,8 +154,9 @@ export interface CampResponse {
   drachmes: number;
   /** Spec 2026-09-29 drachmes §3: the highest house owned. */
   house: House;
-  /** Spec 2026-09-29 explanations §1 (R5): the stall's items the purse can buy now. */
-  affordable: number;
+  /** Spec 2026-09-29 explanations §1 (R5): the stall's items the purse can buy now, by id (the shop
+   *  line names only those not pointed out yet, SP4 final review I1). */
+  affordable: string[];
 }
 
 export interface Progression {

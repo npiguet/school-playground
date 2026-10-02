@@ -14,7 +14,7 @@ function calm(c: any) {
   c.dragon = { ...c.dragon, stage: 'hatchling', name: 'Braise' };
   c.weekly = { ...c.weekly, target: 3, done: 3, reached: true };
   c.oracle = { ...c.oracle, status: 'chosen' };
-  c.affordable = 0;
+  c.affordable = [];
   c.prophecies = [];
   c.boss = { ...c.boss, tier_available: null };
 }
@@ -31,7 +31,7 @@ const CASES: { name: string; key: string; vars?: Record<string, string>; edit: (
     edit: (c) => (c.lieutenants = c.lieutenants.map((l: any) => (l.key === 'hydre' ? { ...l, available: true, level: 1, next: nearSeal } : l))),
   },
   { name: 'stage', key: 'camp.next.stage', edit: (c) => (c.xp = { total: 1150, floor: 100, next: 1200 }) },
-  { name: 'shop', key: 'camp.next.shop', edit: (c) => (c.affordable = 2) },
+  { name: 'shop', key: 'camp.next.shop', edit: (c) => (c.affordable = ['decor:amphore', 'decor:chouette']) },
   { name: 'scrolls', key: 'camp.next.scrolls', edit: (c) => (c.oracle = { ...c.oracle, status: 'sealed' }) },
   { name: 'weekly', key: 'camp.next.weekly', vars: { texts: 'deux textes' }, edit: (c) => (c.weekly = { ...c.weekly, target: 3, done: 1, reached: false }) },
   { name: 'none', key: 'camp.next.none', edit: () => {} },
@@ -71,3 +71,37 @@ for (const c of CASES) {
     if (c.name === 'stage' || c.name === 'name') expect(before).toHaveLength(2); // camp.enter, camp.weekly
   });
 }
+
+// SP4 final review I1 (ruling a): the stall is named once for the same pieces (settings.shop_seen keeps
+// them); the next visit hears the week's goal instead, and a piece newly within reach names it again.
+test('the dragon names the stall once for the same pieces, again for a new one', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  expect((await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'hatchling' } } })).ok()).toBeTruthy();
+  let affordable = ['decor:amphore', 'decor:chouette'];
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const camp = await (await route.fetch()).json();
+    calm(camp);
+    camp.weekly = { ...camp.weekly, target: 3, done: 1, reached: false };
+    camp.affordable = affordable;
+    await route.fulfill({ json: camp });
+  });
+  let loaded = false;
+  // A fresh page load each time: the camp greets once per page load (and a load already greets, so
+  // the first visit must not be followed by a reload that would hear the second greeting).
+  const visit = async (key: string, vars?: Record<string, string>) => {
+    if (loaded) await page.reload();
+    else await page.goto(`/#/p/${id}/camp`);
+    loaded = true;
+    await expectCamp(page);
+    await toNextLine(page);
+    await expectLineOf(page.getByTestId('dialogue-box'), key, vars);
+  };
+  await visit('camp.next.shop');
+  await expect.poll(async () => (await (await request.get(`/api/profiles/${id}`)).json()).settings.shop_seen).toEqual(affordable);
+  await visit('camp.next.weekly', { texts: 'deux textes' });
+  affordable = [...affordable, 'house:villa'];
+  await visit('camp.next.shop');
+  await expect
+    .poll(async () => (await (await request.get(`/api/profiles/${id}`)).json()).settings.shop_seen)
+    .toEqual(['decor:amphore', 'decor:chouette', 'house:villa']);
+});

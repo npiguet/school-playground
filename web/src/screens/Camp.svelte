@@ -24,6 +24,8 @@
   import { dragonSays } from '../lib/world/scenes/speakers';
   import { campFor } from '../lib/world/campStore.svelte';
   import { dragonRevealFor, markDragonSeen, type CampReveal } from '../lib/world/dragonSeen.svelte';
+  import { markShopSeen, shopSeenFor } from '../lib/world/shopSeen.svelte';
+  import { whatNext } from '../lib/world/nextStep';
   import { overlayState } from '../lib/scene/overlayState.svelte';
   import { VICTORY } from '../lib/battle/lines';
   import { TINT_FILTERS, dragonCaption } from '../lib/world/dragon';
@@ -70,7 +72,18 @@
   // The dragon greets once the camp data is there; a new hero's first visit is the camp tour instead
   // (PlaceScene holds the greeting while it runs, UI5 Ruling E13). A reveal to show comes first: the
   // greeting (which asks for a name the reveal may just have given) waits for it to close.
-  const greet = (camp: CampResponse | null) => (camp && !pending && !reveal ? campGreeting(profile.name, camp) : null);
+  // SP4 final review I1: a greeting that names Hermès's stall records the pieces it named, so the same
+  // pieces are not named again (Hermès never pushes); a newly affordable one names it once more.
+  function greet(camp: CampResponse | null): DialogueLine[] | null {
+    if (!camp || pending || reveal) return null;
+    const seen = shopSeenFor(profile);
+    const lines = campGreeting(profile.name, camp, seen);
+    if (whatNext(camp, seen).kind === 'shop') {
+      const named = camp.affordable;
+      untrack(() => void markShopSeen(profile, named));
+    }
+    return lines;
+  }
 
   function dragonLayer(camp: CampResponse): SceneLayerDef {
     return { id: 'dragon', src: ART.dragon[camp.dragon.stage], alt: dragonCaption(camp.dragon), ...campDragonLayer(camp.dragon.stage) };

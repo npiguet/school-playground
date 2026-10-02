@@ -1,5 +1,7 @@
 """Drachmes, the stall, wearing and the walls through the API (spec 2026-09-29 drachmes §1-§5)."""
 import sqlite3
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from app.db import DB_FILENAME
@@ -12,7 +14,7 @@ SHORT = "Ta bourse n'est pas encore assez pleine pour cet objet."
 NOT_ON_SALE = "Hermès ne vend pas encore cet objet."
 OWNED = "Tu l'as déjà."
 HOUSE = "Ta maison n'est pas un objet à exposer."
-WALLS_FULL = "Les murs sont pleins : range d'abord une pièce."
+WALLS_FULL = "Les murs sont pleins\u202f: range d'abord une pièce."
 QUEST_DECOR = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee", "decor:fresque"]
 SHOP_DECOR = ["decor:amphore", "decor:chouette", "decor:mosaique", "decor:bouclier"]
 
@@ -78,13 +80,33 @@ def test_a_seal_and_the_week_pay_their_drachmes(client, settings):
     assert {ref for _a, reason, ref in rows if reason in ("level", "weekly")} == {last_session}
 
 
-def test_a_board_quest_pays_five(client):
+def assert_paid_by_last_session(settings, pid, reason):
+    """SP4 final review M9c: a bonus's ledger row names the session that paid it (`session:<id>`)."""
+    rows = ledger(settings, pid)
+    last_session = [ref for _a, r, ref in rows if r == "session"][-1]
+    assert last_session.startswith("session:")
+    assert [ref for _a, r, ref in rows if r == reason] == [last_session]
+
+
+def test_a_board_quest_pays_five(client, settings):
     pid = make_profile(client, level="10H"); tid = make_text(client)
     assert client.post(f"/api/profiles/{pid}/quests", json={"target": "hydre"}).status_code == 201
     for day in ("2026-09-21", "2026-09-22"):
         post(client, pid, tid, hydre_result(), day=day)
     p = post(client, pid, tid, hydre_result(), day="2026-09-22")["progression"]
     assert {"reason": "board", "amount": 5} in p["drachmes"]["parts"]
+    assert_paid_by_last_session(settings, pid, "board")
+
+
+def test_an_oracle_quest_pays_fifteen(client, settings):
+    pid = make_profile(client, level="10H"); tid = make_text(client)
+    assert client.post(f"/api/profiles/{pid}/oracle", json={"scroll": "ecole", "lieutenant": "hydre"}).status_code == 201
+    for day in ("2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25"):
+        p = post(client, pid, tid, hydre_result(), day=day)["progression"]
+        if any(part["reason"] == "oracle" for part in p["drachmes"]["parts"]):
+            break
+    assert {"reason": "oracle", "amount": 15} in p["drachmes"]["parts"]
+    assert_paid_by_last_session(settings, pid, "oracle")
 
 
 def test_a_won_fight_pays_thirty(client, settings):
@@ -95,6 +117,7 @@ def test_a_won_fight_pays_thirty(client, settings):
     b = client.post(f"/api/profiles/{pid}/boss").json()
     p = post(client, pid, long_text, hydre_result(draft=0, caught=0), quest_id=b["quest"]["id"], encounter="eris")["progression"]
     assert {"reason": "boss", "amount": 30} in p["drachmes"]["parts"]
+    assert_paid_by_last_session(settings, pid, "boss")
 
 
 def test_buying_takes_the_price_and_grants_the_piece(client, settings):
@@ -149,28 +172,78 @@ def test_protees_set_is_not_sold_before_8h(client, settings):
     assert buy(client, pid, "accessory:protee-cou").status_code == 201
 
 
-# Review focus 1: the balance is read and the purchase written under one write lock.
-def test_purchases_racing_never_overdraw(client, settings):
+def hold_first_purchase(monkeypatch, until: threading.Event) -> threading.Event:
+    """The first purchase to read the balance (under its write lock) waits there until `until` is set,
+    so what races it really overlaps it (SP4 final review M9b). Returns the event set once it holds."""
+    from app.routers import world
+    real = world.balance
+    holding = threading.Event()
+
+    def balance_then_hold(conn, profile_id):
+        n = real(conn, profile_id)
+        if not holding.is_set():
+            holding.set()
+            assert until.wait(timeout=10), "the racing request never started"
+            time.sleep(0.1)          # and reached the write lock
+        return n
+
+    monkeypatch.setattr(world, "balance", balance_then_hold)
+    return holding
+
+
+# Review focus 1: the balance is read and the purchase written under one write lock. The first purchase
+# holds the lock until the three others are inside their own purchase: the race is forced, not hoped for.
+def test_purchases_racing_never_overdraw(client, settings, monkeypatch):
+    from app.routers import world
     pid = make_profile(client, level="10H")
     purse(settings, pid, 100)
     for key in ("hydre", "echo", "chimere", "lethe"):
         seal(settings, pid, key, 2)
     items = [f"accessory:{k}-cou" for k in ("hydre", "echo", "chimere", "lethe")]
+    others_waiting = threading.Event()
+    calls = []
+    real_begin = world.begin_write
+
+    def begin_and_count(conn):
+        calls.append(conn)
+        if len(calls) == 4:
+            others_waiting.set()
+        real_begin(conn)
+
+    monkeypatch.setattr(world, "begin_write", begin_and_count)
+    holding = hold_first_purchase(monkeypatch, others_waiting)
     with ThreadPoolExecutor(max_workers=4) as ex:
-        codes = list(ex.map(lambda item: buy(client, pid, item).status_code, items))
+        first = ex.submit(buy, client, pid, items[0])
+        assert holding.wait(timeout=10)
+        rest = [ex.submit(buy, client, pid, item) for item in items[1:]]
+        codes = [first.result().status_code, *(f.result().status_code for f in rest)]
+    assert others_waiting.is_set()                       # all four were inside a purchase at once
     assert sorted(codes) == [201, 201, 409, 409]
     assert camp(client, pid)["drachmes"] == 20 and sum(a for a, _r, _ref in ledger(settings, pid)) == 20
 
 
-def test_a_session_and_a_purchase_posted_together_keep_the_ledger_whole(client, settings):
+def test_a_session_and_a_purchase_posted_together_keep_the_ledger_whole(client, settings, monkeypatch):
+    from app.routers import sessions
     pid = make_profile(client, level="10H"); tid = make_text(client)
     purse(settings, pid, 50)
     seal(settings, pid, "hydre", 2)
+    session_started = threading.Event()
+    real_fetch = sessions.fetch_profile
+
+    def fetch_and_tell(conn, profile_id):
+        row = real_fetch(conn, profile_id)
+        session_started.set()
+        return row
+
+    monkeypatch.setattr(sessions, "fetch_profile", fetch_and_tell)
+    holding = hold_first_purchase(monkeypatch, session_started)
     with ThreadPoolExecutor(max_workers=2) as ex:
-        sale = ex.submit(lambda: buy(client, pid, "accessory:hydre-cou"))
+        sale = ex.submit(buy, client, pid, "accessory:hydre-cou")
+        assert holding.wait(timeout=10)                  # the purchase holds the write lock...
         session = ex.submit(lambda: post(client, pid, tid, hydre_result(), day="2026-09-21"))
-        assert sale.result().status_code == 201
+        assert sale.result().status_code == 201          # ...while the session is under way
         earned = session.result()["progression"]["drachmes"]["earned"]
+    assert session_started.is_set()
     rows = ledger(settings, pid)
     assert sum(a for a, _r, _ref in rows) == 50 + earned - 40
     assert camp(client, pid)["drachmes"] == 50 + earned - 40 >= 0
@@ -219,3 +292,13 @@ def test_the_walls_hold_four_six_or_nine_pieces_by_house(client, settings):
     for d in SHOP_DECOR[1:]:
         assert wear(client, pid, d).status_code == 200                                 # nine in the palais
     assert sum(1 for x in client.get(f"/api/profiles/{pid}/rewards").json() if x["kind"] == "decor" and x["equipped"]) == 9
+
+
+# SP4 final review M5: the cabin's « N trésors » counts what the trophy shelf shows (gear, decor, tints,
+# trophies), never the dragon's parure or the house.
+def test_the_camp_counts_only_the_treasures_the_shelf_shows(client, settings):
+    pid = make_profile(client, level="10H")
+    own(settings, pid, "house:villa", "accessory:hydre-cou", "accessory:echo-tete")
+    assert camp(client, pid)["rewards_count"] == 0
+    own(settings, pid, "decor:amphore", "egide", "tint:jade", "trophy:hydre:1")
+    assert camp(client, pid)["rewards_count"] == 4
