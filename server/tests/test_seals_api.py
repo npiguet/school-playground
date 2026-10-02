@@ -38,8 +38,8 @@ def won(settings, pid, *tiers):
 
 def stat_days(settings, pid, category, days, chances, mistakes=0, draft=0, caught=0):
     conn = db(settings)
-    conn.executemany("INSERT INTO profile_stat_day(profile_id, day, category, occurrences, errors_in_draft, caught, missed) "
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)", [(pid, d, category, chances, draft, caught, mistakes) for d in days])
+    conn.executemany("INSERT INTO profile_stat_day(profile_id, mode, day, category, occurrences, errors_in_draft, caught, missed) "
+                     "VALUES (?, 'dictation', ?, ?, ?, ?, ?, ?)", [(pid, d, category, chances, draft, caught, mistakes) for d in days])
     conn.commit(); conn.close()
 
 

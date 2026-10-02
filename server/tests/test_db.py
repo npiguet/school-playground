@@ -2,7 +2,7 @@ import re
 import sqlite3
 from datetime import datetime, timedelta
 import pytest
-from app.db import MIGRATIONS_DIR, connect, migrate
+from app.db import connect, migrate
 
 
 def table_names(conn):
@@ -97,14 +97,7 @@ def test_a_write_waits_out_a_lock_held_longer_than_sqlites_default(tmp_path):
 def _db_before(path, version):
     """A database as the game left it before migration `version`: the earlier migrations only."""
     conn = connect(path)
-    conn.execute("CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
-    for f in sorted(MIGRATIONS_DIR.glob("*.sql")):
-        v = int(f.name.split("_", 1)[0])
-        if v >= version:
-            break
-        conn.executescript(f.read_text(encoding="utf-8"))
-        conn.execute("INSERT INTO schema_version(version, applied_at) VALUES (?, 'then')", (v,))
-    conn.commit()
+    assert migrate(conn, upto=version - 1) == version - 1
     return conn
 
 
@@ -203,3 +196,45 @@ def test_a_failed_migration_leaves_the_database_as_it_was(tmp_path, monkeypatch)
     assert migrate(conn) == 2
     assert "extra" in table_names(conn) and conn.execute("SELECT name FROM item WHERE id = 1").fetchone()[0] == "new"
     assert [r[0] for r in conn.execute("SELECT version FROM schema_version ORDER BY version")] == [1, 2]
+
+
+# Stat mode review M1: two migrations with one number would silently skip the second.
+def test_two_migrations_with_one_number_are_refused(tmp_path, monkeypatch):
+    import app.db as db_mod
+    folder = tmp_path / "migrations"; folder.mkdir()
+    (folder / "001_base.sql").write_text("CREATE TABLE item (id INTEGER PRIMARY KEY);", encoding="utf-8")
+    (folder / "001_data.py").write_text("def up(conn):\n    pass\n", encoding="utf-8")
+    monkeypatch.setattr(db_mod, "MIGRATIONS_DIR", folder)
+    conn = connect(tmp_path / "t.sqlite3")
+    with pytest.raises(RuntimeError, match="001"):
+        migrate(conn)
+    assert "item" not in table_names(conn)
+
+
+# Stat mode review M2: migrate never commits a transaction its caller left open.
+def test_migrate_refuses_a_connection_with_an_open_transaction(tmp_path):
+    conn = connect(tmp_path / "t.sqlite3")
+    migrate(conn, upto=1)
+    conn.execute("INSERT INTO profile(id, name, avatar, level, help_stage, created_at) VALUES (1, 'Io', 'chouette', '8H', 0, 'now')")
+    assert conn.in_transaction
+    with pytest.raises(RuntimeError, match="open transaction"):
+        migrate(conn)
+    conn.rollback()
+    assert conn.execute("SELECT COUNT(*) FROM profile").fetchone()[0] == 0
+    assert migrate(conn) >= 8
+
+
+# A Python migration runs in one transaction with its version row, like an SQL one.
+def test_a_python_migration_and_its_version_row_are_one_transaction(tmp_path, monkeypatch):
+    import app.db as db_mod
+    folder = tmp_path / "migrations"; folder.mkdir()
+    (folder / "001_base.sql").write_text("CREATE TABLE item (id INTEGER PRIMARY KEY, name TEXT NOT NULL);", encoding="utf-8")
+    (folder / "002_fill.py").write_text(
+        "def up(conn):\n    conn.execute(\"INSERT INTO item(id, name) VALUES (1, 'a')\")\n    raise RuntimeError('boom')\n",
+        encoding="utf-8")
+    monkeypatch.setattr(db_mod, "MIGRATIONS_DIR", folder)
+    conn = connect(tmp_path / "t.sqlite3")
+    with pytest.raises(RuntimeError, match="boom"):
+        migrate(conn)
+    assert conn.execute("SELECT COUNT(*) FROM item").fetchone()[0] == 0
+    assert [r[0] for r in conn.execute("SELECT version FROM schema_version")] == [1]

@@ -193,6 +193,17 @@ export interface SessionCreated {
   progression?: import('./world/types').Progression;
 }
 
+/** One mode's counters for a category (server migration 008). */
+export interface ModeCounters {
+  occurrences: number;
+  errors_in_draft: number;
+  caught: number;
+  missed: number;
+  introduced: number;
+}
+
+/** A category's counters: the sum of both modes, as the game has always read them; `by_mode` tells the
+ *  child's own mistakes (`dictation`) apart from Éris's planted ones (`grimoire`). */
 export interface CategoryRow {
   category: string;
   occurrences: number;
@@ -200,6 +211,7 @@ export interface CategoryRow {
   caught: number;
   missed: number;
   catch_rate: number | null;
+  by_mode: { dictation: ModeCounters; grimoire: ModeCounters };
 }
 
 export interface RecentSession {

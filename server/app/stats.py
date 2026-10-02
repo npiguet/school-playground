@@ -35,25 +35,27 @@ def argus_order(category_rows: list[dict]) -> list[str]:
     return sorted(DEFAULT_ARGUS, key=lambda b: -ratio(b))
 
 
-def apply_session_to_stats(conn: sqlite3.Connection, profile_id: int, result: dict, day: str, now: str) -> None:
+def apply_session_to_stats(conn: sqlite3.Connection, profile_id: int, result: dict, day: str, now: str, mode: str) -> None:
+    """Adds the session's per-category counts into the rows of its mode (migration 008): 'dictation'
+    rows hold the child's own mistakes, 'grimoire' rows Éris's planted ones. Readers sum both."""
     for key, c in result.get("byCategory", {}).items():
         vals = (c.get("opportunities", 0), c.get("draft", 0), c.get("caught", 0), c.get("missed", 0), c.get("introduced", 0))
-        conn.execute("""INSERT INTO profile_stat(profile_id, category, occurrences, errors_in_draft, caught, missed, introduced, updated_at)
-                        VALUES (?,?,?,?,?,?,?,?)
-                        ON CONFLICT(profile_id, category) DO UPDATE SET
+        conn.execute("""INSERT INTO profile_stat(profile_id, category, mode, occurrences, errors_in_draft, caught, missed, introduced, updated_at)
+                        VALUES (?,?,?,?,?,?,?,?,?)
+                        ON CONFLICT(profile_id, category, mode) DO UPDATE SET
                           occurrences = occurrences + excluded.occurrences,
                           errors_in_draft = errors_in_draft + excluded.errors_in_draft,
                           caught = caught + excluded.caught, missed = missed + excluded.missed,
                           introduced = introduced + excluded.introduced,
-                          updated_at = excluded.updated_at""", (profile_id, key, *vals, now))
-        conn.execute("""INSERT INTO profile_stat_day(profile_id, day, category, occurrences, errors_in_draft, caught, missed, introduced)
-                        VALUES (?,?,?,?,?,?,?,?)
-                        ON CONFLICT(profile_id, day, category) DO UPDATE SET
+                          updated_at = excluded.updated_at""", (profile_id, key, mode, *vals, now))
+        conn.execute("""INSERT INTO profile_stat_day(profile_id, day, category, mode, occurrences, errors_in_draft, caught, missed, introduced)
+                        VALUES (?,?,?,?,?,?,?,?,?)
+                        ON CONFLICT(profile_id, day, category, mode) DO UPDATE SET
                           occurrences = occurrences + excluded.occurrences,
                           errors_in_draft = errors_in_draft + excluded.errors_in_draft,
                           caught = caught + excluded.caught, missed = missed + excluded.missed,
                           introduced = introduced + excluded.introduced""",
-                     (profile_id, day, key, *vals))
+                     (profile_id, day, key, mode, *vals))
 
 
 def update_trap_words(conn: sqlite3.Connection, profile_id: int, result: dict, reference_body: str, now: str,

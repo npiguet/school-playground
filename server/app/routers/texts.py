@@ -127,7 +127,8 @@ def corrupt_text(text_id: int, body: CorruptRequest, request: Request, db: sqlit
     reform = load_reform(settings.content_dir)
 
     stat_rows = [dict(r) for r in db.execute(
-        "SELECT category, errors_in_draft, caught FROM profile_stat WHERE profile_id = ?", (body.profile_id,))]
+        "SELECT category, SUM(errors_in_draft) AS errors_in_draft, SUM(caught) AS caught FROM profile_stat "
+        "WHERE profile_id = ? GROUP BY category", (body.profile_id,))]   # both modes (migration 008)
     trap = {r[0] for r in db.execute(
         "SELECT word FROM trap_word WHERE profile_id = ?", (body.profile_id,))}
 
