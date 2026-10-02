@@ -25,9 +25,11 @@
   }: {
     tier: number;
     rewardId: string | null;
-    rewardXp: number;
-    /** Spec 2026-09-29 drachmes §1: what every won fight pays (the rules file). */
-    rewardDrachmes: number;
+    /** The fight's XP and drachmes as the server serves them (the rules file, spec 2026-09-29 drachmes
+     *  §1); null until the catalogue has come: the stakes then wait rather than say a client copy that
+     *  may differ (SP4 final review M8). */
+    rewardXp: number | null;
+    rewardDrachmes: number | null;
     rewardName: string | null;
     /** The fight's threshold, mistakes left per 100 words (the rules file). */
     fightMax: number;
@@ -46,10 +48,12 @@
   <!-- The fight's banner first, then Éris's challenge under it (UI4 playability #14). -->
   <p class="kit-ribbon tier" data-testid="boss-tier">{BOSS.tier(romanTier(tier))}</p>
   <OverlayVoice line={taunt} testId="battle-voice" />
-  <p class="stakes" data-testid="boss-reward">
-    {#if rewardId}<Medallion {rewardId} size={40} />{/if}
-    <span>{BOSS.reward(rewardXp, rewardDrachmes, rewardName)}</span>
-  </p>
+  {#if rewardXp !== null && rewardDrachmes !== null}
+    <p class="stakes" data-testid="boss-reward">
+      {#if rewardId}<Medallion {rewardId} size={40} />{/if}
+      <span>{BOSS.reward(rewardXp, rewardDrachmes, rewardName)}</span>
+    </p>
+  {/if}
   <p class="rules">{BOSS.rules(fightMax)}</p>
   {#if startError}<p class="kit-note" data-tone="eris" role="alert">{startError}</p>{/if}
   <button type="button" class="kit-bronze start" data-testid="boss-start" disabled={starting} onclick={onStart}>

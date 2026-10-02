@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('./api', () => ({ worldApi: { camp: vi.fn() } }));
+vi.mock('./api', () => ({ worldApi: { camp: vi.fn(), world: vi.fn() } }));
 
 import { worldApi } from './api';
-import { campFor, campStore, refreshCamp, replaceCamp } from './campStore.svelte';
+import { campFor, campStore, loadCatalog, refreshCamp, replaceCamp } from './campStore.svelte';
+import type { WorldCatalog } from './types';
 import type { CampResponse } from './types';
 
 // A promise this test controls the resolution/rejection timing of, so an "older" call can be made
@@ -97,5 +98,27 @@ describe('replaceCamp (final review I2): an optimistic write never lands on anot
     campStore.data = null;
     replaceCamp(1, heroCamp(1, 'jade'));
     expect(campStore.data).toBeNull();
+  });
+});
+
+describe('loadCatalog (SP4 final review M2): a failed load is told, and a retry clears it', () => {
+  beforeEach(() => {
+    vi.mocked(worldApi.world).mockReset();
+    campStore.catalog = null;
+    campStore.catalogFailed = false;
+  });
+
+  it('marks the failure, then the catalog once a retry lands', async () => {
+    vi.mocked(worldApi.world).mockRejectedValueOnce(new Error('offline'));
+    await loadCatalog();
+    expect(campStore.catalog).toBeNull();
+    expect(campStore.catalogFailed).toBe(true);
+    const cat = { rewards: {} } as unknown as WorldCatalog;
+    vi.mocked(worldApi.world).mockResolvedValueOnce(cat);
+    const retry = loadCatalog();
+    expect(campStore.catalogFailed, 'waiting again, not failed').toBe(false);
+    await retry;
+    expect(campStore.catalog).toEqual(cat);
+    expect(campStore.catalogFailed).toBe(false);
   });
 });

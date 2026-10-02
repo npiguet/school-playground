@@ -133,3 +133,22 @@ test('the guide reads the rules the server serves', async ({ page, request }, te
   await expect(guide.getByTestId('guide-eris')).toContainText('Combat I\u202f: trois lieutenants au sceau de bois');
   await page.unrouteAll({ behavior: 'ignoreErrors' });
 });
+
+// SP4 final review M8: without the catalogue the guide prints no number (a client copy could differ
+// from the served rules): it says it cannot open, and \u00ab R\u00e9essayer \u00bb brings the served numbers.
+test('the guide without the catalogue shows no number, and \u00ab R\u00e9essayer \u00bb opens it', async ({ page, request }, testInfo) => {
+  let worldDown = true;
+  await page.route('**/api/world', (route) => (worldDown ? route.abort('failed') : route.continue()));
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.goto(`/#/p/${id}/cabane?panel=guide`);
+  const guide = page.getByTestId('overlay-guide');
+  await expect(guide.getByTestId('guide-status')).toContainText("Le guide ne s'ouvre pas pour l'instant.");
+  await expect(guide.getByTestId('guide')).toHaveCount(0);
+  await expect(guide.getByTestId('guide-status')).not.toContainText(/\d/);
+  worldDown = false;
+  await tap(guide.getByTestId('guide-retry'), testInfo);
+  await expect(guide.getByTestId('guide-drachmes')).toContainText('Le d\u00e9cor co\u00fbte 50 drachmes la pi\u00e8ce');
+  await expect(guide.getByTestId('guide-status')).toHaveCount(0);
+  await expect(guide.getByTestId('guide-gloire').locator('h3')).toBeFocused();
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+});

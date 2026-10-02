@@ -68,6 +68,8 @@ test('buying asks once, Hermès thanks, the piece is owned and the purse goes do
   await openStall(page, id, testInfo);
   const stall = page.getByTestId('overlay-stall');
   const amphora = stall.getByTestId('stall-item-decor:amphore');
+  // SP4 final review M4: the button's name says which piece, and at what price.
+  await expect(amphora.getByTestId('stall-buy-decor:amphore')).toHaveAccessibleName("Acheter l'amphore peinte pour 50 drachmes");
   await tap(amphora.getByTestId('stall-buy-decor:amphore'), testInfo);
   await expect(amphora).toContainText("Acheter l'amphore peinte pour 50 drachmes\u202f?");
   await tap(amphora.getByTestId('stall-cancel'), testInfo);
@@ -143,4 +145,55 @@ test('the stall could not read what is owned: it says so, and « Réessayer » b
   await expect(stall.getByTestId('stall-retry')).toHaveCount(0);
   expect(calls).toBe(2);
   await expect(stall.getByTestId('stall-panel')).toBeFocused();
+});
+
+// SP4 final review M6: the refusal's reason stays on show even when the re-read after it fails.
+test("a refused purchase keeps the server's reason when what is owned cannot be read again", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const text = await createText(request, { title: uniqueName(`Étal ${testInfo.project.name}`), body: 'Les fées dansent dans la clairière.', level: '10H' });
+  await postSession(request, { profileId: id, textId: text.id, day: swissDay(0), result: makeResult({ words: 3000, draft: 4, caught: 4 }) });
+  let rewardsDown = false;
+  await page.route(`**/api/profiles/${id}/rewards`, (route) => (rewardsDown ? route.abort('failed') : route.continue()));
+  await openStall(page, id, testInfo);
+  const stall = page.getByTestId('overlay-stall');
+  await tap(stall.getByTestId('stall-buy-decor:chouette'), testInfo);
+  // Elsewhere, the same piece is bought: this purchase is refused, and the re-read after it fails.
+  expect((await request.post(`/api/profiles/${id}/purchases`, { data: { item: 'decor:chouette' } })).status()).toBe(201);
+  rewardsDown = true;
+  await tap(stall.getByTestId('stall-confirm'), testInfo);
+  await expect(stall.getByTestId('stall-confirm')).toHaveCount(0);
+  await expect(stall.getByTestId('stall-error')).toHaveText("Tu l'as déjà.");
+});
+
+// SP4 final review M2: without its catalogue, the stall says so and offers « Réessayer », never an
+// endless « Hermès déballe ses marchandises… »; once the catalogue answers, the shelves come.
+test('the stall could not read its catalogue: it says so, and « Réessayer » brings the shelves', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let worldDown = true;
+  await page.route('**/api/world', (route) => (worldDown ? route.abort('failed') : route.continue()));
+  await openStall(page, id, testInfo);
+  const stall = page.getByTestId('overlay-stall');
+  await expect(stall.getByTestId('stall-error')).toHaveText("Hermès ne peut pas déballer ses marchandises pour l'instant.");
+  await expect(stall).not.toContainText('Hermès déballe ses marchandises');
+  worldDown = false;
+  await tap(stall.getByTestId('stall-retry'), testInfo);
+  await expect(stall.getByTestId('stall-accessories')).toBeVisible();
+  await expect(stall.getByTestId('stall-error')).toHaveCount(0);
+  await expect(stall.getByTestId('stall-retry')).toHaveCount(0);
+  await expect(stall.getByTestId('stall-panel')).toBeFocused();
+});
+
+// SP4 final review M2: the same for a camp that could not be reached (the stall opened from its link).
+test('the stall without the camp: it says so, and « Réessayer » brings the purse and the shelves', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let campDown = true;
+  await page.route(`**/api/profiles/${id}/camp`, (route) => (campDown ? route.abort('failed') : route.continue()));
+  await page.goto(`/#/p/${id}/camp?panel=etal`);
+  const stall = page.getByTestId('overlay-stall');
+  await expect(stall.getByTestId('stall-error')).toHaveText("Hermès ne peut pas déballer ses marchandises pour l'instant.");
+  campDown = false;
+  await tap(stall.getByTestId('stall-retry'), testInfo);
+  await expect(stall.getByTestId('stall-purse')).toHaveText('Ta bourse\u202f: 0 drachme');
+  await expect(stall.getByTestId('stall-decor')).toBeVisible();
+  await expect(stall.getByTestId('stall-retry')).toHaveCount(0);
 });

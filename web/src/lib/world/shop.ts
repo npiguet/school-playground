@@ -27,6 +27,9 @@ export const purseLine = (n: number) => `Ta bourse\u202f: ${drachmesText(n)}`;
 export const drachmeChip = (n: number) => `+${drachmesText(n)}`;
 /** The one confirmation (R12): « Acheter la couronne de pavots pour 130 drachmes ? ». */
 export const confirmQuestion = (item: { the: string; price: number }) => `Acheter ${item.the} pour ${drachmesText(item.price)}\u202f?`;
+/** An \u00ab Acheter \u00bb button's accessible name (SP4 final review M4): its visible word first, then the
+ *  piece and its price, \u00ab Acheter la couronne de pavots pour 130 drachmes \u00bb. */
+export const buyLabel = (item: { the: string; price: number }) => `Acheter ${item.the} pour ${drachmesText(item.price)}`;
 
 export type ItemKind = 'accessory' | 'decor' | 'house';
 /** The kind of a stall item by its reward id (R1), for Hermès's line after a purchase. */

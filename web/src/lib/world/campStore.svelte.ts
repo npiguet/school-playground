@@ -6,11 +6,14 @@ import { ApiError } from '../api';
 import { worldApi } from './api';
 import type { CampResponse, WorldCatalog } from './types';
 
-export const campStore = $state<{ data: CampResponse | null; loading: boolean; error: string; catalog: WorldCatalog | null }>({
+export const campStore = $state<{ data: CampResponse | null; loading: boolean; error: string; catalog: WorldCatalog | null; catalogFailed: boolean }>({
   data: null,
   loading: false,
   error: '',
   catalog: null,
+  // The last catalog load failed (SP4 final review M2): a screen that cannot do without it (Hermès's
+  // stall) says so and offers « Réessayer » instead of waiting for ever.
+  catalogFailed: false,
 });
 
 // UI3a Task 9: this store is shared, but its callers are no longer only Camp.svelte - every
@@ -56,12 +59,14 @@ export async function refreshCamp(profileId: number): Promise<void> {
 // Caches the (mostly static) world catalog - technique lines, lieutenant names, reward catalog - so screens
 // that need it (Lieutenant, Dossier) don't each fetch it separately. Best-effort: the world API
 // may not exist yet (SP3 server Tasks 2-3), so a failure just leaves it `null` and callers fall
-// back to their own generic text.
+// back to their own generic text; `catalogFailed` tells the screens that cannot (the stall) to say so.
 export async function loadCatalog(): Promise<void> {
   if (campStore.catalog) return;
+  campStore.catalogFailed = false;
   try {
     campStore.catalog = await worldApi.world();
   } catch {
-    // Non-critical - screens degrade gracefully without it.
+    // Non-critical for most screens: they degrade gracefully without it.
+    if (!campStore.catalog) campStore.catalogFailed = true;
   }
 }

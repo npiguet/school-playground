@@ -1,7 +1,8 @@
 // Le guide du camp (spec 2026-09-29 explanations §3, plan R12): five short sections in the dragon's
 // voice, reread from the lyre. Every number comes from what the server serves (`/api/world`: the rules
 // file's values, the stages, the stall, the quest bonuses, a seal's XP, the fights' gear), so the guide
-// never drifts from data/regles.json; the defaults below only speak until the catalogue has come. Pure.
+// never drifts from data/regles.json. It needs the catalogue: without it, the panel shows no number at
+// all rather than a copy that may differ from the served one (SP4 final review M8). Pure.
 import { AID_KEYS, AID_LABELS, LEAVE_AFTER, TAKE_AFTER, aidDesc, listFr } from '../aids';
 import { PACES, PACE_LABELS } from '../dictation/script';
 import { paceBonus, rulesOf } from '../rules';
@@ -10,7 +11,7 @@ import { stageLabel, stageXp } from './dragon';
 import { romanTier } from './quests';
 import { MATERIALS, MAX_SEAL, sealName, sealTitle } from './seals';
 import { drachmesText } from './shop';
-import { DRAGON_STAGES, type DragonStage, type House, type Slot, type WorldCatalog } from './types';
+import { DRAGON_STAGES, type DragonStage, type Slot, type WorldCatalog } from './types';
 
 export type GuideBlock = { kind: 'p'; text: string } | { kind: 'list'; items: string[] };
 export interface GuideSection {
@@ -19,16 +20,8 @@ export interface GuideSection {
   blocks: GuideBlock[];
 }
 
-// The server's defaults (catalog.py QUEST_BONUS, seals.py LEVEL_XP, shop.py prices), until /api/world has come.
-const QUEST_BONUS = { board: 60, oracle: 150, weekly: 40, boss: 300 };
-const LEVEL_XP = 100;
 const SLOT_ORDER: Slot[] = ['cou', 'queue', 'dos', 'tete'];
-const SLOT_LEVEL: Record<Slot, number> = { cou: 2, queue: 3, dos: 4, tete: 5 };
-const SLOT_PRICE: Record<Slot, number> = { cou: 40, queue: 60, dos: 90, tete: 130 };
 const SLOT_WHERE: Record<Slot, string> = { cou: 'le cou', queue: 'la queue', dos: 'le dos', tete: 'la tête' };
-const HOUSES = { villa: { stage: 'adult' as DragonStage, price: 300 }, palais: { stage: 'illustre' as DragonStage, price: 800 } };
-const WALLS: Record<House, number> = { cabin: 4, villa: 6, palais: 9 };
-const DECOR_PRICE = 50;
 
 const p = (text: string): GuideBlock => ({ kind: 'p', text });
 const list = (items: string[]): GuideBlock => ({ kind: 'list', items });
@@ -47,9 +40,9 @@ const counted = (n: number, one: string, many: string) => `${countWord(n, true)}
 /** The gods' weapons Éris's fights bring (`boss_rewards`, tier → piece), in the ladder's order. When the
  *  tiers are the first ones (1..N) the guide says « les N premières »; otherwise it pairs each piece
  *  with its fight. */
-function gearSentence(catalog: WorldCatalog | null): string {
-  const pieces = Object.entries(catalog?.boss_rewards ?? {})
-    .map(([tier, id]) => ({ tier: Number(tier), name: catalog?.rewards[id]?.name }))
+function gearSentence(catalog: WorldCatalog): string {
+  const pieces = Object.entries(catalog.boss_rewards ?? {})
+    .map(([tier, id]) => ({ tier: Number(tier), name: catalog.rewards[id]?.name }))
     .filter((g): g is { tier: number; name: string } => Number.isInteger(g.tier) && g.tier >= 1 && !!g.name)
     .sort((a, b) => a.tier - b.tier);
   if (pieces.length === 0) return '';
@@ -59,23 +52,21 @@ function gearSentence(catalog: WorldCatalog | null): string {
   return `Certaines apportent aussi une arme des dieux\u202f: ${pieces.map((g) => `le combat ${romanTier(g.tier)}, ${g.name}`).join('\u202f; ')}.`;
 }
 
-export function guideSections(catalog: WorldCatalog | null): GuideSection[] {
+/** The guide's five sections, every number from the served catalogue (none of its own). */
+export function guideSections(catalog: WorldCatalog): GuideSection[] {
   const r = rulesOf(catalog);
   const xp = stageXp(catalog);
-  const qb = { ...QUEST_BONUS, ...(catalog?.quest_bonus ?? {}) };
-  const lx = catalog?.level_xp ?? LEVEL_XP;
+  const qb = catalog.quest_bonus;
+  const lx = catalog.level_xp;
   const d = r.drachmes;
-  const shop = catalog?.shop ?? null;
-  const slotLevel = (s: Slot) => shop?.slot_levels[s] ?? SLOT_LEVEL[s];
-  const slotPrice = (s: Slot) => shop?.accessories.find((a) => a.slot === s)?.price ?? SLOT_PRICE[s];
-  const house = (k: 'villa' | 'palais') => {
-    const h = shop?.houses.find((x) => x.key === k);
-    return { stage: h?.stage ?? HOUSES[k].stage, price: h?.price ?? HOUSES[k].price };
-  };
+  const shop = catalog.shop;
+  const slotLevel = (s: Slot) => shop.slot_levels[s];
+  const slotPrice = (s: Slot) => shop.accessories.find((a) => a.slot === s)!.price;
+  const house = (k: 'villa' | 'palais') => shop.houses.find((x) => x.key === k)!;
   const villa = house('villa');
   const palais = house('palais');
-  const walls = shop?.max_decor ?? WALLS;
-  const decor = shop?.decor[0]?.price ?? DECOR_PRICE;
+  const walls = shop.max_decor;
+  const decor = shop.decor[0].price;
   const paces = PACES.map((pace) => ({ pace, bonus: paceBonus(pace, 'dictation', r) })).filter((x) => x.bonus > 0);
   const firstOnSale = Math.min(...SLOT_ORDER.map(slotLevel));
 

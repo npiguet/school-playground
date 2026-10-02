@@ -4,14 +4,14 @@
   // shown ahead with what it waits for (ethics: nothing hidden, nothing drawn by lot); buying asks one
   // question in the piece's own cubby, then Hermès thanks (the overlay's voice, `onBought`). The server
   // decides every purchase; a refusal says why and refreshes the purse (and what is owned).
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { worldApi } from '../../../lib/world/api';
   import { ApiError } from '../../../lib/api';
   import { ART, MARK_ICONS, rewardIcon } from '../../../lib/world/art';
-  import { campFor, campStore, refreshCamp } from '../../../lib/world/campStore.svelte';
+  import { campFor, campStore, loadCatalog, refreshCamp } from '../../../lib/world/campStore.svelte';
   import { lieutenantName } from '../../../lib/world/eris';
   import { accessoryPicture } from '../../../lib/world/accessories';
-  import { confirmQuestion, drachmesText, kindOfItem, purseLine, stallShelves, type ItemKind, type StallItem } from '../../../lib/world/shop';
+  import { buyLabel, confirmQuestion, drachmesText, kindOfItem, purseLine, stallShelves, type ItemKind, type StallItem } from '../../../lib/world/shop';
   import { playSfx, unlockAudio } from '../../../lib/juice/sfx';
   import type { RewardOut } from '../../../lib/world/types';
   import type { Profile } from '../../../lib/types';
@@ -35,15 +35,24 @@
     } catch (e) {
       if (id !== profile.id) return;
       if (owned === null) ownedFailed = true;
-      error = failure(e);
+      // A refusal's reason, already on show, is kept (SP4 final review M6): the server's word on the
+      // purchase matters more than the re-read that followed it.
+      error ||= failure(e);
     }
   }
+  // SP4 final review M2: the stall cannot stock its shelves without the catalogue and the camp. When
+  // either failed to load, it says so and offers « Réessayer » rather than unpacking for ever.
+  const stockFailed = $derived((!campStore.catalog && campStore.catalogFailed) || (!camp && !campStore.loading && !!campStore.error));
   // The button is gone once it is pressed: the focus goes to « Réessayer » again if the stall still
-  // cannot read, else to the stall itself, never to the page.
-  async function retryOwned() {
+  // cannot read, else to the stall itself, never to the page. It asks again for whatever is missing.
+  async function retry() {
     error = '';
     ownedFailed = false;
-    await loadOwned(profile.id);
+    await Promise.all([
+      owned === null ? loadOwned(profile.id) : null,
+      campStore.catalog ? null : loadCatalog(),
+      campFor(profile.id) ? null : refreshCamp(profile.id),
+    ]);
     await tick();
     (list?.querySelector<HTMLElement>('[data-testid="stall-retry"]') ?? list)?.focus();
   }
@@ -51,7 +60,11 @@
     const id = profile.id;
     owned = null;
     ownedFailed = false;
+    error = '';
     void loadOwned(id);
+    // Opening the stall asks again for a catalogue that failed to load (the camp asks once, on mount).
+    // Untracked: the catalogue's arrival must not run this again (a second /rewards read).
+    untrack(() => void loadCatalog());
   });
   const ownedIds = $derived(new Set((owned ?? []).map((r) => r.id)));
   const shelves = $derived(
@@ -136,7 +149,7 @@
         <button type="button" class="kit-bronze is-quiet" data-testid="stall-cancel" disabled={buying} onclick={() => cancel(it)}>Non, merci</button>
       </div>
     {:else if it.state === 'on_sale'}
-      <button type="button" class="kit-bronze" data-testid="stall-buy-{it.id}" onclick={() => ask(it)}>Acheter</button>
+      <button type="button" class="kit-bronze" data-testid="stall-buy-{it.id}" aria-label={buyLabel(it)} onclick={() => ask(it)}>Acheter</button>
     {:else}
       <p class="stall-note" data-testid="stall-note-{it.id}">{it.note}</p>
     {/if}
@@ -148,9 +161,13 @@
     <img class="hermes" src={ART.characters.hermes} alt="Hermès" draggable="false" />
     {#if camp}<p class="purse" data-testid="stall-purse"><img class="coin" src={MARK_ICONS.drachme} alt="" draggable="false" />{purseLine(camp.drachmes)}</p>{/if}
   </div>
-  {#if error}<p class="kit-note" data-tone="eris" role="alert" data-testid="stall-error">{error}</p>{/if}
-  {#if ownedFailed}
-    <button type="button" class="kit-bronze is-quiet stall-retry" data-testid="stall-retry" onclick={retryOwned}>Réessayer</button>
+  {#if error}
+    <p class="kit-note" data-tone="eris" role="alert" data-testid="stall-error">{error}</p>
+  {:else if stockFailed}
+    <p class="kit-note" data-tone="eris" role="alert" data-testid="stall-error">Hermès ne peut pas déballer ses marchandises pour l'instant.</p>
+  {/if}
+  {#if ownedFailed || stockFailed}
+    <button type="button" class="kit-bronze is-quiet stall-retry" data-testid="stall-retry" onclick={retry}>Réessayer</button>
   {:else if !shelves}
     <p class="kit-note">Hermès déballe ses marchandises…</p>
   {:else}

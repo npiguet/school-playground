@@ -4,7 +4,7 @@ import { FOMO, GENDERED, GUILT, banned } from '../../testing/copyRules';
 import { guideSections } from './guide';
 import type { WorldCatalog } from './types';
 
-const text = (catalog: WorldCatalog | null, id: string) => {
+const text = (catalog: WorldCatalog, id: string) => {
   const s = guideSections(catalog).find((x) => x.id === id)!;
   return s.blocks.map((b) => (b.kind === 'p' ? b.text : b.items.join('\n'))).join('\n');
 };
@@ -55,22 +55,13 @@ const ODD = {
 
 describe('le guide du camp (spec 2026-09-29 explanations §3)', () => {
   it('has five sections in order, in the dragon\'s words', () => {
-    expect(guideSections(null).map((s) => [s.id, s.title])).toEqual([
+    expect(guideSections(ODD).map((s) => [s.id, s.title])).toEqual([
       ['gloire', 'La gloire et ton dragon'],
       ['sceaux', 'Les sceaux'],
       ['drachmes', 'Les drachmes'],
       ['aides', 'Les aides'],
       ['eris', 'Les combats contre Éris'],
     ]);
-  });
-
-  it('says the defaults until the catalogue has come', () => {
-    expect(text(null, 'gloire')).toContain('Dragonnet\u202f: 100 XP');
-    expect(text(null, 'gloire')).toContain('Dragon ancestral\u202f: 40\u202f000 XP');
-    expect(text(null, 'sceaux')).toContain('Sceau de bois\u202f: 3 jours de garde, 12 pièges, 85\u202f% déjoués');
-    expect(text(null, 'drachmes')).toContain('Pour le cou, au sceau de bronze\u202f: 40 drachmes');
-    expect(text(null, 'aides')).toContain('20\u202f% de gloire');
-    expect(text(null, 'eris')).toContain("Combat X\u202f: tous les lieutenants au sceau d'orichalque");
   });
 
   // Review focus 4: every number follows what the server serves.
@@ -109,7 +100,7 @@ describe('le guide du camp (spec 2026-09-29 explanations §3)', () => {
 
   // Fix round 1, M5: « à partir du bronze » is the lowest level the stall's list reads.
   it('says from which seal the stall sells, from the served slot levels', () => {
-    expect(text(null, 'drachmes')).toContain('à partir du bronze, met en vente');
+    expect(text(ODD, 'drachmes')).toContain('à partir du bronze, met en vente');
     const late = { ...ODD, shop: { ...ODD.shop, slot_levels: { cou: 3, queue: 3, dos: 4, tete: 5 } } } as unknown as WorldCatalog;
     expect(text(late, 'drachmes')).toContain("à partir de l'argent, met en vente");
     expect(text(late, 'drachmes')).toContain("Pour le cou, au sceau d'argent\u202f: 45 drachmes");
@@ -140,16 +131,14 @@ describe('le guide du camp (spec 2026-09-29 explanations §3)', () => {
   });
 
   it('speaks the camp, never the school, never guilt or pressure, in French typography', () => {
-    for (const catalog of [null, ODD]) {
-      for (const s of guideSections(catalog)) {
-        for (const b of s.blocks) {
-          for (const t of b.kind === 'p' ? [b.text] : b.items) {
-            expect(banned(t), t).toEqual([]);
-            expect(t.match(GUILT), t).toBeNull();
-            expect(t, t).not.toMatch(GENDERED);
-            expect(t, t).not.toMatch(FOMO);
-            expect(t, t).not.toMatch(/ [:;!?%»]|« /);
-          }
+    for (const s of guideSections(ODD)) {
+      for (const b of s.blocks) {
+        for (const t of b.kind === 'p' ? [b.text] : b.items) {
+          expect(banned(t), t).toEqual([]);
+          expect(t.match(GUILT), t).toBeNull();
+          expect(t, t).not.toMatch(GENDERED);
+          expect(t, t).not.toMatch(FOMO);
+          expect(t, t).not.toMatch(/ [:;!?%»]|« /);
         }
       }
     }
