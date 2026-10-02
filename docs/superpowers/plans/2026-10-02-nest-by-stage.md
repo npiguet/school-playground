@@ -17,7 +17,7 @@
 - All six keep the nest's warm light and palette (`assets/art/scenes/nest.json`: warm golden sunset, `discorde-illustration`, `--vscale 1.0`, 8 steps).
 - The hatchling's painting is made from the chosen egg painting by the two-pass inpaint method of the krea2 skill (the shell only).
 - 2-3 variants per stage are shown to the user, who picks, **before** the code is tuned on them (Task 1 and Task 2 end in an explicit STOP).
-- Starting sizes (art % of the 16:9 frame; the square sprite's height on screen is its width x 16/9): egg w 12 feet 62, hatchling 18/66, young 26/72, adult 34/80, illustre 40/86, ancestral 47/94; centre x 50 up to young, around **x 44** from adult. Tuned on the chosen paintings; the head always stays below the HUD.
+- Starting sizes (art % of the 16:9 frame; the square sprite's height on screen is its width x 16/9): egg w 16 feet 54, hatchling 21/55, young 36/73, adult 40/80.5, illustre 44/88, ancestral 47/94 (set with the user in Task 1, 2026-10-02); centre x 50 up to young (50.5 for the young, so its box clears the sheet), around **x 44** from adult. Tuned on the chosen paintings; the head always stays below the HUD.
 - From the adult stage the growth sheet moves to the side of the frame (the right, since the dragon shifts left); the sheet never overlaps the dragon or the HUD at any stage.
 - The dragon layer stays depth 0, idle `none`.
 - CLAUDE.md: no "pre-existing" problems (fix or report every failure or warning you meet); `vitest` and `svelte-check` must end with **0 errors and 0 warnings**; no emoji anywhere the player can see.
@@ -224,7 +224,7 @@ for pair in egg:1601 young:1611 adult:1621 illustre:1631 ancestral:1641; do
   idle; sleep 5; idle   # idle twice in a row, outside the lock
   sh tools/art/with_lock.sh python .claude/skills/krea2/generate.py \
     --prompt-file "$W/assets/art/web/nest_variants/nest_$s.txt" --style discorde-illustration \
-    --size 2048x1152 --steps 8 --vscale 1.0 --variance 1.2 --seed $seed --count 3 \
+    --size 2048x1152 --steps 8 --vscale 1.0 --seed $seed --count 3 \
     --out "$W/assets/art/web/nest_variants/nest_$s.png"
 done > C:/Users/nicol/.claude/jobs/9ac9a508/tmp/nest-art.log 2>&1
 ```
@@ -277,7 +277,7 @@ In `docs/art/style-guide.md`, under "Scenes UI (UI2, 2026-09-24)", after the **S
 ```markdown
 **The nest by stage (spec 2026-10-02 nest by stage):** one painting per dragon stage,
 `scenes/nest_{egg,hatchling,young,adult,illustre,ancestral}.png`, same light, palette and style as the
-old `nest.png` (seed 603, removed), `--vscale 1.0 --variance 1.2`, 8 steps. Picked seeds: egg <seed>,
+old `nest.png` (seed 603, removed), `--vscale 1.0`, 8 steps, Krea2 Variance off. Picked seeds: egg <seed>,
 young <seed>, adult <seed>, illustre <seed>, ancestral <seed> (the sidecars hold the prompts). The
 hatchling's painting is the egg's with the broken shell inpainted in two passes (see below). Each
 prompt names the empty spot's place and its floor's height ("its straw floor lying about four fifths
@@ -309,17 +309,17 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 - Consumes: `assets/art/scenes/nest_egg.png` (Task 1), `tools/art/img2img.py`, `tools/art/nest_preview.py`.
 - Produces: `assets/art/scenes/nest_hatchling.png` (2048x1152), identical to the egg's painting outside the shell.
 
-The hatchling sprite (`dragon_hatchling_cut.webp`) already sits in the **bottom half** of its shell, so the painted shell is the egg's broken-off **top cap and a few fragments**, in the egg's own scales (bronze-gold and dark blue-green, like `dragon_egg_cut.webp`), lying beside the nest on the right of the dragon (the sheet is on the left). The hatchling's box is x 41-59, y 34-66 (w 18, feet 66): the shell stays right of x 60.
+The hatchling sprite (`dragon_hatchling_cut.webp`) already sits in the **bottom half** of its shell, so the painted shell is the egg's broken-off **top cap and a few fragments**, in the egg's own scales (bronze-gold and dark blue-green, like `dragon_egg_cut.webp`), lying beside the nest on the right of the dragon (the sheet is on the left). The hatchling's box is x 39.5-60.5, y 17.7-55 (w 21, feet 55, on `nest_egg.png` seed 1663, set with the user in Task 1): the shell stays right of x 61.
 
 - [ ] **Step 1: Draw the two masks**
 
-Default box (art %): x 61-71, y 53-67 = px 1240-1460 x 600-780. Before drawing, open `nest_preview.py --grid` on `nest_egg.png` and move the box so its bottom sits on the straw or rock floor beside the nest and it holds no landmark; keep x >= 60 and <= 87.5. Then:
+Default box (art %): x 64-74, y 60-72 = px 1311-1516 x 691-829 (on 1663 the small nest spans about x 30-67, y 31-67; this box is the bare rock right of its front rim, just below the fallen olive leaf). Before drawing, open `nest_preview.py --grid` on `nest_egg.png` and move the box so its bottom sits on the straw or rock floor beside the nest and it holds no landmark; keep x >= 61 and <= 87.5. Then:
 
 ```bash
 python - <<'EOF'
 from PIL import Image, ImageDraw
 W, H = 2048, 1152
-box = (1240, 600, 1460, 780)          # pass 1: the shell's spot (adjusted on the painting)
+box = (1311, 691, 1516, 829)          # pass 1: the shell's spot (adjusted on the painting)
 grow = (0, 24, 24, 24)                # pass 2: grown 24 px on top, right and bottom, never left toward the dragon
 for name, (l, t, r, b) in {
     "inpaint": box,
@@ -383,7 +383,7 @@ print("changed box:", diff.getbbox())
 EOF
 ```
 
-Expected: `changed px outside: 0`, and the changed box inside the refine mask's grown box. Then preview: `python tools/art/nest_preview.py --painting assets/art/web/nest_variants/nest_hatchling_p2.png --stage hatchling --x 50 --y 66 --w 18 --ellipse 50,50,8.5,15 --sheet left --out assets/art/web/nest_variants/preview_hatchling_final.png`. Read it: no halo, crisp edge, the shell beside (not under) the dragon, outside the yellow ellipse and the cyan band.
+Expected: `changed px outside: 0`, and the changed box inside the refine mask's grown box. Then preview: `python tools/art/nest_preview.py --painting assets/art/web/nest_variants/nest_hatchling_p2.png --stage hatchling --x 50 --y 55 --w 21 --ellipse 50,36.5,9.5,18.5 --sheet left --out assets/art/web/nest_variants/preview_hatchling_final.png`. Read it: no halo, crisp edge, the shell beside (not under) the dragon, outside the yellow ellipse and the cyan band.
 
 - [ ] **Step 6: STOP — show the shell to the user**
 
@@ -825,15 +825,15 @@ For each stage, start from the values below and run `nest_preview.py --grid` on 
 - `x` keeps the dragon in its empty spot (around 50 up to young, around 44 from adult);
 - the ellipse sits on the dragon's body (head to belly) and the test rules of Step 1 hold (`cy + ry <= 70`, `cy - ry >= 14`, `2rx >= 0.6w`, `2ry >= 0.5h`, clear of the cyan band).
 
-Start values (the spec's table; ellipses from the sprites' figures):
+Start values (the spec's table; ellipses from the sprites' figures). All six rows were set with the user in Task 1 on the picked paintings (egg and hatchling on `nest_egg.png` 1663, young 1615, adult 1623, illustre 1633, ancestral 1652; `tmp` ladder sheet `review_ladder.png`), and every row already passes Step 1's checks: the egg and the hatchling's shell sit down in the small nest's hollow, the young stands in its straw (its head exactly on the HUD line, 9.0), the bigger dragons stand on the floor just in front of their nests. Keep x, y and w unless a check fails (then say so); move only the ellipses, within the rules:
 
 | stage | x | y | w | sheet | ellipse cx, cy, rx, ry |
 |---|---|---|---|---|---|
-| egg | 50 | 62 | 12 | left | 50, 51, 6.5, 10.5 |
-| hatchling | 50 | 66 | 18 | left | 50, 50, 8.5, 15 |
-| young | 50 | 72 | 26 | left | 50, 47, 12, 21 |
-| adult | 44 | 80 | 34 | right | 44, 45, 15, 25 |
-| illustre | 44 | 86 | 40 | right | 44, 43, 17, 27 |
+| egg | 50 | 54 | 16 | left | 50, 40, 7, 14 |
+| hatchling | 50 | 55 | 21 | left | 50, 36.5, 9.5, 18.5 |
+| young | 50.5 | 73 | 36 | left | 50.5, 40, 13, 22 |
+| adult | 44 | 80.5 | 40 | right | 44, 40, 15, 22 |
+| illustre | 44 | 88 | 44 | right | 44, 42, 17, 24 |
 | ancestral | 44 | 94 | 47 | right | 44, 42.5, 20, 27.5 |
 
 Write each stage's final preview to `assets/art/web/nest_variants/tuned_<stage>.png` (`--out`, with `--grid` off). Then write the tuned values into Steps 4-5's code (the code below shows the start values; replace any number you tuned, nothing else).
@@ -849,11 +849,11 @@ Replace the `// R11: ...` comment, the `WIDTH` table and `nestDragonLayer` with:
  *  sheet stands beside the dragon on the left; from the adult it moves to the right side of the frame
  *  and the dragon shifts left. Tuned on the paintings with tools/art/nest_preview.py. */
 export const NEST_STAGES: Record<DragonStage, { x: number; y: number; w: number; sheet: 'left' | 'right' }> = {
-  egg: { x: 50, y: 62, w: 12, sheet: 'left' },
-  hatchling: { x: 50, y: 66, w: 18, sheet: 'left' },
-  young: { x: 50, y: 72, w: 26, sheet: 'left' },
-  adult: { x: 44, y: 80, w: 34, sheet: 'right' },
-  illustre: { x: 44, y: 86, w: 40, sheet: 'right' },
+  egg: { x: 50, y: 54, w: 16, sheet: 'left' },
+  hatchling: { x: 50, y: 55, w: 21, sheet: 'left' },
+  young: { x: 50.5, y: 73, w: 36, sheet: 'left' },
+  adult: { x: 44, y: 80.5, w: 40, sheet: 'right' },
+  illustre: { x: 44, y: 88, w: 44, sheet: 'right' },
   ancestral: { x: 44, y: 94, w: 47, sheet: 'right' },
 };
 
@@ -895,11 +895,11 @@ import type { DragonStage } from '../types';
 import type { EllipseShape } from '../../scene/types';
 
 export const NEST_SHAPES: Record<DragonStage, { dragon: EllipseShape }> = {
-  egg: { dragon: { kind: 'ellipse', cx: 50, cy: 51, rx: 6.5, ry: 10.5 } },
-  hatchling: { dragon: { kind: 'ellipse', cx: 50, cy: 50, rx: 8.5, ry: 15 } },
-  young: { dragon: { kind: 'ellipse', cx: 50, cy: 47, rx: 12, ry: 21 } },
-  adult: { dragon: { kind: 'ellipse', cx: 44, cy: 45, rx: 15, ry: 25 } },
-  illustre: { dragon: { kind: 'ellipse', cx: 44, cy: 43, rx: 17, ry: 27 } },
+  egg: { dragon: { kind: 'ellipse', cx: 50, cy: 40, rx: 7, ry: 14 } },
+  hatchling: { dragon: { kind: 'ellipse', cx: 50, cy: 36.5, rx: 9.5, ry: 18.5 } },
+  young: { dragon: { kind: 'ellipse', cx: 50.5, cy: 40, rx: 13, ry: 22 } },
+  adult: { dragon: { kind: 'ellipse', cx: 44, cy: 40, rx: 15, ry: 22 } },
+  illustre: { dragon: { kind: 'ellipse', cx: 44, cy: 42, rx: 17, ry: 24 } },
   ancestral: { dragon: { kind: 'ellipse', cx: 44, cy: 42.5, rx: 20, ry: 27.5 } },
 };
 ```
@@ -965,7 +965,7 @@ ancestral), from y 18.
 
 ```bash
 git add web/src/lib/world/scenes/nest.ts web/src/lib/world/scenes/nest.shapes.ts web/src/lib/world/scenes/nest.test.ts web/src/screens/Nest.svelte docs/art/scenes.md
-git commit -m "The nest grows with the dragon: one table of its place per stage (NEST_STAGES, the dragon from 12 % to 47 % of the width, tuned on the paintings), its hotspot per stage, the growth sheet at the right side of the frame from the adult stage; the landmarks of the six paintings in docs/art/scenes.md
+git commit -m "The nest grows with the dragon: one table of its place per stage (NEST_STAGES, the dragon from 16 % to 47 % of the width, tuned on the paintings), its hotspot per stage, the growth sheet at the right side of the frame from the adult stage; the landmarks of the six paintings in docs/art/scenes.md
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```

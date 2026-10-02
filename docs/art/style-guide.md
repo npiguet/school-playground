@@ -160,6 +160,19 @@ delphi 604, library_tent 605, war_tent 806, cabin 507, eris_lair 608, battle_riv
 battle_coast 510, battle_temple 511, pythia 701, owl 802, votive_tablets 703,
 codex_lectern 704, trophy_shelf 705, marble 902 (style `discorde-texture`). 28 generations in total.
 
+**The nest by stage (spec 2026-10-02 nest by stage):** one painting per dragon stage,
+`scenes/nest_{egg,hatchling,young,adult,illustre,ancestral}.png`, same light, palette and style as the
+old `nest.png` (seed 603, removed), `--vscale 1.0`, 8 steps, **Krea2 Variance off** (`nest.json`'s
+sidecar shows it was off; `--variance 1.2` at 2048x1152 turned every painting into a blocky mosaic).
+Picked seeds: egg 1663, young 1615, adult 1623, illustre 1633, ancestral 1652 (the sidecars hold the
+prompts; the egg, young and ancestral picks come from reworked prompts, see the tips below). The
+hatchling's painting is the egg's with the broken shell inpainted in two passes (its seeds are added
+here when it is made). Each prompt names the empty spot's place and its floor's height and a calm
+stretch on the growth sheet's side; check every variant with `tools/art/nest_preview.py` (the stage's
+sprite at its place, the hotspot, the sheet's band). The dragon's place per stage was set with the
+user on these paintings: egg w 16 feet 54, hatchling 21/55, young 36/73, adult 40/80.5, illustre
+44/88, ancestral 47/94 (art %; plan 2026-10-02 nest by stage, Task 4).
+
 **Composition sentence** appended to every scene prompt (it's in the sidecars):
 *"Composition: a wide 16:9 game background seen from a little distance, all the important objects
 are grouped in the middle of the picture, the outer eighth on the far left and on the far right
@@ -198,6 +211,25 @@ Prompt tips from this batch:
   It reads as texture, not text, and was accepted.
 - Textures: `discorde-texture` (in `styles/`) plus "uniform all over so it can repeat". Marble
   worked. Parchment got a vignette and bronze turned into honeycomb, so CSS does those better.
+- **Nest by stage: the nest's height in the picture.** "Its straw floor lying about four fifths of
+  the way down the picture" alone does not hold: Krea puts the nest at mid-height, and the dragon's
+  feet line ends up on the bare floor in front of it. "The nest lies close to the viewer (in the
+  foreground) and fills the lower part of the picture, its front rim at / almost touching the bottom
+  edge, (its straw floor lying about ... of the way down the picture:1.5)" pulled it down on the
+  ledge (young 1614-1616) and the summit (1644); in caves it only half worked (adult 1625).
+- **A small nest reads small only with small things around it.** "A small round nest ... filling
+  only about one third of the picture's width" plus "scattered pebbles, a few tiny wildflowers, fine
+  blades of grass and a fallen olive leaf on the rock beside it" (egg 1661-1663); without them a nest
+  reads person-sized. "(small round nest:1.5) ... one quarter of the width" overshoots (young
+  1671-1673: smaller than the dragon and hidden behind it).
+- **Keep a hoard out of the dragon's spot:** "at the far left end of the nest only, never in its
+  middle or behind it, a small hoard: ..." (illustre 1634+). "Around the rim" put the shield and
+  amphora on the back rim, inside the dragon's box.
+- **A Smaug-style hoard hall:** "a vast monumental cavern hall deep inside a mountain, colossal
+  ruined and unfinished Greek marble columns and broken arches", "(great mountains of gold coins:1.5)
+  heaped high on the far left and spilling across the stone floor toward the viewer on both sides,
+  golden cups, crowns, bronze shields and painted amphorae half buried in the gold", "(many huge long
+  red and gold banners with Greek-key borders:1.5)" (ancestral 1651-1654).
 
 Not yet made (candidates for a later batch): the Muses, per-stage dragon colour variants, a
 title/hero banner 1536×640. Player avatars and small item icons are done (see Icons below).
