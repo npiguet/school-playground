@@ -37,7 +37,8 @@ rewards. The whole game is a set of painted scenes with places to tap (see §8).
   from the server.
 - **Camp and progression** — XP, Éris's lieutenants (one per error family), each with five seals
   to win (bois, bronze, argent, or, orichalque) and a painted trophy for each, Éris's recurring
-  fights, quests from the Oracle of Delphi, a weekly goal, a break nudge after about 25 minutes of play,
+  fights, drachmes to spend at Hermès's stall (the dragon's accessories, the villa and the palais,
+  decor), quests from the Oracle of Delphi, a weekly goal, a break nudge after about 25 minutes of play,
   and a companion dragon that grows from the XP through six stages, from the egg to the Dragon
   ancestral (years of play).
 - **Music and sounds** — each place has its own music loop, with sound effects and the dictation
@@ -244,7 +245,9 @@ start-up. The full file with its defaults:
              "5": {"days": 10, "chances": 100, "correct": 0.97}},
   "fights": [{"level": 1, "count": 2}, {"level": 1, "count": "all"}, {"level": 2, "count": 2}, {"level": 2, "count": "all"},
              {"level": 3, "count": 2}, {"level": 3, "count": "all"}, {"level": 4, "count": 2}, {"level": 4, "count": "all"},
-             {"level": 5, "count": 2}, {"level": 5, "count": "all"}]
+             {"level": 5, "count": 2}, {"level": 5, "count": "all"}],
+  "drachmes": {"xp_per_drachme": 10, "board": 5, "oracle": 15, "weekly": 5, "level": 10, "boss": 30},
+  "prices": {"accessory": {"cou": 40, "queue": 60, "dos": 90, "tete": 130}, "decor": 50, "villa": 300, "palais": 800}
 }
 ```
 
@@ -260,6 +263,8 @@ start-up. The full file with its defaults:
 | `dragon_stages` | The total XP at which the dragon reaches each stage (`hatchling` to `ancestral`; the egg is always 0). A partial object keeps the other stages' defaults; the stages must rise from one to the next (whole numbers up to 1 000 000), otherwise the whole table is ignored with a warning. A lowered threshold takes effect on the next camp visit; a raised one never shrinks a dragon |
 | `levels` | Each seal's window (`"1"` bois to `"5"` orichalque): `days` (days with a chance) and `chances` (whole numbers from 1), `correct` (the share right in the handed-in copies, above 0 and at most 1). A partial object keeps the other values; a wrong value is ignored with a warning. The defaults rise; a lowered value takes effect at the next session |
 | `fights` | Éris's ladder, in order: each fight asks `count` lieutenants (1 to 6, or `"all"`: every one awake at the class; a count above that asks them all) at seal `level` (1 to 5) or higher. 1 to 20 fights; one wrong entry and the whole ladder is ignored with a warning (a won fight is kept by its number). The first three fights give the divine gear |
+| `drachmes` | What pays drachmes: a session pays its XP ÷ `xp_per_drachme` (rounded, halves up; from 1), a board quest `board`, an Oracle quest `oracle`, the weekly goal `weekly`, a seal L `level` × L, a won Éris fight `boss` (whole numbers). A partial object keeps the other values; a wrong value is ignored with a warning. The starting grant (a tenth of the XP) was given once, by migration 007 |
+| `prices` | Hermès's prices in drachmes: `accessory` (an object of `cou`, `queue`, `dos`, `tete`), `decor` (each piece), `villa`, `palais` (whole numbers). A partial object keeps the other prices; a wrong value is ignored with a warning |
 
 A key you leave out keeps its default. A file that is not valid JSON, or a value of the wrong type
 (e.g. `"0.3"` in quotes, a negative number, a share above 1), is ignored with a warning in the game's
@@ -524,16 +529,19 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
 - **Scenes, not pages.** The game opens on a title scene (« Entrer »), then the heroes' shields:
   pick a hero, see them all, or forge a new one. Each place is a painted scene with labelled places
   to tap; tapping one opens its panel over the scene. A strip at the top of every scene holds the
-  hero chip (opens the hero panel), the XP laurel, the dragon and the lyre button (the sound plate:
-  the three channels and « Ouvrir la lyre »). The first visit to each place is a short tour by its
-  character, and the battle's muster has its own (the pace, the aids and what leaving them is
-  worth); when a place gains something new, a hero who already saw its tour hears only the new
+  hero chip (opens the hero panel), the XP laurel, the purse (the drachme coin and the balance), the
+  dragon and the lyre button (the sound plate: the three channels and « Ouvrir la lyre »). The first
+  visit to each place is a short tour by its character, and the battle's muster has its own (the
+  pace, the aids and what leaving them is worth); when a place gains something new, a hero who already saw its tour hears only the new
   steps, once (a version per tour in `settings.tours`, e.g. `"cabin:2"`). « Refaire les visites du
   camp » in the lyre replays them all, and « Le guide du camp » there explains glory and the
   dragon's stages, the seals, the drachmes, the aids and Éris's fights, with the numbers the server
   serves (`data/regles.json` and the catalogue).
 - **The camp** (`#/p/:id/camp`) is the hub once a hero is picked. Its places:
-  - « Le nid du dragon » — the dragon's nest: its growth and care (tints).
+  - « Le nid du dragon » — the dragon's nest: its growth and its care, « Sa teinte » (the tints)
+    and « Sa parure » (the accessories it wears, bought at Hermès's stall).
+  - « L'étal d'Hermès » — Hermès's stall: the purse and his three shelves, « Parures du dragon »,
+    « La maison » and « Décor ».
   - « La tente des parchemins » — the library: « Tes parchemins » (the shelves, where a text is
     picked for a battle), « Le pupitre » (type or paste a text), « La lentille » (scan a handout)
     and « Le portail » (Alexandria).
@@ -541,9 +549,10 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
     quêtes ».
   - « La tente de guerre » — Éris's lieutenants on their portrait wall, « Le dossier d'Éris » and
     « Le bestiaire ».
-  - « Ta cabane » — « Tes trésors » (every reward), « Ton journal » (the hero's all-time counts, the
-    former stats screen) and « La lyre » (the settings: the dictation voice's trial, the three sound
-    channels, class, weekly goal, seal, tours, credits).
+  - « Ta cabane » (« Ta villa », « Ton palais » once bought) — « Tes trésors » (every reward),
+    « Ton journal » (the hero's all-time counts, the former stats screen) and « La lyre » (the
+    settings: the dictation voice's trial, the three sound channels, class, weekly goal, seal, tours,
+    credits).
   - « Le sentier de la bataille » — the way to Éris herself, once she shows up.
 - **What next.** At the camp, the dragon ends its greeting with the most useful next goal, first
   match wins: a name for a hatched dragon, a prophecy due within a week, an open fight against
@@ -576,6 +585,19 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   at the hero's class (Protée from 8H). A fight opens when its condition holds and every earlier one
   is won; won fights stay won. Each pays 300 XP; the first three also give the Sandales d'Hermès,
   the Égide and the Foudre de Zeus.
+- **Drachmes and Hermès's stall** — XP is never spent; drachmes are. A session pays its XP ÷ 10
+  (rounded, halves up), a board quest 5, an Oracle quest 15, the weekly goal 5, a seal L 10 × L, an
+  Éris fight won 30 (`drachmes` in `data/regles.json`); every hero started with a tenth of the XP
+  already won (migration 007). The balance is the sum of a ledger (`drachme_event`) and never goes
+  below zero. Hermès's stall, painted into the camp, sells the dragon's accessories (one set of four
+  per lieutenant, each piece on sale from its lieutenant's seal: cou bronze, queue argent, dos or,
+  tête orichalque; Protée's from 8H), the villa (from the adult dragon) and the palais (from the
+  illustre dragon, after the villa), and four pieces of decor, at the prices in `prices`.
+- **The house and the parure** — the cabin place shows the highest house owned, each room with more
+  wall slots for decor (cabin 4, villa 6, palais 9). The nest's care dresses the dragon: one piece
+  per slot or none, drawn over the tinted dragon in its own colours, from the young dragon on. The
+  overlays and their manifest come from the art track (`tools/art/overlay.py crop`, then
+  `python tools/art/accessory_manifest.py` writes `web/src/lib/world/accessories.json`).
 - **Dragon growth** — the dragon's stage follows the hero's total XP: Œuf (0), Dragonnet (100),
   Jeune dragon (1 200), Dragon adulte (5 000), Dragon illustre (15 000), Dragon ancestral (40 000),
   thresholds in `data/regles.json`. A stage is never lost: a raised threshold or a restored backup
@@ -584,15 +606,16 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   a victory (a lowered threshold, the catch-up after an update) is revealed once at the camp, with
   the naming field for an unnamed dragon; the stage last seen is the hero's
   `settings.dragon_seen_stage`.
-- **Rewards are announced in advance** — every dragon tint, divine gear and cabin decor piece is on
-  the cabin's trophy shelf (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can be
-  earned; nothing is a gamble. A lieutenant's empty plinth there says what its first seal asks; the
+- **Rewards are announced in advance** — every trophy, dragon tint, divine gear and piece of decor
+  (the accessories and the houses are at Hermès's stall) is on the cabin's trophy shelf
+  (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can be earned; nothing is a gamble. A lieutenant's empty plinth there says what its first seal asks; the
   bronze to orichalque trophies stand on the shelf once won (silhouettes in its close view until
   then), and the war tent's portrait of each lieutenant says what its next seal asks.
-- **Art and sound** are served from the same origin: `web/public/art` (WebP, about 6.7 MB) and
+- **Art and sound** are served from the same origin: `web/public/art` (WebP, about 8.1 MB) and
   `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler. Dragon tints are a
-  CSS `hue-rotate` filter on one cut-out. The sound settings are saved per hero on the server (and
-  remembered on the device for the title scene, before a hero is picked).
+  CSS `hue-rotate` filter on one cut-out; the accessories it wears are drawn over it unfiltered.
+  The sound settings are saved per hero on the server (and remembered on the device for the title
+  scene, before a hero is picked).
 - **`DISCORDE_TEST_HOOKS=1`** enables an `X-Discorde-Day` request header on `POST /api/sessions`,
   letting the e2e suite fast-forward the multi-day seals and weekly-goal logic. It's set only in
   `compose.e2e.yaml` (and under pytest) — **never** set it in production; without it the header is
