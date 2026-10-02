@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from 'node:fs';
 import { DRAGON_STAGES, LIEUTENANT_ORDER, type WorldCatalog } from './types';
 import {
   ADD_ICONS,
@@ -19,9 +19,17 @@ import {
 } from './art';
 import { ACCESSORY_MANIFEST, accessorySrc } from './accessories';
 
-/** A WebP's pixel size from its header (VP8X, VP8L or VP8), without a dependency. */
+/** A WebP's pixel size from its header (VP8X, VP8L or VP8), without a dependency. Reads only the
+ *  first 32 bytes: the accessory test calls it 192 times on pictures up to 300 KB, and reading them
+ *  whole through the npm container's bind mount passed vitest's 5 s timeout on a cold cache. */
 function webpSize(file: string): { w: number; h: number } {
-  const b = readFileSync(file);
+  const b = Buffer.alloc(32);
+  const fd = openSync(file, 'r');
+  try {
+    readSync(fd, b, 0, 32, 0);
+  } finally {
+    closeSync(fd);
+  }
   const chunk = b.toString('ascii', 12, 16);
   if (chunk === 'VP8X') return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3) };
   if (chunk === 'VP8L') {

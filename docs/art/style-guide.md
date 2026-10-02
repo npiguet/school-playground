@@ -164,15 +164,15 @@ codex_lectern 704, trophy_shelf 705, marble 902 (style `discorde-texture`). 28 g
 `scenes/nest_{egg,hatchling,young,adult,illustre,ancestral}.png`, same light, palette and style as the
 old `nest.png` (seed 603, removed), `--vscale 1.0`, 8 steps, **Krea2 Variance off** (the old `nest.json`
 sidecar showed it was off; `--variance 1.2` at 2048x1152 turned every painting into a blocky mosaic).
-Picked seeds: egg 1663, young 1615, adult 1623, illustre 1633, ancestral 1652 (the sidecars hold the
+Picked seeds: egg 1663, young 1681, adult 1623, illustre 1633, ancestral 1652 (the sidecars hold the
 prompts; the egg, young and ancestral picks come from reworked prompts, see the tips below). The
 hatchling's painting is the egg's with the broken shell inpainted in two passes (seed 1654, see the
 next paragraph). Each prompt names the empty spot's place and its floor's height and a calm
 stretch on the growth sheet's side; check every variant with `tools/art/nest_preview.py` (the stage's
 sprite at its place, the hotspot, the sheet's band). The dragon's place per stage was set with the
-user on these paintings: egg w 16 feet 54, hatchling 21/55, young 36/73, adult 40/80.5, illustre
+user on these paintings: egg w 16 feet 54, hatchling 21/55, young 38/77 (x 51.5), adult 40/80.5, illustre
 44/88, ancestral 47/94 (art %; plan 2026-10-02 nest by stage, Task 4). Served as
-`web/public/art/scenes/nest_<stage>.webp` (2048 px, q88, 210-307 KB each, within the 600 KB budget).
+`web/public/art/scenes/nest_<stage>.webp` (2048 px, q88, 210-293 KB each, within the 600 KB budget).
 
 **The hatchling's nest** (`nest_hatchling.png`) is `nest_egg.png` with the egg's broken top cap and a
 scaly fragment on the bare rock right of the nest's front rim, right of the dragon's spot, by the krea2
@@ -245,6 +245,12 @@ Prompt tips from this batch:
 - **Keep a hoard out of the dragon's spot:** "at the far left end of the nest only, never in its
   middle or behind it, a small hoard: ..." (illustre 1634+). "Around the rim" put the shield and
   amphora on the back rim, inside the dragon's box.
+- **A dragon standing in a big nest (young 1681-1683):** "seen from very close ... (its front rim is
+  cut off by the bottom edge of the picture:1.5) ... (its wide flat straw floor runs all the way down
+  to the bottom edge of the picture:1.5)" never cut the rim off, but the straw spilled forward past
+  the ring, which gives a straw floor low enough for the feet. Big boulders, the cliff and the sea
+  far below with `(flowers:-2) (pebbles:-2)` make the young read big; tiny flowers next to the nest
+  made it read as small as the hatchling (1615).
 - **A Smaug-style hoard hall:** "a vast monumental cavern hall deep inside a mountain, colossal
   ruined and unfinished Greek marble columns and broken arches", "(great mountains of gold coins:1.5)
   heaped high on the far left and spilling across the stone floor toward the viewer on both sides,

@@ -726,7 +726,7 @@ per slot.
 ### Art and sound
 
 Art and sound are served from the same origin, bundled in the image: `web/public/art` (WebP, about
-9.4 MB) and `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler
+9.3 MB) and `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler
 (`web/src/lib/world/readmeSizes.test.ts` checks both figures). Dragon tints are a CSS `hue-rotate`
 filter on one cut-out per stage. Every static file is sent with `Cache-Control: no-store`
 (`server/app/static.py`, §2 "Which version is running?").

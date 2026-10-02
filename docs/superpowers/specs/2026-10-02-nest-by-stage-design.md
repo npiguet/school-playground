@@ -28,17 +28,17 @@ sits next to a shell as big as itself.
   |---|---|---|---|
   | egg | 16 | ~28 | 54 |
   | hatchling | 21 | ~37 | 55 |
-  | young | 36 | ~64 | 73 |
+  | young | 38 | ~68 | 77 |
   | adult | 40 | ~71 | 80.5 |
   | illustre | 44 | ~78 | 88 |
   | ancestral | 47 | ~84 | 94 |
 
   Set with the user on the chosen paintings (2026-10-02): a bigger egg in a small nest, sitting down
-  in its hollow with the hatchling's shell; the young 40 % larger than first planned, standing in its
-  straw, which pushed the adult and the illustre up a size; the young's head touches the HUD line and
-  the adult and illustre come within 1 % of it. Task 4 tunes only within the HUD and sheet checks, so the painted landmarks (straw, shell, rocks) read
-  at the right size next to the dragon so the painted landmarks (straw, shell, rocks) read
-  at the right size next to the dragon; the head always stays below the HUD.
+  in its hollow with the hatchling's shell; the young about 45 % larger than first planned (x 51.5,
+  so its box clears the sheet), standing in the straw of a big close-up nest, which pushed the adult
+  and the illustre up a size; their heads come within 1 % of the HUD line. The painted landmarks
+  (straw, shell, rocks) read at the right size next to the dragon; Task 4 tunes only within the HUD
+  and sheet checks, and the head always stays below the HUD.
 - From the adult stage, the growth sheet (the next stage and the XP gauge) moves to the side of the
   frame and the dragon shifts the other way (centre around x 44 instead of 50); the sheet never
   overlaps the dragon or the HUD at any stage.
