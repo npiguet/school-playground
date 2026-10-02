@@ -369,8 +369,7 @@ test('a deep link to the hero panel closes onto the cabin, focus on the HUD hero
 
 test('displayed decor hangs on bare wall, clear of every place and plaque', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  // Four pieces on display (the most the walls hold before they cycle): intercepted, so no quest has
-  // to be won first.
+  // Four pieces on display: intercepted, so no quest has to be won first.
   const decor = ['decor:lanterne', 'decor:tapis', 'decor:bibliotheque', 'decor:trophee'];
   await page.route(`**/api/profiles/${id}/rewards`, (route) =>
     route.fulfill({

@@ -226,6 +226,62 @@ def test_decor_on_display_before_the_limit_went_stays_and_all_nine_fit(client, s
     assert patch("decor:tapis", True).json()["equipped"] is True
 
 
+def test_two_pieces_of_one_slot_put_on_at_once_leave_exactly_one_worn(client, settings):
+    # Final review M18, ruling R7: putting an accessory on takes the other of its slot off in the same
+    # transaction, under the write lock. Each request here pauses between the two (the others taken
+    # off, its own not yet on) until the other request has got there too, or a second has passed. Were
+    # they two transactions, both would take the others off first and then both put theirs on: two
+    # collars worn. As one, the second request only starts once the first has committed.
+    import threading
+    from app.db import connect
+    from app.routers import world
+    from app.schemas import RewardPatch
+
+    pid = make_profile(client)
+    collars = ["accessory:hydre-cou", "accessory:echo-cou"]
+    conn = sqlite3.connect(settings.data_dir / DB_FILENAME)
+    for rid in collars:
+        conn.execute("INSERT INTO reward(profile_id, reward_id, source, granted_at, equipped) VALUES (?,?,?,?,?)",
+                     (pid, rid, "test", "2026-09-21T12:00:00+00:00", 0))
+    conn.commit(); conn.close()
+    taken_off = threading.Barrier(2)
+
+    class PausesBeforePuttingOn:
+        def __init__(self, c):
+            self._c = c
+
+        def __getattr__(self, name):
+            return getattr(self._c, name)
+
+        def execute(self, sql, *args):
+            if sql.startswith("UPDATE reward SET equipped = ?"):  # its own piece, put on next
+                try:
+                    taken_off.wait(timeout=1)
+                except threading.BrokenBarrierError:
+                    pass
+            return self._c.execute(sql, *args)
+
+    results: dict[str, object] = {}
+
+    def put_on(rid: str) -> None:
+        c = connect(settings.data_dir / DB_FILENAME)
+        try:
+            results[rid] = world.patch_reward(pid, rid, RewardPatch(equipped=True), db=PausesBeforePuttingOn(c))["equipped"]
+        except Exception as e:  # noqa: BLE001 - the failure itself is what the test reports
+            results[rid] = repr(e)
+        finally:
+            c.close()
+
+    threads = [threading.Thread(target=put_on, args=(rid,)) for rid in collars]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=30)
+    assert results == {rid: True for rid in collars}
+    worn = [r["id"] for r in client.get(f"/api/profiles/{pid}/rewards").json() if r["equipped"]]
+    assert len(worn) == 1 and worn[0] in collars
+
+
 def test_a_lieutenant_asleep_at_the_heros_class_cannot_be_challenged(client):
     # Final review I1: the war tent's sheet, the dossier and the quest wall all show Protée asleep for
     # a 7H hero; a stale client (or a deep link to its portrait) must not start a quest against it.

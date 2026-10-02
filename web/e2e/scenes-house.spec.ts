@@ -33,7 +33,7 @@ test('buy the villa at the stall, hang a sixth piece in it', async ({ page, requ
   const id = await wealthyHero(request, heroName(testInfo.project.name));
   const camp = await (await request.get(`/api/profiles/${id}/camp`)).json();
   expect(camp.dragon.stage).toBe('adult');
-  // Four pieces from Hermès; the cabin's four walls full first (the lantern, the carpet, two of his).
+  // Four pieces from Hermès; four pieces on display first (the lantern, the carpet, two of his).
   for (const item of SHOP_DECOR) expect((await request.post(`/api/profiles/${id}/purchases`, { data: { item } })).status()).toBe(201);
   for (const item of [...QUEST_DECOR, ...SHOP_DECOR.slice(0, 2)]) {
     expect((await request.patch(`/api/profiles/${id}/rewards/${item}`, { data: { equipped: true } })).status()).toBe(200);
@@ -110,7 +110,7 @@ async function expectMedalsOffPlaques(page: Page, size: { width: number; height:
 test("the palais's room: its places and nine slots", async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   // This hero's camp says: the palais, and nine pieces on display (the room is the client's to draw;
-  // buying the palais and the walls' limit are pinned by pytest).
+  // buying the palais and displaying every piece are pinned by pytest).
   await page.route(`**/api/profiles/${id}/camp`, async (route) => {
     const res = await route.fetch();
     await route.fulfill({ response: res, json: { ...(await res.json()), house: 'palais' } });

@@ -31,11 +31,11 @@ def test_protee_sells_nothing_before_8h_and_the_villa_waits_for_the_adult(client
 
 # SP5 fix wave (the final review's open check): `camp.affordable` agrees with the stall's own buy rules.
 # Each case counts what the camp says, then asks the stall itself (POST /purchases) about the edge item.
-def test_decor_counts_while_the_walls_are_full_since_the_stall_still_sells_it(client, settings):
+def test_decor_counts_while_four_pieces_are_on_display_since_the_stall_still_sells_it(client, settings):
     pid = make_profile(client, level="10H")
     own(settings, pid, *QUEST_DECOR[:4])
     for d in QUEST_DECOR[:4]:
-        assert wear(client, pid, d).status_code == 200                     # the cabin's four walls are full
+        assert wear(client, pid, d).status_code == 200                     # four pieces on display
     purse(settings, pid, 50)
     assert len(camp(client, pid)["affordable"]) == 4                           # the four shop pieces, still for sale
     assert buy(client, pid, "decor:amphore").status_code == 201           # and the stall sells one

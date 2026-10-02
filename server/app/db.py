@@ -34,8 +34,7 @@ def begin_write(conn: sqlite3.Connection) -> None:
     """Take SQLite's write lock now, so the reads that follow and the writes they decide cannot be
     interleaved with another request's writes (the default deferred transaction only locks at the
     first write, after the reads). Joins a transaction already open on this connection instead.
-    Used by the Alexandria refresh, by the house walls' limit and one accessory per slot (world.py's
-    PATCH /rewards), and by Hermès's stall, so two purchases cannot overdraw the purse (POST /purchases)."""
+    Used by the Alexandria refresh, by one accessory per slot (world.py's PATCH /rewards), and by Hermès's stall, so two purchases cannot overdraw the purse (POST /purchases)."""
     if not conn.in_transaction:
         conn.execute("BEGIN IMMEDIATE")
 

@@ -301,7 +301,7 @@ def get_world(request: Request):
         "quest_bonus": QUEST_BONUS,
         # Spec 2026-09-29 explanations §3: a seal L pays level_xp × L XP, read by the guide.
         "level_xp": LEVEL_XP,
-        # Spec 2026-09-29 drachmes §2: the stall's items, prices (from the rules file) and the walls per house.
+        # Spec 2026-09-29 drachmes §2: the stall's items and prices (from the rules file).
         "shop": shop_catalog(request.app.state.rules),
         # Spec 2026-09-29 §7: what the client needs of the rules file (the copy line, the bonuses, the owl).
         "rules": request.app.state.rules.as_dict(),
