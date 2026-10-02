@@ -21,6 +21,9 @@ const heroName = heroNamer('Viv');
 const RIGS = { hatchling, young, adult, illustre, ancestral };
 const nest = (page: Page) => page.getByTestId('nest-dragon-layer');
 const figure = (page: Page) => nest(page).locator('.dragon-figure');
+// The living dragon's own files: its component chunk (a build's `LivingDragon-<hash>.js`, the dev
+// server's `LivingDragon.svelte`) and the baked rigs (`dragon_<stage>-<hash>.js` or `.json`).
+const LIVING_FILES = /\/(LivingDragon[^/]*\.(js|svelte)|dragon_(hatchling|young|adult|illustre|ancestral)[^/]*\.(js|json))(\?|$)/;
 const frames = (page: Page) => nest(page).locator('canvas').evaluate((c) => Number((c as HTMLCanvasElement).dataset.frames ?? 0));
 
 /** This hero's camp says: the dragon as `dragon()` returns it now (stage, tint, worn...). */
@@ -77,11 +80,38 @@ test('reduced motion and a browser without WebGL2 keep the still picture, its ti
       return type === 'webgl2' ? null : (get as (...a: unknown[]) => unknown).call(this, type, ...rest);
     };
   });
+  // Living-dragon final review: the one-time WebGL2 probe sends it to the still picture at once, never
+  // fetching the living dragon's chunk or its rig only to fail.
+  const living: string[] = [];
+  page.on('request', (r) => {
+    if (LIVING_FILES.test(r.url())) living.push(r.url());
+  });
   await openNest(page, id);
   expect(await settledDragon(nest(page))).toBe('still');
   await expect(nest(page).locator('canvas')).toHaveCount(0);
   await expect(nest(page).locator('img.dragon-overlay[data-item="hydre-cou"]')).toHaveCount(1);
   await expect.poll(() => dragonTint(nest(page))).toBe('braise');
+  expect(living).toEqual([]);
+});
+
+test('a living chunk that fails to load leaves the still picture, settled, in the nest and the camp', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await mockDragon(page, id, () => ({ stage: 'adult', tint: 'braise' }));
+  const asked: string[] = [];
+  await page.route(LIVING_FILES, (route) => {
+    asked.push(route.request().url());
+    return route.abort();
+  });
+  await openNest(page, id);
+  expect(await settledDragon(nest(page))).toBe('still');
+  expect(asked.length, 'the chunk was asked for').toBeGreaterThan(0);
+  await expect(nest(page).locator('canvas')).toHaveCount(0);
+  await expect.poll(() => dragonTint(nest(page))).toBe('braise');
+  // A fresh figure tries again (the failed load is forgotten; the browser may answer from its own
+  // record of the failure) and settles still too, never `pending` over the still picture.
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  expect(await settledDragon(page.getByTestId('camp-dragon-layer'))).toBe('still');
 });
 
 test('the worn pieces are listed on the canvas, back to front', async ({ page, request }, testInfo) => {

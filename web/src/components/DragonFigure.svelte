@@ -29,7 +29,8 @@
   // The egg, reduced motion and every other caller (the battle, the victory, the reveal) pass none.
   import type { OverlayLayer } from '../lib/world/accessories';
   import { tintedDragon } from '../lib/living/stillTint';
-  import type { LivingStage, Motion } from '../lib/living/stages';
+  import { untrack } from 'svelte';
+  import { hasWebGL2, type LivingStage, type Motion } from '../lib/living/stages';
   import type { Tint } from '../lib/world/types';
 
   let {
@@ -52,19 +53,20 @@
 
   let motion = $state<Motion>('pending');
   let Living = $state<LivingComponent | null>(null);
+  // A browser without WebGL2 (asked once, stages.ts) never tries: the still picture at once.
+  const livingNow = $derived(living && hasWebGL2() ? living : null);
+  const srcNow = $derived(src);
   // A new stage, a new picture or reduced motion lifted (`living` back from null): a fresh try, even
   // after a failure. By value: the props read through the parent's expressions change with every
   // camp snapshot (a tint picked, a piece put on) even when the stage and picture stay the same.
-  const livingNow = $derived(living);
-  const srcNow = $derived(src);
+  // The component's chunk loads on the first living stage; a chunk that fails to load is a failure
+  // too, and every fresh try (a new picture alone included) asks for it again, so `data-motion`
+  // never stays `pending` over a still picture (living-dragon final review).
   $effect(() => {
-    void livingNow;
     void srcNow;
+    const stage = livingNow;
     motion = 'pending';
-  });
-  // The component's chunk, on the first living stage; a chunk that fails to load is a failure too.
-  $effect(() => {
-    if (!living || Living) return;
+    if (!stage || untrack(() => Living)) return;
     let gone = false;
     loadLiving().then(
       (c) => {
@@ -78,14 +80,14 @@
       gone = true;
     };
   });
-  const shown = $derived<Motion>(living ? motion : 'still');
+  const shown = $derived<Motion>(livingNow ? motion : 'still');
 </script>
 
 <div class="dragon-figure {className}" {style} data-motion={shown}>
-  {#if living && Living && motion !== 'still'}
-    {#key living}
+  {#if livingNow && Living && motion !== 'still'}
+    {#key livingNow}
       <!-- A living stage is only ever given with the dragon's tint (the nest's and the camp's layers). -->
-      <Living stage={living} {src} {alt} tint={tint ?? 'bronze'} {overlays} onmotion={(m: Motion) => (motion = m)} />
+      <Living stage={livingNow} {src} {alt} tint={tint ?? 'bronze'} {overlays} onmotion={(m: Motion) => (motion = m)} />
     {/key}
   {/if}
   {#if shown !== 'living'}

@@ -16,7 +16,7 @@ import {
   labelOverlaps,
   watchNests,
 } from './helpers';
-import { dragonSrc, settledDragon, webgl2Available } from './dragon';
+import { dragonSrc, dragonTint, settledDragon, webgl2Available } from './dragon';
 
 // UI3b Task 4 (scenes spec §3 Dragon's nest, §10). desktop + ipad.
 
@@ -62,9 +62,9 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(care.getByTestId('dragon-tint-how')).toHaveText("Les autres teintes se gagnent dans les quêtes de l'Oracle.");
   await expect(care.getByTestId('dragon-tint-ecume')).toHaveAccessibleName(/Écume.*quêtes de l'Oracle/);
   await expect(care.getByTestId('dragon-tint-ecume').locator('img[src="/art/icons/lock.webp"]')).toBeVisible();
-  // Fix round 1: the tint filters the egg picture only. Nothing around it is filtered, so the ring
-  // keeps its own colour (a filtered ring turned violet, Éris's colour) and the lock stays readable;
-  // a locked egg is grey, never tinted.
+  // Fix round 1: the tint is painted on the egg picture itself (OKLCH, use:tintedDragon), and only a
+  // locked egg carries a CSS filter, its grey. Nothing around the egg is filtered, so the ring keeps
+  // its own colour (a filtered ring turned violet, Éris's colour) and the lock stays readable.
   const token = (name: string) =>
     page.evaluate((n) => {
       const probe = document.createElement('span');
@@ -114,6 +114,11 @@ test('a name being typed survives a tint tapped (a new camp snapshot) (final rev
   await care.getByTestId('dragon-tint-ecume').click();
   await expect(care.getByTestId('dragon-tint-ecume')).toHaveClass(/selected/);
   await expect(input).toHaveValue('Aile');
+  // The tinted still pictures (living-dragon final review): the won écume swatch's egg and the HUD's
+  // dragon are painted in écume once their tinted copy is made (`bronze` meanwhile: polled).
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveAttribute('data-tint', 'ecume');
+  await expect(page.getByTestId('hud-dragon').locator('img')).toHaveAttribute('data-tint', 'ecume');
+  await expect.poll(() => dragonTint(page.getByTestId('nest-dragon-layer'))).toBe('ecume');
   expect(await redScan(page)).toEqual([]);
 });
 

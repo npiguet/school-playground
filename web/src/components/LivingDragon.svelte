@@ -15,7 +15,7 @@
   import { buildAtlas, loadImage, pieceDraws, placePieces } from '../lib/living/atlas';
   import { AMPLITUDE, frameDue, poseAt } from '../lib/living/pose';
   import { DragonRenderer } from '../lib/living/renderer';
-  import { tintText, type OklchSpec } from '../lib/living/tint';
+  import type { OklchSpec } from '../lib/living/tint';
   import { TINT_SPECS } from '../lib/world/dragon';
   import type { Tint } from '../lib/world/types';
   import { loadRig, type LivingStage, type Motion, type Rig } from '../lib/living/rigs';
@@ -124,7 +124,8 @@
 
   function applyTint(name: Tint, override: OklchSpec | null | undefined): void {
     const spec = override === undefined ? TINT_SPECS[name] : override;
-    const key = tintText(name, spec);
+    // The exact numbers, as the still tint's cache (stillTint.ts): a lab slider's 0.005 apart are two tints.
+    const key = spec ? `${name} ${spec.shift} ${spec.chroma} ${spec.lightness}` : `${name} none`;
     if (!renderer || key === tintKey) return;
     renderer.setTint(spec);
     tintKey = key;

@@ -14,3 +14,23 @@ const BAKED = new Set(Object.keys(import.meta.glob('./rig/dragon_*.json')).map((
 export function livingStage(stage: DragonStage): LivingStage | null {
   return stage !== 'egg' && BAKED.has(stage) ? stage : null;
 }
+
+let webgl2: boolean | null = null;
+
+/** Whether this browser gives a WebGL2 context, asked once for the session (living-dragon final
+ *  review): without one, DragonFigure goes straight to the still picture, never loading the living
+ *  dragon's chunk, its rig and its sprite only to fail. The probe's canvas is 1 px and dropped; a
+ *  later failure (a shader, a lost context) still falls back in LivingDragon itself. */
+export function hasWebGL2(): boolean {
+  if (webgl2 === null) {
+    try {
+      const probe = document.createElement('canvas');
+      probe.width = 1;
+      probe.height = 1;
+      webgl2 = probe.getContext('webgl2') !== null;
+    } catch {
+      webgl2 = false;
+    }
+  }
+  return webgl2;
+}

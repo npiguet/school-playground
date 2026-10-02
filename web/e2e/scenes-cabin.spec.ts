@@ -73,6 +73,20 @@ test('the trophy shelf shows every reward, each known in advance', async ({ page
   await expect(page.getByTestId('cabin-trophies')).toBeFocused();
 });
 
+test('the trophy shelf: a won tint is an egg painted in its tint, with no filter', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  // This hero owns the écume tint (the shelf only draws it; winning it is pinned by pytest).
+  await page.route(`**/api/profiles/${id}/rewards`, (route) =>
+    route.fulfill({ json: [{ id: 'tint:ecume', kind: 'tint', name: 'Écume', desc: '', source: '', granted_at: '2026-09-30T10:00:00', equipped: false }] }),
+  );
+  await page.goto(`/#/p/${id}/cabane?panel=tresors`);
+  const ecume = page.getByTestId('overlay-trophies').getByTestId('cabin-reward-tint:ecume');
+  await expect(ecume).toHaveAttribute('data-owned', 'true');
+  // The OKLCH copy is made on a canvas (`bronze` meanwhile: polled); a won egg carries no CSS filter.
+  await expect(ecume.locator('.tint-egg img')).toHaveAttribute('data-tint', 'ecume');
+  await expect(ecume.locator('.tint-egg img')).toHaveCSS('filter', 'none');
+});
+
 // Spec 2026-09-29 lieutenant levels §5: real seals from posted sessions (the test clock): three days
 // win the Hydra's wooden seal, four more days after it the bronze one.
 test('the shelf: each lieutenant its highest trophy, the lower ones in its close view, an empty plinth says the first seal', async ({ page, request }, testInfo) => {

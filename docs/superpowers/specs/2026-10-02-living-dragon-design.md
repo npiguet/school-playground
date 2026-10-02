@@ -1,6 +1,7 @@
 # The living dragon (design)
 
-Date: 2026-10-02. Status: spike approved by the user (watched live), awaiting the written review.
+Date: 2026-10-02. Status: approved by the user (spike watched live, written review done) and implemented on the
+living-dragon branch.
 Spike: `C:\Users\nicol\.claude\jobs\9ac9a508\tmp\spike-living` (FINDINGS.md, index.html, rig.json,
 tools/make_weights.py); throwaway, to be ported, not copied wholesale.
 
@@ -56,8 +57,8 @@ small wing lift, a tail swish, a breathing chest.
 ## Tests
 
 - Unit: the presets are exact; the still tint equals the CPU reference; no preset turns the
-  dragon's colours into Éris's violet (OKLCH hue band, a chroma under 0.04 read as grey; known
-  exceptions await the user's decision); each rig bakes; pinned feet get zero weight; a
+  dragon's colours into Éris's violet (OKLCH hue band, a chroma under 0.04 read as grey; the known
+  exceptions were accepted by the user on 2026-10-02); each rig bakes; pinned feet get zero weight; a
   piece's weights are rigid.
 - e2e: the nest and camp render a canvas for a hatched dragon and the still picture for the egg,
   under reduced motion and with WebGL2 disabled; the worn pieces are listed; two frames differ over
@@ -69,7 +70,10 @@ small wing lift, a tail swish, a breathing chest.
 Big flaps or a true head turn (they need the art split into parts); the battle combatants; the camp
 dragon's size (later).
 
-## Open item noticed
+## Open item noticed (resolved)
+
+Resolved on 2026-10-02: the user chose the OKLCH presets now in `TINT_SPECS` by eye, écume
+included, and accepted the violet guard's known exceptions listed below.
 
 The « écume » tint (first `hue-rotate(190deg) saturate(.9)`, now OKLCH shift 165, chroma 0.9) gives a
 blue leaning towards periwinkle; its body colours are outside the violet band the tests guard (violet
