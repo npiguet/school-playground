@@ -50,10 +50,11 @@
   let raf = 0;
   let last: number | null = null;
   let frames = 0;
-  let visible = true;
+  let visible = !document.hidden;
   let onScreen = true;
   let piecesKey = '';
   let piecesToken = 0;
+  let tryId = 0; // the current try at the living path; any teardown or new try moves it on
   const started = performance.now();
 
   function still(): void {
@@ -125,6 +126,7 @@
   /** One try at the living path for this stage and picture, on a fresh canvas; returns its teardown. */
   function start(el: HTMLDivElement, s: LivingStage, url: string): () => void {
     let disposed = false;
+    const id = ++tryId;
     const cv = document.createElement('canvas');
     cv.setAttribute('aria-hidden', 'true');
     const edge = `${-MARGIN * 100}%`;
@@ -161,6 +163,7 @@
     })();
     return () => {
       disposed = true;
+      if (tryId === id) tryId += 1;
       pause();
       cv.removeEventListener('webglcontextlost', onLost);
       renderer?.dispose();
@@ -217,7 +220,12 @@
   $effect(() => {
     const list = overlays;
     untrack(() => {
-      if (renderer) applyPieces(list).catch(still);
+      if (!renderer) return;
+      // A rejection from a try since torn down (a new stage, or unmounted) must not touch the current one.
+      const id = tryId;
+      applyPieces(list).catch(() => {
+        if (id === tryId) still();
+      });
     });
   });
 </script>
