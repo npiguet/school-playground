@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Locator, type Page, type TestInfo } from '@playwright/test';
+import { expect, type APIRequestContext, type Locator, type Page, type Request, type TestInfo } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 // The loader's own typography (Ruling E15), so the variants read exactly as the app shows them.
 import { frenchSpacing } from '../src/lib/text/french';
@@ -885,3 +885,18 @@ export async function expectLineOf(box: Locator, key: string, vars: Record<strin
   await expect.poll(async () => variants.includes(((await text.first().textContent()) ?? '').trim())).toBe(true);
 }
 
+// Spec 2026-10-02 nest by stage: every nest painting the page asks for (`nest_<stage>`, one entry per
+// request: the server sends no-store, so a painting fetched twice shows twice), and those still on
+// their way. Install before the navigation; wait for `pending` to empty before reading `fetched`.
+export function watchNests(page: Page): { fetched: string[]; pending: Set<Request> } {
+  const out = { fetched: [] as string[], pending: new Set<Request>() };
+  page.on('request', (r) => {
+    const m = r.url().match(/\/art\/scenes\/(nest\w*)\.webp$/)?.[1];
+    if (!m) return;
+    out.fetched.push(m);
+    out.pending.add(r);
+  });
+  page.on('requestfinished', (r) => out.pending.delete(r));
+  page.on('requestfailed', (r) => out.pending.delete(r));
+  return out;
+}

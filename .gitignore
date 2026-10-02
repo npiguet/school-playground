@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 /data/
 web/dist/
+web/dist-lab/
 .pytest_cache/
 test-results/
 playwright-report/
@@ -18,6 +19,9 @@ core.[0-9]*
 # the *whole* assets/art tree here, whether or not the asset shipped. The game only ever reads the
 # WebPs copied by hand to web/public/art/, never this folder - never committed.
 assets/art/web/
+# tools/art/rig.py's grid and debug views (the dragon-rig skill): scratch, never committed; the
+# record is docs/art/dragon-rig.png.
+tools/art/rig-out/
 # UI5 Task 3: downloaded audio sources (tools/audio/sources.json records each URL and sha256). Never committed.
 assets/audio/staging/
 # Candidate loops built for a listening round (tools/audio/run_docker.sh --out), with their

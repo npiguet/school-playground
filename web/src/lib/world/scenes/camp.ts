@@ -11,7 +11,7 @@ import { romanTier } from '../quests';
 import { bossRewardName } from '../rewards';
 import { HOUSE_NAMES } from '../shop';
 import { fightLine } from '../seals';
-import type { CampResponse, DragonStage, LieutenantKey, WorldCatalog } from '../types';
+import { DRAGON_STAGES, type CampResponse, type DragonStage, type LieutenantKey, type WorldCatalog } from '../types';
 import { st, type DialogueLine, type HotspotDef, type HotspotState, type SceneContext, type SceneDef, type SceneLayerDef } from '../../scene/types';
 import { dragonSays } from './speakers';
 import { CAMP_SHAPES } from './camp.shapes';
@@ -136,6 +136,9 @@ export const CAMP_HOTSPOTS: HotspotDef[] = [
   },
 ];
 
+const PLACES_FIRST = [ART.scenes.libraryTent, ART.scenes.delphi, ART.scenes.warTent];
+const PLACES_AFTER = [ART.scenes.cabin, ART.scenes.erisLair];
+
 export const CAMP_SCENE: SceneDef = {
   id: 'camp',
   title: 'Le camp',
@@ -146,15 +149,29 @@ export const CAMP_SCENE: SceneDef = {
   narrator: { enter: 'camp.enter', tour: 'camp' },
   // Carry rec. 9, final review M14: every place the hub leads to, so none loads cold on its first
   // tap (the next step's place first: the tent and the temple, then the others and the battle).
-  // UI4: the path to battle leads to Éris's lair (the boss's battle stage).
-  preload: [ART.scenes.libraryTent, ART.scenes.delphi, ART.scenes.warTent, ART.scenes.nest, ART.scenes.cabin, ART.scenes.erisLair],
+  // UI4: the path to battle leads to Éris's lair (the boss's battle stage). The nest's painting
+  // depends on the dragon's stage: campScene adds it once /camp has said the stage.
+  preload: [...PLACES_FIRST, ...PLACES_AFTER],
 };
+
+// Spec 2026-10-02 nest by stage: one camp per stage, so Camp.svelte's derived scene stays the same
+// object while the stage does not change.
+const CAMP_BY_STAGE = Object.fromEntries(
+  DRAGON_STAGES.map((s) => [s, { ...CAMP_SCENE, preload: [...PLACES_FIRST, ART.nest[s], ...PLACES_AFTER] }]),
+) as Record<DragonStage, SceneDef>;
+
+/** The camp, warming the nest painting of the dragon's stage; before /camp arrives the stage is not
+ *  known, so it warms no nest painting yet (SceneStage warms the list again when it changes). */
+export function campScene(stage: DragonStage | null): SceneDef {
+  return stage ? CAMP_BY_STAGE[stage] : CAMP_SCENE;
+}
 
 const WIDTH: Record<DragonStage, number> = { egg: 6, hatchling: 7, young: 8, adult: 9, illustre: 9.5, ancestral: 10 };
 
 /** The dragon's cut-out seated in the painted nest (carry rec. 7, immersion Deferred #23:
  *  docs/art/scenes.md ≈ (17, 50), feet on the straw at y 55). Depth 0 and no idle: it sits still in
- *  its place's box, as a parallax or a breath read as floating (playtest 2026-10-02). */
+ *  its place's box, as a parallax or a breath read as floating (playtest 2026-10-02); the hatched
+ *  dragon moves on its own instead (LivingDragon, spec 2026-10-02 living dragon). */
 export function campDragonLayer(stage: DragonStage): Omit<SceneLayerDef, 'id' | 'src' | 'alt'> {
   return { x: 17, y: 55, scale: WIDTH[stage], depth: 0, idle: 'none' };
 }

@@ -3,7 +3,7 @@
 import type { TrackId } from '../audio/catalog';
 import type { DialogueKey, TourId } from '../dialogue/types';
 import type { RouteName } from '../routes';
-import type { CampResponse, WorldCatalog } from '../world/types';
+import type { CampResponse, Tint, WorldCatalog } from '../world/types';
 
 export type Pt = [number, number];
 
@@ -138,7 +138,8 @@ export interface DialogueLine {
   speaker: SpeakerId;
   name: string;
   portrait: string;
-  portraitFilter?: string;
+  /** The dragon's tint on its portrait (never set for the other speakers). */
+  portraitTint?: Tint;
   text: string;
   /** The content key it came from (spec §8): the dialogue box's data-key, for e2e. */
   key?: string;

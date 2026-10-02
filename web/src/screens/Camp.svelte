@@ -20,7 +20,7 @@
   import StallPanel from '../components/places/camp/StallPanel.svelte';
   import { sayKey } from '../lib/dialogue/select';
   import type { ItemKind } from '../lib/world/shop';
-  import { CAMP_SCENE, bossLockLine, campDragonLayer, campGreeting, weeklyCaption } from '../lib/world/scenes/camp';
+  import { CAMP_SCENE, bossLockLine, campDragonLayer, campGreeting, campScene, weeklyCaption } from '../lib/world/scenes/camp';
   import { dragonSays } from '../lib/world/scenes/speakers';
   import { campFor } from '../lib/world/campStore.svelte';
   import { dragonRevealFor, markDragonSeen, type CampReveal } from '../lib/world/dragonSeen.svelte';
@@ -28,9 +28,10 @@
   import { whatNext } from '../lib/world/nextStep';
   import { overlayState } from '../lib/scene/overlayState.svelte';
   import { VICTORY } from '../lib/battle/lines';
-  import { TINT_FILTERS, dragonCaption } from '../lib/world/dragon';
+  import { dragonCaption } from '../lib/world/dragon';
   import { ART } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
+  import { livingStage } from '../lib/living/stages';
   import type { CampResponse } from '../lib/world/types';
   import type { DialogueLine, HotspotDef, SceneLayerDef } from '../lib/scene/types';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
@@ -48,6 +49,8 @@
   // SceneStage owns the ?debug flag and hands it back through PlaceScene.
   let debug = $state(false);
   let place: PlaceScene | undefined = $state();
+  // Spec 2026-10-02 nest by stage: the camp warms the nest painting of the dragon's stage.
+  const scene = $derived(campScene(campFor(profile.id)?.dragon.stage ?? null));
 
   // Final review I3: what the camp would reveal of the dragon now (null once seen), and the reveal on
   // show. It waits for the camp tour and any open overlay (one modal at a time), and never opens under
@@ -153,13 +156,14 @@
   });
 </script>
 
-<PlaceScene bind:this={place} {profile} scene={CAMP_SCENE} bind:debug showExit={false} {greet} onHero={openHero}>
+<PlaceScene bind:this={place} {profile} {scene} bind:debug showExit={false} {greet} onHero={openHero}>
   {#snippet children(ctx)}
     {#if ctx.camp}
       <SceneLayer
         layer={dragonLayer(ctx.camp)}
-        filter={TINT_FILTERS[ctx.camp.dragon.tint]}
+        tint={ctx.camp.dragon.tint}
         overlays={accessoryLayers(ctx.camp.dragon.worn, ctx.camp.dragon.stage)}
+        living={livingStage(ctx.camp.dragon.stage)}
         testId="camp-dragon-layer"
       />
     {/if}

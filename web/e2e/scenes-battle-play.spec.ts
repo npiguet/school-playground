@@ -59,6 +59,46 @@ test('the muster is an order of battle: Éris taunts, three pace medallions, no 
   await expectBattle(page, 'dictation');
 });
 
+// Living dragon plan, Task 7 (ruling O1): the battle screens are their own chunk, loaded as soon as a
+// hero is open. While it loads the night backdrop says so (busy); a chunk that fails to load (offline,
+// or a tab kept open across an update) offers a reload. On Chromium the reloaded page brings the
+// battle. WebKit (measured 2026-10-02, desktop and ipad, a 503 or an aborted load alike) keeps the
+// failed module script for the later documents of the same page: the reload, and even about:blank then
+// the battle's URL, fetch no Play chunk and fail again, while a new page of the same context loads it.
+// There the reload is proven to be a new document, and a fresh page that the chunk is served again.
+test('the battle waits for its chunk, and a chunk that fails offers a reload', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Chunk-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Chunk'), body: BODY, level: '10H' });
+  const PLAY_CHUNK = '**/assets/Play-*.js';
+  let fail: () => void = () => {};
+  const failed = new Promise<void>((resolve) => (fail = resolve));
+  await page.route(PLAY_CHUNK, async (route) => {
+    await failed;
+    await route.fulfill({ status: 503, headers: { 'Cache-Control': 'no-store' }, body: '' });
+  });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  const loading = page.getByTestId('battle-loading');
+  await expect(loading).toHaveAttribute('aria-busy', 'true');
+  await expect(loading).toHaveText('Les Muses préparent le combat…');
+  fail();
+  await expect(loading).toHaveAttribute('role', 'alert');
+  await expect(loading).not.toHaveAttribute('aria-busy');
+  await expect(loading.locator('p')).toHaveText('Impossible de charger le combat.');
+  await page.unroute(PLAY_CHUNK);
+  await page.evaluate(() => ((window as unknown as { beforeReload?: boolean }).beforeReload = true));
+  await tap(loading.getByRole('button', { name: 'Recharger' }), testInfo);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { beforeReload?: boolean }).beforeReload ?? false)).toBe(false);
+  if (testInfo.project.name === 'chromium') {
+    await expectBattle(page, 'muster');
+    await expect(loading).toHaveCount(0);
+  } else {
+    const fresh = await page.context().newPage();
+    await fresh.goto(`/#/p/${id}/play/${text.id}`);
+    await expectBattle(fresh, 'muster');
+    await expect(fresh.getByTestId('battle-loading')).toHaveCount(0);
+  }
+});
+
 test('a boss dictation locks the slower paces and says why', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Mus2-${testInfo.project.name}`), '10H');
   const text = await createText(request, { title: uniqueName('Muster boss'), body: BODY, level: '10H' });

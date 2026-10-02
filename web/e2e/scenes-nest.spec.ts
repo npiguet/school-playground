@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+import { SPRITE_TOP_MARGIN } from '../src/lib/world/scenes/nest.sprites';
 import { test, expect } from './crashGuard';
 import {
   closeOverlay,
@@ -11,7 +13,10 @@ import {
   redScan,
   tap,
   heroNamer,
+  labelOverlaps,
+  watchNests,
 } from './helpers';
+import { dragonSrc, dragonTint, settledDragon, webgl2Available } from './dragon';
 
 // UI3b Task 4 (scenes spec §3 Dragon's nest, §10). desktop + ipad.
 
@@ -57,9 +62,9 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(care.getByTestId('dragon-tint-how')).toHaveText("Les autres teintes se gagnent dans les quêtes de l'Oracle.");
   await expect(care.getByTestId('dragon-tint-ecume')).toHaveAccessibleName(/Écume.*quêtes de l'Oracle/);
   await expect(care.getByTestId('dragon-tint-ecume').locator('img[src="/art/icons/lock.webp"]')).toBeVisible();
-  // Fix round 1: the tint filters the egg picture only. Nothing around it is filtered, so the ring
-  // keeps its own colour (a filtered ring turned violet, Éris's colour) and the lock stays readable;
-  // a locked egg is grey, never tinted.
+  // Fix round 1: the tint is painted on the egg picture itself (OKLCH, use:tintedDragon), and only a
+  // locked egg carries a CSS filter, its grey. Nothing around the egg is filtered, so the ring keeps
+  // its own colour (a filtered ring turned violet, Éris's colour) and the lock stays readable.
   const token = (name: string) =>
     page.evaluate((n) => {
       const probe = document.createElement('span');
@@ -83,6 +88,7 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-circle')).toHaveCSS('border-top-color', await token('--ink-soft'));
   await expect(care.getByTestId('dragon-tint-ecume').locator('.lock')).toHaveCSS('filter', 'none');
   await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveCSS('filter', /grayscale\(1\)/);
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveAttribute('data-tint', 'bronze');
   await expect(care.getByTestId('dragon-tint-bronze').locator('.swatch-egg')).toHaveCSS('filter', 'none');
   await closeOverlay(page);
   await expect(page.getByTestId('nest-dragon')).toBeFocused();
@@ -108,6 +114,11 @@ test('a name being typed survives a tint tapped (a new camp snapshot) (final rev
   await care.getByTestId('dragon-tint-ecume').click();
   await expect(care.getByTestId('dragon-tint-ecume')).toHaveClass(/selected/);
   await expect(input).toHaveValue('Aile');
+  // The tinted still pictures (living-dragon final review): the won écume swatch's egg and the HUD's
+  // dragon are painted in écume once their tinted copy is made (`bronze` meanwhile: polled).
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveAttribute('data-tint', 'ecume');
+  await expect(page.getByTestId('hud-dragon').locator('img')).toHaveAttribute('data-tint', 'ecume');
+  await expect.poll(() => dragonTint(page.getByTestId('nest-dragon-layer'))).toBe('ecume');
   expect(await redScan(page)).toEqual([]);
 });
 
@@ -140,10 +151,11 @@ test('nest: ?debug outlines the dragon; no red; rotate screen', async ({ page, r
   await expect(page.getByTestId('rotate-screen')).toBeVisible();
 });
 
-// Spec 2026-09-29 dragon growth §3: each of the six stages in the straw bed, with its name and what it
-// is up to; the biggest stays clear of its growth sheet and below the HUD. The stage is set by
-// intercepting this hero's /camp with an XP total that fits it (the real XP-driven growth is pinned by
-// the server tests and world.spec), so no impossible state (« 0 sur 100 XP » at the top) renders.
+// Spec 2026-09-29 dragon growth §3 and spec 2026-10-02 nest by stage: each of the six stages on its
+// own painting, with its name and what it is up to; the dragon and its growth sheet clear of each
+// other and of the HUD, the hotspot on the dragon. The stage is set by intercepting this hero's /camp
+// with an XP total that fits it (the real XP-driven growth is pinned by the server tests and
+// world.spec), so no impossible state (« 0 sur 100 XP » at the top) renders.
 const XP_AT: Record<string, { total: number; floor: number; next: number | null }> = {
   egg: { total: 0, floor: 0, next: 100 },
   hatchling: { total: 150, floor: 100, next: 1200 },
@@ -161,27 +173,124 @@ const STAGES = [
   ['ancestral', 'Dragon ancestral', 'Il lit les vieux parchemins et veille sur toi.'],
 ] as const;
 
-test('the nest shows each of the six stages, clear of its growth sheet and of the HUD', async ({ page, request }, testInfo) => {
-  const id = await createProfileApi(request, heroName(testInfo.project.name));
-  let stage: string = 'egg';
+const SHEET_RIGHT = new Set(['adult', 'illustre', 'ancestral']);
+
+/** Routes this hero's /camp to the stage `stage()` returns, with an XP total that fits it. */
+async function fakeStage(page: Page, id: number, stage: () => string) {
   await page.route(`**/api/profiles/${id}/camp`, async (route) => {
     const res = await route.fetch();
     const camp = await res.json();
-    camp.dragon = { ...camp.dragon, stage, name: stage === 'egg' ? null : 'Braise' };
-    camp.xp = { ...camp.xp, ...XP_AT[stage] };
+    const s = stage();
+    camp.dragon = { ...camp.dragon, stage: s, name: s === 'egg' ? null : 'Braise' };
+    camp.xp = { ...camp.xp, ...XP_AT[s] };
     await route.fulfill({ response: res, json: camp });
   });
+}
+
+/** The top of the dragon's painted body (its first row at least half opaque: `row` of the sprite's
+ *  `rows`) and the HUD's bottom edge, in viewport px: the sprite's transparent margin above the head
+ *  may pass under the HUD. The rows come from the stage's sprite file itself and the box from the
+ *  layer's wrapper (the same square box), so a living dragon's canvas in the layer changes nothing. */
+async function headAndHud(page: Page, stage: string): Promise<{ head: number; hud: number; art: number; row: number; rows: number }> {
+  return page.evaluate(async (s) => {
+    const img = new Image();
+    img.src = `/art/dragon/dragon_${s}_cut.webp`;
+    await img.decode();
+    const c = document.createElement('canvas');
+    [c.width, c.height] = [img.naturalWidth, img.naturalHeight];
+    const g = c.getContext('2d')!;
+    g.drawImage(img, 0, 0);
+    const a = g.getImageData(0, 0, c.width, c.height).data;
+    let row = 0;
+    find: for (; row < c.height; row++) for (let x = 0; x < c.width; x++) if (a[(row * c.width + x) * 4 + 3] > 128) break find;
+    const r = document.querySelector('[data-testid="nest-dragon-layer"]')!.getBoundingClientRect();
+    const hud = document.querySelector('header.hud')!.getBoundingClientRect();
+    const art = document.querySelector('[data-testid="scene-nest"] .art')!.getBoundingClientRect();
+    return { head: r.top + (row / c.height) * r.height, hud: hud.bottom, art: art.height, row, rows: c.height };
+  }, stage);
+}
+
+test('the nest shows each of the six stages on its own painting, clear of its growth sheet and of the HUD', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let stage: string = 'egg';
+  await fakeStage(page, id, () => stage);
   for (const [key, label, activity] of STAGES) {
     stage = key;
     await page.goto(`/#/p/${id}/dragon?debug`);
     await page.reload();
     await expectScene(page, 'nest');
-    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', `/art/dragon/dragon_${key}_cut.webp`);
+    await expect(page.locator('[data-testid="scene-nest"] .art-bg')).toHaveAttribute('src', `/art/scenes/nest_${key}.webp`);
+    // dragonSrc: the picture asked for, whether the layer holds the still picture or a living canvas.
+    await expect.poll(() => dragonSrc(page.getByTestId('nest-dragon-layer'))).toBe(`/art/dragon/dragon_${key}_cut.webp`);
     await expect(page.getByTestId('dragon-stage')).toHaveText(label);
     await expect(page.getByTestId('nest-growth')).toContainText(activity);
-    const b = await measureBoxes(page, { growth: '[data-testid="nest-growth"]', layer: '[data-testid="nest-dragon-layer"] img.dragon-base', hud: 'header.hud' });
-    expect(b.growth!.x + b.growth!.width, `${key}: the growth sheet left of the dragon`).toBeLessThanOrEqual(b.layer!.x + 2);
-    expect(b.layer!.y, `${key}: the dragon's picture below the HUD`).toBeGreaterThanOrEqual(b.hud!.y + b.hud!.height - 2);
+    const right = SHEET_RIGHT.has(key);
+    await expect(page.getByTestId('nest-growth')).toHaveAttribute('data-side', right ? 'right' : 'left');
+    // The layer's own box (both the still picture and the living dragon's canvas fill it).
+    const b = await measureBoxes(page, {
+      growth: '[data-testid="nest-growth"]',
+      layer: '[data-testid="nest-dragon-layer"]',
+      spot: '[data-testid="nest-dragon"]',
+      hud: 'header.hud',
+    });
+    const [g, l, s, hud] = [b.growth!, b.layer!, b.spot!, b.hud!];
+    const hudBottom = hud.y + hud.height;
+    if (right) {
+      expect(g.x, `${key}: the growth sheet right of the dragon`).toBeGreaterThanOrEqual(l.x + l.width - 2);
+      expect(g.x, `${key}: the growth sheet right of the hotspot`).toBeGreaterThanOrEqual(s.x + s.width - 2);
+    } else {
+      expect(g.x + g.width, `${key}: the growth sheet left of the dragon`).toBeLessThanOrEqual(l.x + 2);
+      expect(g.x + g.width, `${key}: the growth sheet left of the hotspot`).toBeLessThanOrEqual(s.x + 2);
+    }
+    expect(l.y, `${key}: the dragon's picture below the HUD`).toBeGreaterThanOrEqual(hudBottom - 2);
+    expect(g.y, `${key}: the growth sheet below the HUD`).toBeGreaterThanOrEqual(hudBottom - 2);
+    // The hotspot covers the dragon: centred inside its picture, at least half as wide.
+    const [cx, cy] = [s.x + s.width / 2, s.y + s.height / 2];
+    expect(cx > l.x && cx < l.x + l.width && cy > l.y && cy < l.y + l.height, `${key}: the hotspot on the dragon`).toBe(true);
+    expect(s.width, `${key}: the hotspot as wide as half the dragon`).toBeGreaterThanOrEqual(l.width * 0.5);
+    // Review Focus 3: hotspot and plaque in the safe zone, the plaque clear of the dialogue dock.
+    await expectInSafeZone(page, 'nest', ['nest-dragon']);
+    expect(await labelOverlaps(page, 'nest'), key).toEqual([]);
+  }
+  // Review Focus 5: on a 4:3 iPad the outer eighths are cropped; the biggest dragon and the
+  // right-side sheet stay inside the visible art.
+  await page.setViewportSize({ width: 1366, height: 1024 });
+  await expectScene(page, 'nest');
+  const c = await measureBoxes(page, { art: '[data-testid="scene-nest"] .art', growth: '[data-testid="nest-growth"]', layer: '[data-testid="nest-dragon-layer"]' });
+  const [left, rightEdge] = [c.art!.x + c.art!.width * 0.125, c.art!.x + c.art!.width * 0.875];
+  expect(c.growth!.x + c.growth!.width, 'the sheet inside the 4:3 crop').toBeLessThanOrEqual(rightEdge + 1);
+  expect(c.layer!.x, 'the ancestral dragon inside the 4:3 crop').toBeGreaterThanOrEqual(left - 1);
+  // Review Focus 4: the sheet beside the ancestral never swallows the tap on it.
+  await tap(page.getByTestId('nest-dragon'), testInfo);
+  await expect(page.getByTestId('overlay-care')).toBeVisible();
+});
+
+// Task 4 review and controller ruling N3: the HUD is a fixed 71.5 px, so on a short screen it reaches
+// lower in the art (11.2 % of a 640 px art box against 9.9 % of a 720 px one). A 1024x640 window (a
+// small laptop's browser) is the shortest art box the nest supports: the dragon's painted head still
+// clears the HUD there (nest.ts HUD_LINE_SHORT, nest.sprites.ts SPRITE_TOP_MARGIN).
+test("the dragon's head clears the HUD on a short screen (1024x640)", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let stage: string = 'egg';
+  await fakeStage(page, id, () => stage);
+  await page.setViewportSize({ width: 1024, height: 640 });
+  const seen: { key: (typeof STAGES)[number][0]; head: number; hud: number; art: number; row: number; rows: number }[] = [];
+  for (const [key, label] of STAGES) {
+    stage = key;
+    await page.goto(`/#/p/${id}/dragon?debug`);
+    await page.reload();
+    await expectScene(page, 'nest');
+    await expect(page.getByTestId('dragon-stage')).toHaveText(label);
+    seen.push({ key, ...(await headAndHud(page, key)) });
+  }
+  const said = seen.map((m) => `${m.key}: head ${m.head.toFixed(1)} px, HUD bottom ${m.hud.toFixed(1)} px, art ${m.art.toFixed(0)} px tall`).join('; ');
+  testInfo.annotations.push({ type: 'measures', description: said });
+  for (const m of seen) {
+    // nest.sprites.ts SPRITE_TOP_MARGIN (the unit rule's margin) is the sprite file's own, within a row.
+    expect(Math.abs(m.row - SPRITE_TOP_MARGIN[m.key] * m.rows), `${m.key}: SPRITE_TOP_MARGIN matches the sprite (row ${m.row} of ${m.rows})`).toBeLessThanOrEqual(1);
+    // No tolerance on purpose: the young and the illustre clear the HUD by 0.3-0.4 px at 640 px, so
+    // the usual 2 px slack would let a head under the HUD pass.
+    expect(m.head, `${m.key}: the painted head below the HUD (${said})`).toBeGreaterThanOrEqual(m.hud);
   }
 });
 
@@ -209,4 +318,60 @@ test('the growth sheet: the next stage and the XP toward it; « Il a fini de gra
   await expect(sheet.locator('.growth-count')).toHaveCount(0);
   await expect(sheet.locator('[role="progressbar"]')).toHaveAttribute('data-state', 'ok');
   await expect(sheet.locator('[role="progressbar"]')).toHaveAttribute('aria-valuetext', 'Il a fini de grandir.');
+});
+
+test("a grown dragon's nest opened cold shows no other stage's painting while /camp is on its way (spec 2026-10-02 nest by stage)", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let release!: () => void;
+  const held = new Promise<void>((r) => (release = r));
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage: 'adult', name: 'Braise' };
+    camp.xp = { ...camp.xp, ...XP_AT.adult };
+    await held;
+    await route.fulfill({ response: res, json: camp });
+  });
+  const nests = watchNests(page);
+  await page.goto(`/#/p/${id}/dragon?debug`);
+  await expectScene(page, 'nest');
+  await expect(page.getByTestId('place-status')).toBeVisible();
+  await expect(page.locator('[data-testid="scene-nest"] .art-bg')).toHaveCount(0);
+  release();
+  const bg = page.locator('[data-testid="scene-nest"] .art-bg');
+  await expect(bg).toHaveAttribute('src', '/art/scenes/nest_adult.webp');
+  await expect(page.getByTestId('nest-dragon')).toBeVisible();
+  // Pre-flight N1: once the painting is decoded and no nest painting is still on its way, the whole
+  // list of nest paintings fetched is the adult's alone (not a wait for a first match).
+  await bg.evaluate((img: HTMLImageElement) => img.decode());
+  await expect.poll(() => nests.pending.size).toBe(0);
+  expect(nests.fetched).toEqual(['nest_adult']);
+});
+
+// Spec 2026-10-02 living dragon: where the browser offers WebGL2 the hatched dragon lives on a canvas;
+// where it does not, it keeps the still picture. The egg never lives. living-dragon.spec.ts proves the
+// canvas itself on Chromium.
+test('a hatched dragon lives where the browser has WebGL2; the egg is always the still picture', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let stage = 'adult';
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage, name: stage === 'egg' ? null : 'Braise' };
+    await route.fulfill({ response: res, json: camp });
+  });
+  await page.goto(`/#/p/${id}/dragon`);
+  await expectScene(page, 'nest');
+  const layer = page.getByTestId('nest-dragon-layer');
+  const gl = await webgl2Available(page);
+  testInfo.annotations.push({ type: 'webgl2', description: String(gl) });
+  expect(await settledDragon(layer)).toBe(gl ? 'living' : 'still');
+  await expect(layer.locator('.dragon-base')).toHaveCount(1);
+  await expect(layer.getByRole('img', { name: 'Braise', exact: true })).toBeVisible();
+  stage = 'egg';
+  await page.reload();
+  await expectScene(page, 'nest');
+  expect(await settledDragon(layer)).toBe('still');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(layer.locator('canvas')).toHaveCount(0);
 });

@@ -48,16 +48,87 @@ Weekly-goal banner: open sky at x 40–65, y 8–18.
 
 The web copy carries Hermès's stall (`assets/art/scenes/hub_camp_stall.png`, awning x 8.8-23.4 %, y 17-20 % to the counter at y 43 %; sub-project 4, repainted 2026-10-02).
 
-## nest: the dragon's nest
+## nest_<stage>: the dragon's nest, one painting per stage (spec 2026-10-02 nest by stage)
 
-A woven nest in a rock hollow on a sea cliff at sunset. The middle of the straw bed is empty.
+The place grows around the dragon; all six share the old nest's light and palette. The dragon's place
+and size are `NEST_STAGES` (`web/src/lib/world/scenes/nest.ts`), its hotspot `NEST_SHAPES`
+(`nest.shapes.ts`); the growth sheet's band is x 13.5-32.5 (egg to young) or x 68.5-87.5 (adult to
+ancestral), from y 18. The **Dragon spot** row is the dragon layer's box (the square sprite, w x 16/9
+tall, its feet on the box's bottom edge). Measured on `tools/art/nest_preview.py --grid` previews.
+
+### nest_egg: a straw nest in a sheltered hollow (close-up)
 
 | Landmark | x | y | w | h | Notes |
 |---|---|---|---|---|---|
-| Nest (whole) | 25 | 30 | 53 | 48 | |
-| **Dragon spot** | 34 | 30 | 34 | 36 | Empty straw bed. Put the dragon cut-out's feet at about y 62, centred at x 50. For the adult, scale it to about 45 % of the height |
-| Cracked egg shell | 33 | 39 | 5 | 10 | Decorative |
-| Bronze brazier cup | 58 | 33 | 7 | 13 | Decorative, possible FX anchor |
+| **Dragon spot** | 42 | 25.6 | 16 | 28.4 | Empty straw in the nest's hollow. Egg: feet at y 54, centred at x 50, width 16 |
+| Nest (whole) | 30 | 31 | 37 | 40 | Woven twigs on the rock ledge |
+| Pale cliff and boulder (the sheet) | 0 | 0 | 33 | 60 | Calm rock behind the growth sheet (x 13.5-32.5, from y 18) |
+| Boulder, right | 62 | 30 | 24 | 22 | Decorative |
+| Sea at sunset | 80 | 20 | 20 | 35 | Decorative, outside the safe zone |
+| Rock ledge (floor) | 0 | 50 | 100 | 50 | The dialogue dock sits on its lower part (y 80+) |
+
+### nest_hatchling: the egg's nest, the broken shell beside it
+
+The egg's painting with the broken top of the shell painted in (Task 2's two-pass inpaint, seed 1654);
+every other landmark is the egg's.
+
+| Landmark | x | y | w | h | Notes |
+|---|---|---|---|---|---|
+| **Dragon spot** | 39.5 | 17.7 | 21 | 37.3 | Empty straw in the nest's hollow. Hatchling: feet at y 55, centred at x 50, width 21 |
+| Nest (whole) | 30 | 31 | 37 | 40 | As on nest_egg |
+| **Broken shell** | 61.3 | 60.8 | 16.4 | 15.7 | Decorative, beside the dragon, outside its hotspot (the ellipse ends at x 59.5) |
+| Pale cliff and boulder (the sheet) | 0 | 0 | 33 | 60 | As on nest_egg |
+| Rock ledge (floor) | 0 | 50 | 100 | 50 | As on nest_egg |
+
+### nest_young: a big close-up nest on a rocky ledge
+
+| Landmark | x | y | w | h | Notes |
+|---|---|---|---|---|---|
+| **Dragon spot** | 32.5 | 10.2 | 38 | 67.6 | Empty straw; the straw spills toward the viewer. Young: feet at y 77.8, centred at x 51.5, width 38 (its painted head at 11.2, just below the HUD on a 640 px art box) |
+| Nest (whole) | 15 | 32 | 67 | 48 | Woven twigs around a straw bed |
+| Boulder behind the nest | 31 | 7 | 51 | 53 | Decorative, the dragon stands in front of it |
+| Pale cliff (the sheet) | 0 | 0 | 21 | 80 | The growth sheet (x 13.5-32.5, from y 18) hangs on the cliff and the boulder's edge |
+| Sea far below | 74 | 28 | 26 | 72 | Decorative, mostly outside the safe zone |
+| Straw floor | 15 | 55 | 70 | 25 | The dialogue dock sits on the straw-strewn rock below (y 80+) |
+
+### nest_adult: a cave aerie open on the sea
+
+| Landmark | x | y | w | h | Notes |
+|---|---|---|---|---|---|
+| **Dragon spot** | 24 | 10.1 | 40 | 71.1 | Empty floor in front of the nest. Adult: feet at y 81.2, centred at x 44, width 40 |
+| Nest (whole) | 11 | 40 | 51 | 28 | Twigs and olive branches, behind the dragon |
+| Bronze brazier | 15 | 37 | 6 | 10 | Decorative, possible FX anchor (flame at about (18, 38)) |
+| Cave mouth, left (sea view) | 19 | 12 | 17 | 30 | Decorative |
+| Cave opening, right | 54 | 19 | 14 | 29 | Decorative |
+| Cave wall, right (the sheet) | 68 | 0 | 32 | 60 | The growth sheet (x 68.5-87.5, from y 18) hangs on it |
+| Cave floor | 0 | 63 | 100 | 37 | The dialogue dock sits on it (y 80+) |
+
+### nest_illustre: the hoard and banners at the cave's mouth
+
+| Landmark | x | y | w | h | Notes |
+|---|---|---|---|---|---|
+| **Dragon spot** | 22 | 10.7 | 44 | 78.2 | Empty floor in front of the nest. Illustre: feet at y 88.9, centred at x 44, width 44 |
+| Nest (whole) | 6 | 40 | 60 | 40 | Twigs and straw, behind the dragon |
+| Banners | 5 | 0 | 26 | 50 | Decorative, red and gold meander banners |
+| Amphora | 40 | 28 | 5 | 14 | Decorative, mostly behind the dragon's wing |
+| Red cloths | 0 | 45 | 20 | 28 | Decorative, over the nest's left edge |
+| Coins on the floor | 11 | 77 | 52 | 11 | Decorative |
+| Cave mouth (sea at sunset) | 49 | 3 | 28 | 57 | Decorative; the growth sheet (x 68.5-87.5, from y 18) hangs on its right edge and the wall |
+| Rock floor | 0 | 60 | 100 | 40 | The dialogue dock sits on it (y 80+) |
+
+### nest_ancestral: a mountain lair among columns and the hoard
+
+| Landmark | x | y | w | h | Notes |
+|---|---|---|---|---|---|
+| **Dragon spot** | 20.5 | 10.4 | 47 | 83.6 | Empty flagstones in front of the nest. Ancestral: feet at y 94, centred at x 44, width 47 |
+| Nest | 22 | 60 | 40 | 25 | Twigs, mostly hidden behind the dragon |
+| Banners | 4 | 0 | 15 | 57 | Decorative, red and gold meander banners |
+| Columns | 18 / 64 | 3 | 7 | 60 | Decorative; a third column and a banner at x 70-77 behind the sheet |
+| Hoard, left | 0 | 46 | 27 | 46 | Decorative: gold, amphorae, shields, goblets, a crown |
+| Hoard, right | 61 | 52 | 26 | 24 | Decorative: gold, amphorae, a crown |
+| Cave opening (light) | 41 | 2 | 10 | 13 | Decorative, above the dragon's head |
+| Rock wall, right (the sheet) | 75 | 0 | 25 | 60 | The growth sheet (x 68.5-87.5, from y 18) hangs on the column and the wall |
+| Flagstone floor | 0 | 76 | 100 | 24 | The dialogue dock sits on it (y 80+) |
 
 ## delphi: the temple of Apollo
 

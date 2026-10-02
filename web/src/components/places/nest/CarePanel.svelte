@@ -13,7 +13,8 @@
   import { tick, untrack } from 'svelte';
   import { campFor, campStore, refreshCamp, replaceCamp } from '../../../lib/world/campStore.svelte';
   import { useToast } from '../../../lib/ui/toast.svelte';
-  import { TINT_NAMES, eggFilter, validName } from '../../../lib/world/dragon';
+  import { LOCKED_EGG_FILTER, TINT_NAMES, validName } from '../../../lib/world/dragon';
+  import { tintedDragon } from '../../../lib/living/stillTint';
   import type { RewardOut, Slot, Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import { playSfx, unlockAudio } from '../../../lib/juice/sfx';
@@ -201,10 +202,15 @@
             class:locked={!unlocked}
             onclick={() => pickTint(t)}
           >
-            <!-- The tint (or the locked grey) filters the egg only: the ring and the lock keep
+            <!-- The tint (or the locked grey) is on the egg only: the ring and the lock keep
                  their own colours (fix round 1). -->
             <span class="swatch-circle">
-              <img class="swatch-egg" src={ART.dragon.egg} alt="" style={`filter: ${eggFilter(t, unlocked)}`} />
+              <img
+                class="swatch-egg"
+                use:tintedDragon={{ src: ART.dragon.egg, tint: unlocked ? t : 'bronze' }}
+                alt=""
+                style:filter={unlocked ? null : LOCKED_EGG_FILTER}
+              />
               {#if !unlocked}<span class="lock" aria-hidden="true"><img src={MARK_ICONS.lock} alt="" /></span>{/if}
             </span>
             <span class="swatch-name">{TINT_NAMES[t]}</span>

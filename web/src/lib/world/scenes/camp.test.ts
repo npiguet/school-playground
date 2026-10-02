@@ -10,6 +10,7 @@ import {
   CAMP_HOTSPOTS,
   CAMP_SCENE,
   bossLockLine,
+  campScene,
   campDragonLayer,
   campGreeting,
   campNews,
@@ -171,7 +172,7 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     // UI5 playability #12: after the greeting, the stage line says no second hello.
     expect(lines[1].text).toBe("Chaque piège d'Éris déjoué me fait frémir dans ma coquille.");
     expect(variantsOf('camp.next.first-text')).toContain(lines[2].text);
-    expect(lines[0]).toMatchObject({ key: 'camp.enter', speaker: 'dragon', name: "L'œuf", portrait: '/art/dragon/dragon_egg_cut.webp', portraitFilter: 'none' });
+    expect(lines[0]).toMatchObject({ key: 'camp.enter', speaker: 'dragon', name: "L'œuf", portrait: '/art/dragon/dragon_egg_cut.webp', portraitTint: 'bronze' });
   });
 
   it('praises the week\'s goal when it is reached, and names a prophecy\'s day', () => {
@@ -237,15 +238,17 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
     expect(campDragonLayer('egg')).toMatchObject({ x: 17, y: 55, depth: 0, idle: 'none' });
     const widths = DRAGON_STAGES.map((s) => campDragonLayer(s).scale);
     expect(widths.every((w, i) => i === 0 || w > widths[i - 1]), 'bigger at every stage').toBe(true);
-    // Final review M14: none of the hub's destinations loads cold on its first tap.
-    expect(CAMP_SCENE.preload).toEqual([
-      '/art/scenes/library_tent.webp',
-      '/art/scenes/delphi.webp',
-      '/art/scenes/war_tent.webp',
-      '/art/scenes/nest.webp',
-      '/art/scenes/cabin.webp',
-      '/art/scenes/eris_lair.webp',
-    ]);
+    // Final review M14: none of the hub's destinations loads cold on its first tap; spec 2026-10-02
+    // nest by stage: the nest's painting is the dragon's stage's, known once /camp has arrived.
+    const places = ['/art/scenes/library_tent.webp', '/art/scenes/delphi.webp', '/art/scenes/war_tent.webp'];
+    const after = ['/art/scenes/cabin.webp', '/art/scenes/eris_lair.webp'];
+    expect(CAMP_SCENE.preload).toEqual([...places, ...after]);
+    expect(campScene(null)).toBe(CAMP_SCENE);
+    for (const s of DRAGON_STAGES) {
+      expect(campScene(s).preload, s).toEqual([...places, `/art/scenes/nest_${s}.webp`, ...after]);
+      expect(campScene(s), s).toBe(campScene(s));
+      expect({ ...campScene(s), preload: [] }, s).toEqual({ ...CAMP_SCENE, preload: [] });
+    }
   });
 
   it('keeps the words the other places use', () => {

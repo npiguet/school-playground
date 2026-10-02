@@ -10,7 +10,8 @@
   import { ART, trophyIcon } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
   import { campFor, campStore } from '../../../lib/world/campStore.svelte';
-  import { eggFilter } from '../../../lib/world/dragon';
+  import { LOCKED_EGG_FILTER } from '../../../lib/world/dragon';
+  import { tintedDragon } from '../../../lib/living/stillTint';
   import { lieutenantName, sleepingLine, isAwake } from '../../../lib/world/eris';
   import { MAX_SEAL, highestTrophies, sealHowLine, sealNeedLine, sealTitle, sealTitleOf, trophyId } from '../../../lib/world/seals';
   import { rulesOf } from '../../../lib/rules';
@@ -227,7 +228,13 @@
           {@const isOwned = !!rewardRow}
           <li class="kit-cubby trophy" class:is-empty={!isOwned} data-testid="cabin-reward-{item.id}" data-owned={isOwned ? 'true' : 'false'}>
             {#if section.kind === 'tint'}
-              <span class="tint-egg"><img src={ART.dragon.egg} alt="" style={`filter: ${eggFilter(tintKey(item.id), isOwned)}`} /></span>
+              <span class="tint-egg"
+                ><img
+                  use:tintedDragon={{ src: ART.dragon.egg, tint: isOwned ? tintKey(item.id) : 'bronze' }}
+                  alt=""
+                  style:filter={isOwned ? null : LOCKED_EGG_FILTER}
+                /></span
+              >
             {:else}
               <Medallion rewardId={item.id} locked={!isOwned} size={64} />
             {/if}

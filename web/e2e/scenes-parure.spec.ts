@@ -5,6 +5,7 @@ import {
   createProfileApi, createText, expectBattle, expectCamp, expectOverlayTapTargets, expectScene, heroNamer, makeResult, postSession, redScan, seedPlay,
   tap, uniqueName,
 } from './helpers';
+import { dragonTint, dragonWorn, settledDragon, webgl2Available } from './dragon';
 
 const heroName = heroNamer('Parure');
 // Seven days against the Hydra: the wooden seal on the third, the bronze one on the seventh (four days,
@@ -43,12 +44,10 @@ test('earn, buy the Hydra\'s collar, wear it: the dragon wears it in the camp, u
   await page.goto(`/#/p/${id}/camp`);
   await expectCamp(page);
   const layer = page.getByTestId('camp-dragon-layer');
-  const overlay = layer.locator('img.dragon-overlay[data-item="hydre-cou"]');
-  await expect(overlay).toHaveAttribute('src', /\/art\/dragon\/accessories\/hydre-cou_(young|adult)\.webp$/);
-  await expect(overlay).toHaveCSS('filter', 'none');
-  const [base, piece] = [await layer.locator('img.dragon-base').boundingBox(), await overlay.boundingBox()];
-  expect(piece!.x).toBeGreaterThanOrEqual(base!.x - 1);
-  expect(piece!.x + piece!.width).toBeLessThanOrEqual(base!.x + base!.width + 1);
+  await expect.poll(() => dragonWorn(layer)).toEqual(['hydre-cou']);
+  // The living canvas draws it untinted from its atlas (living-dragon.spec.ts compares its pixels);
+  // the still picture draws it as its own untinted <img> inside the dragon's box (the reduced-motion
+  // test below).
   expect(await redScan(page)).toEqual([]);
   // The victory's dragon card wears it too (R19): a counted victory where the dragon grows.
   await seedPlay(page, {
@@ -84,8 +83,8 @@ test('earn, buy the Hydra\'s collar, wear it: the dragon wears it in the camp, u
   await expect(page.getByTestId('parure-cou-rien')).toHaveAttribute('aria-checked', 'true');
   await expect.poll(async () => (await request.get(`/api/profiles/${id}/camp`).then((r) => r.json())).dragon.worn).toEqual([]);
   await page.goto(`/#/p/${id}/dragon`);
-  await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toBeVisible();
-  await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-overlay')).toHaveCount(0);
+  await expect(page.getByTestId('nest-dragon-layer').locator('.dragon-base')).toBeVisible();
+  await expect.poll(() => dragonWorn(page.getByTestId('nest-dragon-layer'))).toEqual([]);
 });
 
 test('a tinted dragon keeps its pieces in their own colours; the egg keeps them without showing them', async ({ page, request }) => {
@@ -100,15 +99,56 @@ test('a tinted dragon keeps its pieces in their own colours; the egg keeps them 
   });
   await page.goto(`/#/p/${id}/dragon`);
   const layer = page.getByTestId('nest-dragon-layer');
-  await expect(layer.locator('img.dragon-overlay[data-item="lethe-tete"]')).toHaveCSS('filter', 'none');
-  await expect(layer.locator('img.dragon-base')).not.toHaveCSS('filter', 'none');
+  await expect.poll(() => dragonWorn(layer)).toEqual(['lethe-tete']);
+  // The dragon is tinted (OKLCH: painted on a canvas, a blob picture, or by the living dragon's
+  // shader on the dragon only), its piece never (living-dragon.spec.ts compares the canvas's pixels).
+  await expect.poll(() => dragonTint(layer)).toBe('braise');
+  expect(await settledDragon(layer)).toBe((await webgl2Available(page)) ? 'living' : 'still');
   stage = 'egg';
   await page.reload();
-  await expect(layer.locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('data-src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('data-tint', 'braise');
   await expect(layer.locator('img.dragon-overlay')).toHaveCount(0);
   await page.goto(`/#/p/${id}/dragon?panel=soin`);
   await expect(page.getByTestId('dragon-parure')).toContainText("Il portera sa parure dès qu'il sera un jeune dragon.");
   await expect(page.getByTestId('dragon-parure-how')).toHaveText('Hermès vend des parures à son étal, dans le camp.');
+});
+
+// Living dragon, Task 7 review: the browsers here have WebGL2, so the dragon lives in the tests
+// above; reduced motion forces the still picture, whose pieces are their own untinted pictures inside
+// the dragon's box over a dragon tinted on a canvas (a blob picture, no CSS filter).
+test("under reduced motion the still picture wears its pieces untinted, inside the dragon's box", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  // Every stage already seen: no « grew while you were away » reveal over the camp.
+  expect((await request.patch(`/api/profiles/${id}`, { data: { settings: { dragon_seen_stage: 'ancestral' } } })).ok()).toBeTruthy();
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage: 'adult', name: 'Braise', tint: 'braise', worn: ['hydre-cou', 'lethe-tete'] };
+    await route.fulfill({ response: res, json: camp });
+  });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  const layer = page.getByTestId('camp-dragon-layer');
+  expect(await settledDragon(layer)).toBe('still');
+  await expect(layer.locator('canvas')).toHaveCount(0);
+  const base = layer.locator('img.dragon-base');
+  await expect(base).toHaveAttribute('data-tint', 'braise');
+  await expect(base).toHaveAttribute('src', /^blob:/);
+  await expect(base).toHaveCSS('filter', 'none');
+  expect(await dragonWorn(layer)).toEqual(['hydre-cou', 'lethe-tete']);
+  const box = (await base.boundingBox())!;
+  for (const item of ['hydre-cou', 'lethe-tete']) {
+    const overlay = layer.locator(`img.dragon-overlay[data-item="${item}"]`);
+    await expect(overlay).toHaveAttribute('src', `/art/dragon/accessories/${item}_adult.webp`);
+    await expect(overlay).toHaveCSS('filter', 'none');
+    const piece = (await overlay.boundingBox())!;
+    expect(piece.x, item).toBeGreaterThanOrEqual(box.x - 1);
+    expect(piece.y, item).toBeGreaterThanOrEqual(box.y - 1);
+    expect(piece.x + piece.width, item).toBeLessThanOrEqual(box.x + box.width + 1);
+    expect(piece.y + piece.height, item).toBeLessThanOrEqual(box.y + box.height + 1);
+  }
 });
 
 // SP4 Task 6 review, minor 4 (ruling): only the dragon's layer is a dressed figure; the Pythia and the
@@ -126,7 +166,7 @@ test("only the dragon's layer is a figure; the other scene layers stay plain pic
     await expect(layers.locator('.dragon-figure')).toHaveCount(0);
   }
   await page.goto(`/#/p/${id}/dragon`);
-  await expect(page.getByTestId('nest-dragon-layer').locator('.dragon-figure img.dragon-base')).toBeVisible();
+  await expect(page.getByTestId('nest-dragon-layer').locator('.dragon-figure .dragon-base')).toBeVisible();
 });
 
 // SP4 Task 6 review, minor 3: a change the server refuses puts the previous piece back and says why.
@@ -158,8 +198,7 @@ test('a refused change of piece puts the previous one back and says why', async 
   await expect(care.getByTestId('parure-sirenes-cou')).toHaveAttribute('aria-checked', 'false');
   // The dragon behind the panel wears the Hydra's collar again, not the refused one.
   const layer = page.getByTestId('nest-dragon-layer');
-  await expect(layer.locator('img.dragon-overlay[data-item="hydre-cou"]')).toHaveCount(1);
-  await expect(layer.locator('img.dragon-overlay[data-item="sirenes-cou"]')).toHaveCount(0);
+  await expect.poll(() => dragonWorn(layer)).toEqual(['hydre-cou']);
 });
 
 // SP4 Task 8: the pieces owned could not be read. The parure never guesses « nothing owned » (it would

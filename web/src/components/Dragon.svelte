@@ -1,6 +1,6 @@
 <script lang="ts">
-  // The dragon companion's portrait: one cut WebP per stage, tinted with a CSS filter (decision
-  // 11 - never a new art generation for a tint), and the pieces it wears (spec 2026-09-29 drachmes §4),
+  // The dragon companion's portrait: one cut WebP per stage, in its tint (TINT_SPECS, decision 11 -
+  // never a new art generation for a tint), and the pieces it wears (spec 2026-09-29 drachmes §4),
   // drawn untinted by DragonFigure. Used by the victory's spoils (battle/VictorySpoils.svelte) for the
   // hatch and the camp's « grew while you were away » reveal (screens/Camp.svelte; the places draw the
   // dragon itself as a SceneLayer cut-out).
@@ -8,7 +8,7 @@
   import DragonFigure from './DragonFigure.svelte';
   import { ART } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
-  import { TINT_FILTERS, type Mood } from '../lib/world/dragon';
+  import type { Mood } from '../lib/world/dragon';
   import type { DragonStage, Tint } from '../lib/world/types';
 
   let {
@@ -24,7 +24,7 @@
 <DragonFigure
   src={ART.dragon[stage]}
   alt={name ?? 'Ton dragon'}
-  filter={TINT_FILTERS[tint]}
+  {tint}
   overlays={accessoryLayers(worn, stage)}
   className="dragon {mood}{stage === 'egg' ? ' egg' : ''}"
   style="width:{size}px"

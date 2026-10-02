@@ -723,13 +723,30 @@ front in the draw order `queue`, `dos`, `cou`, `tete`, from the young dragon on.
 The server serves the worn pieces as the manifest's item keys (`dragon.worn`, e.g. `hydre-cou`), one
 per slot.
 
+### The living dragon
+
+In the nest and on the camp, the hatched dragon moves slowly and slightly: head, wings, tail and
+breath, on periods that never line up, its feet still and its pieces riding along as rigid
+passengers. One WebGL2 canvas per dragon draws its single sprite on a 64 x 64 mesh skinned by six
+bones (`web/src/lib/living/`, `components/LivingDragon.svelte`); the tint is `TINT_SPECS` (OKLCH, the
+same steps as the still pictures' canvas tint), on the dragon only. The egg, reduced motion, a
+browser without WebGL2, a lost context or a shader that fails keep the still picture. The living
+code and each stage's rig load lazily, as their own chunks, the first time a living dragon shows
+(the battle screens are lazy too, so the entry chunk stays under Vite's 500 kB warning). The rigs
+are hand-authored in `tools/art/rig.json` and baked by `tools/art/run_docker.sh rig bake` into
+`web/src/lib/living/rig/` (the `dragon-rig` skill); the lab page (`web/lab.html`, built by
+`vite.lab.config.ts`, never shipped) shows every stage live. Its e2e, `web/e2e/living-dragon.spec.ts`,
+runs on its own Playwright project, `chromium-gl` (Chromium with SwiftShader's WebGL2): the frames,
+the feet that stay put, the tint against the still picture's, the failures and the loop's pauses.
+
 ### Art and sound
 
 Art and sound are served from the same origin, bundled in the image: `web/public/art` (WebP, about
-8.1 MB) and `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler
-(`web/src/lib/world/readmeSizes.test.ts` checks both figures). Dragon tints are a CSS `hue-rotate`
-filter on one cut-out per stage. Every static file is sent with `Cache-Control: no-store`
-(`server/app/static.py`, §2 "Which version is running?").
+9.3 MB) and `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler
+(`web/src/lib/world/readmeSizes.test.ts` checks both figures). Dragon tints recolour one cut-out per
+stage in OKLCH (`TINT_SPECS`), on a canvas for the still pictures and in the living dragon's shader.
+Every static file is sent with `Cache-Control: no-store` (`server/app/static.py`, §2 "Which version
+is running?").
 
 ### `DISCORDE_TEST_HOOKS`
 

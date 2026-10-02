@@ -24,7 +24,6 @@
   import { go, heroPanelHref } from '../../lib/scene/panelNav';
   import { reducedMotion, watchReducedMotion } from '../../lib/juice/motion';
   import { ART } from '../../lib/world/art';
-  import { TINT_FILTERS } from '../../lib/world/dragon';
   import { accessoryLayers } from '../../lib/world/accessories';
   import type { CampResponse, DragonOut } from '../../lib/world/types';
   import type { Profile } from '../../lib/types';
@@ -130,7 +129,7 @@
               alt={dragon.name ?? STAGE.dragonAlt}
               side="left"
               mirror={FACES.dragon[dragonStage] !== 'right'}
-              filter={TINT_FILTERS[dragon.tint]}
+              tint={dragon.tint}
               overlays={accessoryLayers(dragon.worn, dragonStage)}
               reaction={battleStage.dragon.reaction}
               nonce={battleStage.dragon.nonce}
