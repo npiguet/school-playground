@@ -56,7 +56,7 @@ test('the hatched dragon lives on a canvas in the nest and the camp; the egg sta
   await page.reload();
   await expectCamp(page);
   expect(await settledDragon(camp)).toBe('still');
-  await expect(camp.locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(camp.locator('img.dragon-base')).toHaveAttribute('data-src', '/art/dragon/dragon_egg_cut.webp');
   await expect(camp.locator('canvas')).toHaveCount(0);
 });
 
@@ -128,6 +128,8 @@ test('the tint on the canvas matches the still picture under the same tint, and 
   const e = MANIFEST['sirenes-dos'].adult;
   // The saddle's box, its inner 60 %: the piece's own pixels on both pictures.
   const saddle = { x0: e.x + 0.2 * e.w, y0: e.y + 0.2 * e.h, x1: e.x + 0.8 * e.w, y1: e.y + 0.8 * e.h };
+  let before: { tint: string; still: Buffer } | null = null;
+  const controls: string[] = [];
   for (const t of Object.keys(TINT_SPECS)) {
     tint = t;
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -149,7 +151,19 @@ test('the tint on the canvas matches the still picture under the same tint, and 
     // preset, moves these means by tens.
     for (let k = 0; k < 3; k++) expect(Math.abs(whole.meanA[k] - whole.meanB[k]), `${t}: channel ${k} over the dragon`).toBeLessThan(2.5);
     for (let k = 0; k < 3; k++) expect(Math.abs(piece.meanA[k] - piece.meanB[k]), `${t}: channel ${k} over the saddle`).toBeLessThan(4);
+    // The negative control: the living dragon under this tint against the still picture under the
+    // previous one. Measured 2026-10-03 (chromium-gl, SwiftShader; largest mean channel gap): bronze /
+    // écume 27.59, écume / olivier 23.08, olivier / braise 16.21, braise / jade 29.07, jade / argent
+    // 35.18. The closest pair sits six times above the 2.5 above, so that threshold tells tints apart.
+    if (before) {
+      const off = await compareShots(page, before.still, living);
+      const gap = Math.max(...[0, 1, 2].map((k) => Math.abs(off.meanA[k] - off.meanB[k])));
+      controls.push(`${before.tint} still / ${t} living: ${gap.toFixed(2)}`);
+      expect(gap, `${before.tint} still against ${t} living: the threshold tells two tints apart`).toBeGreaterThan(2.5);
+    }
+    before = { tint: t, still };
   }
+  testInfo.annotations.push({ type: 'tint controls', description: controls.join('; ') });
 });
 
 test('a lost context brings the still picture back, never a blank box', async ({ page, request }, testInfo) => {
@@ -161,6 +175,31 @@ test('a lost context brings the still picture back, never a blank box', async ({
   await expect(figure(page)).toHaveAttribute('data-motion', 'still');
   await expect(nest(page).locator('img.dragon-base')).toBeVisible();
   await expect(nest(page).locator('canvas')).toHaveCount(0);
+});
+
+// Ruling L2 (plan R4): a failure is final for that mount only; reduced motion lifted mounts a fresh
+// try, on a new canvas.
+test('after a lost context, reduced motion switched on and off tries again on a fresh canvas', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await mockDragon(page, id, () => ({ stage: 'adult' }));
+  await openNest(page, id);
+  await expect(figure(page)).toHaveAttribute('data-motion', 'living');
+  await nest(page).locator('canvas').evaluate((c) => {
+    (c as HTMLCanvasElement).dataset.mark = 'first';
+    (c as HTMLCanvasElement).getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext();
+  });
+  await expect(figure(page)).toHaveAttribute('data-motion', 'still');
+  await expect(nest(page).locator('canvas')).toHaveCount(0);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  // The figure is still already, so nothing shows that reduced motion got through: two frames let
+  // the page take it in before it is lifted (both changes in one flush would leave the stage as it was).
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await expect(figure(page)).toHaveAttribute('data-motion', 'still');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect(figure(page)).toHaveAttribute('data-motion', 'living');
+  await expect(nest(page).locator('canvas')).toHaveCount(1);
+  await expect(nest(page).locator('canvas')).not.toHaveAttribute('data-mark', 'first');
+  await expect.poll(() => frames(page)).toBeGreaterThan(0);
 });
 
 test('a shader that fails to compile leaves the still picture', async ({ page, request }, testInfo) => {
@@ -215,8 +254,11 @@ test('twenty visits between the camp and the nest never run out of WebGL context
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   await mockDragon(page, id, () => ({ stage: 'adult' }));
   const warnings: string[] = [];
+  // The browser's own lines when contexts run out or one is lost (Chromium: « WARNING: Too many active
+  // WebGL contexts », « CONTEXT_LOST_WEBGL »; any « WebGL: » line), not every message with the word
+  // « context » in it.
   page.on('console', (m) => {
-    if (/WebGL|context/i.test(m.text())) warnings.push(m.text());
+    if (/WebGL|too many active|CONTEXT_LOST/i.test(m.text())) warnings.push(m.text());
   });
   for (let i = 0; i < 20; i++) {
     await page.goto(`/#/p/${id}/camp`);
