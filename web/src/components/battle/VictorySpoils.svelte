@@ -332,6 +332,7 @@
           mood="happy"
           size={140}
           name={dragon?.name}
+          worn={dragon?.worn ?? []}
         />
         {#if isHatchEvent}
           <p class="spoil-title">L'œuf éclôt{'\u202f!'}</p>

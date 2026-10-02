@@ -1,7 +1,10 @@
 <script lang="ts">
   // A combatant on the battle stage (UI4 Ruling C10): an existing cut-out, idle-breathing from the
   // kit, reacting through the Web Animations API. `.actor` moves in screen space; `.facing` mirrors
-  // the art so the two sides look at each other.
+  // the art so the two sides look at each other. The dragon wears its pieces (`overlays`, spec
+  // 2026-09-29 drachmes §4, R19); the mirror flips the whole figure, pieces included.
+  import DragonFigure from '../DragonFigure.svelte';
+  import type { OverlayLayer } from '../../lib/world/accessories';
   import { reactionAnimation, type Reaction } from '../../lib/battle/reactions';
 
   let {
@@ -10,6 +13,7 @@
     side,
     mirror,
     filter = 'none',
+    overlays = [],
     reaction,
     nonce,
     testId,
@@ -22,6 +26,7 @@
     side: 'left' | 'right';
     mirror: boolean;
     filter?: string;
+    overlays?: OverlayLayer[];
     reaction: Reaction;
     nonce: number;
     testId: string;
@@ -48,7 +53,7 @@
 <div class="combatant {side}" data-testid={testId} data-reaction={reaction} data-hits={hits}>
   <div class="actor" bind:this={actor}>
     <div class="facing" class:mirror>
-      <img {src} {alt} class:idle-breathe={idle && !reduced} style:filter draggable="false" />
+      <DragonFigure {src} {alt} {filter} {overlays} className={idle && !reduced ? 'combatant-figure idle-breathe' : 'combatant-figure'} />
     </div>
   </div>
 </div>
@@ -73,10 +78,14 @@
   .facing.mirror {
     transform: scaleX(-1);
   }
-  img {
+  /* The figure's box is the picture's, so the pieces' percentages hold at any height. */
+  .facing :global(.combatant-figure) {
+    height: 100%;
+    display: inline-block;
+  }
+  .facing :global(.combatant-figure .dragon-base) {
     height: 100%;
     width: auto;
-    display: block;
     object-fit: contain;
     user-select: none;
   }

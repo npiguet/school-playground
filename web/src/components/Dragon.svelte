@@ -1,10 +1,13 @@
 <script lang="ts">
   // The dragon companion's portrait: one cut WebP per stage, tinted with a CSS filter (decision
-  // 11 - never a new art generation for a tint). Used by the victory's spoils
-  // (battle/VictorySpoils.svelte) for the hatch and the camp's « grew while you were away » reveal
-  // (screens/Camp.svelte; the places draw the dragon itself as a SceneLayer cut-out).
+  // 11 - never a new art generation for a tint), and the pieces it wears (spec 2026-09-29 drachmes §4),
+  // drawn untinted by DragonFigure. Used by the victory's spoils (battle/VictorySpoils.svelte) for the
+  // hatch and the camp's « grew while you were away » reveal (screens/Camp.svelte; the places draw the
+  // dragon itself as a SceneLayer cut-out).
   // Its size comes from the caller; the places size each stage themselves (camp.ts / nest.ts `WIDTH`).
+  import DragonFigure from './DragonFigure.svelte';
   import { ART } from '../lib/world/art';
+  import { accessoryLayers } from '../lib/world/accessories';
   import { TINT_FILTERS, type Mood } from '../lib/world/dragon';
   import type { DragonStage, Tint } from '../lib/world/types';
 
@@ -14,35 +17,31 @@
     size = 120,
     mood = 'idle',
     name = null,
-  }: { stage: DragonStage; tint: Tint; size?: number; mood?: Mood; name?: string | null } = $props();
+    worn = [],
+  }: { stage: DragonStage; tint: Tint; size?: number; mood?: Mood; name?: string | null; worn?: readonly string[] } = $props();
 </script>
 
-<img
+<DragonFigure
   src={ART.dragon[stage]}
   alt={name ?? 'Ton dragon'}
-  style={`filter: ${TINT_FILTERS[tint]}; width: ${size}px`}
-  class="dragon {mood}"
-  class:egg={stage === 'egg'}
-  loading="eager"
-  decoding="async"
+  filter={TINT_FILTERS[tint]}
+  overlays={accessoryLayers(worn, stage)}
+  className="dragon {mood}{stage === 'egg' ? ' egg' : ''}"
+  style="width:{size}px"
 />
 
 <style>
-  .dragon {
-    display: block;
-    height: auto;
-    object-fit: contain;
-  }
-  .dragon.idle {
+  /* The figure is DragonFigure's element: the mood's animation moves the picture and its pieces as one. */
+  :global(.dragon-figure.dragon.idle) {
     animation: float 4s ease-in-out infinite;
   }
-  .dragon.sleepy {
+  :global(.dragon-figure.dragon.sleepy) {
     animation: float 7s ease-in-out infinite;
   }
-  .dragon.happy {
+  :global(.dragon-figure.dragon.happy) {
     animation: pop 0.5s ease both;
   }
-  .dragon.egg.happy {
+  :global(.dragon-figure.dragon.egg.happy) {
     animation: wobble 0.5s ease both;
   }
 </style>

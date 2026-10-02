@@ -11,6 +11,7 @@
   import CarePanel from '../components/places/nest/CarePanel.svelte';
   import { NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from '../lib/world/scenes/nest';
   import { ART } from '../lib/world/art';
+  import { accessoryLayers } from '../lib/world/accessories';
   import { TINT_FILTERS, dragonCaption, stageActivity, stageLabel } from '../lib/world/dragon';
   import { campFor } from '../lib/world/campStore.svelte';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
@@ -37,6 +38,7 @@
       <SceneLayer
         layer={{ id: 'dragon', src: ART.dragon[d.stage], alt: dragonCaption(d), ...nestDragonLayer(d.stage) }}
         filter={TINT_FILTERS[d.tint]}
+        overlays={accessoryLayers(d.worn, d.stage)}
         testId="nest-dragon-layer"
       />
       <div class="kit-sheet nest-growth stage-text" data-testid="nest-growth">

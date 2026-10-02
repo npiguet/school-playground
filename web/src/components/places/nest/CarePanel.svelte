@@ -5,14 +5,16 @@
   // nom » heading). UI3b playability #4: she writes the name on a painted ribbon, as she wrote her own
   // on the forge's banner (HeroForm.svelte), not in a « label + field + submit » form. Tints are known
   // in advance (the locked ones say once, under the row, how to win them; ethics: nothing is a
-  // gamble) and changing one is instant/optimistic.
+  // gamble) and changing one is instant/optimistic. And its parure: one owned piece or nothing per slot
+  // (spec 2026-09-29 drachmes §4, R20), optimistic like the tints.
   import { ART, MARK_ICONS } from '../../../lib/world/art';
+  import { SLOTS, SLOT_NAMES, accessoryPicture, wears, wornAfter } from '../../../lib/world/accessories';
   import { worldApi } from '../../../lib/world/api';
   import { untrack } from 'svelte';
   import { campFor, campStore, refreshCamp, replaceCamp } from '../../../lib/world/campStore.svelte';
   import { useToast } from '../../../lib/ui/toast.svelte';
   import { TINT_NAMES, eggFilter, validName } from '../../../lib/world/dragon';
-  import type { Tint } from '../../../lib/world/types';
+  import type { RewardOut, Slot, Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import { playSfx, unlockAudio } from '../../../lib/juice/sfx';
   import type { Profile } from '../../../lib/types';
@@ -91,6 +93,42 @@
       savingTint = null;
     }
   }
+
+  // The pieces owned, fetched once per hero (R20); the worn ones come with the camp (`dragon.worn`).
+  let owned = $state<RewardOut[] | null>(null);
+  $effect(() => {
+    const id = profile.id;
+    owned = null;
+    worldApi.rewards(id).then((list) => (owned = list)).catch(() => (owned = []));
+  });
+  const itemOf = (id: string) => id.slice('accessory:'.length);
+  const piecesIn = (slot: Slot) => (owned ?? []).filter((r) => r.kind === 'accessory' && itemOf(r.id).endsWith(`-${slot}`));
+  const wornIn = (slot: Slot) => dragon?.worn.find((w) => w.endsWith(`-${slot}`)) ?? null;
+  const ownsAny = $derived((owned ?? []).some((r) => r.kind === 'accessory'));
+
+  let parureError = $state('');
+  let savingSlot = $state<Slot | null>(null);
+
+  async function wear(slot: Slot, item: string | null) {
+    if (!dragon || wornIn(slot) === item) return;
+    const previous = camp;
+    const current = wornIn(slot);
+    parureError = '';
+    savingSlot = slot;
+    // Optimistic, like the tints: a refusal (stale camp) reverts to the server's own state.
+    if (previous) replaceCamp(profile.id, { ...previous, dragon: { ...previous.dragon, worn: wornAfter(previous.dragon.worn, slot, item) } });
+    try {
+      if (item) await worldApi.patchReward(profile.id, `accessory:${item}`, true);
+      else if (current) await worldApi.patchReward(profile.id, `accessory:${current}`, false);
+      unlockAudio();
+      playSfx('chime');
+    } catch (e) {
+      if (previous) replaceCamp(profile.id, previous);
+      parureError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
+    } finally {
+      savingSlot = null;
+    }
+  }
 </script>
 
 <div class="panel-care">
@@ -157,6 +195,44 @@
         <p class="tint-how" data-testid="dragon-tint-how">Les autres teintes se gagnent dans les quêtes de l'Oracle.</p>
       {/if}
     </section>
+
+    <section class="parure-section" data-testid="dragon-parure">
+      <h3 class="kit-section">Sa parure</h3>
+      {#if !wears(dragon.stage)}<p class="parure-note">Il portera sa parure dès qu'il sera un jeune dragon.</p>{/if}
+      {#if parureError}<p class="kit-note" data-tone="eris" role="alert">{parureError}</p>{/if}
+      {#each SLOTS as slot (slot)}
+        <div class="parure-slot" role="radiogroup" aria-label={SLOT_NAMES[slot]} data-testid="parure-{slot}">
+          <span class="parure-slot-name">{SLOT_NAMES[slot]}</span>
+          <div class="parure-choices">
+            <button
+              type="button"
+              role="radio"
+              class="parure-choice"
+              aria-checked={wornIn(slot) === null}
+              data-testid="parure-{slot}-rien"
+              disabled={savingSlot !== null}
+              onclick={() => wear(slot, null)}
+            >
+              <span class="parure-none" aria-hidden="true"></span><span>Rien</span>
+            </button>
+            {#each piecesIn(slot) as r (r.id)}
+              <button
+                type="button"
+                role="radio"
+                class="parure-choice"
+                aria-checked={wornIn(slot) === itemOf(r.id)}
+                data-testid="parure-{itemOf(r.id)}"
+                disabled={savingSlot !== null}
+                onclick={() => wear(slot, itemOf(r.id))}
+              >
+                <img src={accessoryPicture(itemOf(r.id), dragon.stage) ?? ''} alt="" draggable="false" /><span>{r.name}</span>
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/each}
+      {#if owned && !ownsAny}<p class="parure-how" data-testid="dragon-parure-how">Hermès vend des parures à son étal, dans le camp.</p>{/if}
+    </section>
   {/if}
 </div>
 
@@ -167,14 +243,16 @@
     gap: 20px;
   }
   .name-section,
-  .tint-section {
+  .tint-section,
+  .parure-section {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
   /* The section's flex gap spaces its lines; a paragraph's own margins would double it. */
   .name-section > p,
-  .tint-section > p {
+  .tint-section > p,
+  .parure-section > p {
     margin: 0;
   }
   /* The name on a cloth ribbon under the dragon's plate, the forge's banner (HeroForm.svelte): the
@@ -295,5 +373,59 @@
     font-style: italic;
     color: var(--reward-ink);
     text-align: center;
+  }
+  /* « Sa parure » (R20): one row per slot, « Rien » and the owned pieces as radio buttons. */
+  .parure-slot {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    align-items: center;
+    gap: 10px;
+  }
+  .parure-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .parure-choice {
+    appearance: none;
+    background: transparent;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 72px;
+    min-height: 48px;
+    padding: 4px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .parure-choice:disabled {
+    cursor: default;
+  }
+  .parure-choice img,
+  .parure-none {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+  }
+  .parure-none {
+    display: block;
+    border: 2px dashed var(--ink-soft);
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+  .parure-choice[aria-checked='true'] img,
+  .parure-choice[aria-checked='true'] .parure-none {
+    /* The tint swatch's selected look (olive, then a light ring): olive-light alone fades on parchment. */
+    box-shadow:
+      0 0 0 2px var(--olive),
+      0 0 0 4px var(--olive-light);
+    border-radius: 8px;
+  }
+  .parure-note,
+  .parure-how {
+    font-style: italic;
+    color: var(--reward-ink);
   }
 </style>

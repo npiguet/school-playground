@@ -767,3 +767,14 @@ the manifest fragment `lethe.json` in `assets/art/export/dragon/accessories/`. C
   floats once laid on the stage. On 2960 the cluster right of the near horn was erased, leaving one large
   and one small poppy between the horns. Passed over: young 2660-2661, adult 2760 and 2762.
 - Reasons for each pick, clean-up polygons and hand tracings are in each sidecar's `note`.
+
+## Accessories: in the game (Phase 4)
+
+Wired by sub-project 4: the 96 overlays in `web/public/art/dragon/accessories/`, the manifest merged by
+`python tools/art/accessory_manifest.py` into `web/src/lib/world/accessories.json` (re-run it after any
+`overlay.py crop`). The WebPs named in each set's section above moved there from
+`assets/art/export/dragon/accessories/` (a redone overlay is exported there again, then moved); the six
+fragments (`<lt>.json`) stay in `assets/art/export/dragon/accessories/` as the script's input. The game
+draws them untinted over the tinted dragon, from the young dragon on, back to front (queue, dos, cou,
+tête). Measured when they came in: 716 924 bytes for the 96 (the largest 16 KB); the non-scene art
+budget (`web/src/lib/world/art.test.ts`) was raised to 4.5 MiB for them.

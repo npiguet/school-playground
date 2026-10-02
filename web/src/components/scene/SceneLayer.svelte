@@ -1,11 +1,20 @@
 <script lang="ts">
   // A positioned cut-out (scenes UI spec §4): x = centre, y = bottom edge, scale = width, in art %.
-  // Parallax offset by depth; no parallax and no idle animation under reduced motion.
+  // Parallax offset by depth; no parallax and no idle animation under reduced motion. The dragon's
+  // layer also carries the pieces it wears (`overlays`, spec 2026-09-29 drachmes §4, R19): the idle
+  // animation is on the figure, so they breathe with it.
+  import DragonFigure from '../DragonFigure.svelte';
+  import type { OverlayLayer } from '../../lib/world/accessories';
   import { parallaxOffset } from '../../lib/scene/geometry';
   import { useSceneRuntime } from '../../lib/scene/runtime.svelte';
   import type { SceneLayerDef } from '../../lib/scene/types';
 
-  let { layer, filter = 'none', testId }: { layer: SceneLayerDef; filter?: string; testId?: string } = $props();
+  let {
+    layer,
+    filter = 'none',
+    overlays = [],
+    testId,
+  }: { layer: SceneLayerDef; filter?: string; overlays?: OverlayLayer[]; testId?: string } = $props();
 
   const rt = useSceneRuntime();
   const off = $derived(rt.reduced || rt.debug ? { x: 0, y: 0 } : parallaxOffset(layer.depth, rt.nx, rt.ny));
@@ -22,13 +31,7 @@
   data-offset="{off.x},{off.y}"
   style="left:{layer.x - layer.scale / 2}%;bottom:{100 - layer.y}%;width:{layer.scale}%;transform:translate({offPx.x}px,{offPx.y}px)"
 >
-  <img
-    class="scene-layer-img idle-{rt.reduced ? 'none' : layer.idle}"
-    src={layer.src}
-    alt={layer.alt}
-    draggable="false"
-    style="filter:{filter}"
-  />
+  <DragonFigure src={layer.src} alt={layer.alt} {filter} {overlays} className="scene-layer-img idle-{rt.reduced ? 'none' : layer.idle}" />
 </div>
 
 <style>
@@ -38,9 +41,8 @@
     pointer-events: none;
     transition: transform 0.35s ease-out;
   }
-  .scene-layer-img {
+  .scene-layer :global(.scene-layer-img) {
     display: block;
     width: 100%;
-    height: auto;
   }
 </style>

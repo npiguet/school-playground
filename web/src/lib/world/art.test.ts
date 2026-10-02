@@ -17,6 +17,20 @@ import {
   rewardKindOf,
   trophyIcon,
 } from './art';
+import { ACCESSORY_MANIFEST, accessorySrc } from './accessories';
+
+/** A WebP's pixel size from its header (VP8X, VP8L or VP8), without a dependency. */
+function webpSize(file: string): { w: number; h: number } {
+  const b = readFileSync(file);
+  const chunk = b.toString('ascii', 12, 16);
+  if (chunk === 'VP8X') return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3) };
+  if (chunk === 'VP8L') {
+    const bits = b.readUInt32LE(21);
+    return { w: (bits & 0x3fff) + 1, h: ((bits >>> 14) & 0x3fff) + 1 };
+  }
+  if (chunk === 'VP8 ') return { w: b.readUInt16LE(26) & 0x3fff, h: b.readUInt16LE(28) & 0x3fff };
+  throw new Error(`${file}: not a WebP`);
+}
 
 function flat(o: unknown): string[] {
   return typeof o === 'string' ? [o] : Object.values(o as object).flatMap(flat);
@@ -32,9 +46,37 @@ describe('art map', () => {
     for (const p of nonScene()) expect(statSync('public' + p).size, p).toBeLessThan(150 * 1024);
   });
 
-  it('total non-scene art payload stays under 3.5 MiB (raised for the 60 trophies, art spec Phase 3)', () => {
-    // Measured when the trophies came in (sub-project 2 Task 3): 3420882 bytes. Sub-project 4 raises it again for the accessories.
-    expect(nonScene().reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThan(3.5 * 1024 * 1024);
+  it('total non-scene art payload, the accessories included, stays under 4.5 MiB (raised for the 96 overlays, art spec Phase 4)', () => {
+    // Measured when the accessories came in (sub-project 4 Task 6): 4202462 bytes, of which the overlays 716924.
+    const accessories = readdirSync('public/art/dragon/accessories').map((f) => statSync(`public/art/dragon/accessories/${f}`).size);
+    const total = nonScene().reduce((s, p) => s + statSync('public' + p).size, 0) + accessories.reduce((s, n) => s + n, 0);
+    expect(total).toBeLessThan(4.5 * 1024 * 1024);
+  });
+
+  // Spec 2026-09-29 drachmes §4, §6: every piece at every wearing stage, inside the stage's picture,
+  // its fractions matching its own crop (review focus 4); nothing on disk the manifest does not name.
+  it('has a manifest entry for the 24 pieces at the four wearing stages, and each one fits', () => {
+    const lts = ['hydre', 'echo', 'chimere', 'protee', 'sirenes', 'lethe'];
+    const items = lts.flatMap((lt) => ['cou', 'queue', 'dos', 'tete'].map((s) => `${lt}-${s}`));
+    expect(Object.keys(ACCESSORY_MANIFEST).sort()).toEqual([...items].sort());
+    const files: string[] = [];
+    for (const item of items) {
+      for (const stage of ['young', 'adult', 'illustre', 'ancestral'] as const) {
+        const e = ACCESSORY_MANIFEST[item][stage];
+        expect(e, `${item} ${stage}`).toBeDefined();
+        const where = `${item} ${stage}`;
+        const pic = webpSize('public' + ART.dragon[stage]);
+        const crop = webpSize('public' + accessorySrc(e!.src));
+        files.push(e!.src);
+        expect(e!.w > 0 && e!.h > 0 && e!.x >= 0 && e!.y >= 0, where).toBe(true);
+        expect(e!.x + e!.w, where).toBeLessThanOrEqual(1 + 1e-4);
+        expect(e!.y + e!.h, where).toBeLessThanOrEqual(1 + 1e-4);
+        expect(Math.abs(e!.w * pic.w - crop.w), where).toBeLessThanOrEqual(1.5);
+        expect(Math.abs(e!.h * pic.h - crop.h), where).toBeLessThanOrEqual(1.5);
+        expect(statSync('public' + accessorySrc(e!.src)).size, where).toBeLessThan(150 * 1024);
+      }
+    }
+    expect(readdirSync('public/art/dragon/accessories').sort()).toEqual([...files].sort());
   });
 
   it('maps the 30 trophies twice, as icons and for the close view (spec 2026-09-29 lieutenant levels §1)', () => {

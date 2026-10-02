@@ -28,6 +28,7 @@
   import { VICTORY } from '../lib/battle/lines';
   import { TINT_FILTERS, dragonCaption } from '../lib/world/dragon';
   import { ART } from '../lib/world/art';
+  import { accessoryLayers } from '../lib/world/accessories';
   import type { CampResponse } from '../lib/world/types';
   import type { DialogueLine, HotspotDef, SceneLayerDef } from '../lib/scene/types';
   import { playSfx, unlockAudio } from '../lib/juice/sfx';
@@ -142,7 +143,12 @@
 <PlaceScene bind:this={place} {profile} scene={CAMP_SCENE} bind:debug showExit={false} {greet} onHero={openHero}>
   {#snippet children(ctx)}
     {#if ctx.camp}
-      <SceneLayer layer={dragonLayer(ctx.camp)} filter={TINT_FILTERS[ctx.camp.dragon.tint]} testId="camp-dragon-layer" />
+      <SceneLayer
+        layer={dragonLayer(ctx.camp)}
+        filter={TINT_FILTERS[ctx.camp.dragon.tint]}
+        overlays={accessoryLayers(ctx.camp.dragon.worn, ctx.camp.dragon.stage)}
+        testId="camp-dragon-layer"
+      />
     {/if}
 
     {#each CAMP_SCENE.hotspots as def (def.id)}
@@ -175,7 +181,7 @@
   {@const dragon = campFor(profile.id)?.dragon}
   <Overlay variant="scroll" title="Ton dragon" testId="camp-dragon-reveal" onClose={closeReveal}>
     <div class="dragon-reveal">
-      <Dragon stage={reveal.stage} tint={dragon?.tint ?? 'bronze'} mood="happy" size={160} name={dragon?.name} />
+      <Dragon stage={reveal.stage} tint={dragon?.tint ?? 'bronze'} mood="happy" size={160} name={dragon?.name} worn={dragon?.worn ?? []} />
       <p class="reveal-line" data-testid="camp-reveal-line">{reveal.line}</p>
       {#if reveal.askName}
         <DragonNameAsk profileId={profile.id} testPrefix="camp-reveal" ownKeyboard={false} />

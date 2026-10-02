@@ -790,7 +790,7 @@ test('a dragon that hatched while she was away is revealed once at the camp; she
   await expect(reveal).toBeVisible();
   await expect(reveal).toHaveAttribute('role', 'dialog');
   await expect(reveal.getByTestId('camp-reveal-line')).toHaveText("L'œuf a éclos pendant ton absence\u202f!");
-  await expect(reveal.locator('img.dragon')).toHaveAttribute('src', '/art/dragon/dragon_hatchling_cut.webp');
+  await expect(reveal.locator('.dragon img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_hatchling_cut.webp');
   // The greeting waits for the reveal (it would ask for the name the reveal is asking for).
   await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
   await expect(reveal).toContainText("Comment vas-tu l'appeler\u202f?");
@@ -831,7 +831,7 @@ test('a named dragon grown two stages while she was away: the stage named, no na
     .poll(() => reveal.evaluate((el) => el.getAnimations({ subtree: true }).filter((a) => a.playState === 'running').length))
     .toBe(0);
   await expect(reveal.getByTestId('camp-reveal-line')).toHaveText('Ton dragon a grandi pendant ton absence\u202f: Dragon adulte\u202f!');
-  await expect(reveal.locator('img.dragon')).toHaveAttribute('src', '/art/dragon/dragon_adult_cut.webp');
+  await expect(reveal.locator('.dragon img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_adult_cut.webp');
   await expect(reveal.getByTestId('camp-reveal-name-input')).toHaveCount(0);
   await tap(reveal.getByTestId('overlay-close'), testInfo);
   await expect(reveal).toHaveCount(0);
