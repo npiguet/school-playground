@@ -37,18 +37,23 @@ Three new paintings, 2048x1152 (16:9), replacing `assets/art/scenes/{cabin,villa
 `web/public/art/scenes/{cabin,villa,palais}.webp`:
 
 - **Viewpoint:** a straight-on view of the back wall (one-point perspective, horizon around the
-  middle), so one front-facing cut-out per piece fits every house.
+  middle), so one front-facing cut-out per piece fits every house. A closer, less wide shot (a
+  normal lens, not a wide angle), so the pieces show large: a far-off shelf made them tiny (user
+  playtest of round 1, 2026-10-02).
 - **Layout shared by the three rooms** (positions may shift per house, the kinds of fixture do not):
-  - 6 trophy niches or places along one long shelf or cupboard, at a consistent height;
-  - a gear corner: a wall place for the Égide, a low shelf or stand for the Sandales, a rack or
-    pedestal for the Foudre;
+  - the hero of the room: a floor-to-ceiling cupboard of open shelving in the centre, about half
+    the frame wide, 3 shelves x 3 open compartments (9 large empty compartments, each about 14-17 %
+    of the frame width). The top two shelves hold the 6 trophies, the bottom shelf the 3 gear pieces
+    (Égide, Sandales, Foudre);
   - decor fixtures: a hook (lanterne), a clear floor area in front (tapis), a floor corner (amphore),
     an alcove or wall space for the bookcase (étagère), wall panels (fresque, mosaïque, bouclier), a
     perch or pedestal (chouette), a shelf spot (couronne);
   - the three places' objects stay painted in: the « Tes trésors » shelf area, the journal on a desk,
     the lyre.
 - **Styles:** the cabane keeps its current rustic look (wood, straw, warm light), redone from the
-  front with its fixtures. The villa: whitewashed walls, painted frieze and columns, new and clean.
+  front with its fixtures. The villa: a newly built villa in ancient Greek style (or a faithful
+  modern replica), pristine: fresh smooth whitewashed plaster, crisp freshly painted frieze and
+  columns, brand-new, no worn plaster, chips, patches or stains.
   The palais: marble, gold, mosaic floor, at its prime. No ruin, crack, moss or dilapidation.
 - An empty room must look inviting (every hero starts with nothing).
 - **Review gate:** 2-3 variants per room are shown to the user before the pieces are painted.
