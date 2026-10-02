@@ -38,10 +38,14 @@
       error = failure(e);
     }
   }
-  function retryOwned() {
+  // The button is gone once it is pressed: the focus goes to « Réessayer » again if the stall still
+  // cannot read, else to the stall itself, never to the page.
+  async function retryOwned() {
     error = '';
     ownedFailed = false;
-    void loadOwned(profile.id);
+    await loadOwned(profile.id);
+    await tick();
+    (list?.querySelector<HTMLElement>('[data-testid="stall-retry"]') ?? list)?.focus();
   }
   $effect(() => {
     const id = profile.id;
@@ -139,7 +143,7 @@
   </li>
 {/snippet}
 
-<div class="panel-stall" bind:this={list}>
+<div class="panel-stall" tabindex="-1" data-testid="stall-panel" bind:this={list}>
   <div class="stall-head">
     <img class="hermes" src={ART.characters.hermes} alt="Hermès" draggable="false" />
     {#if camp}<p class="purse" data-testid="stall-purse"><img class="coin" src={MARK_ICONS.drachme} alt="" draggable="false" />{purseLine(camp.drachmes)}</p>{/if}

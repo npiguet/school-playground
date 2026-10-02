@@ -114,3 +114,33 @@ test('a purchase refused by the server says why and the purse refreshes', async 
   // What the other tablet bought is owned here too, once the refusal has refreshed the stall.
   for (const item of spent) await expect(stall.getByTestId(`stall-item-${item}`)).toHaveAttribute('data-state', 'owned');
 });
+
+// SP4 Task 5 review: what the hero owns could not be read the first time. The shelves wait (never a
+// guess: an empty list would offer « Acheter » on a piece already owned), the error says so, and
+// « Réessayer » asks again: the real list arrives, the piece already owned says « À toi », and the
+// focus stays in the stall (not on the page, the button it was on being gone).
+test('the stall could not read what is owned: it says so, and « Réessayer » brings the shelves', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const text = await createText(request, { title: uniqueName(`Étal ${testInfo.project.name}`), body: 'Les fées dansent dans la clairière.', level: '10H' });
+  await postSession(request, { profileId: id, textId: text.id, day: swissDay(0), result: makeResult({ words: 3000, draft: 4, caught: 4 }) });
+  expect((await request.post(`/api/profiles/${id}/purchases`, { data: { item: 'decor:amphore' } })).status()).toBe(201);
+  let calls = 0;
+  await page.route(`**/api/profiles/${id}/rewards`, async (route) => {
+    calls += 1;
+    if (calls === 1) await route.abort('failed');
+    else await route.continue();
+  });
+  await openStall(page, id, testInfo);
+  const stall = page.getByTestId('overlay-stall');
+  await expect(stall.getByTestId('stall-error')).toHaveText('Une erreur est survenue.');
+  await expect(stall.getByTestId('stall-accessories')).toHaveCount(0);
+  await expect(stall.getByTestId('stall-item-decor:amphore')).toHaveCount(0);
+  await tap(stall.getByTestId('stall-retry'), testInfo);
+  const amphora = stall.getByTestId('stall-item-decor:amphore');
+  await expect(amphora).toHaveAttribute('data-state', 'owned');
+  await expect(amphora).toContainText('À toi');
+  await expect(stall.getByTestId('stall-error')).toHaveCount(0);
+  await expect(stall.getByTestId('stall-retry')).toHaveCount(0);
+  expect(calls).toBe(2);
+  await expect(stall.getByTestId('stall-panel')).toBeFocused();
+});
