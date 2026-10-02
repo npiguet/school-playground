@@ -70,7 +70,8 @@ describe('dragon helpers', () => {
       illustre: ['#472a25', '#6a3722', '#715030', '#c4b27f', '#4e573a'],
       ancestral: ['#48231f', '#54271a', '#654727', '#87704a', '#2d4863'],
     };
-    // Known exceptions, awaiting the user's decision (2026-10-02): the user's own presets turn these
+    // Accepted by the user (2026-10-02): a few dark shadows/highlights at the band's edge; the body
+    // colour never turns violet ("I like the tints as is"). The user's own presets turn these
     // sampled colours (the hue tails, never the body's bronze) into Éris's band at a chroma above the
     // floor. Braise turns the darkest red shadows (1st percentile) to a wine red at OKLCH 354-360
     // (HSV 333-338, past the wheel's 329 only at full saturation); jade, olivier and écume turn the
