@@ -6,7 +6,7 @@
 import { LIEUTENANT_ORDER, type CampResponse, type LieutenantKey } from './types';
 import { nearNextStage } from './dragon';
 import { lieutenantName } from './eris';
-import { nearestProphecy, prophecyWhen } from './prophecy';
+import { prophecySoon, prophecyWhen } from './prophecy';
 import { lowerLeadingArticle } from './quests';
 import { sealName } from './seals';
 import type { DialogueCtx, DialogueKey } from '../dialogue/types';
@@ -17,16 +17,20 @@ export type NextStep = 'battle' | 'first-text' | 'prophecy' | 'scrolls' | null;
 /** A fight against Éris is already under way (her quest is active). */
 export const bossEngaged = (camp: CampResponse) => camp.quests.some((q) => q.kind === 'boss' && q.status === 'active');
 
+/** A new hero, before any text: the first one is the next step. */
+const firstTextAwaited = (camp: CampResponse) => camp.xp.total === 0;
+/** The week's three scrolls wait at the oracle, still sealed. */
+const scrollsSealed = (camp: CampResponse) => camp.oracle.status === 'sealed';
+
 /** Ruling B9, order amended by the controller: a prophecy falling due within a week first (the
  *  real-school dictation is what the game prepares for), then a battle ready to be fought, then a
  *  new hero's first text, then the week's sealed scrolls. */
 export function nextStep(camp: CampResponse | null): NextStep {
   if (!camp) return null;
-  const p = nearestProphecy(camp);
-  if (p && p.days_left <= 7) return 'prophecy';
+  if (prophecySoon(camp)) return 'prophecy';
   if (camp.boss.tier_available !== null && !bossEngaged(camp)) return 'battle';
-  if (camp.xp.total === 0) return 'first-text';
-  if (camp.oracle.status === 'sealed') return 'scrolls';
+  if (firstTextAwaited(camp)) return 'first-text';
+  if (scrollsSealed(camp)) return 'scrolls';
   return null;
 }
 
@@ -75,11 +79,11 @@ const texts = (n: number) => `${countWord(n)} ${n < 2 ? 'texte' : 'textes'}`;
 export function whatNext(camp: CampResponse): NextLine {
   const d = camp.dragon;
   if (d.stage !== 'egg' && !d.name) return { kind: 'name', key: 'camp.next.name' };
-  const p = nearestProphecy(camp);
-  if (p && p.days_left <= 7) return { kind: 'prophecy', key: 'camp.next.prophecy', vars: { when: prophecyWhen(p.days_left) } };
+  const p = prophecySoon(camp);
+  if (p) return { kind: 'prophecy', key: 'camp.next.prophecy', vars: { when: prophecyWhen(p.days_left) } };
   // Engaged or not: Éris still waits on the path while her fight is under way.
   if (camp.boss.tier_available !== null) return { kind: 'battle', key: 'camp.next.battle' };
-  if (camp.xp.total === 0) return { kind: 'first-text', key: 'camp.next.first-text' };
+  if (firstTextAwaited(camp)) return { kind: 'first-text', key: 'camp.next.first-text' };
   const near = sealWithinReach(camp);
   if (near) {
     return {
@@ -92,7 +96,7 @@ export function whatNext(camp: CampResponse): NextLine {
   }
   if (nearNextStage(camp.xp)) return { kind: 'stage', key: 'camp.next.stage' };
   if (camp.affordable > 0) return { kind: 'shop', key: 'camp.next.shop' };
-  if (camp.oracle.status === 'sealed') return { kind: 'scrolls', key: 'camp.next.scrolls' };
+  if (scrollsSealed(camp)) return { kind: 'scrolls', key: 'camp.next.scrolls' };
   if (!camp.weekly.reached) return { kind: 'weekly', key: 'camp.next.weekly', vars: { texts: texts(Math.max(1, camp.weekly.target - camp.weekly.done)) } };
   return { kind: 'none', key: 'camp.next.none' };
 }

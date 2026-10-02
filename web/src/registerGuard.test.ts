@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { screenText } from './lib/text/screenText';
-import { banned } from './testing/copyRules';
+import { FOMO, banned } from './testing/copyRules';
 
 const FILES = [
   ...walk('src/components/places'),
@@ -40,6 +40,19 @@ describe('the places speak the camp, not the school', () => {
       for (const hit of banned(text)) report.push(`${f}: ${hit}`);
     }
     expect(report).toEqual([]);
+  });
+
+  // Final review M5: nothing on these screens hurries the player either. The dictation texts are not in
+  // FILES (literature, not game copy: Alice's « trop tard » is no pressure), so the scope leaves them out.
+  it('hurries no one: no countdown, no scarcity, no last chance', () => {
+    const report: string[] = [];
+    for (const f of FILES) {
+      const m = screenText(readFileSync(f, 'utf-8'), f.endsWith('.svelte') ? 'svelte' : 'ts').match(FOMO);
+      if (m) report.push(`${f}: ${m[0]}`);
+    }
+    expect(report).toEqual([]);
+    expect(screenText("<p>Plus que deux jours !</p><script>// trop tard</script>", 'svelte')).toMatch(FOMO);
+    expect(screenText("<script>// trop tard\nconst a = 1;</script>", 'svelte')).not.toMatch(FOMO);
   });
 
   it('catches the planted words and ignores comments and code (self-test)', () => {

@@ -60,8 +60,9 @@ const HOW_TO_WIN: Record<string, string> = {
   'decor:bouclier': 'Hermès le vend à son étal.',
 };
 
-/** How to win a reward, as a sentence to the player (the catalog's own words for an unknown id). */
-export function howToWin(id: string, source: string): string {
+/** How to win a reward, as a sentence to the player (the catalog's own words for an unknown id).
+ *  Module-private (final review M11): callers go through `howToEarn`, which knows the next fight. */
+function howToWin(id: string, source: string): string {
   return HOW_TO_WIN[id] ?? `À gagner\u202f: ${source.charAt(0).toLowerCase()}${source.slice(1)}.`;
 }
 

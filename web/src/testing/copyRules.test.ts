@@ -1,7 +1,7 @@
 // Self-tests of the shared copy rules (copyRules.ts): the agreement rule flags a word said to the
 // player and lets the same word through when it agrees with a noun.
 import { describe, expect, it } from 'vitest';
-import { AGREEING, GENDERED, erisSelfMasculine } from './copyRules';
+import { AGREEING, FOMO, GENDERED, erisSelfMasculine } from './copyRules';
 
 // Each word agreeing with a feminine noun, as the camp's copy may rightly say it.
 const WITH_A_NOUN: Record<string, string> = {
@@ -74,5 +74,35 @@ describe('the agreement rule (self-test)', () => {
     expect(GENDERED.test('Bienvenue, héros !')).toBe(true);
     expect(GENDERED.test('Cher héros, entre.')).toBe(true);
     expect(GENDERED.test('Les héros du camp ne lâchent jamais rien.')).toBe(false);
+  });
+});
+
+// Final review M5: the camp writes small counts in words (countWord), so the FOMO rule reads them too.
+describe('the FOMO rule (self-test)', () => {
+  it('catches a countdown in digits or in words', () => {
+    for (const s of [
+      'Plus que 3 jours !',
+      'Plus que deux jours !',
+      'Il ne reste plus que trois textes.',
+      'Il ne te reste plus que deux essais.',
+      "Il ne vous reste qu'un jour.",
+      'Il ne reste que quelques heures.',
+      "Il ne reste plus qu'un jour.",
+      "Il ne reste qu'une chance.",
+      'Dernière chance',
+      'Trop tard !',
+    ])
+      expect(s, s).toMatch(FOMO);
+  });
+
+  it("lets the camp's own words through", () => {
+    for (const s of [
+      "Il ne te reste qu'à déjouer 88 % des pièges",
+      'Le camp apprend vite.',
+      "C'est plus qu'une dictée.",
+      'Plus que tout, ton dragon aime les textes.',
+      'Il ne reste que des pièges déjoués.',
+    ])
+      expect(s, s).not.toMatch(FOMO);
   });
 });

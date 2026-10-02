@@ -460,7 +460,10 @@ once more (with the rest of their serial group). Any other failure ends the run 
 (`discorde-e2e.lock` in the host temp dir; a holder that died is taken over) for up to
 `PLAYWRIGHT_LOCK_WAIT` seconds (default 7200). The audio tool (`tools/audio/run_docker.sh`, which
 rebuilds the sound files) takes the same lock while ffmpeg runs. Builds and unit tests stay
-parallel.
+parallel. A second run on the **same** `STACK` is refused at once (exit 3, before any docker
+step), since it would tear the first one's containers down; a lock left by a run that died is
+taken over. `scripts/test_run_guard.sh` checks these guards without docker (run it from anywhere;
+it prints one `ok`/`FAIL` line per check and exits 0 when all pass).
 
 **Two checkouts side by side** (e.g. two git worktrees): prefix any script with `STACK=<id>`, e.g.
 `STACK=b scripts/check.sh`. That checkout gets its own compose project, app image, voice image,
@@ -524,11 +527,11 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   hero chip (opens the hero panel), the XP laurel, the dragon and the lyre button (the sound plate:
   the three channels and « Ouvrir la lyre »). The first visit to each place is a short tour by its
   character, and the battle's muster has its own (the pace, the aids and what leaving them is
-  worth); when a place gains something new, a hero
-  who already saw its tour hears only the new steps, once (a version per tour in `settings.tours`,
-  e.g. `"cabin:2"`). « Refaire les visites du camp » in the lyre replays them all, and « Le guide
-  du camp » there explains glory and the dragon's stages, the seals, the drachmes, the aids and
-  Éris's fights, with the numbers of `data/regles.json` as the server serves them.
+  worth); when a place gains something new, a hero who already saw its tour hears only the new
+  steps, once (a version per tour in `settings.tours`, e.g. `"cabin:2"`). « Refaire les visites du
+  camp » in the lyre replays them all, and « Le guide du camp » there explains glory and the
+  dragon's stages, the seals, the drachmes, the aids and Éris's fights, with the numbers the server
+  serves (`data/regles.json` and the catalogue).
 - **The camp** (`#/p/:id/camp`) is the hub once a hero is picked. Its places:
   - « Le nid du dragon » — the dragon's nest: its growth and care (tints).
   - « La tente des parchemins » — the library: « Tes parchemins » (the shelves, where a text is
@@ -577,8 +580,9 @@ The game shows these credits to players in the lyre (« Merci à ceux qui ont ai
   Jeune dragon (1 200), Dragon adulte (5 000), Dragon illustre (15 000), Dragon ancestral (40 000),
   thresholds in `data/regles.json`. A stage is never lost: a raised threshold or a restored backup
   keeps the stage already reached, and a dragon grown before this rule keeps its stage. The HUD's
-  laurel shows the way to the next stage; the XP ranks are gone. A growth the hero has not seen on a victory (a lowered threshold, the catch-up after an update) is revealed once
-  at the camp, with the naming field for an unnamed dragon; the stage last seen is the hero's
+  laurel shows the way to the next stage; the XP ranks are gone. A growth the hero has not seen on
+  a victory (a lowered threshold, the catch-up after an update) is revealed once at the camp, with
+  the naming field for an unnamed dragon; the stage last seen is the hero's
   `settings.dragon_seen_stage`.
 - **Rewards are announced in advance** — every dragon tint, divine gear and cabin decor piece is on
   the cabin's trophy shelf (`#/p/:id/cabane?panel=tresors`) with how to win it, before it can be

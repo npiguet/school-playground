@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { MUSTER } from '../battle/lines';
 import { MUSTER_TOUR_PARTS, TOUR_OF, seenEntries, seenVersion, tourSeen, tourSteps, tourVersion, toursEnabled } from './tours';
 
@@ -64,6 +65,16 @@ describe('the first-visit tours (spec §8, Ruling E13)', () => {
     expect(m.lines.every((l) => l.speaker === 'dragon')).toBe(true);
     expect(MUSTER_TOUR_PARTS).toEqual(['pace', 'aids', 'bonus']);
     expect(tourVersion('muster')).toBe(1);
+  });
+
+  // Final review M4: each part the muster tour rings is marked in the muster's markup, under that name
+  // (renaming one in a component without the constant would leave the ring with nothing to land on).
+  it('finds every muster tour part in the muster markup', () => {
+    const markup = ['PaceMedallions', 'AidToggles', 'MusterPhase']
+      .map((c) => readFileSync(`src/components/battle/${c}.svelte`, 'utf-8'))
+      .join('\n');
+    const marked = [...markup.matchAll(/data-tour-part="([a-z]+)"/g)].map((m) => m[1]).sort();
+    expect(marked).toEqual([...MUSTER_TOUR_PARTS].sort());
   });
 
   // Task 3 review, ruling: « C'est parti ! » only closes the tour, so its last line points at the

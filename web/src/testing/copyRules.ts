@@ -30,9 +30,19 @@ export const banned = (text: string): string[] => BANNED.filter(([re]) => re.tes
  *  « Il manque un mot » (a neutral hint) and « ratisser » are fine. Global: use with matchAll/match. */
 export const GUILT = /(?<![\p{L}])(manquée?s?|ratée?s?|perdue?s?)(?![\p{L}])/giu;
 
+// A small count after « plus que » / « ne reste (plus) que », in digits or in words (the camp writes
+// small counts in words, countWord; final review M5), with or without a pronoun (« ne te reste »).
+// The elided « qu'un(e) » counts only after « ne reste »: « plus qu'une dictée » is a comparison.
+const FEW = String.raw`(?:\d|une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|quelques)(?!\p{L})`;
+
 /** Spec 2026-09-29 explanations §4, drachmes §2 (plan R14): nothing hurries the player. No countdown, no
- *  scarcity, no last chance. (« vite » alone is no pressure: « Le camp apprend vite. ») */
-export const FOMO = /(?<!\p{L})(derni[eè]re chance|trop tard|compte à rebours|dépêche|plus que \d|ne reste (?:plus )?que \d|avant qu'il ne soit|bientôt fini)/iu;
+ *  scarcity, no last chance. (« vite » alone is no pressure: « Le camp apprend vite. ») Game copy only:
+ *  the guards apply it to the dialogue, the screens' text and the reward and guide sentences, never
+ *  to a dictation text (literature: « Ah ! j'arriverai trop tard ! » in Alice is no pressure). */
+export const FOMO = new RegExp(
+  String.raw`(?<!\p{L})(derni[eè]re chance|trop tard|compte à rebours|dépêche|plus que ${FEW}|ne (?:[mtl]e |nous |vous |leur |lui )?reste (?:plus )?(?:que ${FEW}|qu['’]une?(?!\p{L}))|avant qu'il ne soit|bientôt fini)`,
+  'iu',
+);
 
 /** The adjectives and participles that would agree with the player (« perdue » is GUILT's), in
  *  both genders: « tu es prêt » genders her as much as « tu es prête » (final review M10). */

@@ -29,3 +29,13 @@ export function nearestProphecy(camp: CampResponse): CampResponse['prophecies'][
   const list = camp.prophecies;
   return list.length ? [...list].sort((a, b) => a.due_date.localeCompare(b.due_date))[0] : null;
 }
+
+/** A prophecy is the next step once it falls due within this many days (Ruling B9). */
+export const PROPHECY_SOON_DAYS = 7;
+
+/** The nearest prophecy when it falls due within the week, else null: the one rule behind the hub's
+ *  glow (nextStep), the dragon's what-next line (whatNext) and the oracle's caption. */
+export function prophecySoon(camp: CampResponse): CampResponse['prophecies'][number] | null {
+  const p = nearestProphecy(camp);
+  return p && p.days_left <= PROPHECY_SOON_DAYS ? p : null;
+}

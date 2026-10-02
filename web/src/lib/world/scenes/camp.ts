@@ -6,7 +6,7 @@ import { ART } from '../art';
 import { nearNextStage, stageLine } from '../dragon';
 import { HUB_PLACE, bossEngaged, nextStep, whatNext } from '../nextStep';
 import { sayKey } from '../../dialogue/select';
-import { nearestProphecy, prophecyWhen } from '../prophecy';
+import { prophecySoon, prophecyWhen } from '../prophecy';
 import { romanTier } from '../quests';
 import { bossRewardName } from '../rewards';
 import { HOUSE_NAMES } from '../shop';
@@ -58,10 +58,10 @@ export function campNextStep(camp: CampResponse | null): CampHotspotId | null {
 /** Captions only where there is news (carry rec. 5), three at most, by priority. Ruling B-d: the
  *  battle path's caption counts too, locked (the tricks still to foil) or open (the fight), first. */
 export function campNews(camp: CampResponse, catalog: WorldCatalog | null): Partial<Record<CampHotspotId, string>> {
-  const p = nearestProphecy(camp);
+  const p = prophecySoon(camp);
   const all: [CampHotspotId, string | null][] = [
     ['boss', bossLocked(camp) ? bossLockCaption(camp) : bossCaption(camp, catalog)],
-    ['oracle', p && p.days_left <= 7 ? `Une prophétie, ${prophecyWhen(p.days_left)}` : camp.oracle.status === 'sealed' ? 'Trois rouleaux à ouvrir' : null],
+    ['oracle', p ?`Une prophétie, ${prophecyWhen(p.days_left)}` : camp.oracle.status === 'sealed' ? 'Trois rouleaux à ouvrir' : null],
     ['parchemins', camp.xp.total === 0 ? 'Choisis un texte à défendre' : null],
     ['dragon', camp.dragon.stage !== 'egg' && !camp.dragon.name ? 'Il attend un nom' : null],
   ];

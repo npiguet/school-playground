@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HOW_TO_WIN_IDS, bossRewardId, bossRewardName, bossTier, howToEarn, howToWin, nextFightTier, treasureCaption } from './rewards';
+import { HOW_TO_WIN_IDS, bossRewardId, bossRewardName, bossTier, howToEarn, nextFightTier, treasureCaption } from './rewards';
 import { REWARD_ICONS } from './art';
 import { DEFAULT_RULES } from '../rules';
 import { sealHowLine } from './seals';
@@ -42,14 +42,18 @@ describe('reward words', () => {
     expect([0, 1, 2].map(treasureCaption)).toEqual(['Aucun trésor encore', '1 trésor', '2 trésors']);
   });
 
+  // Final review M11: the sentences are read through howToEarn, the shelf's one entry point (R13); with
+  // no next fight known, every reward keeps its own sentence.
+  const sentence = (id: string, source: string) => howToEarn(id, source, { nextTier: null, catalog: null });
+
   it('says how to win every reward as a sentence to the player, agreed with the reward (UI3b playability #13)', () => {
     const tints = ['ecume', 'olivier', 'braise', 'jade', 'argent'].map((t) => `tint:${t}`);
     expect([...HOW_TO_WIN_IDS].sort()).toEqual([...Object.keys(REWARD_ICONS), ...tints].sort());
-    expect(howToWin('sandales_hermes', '')).toBe('Bats Éris une première fois pour les gagner.');
-    expect(howToWin('decor:bouclier', '')).toBe('Hermès le vend à son étal.');
-    expect(howToWin('decor:chouette', '')).toBe('Hermès la vend à son étal.');
-    expect(howToWin('decor:new', 'Dix quêtes du mur')).toBe('À gagner\u202f: dix quêtes du mur.');
-    for (const id of HOW_TO_WIN_IDS) expect(howToWin(id, '')).not.toMatch(/Comment l'obtenir|Neutraliser|Vaincre/);
+    expect(sentence('sandales_hermes', '')).toBe('Bats Éris une première fois pour les gagner.');
+    expect(sentence('decor:bouclier', '')).toBe('Hermès le vend à son étal.');
+    expect(sentence('decor:chouette', '')).toBe('Hermès la vend à son étal.');
+    expect(sentence('decor:new', 'Dix quêtes du mur')).toBe('À gagner\u202f: dix quêtes du mur.');
+    for (const id of HOW_TO_WIN_IDS) expect(sentence(id, '')).not.toMatch(/Comment l'obtenir|Neutraliser|Vaincre/);
   });
 });
 

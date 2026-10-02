@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { prophecyBonus, prophecyWhen } from './prophecy';
+import { PROPHECY_SOON_DAYS, prophecyBonus, prophecySoon, prophecyWhen } from './prophecy';
+import type { CampResponse } from './types';
 
 // Re-review N6 / ruling W-f: the bonus is a tag on the prophecy strip, not a rule paragraph. The
 // server pays it for a dictation finished strictly before the due date (sessions.py, xp.py x1.5).
@@ -25,5 +26,24 @@ describe('prophecyBonus', () => {
 describe('prophecyWhen', () => {
   it('says when a prophecy falls due in words', () => {
     expect([0, 1, 3].map(prophecyWhen)).toEqual(["aujourd'hui", 'demain', 'dans\u00a03\u00a0jours']);
+  });
+});
+
+// Final review M3: the week rule lives in one place, read by nextStep, whatNext and the camp's caption.
+describe('prophecySoon', () => {
+  const camp = (...days: number[]) =>
+    ({
+      prophecies: days.map((d, i) => ({ text_id: i + 1, title: `T${i}`, due_date: `2099-01-${String(d + 1).padStart(2, '0')}`, days_left: d })),
+    }) as unknown as CampResponse;
+
+  it('is the nearest prophecy when it falls due within the week, today included', () => {
+    expect(PROPHECY_SOON_DAYS).toBe(7);
+    expect(prophecySoon(camp(9, 7))?.days_left).toBe(7);
+    expect(prophecySoon(camp(0))?.days_left).toBe(0);
+  });
+
+  it('is null further off, or with no prophecy', () => {
+    expect(prophecySoon(camp(8))).toBeNull();
+    expect(prophecySoon(camp())).toBeNull();
   });
 });
