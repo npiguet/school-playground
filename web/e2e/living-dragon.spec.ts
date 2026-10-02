@@ -105,14 +105,17 @@ test('each stage moves over time, and its feet never do', async ({ page, request
     await isolateDragon(page, 'nest', 'nest-dragon-layer');
     const box = nest(page).locator('.dragon-base');
     const first = await box.screenshot();
-    let moved = 0;
+    // Measured 2026-10-02 (chromium-gl, SwiftShader): the largest channel change reached 38 (young),
+    // 53 (adult), 62 (illustre), 63 (hatchling) and 79 (ancestral); 24 sits well above the noise (the
+    // feet's 0) and well under the smallest stage's motion.
     await expect
-      .poll(async () => (moved = (await compareShots(page, first, await box.screenshot())).maxDiff), { message: `${key} moves`, timeout: 15_000 })
+      .poll(async () => (await compareShots(page, first, await box.screenshot())).maxDiff, { message: `${key} moves`, timeout: 15_000 })
       .toBeGreaterThan(24);
     const later = await box.screenshot();
     const [x0, y0, x1] = rig.feet;
     const feet = await compareShots(page, first, later, { x0: x0 / 1024, y0: (y0 + 16) / 1024, x1: x1 / 1024, y1: 1008 / 1024 });
-    console.log(`MEASURE moves ${key} maxDiff=${moved} feet=${feet.maxDiff}`);
+    // Measured 2026-10-02: 0 on every stage (the feet box has weight 0 for every bone); 2 leaves room
+    // for the rasteriser's rounding only.
     expect(feet.maxDiff, `${key}: the feet stay put`).toBeLessThanOrEqual(2);
   }
 });
@@ -140,8 +143,10 @@ test('the tint on the canvas matches the still picture under the same tint, and 
     const living = await nest(page).locator('.dragon-base').screenshot();
     const whole = await compareShots(page, still, living);
     const piece = await compareShots(page, still, living, saddle);
-    const d = (r: typeof whole) => [0, 1, 2].map((k) => Math.abs(r.meanA[k] - r.meanB[k]).toFixed(2)).join(',');
-    console.log(`MEASURE tint ${t} whole=${d(whole)} saddle=${d(piece)}`);
+    // Measured 2026-10-02 (mean channel gap, still against living): over the dragon 0.45 to 0.71 for
+    // every tint but argent, whose channels reach 0.79, 0.85 and 1.05; over the saddle 0.43 to 0.63. The gap is the idle pose
+    // (the living frame is never the rest pose), not the tint: a tinted saddle, or a tint off by a
+    // preset, moves these means by tens.
     for (let k = 0; k < 3; k++) expect(Math.abs(whole.meanA[k] - whole.meanB[k]), `${t}: channel ${k} over the dragon`).toBeLessThan(2.5);
     for (let k = 0; k < 3; k++) expect(Math.abs(piece.meanA[k] - piece.meanB[k]), `${t}: channel ${k} over the saddle`).toBeLessThan(4);
   }
@@ -181,7 +186,8 @@ test('the loop stops when the page is hidden or the dragon off-screen, and never
   const n0 = await frames(page);
   await page.waitForTimeout(2000);
   const n1 = await frames(page);
-  console.log(`MEASURE frames in 2 s: ${n1 - n0}`);
+  // Measured 2026-10-02: 60 frames in 2 s (the 30 fps gate exactly); 64 allows one late tick either
+  // side of the window, 10 a stalled host.
   expect(n1 - n0, 'frames in 2 s').toBeLessThanOrEqual(64);
   expect(n1 - n0, 'frames in 2 s').toBeGreaterThanOrEqual(10);
   const setHidden = (hidden: boolean) =>
@@ -220,6 +226,8 @@ test('twenty visits between the camp and the nest never run out of WebGL context
     await expectScene(page, 'nest');
     await expect(figure(page)).toHaveAttribute('data-motion', 'living');
   }
+  // Measured 2026-10-02: SwiftShader prints no line matching this over the twenty visits, so the rule
+  // needs no exception.
   expect(warnings).toEqual([]);
 });
 
