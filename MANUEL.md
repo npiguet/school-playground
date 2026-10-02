@@ -107,8 +107,10 @@ Ce n'est qu'une idée : tu vas où tu veux.
 ### Choisir un parchemin
 
 Sous la tente des parchemins, ouvre « Tes parchemins ». Les textes de ta classe sont rangés sous
-« Pour toi », les autres plus bas. Un parchemin dont le sceau n'est pas brisé n'a encore jamais été
-défendu. Touche un parchemin pour l'ouvrir.
+« Pour toi », les autres plus bas. Un texte attend la classe où l'on apprend ses temps de
+conjugaison : un conte au passé simple est rangé en 8H au moins, et son étiquette dit pourquoi
+(« passé simple »). Un parchemin dont le sceau n'est pas brisé n'a encore jamais été défendu.
+Touche un parchemin pour l'ouvrir.
 
 ### Avant la dictée
 
@@ -415,7 +417,8 @@ la feuille » te montre la photo.
 
 Au pupitre, tu écris ou tu colles un texte à toi, avec un titre et une classe. Entre 80 et 200 mots,
 c'est l'idéal (au moins cinq mots), et les nombres s'écrivent en lettres. « Qui l'a écrit ? » permet
-de noter l'auteur.
+de noter l'auteur. Si le texte emploie un temps appris plus tard que la classe choisie, il monte dans
+la classe de ce temps (c'est vrai aussi pour la lentille et le portail).
 
 ### Le portail : la Bibliothèque d'Alexandrie
 

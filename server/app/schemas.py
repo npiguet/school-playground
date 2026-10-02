@@ -87,6 +87,9 @@ class TextSummary(BaseModel):
     created_at: str
     scan_id: str | None = None
     photo_count: int = 0
+    # The verb tenses that raised the text above its own level, in French (« passé simple »); None
+    # when its tenses raised nothing (app.nlp.tenses.tense_reason).
+    tense_reason: str | None = None
 
 
 class TextSummaryWithHistory(TextSummary):

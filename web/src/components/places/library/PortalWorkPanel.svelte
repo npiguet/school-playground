@@ -248,6 +248,8 @@
                 <span class="seq">Rouleau {chunk.seq}</span>
                 <span class="kit-medallion is-small" role="img" aria-label="Classe {chunk.level}">{chunk.level}</span>
                 <span class="roll-length">{lengthOf(chunk.word_count)}</span>
+                <!-- The verb tenses that set its class (server app.nlp.tenses), e.g. « passé simple ». -->
+                {#if chunk.tense_reason}<span class="roll-tenses" data-testid="chunk-tenses">{chunk.tense_reason}</span>{/if}
                 <span class="stars" role="img" aria-label="Richesse en accords{'\u202f: '}{starsFor(chunk.score)} sur 5">
                   {#each Array.from({ length: starsFor(chunk.score) }, (_, i) => i) as i (i)}<Icon name="star" size={16} />{/each}
                 </span>
@@ -362,7 +364,8 @@
     text-transform: uppercase;
     color: var(--bronze-dark);
   }
-  .roll-length {
+  .roll-length,
+  .roll-tenses {
     font-style: italic;
     color: var(--form-ink-soft);
   }

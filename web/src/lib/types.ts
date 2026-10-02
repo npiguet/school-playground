@@ -61,6 +61,9 @@ export interface TextSummary {
   history: TextHistory | null;
   scan_id: string | null;
   photo_count: number;
+  /** The verb tenses that raised the text above its own class, in French (« passé simple »); null
+   *  when its tenses raised nothing (server app.nlp.tenses). */
+  tense_reason: string | null;
 }
 
 export interface TextFull extends TextSummary {
@@ -141,6 +144,8 @@ export interface AlexandriaChunk {
   score: number;
   preview: string;
   text_id: number | null;
+  /** As TextSummary.tense_reason. */
+  tense_reason: string | null;
 }
 
 /** Result of refreshing a work's cache from the online source; never thrown as an

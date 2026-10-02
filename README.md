@@ -598,12 +598,52 @@ a count above that number, asks every one of them. Fight N opens when its condit
 to N−1 are won (a won fight is a `boss` quest `done`, stored by its tier number, so it stays won
 whatever the ladder says later). `POST /api/profiles/{id}/boss` starts the open fight (or returns the
 one already under way) on a text of at least 150 words at the hero's class or the one below, least
-played first, then longest. The fight is won with at most `fight_max_per_100` mistakes left per 100
+played first, then longest (with none there: any long text, those in tenses her class has learnt
+first, see "Text levels and verb tenses"). The fight is won with at most `fight_max_per_100` mistakes left per 100
 words; its muster offers no pace below the class's default one (`defaultPace`). Each win pays
 `QUEST_BONUS["boss"]` XP and `drachmes.boss`; tiers 1 to 3 also give the divine gear
 (`BOSS_REWARDS`: `sandales_hermes`, `egide`, `foudre_zeus`).
 
-### Migrations 006 to 008, the drachme ledger and the stats' mode
+### Text levels and verb tenses
+
+A text's class must not ask a child for a verb tense she has not been taught. `server/app/nlp/tenses.py`
+maps each tense to the class where the Plan d'études romand introduces it (L1 26 for 5H-8H, L1 36 for
+9H-11H): présent, imparfait, futur proche 5H; futur simple, conditionnel présent 6H; passé composé,
+impératif 7H; plus-que-parfait, futur antérieur, subjonctif présent, passé simple at the 3rd person
+8H; passé simple at the 1st and 2nd persons, passé antérieur, conditionnel passé, subjonctif passé
+9H; subjonctif imparfait and plus-que-parfait 11H. A text's level is the higher of its own level and
+its hardest tense's class, never lower: the class chosen at the pupitre or the lens, the seed
+file's, or the Alexandria scoring's (`level_for`) is its own level, kept in `base_level`.
+
+One unambiguous form of a tense is enough (`MIN_OCCURRENCES`): a dictation makes the child write
+every verb. Only unambiguous forms count, read from the stored annotation and the Lexique first,
+because the tagger mis-reads tenses (the small model calls « regarda » a participle):
+
+- a simple tense counts when every verb reading the Lexique gives that form under its lemma is that
+  one tense (« prit », « fut »; never « il finit », présent or passé simple); a form that is also
+  another word (« le fût », « soit... soit ») only after a subject pronoun or with a subject;
+- the passé simple's person comes from the same readings (« fut » 3rd person, « fus » 1st or 2nd);
+- a compound tense is a participle and its auxiliary (its `aux:tense` child, else avoir or être just
+  before it past the negation and the adverbs), read in the auxiliary's tense (« avait marché »
+  plus-que-parfait, « eût agi » subjonctif plus-que-parfait); être counts only for the verbs that
+  take it and the pronominal ones, so a passive (« fut tué », « vous serez hachés ») is its
+  auxiliary's simple tense;
+- the impératif, never unambiguous in the Lexique, is a form with an imperative reading that opens
+  its clause (or that the parser makes a clause head) with no subject.
+
+Every write applies it: `POST /api/texts` (pupitre, lens), the seed import, the Alexandria refresh
+(each scroll, `online_chunk`) and the adoption (the text keeps the scroll's levels). Migration 009
+adds `base_level` and `tenses_json` (the forms counted per tense, `{"passe_simple_3": 4}`) to `text`
+and `online_chunk`; at every start-up `app/relevel.py` reads each row's tenses again from its stored
+annotation (no spaCy, no network) and sets its level from `base_level`, so a better reading or a
+changed table reaches the whole library. The API's text summaries and Alexandria scrolls carry
+`tense_reason`, the French names of the tenses that raised the text above its own level (« passé
+simple »), shown on the scroll's tag on the shelves and on the portal; `null` when they raised
+nothing. Quests (`recommend_texts`) never recommend a text holding a tense above the hero's class.
+`scripts/py.sh python -m app.tools.tense_levels [--db discorde.sqlite3] [--verbose]` prints how many
+texts each class can play before and after the rule, and every form it counted.
+
+### Migrations 006 to 009, the drachme ledger and the stats' mode
 
 Migrations run at start-up (`server/app/migrations/`), each in one transaction with its
 `schema_version` row: `NNN_name.sql`, or `NNN_name.py` (a function `up(conn)`, for a data migration
@@ -629,6 +669,9 @@ Two files with one number are refused, and so is a connection with a transaction
   malformed results. For every old row, the new rows sum exactly to its counters; an all-zero
   dictation remainder beside a Grimoire row is not kept. The migration carries its own copy of the
   Swiss-day computation, so it stays what it was when later code changes.
+- **009 (verb tenses)** adds `base_level` (copied from `level`) and `tenses_json` to `text` and
+  `online_chunk`; the levels are raised at start-up by `app/relevel.py` (see "Text levels and verb
+  tenses").
 
 The balance is the ledger's sum. `reason` is `grant`, `session` (round(session XP ÷ `xp_per_drachme`),
 halves up), `board`, `oracle`, `weekly`, `level`, `boss` (one row per part, `ref` = `session:<id>`) or

@@ -47,12 +47,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         sweep_orphan_scans(settings.data_dir, conn)
         if settings.seed_on_startup:
             from app.deps import make_annotator
+            from app.lexicon import load_lexicon
             from app.reannotate import reannotate_outdated
+            from app.relevel import relevel_texts
             from app.seed import import_seed
             annotator = make_annotator(settings)
             app.state.annotator = annotator
-            import_seed(conn, settings.content_dir, annotator)
+            lexicon = load_lexicon(settings.content_dir)
+            import_seed(conn, settings.content_dir, annotator, lexicon)
             reannotate_outdated(conn, annotator)
+            # After the re-annotation: the tenses are read from the annotations (app.nlp.tenses).
+            relevel_texts(conn, lexicon)
         conn.close()
         # The dictation's voice (Kokoro plan Task 4): one pooled client for /api/tts/*. trust_env=False: the
         # hop stays inside the compose network, whatever HTTP_PROXY Docker Desktop injects.

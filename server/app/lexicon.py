@@ -175,6 +175,19 @@ class Lexicon:
     def is_known(self, word: str) -> bool:
         return bool(self.lookup(word))
 
+    def verb_codes(self, word: str, lemma: str | None = None) -> frozenset[str]:
+        """The word's own verb readings (VER and AUX entries) under its lemma, as Lexique codes:
+        finite ones (« regarda » → ind:pas:3s) and « par:pas » for a past participle, never « inf ».
+        The lemma narrows a homograph of two verbs (« vit »: vivre ind:pre:3s, voir ind:pas:3s) the
+        way forms_of does, unless the lemma is another word's (« fût » lemmatised as the cask): then
+        every verb reading counts. Empty when the lexicon does not know the word as a verb."""
+        verbs = [e for e in self.lookup(word) if e.cgram.split(":")[0] in ("VER", "AUX")]
+        lemmas = set(self._candidate_lemmas(word, lemma))
+        if not any(e.lemme in lemmas for e in verbs):
+            lemmas = {e.lemme for e in verbs}
+        return frozenset(c for e in verbs if e.lemme in lemmas
+                         for c in e.infover.split(";") if c and c != "inf")
+
     def _candidate_lemmas(self, word: str, lemma: str | None) -> list[str]:
         """The lemma to search under: the given spaCy lemma when the lexicon knows it and it is one of
         the word's own lemmas (or the word is unknown), else every lemma of the word's own entries.

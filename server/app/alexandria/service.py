@@ -17,7 +17,9 @@ from app.alexandria.fetch import FetchError
 from app.alexandria.filters import chunk_verdict
 from app.alexandria.score import chunk_features, level_for, score_for
 from app.db import begin_write
-from app.routers.texts import TEXT_SELECT
+from app.nlp.tenses import detect_tenses, level_with_tenses
+from app.relevel import tenses_json
+from app.routers.texts import TEXT_SELECT, stored_tense_reason
 
 
 def now() -> str:
@@ -96,7 +98,7 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
 
     chunks = make_chunks(paragraphs)
     rejected: Counter[str] = Counter()
-    kept: list[tuple[str, int, str, float, dict, dict]] = []
+    kept: list[tuple[str, int, str, str, dict, float, dict, dict]] = []
     truncated = 0  # clean chunks beyond the cap: cheap to count, only the kept ones are annotated
     for chunk in chunks:
         reason = chunk_verdict(chunk, lexicon)
@@ -108,9 +110,12 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
             continue
         annotation = annotate_fn(chunk["body"])
         features = chunk_features(chunk["body"], annotation, lexicon)
-        level = level_for(features, work.level_hint)
+        # The scoring's level is the scroll's own level; its verb tenses may raise it (app.nlp.tenses).
+        base_level = level_for(features, work.level_hint)
+        counts = detect_tenses(annotation, lexicon)
         score = score_for(features)
-        kept.append((chunk["body"], chunk["word_count"], level, score, features, annotation))
+        kept.append((chunk["body"], chunk["word_count"], level_with_tenses(base_level, counts), base_level, counts,
+                     score, features, annotation))
 
     notes = []
     if failed:
@@ -144,15 +149,17 @@ def refresh_work(conn: sqlite3.Connection, work: Work, fetcher, annotate_fn, lex
     # its adopt() would 404 ("Rouleau inconnu") a moment later. Upserting in place keeps a seq's id
     # stable across a refresh, so a concurrent adopt() of that same chunk still resolves.
     conn.execute("DELETE FROM online_chunk WHERE work_id = ? AND seq > ?", (work.id, len(kept)))
-    for seq, (body, word_count, level, score, features, annotation) in enumerate(kept, start=1):
+    for seq, (body, word_count, level, base_level, counts, score, features, annotation) in enumerate(kept, start=1):
         conn.execute(
-            """INSERT INTO online_chunk(work_id, seq, body, word_count, level, score, features_json, annotation_json, text_id)
-               VALUES (?,?,?,?,?,?,?,?,?)
+            """INSERT INTO online_chunk(work_id, seq, body, word_count, level, base_level, tenses_json, score,
+                                        features_json, annotation_json, text_id)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)
                ON CONFLICT(work_id, seq) DO UPDATE SET
                  body = excluded.body, word_count = excluded.word_count, level = excluded.level,
+                 base_level = excluded.base_level, tenses_json = excluded.tenses_json,
                  score = excluded.score, features_json = excluded.features_json,
                  annotation_json = excluded.annotation_json, text_id = excluded.text_id""",
-            (work.id, seq, body, word_count, level, score,
+            (work.id, seq, body, word_count, level, base_level, tenses_json(counts), score,
              json.dumps(features, ensure_ascii=False), json.dumps(annotation, ensure_ascii=False), linked.get(body)))
     conn.commit()
     return {"status": "ok", "error": note, "chunk_count": len(kept), "rejected": dict(rejected)}
@@ -184,7 +191,8 @@ def _preview(body: str, limit: int = 140) -> str:
 
 
 def list_chunks(conn: sqlite3.Connection, work_id: str, level: str | None = None) -> list[dict]:
-    query = "SELECT id, seq, level, word_count, score, body, text_id FROM online_chunk WHERE work_id = ?"
+    query = ("SELECT id, seq, level, base_level, tenses_json, word_count, score, body, text_id "
+             "FROM online_chunk WHERE work_id = ?")
     params: list = [work_id]
     if level:
         query += " AND level = ?"
@@ -194,6 +202,7 @@ def list_chunks(conn: sqlite3.Connection, work_id: str, level: str | None = None
     return [{
         "id": r["id"], "seq": r["seq"], "level": r["level"], "word_count": r["word_count"],
         "score": r["score"], "preview": _preview(r["body"]), "text_id": r["text_id"],
+        "tense_reason": stored_tense_reason(r),
     } for r in rows]
 
 
@@ -221,10 +230,11 @@ def adopt_chunk(conn: sqlite3.Connection, chunk_id: int, profile_id: int, works:
 
     final_title = (title or "").strip() or f"{work.title} — rouleau {chunk['seq']}"
     cur = conn.execute(
-        """INSERT INTO text(title, body, source, level, author, translator, work, credits,
+        """INSERT INTO text(title, body, source, level, base_level, tenses_json, author, translator, work, credits,
                            added_by_profile_id, annotation_json, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-        (final_title, chunk["body"], "online", chunk["level"], work.author, work.translator, work.title,
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (final_title, chunk["body"], "online", chunk["level"], chunk["base_level"] or chunk["level"],
+         chunk["tenses_json"], work.author, work.translator, work.title,
          credits_of(work), profile_id, chunk["annotation_json"], now()))
     conn.execute("UPDATE online_chunk SET text_id = ? WHERE id = ?", (cur.lastrowid, chunk_id))
     conn.commit()

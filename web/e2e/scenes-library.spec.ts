@@ -106,6 +106,10 @@ test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back
   await expect(shelves.getByRole('heading', { name: 'Classe 9H' })).toBeVisible();
   await chooseLevel(shelves.getByTestId('shelf-levels'), 'Tous');
   await expect(shelves.getByRole('heading', { name: 'Autres parchemins' })).toBeVisible();
+  // A seed tale raised to the class of its verb tenses says which ones on its tag (« Le Chat botté »:
+  // passé simple, then « qu'il montât », so 11H and « subjonctif imparfait »).
+  await expect(shelves.locator('#other-levels [data-testid="text-tenses"]').first()).toBeVisible();
+  await expect(shelves.locator('#other-levels [data-testid="text-tenses"]', { hasText: 'subjonctif imparfait' }).first()).toBeVisible();
   // Each scroll on one shelf only: her own class behind the toggle repeats nothing of « Pour toi ».
   await chooseLevel(shelves.getByTestId('shelf-levels'), '10H');
   await expect(shelves.locator('#other-levels [data-testid="text-card"]')).toHaveCount(0);

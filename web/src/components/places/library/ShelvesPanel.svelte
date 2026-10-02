@@ -73,6 +73,9 @@
         <span class="kit-tag-title">{parts.book}</span>
         {#if parts.chapter}<span class="kit-tag-chapter">{parts.chapter}</span>{/if}
         {#if byline}<span class="kit-tag-meta">{byline}</span>{/if}
+        <!-- The verb tenses that set its class, above the one it was written for (server
+             app.nlp.tenses): « passé simple » tells why a tale sits on a higher shelf. -->
+        {#if t.tense_reason}<span class="kit-tag-meta" data-testid="text-tenses">{t.tense_reason}</span>{/if}
         <span class="sr-only">parchemin {len}</span>
         {#if defended}
           <span class="kit-tag-meta" data-testid="text-history">{historyLine(t.history)}</span>
