@@ -164,7 +164,7 @@ export const PROOF = {
   confirmNo: 'Continuer la relecture',
   done: "J'ai terminé ma relecture",
   quit: 'Quitter',
-  quitAsk: 'Ta relecture est gardée. Veux-tu vraiment quitter\u202f?',
+  quitAsk: 'Veux-tu quitter la relecture\u202f? Ta relecture sera gardée.',
   quitYes: 'Oui, quitter',
   editorLabel: 'Nouveau mot',
   editorHint: 'Efface tout pour retirer le mot',

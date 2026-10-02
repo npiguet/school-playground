@@ -1,7 +1,7 @@
 // Tiny in-house hash router (spec's "Decisions" #10): reactive current route +
 // navigation helper. No third-party router dependency.
 import { matchRoute, type Route } from './routes';
-import { noteBattleOrigin } from './battle/origin';
+import { noteBattleOrigin, stampFirstEntry } from './battle/origin';
 
 const initialHash = typeof location === 'undefined' ? '' : location.hash;
 
@@ -13,11 +13,13 @@ export const router = $state<{ route: Route; hash: string }>({
 });
 
 export function startRouter() {
+  // Where a battle was opened from, for its « Quitter » (lib/battle/origin.ts): every battle entry
+  // is stamped once, when it is created - the first one here, every later one on its hashchange.
+  stampFirstEntry(location.hash, history);
   window.addEventListener('hashchange', () => {
     const left = router.hash;
     router.hash = location.hash;
     router.route = matchRoute(location.hash);
-    // Where a battle was opened from, for its « Quitter » (lib/battle/origin.ts).
     noteBattleOrigin(left, router.route, history);
   });
 }

@@ -403,6 +403,25 @@ test('« Retour au camp » leaves the dictation as « Quitter » does: the draft
   await expect(page.getByTestId('battle-resume')).toContainText('Tu avais déjà commencé ce texte\u202f: ton brouillon a été gardé.');
 });
 
+// Review I1: « Retour au camp » takes the battle's own history entry, so Back from the camp goes to
+// the shelves the dictation was opened from, never into the battle.
+test('« Retour au camp » leaves no way Back into the battle', async ({ page, request }, testInfo) => {
+  await voiceDown(page, 503, () => true);
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const title = uniqueName('Voix retour');
+  await createText(request, { title, body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/parchemins`);
+  await tap(page.getByTestId('overlay-shelves').locator('[data-testid="text-card"]', { hasText: title }), testInfo);
+  await expectBattle(page, 'muster');
+  await tap(page.getByTestId('battle-parchment').getByRole('button', { name: 'Commencer la dictée' }), testInfo);
+  await expectBattle(page, 'dictation');
+  await tap(page.getByTestId('btn-voice-camp'), testInfo);
+  await expectCamp(page);
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
+  await expect(page.getByTestId('scene-battle')).toHaveCount(0);
+});
+
 test("the lyre's trial slow to come shows the dictation's waiting line until it plays (Task 9 review #6)", async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const held = await holdFirstLine(page);

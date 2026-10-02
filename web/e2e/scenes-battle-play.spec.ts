@@ -500,51 +500,84 @@ async function openFromShelves(page: Page, testInfo: TestInfo, title: string) {
 
 // The user's report 2026-10-02: once she says she wants to quit, the battle is left, for the place it
 // was opened from; the draft waits behind the resume ribbon for the next time she opens the text.
+// Review I1: the quit steps back to the shelves' own entry, so Back from there leaves the tent and
+// never comes back into the battle.
 test('« Oui, quitter » leaves for the shelves it was opened from; the draft waits behind the ribbon', async ({ page, request }, testInfo) => {
   await installFastPauses(page);
   const id = await createProfileApi(request, uniqueName(`Dic4-${testInfo.project.name}`));
   const title = uniqueName('Dictée quitter');
   const text = await createText(request, { title, body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
   await page.goto(`/#/p/${id}/parchemins`);
   await openFromShelves(page, testInfo, title);
   await startDictation(page, testInfo);
   await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(0);
   await page.getByTestId('dictation-textarea').fill('Les fées');
+  const key = `discorde.play.${id}.${text.id}`;
+  const storedDraft = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').draft, key);
+  await expect.poll(storedDraft).toBe('Les fées');
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
   await expect(page.getByText('Veux-tu quitter la dictée\u202f? Ton brouillon sera gardé.')).toBeVisible();
   // Three answers, « Oui, quitter » first; final review M9: the confirm takes the focus, on it.
   await expect(page.getByTestId('battle-parchment').locator('.confirm-actions button')).toHaveText(['Oui, quitter', 'Continuer la dictée', 'Tout recommencer']);
   await expect(page.getByTestId('btn-quit-confirm')).toBeFocused();
   await watchRibbon(page);
-  await tap(page.getByTestId('btn-quit-confirm'), testInfo);
+  // Review M1: a last word typed right before « Oui, quitter » is still waiting for its debounced
+  // save (800 ms) when she confirms; the quit saves it at once. One script: only a 0 ms tick between.
+  const flushed = await page.evaluate(async (k) => {
+    const draft = () => JSON.parse(localStorage.getItem(k) ?? '{}').draft;
+    const ta = document.querySelector<HTMLTextAreaElement>('[data-testid="dictation-textarea"]')!;
+    ta.value = 'Les fées dansent';
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0)); // the draft effect runs: its save is pending
+    const before = draft();
+    document.querySelector<HTMLButtonElement>('[data-testid="btn-quit-confirm"]')!.click();
+    return { before, after: draft() };
+  }, key);
+  expect(flushed).toEqual({ before: 'Les fées', after: 'Les fées dansent' });
   await expect(page).toHaveURL(new RegExp(`#/p/${id}/parchemins$`));
   await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await expect(page.getByTestId('scene-battle')).toHaveCount(0);
   expect(await ribbonSeen(page), 'no resume ribbon on the way out').toBe(false);
+  // Review M4: the shelves take the focus back, as an overlay does when it opens.
+  await expect(page.getByTestId('overlay-shelves')).toBeFocused();
   // The voice is silent, and stays so.
   expect((await audioState(page))?.voiceSpeaking).toBe(false);
   const heard = (await spokenLines(page)).length;
-  // The draft was saved as she left (the debounced save flushed, not lost).
-  const key = `discorde.play.${id}.${text.id}`;
   const saved = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}'), key);
-  expect(saved).toMatchObject({ phase: 'dictation', draft: 'Les fées' });
+  expect(saved).toMatchObject({ phase: 'dictation', draft: 'Les fées dansent' });
+  // Back from the shelves goes where she was before them (the camp), not into the battle.
+  await page.goBack();
+  await expectCamp(page);
+  await expect(page.getByTestId('scene-battle')).toHaveCount(0);
+  expect(await ribbonSeen(page), 'no resume ribbon on Back').toBe(false);
   // Opening the text again: the ribbon, then the draft.
+  await page.goto(`/#/p/${id}/parchemins`);
   await openFromShelves(page, testInfo, title);
   await expect(page.getByTestId('battle-resume')).toContainText('ton brouillon a été gardé.');
   expect((await spokenLines(page)).length).toBe(heard);
   await resumeSeeded(page);
-  await expect(page.getByTestId('dictation-textarea')).toHaveValue('Les fées');
+  await expect(page.getByTestId('dictation-textarea')).toHaveValue('Les fées dansent');
 });
 
-test('a dictation opened by a link of its own leaves for the camp', async ({ page, request }, testInfo) => {
+// A battle opened as the app's first page (a bookmark, a link from elsewhere) has no place behind it:
+// the camp takes the battle's own entry, so Back leaves for the page before, never into the battle.
+test('a dictation opened by a link of its own leaves for the camp, in its place', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Dic11-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Dictée lien'), body: BODY, level: '10H' });
-  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await page.goto(`/#/p/${id}/parchemins`);
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
+  // A new document (another search string): the battle is its first entry.
+  await page.goto(`/?lien=1#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
   await startDictation(page, testInfo);
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
   await tap(page.getByTestId('btn-quit-confirm'), testInfo);
   await expectCamp(page);
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
+  await expect(page.getByTestId('scene-battle')).toHaveCount(0);
 });
 
 test('« Continuer la dictée » closes the confirm and the dictation goes on, the focus back on « Quitter »', async ({ page, request }, testInfo) => {
@@ -578,7 +611,16 @@ test('« Tout recommencer » on the quit confirm drops the attempt: a fresh must
   const key = `discorde.play.${id}.${text.id}`;
   await expect.poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').draft, key)).toBe('Les fées');
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
-  await tap(page.getByTestId('btn-quit-restart'), testInfo);
+  await expect(page.getByTestId('btn-quit-restart')).toBeVisible();
+  // Review M2: a word typed right before « Tout recommencer » leaves its debounced save pending; the
+  // restart cancels it (one script: only a 0 ms tick between), or it would save the battle again.
+  await page.evaluate(async () => {
+    const ta = document.querySelector<HTMLTextAreaElement>('[data-testid="dictation-textarea"]')!;
+    ta.value = 'Les fées dansent';
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0)); // the draft effect runs: its save is pending
+    document.querySelector<HTMLButtonElement>('[data-testid="btn-quit-restart"]')!.click();
+  });
   // The order of battle again, not the ribbon; the medallions at the level's default, the focus on
   // « Commencer la dictée ».
   await expectBattle(page, 'muster');
@@ -590,7 +632,7 @@ test('« Tout recommencer » on the quit confirm drops the attempt: a fresh must
   expect((await audioState(page))?.voiceSpeaking).toBe(false);
   // Nothing of the old attempt is kept, not even once its pending draft save would have fired.
   await page.waitForTimeout(1_000);
-  expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').draft ?? '', key)).toBe('');
+  expect(await page.evaluate((k) => localStorage.getItem(k), key)).toBeNull();
   await page.reload();
   await expectBattle(page, 'muster');
   await expect(page.getByTestId('battle-resume')).toHaveCount(0);
@@ -1275,6 +1317,8 @@ test('the proofreading has a way out: Quitter asks, then leaves for the shelves,
   const title = uniqueName('Relecture quittée');
   const text = await createText(request, { title, body: LONG_REF, level: '10H' });
   await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft: LONG_DRAFT, opponent: 'chimere', aids: [] });
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
   await page.goto(`/#/p/${id}/parchemins`);
   await openFromShelves(page, testInfo, title);
   await resumeSeeded(page);
@@ -1283,7 +1327,7 @@ test('the proofreading has a way out: Quitter asks, then leaves for the shelves,
   await expect(page.getByTestId('battle-parchment').getByRole('heading', { name: text.title })).toBeVisible();
   await expect(page.getByTestId('battle-parchment')).toContainText("Traque les pièges d'Éris. À toi de jouer. Quand tout te semble juste, dis-le.");
   await tap(page.getByTestId('btn-quit-proof'), testInfo);
-  await expect(page.getByText('Ta relecture est gardée. Veux-tu vraiment quitter\u202f?')).toBeVisible();
+  await expect(page.getByText('Veux-tu quitter la relecture\u202f? Ta relecture sera gardée.')).toBeVisible();
   await expect(page.getByTestId('btn-quit-proof-confirm')).toBeFocused();
   await watchRibbon(page);
   await tap(page.getByTestId('btn-quit-proof-confirm'), testInfo);
@@ -1291,6 +1335,13 @@ test('the proofreading has a way out: Quitter asks, then leaves for the shelves,
   await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
   await expect(page.getByTestId('scene-battle')).toHaveCount(0);
   expect(await ribbonSeen(page), 'no resume ribbon on the way out').toBe(false);
+  await expect(page.getByTestId('overlay-shelves')).toBeFocused();
+  // Review I1: Back from the shelves never comes back into the battle.
+  await page.goBack();
+  await expectCamp(page);
+  await expect(page.getByTestId('scene-battle')).toHaveCount(0);
+  expect(await ribbonSeen(page), 'no resume ribbon on Back').toBe(false);
+  await page.goto(`/#/p/${id}/parchemins`);
   await openFromShelves(page, testInfo, title);
   await expect(page.getByTestId('battle-resume')).toContainText('ta relecture a été gardée.');
   await resumeSeeded(page);

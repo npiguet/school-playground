@@ -13,7 +13,7 @@
   import { api, ApiError } from '../lib/api';
   import { battleFor, isOpponentId, opponentFor, type BattlePhase, type OpponentId } from '../lib/battle/battle';
   import { emitBattle } from '../lib/battle/events';
-  import { battleOriginOf, quitTarget } from '../lib/battle/origin';
+  import { clearBattleStamp, quitPlan } from '../lib/battle/origin';
   import { hpDuringPlay } from '../lib/battle/hp';
   import { STAGE } from '../lib/battle/lines';
   import { musterLine } from '../lib/dialogue/battle';
@@ -35,7 +35,7 @@
     type PlayState,
   } from '../lib/playState';
   import { loadProfile } from '../lib/profileStore.svelte';
-  import { closePanel, go } from '../lib/scene/panelNav';
+  import { closePanel, go, goBack } from '../lib/scene/panelNav';
   import { replaceRoute } from '../lib/router.svelte';
   import { href } from '../lib/routes';
   import { withDerivedCategories } from '../lib/world/derived';
@@ -262,16 +262,27 @@
     emitBattle({ kind: 'leave' });
   }
 
-  function quitBattle() {
+  // Review I1: no way Back into the battle. Back to the place's own entry when it is the one before
+  // the battle's, else the place in place of the battle's entry.
+  function leaveFor(to?: string) {
     saveAndLeave();
-    go(quitTarget(battleOriginOf(history.state), profile.id));
+    const plan = quitPlan(history.state, profile.id, to);
+    if (plan.kind === 'back') {
+      goBack();
+      return;
+    }
+    go(plan.to, 'leave');
+    clearBattleStamp(history);
+  }
+
+  function quitBattle() {
+    leaveFor();
   }
 
   // Spec 2026-09-27 §5.3: Éris's card's way back to the camp leaves as « Quitter » does (the draft kept
   // behind the resume ribbon), but always for the camp, as it says.
   function leaveDictationForCamp() {
-    saveAndLeave();
-    go(href('camp', { profileId: String(profile.id) }));
+    leaveFor(href('camp', { profileId: String(profile.id) }));
   }
 
   // Grimoire intro's "Ouvrir le grimoire" button: Éris has already corrupted the text server-side
