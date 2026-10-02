@@ -6,7 +6,7 @@ import { ACCESSORY_MANIFEST, accessoryLayers } from '../world/accessories';
 import { ATLAS, ATLAS_CELL, pieceDraws, placePieces } from './atlas';
 import { poseAt } from './pose';
 import { decodeRig, type RigFile } from './rigs';
-import { FRAME, skinPoint } from './skin';
+import { BONES, FRAME, skinPoint } from './skin';
 
 const ADULT = decodeRig(JSON.parse(readFileSync('src/lib/living/rig/dragon_adult.json', 'utf-8')) as RigFile);
 const WORN = ['echo-tete', 'hydre-cou', 'lethe-queue', 'sirenes-dos'];
@@ -65,6 +65,25 @@ describe('a piece rides rigidly', () => {
         expect(Math.abs(height / (y1 - y0) - 1), `${placed[n].item} height at ${t}`).toBeLessThan(0.05);
         expect(Math.abs(diag / Math.hypot(x1 - x0, y1 - y0) - 1), `${placed[n].item} shear at ${t}`).toBeLessThan(0.05);
       }
+    }
+  });
+
+  it('takes no breath: a piece has no chest weight and keeps its size across poses (Ruling L5)', () => {
+    const chest = BONES.indexOf('chest');
+    const placed = placePieces(accessoryLayers(WORN, 'adult'));
+    const draws = pieceDraws(placed, ADULT.weights);
+    for (const [n, d] of draws.entries()) {
+      expect(d.weights[chest], `${placed[n].item} chest weight`).toBe(0);
+      const [x0, y0, x1, y1] = d.frame;
+      const size = (t: number) => {
+        const bones = poseAt(t, ADULT.pivots, 3);
+        const a = skinPoint([x0, y0], d.weights, bones);
+        const b = skinPoint([x1, y1], d.weights, bones);
+        return Math.hypot(b[0] - a[0], b[1] - a[1]);
+      };
+      const rest = Math.hypot(x1 - x0, y1 - y0);
+      // Blending part-weighted turns leaves a shrink under 0.03 %; the breath scaled the saddle by 0.4 %.
+      for (let t = 0; t < 12; t += 0.29) expect(Math.abs(size(t) / rest - 1), `${placed[n].item} size at ${t}`).toBeLessThan(1e-3);
     }
   });
 

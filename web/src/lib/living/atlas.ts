@@ -1,9 +1,10 @@
 // The worn pieces on the living dragon (spec 2026-10-02 living dragon, "Pieces"; plan Ruling R2): each
 // piece gets a 512 px cell of one 1024 atlas texture and is drawn as its own quad at its manifest box,
 // back to front (accessoryLayers already orders them by DRAW_ORDER), skinned with the dragon's weights
-// at its anchor, the box's centre: a rigid passenger that never stretches, the saddle included.
+// at its anchor, the box's centre, less the breath: a rigid passenger that never stretches, the saddle
+// included.
 import type { OverlayLayer } from '../world/accessories';
-import { FRAME, weightsAt } from './skin';
+import { BONES, FRAME, weightsAt } from './skin';
 
 export const ATLAS = 1024;
 export const ATLAS_CELL = 512;
@@ -48,8 +49,16 @@ export function placePieces(overlays: readonly OverlayLayer[]): PiecePlacement[]
   });
 }
 
+const CHEST = BONES.indexOf('chest');
+
+/** Each piece's quad with the dragon's weights at its anchor, the chest's dropped (Ruling L5): the breath
+ *  is a scale, and a rigid passenger only turns and lifts with the dragon, it is never scaled. */
 export function pieceDraws(placed: readonly PiecePlacement[], weights: Uint8Array): PieceDraw[] {
-  return placed.map((p) => ({ frame: p.frame, atlasUv: p.atlasUv, weights: weightsAt(weights, p.anchor[0], p.anchor[1]) }));
+  return placed.map((p) => {
+    const w = weightsAt(weights, p.anchor[0], p.anchor[1]);
+    w[CHEST] = 0;
+    return { frame: p.frame, atlasUv: p.atlasUv, weights: w };
+  });
 }
 
 export function loadImage(src: string): Promise<HTMLImageElement> {

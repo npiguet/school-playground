@@ -92,43 +92,49 @@ export class DragonRenderer {
     const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: true, depth: false, stencil: false });
     if (!gl) throw new Error('no WebGL2');
     this.gl = gl;
-    const program = gl.createProgram();
-    if (!program) throw new Error('createProgram failed');
-    this.shaders = [compile(gl, gl.VERTEX_SHADER, VS), compile(gl, gl.FRAGMENT_SHADER, FS)];
-    for (const s of this.shaders) gl.attachShader(program, s);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(`link: ${gl.getProgramInfoLog(program) ?? 'failed'}`);
-    this.program = program;
-    gl.useProgram(program);
-    this.u = Object.fromEntries(UNIFORMS.map((n) => [n, gl.getUniformLocation(program, n)])) as DragonRenderer['u'];
+    // A throw past this point (a shader, a link) loses the context it made: failed tries never pile up.
+    try {
+      const program = gl.createProgram();
+      if (!program) throw new Error('createProgram failed');
+      this.shaders = [compile(gl, gl.VERTEX_SHADER, VS), compile(gl, gl.FRAGMENT_SHADER, FS)];
+      for (const s of this.shaders) gl.attachShader(program, s);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(`link: ${gl.getProgramInfoLog(program) ?? 'failed'}`);
+      this.program = program;
+      gl.useProgram(program);
+      this.u = Object.fromEntries(UNIFORMS.map((n) => [n, gl.getUniformLocation(program, n)])) as DragonRenderer['u'];
 
-    const mesh = buildMesh(rig.weights);
-    this.meshVao = this.vao();
-    this.attribute(0, mesh.pos, 2);
-    this.attribute(1, mesh.uv, 2);
-    this.attribute(2, mesh.w0, 4);
-    this.attribute(3, mesh.w1, 2);
-    const ib = this.buffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
-    this.meshCount = mesh.indices.length;
-    gl.bindVertexArray(null);
+      const mesh = buildMesh(rig.weights);
+      this.meshVao = this.vao();
+      this.attribute(0, mesh.pos, 2);
+      this.attribute(1, mesh.uv, 2);
+      this.attribute(2, mesh.w0, 4);
+      this.attribute(3, mesh.w1, 2);
+      const ib = this.buffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
+      this.meshCount = mesh.indices.length;
+      gl.bindVertexArray(null);
 
-    this.quadVao = this.vao();
-    this.quadBuffer = this.buffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 16, 0);
-    gl.enableVertexAttribArray(1);
-    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 16, 8);
-    gl.bindVertexArray(null);
+      this.quadVao = this.vao();
+      this.quadBuffer = this.buffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 16, 0);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 16, 8);
+      gl.bindVertexArray(null);
 
-    this.baseTex = this.texture(0, sprite);
-    gl.uniform1f(this.u.uMargin, MARGIN);
-    this.setTint('none');
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    if (gl.getError() !== gl.NO_ERROR) throw new Error('WebGL error while setting up');
+      this.baseTex = this.texture(0, sprite);
+      gl.uniform1f(this.u.uMargin, MARGIN);
+      this.setTint('none');
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      if (gl.getError() !== gl.NO_ERROR) throw new Error('WebGL error while setting up');
+    } catch (e) {
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      throw e;
+    }
   }
 
   private vao(): WebGLVertexArrayObject {

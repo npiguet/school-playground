@@ -19,7 +19,7 @@ amplitudes) is code: `web/src/lib/living/pose.ts`.
 | `web/src/lib/living/rig/dragon_<stage>.json` | What the game loads: pivots, feet box, per-vertex weights (base64). Baked, never edited. |
 | `web/src/lib/living/rigs.test.ts` | Fails when a rig or a sprite changed since the bake, when the feet carry weight, or when the ancestral's horn tip lags. |
 | `tools/art/rig-out/` | Scratch (gitignored): `grid_<stage>.png`, `rig_<stage>.png`. |
-| `docs/art/dragon-rig.png` | The five debug views, kept as the record. |
+| `docs/art/dragon-rig.png` | The debug views of the authored stages, kept as the record. |
 
 ## Commands
 

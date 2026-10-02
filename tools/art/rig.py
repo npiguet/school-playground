@@ -3,7 +3,7 @@
     tools/art/run_docker.sh rig grid  [--stage S]   # tools/art/rig-out/grid_<stage>.png: the sprite under a 50 px grid
     tools/art/run_docker.sh rig bake  [--stage S]   # web/src/lib/living/rig/dragon_<stage>.json (the game's weights)
     tools/art/run_docker.sh rig debug [--stage S]   # tools/art/rig-out/rig_<stage>.png: weights, pivots, feet box
-    tools/art/run_docker.sh rig sheet               # docs/art/dragon-rig.png: the five debug views, for the record
+    tools/art/run_docker.sh rig sheet               # docs/art/dragon-rig.png: the debug views of the authored stages, for the record
 
 Per bone: its region (polygon, ellipse, or the whole frame) rasterised inside the sprite's opaque
 pixels, times an optional ramp (along y, or by distance from the pivot), pushed into the transparent

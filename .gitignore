@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 /data/
 web/dist/
+web/dist-lab/
 .pytest_cache/
 test-results/
 playwright-report/
