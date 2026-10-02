@@ -140,8 +140,12 @@ La Pythie dit la ponctuation : « virgule », « point », « point d'interrogat
 guillemets »… Quand elle dit « À la ligne », commence un nouveau paragraphe. Écris les nombres en
 lettres.
 
-Quand tu as tout écrit, touche **« J'ai fini d'écrire »**. Si tu dois partir, « Quitter » garde ton
-brouillon : tu le retrouveras en rouvrant le parchemin.
+Quand tu as tout écrit, touche **« J'ai fini d'écrire »**. Si tu dois partir, touche « Quitter »
+puis « Oui, quitter » : tu reviens là où tu avais ouvert la dictée (tes parchemins, le mur des
+quêtes…) et ton brouillon est gardé. Quand tu rouvres ce parchemin, choisis « Reprendre mon
+brouillon » pour continuer là où tu en étais, ou « Tout recommencer ». Pour repartir de zéro tout de
+suite, choisis plutôt « Tout recommencer » après « Quitter ». Pendant la relecture, « Quitter » te
+ramène de la même façon, ta relecture gardée : tu la retrouves avec « Reprendre ma relecture ».
 
 Si la voix de la Pythie se tait, une carte d'Éris apparaît : touche « Réessayer ». Si la voix reste
 muette, appelle un parent.
