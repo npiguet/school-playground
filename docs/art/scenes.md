@@ -46,7 +46,7 @@ the right (Éris's direction).
 
 Weekly-goal banner: open sky at x 40–65, y 8–18.
 
-The web copy carries Hermès's stall (`assets/art/scenes/hub_camp_stall.png`, box x 10.5-21.8 %, y 20.8-44.8 %; sub-project 4).
+The web copy carries Hermès's stall (`assets/art/scenes/hub_camp_stall.png`, awning x 8.8-23.4 %, y 17-20 % to the counter at y 43 %; sub-project 4, repainted 2026-10-02).
 
 ## nest: the dragon's nest
 

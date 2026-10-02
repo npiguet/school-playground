@@ -1,38 +1,68 @@
 {
-  "prompt": "a sunny grassy hillside in warm late-afternoon light, the lower part of a sunlit white-washed wall behind. subject: a small ancient Greek travelling merchant's market stall standing on the grass, the stall of the god Hermes: a wooden stall frame with a bold red-and-cream striped cloth awning with a scalloped edge held up by two wooden poles, a wooden counter below it laden with painted clay amphorae, woven baskets, rolled cloth and little bronze treasures, a small shelf of goods at the back, two tall amphorae standing on the grass beside it, and a small round wooden sign hanging from the front of the awning painted with a pair of golden winged sandals. The stall stands firmly on the grass with its feet on the ground, the same light and colours as the surrounding picture, (people:-3) (text:-3) (letters:-3) (writing:-3) (roof tiles:-2)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
-  "denoising_strength": 0.95,
-  "steps": 9,
-  "cfg_scale": 1.0,
-  "sampler_name": "Euler",
-  "scheduler": "Simple",
-  "seed": 4323,
-  "width": 1024,
-  "height": 1024,
-  "override_settings": {
-    "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+  "method": "two-pass inpaint on the untouched original (krea2 skill, 'Adding an object to a scene'): pass 1 paints the stall in a mask kept clear of the nest; pass 2 repaints the pass-1 result at denoise 0.5 through a mask grown ~24 px on the sides and top, so pass 1's feathered band becomes real detail (no halo, the awning completed).",
+  "chosen": "seed 5133 (pass 1), refined with seed 6131 (pass 2); chosen by the user on 2026-10-02 over 5131 and 5132",
+  "pass1": {
+    "prompt": "A small ancient Greek travelling merchant's market stall, the stall of the god Hermes, standing alone in the middle of a sunny grassy slope, fully visible with a margin of grass and sky all around it, nothing touching the edges of the picture area: a light open wooden frame of four thin poles with a red-and-cream striped cloth awning with a scalloped edge on top, the whole awning visible, open at the back and sides so the grassy hillside shows through behind the counter, a wooden counter laden with painted clay amphorae, woven baskets, rolled cloth and little bronze treasures, a tall amphora standing on the grass beside it, and a small round wooden sign hanging from the front of the awning painted with a pair of golden winged sandals. Painted in the same style, warm late-afternoon light and perspective as the surrounding picture, its feet on the grass with a soft shadow, (people:-3) (text:-3) (letters:-3) (writing:-3) (roof tiles:-3) (back wall:-2) (backdrop panel:-2) (curtain:-1)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+    "denoising_strength": 0.95,
+    "steps": 9,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 5133,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 6,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 200,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-illustration",
+    "init_image": "assets/art/scenes/hub_camp.png",
+    "mask_image": "assets/art/scenes/masks/hub_camp_stall_inpaint.png",
+    "result": "assets/art/scenes/masks/hub_camp_stall_raw.png"
   },
-  "alwayson_scripts": {
-    "negpip": {
-      "args": [
-        true,
-        1.0
-      ]
-    }
+  "pass2": {
+    "prompt": "A small ancient Greek travelling merchant's market stall, the stall of the god Hermes, standing alone in the middle of a sunny grassy slope, fully visible with a margin of grass and sky all around it, nothing touching the edges of the picture area: a light open wooden frame of four thin poles with a red-and-cream striped cloth awning with a scalloped edge on top, the whole awning visible, open at the back and sides so the grassy hillside shows through behind the counter, a wooden counter laden with painted clay amphorae, woven baskets, rolled cloth and little bronze treasures, a tall amphora standing on the grass beside it, and a small round wooden sign hanging from the front of the awning painted with a pair of golden winged sandals. Painted in the same style, warm late-afternoon light and perspective as the surrounding picture, its feet on the grass with a soft shadow, (people:-3) (text:-3) (letters:-3) (writing:-3) (roof tiles:-3) (back wall:-2) (backdrop panel:-2) (curtain:-1)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+    "denoising_strength": 0.5,
+    "steps": 16,
+    "cfg_scale": 1.0,
+    "sampler_name": "Euler",
+    "scheduler": "Simple",
+    "width": 1024,
+    "height": 1024,
+    "seed": 6131,
+    "override_settings": {
+      "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
+    },
+    "alwayson_scripts": {
+      "negpip": {
+        "args": [
+          true,
+          1.0
+        ]
+      }
+    },
+    "mask_blur": 4,
+    "inpainting_fill": 1,
+    "inpaint_full_res": true,
+    "inpaint_full_res_padding": 200,
+    "inpainting_mask_invert": 0,
+    "style": "discorde-illustration",
+    "init_image": "assets/art/scenes/masks/hub_camp_stall_raw.png",
+    "mask_image": "assets/art/scenes/masks/hub_camp_stall_refine.png",
+    "result": "assets/art/scenes/hub_camp_stall.png"
   },
-  "mask_blur": 8,
-  "inpainting_fill": 1,
-  "inpaint_full_res": true,
-  "inpaint_full_res_padding": 160,
-  "style": "discorde-illustration",
-  "init_image": "assets/art/scenes/hub_camp.png",
-  "mask_image": "assets/art/scenes/masks/hub_camp_stall_inpaint.png",
-  "endpoint": "img2img",
-  "raw_inpaint_result": "assets/art/scenes/masks/hub_camp_stall_raw.png",
-  "composite": {
-    "tool": "tools/art/inpaint_paste.py",
-    "command": "python tools/art/inpaint_paste.py assets/art/scenes/hub_camp.png assets/art/scenes/masks/hub_camp_stall_raw.png assets/art/scenes/masks/hub_camp_stall_paste.png assets/art/scenes/masks/hub_camp_stall_inpaint.png assets/art/scenes/hub_camp_stall.png 0",
-    "paste_mask": "assets/art/scenes/masks/hub_camp_stall_paste.png",
-    "why": "the inpaint repaints the wall inside the mask lighter (it drops the tree shade), so only the stall itself, traced by hand as polygons on the raw result, is pasted onto the untouched original",
-    "verified": "0 px differ outside the inpaint mask; changed box x 216-445, y 240-515 px"
-  }
+  "verified": "0 px differ from assets/art/scenes/hub_camp.png outside the refine mask grown by 12 px (the pass-2 feather); changed box x 164-505, y 175-527 px (fractions x 0.080-0.247, y 0.152-0.458)",
+  "rejected": "whole-picture inpaint (seeds 5101-5103 at 0.95 and 5111-5113 at 1.0: a wall, or awning fragments, instead of a stall); single pass 5121-5123 (the feathered rounded-rectangle edge, the awning cut by the mask's top, the stall on the nest); the first stall of 2026-09-30 (seed 4323: clipped by its mask, a back wall, pasted through a hand-traced mask)"
 }

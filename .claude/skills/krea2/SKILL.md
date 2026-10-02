@@ -125,7 +125,9 @@ inside the mask, 0.01 outside). `POST /sdapi/v1/img2img`, schema `StableDiffusio
   the API, blur 8 on a 270×150 px mask worked fine here; small masks are untested. If a result comes
   back unchanged, check the mean diff inside the mask, lower `mask_blur` to 0–4 and feather the mask
   yourself.
-- Soft Inpainting is available as an img2img script (`soft inpainting`), untried.
+- Soft Inpainting is available as an img2img script (`soft inpainting`), untried; it softens
+  transitions by design and nobody reports it on Krea. For adding an object to a scene without a
+  feathered halo, see "Adding an object to a scene: two passes" below.
 
 **No dedicated Krea 2 inpaint/edit/ControlNet models are usable here.** Krea publishes only Raw and
 Turbo. Community inpaint LoRAs (`yijunwang2/krea2-anypaint`, `Cierpliwy/krea2-inpaint-edit`) need
@@ -260,35 +262,61 @@ Seeds and asset lists are in `docs/art/style-guide.md` ("Progression redesign, p
   palais marble columns, a mosaic floor, a back-wall arch onto a courtyard, a canopy bed). Denoise
   0.6 (14 steps) also kept the plan but stayed busier and closer to the cabin's clutter.
 
-### Adding a building to a scene without moving anything else (Hermès's stall in the camp)
+### Adding an object to a scene: two passes (Hermès's stall in the camp, proven 2026-10-02)
 
-1. **Mask**: a rounded rectangle on the empty spot (`assets/art/scenes/masks/hub_camp_stall_inpaint.png`).
-   Keep its top edge **below** any roofline or ridge of what stands behind: a mask cutting through
-   the wall's tile coping made the model paint a second roof line inside the mask. Keep the object
-   inside the iPad safe zone (x 12.5-87.5 %, `docs/art/scenes.md`); the first placement at x 2-17 %
-   was mostly outside it.
-2. **Inpaint**: `/sdapi/v1/img2img` with the mask, `inpaint_full_res` true, **padding 160**,
-   `mask_blur` 8, `inpainting_fill` 1, denoise 0.95, 9 steps, width/height 1024x1024 (the "only
-   masked" crop is rendered at that size), `discorde-illustration`, 3 seeds. The prompt describes the
-   surroundings first ("a sunny grassy hillside ..., the lower part of a sunlit white-washed wall
-   behind"), then the object, then "the same light and colours as the surrounding picture" and
-   `(people:-3) (text:-3) (letters:-3) (writing:-3) (roof tiles:-2)`. Padding 64 gave too little
-   context (a lighter, different wall); 160 matches better but still not perfectly. Command:
-   `tools/art/with_lock.sh python tools/art/img2img.py --init assets/art/scenes/hub_camp.png
-   --mask assets/art/scenes/masks/hub_camp_stall_inpaint.png --prompt-file stall.txt --style
-   discorde-illustration --size 1024x1024 --denoise 0.95 --steps 9 --padding 160 --mask-blur 8
-   --seed 4321 --count 3 --out <scratch>/stall.png` (the prompt is in `scenes/hub_camp_stall.json`).
-3. **Paste only the object**: the model always repaints the background inside the mask slightly
-   differently (here it dropped the tree's shade on the wall), which shows as a pale rectangle. Trace
-   the object by hand as a few polygons on the raw result (view a 3x crop with a 20 px grid; follow
-   the awning scallops, leave open gaps under the awning to the original), save it as a paste mask,
-   and composite with `python tools/art/inpaint_paste.py ORIG RAW PASTE_MASK INPAINT_MASK OUT 0`.
-   It prints the pixels changed outside the inpaint mask (must be 0) and the changed box in
-   fractions, for the hotspot.
-4. **Rejected**: Grounding DINO + SAM 2.1 on the painted stall ("market stall. amphora. basket.",
-   union, or a SAM box prompt): the masks missed the amphorae, had holes and took in patches of the
-   repainted wall. A busy painted object on a painted background does not segment cleanly; hand
-   polygons took five minutes and are exact.
+The method the user approved (stall seed 5133 + refine 6131, `assets/art/scenes/hub_camp_stall.json`
+holds every setting). It replaces the 2026-09-30 method (one inpaint + a hand-traced paste mask),
+whose stall came out clipped on three sides by its own mask, with a cream back panel that read as a
+second wall.
+
+**Why a single inpaint leaves a halo (Forge Neo `modules/processing.py`, read 2026-10-02):** the
+result is pasted back as `gen*G(mask) + orig*(1-G(mask))`, `G` a Gaussian blur of sigma `mask_blur`
+(the feather is ~5 sigma wide). The model fills the mask edge to edge whatever the prompt says about
+margins (it does not know where the mask is: in "only masked" mode it repaints the whole padded crop
+and only the masked part is kept), so the object touches the border, where `G` is ~0.5: half the
+object's edge is replaced by the original scenery, a soft rounded-rectangle ghost. A larger blur is
+worse. Prompt wording ("a margin of grass all around it") does not help. `mask_blur` is the only
+feather control (`mask_blur_x`/`_y` are not independent in Neo); there is no native erode/dilate (grow
+masks yourself), a greyscale mask is a blend weight, not a per-pixel denoise, and no extension for
+Neo fixes this (sd-forge-ultra-paint is a UI painter; Soft Inpainting softens by design and is
+untested on Krea). Research notes: Krea's docs say nothing about inpainting; adding an object onto
+bare ground needs denoise 0.9-1.0 (partial denoise keeps the grass, the object comes out ghostly).
+
+1. **Pass 1: paint the object.** Mask a rounded box on the spot (`masks/hub_camp_stall_inpaint.png`,
+   px 190-475 x 200-515): its top **below** any roofline behind (a mask through the wall's tile
+   coping paints a second roof), its bottom **clear of what stands below** (a mask reaching the nest
+   put the counter's feet on the twigs), the object inside the iPad safe zone (x 12.5-87.5 %).
+   `img2img.py --init <scene> --mask <box> --prompt-file <p> --style discorde-illustration --size
+   1024x1024 --padding 200 --mask-blur 6 --denoise 0.95 --steps 9 --seed N --count 3` ("only masked",
+   the 1024² crop holds the wall, steps and slope as context). **Prompt: the object alone, in
+   sentences, with how it sits in its setting**, not the scene: "A small ... market stall ...
+   standing alone in the middle of a sunny grassy slope ..., open at the back and sides so the grassy
+   hillside shows through behind the counter, ... its feet on the grass with a soft shadow", then
+   "the same style, light and perspective as the surrounding picture" and NegPiP negatives
+   `(people:-3) (text:-3) (letters:-3) (writing:-3) (roof tiles:-3) (back wall:-2) (backdrop panel:-2)
+   (curtain:-1)`. Describing the surroundings at length made the model paint them instead (a wall).
+2. **Pass 2: re-render the edge.** Grow the box ~24 px on the sides and top only (never toward
+   something it must not touch; `masks/hub_camp_stall_refine.png`) and repaint **the pass-1 picture**
+   with the same prompt at **denoise 0.5**, 16 steps (≈ 8/denoise), `--mask-blur 4`, padding 200.
+   At 0.5 the object stays where it is, but pass 1's feathered band is repainted as real detail: the
+   halo goes, the awning's top is completed, the edges are crisp. Pass 2's own feather falls on
+   plain ground that barely changes at 0.5, so it leaves no seam.
+3. **Check**: 0 px may differ from the original outside the refine mask grown by ~12 px (its
+   feather); take the changed box (fractions) and the object's real outline on a % grid for the
+   hotspot (`web/src/lib/world/scenes/*.shapes.ts`), clipped to the safe zone and to neighbouring
+   hotspots.
+4. **Export**: copy the PNG as `<scene>.png` into a gitignored staging folder under
+   `assets/art/web/` and `tools/art/run_docker.sh webify --src <stage> --dst <stage>/out --max-px 2048
+   --quality 88`, then replace `web/public/art/scenes/<scene>.webp` (the README size test and the art
+   budget test must still pass).
+
+**Rejected (2026-10-02):** whole-picture inpainting (`--whole` at 2048×1152) of a small mask: at 0.95
+a slab of wall with tiles, at 1.0 awning fragments at the wrong scale, both with a soft halo; one
+pass only (the halo, the awning cut flat by the mask's top). **Rejected (2026-09-30):** Grounding
+DINO + SAM 2.1 on the painted stall (missed the amphorae, holes, took repainted wall); a hand-traced
+paste mask on a stall the mask had already clipped. If a pass-2 result ever still shows a halo, the
+fallback is a hard composite: generate with `mask_blur` 0 and paste only the object's silhouette
+(hand polygons) plus a 1-2 px feather and its contact shadow, in Python.
 
 ### Hermès and the shop icons
 

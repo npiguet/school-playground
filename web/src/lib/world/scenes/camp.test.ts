@@ -73,7 +73,14 @@ describe('the hub on hub_camp.webp (UI3 Ruling B3)', () => {
   it("puts Hermès's stall on its painted box, inside the safe zone, above the dragon (spec 2026-09-29 drachmes §2, R18)", () => {
     const stall = CAMP_HOTSPOTS.find((h) => h.id === 'stall')!;
     expect(stall).toMatchObject({ label: "L'étal d'Hermès", target: 'camp', query: { panel: 'etal' }, labelPos: 'on' });
-    expect(CAMP_SHAPES.stall).toEqual({ kind: 'polygon', points: [[12.5, 21], [21.8, 21], [21.8, 40], [12.5, 40]] });
+    // The stall repainted on 2026-10-02 (style guide): its awning's slant at the top, inside the safe
+    // zone, short of the temple's box and above the nest's.
+    expect(CAMP_SHAPES.stall).toEqual({ kind: 'polygon', points: [[12.5, 19.5], [22.4, 17], [22.4, 41], [12.5, 41]] });
+    const xs = CAMP_SHAPES.stall.points.map((p) => p[0]);
+    const ys = CAMP_SHAPES.stall.points.map((p) => p[1]);
+    expect(Math.min(...xs)).toBeGreaterThanOrEqual(12.5);
+    expect(Math.max(...xs)).toBeLessThan(Math.min(...CAMP_SHAPES.oracle.points.map((p) => p[0])));
+    expect(Math.max(...ys)).toBeLessThan(Math.min(...CAMP_SHAPES.dragon.points.map((p) => p[1])));
     // The temple keeps its whole painted box, its left wall included (Task 5 review I1).
     expect(CAMP_SHAPES.oracle.points[0]).toEqual([22.5, 14]);
     expect(validateScene(CAMP_SCENE)).toEqual([]);
