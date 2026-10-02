@@ -27,7 +27,7 @@ def main() -> None:
             if item not in frag or any(st not in frag[item] for st in STAGES):
                 raise SystemExit(f"{lt}.json: {item} misses a stage (has {sorted(frag.get(item, {}))})")
             out[item] = {st: {k: frag[item][st][k] for k in ("src", "x", "y", "w", "h")} for st in STAGES}
-    OUT.write_text(json.dumps(out, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    OUT.write_text(json.dumps(out, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     print(f"{OUT}: {len(out)} items, {sum(len(v) for v in out.values())} overlays")
 
 
