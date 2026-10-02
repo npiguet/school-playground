@@ -1,6 +1,7 @@
 <script lang="ts">
-  // The dragon's nest (scenes UI spec §3, UI3 Ruling B5): the dragon in the straw bed at its stage
-  // and tint, its growth on a sheet pinned to the cliff (UI3b playability #5: the war tent's pinned
+  // The dragon's nest (scenes UI spec §3, UI3 Ruling B5): the dragon on its stage's painting (spec
+  // 2026-10-02 nest by stage) at its stage and tint, its growth on a sheet pinned to the rock beside it
+  // (at the right side of the frame from the adult stage; UI3b playability #5: the war tent's pinned
   // parchment and its laurel gauge, not a web card), a tap on it opens its care
   // (#/p/:id/dragon?panel=soin: name, tint and parure), where it speaks. It greets once per page load with
   // its stage line.
@@ -9,7 +10,7 @@
   import Hotspot from '../components/scene/Hotspot.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
   import CarePanel from '../components/places/nest/CarePanel.svelte';
-  import { NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from '../lib/world/scenes/nest';
+  import { NEST_STAGES, SHEET_TOP, SHEET_X, careLine, growth, nestDragonLayer, nestGreeting, nestScene } from '../lib/world/scenes/nest';
   import { ART } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
   import { TINT_FILTERS, dragonCaption, stageActivity, stageLabel } from '../lib/world/dragon';
@@ -25,23 +26,33 @@
 
   let debug = $state(false);
   const dragon = $derived(campFor(profile.id)?.dragon ?? null);
+  // Spec 2026-10-02 nest by stage: the nest painted for the dragon's stage (none until /camp says it).
+  const scene = $derived(nestScene(dragon?.stage ?? null));
   const greet = (camp: CampResponse | null) => (camp ? nestGreeting(camp.dragon) : null);
   const activate = (def: HotspotDef) => openHotspot(def, profile.id);
   const close = () => closePanel(sceneHref('nest', profile.id));
 </script>
 
-<PlaceScene {profile} scene={NEST_SCENE} bind:debug {greet}>
+<PlaceScene {profile} {scene} bind:debug {greet}>
   {#snippet children(ctx)}
     {#if ctx.camp}
       {@const d = ctx.camp.dragon}
       {@const g = growth(ctx.camp.xp, d.stage)}
+      {@const side = NEST_STAGES[d.stage].sheet}
       <SceneLayer
         layer={{ id: 'dragon', src: ART.dragon[d.stage], alt: dragonCaption(d), ...nestDragonLayer(d.stage) }}
         filter={TINT_FILTERS[d.tint]}
         overlays={accessoryLayers(d.worn, d.stage)}
         testId="nest-dragon-layer"
       />
-      <div class="kit-sheet nest-growth stage-text" data-testid="nest-growth">
+      <div
+        class="kit-sheet nest-growth stage-text"
+        data-testid="nest-growth"
+        data-side={side}
+        style:left="{SHEET_X[side].x}%"
+        style:top="{SHEET_TOP}%"
+        style:width="calc({SHEET_X[side].w}% - 20px)"
+      >
         <span class="kit-plaque nest-stage" data-testid="dragon-stage">{stageLabel(d.stage)}</span>
         <span
           class="kit-gauge"
@@ -61,7 +72,7 @@
         <p class="nest-activity">{stageActivity(d.stage)}</p>
       </div>
     {/if}
-    {#each NEST_SCENE.hotspots as def (def.id)}
+    {#each scene.hotspots as def (def.id)}
       <Hotspot {def} status={def.state(ctx)} sceneId="nest" onActivate={activate} />
     {/each}
   {/snippet}
@@ -74,14 +85,12 @@
 {/if}
 
 <style>
-  /* The growth sheet pinned on the cliff, left of the nest (art x 13.5-32.5, from y 18, its rods
-     included): inside the safe zone, clear of the dragon's place (x 34+) and the HUD band;
-     `stage-text` fades it under overlays. .kit-sheet's own margin leaves room for its rods. */
+  /* The growth sheet pinned on the rock (spec 2026-10-02 nest by stage): beside the dragon on the
+     left up to the young stage, at the right side of the frame from the adult; its band (left, top,
+     width) comes from nest.ts SHEET_X / SHEET_TOP, inside the safe zone, clear of the dragon and the
+     HUD band; `stage-text` fades it under overlays. .kit-sheet's own margin leaves room for its rods. */
   .nest-growth {
     position: absolute;
-    left: 13.5%;
-    top: 18%;
-    width: calc(19% - 20px);
     box-sizing: border-box;
     z-index: 3;
     display: flex;

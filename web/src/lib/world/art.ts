@@ -96,6 +96,16 @@ export const ART = {
     illustre: '/art/dragon/dragon_illustre_cut.webp',
     ancestral: '/art/dragon/dragon_ancestral_cut.webp',
   },
+  // Spec 2026-10-02 nest by stage: the nest painted for each stage of the dragon, the place growing
+  // around it (docs/art/scenes.md "nest_<stage>"). Scene backgrounds: the 600 KB budget applies.
+  nest: {
+    egg: '/art/scenes/nest_egg.webp',
+    hatchling: '/art/scenes/nest_hatchling.webp',
+    young: '/art/scenes/nest_young.webp',
+    adult: '/art/scenes/nest_adult.webp',
+    illustre: '/art/scenes/nest_illustre.webp',
+    ancestral: '/art/scenes/nest_ancestral.webp',
+  },
   lieutenants: {
     hydre: '/art/lieutenants/hydre_cut.webp',
     echo: '/art/lieutenants/echo_cut.webp',
@@ -170,7 +180,6 @@ export const ART = {
     titleGates: '/art/scenes/title_gates.webp',
     // The camp with Hermès's stall painted in (spec 2026-09-29 drachmes §2).
     hubCamp: '/art/scenes/hub_camp.webp',
-    nest: '/art/scenes/nest.webp',
     delphi: '/art/scenes/delphi.webp',
     libraryTent: '/art/scenes/library_tent.webp',
     warTent: '/art/scenes/war_tent.webp',
