@@ -598,8 +598,8 @@ a count above that number, asks every one of them. Fight N opens when its condit
 to N−1 are won (a won fight is a `boss` quest `done`, stored by its tier number, so it stays won
 whatever the ladder says later). `POST /api/profiles/{id}/boss` starts the open fight (or returns the
 one already under way) on a text of at least 150 words at the hero's class or the one below, least
-played first, then longest (with none there: any long text, those in tenses her class has learnt
-first, see "Text levels and verb tenses"). The fight is won with at most `fight_max_per_100` mistakes left per 100
+played first, then longest (with none there: the nearest class, at or below hers first and then
+above it, in tenses her class has learnt before the others, see "Text levels and verb tenses"). The fight is won with at most `fight_max_per_100` mistakes left per 100
 words; its muster offers no pace below the class's default one (`defaultPace`). Each win pays
 `QUEST_BONUS["boss"]` XP and `drachmes.boss`; tiers 1 to 3 also give the divine gear
 (`BOSS_REWARDS`: `sandales_hermes`, `egide`, `foudre_zeus`).
@@ -619,27 +619,39 @@ One unambiguous form of a tense is enough (`MIN_OCCURRENCES`): a dictation makes
 every verb. Only unambiguous forms count, read from the stored annotation and the Lexique first,
 because the tagger mis-reads tenses (the small model calls « regarda » a participle):
 
-- a simple tense counts when every verb reading the Lexique gives that form under its lemma is that
-  one tense (« prit », « fut »; never « il finit », présent or passé simple); a form that is also
-  another word (« le fût », « soit... soit ») only after a subject pronoun or with a subject;
-- the passé simple's person comes from the same readings (« fut » 3rd person, « fus » 1st or 2nd);
+- a simple tense counts when every verb reading the Lexique gives that form, under every lemma, is
+  that one tense (« prit », « fut »); never « il finit » (présent or passé simple) nor « il vit »,
+  « je vis » (vivre présent, voir passé simple): spaCy's lemma never settles a form two verbs share.
+  A form that is also another word (« le fût », « soit... soit ») counts only after a subject
+  pronoun or with a subject;
+- the passé simple's person comes from the same readings (« fut » 3rd person, « fus » 1st or 2nd; a
+  form that may be either counts for nothing);
 - a compound tense is a participle and its auxiliary (its `aux:tense` child, else avoir or être just
   before it past the negation and the adverbs), read in the auxiliary's tense (« avait marché »
-  plus-que-parfait, « eût agi » subjonctif plus-que-parfait); être counts only for the verbs that
-  take it and the pronominal ones, so a passive (« fut tué », « vous serez hachés ») is its
-  auxiliary's simple tense;
+  plus-que-parfait, « eût agi » subjonctif plus-que-parfait), the auxiliary read as avoir or être
+  only (« nous nous sommes levés » is never sommer); être counts only for the verbs that take it and
+  the pronominal ones (« ils se sont levés »), so a passive (« fut tué », « vous serez hachés »)
+  is its auxiliary's simple tense;
 - the impératif, never unambiguous in the Lexique, is a form with an imperative reading that opens
-  its clause (or that the parser makes a clause head) with no subject.
+  its clause (or that the parser makes a clause head) with no subject; never a question
+  (« Viens-tu ? », « Mange-t-il ? », spaCy splitting « -t » from « -il ») nor a subject inversion
+  (« Arrive alors un grand loup »: a verb that takes its subject after it, followed by a noun
+  group). « Ayez fini », the impératif passé, counts as impératif.
 
 Every write applies it: `POST /api/texts` (pupitre, lens), the seed import, the Alexandria refresh
 (each scroll, `online_chunk`) and the adoption (the text keeps the scroll's levels). Migration 009
 adds `base_level` and `tenses_json` (the forms counted per tense, `{"passe_simple_3": 4}`) to `text`
-and `online_chunk`; at every start-up `app/relevel.py` reads each row's tenses again from its stored
-annotation (no spaCy, no network) and sets its level from `base_level`, so a better reading or a
-changed table reaches the whole library. The API's text summaries and Alexandria scrolls carry
-`tense_reason`, the French names of the tenses that raised the text above its own level (« passé
-simple »), shown on the scroll's tag on the shelves and on the portal; `null` when they raised
-nothing. Quests (`recommend_texts`) never recommend a text holding a tense above the hero's class.
+and `online_chunk`. `base_level` is `NOT NULL`: the existing rows take their `level`, and a trigger
+gives a row inserted without one its `level`. At every start-up, whatever `DISCORDE_SEED` says,
+`app/relevel.py` reads each row's tenses again from its stored annotation (no spaCy, no network) and
+sets its level from `base_level`, so a better reading or a changed table reaches the whole library.
+The API's text summaries and Alexandria scrolls carry `tense_reason`, the French names of the tenses
+that raised the text above its own level (« passé simple », « plus-que-parfait et passé simple »),
+shown on the scroll's tag on the shelves and on the portal (read « temps de conjugaison : … » by a
+screen reader); `null` when they raised nothing. When a text saved at the pupitre or the lens lands
+above the hero's class, the panel says so before the shelves (« Ce texte est rangé en 8H à cause de
+sa conjugaison : passé simple. »). Quests (`recommend_texts`) never recommend a text holding a tense
+above the hero's class.
 `scripts/py.sh python -m app.tools.tense_levels [--db discorde.sqlite3] [--verbose]` prints how many
 texts each class can play before and after the rule, and every form it counted.
 
@@ -669,9 +681,9 @@ Two files with one number are refused, and so is a connection with a transaction
   malformed results. For every old row, the new rows sum exactly to its counters; an all-zero
   dictation remainder beside a Grimoire row is not kept. The migration carries its own copy of the
   Swiss-day computation, so it stays what it was when later code changes.
-- **009 (verb tenses)** adds `base_level` (copied from `level`) and `tenses_json` to `text` and
-  `online_chunk`; the levels are raised at start-up by `app/relevel.py` (see "Text levels and verb
-  tenses").
+- **009 (verb tenses)** adds `base_level` (`NOT NULL`, copied from `level`, and filled from `level`
+  by a trigger when an insert leaves it out) and `tenses_json` to `text` and `online_chunk`; the
+  levels are raised at every start-up by `app/relevel.py` (see "Text levels and verb tenses").
 
 The balance is the ledger's sum. `reason` is `grant`, `session` (round(session XP ÷ `xp_per_drachme`),
 halves up), `board`, `oracle`, `weekly`, `level`, `boss` (one row per part, `ref` = `session:<id>`) or

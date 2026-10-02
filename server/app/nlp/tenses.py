@@ -9,13 +9,15 @@ Only an unambiguous form counts. It is read from the stored annotation (no spaCy
 re-levelled) and from the Lexique first, because the tagger is not reliable on tenses: the small
 model tags « regarda » as a participle, « fût » as an adjective, « Viens » as a noun (app.lexicon).
 
-- A simple tense: every verb reading the Lexique gives the form under its lemma is that one tense.
-  « regarda », « prit », « fut » are passé simple; « il finit » (présent or passé simple) and « je
-  mange » (indicatif, subjonctif or impératif) count for nothing. A form the Lexique also knows as
-  another word (« fût » the cask, « soit » the conjunction) counts only when the tagger calls it a
-  verb or a subject pronoun stands before it (« qu'il fût »).
+- A simple tense: every verb reading the Lexique gives the form, under every lemma, is that one
+  tense. « regarda », « prit », « fut » are passé simple; « il finit » (présent or passé simple),
+  « je mange » (indicatif, subjonctif or impératif) and « il vit » (vivre présent, voir passé
+  simple) count for nothing: spaCy's lemma never settles it (it reads « Le hérisson vit dans la
+  forêt » as voir). A form the Lexique also knows as another word (« fût » the cask, « soit » the
+  conjunction) counts only with a subject or after a subject pronoun (« qu'il fût »).
 - The passé simple's person comes from the same readings: « fut », « furent » are 3rd person (8H),
-  « fus », « finîmes » 1st or 2nd (9H, « à toutes les personnes »).
+  « fus », « finîmes » 1st or 2nd (9H, « à toutes les personnes »); a form that may be either
+  counts for nothing.
 - A compound tense is a past participle and its auxiliary: the participle's `aux:tense` child, or
   else the form of avoir (of être, for the verbs that take it and the pronominal ones) just before
   it, past the negation and the adverbs. Its tense is the auxiliary's Lexique tense: « a » passé
@@ -23,7 +25,9 @@ model tags « regarda » as a participle, « fût » as an adjective, « Viens �
   A passive (« fut tué », « la porte est fermée ») is its auxiliary's simple tense.
 - The impératif is never unambiguous in the Lexique (« mange », « venez » are also indicatif), so it
   is read from the sentence: a form with an imperative reading that opens its clause (or that the
-  parser makes a clause head) with no subject and no subject pronoun before it.
+  parser makes a clause head) with no subject and no subject pronoun before it, never a question
+  (« Mange-t-il ? ») nor a subject inversion (« Arrive alors un grand loup »). « Ayez fini », the
+  impératif passé, counts as impératif.
 """
 from __future__ import annotations
 
@@ -83,7 +87,17 @@ _BETWEEN_AUX = _CLITICS | {
     "mieux", "mal", "sûrement", "vraiment", "ainsi", "alors", "donc",
 }
 _CLAUSE_OPENERS = {"«", "»", "—", "–", "-", ":", ";", "!", "?", ".", "…", '"', "(", "“", "”"}
-_INVERTED = {"-je", "-tu", "-il", "-elle", "-on", "-ils", "-elles", "-t-il", "-t-elle", "-t-on"}
+# An inverted subject pronoun after the verb makes a question (« Mange-t-il ? »: spaCy splits « -t »
+# from « -il »), never an order.
+_INVERTED = {"-je", "-tu", "-il", "-elle", "-on", "-ils", "-elles", "-t", "-t-", "-t-il", "-t-elle", "-t-on"}
+# Verbs whose subject may follow them in a narrative (« Arrive alors un grand loup », « Vient ensuite
+# la nuit »): opening a sentence and followed by a noun group, they are no order.
+_INVERSION_VERBS = _ETRE_VERBS | {
+    "vivre", "régner", "exister", "suivre", "commencer", "manquer", "suffire", "retentir", "résonner",
+    "souffler", "surgir", "paraître", "briller", "approcher", "éclater",
+}
+_ADVERB_POS = {"ADV"}
+_NOUN_GROUP_POS = {"DET", "NOUN", "PROPN", "NUM"}
 
 
 def _low(text: str) -> str:
@@ -114,14 +128,15 @@ class _Text:
 
     def codes(self, t: dict) -> frozenset[str]:
         if t["i"] not in self._codes:
-            self._codes[t["i"]] = self.word_codes(t["text"], t.get("lemma"))
+            self._codes[t["i"]] = self.word_codes(t["text"])
         return self._codes[t["i"]]
 
-    def word_codes(self, word: str, lemma: str | None) -> frozenset[str]:
-        """The form's verb readings. A form of avoir or être reads its AUX entries (plus the VER
-        entries' impératif, « sois », « ayez »): Lexique files a homograph of another verb under
-        être's VER entry (« étaient » there is also étayer's présent and subjonctif)."""
-        codes = self.lexicon.verb_codes(word, lemma)
+    def word_codes(self, word: str) -> frozenset[str]:
+        """The form's verb readings under every lemma (« vit »: vivre ind:pre:3s and voir
+        ind:pas:3s), never narrowed by spaCy's lemma. A form of avoir or être reads its AUX entries
+        (plus the VER entries' impératif, « sois », « ayez »): Lexique files a homograph of another
+        verb under être's VER entry (« étaient » there is also étayer's présent and subjonctif)."""
+        codes = self.lexicon.verb_codes(word)
         entries = self.lexicon.lookup(word)
         aux = {c for e in entries if e.cgram == "AUX" for c in e.infover.split(";") if c and c != "inf"}
         verb_lemmas = {e.lemme for e in entries if e.cgram.split(":")[0] in _VERB_CGRAMS}
@@ -157,7 +172,17 @@ class _Text:
         if len(lemmas) != 1:
             return None
         (lemma,) = lemmas
-        return lemma if _finite(self.word_codes(t["text"], lemma)) else None
+        return lemma if _finite(self.aux_codes(t["text"], lemma)) else None
+
+    def aux_codes(self, word: str, lemma: str) -> frozenset[str]:
+        """An auxiliary's readings as avoir or être only: its role settles the lemma (« sommes » in
+        « nous nous sommes levés » is never sommer). Its AUX entries, plus the VER impératif
+        (« ayez fini »); its VER entries when the Lexique has no AUX one."""
+        entries = [e for e in self.lexicon.lookup(word) if e.lemme == lemma]
+        codes = lambda kinds: {c for e in entries if e.cgram in kinds for c in e.infover.split(";") if c and c != "inf"}
+        aux = codes(("AUX",))
+        verb = codes(("VER",))
+        return frozenset(aux | {c for c in verb if c.startswith("imp:")}) if aux else frozenset(verb)
 
 
 def _is_participle(text: _Text, t: dict) -> bool:
@@ -174,13 +199,18 @@ def _is_participle(text: _Text, t: dict) -> bool:
     return t.get("morph", {}).get("VerbForm") != "Fin" and not text.after_subject_pronoun(t)
 
 
-def _is_reflexive(t: dict | None) -> bool:
-    """A reflexive pronoun: « se », « me », « te »; « nous », « vous » unless they are the subject
-    (« vous vous êtes levés », not « vous serez hachés »)."""
+def _is_reflexive(text: _Text, t: dict | None) -> bool:
+    """A reflexive pronoun: « se », « me », « te »; « nous », « vous » when they are not the subject
+    or follow the same subject pronoun (« nous nous sommes levés », not « vous serez hachés »)."""
     if t is None:
         return False
     word = _low(t["text"])
-    return word in _REFLEXIVE and (word not in ("nous", "vous") or t["dep"] not in SUBJECT_DEPS)
+    if word not in _REFLEXIVE:
+        return False
+    if word not in ("nous", "vous"):
+        return True
+    doubled = t["i"] > 0 and _low(text.tokens[t["i"] - 1]["text"]) == word
+    return doubled or t["dep"] not in SUBJECT_DEPS
 
 
 def _auxiliary(text: _Text, p: dict) -> dict | None:
@@ -199,22 +229,42 @@ def _auxiliary(text: _Text, p: dict) -> dict | None:
         # (« la porte est fermée », « vous serez hachés »), whatever the parser called the auxiliary.
         verbs = {p.get("lemma")} | {e.lemme for e in text.lexicon.lookup(p["text"])
                                     if e.cgram.split(":")[0] in _VERB_CGRAMS}
-        if verbs & _ETRE_VERBS or _is_reflexive(text.before(aux, _BETWEEN_AUX - _REFLEXIVE)):
+        if verbs & _ETRE_VERBS or _is_reflexive(text, text.before(aux, _BETWEEN_AUX - _REFLEXIVE)):
             return aux
     return None
 
 
-def _compound_key(text: _Text, aux: dict) -> str | None:
-    lemma = text.auxiliary_lemma(aux)
-    tenses = _tenses(_finite(text.word_codes(aux["text"], lemma)))
-    if len(tenses) > 1:
-        tenses.discard("imp:pre")   # « aie », « ayez » as auxiliaries are subjonctif
+def _compound_key(text: _Text, aux: dict, p: dict) -> str | None:
+    tenses = _tenses(_finite(text.aux_codes(aux["text"], text.auxiliary_lemma(aux))))
+    if "imp:pre" in tenses and len(tenses) > 1:
+        # « Ayez fini avant midi ! » is an impératif passé; « que vous ayez fini » a subjonctif passé.
+        subject = any(c["dep"] in SUBJECT_DEPS for c in text.kids(p))
+        if not subject and _looks_imperative(text, aux):
+            return "imperatif"
+        tenses.discard("imp:pre")
     return _COMPOUND.get(next(iter(tenses))) if len(tenses) == 1 else None
 
 
-def _passe_simple(finite: set[str]) -> str:
-    # The person is the code's last character but one; a form that may be 3rd person counts as 3rd.
-    return "passe_simple_3" if any(c[-2] == "3" for c in finite) else "passe_simple_12"
+def _passe_simple(finite: set[str]) -> str | None:
+    # The person is the code's last character but one; a form that may be the 3rd person or another
+    # one counts for nothing.
+    persons = {c[-2] == "3" for c in finite}
+    if len(persons) != 1:
+        return None
+    return "passe_simple_3" if persons.pop() else "passe_simple_12"
+
+
+def _inverted_subject(text: _Text, t: dict) -> bool:
+    """« Arrive alors un grand loup »: a verb that takes its subject after it (`_INVERSION_VERBS`)
+    followed, past adverbs, by a noun group in the same sentence."""
+    lemmas = {t.get("lemma")} | {e.lemme for e in text.lexicon.lookup(t["text"])
+                                 if e.cgram.split(":")[0] in _VERB_CGRAMS}
+    if not lemmas & _INVERSION_VERBS:
+        return False
+    j = t["i"] + 1
+    while j < len(text.tokens) and j not in text.sentence_first and text.tokens[j]["pos"] in _ADVERB_POS:
+        j += 1
+    return j < len(text.tokens) and j not in text.sentence_first and text.tokens[j]["pos"] in _NOUN_GROUP_POS
 
 
 def _looks_imperative(text: _Text, t: dict) -> bool:
@@ -222,12 +272,14 @@ def _looks_imperative(text: _Text, t: dict) -> bool:
         return False
     tokens = text.tokens
     nxt = _low(tokens[t["i"] + 1]["text"]) if t["i"] + 1 < len(tokens) else ""
-    if nxt in _INVERTED:
+    if nxt in _INVERTED or nxt.startswith("-t-"):
         return False
-    if nxt in ("-nous", "-vous"):   # « Venez-vous ? » asks, « Dépêchez-vous ! » orders
+    if nxt.startswith("-"):   # « Venez-vous ? » asks, « Dépêchez-vous ! » orders
         end = next((x["text"] for x in tokens[t["i"]:] if x["text"] in (".", "!", "?", "…")), "")
         if end == "?":
             return False
+    if _inverted_subject(text, t):
+        return False
     prev = text.before(t, _CLITICS)   # « Ne regarde pas »: the negation opens the clause too
     if prev is not None:
         if _low(prev["text"]) in _SUBJECT_PRONOUNS:
@@ -253,7 +305,7 @@ def tense_forms(annotation: dict, lexicon: Lexicon) -> list[tuple[str, str]]:
         aux = _auxiliary(text, t)
         if aux is not None and aux["i"] not in auxiliaries:   # « a été construite »: one tense, two participles
             auxiliaries.add(aux["i"])
-            key = _compound_key(text, aux)
+            key = _compound_key(text, aux, t)
             if key is not None:
                 found.append((aux["i"], key, f"{aux['text']} {t['text']}"))
 
@@ -315,4 +367,6 @@ def tense_reason(base_level: str, counts: dict[str, int], least: int = MIN_OCCUR
     tl = tense_level(counts, least)
     if tl is None or level_index(tl) <= level_index(base_level):
         return None
-    return ", ".join(TENSES[k][1] for k in _counted(counts, least) if TENSES[k][0] == tl)
+    names = [TENSES[k][1] for k in _counted(counts, least) if TENSES[k][0] == tl]
+    # « a, b et c »: a name may hold commas of its own (« passé simple (je, tu, nous, vous) »).
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " et " + names[-1]

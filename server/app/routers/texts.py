@@ -37,7 +37,7 @@ def fetch_text(db: sqlite3.Connection, text_id: int) -> sqlite3.Row:
 
 def stored_tense_reason(row: sqlite3.Row) -> str | None:
     """The reason a text (or an Alexandria scroll) sits above its own level, from its stored tenses."""
-    return tense_reason(row["base_level"] or row["level"], json.loads(row["tenses_json"] or "{}"))
+    return tense_reason(row["base_level"], json.loads(row["tenses_json"]))
 
 
 def to_summary(row: sqlite3.Row, history: TextHistory | None, data_dir: Path | None = None) -> TextSummaryWithHistory:

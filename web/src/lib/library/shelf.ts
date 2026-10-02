@@ -59,6 +59,16 @@ export function wordGauge(n: number): { label: string; state: 'short' | 'ok' | '
   return { label: ideal, state: 'long', fill };
 }
 
+/** Read before a scroll's bare tense tag (« passé simple »), for assistive tech only. */
+export const TENSES_PREFIX = 'temps de conjugaison\u202f: ';
+
+/** What the pupitre and the lens say when the server moved the saved text above the hero's class
+ *  because of its verb tenses (server app.nlp.tenses); null when it lands at her class or below. */
+export function raisedLine(t: Pick<TextSummary, 'level' | 'tense_reason'>, heroLevel: string): string | null {
+  if (!t.tense_reason || levelIndex(t.level) <= levelIndex(heroLevel)) return null;
+  return `Ce texte est rangé en ${t.level} à cause de sa conjugaison\u202f: ${t.tense_reason}.`;
+}
+
 type ShelfText = Pick<TextSummary, 'id' | 'level' | 'title' | 'due_date'>;
 
 const byLevelThenTitle = (a: ShelfText, b: ShelfText) =>

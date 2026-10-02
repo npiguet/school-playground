@@ -27,8 +27,8 @@ def relevel_texts(conn: sqlite3.Connection, lexicon: Lexicon) -> int:
         rows = conn.execute(
             f"SELECT id, level, base_level, tenses_json, annotation_json FROM {table}").fetchall()
         for r in rows:
-            base = r["base_level"] or r["level"]
-            counts = detect_tenses(json.loads(r["annotation_json"] or "{}"), lexicon)
+            base = r["base_level"]
+            counts = detect_tenses(json.loads(r["annotation_json"]), lexicon)
             stored = tenses_json(counts)
             level = level_with_tenses(base, counts)
             if (level, base, stored) != (r["level"], r["base_level"], r["tenses_json"]):

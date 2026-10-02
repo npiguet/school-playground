@@ -158,7 +158,7 @@ def text_rows_with_density(conn: sqlite3.Connection, key: str) -> list[dict]:
         annotation = json.loads(r["annotation_json"])
         wc = word_count(r["body"])
         rows.append({"id": r["id"], "title": r["title"], "level": r["level"], "word_count": wc,
-                     "tense_level": tense_level(json.loads(r["tenses_json"] or "{}")),
+                     "tense_level": tense_level(json.loads(r["tenses_json"])),
                      "density": density(annotation, wc, key)})
     return rows
 
@@ -199,17 +199,20 @@ def _pick_boss_text(conn: sqlite3.Connection, profile: sqlite3.Row) -> int | Non
     long_rows = [(r, word_count(r["body"])) for r in rows if word_count(r["body"]) >= 150]
     candidates = [(r["id"], wc, r["id"] in played) for r, wc in long_rows if r["level"] in allowed_levels]
     if not candidates:
-        # Any long text, those in tenses she has learnt first (app.nlp.tenses).
-        candidates = [(r["id"], wc, r["id"] in played, _tenses_unknown(r, idx)) for r, wc in long_rows]
-        candidates.sort(key=lambda c: (c[3], c[2], -c[1], c[0]))
-        return candidates[0][0] if candidates else None
+        # Any long text, the nearest to her class first: at or below it (nearest first), then above
+        # it (nearest first), in tenses she has learnt before the others; then least played, longest.
+        def key(c: tuple[sqlite3.Row, int]) -> tuple:
+            r, wc = c
+            gap = level_index(r["level"]) - idx
+            return (gap > 0, abs(gap), _tenses_unknown(r, idx), r["id"] in played, -wc, r["id"])
+        return min(long_rows, key=key)[0]["id"] if long_rows else None
     candidates.sort(key=lambda c: (c[2], -c[1], c[0]))
     return candidates[0][0]
 
 
 def _tenses_unknown(row: sqlite3.Row, level_idx: int) -> bool:
     """The text holds a verb tense introduced after the player's class."""
-    tl = tense_level(json.loads(row["tenses_json"] or "{}"))
+    tl = tense_level(json.loads(row["tenses_json"]))
     return tl is not None and level_index(tl) > level_idx
 
 

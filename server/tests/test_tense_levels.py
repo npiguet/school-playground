@@ -40,8 +40,18 @@ def test_migration_009_keeps_each_texts_own_level(tmp_path):
     migrate(conn)
     row = conn.execute("SELECT level, base_level, tenses_json FROM text").fetchone()
     assert (row["level"], row["base_level"], row["tenses_json"]) == ("6H", "6H", "{}")
-    cols = {r["name"] for r in conn.execute("PRAGMA table_info(online_chunk)")}
-    assert {"base_level", "tenses_json"} <= cols
+    for table in ("text", "online_chunk"):
+        cols = {r["name"]: r for r in conn.execute(f"PRAGMA table_info({table})")}
+        assert cols["base_level"]["notnull"] == 1 and cols["tenses_json"]["notnull"] == 1
+    # A row written without a base_level (an older writer) takes its level: never empty, never NULL.
+    conn.execute(INSERT_TEXT, ("Neuf", PRESENT, "7H", "{}"))
+    conn.execute("INSERT INTO online_work(id, status, fetched_at) VALUES ('w', 'ok', 'now')")
+    conn.execute("INSERT INTO online_chunk(work_id, seq, body, word_count, level, score) VALUES ('w', 1, 'x', 1, '9H', 1)")
+    assert conn.execute("SELECT base_level FROM text WHERE title = 'Neuf'").fetchone()[0] == "7H"
+    assert conn.execute("SELECT base_level FROM online_chunk").fetchone()[0] == "9H"
+    conn.execute("INSERT INTO text(title, body, source, level, base_level, created_at) "
+                 "VALUES ('Mien', 'x', 'custom', '8H', '6H', 'now')")
+    assert conn.execute("SELECT base_level FROM text WHERE title = 'Mien'").fetchone()[0] == "6H"
 
 
 def test_relevel_raises_existing_texts_from_their_annotation(tmp_path, annotate_fn, lexicon):
@@ -89,14 +99,16 @@ def test_relevel_covers_the_alexandria_cache(tmp_path, annotate_fn, lexicon):
     assert tuple(row) == ("8H", "6H")
 
 
-def test_startup_relevels_existing_texts(settings, annotate_fn):
+@pytest.mark.parametrize("seed_on_startup", [True, False])
+def test_startup_relevels_existing_texts(settings, annotate_fn, seed_on_startup):
+    """At every start-up, with or without DISCORDE_SEED: the re-levelling needs no spaCy."""
     conn = connect(settings.data_dir / DB_FILENAME)
     migrate(conn, upto=8)
     conn.execute(INSERT_TEXT, ("Loup", PASSE_SIMPLE, "5H", json.dumps(annotate_fn(PASSE_SIMPLE))))
     conn.commit()
     conn.close()
-    with TestClient(create_app(replace(settings, seed_on_startup=True))) as c:
-        t = c.get("/api/texts").json()[0]
+    with TestClient(create_app(replace(settings, seed_on_startup=seed_on_startup))) as c:
+        t = next(t for t in c.get("/api/texts").json() if t["title"] == "Loup")
     assert t["level"] == "8H" and t["tense_reason"] == "passé simple"
 
 
@@ -160,6 +172,29 @@ def test_a_fight_with_no_text_at_her_class_takes_one_in_tenses_she_knows(tmp_pat
     conn.commit()
     chosen = _pick_boss_text(conn, {"id": 1, "level": "7H"})
     assert conn.execute("SELECT title FROM text WHERE id = ?", (chosen,)).fetchone()[0] == "Présent"
+
+
+def _fight_text(tmp_path, hero_level: str, texts: tuple) -> str:
+    from app.routers.world import _pick_boss_text
+    conn = connect(tmp_path / "db.sqlite3")
+    migrate(conn)
+    for title, level, words in texts:
+        conn.execute("INSERT INTO text(title, body, source, level, created_at) VALUES (?, ?, 'custom', ?, 'now')",
+                     (title, " ".join(["mot"] * words), level))
+    conn.commit()
+    chosen = _pick_boss_text(conn, {"id": 1, "level": hero_level})
+    return conn.execute("SELECT title FROM text WHERE id = ?", (chosen,)).fetchone()[0]
+
+
+def test_a_5h_fight_with_nothing_at_her_class_takes_the_nearest_class_not_the_longest(tmp_path):
+    # Nothing at 5H (nor below): the nearest class above wins over a longer 11H text.
+    assert _fight_text(tmp_path, "5H", (("11H, très long", "11H", 400), ("8H", "8H", 160),
+                                        ("6H", "6H", 150), ("6H trop court", "6H", 100))) == "6H"
+
+
+def test_a_fight_prefers_her_class_or_below_then_the_nearest_above(tmp_path):
+    # A 9H hero with nothing at 9H or 8H: 7H (at or below, nearest) before 10H (above), whatever the length.
+    assert _fight_text(tmp_path, "9H", (("10H long", "10H", 300), ("7H", "7H", 160), ("5H", "5H", 200))) == "7H"
 
 
 def test_quests_never_recommend_a_text_whose_tenses_the_player_has_not_learnt():

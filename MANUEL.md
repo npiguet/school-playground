@@ -422,7 +422,7 @@ la feuille » te montre la photo.
 Au pupitre, tu écris ou tu colles un texte à toi, avec un titre et une classe. Entre 80 et 200 mots,
 c'est l'idéal (au moins cinq mots), et les nombres s'écrivent en lettres. « Qui l'a écrit ? » permet
 de noter l'auteur. Si le texte emploie un temps appris plus tard que la classe choisie, il monte dans
-la classe de ce temps (c'est vrai aussi pour la lentille et le portail).
+la classe de ce temps, et le pupitre te le dit (c'est vrai aussi pour la lentille et le portail).
 
 ### Le portail : la Bibliothèque d'Alexandrie
 

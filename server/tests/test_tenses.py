@@ -34,8 +34,14 @@ def tenses_of(nlp, lexicon):
     # Ambiguous: présent or passé simple, so nothing.
     ("Il finit son assiette.", {}),
     ("Je finis mon assiette.", {}),
-    # « vit » under voir is a passé simple (under vivre it would be a présent).
-    ("Il vit un loup dans la clairière.", {"passe_simple_3": 1}),
+    # « vit », « vis »: vivre présent or voir passé simple, whatever lemma spaCy picks (it reads the
+    # présent « vit dans la forêt » as voir): nothing, in either sense.
+    ("Il vit un loup dans la clairière.", {}),
+    ("Le hérisson vit dans la forêt.", {}),
+    ("Le renard vit dans un terrier.", {}),
+    ("Il vit à Paris depuis l'hiver.", {}),
+    ("Où vit le renard ?", {}),
+    ("Je vis à Genève avec mes parents.", {}),
     # Compound tenses: the auxiliary's tense.
     ("Elle a mangé une pomme.", {"passe_compose": 1}),
     ("Il a pris son chapeau.", {"passe_compose": 1}),
@@ -48,6 +54,9 @@ def tenses_of(nlp, lexicon):
     ("Elle aurait voulu partir.", {"conditionnel_passe": 1}),
     ("S'il avait su, il eût agi autrement.", {"plus_que_parfait": 1, "subjonctif_pqp": 1}),
     ("La maison a été construite par mon grand-père.", {"passe_compose": 1}),
+    ("Nous nous sommes levés tôt.", {"passe_compose": 1}),
+    ("Vous vous étiez trompés de chemin.", {"plus_que_parfait": 1}),
+    ("Il faut que vous ayez fini avant midi.", {"subjonctif_passe": 1}),
     # A passive is its auxiliary's simple tense; an adjective participle is no tense.
     ("Il fut tué par le géant.", {"passe_simple_3": 1}),
     ("La porte est fermée.", {}),
@@ -68,7 +77,16 @@ def tenses_of(nlp, lexicon):
     ("Dépêchez-vous, les enfants !", {"imperatif": 1}),
     ("Ne regarde pas en arrière.", {"imperatif": 1}),
     ("Le roi dit : « Sois sage. »", {"imperatif": 1}),
+    ("Ayez fini avant midi !", {"imperatif": 1}),   # impératif passé
+    # Questions and subject inversions are no orders.
     ("Venez-vous avec nous ?", {}),
+    ("Mange-t-il sa soupe ?", {}),
+    ("Va-t-elle venir ce soir ?", {}),
+    ("Regarde-t-il la mer ?", {}),
+    ("Aime-t-elle les fleurs ?", {}),
+    ("Viens-tu avec nous ?", {}),
+    ("Arrive alors un grand loup.", {}),
+    ("Vient ensuite la nuit.", {}),
     ("Le chat mange la souris.", {}),
     ("Nous chantons et dansons toute la nuit.", {}),
 ])
@@ -86,6 +104,30 @@ def test_reads_a_seed_passage(nlp, lexicon):
     assert ("passe_simple_3", "ordonna") in forms
     assert not any(key == "futur_anterieur" for key, _ in forms)
     assert ("futur", "serez") in forms
+
+
+def test_no_seed_text_is_raised_by_a_form_two_verbs_share(nlp, lexicon):
+    """Every simple form counted in the seed passages has one tense (and, for the passé simple, one
+    person class) under every lemma the Lexique gives it: none is settled by spaCy's lemma (C1)."""
+    import json
+    homophones = load_homophones(CONTENT)
+    checked = 0
+    for path in sorted((CONTENT / "seed").glob("*.json")):
+        body = json.loads(path.read_text(encoding="utf-8"))["body"]
+        for key, form in tense_forms(annotate(body, nlp, homophones, lexicon), lexicon):
+            if " " in form or key == "imperatif":
+                continue   # compound tenses read their auxiliary; the impératif is read from the sentence
+            by_lemma: dict[str, set[str]] = {}
+            for e in lexicon.lookup(form):
+                if e.cgram.split(":")[0] in ("VER", "AUX"):
+                    finite = {c for c in e.infover.split(";") if c.count(":") == 2 and not c.startswith("par:")}
+                    by_lemma.setdefault(e.lemme, set()).update(finite)
+            readings = set().union(*by_lemma.values())
+            assert len({c.rsplit(":", 1)[0] for c in readings}) == 1, (path.stem, form, by_lemma)
+            if key.startswith("passe_simple"):
+                assert len({c[-2] == "3" for c in readings}) == 1, (path.stem, form, by_lemma)
+            checked += 1
+    assert checked > 100
 
 
 def test_every_tense_has_a_class_and_a_french_name():
@@ -109,6 +151,8 @@ def test_level_rule():
 
 def test_reason_names_the_tenses_that_raised_the_text():
     assert tense_reason("5H", {"passe_simple_3": 2, "futur": 1}) == "passé simple"
-    assert tense_reason("5H", {"passe_simple_3": 1, "plus_que_parfait": 1}) == "plus-que-parfait, passé simple"
+    assert tense_reason("5H", {"passe_simple_3": 1, "plus_que_parfait": 1}) == "plus-que-parfait et passé simple"
+    assert tense_reason("5H", {"passe_simple_12": 1, "passe_anterieur": 1, "subjonctif_passe": 2}) == \
+        "passé simple (je, tu, nous, vous), passé antérieur et subjonctif passé"
     assert tense_reason("8H", {"passe_simple_3": 2}) is None   # already 8H: the tenses raised nothing
     assert tense_reason("5H", {}) is None

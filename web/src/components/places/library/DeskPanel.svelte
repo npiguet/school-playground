@@ -6,7 +6,7 @@
   import LevelMedallions from '../../ui/LevelMedallions.svelte';
   import { api, ApiError } from '../../../lib/api';
   import { countWords } from '../../../lib/dictation/segment';
-  import { wordGauge } from '../../../lib/library/shelf';
+  import { raisedLine, wordGauge } from '../../../lib/library/shelf';
   import { href } from '../../../lib/routes';
   import { go } from '../../../lib/scene/panelNav';
   import type { Profile } from '../../../lib/types';
@@ -24,6 +24,15 @@
   let translator = $state('');
   let error = $state('');
   let submitting = $state(false);
+  // Set once the text is saved, when its verb tenses moved it above her class (raisedLine): the desk
+  // says so before the shelves, where it no longer lies under « Pour toi ».
+  let raised = $state<string | null>(null);
+
+  function toShelves() {
+    // The saved parchment waits on the shelves, which replace this form (Back must not reopen
+    // it) and keep its history tag (final review I1: closing the shelves then steps back).
+    go(href('library', { profileId: String(profile.id) }), 'replace');
+  }
 
   const wordCount = $derived(countWords(body));
   const gauge = $derived(wordGauge(wordCount));
@@ -34,7 +43,7 @@
     submitting = true;
     error = '';
     try {
-      await api.texts.create({
+      const created = await api.texts.create({
         title: title.trim(),
         body: body.trim(),
         level,
@@ -44,9 +53,8 @@
         translator: translator.trim() || null,
         added_by_profile_id: profile.id,
       });
-      // The saved parchment waits on the shelves, which replace this form (Back must not reopen
-      // it) and keep its history tag (final review I1: closing the shelves then steps back).
-      go(href('library', { profileId: String(profile.id) }), 'replace');
+      raised = raisedLine(created, profile.level);
+      if (!raised) toShelves();
     } catch (e) {
       error = e instanceof ApiError ? e.detail : "Les Muses n'ont pas pu poser ce parchemin sur l'étagère.";
     } finally {
@@ -91,9 +99,16 @@
         <p class="orange" role="alert">{error}</p>
       {/if}
 
-      <button type="submit" class="kit-bronze desk-submit" disabled={submitting || !title.trim() || !body.trim()}>
-        Poser sur l'étagère
-      </button>
+      {#if raised}
+        <div class="kit-note" role="status" data-testid="desk-raised">
+          <p>{raised}</p>
+          <button type="button" class="kit-bronze" data-testid="btn-raised-shelves" onclick={toShelves}>Voir tes parchemins</button>
+        </div>
+      {:else}
+        <button type="submit" class="kit-bronze desk-submit" disabled={submitting || !title.trim() || !body.trim()}>
+          Poser sur l'étagère
+        </button>
+      {/if}
 
       <!-- Playability #5: the way to finish comes before the optional « Qui l'a écrit ? », so opening
            it never pushes the button out of view. -->

@@ -233,7 +233,7 @@ def adopt_chunk(conn: sqlite3.Connection, chunk_id: int, profile_id: int, works:
         """INSERT INTO text(title, body, source, level, base_level, tenses_json, author, translator, work, credits,
                            added_by_profile_id, annotation_json, created_at)
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (final_title, chunk["body"], "online", chunk["level"], chunk["base_level"] or chunk["level"],
+        (final_title, chunk["body"], "online", chunk["level"], chunk["base_level"],
          chunk["tenses_json"], work.author, work.translator, work.title,
          credits_of(work), profile_id, chunk["annotation_json"], now()))
     conn.execute("UPDATE online_chunk SET text_id = ? WHERE id = ?", (cur.lastrowid, chunk_id))

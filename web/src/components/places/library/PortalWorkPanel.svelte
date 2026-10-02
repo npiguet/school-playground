@@ -17,7 +17,7 @@
   import { closePanel, go } from '../../../lib/scene/panelNav';
   import Icon from '../../ui/Icon.svelte';
   import LevelMedallions from '../../ui/LevelMedallions.svelte';
-  import { lengthOf, workByline } from '../../../lib/library/shelf';
+  import { lengthOf, TENSES_PREFIX, workByline } from '../../../lib/library/shelf';
   import OverlayVoice from '../../scene/OverlayVoice.svelte';
   import { ART } from '../../../lib/world/art';
   import { VOICES } from '../../../lib/world/voices';
@@ -249,7 +249,9 @@
                 <span class="kit-medallion is-small" role="img" aria-label="Classe {chunk.level}">{chunk.level}</span>
                 <span class="roll-length">{lengthOf(chunk.word_count)}</span>
                 <!-- The verb tenses that set its class (server app.nlp.tenses), e.g. « passé simple ». -->
-                {#if chunk.tense_reason}<span class="roll-tenses" data-testid="chunk-tenses">{chunk.tense_reason}</span>{/if}
+                {#if chunk.tense_reason}
+                  <span class="roll-tenses" data-testid="chunk-tenses"><span class="sr-only">{TENSES_PREFIX}</span>{chunk.tense_reason}</span>
+                {/if}
                 <span class="stars" role="img" aria-label="Richesse en accords{'\u202f: '}{starsFor(chunk.score)} sur 5">
                   {#each Array.from({ length: starsFor(chunk.score) }, (_, i) => i) as i (i)}<Icon name="star" size={16} />{/each}
                 </span>
