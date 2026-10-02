@@ -18,6 +18,9 @@ export const TINT_FILTERS: Record<Tint, string> = {
   argent: 'saturate(0) brightness(1.15)',
 };
 
+/** How much of the tint shows on the living dragon: mix(untinted, tinted, 0.7); 30 % softer at the user's request of 2026-10-02. */
+export const TINT_STRENGTH = 0.7;
+
 /** The filter of a tint's egg picture (the care panel's swatches, the trophy shelf's tint cubbies):
  *  its tint once won, greyed while locked. Applied to the egg's `<img>` only, never to the swatch
  *  around it: the gold ring and the painted lock keep their own colours (fix round 1: a filtered

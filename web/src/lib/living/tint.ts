@@ -70,9 +70,11 @@ export function filterMatrices(css: string): [Mat3, Mat3] {
   return [steps[0], steps[1]];
 }
 
-/** The fragment shader's tint on one colour (0..1), clamped after each step. */
-export function applyTint([a, b]: [Mat3, Mat3], rgb: readonly [number, number, number]): [number, number, number] {
+/** The fragment shader's tint on one colour (0..1), clamped after each step, then mixed with the
+ *  untinted colour by `strength` (1 = the full tint, 0 = the original). */
+export function applyTint([a, b]: [Mat3, Mat3], rgb: readonly [number, number, number], strength = 1): [number, number, number] {
   const mul = (m: Mat3, v: readonly number[]): [number, number, number] =>
     [0, 1, 2].map((r) => Math.min(1, Math.max(0, m[r] * v[0] + m[3 + r] * v[1] + m[6 + r] * v[2]))) as [number, number, number];
-  return mul(b, mul(a, rgb));
+  const tinted = mul(b, mul(a, rgb));
+  return [0, 1, 2].map((i) => rgb[i] + (tinted[i] - rgb[i]) * strength) as [number, number, number];
 }

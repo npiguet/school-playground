@@ -8,6 +8,7 @@
 import type { PieceDraw } from './atlas';
 import type { Rig } from './rigs';
 import { FRAME, MARGIN, buildMesh } from './skin';
+import { TINT_STRENGTH } from '../world/dragon';
 import { filterMatrices } from './tint';
 
 const VS = `#version 300 es
@@ -45,6 +46,7 @@ uniform sampler2D uTex;
 uniform int uLayer;
 uniform mat3 uT0;
 uniform mat3 uT1;
+uniform float uTintStrength;
 uniform bool uShowWeights;
 out vec4 o;
 void main() {
@@ -52,8 +54,9 @@ void main() {
   if (uLayer == 1) { o = c; return; }
   c *= smoothstep(0.02, 0.05, c.a);
   vec3 rgb = c.a > 0.0 ? c.rgb / c.a : vec3(0.0);
-  rgb = clamp(uT0 * rgb, 0.0, 1.0);
-  rgb = clamp(uT1 * rgb, 0.0, 1.0);
+  vec3 tinted = clamp(uT0 * rgb, 0.0, 1.0);
+  tinted = clamp(uT1 * tinted, 0.0, 1.0);
+  rgb = mix(rgb, tinted, uTintStrength);
   o = vec4(rgb * c.a, c.a);
   if (uShowWeights && o.a > 0.0) {
     vec3 wc = vW0.x * vec3(1.0, 0.2, 0.2) + vW0.y * vec3(0.2, 0.8, 0.2) + vW0.z * vec3(0.2, 0.45, 1.0) + vW0.w * vec3(1.0, 0.8, 0.0);
@@ -63,7 +66,7 @@ void main() {
   }
 }`;
 
-const UNIFORMS = ['uB', 'uMargin', 'uRigid', 'uW', 'uTex', 'uLayer', 'uT0', 'uT1', 'uShowWeights'] as const;
+const UNIFORMS = ['uB', 'uMargin', 'uRigid', 'uW', 'uTex', 'uLayer', 'uT0', 'uT1', 'uTintStrength', 'uShowWeights'] as const;
 
 function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
   const s = gl.createShader(type);
@@ -181,6 +184,7 @@ export class DragonRenderer {
     this.gl.useProgram(this.program);
     this.gl.uniformMatrix3fv(this.u.uT0, false, a);
     this.gl.uniformMatrix3fv(this.u.uT1, false, b);
+    this.gl.uniform1f(this.u.uTintStrength, TINT_STRENGTH);
   }
 
   setPieces(atlas: TexImageSource | null, pieces: readonly PieceDraw[]): void {

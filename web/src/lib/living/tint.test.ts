@@ -3,7 +3,7 @@
 // browser's own CSS filter is the reference for the pixels: living-dragon.spec.ts compares the canvas
 // with the still picture under the same tint.
 import { describe, expect, it } from 'vitest';
-import { TINT_FILTERS } from '../world/dragon';
+import { TINT_FILTERS, TINT_STRENGTH } from '../world/dragon';
 import { IDENTITY, applyTint, filterMatrices, filterStep, parseFilter, type Mat3 } from './tint';
 
 const close = (a: readonly number[], b: readonly number[], eps = 1e-9) => a.forEach((v, i) => expect(Math.abs(v - b[i]), `index ${i}`).toBeLessThan(eps));
@@ -45,6 +45,19 @@ describe('tint matrices', () => {
     // #b8863b: luminance 0.213 R + 0.715 G + 0.072 B = 0.546078, times 1.15.
     close(applyTint(filterMatrices(TINT_FILTERS.argent), [184 / 255, 134 / 255, 59 / 255]), [0.62799, 0.62799, 0.62799], 1e-4);
     close(applyTint(filterMatrices('brightness(3)'), [0.5, 0.2, 0.9]), [1, 0.6, 1], 1e-9);
+  });
+
+  it('softens the tint by mixing the tinted colour with the original', () => {
+    const sample = [184 / 255, 134 / 255, 59 / 255] as const;
+    expect(TINT_STRENGTH).toBe(0.7);
+    for (const css of Object.values(TINT_FILTERS)) {
+      const m = filterMatrices(css);
+      const full = applyTint(m, sample);
+      close(applyTint(m, sample, 0.7), full.map((v, i) => 0.7 * v + 0.3 * sample[i]), 1e-9);
+      close(applyTint(m, sample, 0), sample);
+      close(applyTint(m, sample, 1), full);
+      close(applyTint(m, sample), full);
+    }
   });
 
   it('reads percentages as fractions', () => {
