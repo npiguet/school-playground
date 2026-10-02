@@ -166,12 +166,31 @@ old `nest.png` (seed 603, removed), `--vscale 1.0`, 8 steps, **Krea2 Variance of
 sidecar shows it was off; `--variance 1.2` at 2048x1152 turned every painting into a blocky mosaic).
 Picked seeds: egg 1663, young 1615, adult 1623, illustre 1633, ancestral 1652 (the sidecars hold the
 prompts; the egg, young and ancestral picks come from reworked prompts, see the tips below). The
-hatchling's painting is the egg's with the broken shell inpainted in two passes (its seeds are added
-here when it is made). Each prompt names the empty spot's place and its floor's height and a calm
+hatchling's painting is the egg's with the broken shell inpainted in two passes (seed 1654, see the
+next paragraph). Each prompt names the empty spot's place and its floor's height and a calm
 stretch on the growth sheet's side; check every variant with `tools/art/nest_preview.py` (the stage's
 sprite at its place, the hotspot, the sheet's band). The dragon's place per stage was set with the
 user on these paintings: egg w 16 feet 54, hatchling 21/55, young 36/73, adult 40/80.5, illustre
 44/88, ancestral 47/94 (art %; plan 2026-10-02 nest by stage, Task 4).
+
+**The hatchling's nest** (`nest_hatchling.png`) is `nest_egg.png` with the egg's broken top cap and a
+scaly fragment on the bare rock right of the nest's front rim, right of the dragon's spot, by the krea2
+skill's two passes: pass 1 `masks/nest_hatchling_shell_inpaint.png` (rounded box px 1290-1556 x
+718-850, radius 40), only masked, 1024x1024 crop, padding 200, `--mask-blur 6`, denoise 0.95, 9 steps,
+seed 1654 (pass-1 pick: `masks/nest_hatchling_raw.png`); pass 2 `masks/nest_hatchling_shell_refine.png`
+(grown 24 px left, 8 px top so the fallen olive leaf stays untouched, 24 px right, 20 px bottom: px
+1266-1580 x 710-870), denoise 0.5, 16 steps, `--mask-blur 4`, same seed. The refine mask must also
+grow toward the left: without it, 147 px of pass 1's blur-6 feather stayed outside it and kept the
+halo. 0 px differ from the egg's painting outside the refine mask's feather (changed box px
+1256-1591 x 700-881). The shell is the cap: the hatchling sprite already sits in the shell's bottom half.
+Prompt (in the sidecar): "The rounded top of a big dragon's eggshell, broken off and empty, lying
+tipped on its side on the bare sun-warmed limestone rock just beside a small straw nest: a hollow
+dome of shell covered in overlapping burnished bronze-gold and dark blue-green scales ... its jagged
+broken rim facing the viewer so the pale cream inside of the empty shell shows ..." with `(ring:-2)
+(bracelet:-2) (crown:-2)`. The plan's first prompt ("a curved cap ... its broken edge turned up")
+filled the wide box with a closed scaly band like a bracelet (seeds 1651-1653); asking for the dome
+tipped on its side with the rim toward the viewer gave a readable cap. The cap is a little darker
+and bluer than `dragon_egg_cut.webp`'s gold top; the user found it fine.
 
 **Composition sentence** appended to every scene prompt (it's in the sidecars):
 *"Composition: a wide 16:9 game background seen from a little distance, all the important objects
