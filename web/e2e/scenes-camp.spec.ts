@@ -18,6 +18,7 @@ import {
   heroNamer,
   swissDay,
 } from './helpers';
+import { dragonSrc, settledDragon } from './dragon';
 
 // UI1 (scenes spec §9, §10): the camp as a hub scene, in both WebKit projects (desktop 1280x720
 // and iPad landscape 1180x820). Every place is a real button that routes to its place, Back
@@ -591,7 +592,10 @@ test('reduced motion: no idle bob, no particles; the dragon never drifts', async
     await stage.dispatchEvent('pointermove', { pointerType: 'touch', isPrimary: true, clientX: 60, clientY: 60, bubbles: true });
   }
   await expect(dragon).toHaveAttribute('data-offset', '0,0');
-  expect(await dragon.locator('img.dragon-base').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+  // The figure itself: no idle animation on the living canvas or the still picture, whichever shows.
+  await settledDragon(dragon);
+  expect(await dragon.locator('.dragon-base').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+  expect(await dragon.locator('.dragon-figure').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
 });
 
 test('the path to battle opens once Éris can be fought; badges sit on their plaque', async ({ page, request }, testInfo) => {
@@ -607,7 +611,7 @@ test('the path to battle opens once Éris can be fought; badges sit on their pla
   // "sandales_hermes" -> "Sandales d'Hermès" per server/app/world/catalog.py), not just the
   // tier number.
   await expect(boss).toContainText("Combat I : Sandales d'Hermès");
-  await expect(page.getByTestId('camp-dragon-layer').locator('img.dragon-base')).not.toHaveAttribute('src', /dragon_egg/);
+  expect(await dragonSrc(page.getByTestId('camp-dragon-layer'))).not.toMatch(/dragon_egg/);
 
   // Playability #5, UI3 Ruling B3: the quest count is pinned to the top-right corner of the Delphi
   // plaque (the chimère board quest). UI3b playability #17: the two wooden seals won are one gold
@@ -786,7 +790,7 @@ test('a dragon that hatched while she was away is revealed once at the camp; she
   await tap(reveal.getByTestId('camp-reveal-continue'), testInfo);
   await expect(reveal).toHaveCount(0);
   await expect(page.getByTestId('dialogue-box')).toBeVisible();
-  await expect(page.getByTestId('camp-dragon-layer').locator('img.dragon-base')).toHaveAttribute('alt', 'Braise');
+  await expect(page.getByTestId('camp-dragon-layer').getByRole('img', { name: 'Braise', exact: true })).toBeVisible();
   await expect.poll(() => seenStageOf(request, id)).toBe('hatchling');
 
   await page.reload();

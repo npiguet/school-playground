@@ -11,11 +11,31 @@
   import Camp from './screens/Camp.svelte';
   import LibraryTent from './screens/LibraryTent.svelte';
   import Delphi from './screens/Delphi.svelte';
-  import Play from './screens/Play.svelte';
-  import Boss from './screens/Boss.svelte';
   import WarTent from './screens/WarTent.svelte';
   import Nest from './screens/Nest.svelte';
   import CabinRoom from './screens/CabinRoom.svelte';
+
+  // The battle screens (Play, Boss and the battle stage under them, about a third of the game's code)
+  // are their own chunks, so the entry chunk stays under Vite's 500 kB warning (living dragon plan,
+  // Task 7, ruling O1). They load as soon as a hero is open, well before a battle is asked for; a
+  // load that fails (offline, or a tab kept open across an update whose chunks have new names) offers
+  // a reload instead of a blank page.
+  type BattleScreens = {
+    Play: typeof import('./screens/Play.svelte').default;
+    Boss: typeof import('./screens/Boss.svelte').default;
+  };
+  let battleScreens = $state<BattleScreens | null>(null);
+  let battleFailed = $state(false);
+  let battleLoading = false;
+  function loadBattleScreens(): void {
+    if (battleScreens || battleLoading) return;
+    battleLoading = true;
+    battleFailed = false;
+    Promise.all([import('./screens/Play.svelte'), import('./screens/Boss.svelte')])
+      .then(([play, boss]) => (battleScreens = { Play: play.default, Boss: boss.default }))
+      .catch(() => (battleFailed = true))
+      .finally(() => (battleLoading = false));
+  }
 
   const route = $derived(router.route);
   const view = $derived(placeFor(route));
@@ -30,6 +50,7 @@
   $effect(() => {
     const id = profileId;
     if (id === null) return;
+    untrack(loadBattleScreens);
     gateLoading = true;
     gateError = '';
     unlocked = isUnlocked(id);
@@ -114,16 +135,24 @@
       <!-- The battle routes render the battle stage (UI4); Play stays mounted across its phases and its « Revoir » panel (Ruling C1). -->
       <!-- Keyed on the battle (text, mode, quest, encounter, help, focus; not the panel): play/A to
            play/B in the app, or Back and Forward between them, is a fresh battle. -->
-      {:else if route.name === 'play'}
+      {:else if (route.name === 'play' || route.name === 'grimoire' || route.name === 'boss') && !battleScreens}
+        <!-- The battle screens' chunks, still loading (the night backdrop) or failed (a reload). -->
+        <div class="gate-night" role={battleFailed ? 'alert' : undefined} data-testid="battle-loading">
+          {#if battleFailed}
+            <p class="kit-ribbon">Impossible de charger le combat.</p>
+            <button class="kit-bronze" type="button" onclick={() => location.reload()}>Recharger</button>
+          {/if}
+        </div>
+      {:else if route.name === 'play' && battleScreens}
         {#key battleKey(route)}
-          <Play profile={gateProfile} textId={route.params.textId} query={route.query} />
+          <battleScreens.Play profile={gateProfile} textId={route.params.textId} query={route.query} />
         {/key}
-      {:else if route.name === 'grimoire'}
+      {:else if route.name === 'grimoire' && battleScreens}
         {#key battleKey(route)}
-          <Play profile={gateProfile} textId={route.params.textId} mode="grimoire" query={route.query} />
+          <battleScreens.Play profile={gateProfile} textId={route.params.textId} mode="grimoire" query={route.query} />
         {/key}
-      {:else if route.name === 'boss'}
-        <Boss profile={gateProfile} />
+      {:else if route.name === 'boss' && battleScreens}
+        <battleScreens.Boss profile={gateProfile} />
       {/if}
     {/if}
   {/key}

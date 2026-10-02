@@ -1,6 +1,7 @@
 import { test, expect } from './crashGuard';
 import type { Page } from '@playwright/test';
 import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, installFastPauses, nextLine, createText, makeResult, postSession, redScan, spokenLines, swissDay, uniqueName } from './helpers';
+import { dragonTint } from './dragon';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, the first seal
 // over three days driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -215,9 +216,8 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     await page.goto(`/#/p/${profileId}/dragon?panel=soin`);
     await expect(page.getByTestId('dragon-tint-ecume')).toBeEnabled();
     await page.getByTestId('dragon-tint-ecume').click();
-    // The tint is OKLCH, painted once on a canvas (user, 2026-10-02): the tinted picture, then its tint.
-    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('data-tint', 'ecume');
-    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', /^blob:/);
+    // The tint is OKLCH, painted once on a canvas (user, 2026-10-02), or by the living dragon's shader.
+    await expect.poll(() => dragonTint(page.getByTestId('nest-dragon-layer'))).toBe('ecume');
 
     await page.goto(`/#/p/${profileId}/cabane?panel=tresors`);
     await expect(page.getByTestId('cabin-reward-tint:ecume')).toHaveAttribute('data-owned', 'true');
@@ -258,7 +258,7 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     await expect(page.getByTestId('dragon-name-input')).toHaveValue('Braise');
 
     await page.goto(`/#/p/${profileId}/camp`);
-    await expect(page.getByTestId('camp-dragon-layer').locator('img.dragon-base')).toHaveAttribute('alt', 'Braise');
+    await expect(page.getByTestId('camp-dragon-layer').getByRole('img', { name: 'Braise', exact: true })).toBeVisible();
 
     await page.goto(`/#/p/${profileId}/dossier`);
     await expect(page.getByTestId('dossier-line-hydre')).toContainText('Mon Hydre porte un sceau');

@@ -12,6 +12,7 @@ import {
   tap,
   heroNamer,
 } from './helpers';
+import { dragonSrc, settledDragon, webgl2Available } from './dragon';
 
 // UI3b Task 4 (scenes spec §3 Dragon's nest, §10). desktop + ipad.
 
@@ -177,10 +178,10 @@ test('the nest shows each of the six stages, clear of its growth sheet and of th
     await page.goto(`/#/p/${id}/dragon?debug`);
     await page.reload();
     await expectScene(page, 'nest');
-    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', `/art/dragon/dragon_${key}_cut.webp`);
+    await expect.poll(() => dragonSrc(page.getByTestId('nest-dragon-layer'))).toBe(`/art/dragon/dragon_${key}_cut.webp`);
     await expect(page.getByTestId('dragon-stage')).toHaveText(label);
     await expect(page.getByTestId('nest-growth')).toContainText(activity);
-    const b = await measureBoxes(page, { growth: '[data-testid="nest-growth"]', layer: '[data-testid="nest-dragon-layer"] img.dragon-base', hud: 'header.hud' });
+    const b = await measureBoxes(page, { growth: '[data-testid="nest-growth"]', layer: '[data-testid="nest-dragon-layer"] .dragon-base', hud: 'header.hud' });
     expect(b.growth!.x + b.growth!.width, `${key}: the growth sheet left of the dragon`).toBeLessThanOrEqual(b.layer!.x + 2);
     expect(b.layer!.y, `${key}: the dragon's picture below the HUD`).toBeGreaterThanOrEqual(b.hud!.y + b.hud!.height - 2);
   }
@@ -210,4 +211,32 @@ test('the growth sheet: the next stage and the XP toward it; « Il a fini de gra
   await expect(sheet.locator('.growth-count')).toHaveCount(0);
   await expect(sheet.locator('[role="progressbar"]')).toHaveAttribute('data-state', 'ok');
   await expect(sheet.locator('[role="progressbar"]')).toHaveAttribute('aria-valuetext', 'Il a fini de grandir.');
+});
+
+// Spec 2026-10-02 living dragon: where the browser offers WebGL2 the hatched dragon lives on a canvas;
+// where it does not, it keeps the still picture. The egg never lives. living-dragon.spec.ts proves the
+// canvas itself on Chromium.
+test('a hatched dragon lives where the browser has WebGL2; the egg is always the still picture', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let stage = 'adult';
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage, name: stage === 'egg' ? null : 'Braise' };
+    await route.fulfill({ response: res, json: camp });
+  });
+  await page.goto(`/#/p/${id}/dragon`);
+  await expectScene(page, 'nest');
+  const layer = page.getByTestId('nest-dragon-layer');
+  const gl = await webgl2Available(page);
+  testInfo.annotations.push({ type: 'webgl2', description: String(gl) });
+  expect(await settledDragon(layer)).toBe(gl ? 'living' : 'still');
+  await expect(layer.locator('.dragon-base')).toHaveCount(1);
+  await expect(layer.getByRole('img', { name: 'Braise', exact: true })).toBeVisible();
+  stage = 'egg';
+  await page.reload();
+  await expectScene(page, 'nest');
+  expect(await settledDragon(layer)).toBe('still');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(layer.locator('canvas')).toHaveCount(0);
 });

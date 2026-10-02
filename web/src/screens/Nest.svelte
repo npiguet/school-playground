@@ -13,6 +13,7 @@
   import { ART } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
   import { dragonCaption, stageActivity, stageLabel } from '../lib/world/dragon';
+  import { livingStage } from '../lib/living/stages';
   import { campFor } from '../lib/world/campStore.svelte';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
@@ -39,6 +40,7 @@
         layer={{ id: 'dragon', src: ART.dragon[d.stage], alt: dragonCaption(d), ...nestDragonLayer(d.stage) }}
         tint={d.tint}
         overlays={accessoryLayers(d.worn, d.stage)}
+        living={livingStage(d.stage)}
         testId="nest-dragon-layer"
       />
       <div class="kit-sheet nest-growth stage-text" data-testid="nest-growth">

@@ -5,7 +5,10 @@
   // animation is on the figure, so they breathe with it. Only the dragon's layer (the one given
   // `overlays`, even none) is a DragonFigure, in its `tint`; every other layer (the Pythia, the owl...)
   // stays a plain, untinted picture (SP4 Task 6 review, minor 4).
+  // The dragon's layer may also be given a living stage (spec 2026-10-02 living dragon): under reduced
+  // motion (live with the OS switch) it passes none, so the still picture shows.
   import DragonFigure from '../DragonFigure.svelte';
+  import type { LivingStage } from '../../lib/living/stages';
   import type { OverlayLayer } from '../../lib/world/accessories';
   import { parallaxOffset } from '../../lib/scene/geometry';
   import { useSceneRuntime } from '../../lib/scene/runtime.svelte';
@@ -17,7 +20,14 @@
     tint = null,
     overlays = null,
     testId,
-  }: { layer: SceneLayerDef; tint?: Tint | null; overlays?: OverlayLayer[] | null; testId?: string } = $props();
+    living = null,
+  }: {
+    layer: SceneLayerDef;
+    tint?: Tint | null;
+    overlays?: OverlayLayer[] | null;
+    testId?: string;
+    living?: LivingStage | null;
+  } = $props();
 
   const rt = useSceneRuntime();
   const idle = $derived(`scene-layer-img idle-${rt.reduced ? 'none' : layer.idle}`);
@@ -36,7 +46,7 @@
   style="left:{layer.x - layer.scale / 2}%;bottom:{100 - layer.y}%;width:{layer.scale}%;transform:translate({offPx.x}px,{offPx.y}px)"
 >
   {#if overlays}
-    <DragonFigure src={layer.src} alt={layer.alt} {tint} {overlays} className={idle} />
+    <DragonFigure src={layer.src} alt={layer.alt} {tint} {overlays} className={idle} living={rt.reduced ? null : living} />
   {:else}
     <img class={idle} src={layer.src} alt={layer.alt} draggable="false" />
   {/if}
