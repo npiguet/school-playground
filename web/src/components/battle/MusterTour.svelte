@@ -22,6 +22,15 @@
     if (last) onDone();
     else index += 1;
   }
+
+  // Final review M7: a live region inserted with its words already in is usually not read, so this
+  // one comes into the page empty and each step's words are written into it a moment later.
+  let announced = $state('');
+  $effect(() => {
+    const words = line ? `${line.name} : ${line.text}` : '';
+    const timer = setTimeout(() => (announced = words), 100);
+    return () => clearTimeout(timer);
+  });
 </script>
 
 {#if line}
@@ -33,10 +42,11 @@
     data-step={index}
     data-target={targets[index] ?? ''}
   >
-    <!-- Only the dragon's words are announced at each step, not the buttons beside them. -->
-    <div class="tour-voice" aria-live="polite">
+    <div class="tour-voice">
       <OverlayVoice {line} testId="muster-tour-voice" />
     </div>
+    <!-- Only the dragon's words are announced at each step, not the buttons beside them. -->
+    <p class="sr-only" aria-live="polite" data-testid="muster-tour-live">{announced}</p>
     <div class="tour-actions">
       {#if !last}
         <button type="button" class="kit-link" data-testid="muster-tour-skip" onclick={onDone}>Passer la visite</button>

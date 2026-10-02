@@ -131,6 +131,13 @@
     return () => el.removeAttribute('data-tour-lit');
   });
 
+  // Final review M6: the tour's own buttons leave with its plate, so focus goes on to « Commencer la
+  // dictée », the button its last line points at, rather than falling to <body>.
+  function endTour() {
+    onTourDone();
+    root?.querySelector<HTMLElement>('[data-testid="btn-start"]')?.focus();
+  }
+
   // The two sides square up: the opponent taunts, the dragon braces (Ruling C10). Again for each new
   // battle on this muster (« Recommencer » resets the stage under it, final review I2).
   $effect(() => {
@@ -185,7 +192,7 @@
     </header>
 
     {#if tour && mode !== 'grimoire'}
-      <MusterTour lines={tour.lines} targets={tour.targets} onStep={(t) => (tourTarget = t)} onDone={onTourDone} />
+      <MusterTour lines={tour.lines} targets={tour.targets} onStep={(t) => (tourTarget = t)} onDone={endTour} />
     {:else if taunt}
       <OverlayVoice line={taunt} testId="battle-voice" />
     {/if}

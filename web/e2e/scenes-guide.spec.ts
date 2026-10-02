@@ -64,6 +64,51 @@ for (const [width, height] of [
   });
 }
 
+// SP5 fix wave (the final review's open check): the guide is all text, nothing in it takes focus, so
+// each part of the book that scrolls takes a Tab stop of its own and scrolls from the keyboard
+// (WebKit, the iPad's engine, cannot scroll a region it cannot focus). A wide book scrolls each
+// page; a narrow one (900 px or less) scrolls the whole book.
+for (const [width, height] of [
+  [1024, 768],
+  [880, 700],
+] as const) {
+  test(`at ${width}×${height} every part of the guide that scrolls can be scrolled from the keyboard`, async ({ page, request }, testInfo) => {
+    await page.setViewportSize({ width, height });
+    const id = await createProfileApi(request, heroName(testInfo.project.name));
+    await page.goto(`/#/p/${id}/cabane?panel=guide`);
+    const guide = page.getByTestId('overlay-guide');
+    await expect(guide.locator('h3')).toHaveText(TITLES);
+    await expect.poll(() => guide.evaluate((e) => e.getAnimations({ subtree: true }).length)).toBe(0);
+    const regions = guide.locator('.overlay-body, .codex-page');
+    const scrolling: number[] = [];
+    for (let i = 0; i < (await regions.count()); i++) {
+      const r = regions.nth(i);
+      const scrolls = await r.evaluate((e) => /auto|scroll/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight + 1);
+      // Only a region that scrolls is a Tab stop: one that does not would be a stop with nothing to do.
+      if (scrolls) {
+        await expect(r).toHaveAttribute('tabindex', '0');
+        scrolling.push(i);
+      } else await expect(r).not.toHaveAttribute('tabindex');
+    }
+    expect(scrolling.length, 'the guide is longer than the book').toBeGreaterThan(0);
+    // From the seal, Tab reaches each scrolling region in turn; PageDown and End scroll it.
+    await guide.getByTestId('overlay-close').focus();
+    for (const i of scrolling) {
+      const r = regions.nth(i);
+      await page.keyboard.press('Tab');
+      await expect(r).toBeFocused();
+      await page.keyboard.press('PageDown');
+      await expect.poll(() => r.evaluate((e) => e.scrollTop)).toBeGreaterThan(0);
+      await page.keyboard.press('End');
+      await expect.poll(() => r.evaluate((e) => Math.ceil(e.scrollTop + e.clientHeight) >= e.scrollHeight - 1)).toBe(true);
+      await page.keyboard.press('Home');
+      await expect.poll(() => r.evaluate((e) => e.scrollTop)).toBe(0);
+      await page.keyboard.press('ArrowDown');
+      await expect.poll(() => r.evaluate((e) => e.scrollTop)).toBeGreaterThan(0);
+    }
+  });
+}
+
 // Review focus 4: the numbers are the server's.
 test('the guide reads the rules the server serves', async ({ page, request }, testInfo) => {
   await page.route('**/api/world', async (route) => {

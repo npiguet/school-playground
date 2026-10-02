@@ -44,7 +44,10 @@ async function toNextLine(page: Page): Promise<string[]> {
   const said: string[] = [];
   for (let i = 0; i < 6 && !((await box.getAttribute('data-key')) ?? '').startsWith('camp.next.'); i++) {
     said.push((await page.getByTestId('dialogue-text').textContent()) ?? '');
+    const at = await box.getAttribute('data-line');
     await nextLine(page);
+    // The next line must replace this one before its key is read: a slow render would count it twice.
+    await expect.poll(() => box.getAttribute('data-line')).not.toBe(at);
   }
   return said;
 }

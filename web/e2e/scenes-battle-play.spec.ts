@@ -194,9 +194,10 @@ test('Éris opens the muster from her lines, and a replay from her retry lines',
 
 test('the muster says when the voice is muted, and gives it back (Ruling E7)', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Mus6-${testInfo.project.name}`));
-  await request.patch(`/api/profiles/${id}`, {
+  const muted = await request.patch(`/api/profiles/${id}`, {
     data: { settings: { audio: { music: { volume: 0.5, muted: false }, sfx: { volume: 0.7, muted: false }, voice: { volume: 1, muted: true } } } },
   });
+  expect(muted.ok()).toBeTruthy();
   const text = await createText(request, { title: uniqueName('Sourdine'), body: BODY, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');

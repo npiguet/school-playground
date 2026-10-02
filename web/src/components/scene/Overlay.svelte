@@ -6,7 +6,9 @@
   // can speak from the top of the panel (`voice`, Ruling W2). The panel is centred below the HUD
   // band (Ruling W11). The caller gives it a route (plan Ruling 6), so Back closes it too.
   // Final review I5: while open, the scene stage behind is `inert` (overlayState), Tab stays inside
-  // the panel, and closing hands focus back to `returnFocus` (the control that opened it).
+  // the panel, and closing hands focus back to `returnFocus` (the control that opened it). A body or a
+  // codex page that scrolls with no control inside takes a Tab stop, to scroll from the keyboard
+  // (lib/scene/scrollRegions.ts).
   // Final review M7: backdrop and panel leave together, and neither catches a tap while leaving.
   // iPad report 2026-09-28: the on-screen keyboard hides the bottom ~45 % of a landscape iPad, and
   // iOS shrinks the visual viewport, not the layout one. While it is up the panel follows the visual
@@ -18,6 +20,7 @@
   import { modal } from '../../lib/scene/overlayState.svelte';
   import { viewport } from '../../lib/battle/viewport.svelte';
   import { keepFocusedFieldAboveKeyboard } from '../../lib/scene/keyboardField.svelte';
+  import { scrollRegions } from '../../lib/scene/scrollRegions';
   import Icon from '../ui/Icon.svelte';
   import OverlayVoice from './OverlayVoice.svelte';
   import type { DialogueLine } from '../../lib/scene/types';
@@ -102,6 +105,7 @@
 ></button>
 <div
   use:modal={{ returnFocus }}
+  use:scrollRegions={'.overlay-body, .codex-page'}
   bind:this={panel}
   class="overlay-panel overlay-{variant}"
   class:overlay-wide={size === 'wide' || variant === 'codex'}
@@ -239,6 +243,12 @@
       inset 0 0 0 3px rgba(255, 240, 200, 0.25),
       0 3px 8px rgba(0, 0, 0, 0.35);
     cursor: pointer;
+  }
+  /* A text that scrolls, focused to be scrolled from the keyboard (scrollRegions): the ring sits
+     inside it, where its own overflow cannot clip it. */
+  .overlay-panel :global([data-scroll-focus]:focus-visible) {
+    outline: 3px solid var(--gold-light);
+    outline-offset: -3px;
   }
   .overlay-seal:focus-visible {
     outline: 3px solid var(--gold-light);

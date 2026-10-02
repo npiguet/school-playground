@@ -239,7 +239,7 @@ test('a tour that opens closes the sound plate, and the HUD stays shut under the
 test('« Refaire les visites du camp » brings every tour back', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   const every = ['camp', 'camp:2', 'library', 'delphi', 'war', 'war:2', 'nest', 'nest:2', 'cabin', 'cabin:2'];
-  await request.patch(`/api/profiles/${id}`, { data: { settings: { tours: every } } });
+  expect((await request.patch(`/api/profiles/${id}`, { data: { settings: { tours: every } } })).ok()).toBeTruthy();
   await page.goto(`/#/p/${id}/settings`);
   await page.getByTestId('lyre-tours').click();
   await expect(page.getByTestId('overlay-lyre').getByRole('status')).toHaveText('Les visites reprendront à ton prochain passage dans chaque lieu.');
@@ -251,7 +251,7 @@ test('« Refaire les visites du camp » brings every tour back', async ({ page, 
 // Spec 2026-09-29 explanations §2, §5 (R8, R9; review focus 2).
 test('a tour seen before its new steps comes back once, with the new steps only', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  await request.patch(`/api/profiles/${id}`, { data: { settings: { tours: ['camp', 'library', 'delphi', 'war', 'nest', 'cabin'] } } });
+  expect((await request.patch(`/api/profiles/${id}`, { data: { settings: { tours: ['camp', 'library', 'delphi', 'war', 'nest', 'cabin'] } } })).ok()).toBeTruthy();
   await page.goto(`/#/p/${id}/cabane`);
   const tour = page.getByTestId('tour');
   await expect(tour).toHaveAttribute('data-tour', 'cabin');
