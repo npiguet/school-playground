@@ -48,7 +48,9 @@ describe('the source writes its special spaces as escapes', () => {
         });
     }
     expect(found).toEqual([]);
-  });
+    // The walk reads the whole repository through scripts/npm.sh's bind mount: a cold file cache on
+    // the Windows host took it past vitest's 5 s default (1 run in 13, 2026-10-02).
+  }, 30_000);
 
   it('keeps its exceptions real', () => {
     for (const f of Object.keys(ALLOWED)) expect(SPECIAL.test(readFileSync(f, 'utf-8')), f).toBe(true);
