@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BONES, CELL, FRAME, VERTS, weightsAt } from './skin';
-import { decodeRig, livingStage, type RigFile } from './rigs';
+import { decodeRig, LIVING_STAGES, livingStage, type RigFile } from './rigs';
 
 const FILES = import.meta.glob<RigFile>('./rig/dragon_*.json', { eager: true, import: 'default' });
 const SOURCE = JSON.parse(readFileSync('../tools/art/rig.json', 'utf-8')) as Record<string, { bones: Record<string, Record<string, unknown>>; pin: unknown }>;
@@ -93,6 +93,11 @@ describe('the rigs', () => {
     expect(livingStage('egg')).toBeNull();
     expect(livingStage('adult')).toBe('adult');
     expect(livingStage('ancestral')).toBe('ancestral');
+  });
+
+  it('rigs every hatched stage, and nothing else', () => {
+    expect([...STAGES].sort()).toEqual([...LIVING_STAGES].sort());
+    for (const s of LIVING_STAGES) expect(livingStage(s), s).toBe(s);
   });
 
   it('refuses a rig file of the wrong size', () => {

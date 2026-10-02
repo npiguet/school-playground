@@ -43,8 +43,9 @@ STACK=<s> scripts/npm.sh run test -- src/lib/living
   legs or a wing tip. A stage whose tail does not show (the hatchling in its shell) has no region.
 - `chest`: a breathing scale. An ellipse on the chest, blur about 30.
 - `lift`: the upper body's rise with the breath: `"all": true` with `ramp: [y_feet, y_hips]`.
-- `pin`: a rectangle over the feet (or the hatchling's shell), blur about 22. The feet box (the
-  rectangle inset by 3 x blur on top and both sides, down to the bottom) gets zero weight.
+- `pin`: a rectangle over the feet (or the hatchling's shell), blur about 14. The feet box (the
+  rectangle inset by 3 x blur on top and both sides, rounded inward to the 16 px mesh, down to the
+  bottom) gets zero weight: size the rectangle so the box holds every claw (`rig bake` prints it).
 
 ## Authoring a stage (about 20 minutes)
 
@@ -78,3 +79,16 @@ python -m http.server 8744 --directory web/dist-lab     # then open http://local
 
 Every stage with a rig, living side by side: amplitude (1.5x by default), tint, worn pieces, the
 weights view, pause and a time slider.
+
+## Stage notes
+
+- hatchling: no tail shows, so the tail has a pivot and no region; the shell is the pin. Its blur is
+  8 (rectangle x 228-800 from y 605) so the left wing's long lower tip (x 160-210, y 600-665) stays
+  out of it, and `lift` ramps from the shell's rim (y 640) up, so the rim never rises with the breath.
+- young: the tail's curl runs behind the hind legs to the right; only the part left of the legs is
+  in its region, and the pin's corner softens the curl's bottom beside the left foot.
+- adult: the feet box starts at y 896 and spans x 224-816 so both outer feet's claws are inside.
+- illustre: the right wing sits behind the neck, keep its polygon off the neck; the long left horn
+  reaches x 390, inside the head polygon.
+- ancestral: the head polygon reaches the frame's top so the right horn's tip takes the head's weight
+  (a test checks it); the feet box starts at x 224 for the left foot's claws (about x 245).
