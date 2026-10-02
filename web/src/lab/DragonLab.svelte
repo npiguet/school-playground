@@ -1,19 +1,19 @@
 <script lang="ts">
   // Every stage with a rig, living side by side (the dragon-rig skill, "The lab"): amplitude, tint,
   // the worn pieces, the weights view, pause and a time slider. For the rig review and the human look.
-  // Above them, the Teintes panel compares the tint methods (TintPanel.svelte).
+  // Above them, the Teintes panel tunes a tint's OKLCH settings (TintPanel.svelte).
   import LivingDragon from '../components/LivingDragon.svelte';
   import TintPanel from './TintPanel.svelte';
   import { ART } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
-  import { TINT_FILTERS, TINT_NAMES } from '../lib/world/dragon';
+  import { TINT_NAMES, TINT_SPECS } from '../lib/world/dragon';
   import { AMPLITUDE } from '../lib/living/pose';
   import { LIVING_STAGES, livingStage, type Motion } from '../lib/living/rigs';
   import type { Tint } from '../lib/world/types';
 
   const WORN = ['lethe-queue', 'sirenes-dos', 'hydre-cou', 'echo-tete'];
   const stages = LIVING_STAGES.filter((s) => livingStage(s) !== null);
-  const tints = Object.keys(TINT_FILTERS) as Tint[];
+  const tints = Object.keys(TINT_SPECS) as Tint[];
   const MOTION_WORDS: Record<Motion, string> = { pending: 'chargement', living: 'vivant', still: 'image fixe' };
 
   let amplitude = $state(AMPLITUDE);
@@ -50,7 +50,7 @@
             stage={s}
             src={ART.dragon[s]}
             alt={s}
-            filter={TINT_FILTERS[tint]}
+            {tint}
             overlays={pieces ? accessoryLayers(WORN, s) : []}
             {amplitude}
             time={paused ? at : null}

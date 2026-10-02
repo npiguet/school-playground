@@ -5,17 +5,19 @@
   // the same square box as the still picture, the canvas overflowing it by the 3.5 % margin so a wing
   // tip may move out. It tells DragonFigure how it goes (onmotion): `pending` while loading (the still
   // picture shows, this waits hidden), `living` from its first frame, `still` on any failure (no
-  // WebGL2, a shader, a load, a tint it cannot express, a lost context: plan Ruling R4), after which
+  // WebGL2, a shader, a load, a lost context: plan Ruling R4), after which
   // DragonFigure unmounts it. A new stage or picture starts afresh, `pending` again, on a new canvas
   // (Ruling L2; a disposed canvas's context is lost for good). The loop draws at most 30 frames a second
   // and stops while the page is hidden or the canvas is off-screen. `amplitude`, `time`,
-  // `showWeights` and `tintSpec` (a tint method in place of `filter`'s CSS matrices) serve the lab.
+  // `showWeights` and `tintSpec` (OKLCH settings in place of the tint's TINT_SPECS entry) serve the lab.
   import { onMount, untrack } from 'svelte';
   import type { OverlayLayer } from '../lib/world/accessories';
   import { buildAtlas, loadImage, pieceDraws, placePieces } from '../lib/living/atlas';
   import { AMPLITUDE, frameDue, poseAt } from '../lib/living/pose';
   import { DragonRenderer } from '../lib/living/renderer';
-  import { tintText, type TintSpec } from '../lib/living/tint';
+  import { tintText, type OklchSpec } from '../lib/living/tint';
+  import { TINT_SPECS } from '../lib/world/dragon';
+  import type { Tint } from '../lib/world/types';
   import { loadRig, type LivingStage, type Motion, type Rig } from '../lib/living/rigs';
   import { MARGIN } from '../lib/living/skin';
 
@@ -23,29 +25,29 @@
     stage,
     src,
     alt,
-    filter,
+    tint,
     overlays,
     amplitude = AMPLITUDE,
     time = null,
     showWeights = false,
-    tintSpec = null,
+    tintSpec = undefined,
     onmotion,
   }: {
     stage: LivingStage;
     src: string;
     alt: string;
-    filter: string;
+    tint: Tint;
     overlays: OverlayLayer[];
     amplitude?: number;
     time?: number | null;
     showWeights?: boolean;
-    tintSpec?: TintSpec | null;
+    tintSpec?: OklchSpec | null;
     onmotion: (m: Motion) => void;
   } = $props();
 
   let host = $state<HTMLDivElement>();
   let motion = $state<Motion>('pending');
-  let applied = $state({ filter: '', worn: '' });
+  let applied = $state({ tint: '', worn: '' });
 
   let canvas: HTMLCanvasElement | null = null;
   let renderer: DragonRenderer | null = null;
@@ -120,13 +122,13 @@
     last = null;
   }
 
-  function applyTint(css: string, spec: TintSpec | null): void {
-    const key = spec ? tintText('lab', spec) : css;
+  function applyTint(name: Tint, override: OklchSpec | null | undefined): void {
+    const spec = override === undefined ? TINT_SPECS[name] : override;
+    const key = tintText(name, spec);
     if (!renderer || key === tintKey) return;
-    if (spec) renderer.setTintSpec(spec);
-    else renderer.setTint(css);
+    renderer.setTint(spec);
     tintKey = key;
-    applied.filter = key;
+    applied.tint = name;
     last = null;
   }
 
@@ -150,7 +152,7 @@
     piecesKey = '';
     piecesToken += 1;
     tintKey = '';
-    applied.filter = '';
+    applied.tint = '';
     applied.worn = '';
     motion = 'pending';
     onmotion('pending');
@@ -160,7 +162,7 @@
         if (disposed) return;
         rig = r;
         renderer = new DragonRenderer(cv, sprite, r);
-        applyTint(filter, tintSpec);
+        applyTint(tint, tintSpec);
         await applyPieces(overlays);
         if (disposed) return;
         resize();
@@ -216,11 +218,11 @@
 
   // A tint picked or a piece changed while the dragon is on screen: in place, no remount.
   $effect(() => {
-    const css = filter;
-    const spec = tintSpec ? { ...tintSpec } : null;
+    const name = tint;
+    const spec = tintSpec ? { ...tintSpec } : tintSpec;
     untrack(() => {
       try {
-        applyTint(css, spec);
+        applyTint(name, spec);
       } catch {
         still();
       }
@@ -247,7 +249,7 @@
   role="img"
   aria-label={alt}
   data-src={src}
-  data-filter={applied.filter}
+  data-tint={applied.tint}
   data-worn={applied.worn}
 ></div>
 

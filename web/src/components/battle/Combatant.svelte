@@ -5,6 +5,7 @@
   // 2026-09-29 drachmes §4, R19); the mirror flips the whole figure, pieces included.
   import DragonFigure from '../DragonFigure.svelte';
   import type { OverlayLayer } from '../../lib/world/accessories';
+  import type { Tint } from '../../lib/world/types';
   import { reactionAnimation, type Reaction } from '../../lib/battle/reactions';
 
   let {
@@ -12,7 +13,7 @@
     alt,
     side,
     mirror,
-    filter = 'none',
+    tint = null,
     overlays = [],
     reaction,
     nonce,
@@ -25,7 +26,7 @@
     alt: string;
     side: 'left' | 'right';
     mirror: boolean;
-    filter?: string;
+    tint?: Tint | null;
     overlays?: OverlayLayer[];
     reaction: Reaction;
     nonce: number;
@@ -53,7 +54,7 @@
 <div class="combatant {side}" data-testid={testId} data-reaction={reaction} data-hits={hits}>
   <div class="actor" bind:this={actor}>
     <div class="facing" class:mirror>
-      <DragonFigure {src} {alt} {filter} {overlays} className={idle && !reduced ? 'combatant-figure idle-breathe' : 'combatant-figure'} />
+      <DragonFigure {src} {alt} {tint} {overlays} className={idle && !reduced ? 'combatant-figure idle-breathe' : 'combatant-figure'} />
     </div>
   </div>
 </div>

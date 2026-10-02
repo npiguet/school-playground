@@ -1,16 +1,14 @@
 // The living dragon's WebGL2 drawing (spec 2026-10-02 living dragon, "Technique"), ported from the
 // spike: the sprite on the 64 x 64 mesh, skinned in the vertex shader with the per-vertex weights; the
-// tint in the fragment shader on the dragon only (two TINT_FILTERS steps as colour matrices, the game's
-// mode 0; the lab also tries modes 1 HSV and 2 OKLCH, see tint.ts; alpha
-// below about 4 % dropped so the cut-out's background haze never smears into streaks); then each worn
-// piece as its own quad from the atlas, back to front, skinned rigidly with uniform weights and never
+// tint in the fragment shader on the dragon only (a TINT_SPECS entry in OKLCH, at full strength: the
+// steps of tint.ts's CPU reference; alpha below about 4 % dropped so the cut-out's background haze
+// never smears into streaks); then each worn piece as its own quad from the atlas, back to front, skinned rigidly with uniform weights and never
 // tinted. Every failure throws: the caller shows the still picture. No unit test (no GL in node):
 // living-dragon.spec.ts proves it.
 import type { PieceDraw } from './atlas';
 import type { Rig } from './rigs';
 import { FRAME, MARGIN, buildMesh } from './skin';
-import { TINT_STRENGTH } from '../world/dragon';
-import { GAMUT_STEPS, IDENTITY, TINT_MODE_INDEX, cssSpecMatrices, filterMatrices, type Mat3, type TintSpec } from './tint';
+import { GAMUT_STEPS, type OklchSpec } from './tint';
 
 const VS = `#version 300 es
 layout(location = 0) in vec2 aPos;
@@ -45,31 +43,13 @@ in vec2 vUv;
 in vec4 vW0;
 uniform sampler2D uTex;
 uniform int uLayer;
-uniform int uTintMode;
-uniform mat3 uT0;
-uniform mat3 uT1;
+uniform bool uTinted;
 uniform float uShift;
-uniform float uSat;
-uniform float uVal;
-uniform float uTintStrength;
+uniform float uChroma;
+uniform float uLightness;
 uniform bool uShowWeights;
 out vec4 o;
 
-vec3 rgb2hsv(vec3 c) {
-  float mx = max(c.r, max(c.g, c.b));
-  float d = mx - min(c.r, min(c.g, c.b));
-  float h = 0.0;
-  if (d > 0.0) {
-    if (mx == c.r) h = (c.g - c.b) / d / 6.0;
-    else if (mx == c.g) h = (c.b - c.r) / d / 6.0 + 1.0 / 3.0;
-    else h = (c.r - c.g) / d / 6.0 + 2.0 / 3.0;
-  }
-  return vec3(fract(h), mx > 0.0 ? d / mx : 0.0, mx);
-}
-vec3 hsv2rgb(vec3 c) {
-  vec3 k = clamp(abs(fract(c.x + vec3(1.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
-  return c.z * (1.0 + (k - 1.0) * c.y);
-}
 vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
 vec3 toSrgb(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
 vec3 oklab(vec3 c) {
@@ -84,29 +64,22 @@ vec3 oklchLinear(float L, float C, float h) {
 }
 bool inGamut(vec3 c) { return all(greaterThanEqual(c, vec3(-1e-4))) && all(lessThanEqual(c, vec3(1.0 + 1e-4))); }
 
-// The tint of one straight colour (tint.ts holds the CPU reference of each mode).
+// The tint of one straight colour (tint.ts, tintOklch, is its CPU reference).
 vec3 tint(vec3 rgb) {
-  if (uTintMode == 1) {
-    vec3 hsv = rgb2hsv(rgb);
-    return hsv2rgb(vec3(fract(hsv.x + uShift / 360.0), clamp(hsv.y * uSat, 0.0, 1.0), clamp(hsv.z * uVal, 0.0, 1.0)));
-  }
-  if (uTintMode == 2) {
-    vec3 lab = oklab(toLinear(rgb));
-    float L = clamp(lab.x * uVal, 0.0, 1.0);
-    float C = length(lab.yz) * uSat;
-    float h = atan(lab.z, lab.y) + radians(uShift);
-    if (!inGamut(oklchLinear(L, C, h))) {
-      float lo = 0.0;
-      float hi = C;
-      for (int i = 0; i < ${GAMUT_STEPS}; i++) {
-        float mid = 0.5 * (lo + hi);
-        if (inGamut(oklchLinear(L, mid, h))) lo = mid; else hi = mid;
-      }
-      C = lo;
+  vec3 lab = oklab(toLinear(rgb));
+  float L = clamp(lab.x * uLightness, 0.0, 1.0);
+  float C = length(lab.yz) * uChroma;
+  float h = atan(lab.z, lab.y) + radians(uShift);
+  if (!inGamut(oklchLinear(L, C, h))) {
+    float lo = 0.0;
+    float hi = C;
+    for (int i = 0; i < ${GAMUT_STEPS}; i++) {
+      float mid = 0.5 * (lo + hi);
+      if (inGamut(oklchLinear(L, mid, h))) lo = mid; else hi = mid;
     }
-    return toSrgb(clamp(oklchLinear(L, C, h), 0.0, 1.0));
+    C = lo;
   }
-  return clamp(uT1 * clamp(uT0 * rgb, 0.0, 1.0), 0.0, 1.0);
+  return toSrgb(clamp(oklchLinear(L, C, h), 0.0, 1.0));
 }
 
 void main() {
@@ -114,7 +87,7 @@ void main() {
   if (uLayer == 1) { o = c; return; }
   c *= smoothstep(0.02, 0.05, c.a);
   vec3 rgb = c.a > 0.0 ? c.rgb / c.a : vec3(0.0);
-  rgb = mix(rgb, tint(rgb), uTintStrength);
+  if (uTinted) rgb = tint(rgb);
   o = vec4(rgb * c.a, c.a);
   if (uShowWeights && o.a > 0.0) {
     vec3 wc = vW0.x * vec3(1.0, 0.2, 0.2) + vW0.y * vec3(0.2, 0.8, 0.2) + vW0.z * vec3(0.2, 0.45, 1.0) + vW0.w * vec3(1.0, 0.8, 0.0);
@@ -124,7 +97,7 @@ void main() {
   }
 }`;
 
-const UNIFORMS = ['uB', 'uMargin', 'uRigid', 'uW', 'uTex', 'uLayer', 'uTintMode', 'uT0', 'uT1', 'uShift', 'uSat', 'uVal', 'uTintStrength', 'uShowWeights'] as const;
+const UNIFORMS = ['uB', 'uMargin', 'uRigid', 'uW', 'uTex', 'uLayer', 'uTinted', 'uShift', 'uChroma', 'uLightness', 'uShowWeights'] as const;
 
 function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
   const s = gl.createShader(type);
@@ -188,7 +161,7 @@ export class DragonRenderer {
 
       this.baseTex = this.texture(0, sprite);
       gl.uniform1f(this.u.uMargin, MARGIN);
-      this.setTint('none');
+      this.setTint(null);
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       if (gl.getError() !== gl.NO_ERROR) throw new Error('WebGL error while setting up');
@@ -236,28 +209,14 @@ export class DragonRenderer {
     return t;
   }
 
-  /** Throws when the tint cannot be expressed (the caller then shows the still picture). */
-  setTint(css: string): void {
-    const [a, b] = filterMatrices(css);
-    this.uploadTint(0, a, b, 0, 1, 1, TINT_STRENGTH);
-  }
-
-  /** The lab's tint methods (tint.ts, TintSpec): the CSS matrices, HSV or OKLCH, with its own strength. */
-  setTintSpec(spec: TintSpec): void {
-    const [a, b] = spec.mode === 'css' ? cssSpecMatrices(spec) : [IDENTITY, IDENTITY];
-    this.uploadTint(TINT_MODE_INDEX[spec.mode], a, b, spec.shift, spec.sat, spec.val, spec.strength);
-  }
-
-  private uploadTint(mode: number, a: Mat3, b: Mat3, shift: number, sat: number, val: number, strength: number): void {
+  /** The dragon's tint: a TINT_SPECS entry (OKLCH, full strength), or null for none (the bronze). */
+  setTint(spec: OklchSpec | null): void {
     const gl = this.gl;
     gl.useProgram(this.program);
-    gl.uniform1i(this.u.uTintMode, mode);
-    gl.uniformMatrix3fv(this.u.uT0, false, a);
-    gl.uniformMatrix3fv(this.u.uT1, false, b);
-    gl.uniform1f(this.u.uShift, shift);
-    gl.uniform1f(this.u.uSat, sat);
-    gl.uniform1f(this.u.uVal, val);
-    gl.uniform1f(this.u.uTintStrength, strength);
+    gl.uniform1i(this.u.uTinted, spec ? 1 : 0);
+    gl.uniform1f(this.u.uShift, spec?.shift ?? 0);
+    gl.uniform1f(this.u.uChroma, spec?.chroma ?? 1);
+    gl.uniform1f(this.u.uLightness, spec?.lightness ?? 1);
   }
 
   setPieces(atlas: TexImageSource | null, pieces: readonly PieceDraw[]): void {

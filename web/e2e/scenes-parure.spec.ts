@@ -101,10 +101,14 @@ test('a tinted dragon keeps its pieces in their own colours; the egg keeps them 
   await page.goto(`/#/p/${id}/dragon`);
   const layer = page.getByTestId('nest-dragon-layer');
   await expect(layer.locator('img.dragon-overlay[data-item="lethe-tete"]')).toHaveCSS('filter', 'none');
-  await expect(layer.locator('img.dragon-base')).not.toHaveCSS('filter', 'none');
+  // The dragon is tinted (OKLCH, painted on a canvas: a blob picture), its piece never.
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('data-tint', 'braise');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('src', /^blob:/);
+  await expect(layer.locator('img.dragon-base')).toHaveCSS('filter', 'none');
   stage = 'egg';
   await page.reload();
-  await expect(layer.locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('data-src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('data-tint', 'braise');
   await expect(layer.locator('img.dragon-overlay')).toHaveCount(0);
   await page.goto(`/#/p/${id}/dragon?panel=soin`);
   await expect(page.getByTestId('dragon-parure')).toContainText("Il portera sa parure dès qu'il sera un jeune dragon.");

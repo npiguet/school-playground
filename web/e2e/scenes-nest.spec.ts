@@ -83,6 +83,7 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-circle')).toHaveCSS('border-top-color', await token('--ink-soft'));
   await expect(care.getByTestId('dragon-tint-ecume').locator('.lock')).toHaveCSS('filter', 'none');
   await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveCSS('filter', /grayscale\(1\)/);
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveAttribute('data-tint', 'bronze');
   await expect(care.getByTestId('dragon-tint-bronze').locator('.swatch-egg')).toHaveCSS('filter', 'none');
   await closeOverlay(page);
   await expect(page.getByTestId('nest-dragon')).toBeFocused();

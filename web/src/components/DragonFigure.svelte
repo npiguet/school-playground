@@ -1,22 +1,24 @@
 <script lang="ts">
-  // The dragon as drawn on screen (spec 2026-09-29 drachmes §4, R19): its stage picture under the tint's
-  // CSS filter, and the pieces it wears on top, unfiltered (a tint recolours the dragon, never its
-  // gear). The overlays are percentages of the picture's own box, so the figure scales as one.
+  // The dragon as drawn on screen (spec 2026-09-29 drachmes §4, R19): its stage picture in its tint
+  // (OKLCH, tinted once on a canvas: living/stillTint.ts; `null` for a figure never tinted, an enemy),
+  // and the pieces it wears on top, untinted (a tint recolours the dragon, never its gear). The overlays are percentages of the picture's own box, so the figure scales as one.
   // `className` carries the caller's animation (idle, mood), so the pieces move with the dragon.
   import type { OverlayLayer } from '../lib/world/accessories';
+  import { tintedDragon } from '../lib/living/stillTint';
+  import type { Tint } from '../lib/world/types';
 
   let {
     src,
     alt,
-    filter = 'none',
+    tint = null,
     overlays = [],
     className = '',
     style = '',
-  }: { src: string; alt: string; filter?: string; overlays?: OverlayLayer[]; className?: string; style?: string } = $props();
+  }: { src: string; alt: string; tint?: Tint | null; overlays?: OverlayLayer[]; className?: string; style?: string } = $props();
 </script>
 
 <div class="dragon-figure {className}" {style}>
-  <img class="dragon-base" {src} {alt} style:filter draggable="false" />
+  <img class="dragon-base" use:tintedDragon={{ src, tint }} {alt} draggable="false" />
   {#each overlays as o (o.item)}
     <img
       class="dragon-overlay"

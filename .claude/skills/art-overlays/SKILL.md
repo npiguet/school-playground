@@ -13,7 +13,7 @@ checkpoint rule are in the `krea2` skill; cut-outs and web exports in `art-cutou
 
 An RGBA PNG **the size of the stage picture** (1024²) holding only the item's pixels, alpha 0
 elsewhere, so it lines up with `dragon_<stage>_cut.png` pixel for pixel. The game draws the dragon
-with its CSS tint (`web/src/lib/world/dragon.ts` `TINT_FILTERS`) and the overlay on top, unfiltered,
+in its tint (`web/src/lib/world/dragon.ts` `TINT_SPECS`, OKLCH) and the overlay on top, untinted,
 so the item keeps its own colours. Never keep repainted skin: inpainting repaints everything inside
 the mask, and a tinted dragon would show an untinted skin patch around the item.
 

@@ -12,7 +12,7 @@
   import { NEST_SCENE, careLine, growth, nestDragonLayer, nestGreeting } from '../lib/world/scenes/nest';
   import { ART } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
-  import { TINT_FILTERS, dragonCaption, stageActivity, stageLabel } from '../lib/world/dragon';
+  import { dragonCaption, stageActivity, stageLabel } from '../lib/world/dragon';
   import { campFor } from '../lib/world/campStore.svelte';
   import { closePanel, openHotspot } from '../lib/scene/panelNav';
   import { hotspotSelector } from '../lib/scene/hotspotId';
@@ -37,7 +37,7 @@
       {@const g = growth(ctx.camp.xp, d.stage)}
       <SceneLayer
         layer={{ id: 'dragon', src: ART.dragon[d.stage], alt: dragonCaption(d), ...nestDragonLayer(d.stage) }}
-        filter={TINT_FILTERS[d.tint]}
+        tint={d.tint}
         overlays={accessoryLayers(d.worn, d.stage)}
         testId="nest-dragon-layer"
       />

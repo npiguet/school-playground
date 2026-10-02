@@ -1,39 +1,31 @@
 <script lang="ts">
-  // The lab's « Teintes » panel (user, 2026-10-02: "can we try working in the HSV color space, and maybe
-  // try rotating the H channel?"): one stage and one tint, the same living dragon three times, tinted by
-  // the game's CSS matrices, by HSV and by OKLCH, each with its own sliders and a copyable line. Each
-  // tint keeps its settings while another is looked at. HSV and OKLCH start at the hue the CSS tint
-  // gives the bronze (presetSpec), with the tint's own saturate and brightness.
+  // The lab's « Teintes » panel: one stage and one tint on a living dragon, with the OKLCH sliders
+  // (the game's tint method since the user's choice of 2026-10-02, at full strength) starting at the
+  // tint's TINT_SPECS entry, and a copyable line. Each tint keeps its settings while another is looked
+  // at.
   import LivingDragon from '../components/LivingDragon.svelte';
   import { ART } from '../lib/world/art';
-  import { TINT_FILTERS, TINT_NAMES } from '../lib/world/dragon';
+  import { TINT_NAMES, TINT_SPECS } from '../lib/world/dragon';
   import type { LivingStage, Motion } from '../lib/living/rigs';
-  import { presetSpec, tintText, type TintMode, type TintSpec } from '../lib/living/tint';
+  import { tintText, type OklchSpec } from '../lib/living/tint';
   import type { Tint } from '../lib/world/types';
 
   let { stages }: { stages: readonly LivingStage[] } = $props();
 
-  const MODES: { mode: TintMode; title: string; sat: string; val: string }[] = [
-    { mode: 'css', title: 'Matrices CSS (le jeu)', sat: 'Saturation', val: 'Luminosité' },
-    { mode: 'hsv', title: 'HSV', sat: 'Saturation (S)', val: 'Valeur (V)' },
-    { mode: 'oklch', title: 'OKLCH', sat: 'Chroma (C)', val: 'Clarté (L)' },
-  ];
-  const tints = Object.keys(TINT_FILTERS) as Tint[];
+  const tints = Object.keys(TINT_SPECS) as Tint[];
   const MOTION_WORDS: Record<Motion, string> = { pending: 'chargement', living: 'vivant', still: 'image fixe' };
-
-  const presets = (t: Tint) => Object.fromEntries(MODES.map(({ mode }) => [mode, presetSpec(TINT_FILTERS[t], mode)])) as Record<TintMode, TintSpec>;
+  const NONE: OklchSpec = { shift: 0, chroma: 1, lightness: 1 };
+  const preset = (t: Tint): OklchSpec => ({ ...(TINT_SPECS[t] ?? NONE) });
 
   let stage = $state<LivingStage>('adult');
   let tint = $state<Tint>('ecume');
-  let specs = $state(Object.fromEntries(tints.map((t) => [t, presets(t)])) as Record<Tint, Record<TintMode, TintSpec>>);
-  let motions = $state<Partial<Record<TintMode, Motion>>>({});
+  let specs = $state(Object.fromEntries(tints.map((t) => [t, preset(t)])) as Record<Tint, OklchSpec>);
+  let motion = $state<Motion>('pending');
   let copied = $state<string | null>(null);
 
-  const lines = $derived(MODES.map(({ mode }) => tintText(tint, specs[tint][mode])));
-
-  function reset(mode: TintMode): void {
-    specs[tint][mode] = presetSpec(TINT_FILTERS[tint], mode);
-  }
+  const spec = $derived(specs[tint]);
+  const line = $derived(tintText(tint, spec));
+  const lines = $derived(tints.map((t) => tintText(t, specs[t])));
 
   async function copy(text: string, what: string): Promise<void> {
     try {
@@ -58,40 +50,26 @@
         {#each tints as t (t)}<option value={t}>{TINT_NAMES[t]}{t === 'bronze' ? ' (aucune)' : ''}</option>{/each}
       </select>
     </label>
-    <span class="css">CSS du jeu&#8239;: <code>{TINT_FILTERS[tint]}</code></span>
+    <span class="game">Le jeu&#8239;: <code>{tintText(tint, TINT_SPECS[tint])}</code></span>
   </div>
-  <div class="methods">
-    {#each MODES as m, i (m.mode)}
-      {@const spec = specs[tint][m.mode]}
-      <figure data-mode={m.mode}>
-        <figcaption>{m.title}&#8239;: {MOTION_WORDS[motions[m.mode] ?? 'pending']}</figcaption>
-        <div class="box">
-            <LivingDragon
-              {stage}
-              src={ART.dragon[stage]}
-              alt={`${stage} ${m.mode}`}
-              filter="none"
-              overlays={[]}
-              tintSpec={spec}
-              onmotion={(mo) => (motions[m.mode] = mo)}
-            />
-        </div>
-        <div class="sliders">
-          <label>Décalage de teinte <input type="range" min="-180" max="180" step="1" bind:value={specs[tint][m.mode].shift} /> <output>{spec.shift}°</output></label>
-          <label>{m.sat} <input type="range" min="0" max="2" step="0.01" bind:value={specs[tint][m.mode].sat} /> <output>{spec.sat.toFixed(2)}</output></label>
-          <label>{m.val} <input type="range" min="0.5" max="1.5" step="0.01" bind:value={specs[tint][m.mode].val} /> <output>{spec.val.toFixed(2)}</output></label>
-          <label>Force <input type="range" min="0" max="1" step="0.01" bind:value={specs[tint][m.mode].strength} /> <output>{spec.strength.toFixed(2)}</output></label>
-        </div>
-        <code class="line" data-line={m.mode}>{lines[i]}</code>
-        <div class="buttons">
-          <button type="button" onclick={() => copy(lines[i], m.mode)}>{copied === m.mode ? 'Copié' : 'Copier'}</button>
-          <button type="button" onclick={() => reset(m.mode)}>Réinitialiser</button>
-        </div>
-      </figure>
-    {/each}
-  </div>
-  <label class="all">Les trois lignes
-    <textarea readonly rows="3" value={lines.join('\n')} onclick={(e) => e.currentTarget.select()}></textarea>
+  <figure data-mode="oklch">
+    <figcaption>OKLCH&#8239;: {MOTION_WORDS[motion]}</figcaption>
+    <div class="box">
+      <LivingDragon {stage} src={ART.dragon[stage]} alt={`${stage} oklch`} {tint} overlays={[]} tintSpec={spec} onmotion={(m) => (motion = m)} />
+    </div>
+    <div class="sliders">
+      <label>Décalage de teinte <input type="range" min="-180" max="180" step="1" bind:value={specs[tint].shift} /> <output>{spec.shift}°</output></label>
+      <label>Chroma (C) <input type="range" min="0" max="2" step="0.01" bind:value={specs[tint].chroma} /> <output>{spec.chroma.toFixed(2)}</output></label>
+      <label>Clarté (L) <input type="range" min="0.5" max="1.5" step="0.01" bind:value={specs[tint].lightness} /> <output>{spec.lightness.toFixed(2)}</output></label>
+    </div>
+    <code class="line" data-line="oklch">{line}</code>
+    <div class="buttons">
+      <button type="button" onclick={() => copy(line, 'one')}>{copied === 'one' ? 'Copié' : 'Copier'}</button>
+      <button type="button" onclick={() => (specs[tint] = preset(tint))}>Réinitialiser</button>
+    </div>
+  </figure>
+  <label class="all">Toutes les teintes
+    <textarea readonly rows={tints.length} value={lines.join('\n')} onclick={(e) => e.currentTarget.select()}></textarea>
   </label>
   <button type="button" onclick={() => copy(lines.join('\n'), 'all')}>{copied === 'all' ? 'Copié' : 'Tout copier'}</button>
 </section>
@@ -110,14 +88,9 @@
     gap: 10px 22px;
     margin-bottom: 12px;
   }
-  .methods {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 14px;
-    margin-bottom: 12px;
-  }
   figure {
-    margin: 0;
+    max-width: 520px;
+    margin: 0 0 12px;
     background: #f8f1e1;
     border: 1px solid #d6c6a4;
     border-radius: 10px;
@@ -160,6 +133,7 @@
     display: grid;
     gap: 4px;
     margin-bottom: 6px;
+    max-width: 520px;
   }
   textarea {
     font: 12px/1.4 ui-monospace, monospace;

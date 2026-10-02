@@ -3,10 +3,9 @@ import { DRAGON_STAGES, type Progression } from './types';
 import {
   DEFAULT_STAGE_XP,
   LOCKED_EGG_FILTER,
-  TINT_FILTERS,
+  TINT_SPECS,
   TINT_SWATCH,
   dragonCaption,
-  eggFilter,
   gaugeOf,
   nearNextStage,
   nextStage,
@@ -19,6 +18,7 @@ import {
   victoryGauge,
   victoryLaurel,
 } from './dragon';
+import { rgbToOklch, tintPixel, type Rgb } from '../living/tint';
 
 describe('dragon helpers', () => {
   it('knows when the next stage is close: strictly under a fifth of the span (spec 2026-09-29 explanations §1, R4)', () => {
@@ -28,9 +28,41 @@ describe('dragon helpers', () => {
     expect(nearNextStage({ total: 300, floor: 5000, next: 15000 })).toBe(false); // a stage grown before its XP
     expect(nearNextStage({ total: 41000, floor: 40000, next: null })).toBe(false);
   });
-  it('never offers violet (reserved for Éris) and has six tints', () => {
-    expect(Object.keys(TINT_FILTERS)).toEqual(['bronze', 'ecume', 'olivier', 'braise', 'jade', 'argent']);
-    for (const f of Object.values(TINT_FILTERS)) expect(f).not.toMatch(/hue-rotate\((2[6-9]\d|3[0-2]\d)deg\)/); // 260–329° ≈ violet band
+  it("has six tints, the user's OKLCH settings of 2026-10-02 at full strength", () => {
+    expect(Object.keys(TINT_SPECS)).toEqual(['bronze', 'ecume', 'olivier', 'braise', 'jade', 'argent']);
+    expect(TINT_SPECS).toEqual({
+      bronze: null,
+      ecume: { shift: 165, chroma: 0.9, lightness: 1 },
+      olivier: { shift: 50, chroma: 0.8, lightness: 1 },
+      braise: { shift: -33, chroma: 1.3, lightness: 1 },
+      jade: { shift: 101, chroma: 0.9, lightness: 1 },
+      argent: { shift: -166, chroma: 0.52, lightness: 1.36 },
+    });
+  });
+  it("never tints the dragon violet (reserved for Éris, decision 11)", () => {
+    // Éris's band is 260-329 degrees on the colour wheel (HSV hue). In OKLCH, the hue of a tinted
+    // colour, it runs from the OKLCH hue of the wheel's 260 degrees to that of its 329 (full
+    // saturation), across 0: about 280 to 1.3 degrees. Éris's own violet (--violet) falls in it.
+    const wheel = (deg: number): Rgb => {
+      const f = (n: number) => 1 - Math.max(0, Math.min((n + deg / 60) % 6, 4 - ((n + deg / 60) % 6), 1));
+      return [f(5), f(3), f(1)];
+    };
+    const [from, to] = [rgbToOklch(wheel(260))[2], rgbToOklch(wheel(329))[2]];
+    expect(from).toBeCloseTo(279.9, 1);
+    expect(to).toBeCloseTo(1.3, 1);
+    const violet = (h: number) => h >= from || h <= to;
+    const hex = (s: string): Rgb => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16) / 255) as unknown as Rgb;
+    expect(violet(rgbToOklch(hex('#5b2c83'))[2])).toBe(true);
+    // The bronze swatch, then the colours that make each stage's dragon (from the cut pictures: the
+    // pixel colour at the 10th and 50th percentile of their OKLCH hue, the reds of the shadows and the
+    // body's bronze; egg, hatchling, young, adult, illustre, ancestral).
+    const dragon = ['#b8863b', '#724529', '#937447', '#6b3a24', '#876336', '#7c3f1f', '#765b34', '#884129', '#6a492b', '#6a3722', '#715030', '#54271a', '#654727'];
+    for (const [tint, spec] of Object.entries(TINT_SPECS)) {
+      for (const c of dragon) {
+        const h = rgbToOklch(tintPixel(spec, hex(c)))[2];
+        expect(violet(h), `${tint} on ${c}: OKLCH hue ${h.toFixed(1)}`).toBe(false);
+      }
+    }
   });
   it('labels and lines', () => {
     expect(stageLabel('egg')).toBe('Œuf');
@@ -72,10 +104,7 @@ describe('dragon helpers', () => {
     expect(stageActivity('illustre')).toBe('Il veille sur le camp et raconte ses exploits.');
     expect(stageActivity('ancestral')).toBe('Il lit les vieux parchemins et veille sur toi.');
   });
-  it('tints a won egg and greys a locked one (fix round 1: on the egg picture only)', () => {
-    expect(eggFilter('ecume', true)).toBe(TINT_FILTERS.ecume);
-    expect(eggFilter('bronze', true)).toBe('none');
-    expect(eggFilter('ecume', false)).toBe(LOCKED_EGG_FILTER);
+  it('greys a locked egg (fix round 1: on the egg picture only)', () => {
     expect(LOCKED_EGG_FILTER).toMatch(/grayscale\(1\)/);
   });
   it('validates names', () => {

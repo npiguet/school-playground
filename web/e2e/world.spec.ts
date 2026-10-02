@@ -215,7 +215,9 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     await page.goto(`/#/p/${profileId}/dragon?panel=soin`);
     await expect(page.getByTestId('dragon-tint-ecume')).toBeEnabled();
     await page.getByTestId('dragon-tint-ecume').click();
-    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('style', /hue-rotate\(190deg\)/);
+    // The tint is OKLCH, painted once on a canvas (user, 2026-10-02): the tinted picture, then its tint.
+    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('data-tint', 'ecume');
+    await expect(page.getByTestId('nest-dragon-layer').locator('img.dragon-base')).toHaveAttribute('src', /^blob:/);
 
     await page.goto(`/#/p/${profileId}/cabane?panel=tresors`);
     await expect(page.getByTestId('cabin-reward-tint:ecume')).toHaveAttribute('data-owned', 'true');
