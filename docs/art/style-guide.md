@@ -494,17 +494,25 @@ between and under the two windows; palais, the marble wall below the shelf (x 4-
 bare upper shelf, and the wall panels beside the arch between the columns. Both WebPs 249 / 315 KiB (`assets/art/export/scenes/`).
 
 **Hermès's stall** `assets/art/scenes/hub_camp_stall.png` (the original `hub_camp.png` untouched):
-inpaint seed 4323 (mask `scenes/masks/hub_camp_stall_inpaint.png`, padding 160, blur 8, denoise
-0.95, 9 steps, 1024² crop), then only the hand-traced stall (`masks/hub_camp_stall_paste.png`)
-pasted onto the original with `tools/art/inpaint_paste.py`: **0 px differ outside the inpaint mask**
-(checked by the script; the raw inpaint result is kept as `masks/hub_camp_stall_raw.png`, and
-re-running the command reproduces the PNG exactly). Striped red-and-cream awning, a round wooden
-sign with golden winged sandals, amphorae, baskets and rolled cloth on a counter, no text.
-**Stall bounding box: x 0.105-0.218, y 0.208-0.448 of the picture** (px 216-445, 240-515); it
-stands in front of the right end of the white wall, above the nest (nest hotspot from y 0.44). The
-left 2 % falls outside the iPad safe zone, so clip the hotspot to x 0.125-0.218. Rejected: seeds
-4301-4303 (mask at x 0.015-0.17, mostly outside the safe zone, and its top edge cut the wall's
-tiles, painting a second roofline) and 4311-4313 (same place, lower mask). WebP 297 KiB.
+repainted on 2026-10-02 in two passes (krea2 skill, "Adding an object to a scene"), all settings in
+`scenes/hub_camp_stall.json`. Pass 1, seed 5133: mask `scenes/masks/hub_camp_stall_inpaint.png`
+(rounded box px 190-475 x 200-515, its bottom kept clear of the nest), only masked, padding 200,
+blur 6, denoise 0.95, 9 steps, 1024² crop, a prompt of the stall alone "open at the back and sides
+so the grassy hillside shows through" (result kept as `masks/hub_camp_stall_raw.png`). Pass 2, seed
+6131: the pass-1 picture repainted at **denoise 0.5**, 16 steps, blur 4, through
+`masks/hub_camp_stall_refine.png` (the box grown 24 px on the sides and top, not toward the nest):
+pass 1's feathered band became real detail, so no rounded-rectangle halo is left and the awning is
+whole. **0 px differ from `hub_camp.png` outside the refine mask plus its 12 px feather.** An open
+stall on four thin poles with a scalloped red-and-cream awning, a round wooden sign with golden
+winged sandals, amphorae, baskets and rolled cloth on a counter, no text. **Stall: awning x
+0.088-0.234, y 0.17 (right corner) to 0.20 (left), counter down to y 0.43** (changed box px 164-505
+x 175-527); it stands in front of the right end of the white wall, above the nest (nest hotspot from
+y 0.42-0.44). The hotspot is clipped to x 0.125 (safe zone) and 0.224 (the temple's box) and ends
+at y 0.41. Rejected: the first stall (seed 4323, 2026-09-30: clipped by its own mask on three sides,
+a cream back panel read as a second wall, pasted through a hand-traced mask), whole-picture inpaints
+(5101-5103 at 0.95 and 5111-5113 at 1.0: a wall or awning fragments), single passes 5121-5123 (the
+feathered mask edge, the awning cut by the mask's top, the stall on the nest), and 5131/5132 after
+pass 2 (striped back cloths). WebP 304 KiB.
 
 **Hermès** `assets/art/characters/hermes.png` + `_cut` (seed 707, 768×1344, `discorde-inked-clean`;
 seed 708 rejected, two caduceuses), a cheerful young merchant god: winged brimmed cap, saffron tunic,
