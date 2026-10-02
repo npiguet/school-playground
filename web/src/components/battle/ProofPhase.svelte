@@ -58,7 +58,8 @@
     /** The stage's layout (UI4 Ruling C4): `compact` folds the controls into one bar. */
     layout: BattleLayout;
     onDone: () => void;
-    /** « Quitter » (UI4 Ruling C15): the play state is saved already; Play shows the resume ribbon. */
+    /** « Quitter » (UI4 Ruling C15): the play state is saved already; Play leaves the battle for where it
+     *  was opened from, and the resume ribbon greets the text's next opening. */
     onQuit: () => void;
   } = $props();
 

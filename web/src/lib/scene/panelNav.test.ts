@@ -8,7 +8,7 @@ import { IDLE_HOTSPOT } from './types';
 vi.mock('../router.svelte', () => ({ navigate: vi.fn(), replaceRoute: vi.fn(), navigationPending: vi.fn(() => false) }));
 
 import { navigate, navigationPending, replaceRoute } from '../router.svelte';
-import { PANEL_TAG, closePanel, go, heroPanelHref, hotspotHref, isTagged, leavePanel, openHotspot, replacePanel, tagged } from './panelNav';
+import { PANEL_TAG, closePanel, go, goBack, heroPanelHref, hotspotHref, isTagged, leavePanel, openHotspot, replacePanel, tagged } from './panelNav';
 
 describe('overlay navigation (UI3 Ruling A2)', () => {
   // closePanel listens on `window` for the end of its own Back (node has none): a bare EventTarget
@@ -126,6 +126,29 @@ describe('overlay navigation (UI3 Ruling A2)', () => {
     expect(replaceRoute).not.toHaveBeenCalled();
     window.dispatchEvent(new Event('hashchange')); // the Back has landed
     closePanel('#/p/3/temple', h); // a later overlay, opened in the app, closes normally again
+    expect(h.back).toHaveBeenCalledTimes(2);
+  });
+
+  it("go(…, 'leave') puts a screen in place of this entry, untagged (a battle quit with nothing behind it)", () => {
+    const h = { state: tagged({ keep: 1 }), back: vi.fn(), replaceState: vi.fn((s: unknown) => (h.state = s as never)) };
+    go('#/p/3/camp', 'leave', h);
+    expect(replaceRoute).toHaveBeenCalledWith('#/p/3/camp');
+    expect(navigate).not.toHaveBeenCalled();
+    expect(h.state).toEqual({ keep: 1 });
+  });
+
+  // A battle's « Oui, quitter » steps back to the place it was opened from (lib/battle/origin.ts),
+  // with closePanel's guards: one step, never during another navigation.
+  it('goBack steps back once, never while a navigation or its own Back is under way', () => {
+    const h = { state: null, back: vi.fn(), replaceState: vi.fn() };
+    vi.mocked(navigationPending).mockReturnValueOnce(true);
+    goBack(h);
+    expect(h.back).not.toHaveBeenCalled();
+    goBack(h);
+    goBack(h);
+    expect(h.back).toHaveBeenCalledOnce();
+    window.dispatchEvent(new Event('hashchange')); // the Back has landed
+    goBack(h);
     expect(h.back).toHaveBeenCalledTimes(2);
   });
 

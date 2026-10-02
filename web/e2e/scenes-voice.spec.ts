@@ -61,8 +61,9 @@ test('the whole script is sent ahead once, each line once, in script order (spec
   expect(body.lines[0].text).toContain('Les fées dansent');
 });
 
-// The pace bug report (2026-09-27): after a dictation at pace 1, « Quitter » then « Recommencer » and
-// pace 3 must read the text at pace 3, each group twice - not pace 1's groups again. Since the pace
+// The pace bug report (2026-09-27): after a dictation at pace 1, « Quitter » then « Tout recommencer » (on
+// the quit confirm since the user's report 2026-10-02) and pace 3 must read the text at pace 3, each
+// group twice - not pace 1's groups again. Since the pace
 // redesign pace III's groups are pace I's merged, about twice as long: the first sentence is one group.
 test('a dictation restarted at another pace reads at that pace', async ({ page, request }, testInfo) => {
   await installFastPauses(page);
@@ -77,8 +78,7 @@ test('a dictation restarted at another pace reads at that pace', async ({ page, 
   await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(0);
   expect((await spokenLines(page))[0].text).toBe(paceOne);
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
-  await tap(page.getByTestId('btn-quit-confirm'), testInfo);
-  await tap(page.getByTestId('battle-resume-restart'), testInfo);
+  await tap(page.getByTestId('btn-quit-restart'), testInfo);
   await expectBattle(page, 'muster');
   const sheet = page.getByTestId('battle-parchment');
   await tap(sheet.getByTestId('pace-option-3'), testInfo);
@@ -400,7 +400,26 @@ test('« Retour au camp » leaves the dictation as « Quitter » does: the draft
   await page.goto(`/#/p/${id}/play/${textId}`);
   await expectBattle(page, 'muster');
   // The resume ribbon (MUSTER.resume), where the existing resume tests read it.
-  await expect(page.getByTestId('battle-resume')).toContainText("Ton brouillon t'attend là où tu l'avais laissé.");
+  await expect(page.getByTestId('battle-resume')).toContainText('Tu avais déjà commencé ce texte\u202f: ton brouillon a été gardé.');
+});
+
+// Review I1: « Retour au camp » takes the battle's own history entry, so Back from the camp goes to
+// the shelves the dictation was opened from, never into the battle.
+test('« Retour au camp » leaves no way Back into the battle', async ({ page, request }, testInfo) => {
+  await voiceDown(page, 503, () => true);
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const title = uniqueName('Voix retour');
+  await createText(request, { title, body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/parchemins`);
+  await tap(page.getByTestId('overlay-shelves').locator('[data-testid="text-card"]', { hasText: title }), testInfo);
+  await expectBattle(page, 'muster');
+  await tap(page.getByTestId('battle-parchment').getByRole('button', { name: 'Commencer la dictée' }), testInfo);
+  await expectBattle(page, 'dictation');
+  await tap(page.getByTestId('btn-voice-camp'), testInfo);
+  await expectCamp(page);
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
+  await expect(page.getByTestId('scene-battle')).toHaveCount(0);
 });
 
 test("the lyre's trial slow to come shows the dictation's waiting line until it plays (Task 9 review #6)", async ({ page, request }, testInfo) => {

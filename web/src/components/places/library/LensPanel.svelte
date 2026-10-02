@@ -10,6 +10,7 @@
   import { api, ApiError } from '../../../lib/api';
   import { todayIso } from '../../../lib/dates';
   import { countWords } from '../../../lib/dictation/segment';
+  import { raisedLine } from '../../../lib/library/shelf';
   import { plural } from '../../../lib/text/french';
   import { ADD_ICONS } from '../../../lib/world/art';
   import Icon from '../../ui/Icon.svelte';
@@ -125,6 +126,13 @@
   let work = $state('');
   let saving = $state(false);
   let saveError = $state('');
+  // As at the desk: set once saved, when the verb tenses moved the text above her class.
+  let raised = $state<string | null>(null);
+
+  function toShelves() {
+    // Same as the desk (final review I1): the shelves replace the lens and keep its history tag.
+    go(href('library', { profileId: String(profile.id) }), 'replace');
+  }
 
   async function saveScan(event: SubmitEvent) {
     event.preventDefault();
@@ -132,7 +140,7 @@
     saving = true;
     saveError = '';
     try {
-      await api.texts.create({
+      const created = await api.texts.create({
         title: title.trim(),
         body: text.trim(),
         level,
@@ -143,8 +151,8 @@
         work: work.trim() || null,
         added_by_profile_id: profile.id,
       });
-      // Same as the desk (final review I1): the shelves replace the lens and keep its history tag.
-      go(href('library', { profileId: String(profile.id) }), 'replace');
+      raised = raisedLine(created, profile.level);
+      if (!raised) toShelves();
     } catch (e) {
       saveError = e instanceof ApiError ? e.detail : "Les Muses n'ont pas pu poser ce parchemin sur l'étagère.";
     } finally {
@@ -335,9 +343,16 @@
         <p class="kit-note" data-tone="eris" role="alert">{saveError}</p>
       {/if}
 
-      <button type="submit" class="kit-bronze" data-testid="btn-scan-save" disabled={saving || !title.trim()}>
-        Poser sur l'étagère
-      </button>
+      {#if raised}
+        <div class="kit-note" role="status" data-testid="scan-raised">
+          <p>{raised}</p>
+          <button type="button" class="kit-bronze" data-testid="btn-raised-shelves" onclick={toShelves}>Voir tes parchemins</button>
+        </div>
+      {:else}
+        <button type="submit" class="kit-bronze" data-testid="btn-scan-save" disabled={saving || !title.trim()}>
+          Poser sur l'étagère
+        </button>
+      {/if}
     </form>
   {/if}
 </div>

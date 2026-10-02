@@ -34,12 +34,18 @@ export const STAGE = {
 
 // ===== Muster (Task 3) =====
 export const MUSTER = {
-  resume: "Ton brouillon t'attend là où tu l'avais laissé.",
-  continue: 'Continuer',
-  /** The resume ribbon of a saved dictation names the pace « Continuer » resumes at (pace-bug report
-   *  2026-09-27, open item 1): its PACE_LABELS title. A grimoire has no pace: plain « Continuer ». */
-  continueAt: (pace: string) => `Continuer — ${pace}`,
-  restart: 'Recommencer',
+  /** The user's report 2026-10-02: the ribbon says plainly that an earlier attempt was found, and
+   *  what of it was kept: the draft of a dictation, or a proofreading (a grimoire's always is). */
+  resume: (proofreading: boolean) =>
+    proofreading
+      ? 'Tu avais déjà commencé ce texte\u202f: ta relecture a été gardée.'
+      : 'Tu avais déjà commencé ce texte\u202f: ton brouillon a été gardé.',
+  /** A saved dictation resumes at its saved pace, so its button names it (pace-bug report 2026-09-27,
+   *  open item 1): its PACE_LABELS title. A saved proofreading has no pace left to name. */
+  continueAt: (pace: string) => `Reprendre mon brouillon — ${pace}`,
+  continueProof: 'Reprendre ma relecture',
+  /** The ribbon's way to start over, and the dictation's quit confirm's (DICTATION.quitRestart). */
+  restart: 'Tout recommencer',
   words: (n: number) => plural(n, 'mot', 'mots'),
   prophecy: (when: string) => `La Pythie a vu cette dictée pour ${when}.`,
   quest: 'Ce texte compte pour ta quête.',
@@ -76,9 +82,11 @@ export const DICTATION = {
   /** UI4 playability #11: the heading is the text's title; the phase, in the fiction, under it. */
   cue: 'Écris ce que dit la Pythie.',
   quit: 'Quitter',
-  quitAsk: 'Ton brouillon est gardé. Veux-tu vraiment quitter la dictée\u202f?',
+  quitAsk: 'Veux-tu quitter la dictée\u202f? Ton brouillon sera gardé.',
   quitYes: 'Oui, quitter',
   quitNo: 'Continuer la dictée',
+  /** The quit confirm's third answer: this attempt is dropped, back to the muster. */
+  quitRestart: 'Tout recommencer',
   status: {
     idle: 'Écoute…',
     playing: 'Écoute…',
@@ -156,7 +164,7 @@ export const PROOF = {
   confirmNo: 'Continuer la relecture',
   done: "J'ai terminé ma relecture",
   quit: 'Quitter',
-  quitAsk: 'Ta relecture est gardée. Veux-tu vraiment quitter\u202f?',
+  quitAsk: 'Veux-tu quitter la relecture\u202f? Ta relecture sera gardée.',
   quitYes: 'Oui, quitter',
   editorLabel: 'Nouveau mot',
   editorHint: 'Efface tout pour retirer le mot',

@@ -107,8 +107,10 @@ Ce n'est qu'une idée : tu vas où tu veux.
 ### Choisir un parchemin
 
 Sous la tente des parchemins, ouvre « Tes parchemins ». Les textes de ta classe sont rangés sous
-« Pour toi », les autres plus bas. Un parchemin dont le sceau n'est pas brisé n'a encore jamais été
-défendu. Touche un parchemin pour l'ouvrir.
+« Pour toi », les autres plus bas. Un texte attend la classe où l'on apprend ses temps de
+conjugaison : un conte au passé simple est rangé en 8H au moins, et son étiquette dit pourquoi
+(« passé simple »). Un parchemin dont le sceau n'est pas brisé n'a encore jamais été défendu.
+Touche un parchemin pour l'ouvrir.
 
 ### Avant la dictée
 
@@ -138,8 +140,12 @@ La Pythie dit la ponctuation : « virgule », « point », « point d'interrogat
 guillemets »… Quand elle dit « À la ligne », commence un nouveau paragraphe. Écris les nombres en
 lettres.
 
-Quand tu as tout écrit, touche **« J'ai fini d'écrire »**. Si tu dois partir, « Quitter » garde ton
-brouillon : tu le retrouveras en rouvrant le parchemin.
+Quand tu as tout écrit, touche **« J'ai fini d'écrire »**. Si tu dois partir, touche « Quitter »
+puis « Oui, quitter » : tu reviens là où tu avais ouvert la dictée (tes parchemins, le mur des
+quêtes…) et ton brouillon est gardé. Quand tu rouvres ce parchemin, choisis « Reprendre mon
+brouillon » pour continuer là où tu en étais, ou « Tout recommencer ». Pour repartir de zéro tout de
+suite, choisis plutôt « Tout recommencer » après « Quitter ». Pendant la relecture, « Quitter » te
+ramène de la même façon, ta relecture gardée : tu la retrouves avec « Reprendre ma relecture ».
 
 Si la voix de la Pythie se tait, une carte d'Éris apparaît : touche « Réessayer ». Si la voix reste
 muette, appelle un parent.
@@ -415,7 +421,8 @@ la feuille » te montre la photo.
 
 Au pupitre, tu écris ou tu colles un texte à toi, avec un titre et une classe. Entre 80 et 200 mots,
 c'est l'idéal (au moins cinq mots), et les nombres s'écrivent en lettres. « Qui l'a écrit ? » permet
-de noter l'auteur.
+de noter l'auteur. Si le texte emploie un temps appris plus tard que la classe choisie, il monte dans
+la classe de ce temps, et le pupitre te le dit (c'est vrai aussi pour la lentille et le portail).
 
 ### Le portail : la Bibliothèque d'Alexandrie
 

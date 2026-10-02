@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { historyLine, lengthOf, shelfSections, splitTitle, textByline, wordGauge, workByline } from './shelf';
+import {
+  historyLine,
+  lengthOf,
+  raisedLine,
+  shelfSections,
+  splitTitle,
+  TENSES_PREFIX,
+  textByline,
+  wordGauge,
+  workByline,
+} from './shelf';
 
 describe('the shelves speak the camp, not the catalogue (playability #2, #5, #24)', () => {
   it('turns a word count into a scroll length', () => {
@@ -77,5 +87,21 @@ describe('splitTitle', () => {
     expect(splitTitle("L'île de Circé")).toEqual({ book: "L'île de Circé", chapter: null });
     expect(splitTitle('Arc-en-ciel—sans espaces')).toEqual({ book: 'Arc-en-ciel—sans espaces', chapter: null });
     expect(splitTitle(' — ')).toEqual({ book: '—', chapter: null });
+  });
+});
+
+describe('raisedLine: the pupitre and the lens say when the verb tenses moved a text up', () => {
+  it('names the class and the tenses when the text lands above the hero', () => {
+    expect(raisedLine({ level: '8H', tense_reason: 'passé simple' }, '6H')).toBe(
+      'Ce texte est rangé en 8H à cause de sa conjugaison\u202f: passé simple.',
+    );
+  });
+  it('says nothing when the text stays at or below the hero, or its tenses raised nothing', () => {
+    expect(raisedLine({ level: '8H', tense_reason: 'passé simple' }, '8H')).toBeNull();
+    expect(raisedLine({ level: '8H', tense_reason: 'passé simple' }, '10H')).toBeNull();
+    expect(raisedLine({ level: '9H', tense_reason: null }, '6H')).toBeNull();
+  });
+  it('gives screen readers the context of a bare tense tag', () => {
+    expect(TENSES_PREFIX).toBe('temps de conjugaison\u202f: ');
   });
 });

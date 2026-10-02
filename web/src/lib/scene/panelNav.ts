@@ -85,12 +85,13 @@ export function leavePanel(path: string, h: HistoryLike = history): void {
   h.replaceState(rest, '');
 }
 
-export type GoMode = 'push' | 'panel' | 'replace';
+export type GoMode = 'push' | 'panel' | 'replace' | 'leave';
 
 /** Every control that navigates goes through here (final review M5): the same tap feedback
  *  (unlocks the audio on the first gesture, plays `tap`) whatever it leads to. `push` leaves for a
  *  place or a screen, `panel` opens an overlay (`openPanel`), `replace` swaps the current overlay
- *  for another (`replacePanel`).
+ *  for another (`replacePanel`), `leave` puts a screen in place of this entry (`leavePanel`: a
+ *  battle quit, nothing to come Back to).
  *
  *  The one rule for an overlay (final review M13): whatever place it belongs to, it opens with
  *  `panel`, so its seal steps back to wherever it was opened from - this place, another place (the
@@ -101,7 +102,18 @@ export function go(path: string, mode: GoMode = 'push', h: HistoryLike = history
   playSfx('tap');
   if (mode === 'panel') openPanel(path, h);
   else if (mode === 'replace') replacePanel(path, h);
+  else if (mode === 'leave') leavePanel(path, h);
   else navigate(path);
+}
+
+/** A control that leaves for the entry behind this one (a battle's « Oui, quitter », when the place
+ *  it was opened from is that entry: lib/battle/origin.ts): the same tap feedback as `go`, and the
+ *  same guards as `closePanel` - never a second step while one is under way. */
+export function goBack(h: HistoryLike = history): void {
+  if (steppingBack || navigationPending()) return;
+  unlockAudio();
+  playSfx('tap');
+  stepBack(h);
 }
 
 /** Where the HUD's hero chip leads: the hero panel in the cabin (UI3 Ruling B2, carry #4). */

@@ -61,12 +61,14 @@ def recommend_texts(rows: list[dict], key: str, level: str, played: set[int], n:
     meet the monster. Now: never below `level - 2` (a hard floor - "she will notice she is being
     sent to 5H texts"), never under MIN_RECOMMEND_WORDS words, and prefer level distance <= 1 from
     the player's own level, widening to <= 2 and then to any (still floor-limited) level only if
-    that tier does not have enough candidates."""
+    that tier does not have enough candidates. Never a text holding a verb tense her class has not
+    learnt yet (`tense_level`, app.nlp.tenses): a passé simple is no quest for a 7H."""
     idx = level_index(level)
     floor_idx = max(0, idx - 2)
     candidates = [
         r for r in rows
         if r["density"] > 0 and r["word_count"] >= MIN_RECOMMEND_WORDS and level_index(r["level"]) >= floor_idx
+        and (r.get("tense_level") is None or level_index(r["tense_level"]) <= idx)
     ]
 
     def sort_key(r: dict) -> tuple:

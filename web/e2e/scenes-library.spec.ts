@@ -106,6 +106,10 @@ test('the shelves open « Tes parchemins » as an overlay; seal, Escape and Back
   await expect(shelves.getByRole('heading', { name: 'Classe 9H' })).toBeVisible();
   await chooseLevel(shelves.getByTestId('shelf-levels'), 'Tous');
   await expect(shelves.getByRole('heading', { name: 'Autres parchemins' })).toBeVisible();
+  // A seed tale raised to the class of its verb tenses says which ones on its tag (« Le Chat botté »:
+  // passé simple, then « qu'il montât », so 11H and « subjonctif imparfait »).
+  await expect(shelves.locator('#other-levels [data-testid="text-tenses"]').first()).toBeVisible();
+  await expect(shelves.locator('#other-levels [data-testid="text-tenses"]', { hasText: 'subjonctif imparfait' }).first()).toBeVisible();
   // Each scroll on one shelf only: her own class behind the toggle repeats nothing of « Pour toi ».
   await chooseLevel(shelves.getByTestId('shelf-levels'), '10H');
   await expect(shelves.locator('#other-levels [data-testid="text-card"]')).toHaveCount(0);
@@ -311,6 +315,49 @@ test('the desk writes a new parchment; saving lands on the shelves and Back neve
   await expect(page.getByTestId('overlay-shelves').locator('[data-testid="text-card"]', { hasText: title })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/tente-parchemins$/);
+});
+
+// A text whose verb tenses her class has not learnt yet is shelved in the class that teaches them
+// (server app.nlp.tenses): the desk says so before the shelves, where the scroll's tag says why.
+test('the desk says when the passé simple moves a 6H text up to 8H', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name), '6H');
+  await openTent(page, id);
+  await tap(page.getByTestId('library-desk'), testInfo);
+  const desk = page.getByTestId('overlay-desk');
+  const title = uniqueName(`Loup ${testInfo.project.name}`);
+  await desk.getByLabel('Titre').fill(title);
+  await desk.getByLabel('Texte').fill('Le loup regarda la chèvre et partit dans la forêt. Les enfants rentrèrent chez eux.');
+  await desk.getByRole('button', { name: "Poser sur l'étagère" }).click();
+  await expect(desk.getByTestId('desk-raised')).toHaveText(
+    /Ce texte est rangé en 8H à cause de sa conjugaison\u202f: passé simple\./,
+  );
+  await expect(desk.getByRole('button', { name: "Poser sur l'étagère" })).toHaveCount(0);
+  await desk.getByTestId('btn-raised-shelves').click();
+  await expect(page).toHaveURL(/\/parchemins$/);
+  const shelves = page.getByTestId('overlay-shelves');
+  await shelves.getByRole('button', { name: 'Autres classes' }).click();
+  const card = shelves.locator('#other-levels [data-testid="text-card"]', { hasText: title });
+  await expect(card.getByTestId('text-tenses')).toHaveText('temps de conjugaison\u202f: passé simple');
+  await expect(card.getByTestId('text-tenses')).toBeVisible();
+});
+
+test("a portal scroll raised by its verb tenses names them; a scroll they did not raise says nothing", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const chunk = (seq: number, level: string, preview: string, tense_reason: string | null) => ({
+    id: 910000 + seq, seq, level, word_count: 120, score: 20, preview, text_id: null, tense_reason,
+  });
+  await page.route('**/api/alexandria/works/*/chunks*', async (route) => {
+    await route.fulfill({
+      json: [chunk(1, '11H', 'Rouleau au subjonctif', 'subjonctif imparfait'), chunk(2, '9H', 'Rouleau au présent', null)],
+    });
+  });
+  await page.goto(`/#/p/${id}/alexandria/verne-vingt-mille-lieues`);
+  const work = page.getByTestId('overlay-portal-work');
+  const cards = work.getByTestId('chunk-card');
+  await expect(cards).toHaveCount(2);
+  await expect(cards.nth(0).getByTestId('chunk-tenses')).toHaveText('temps de conjugaison\u202f: subjonctif imparfait');
+  await expect(cards.nth(0).getByTestId('chunk-tenses')).toBeVisible();
+  await expect(cards.nth(1).getByTestId('chunk-tenses')).toHaveCount(0);
 });
 
 // Final review I1: the shelves that replace the saved form keep its history tag (replacePanel), so

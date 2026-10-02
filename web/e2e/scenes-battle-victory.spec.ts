@@ -212,7 +212,7 @@ test('« Rejouer ce texte » replays the same battle: the same opponent, fresh c
   await expect(page.getByTestId('battle-parchment').getByTestId('pace-option-1')).toBeVisible();
 });
 
-test('« Recommencer » on the resume ribbon starts the same battle afresh, the draft gone', async ({ page, request }, testInfo) => {
+test('« Tout recommencer » on the resume ribbon starts the same battle afresh, the draft gone', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Vic10-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Recommencer'), body: REF, level: '10H' });
   await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft: DRAFT, opponent: 'protee' });

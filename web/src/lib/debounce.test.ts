@@ -43,4 +43,16 @@ describe('debounce', () => {
     expect(fn).toHaveBeenCalledTimes(2);
     expect(fn).toHaveBeenLastCalledWith('b');
   });
+
+  it('cancel drops the pending call; a later call still runs', () => {
+    const fn = vi.fn();
+    const d = debounce(fn, 500);
+    d('a');
+    d.cancel();
+    vi.advanceTimersByTime(1000);
+    expect(fn).not.toHaveBeenCalled();
+    d('b');
+    vi.advanceTimersByTime(500);
+    expect(fn).toHaveBeenCalledWith('b');
+  });
 });

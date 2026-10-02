@@ -10,6 +10,8 @@ from app.deps import get_annotator
 from app.lexicon import load_lexicon
 from app.levels import LEVELS, level_index
 from app.nlp.homophones import load_homophones
+from app.nlp.tenses import detect_tenses, level_with_tenses, tense_reason
+from app.relevel import tenses_json
 from app.routers.profiles import fetch_profile
 from app.routers.scan import SCAN_ID_RE, scan_dir
 from app.schemas import CorruptRequest, TextCreate, TextFull, TextHistory, TextSummaryWithHistory
@@ -33,6 +35,11 @@ def fetch_text(db: sqlite3.Connection, text_id: int) -> sqlite3.Row:
     return row
 
 
+def stored_tense_reason(row: sqlite3.Row) -> str | None:
+    """The reason a text (or an Alexandria scroll) sits above its own level, from its stored tenses."""
+    return tense_reason(row["base_level"], json.loads(row["tenses_json"]))
+
+
 def to_summary(row: sqlite3.Row, history: TextHistory | None, data_dir: Path | None = None) -> TextSummaryWithHistory:
     scan_id: str | None = None
     photo_count = 0
@@ -46,7 +53,7 @@ def to_summary(row: sqlite3.Row, history: TextHistory | None, data_dir: Path | N
         author=row["author"], translator=row["translator"], work=row["work"], credits=row["credits"],
         word_count=word_count(row["body"]), added_by_profile_id=row["added_by_profile_id"],
         added_by_name=row["added_by_name"], due_date=row["due_date"], created_at=row["created_at"],
-        history=history, scan_id=scan_id, photo_count=photo_count)
+        history=history, scan_id=scan_id, photo_count=photo_count, tense_reason=stored_tense_reason(row))
 
 
 def to_full(row: sqlite3.Row, history: TextHistory | None = None, data_dir: Path | None = None) -> TextFull:
@@ -96,11 +103,14 @@ def create_text(body: TextCreate, request: Request, db: sqlite3.Connection = Dep
 
     credits = body.credits or build_credits(body.author, body.work, body.translator)
     annotation = annotate_fn(text)
+    # The class chosen at the pupitre or the lens is the text's own level; its verb tenses may raise it.
+    counts = detect_tenses(annotation, load_lexicon(request.app.state.settings.content_dir))
     cur = db.execute(
-        """INSERT INTO text(title, body, source, level, author, translator, work, credits,
+        """INSERT INTO text(title, body, source, level, base_level, tenses_json, author, translator, work, credits,
                            added_by_profile_id, due_date, photo_path, annotation_json, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (body.title.strip(), text, body.source, body.level, body.author, body.translator, body.work,
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (body.title.strip(), text, body.source, level_with_tenses(body.level, counts), body.level,
+         tenses_json(counts), body.author, body.translator, body.work,
          credits, body.added_by_profile_id, body.due_date, photo_path, json.dumps(annotation, ensure_ascii=False), now()))
     db.commit()
     return to_full(fetch_text(db, cur.lastrowid), data_dir=data_dir)

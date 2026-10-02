@@ -76,7 +76,7 @@ test('a seeded dictation comes back behind the resume ribbon', async ({ page, re
   await seedPlay(page, { profileId: id, textId: text.id, phase: 'dictation', draft: 'Les fées' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
-  await expect(page.getByTestId('battle-resume')).toContainText("Ton brouillon t'attend là où tu l'avais laissé.");
+  await expect(page.getByTestId('battle-resume')).toContainText('Tu avais déjà commencé ce texte\u202f: ton brouillon a été gardé.');
   await resumeSeeded(page);
   await expectBattle(page, 'dictation');
   await expect(page.getByTestId('dictation-textarea')).toHaveValue('Les fées');
@@ -465,26 +465,211 @@ test('a short window folds the dictation too (spec §10: reduced viewport height
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-layout', 'full');
 });
 
-test('Quitter asks first, then shows the resume ribbon with the draft kept', async ({ page, request }, testInfo) => {
-  const id = await createProfileApi(request, uniqueName(`Dic4-${testInfo.project.name}`));
-  const text = await createText(request, { title: uniqueName('Dictée quitter'), body: BODY, level: '10H' });
-  await page.goto(`/#/p/${id}/play/${text.id}`);
+/** « Oui, quitter » on a battle opened by its own link leaves for the camp; she opens it again. */
+async function reopenAfterQuit(page: Page, url: string) {
+  await expectCamp(page);
+  await page.goto(url);
   await expectBattle(page, 'muster');
-  await startDictation(page, testInfo);
-  await page.getByTestId('dictation-textarea').fill('Les fées');
-  await tap(page.getByTestId('btn-quit-dictation'), testInfo);
-  await expect(page.getByText('Ton brouillon est gardé. Veux-tu vraiment quitter la dictée\u202f?')).toBeVisible();
-  // Final review M9: the confirm takes the focus, on its first answer.
-  await expect(page.getByTestId('btn-quit-confirm')).toBeFocused();
-  await tap(page.getByTestId('btn-quit-confirm'), testInfo);
   await expect(page.getByTestId('battle-resume')).toBeVisible();
+}
+
+/** From now on, notes whether the resume ribbon is ever put on the page, even for a moment
+ *  (`ribbonSeen`): « Oui, quitter » leaves the battle without it ever showing. */
+async function watchRibbon(page: Page) {
+  await page.evaluate(() => {
+    const w = window as unknown as { __ribbonSeen: boolean };
+    w.__ribbonSeen = false;
+    const ribbon = '[data-testid="battle-resume"]';
+    new MutationObserver((records) => {
+      for (const r of records) {
+        for (const n of r.addedNodes) {
+          if (n instanceof Element && (n.matches(ribbon) || n.querySelector(ribbon))) w.__ribbonSeen = true;
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+}
+const ribbonSeen = (page: Page) => page.evaluate(() => (window as unknown as { __ribbonSeen: boolean }).__ribbonSeen);
+
+/** A dictation opened the way a child opens one: a card on the shelves (« Tes parchemins »). */
+async function openFromShelves(page: Page, testInfo: TestInfo, title: string) {
+  const card = page.getByTestId('overlay-shelves').locator('[data-testid="text-card"]', { hasText: title });
+  await tap(card, testInfo);
+  await expectBattle(page, 'muster');
+}
+
+// The user's report 2026-10-02: once she says she wants to quit, the battle is left, for the place it
+// was opened from; the draft waits behind the resume ribbon for the next time she opens the text.
+// Review I1: the quit steps back to the shelves' own entry, so Back from there leaves the tent and
+// never comes back into the battle.
+test('« Oui, quitter » leaves for the shelves it was opened from; the draft waits behind the ribbon', async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
+  const id = await createProfileApi(request, uniqueName(`Dic4-${testInfo.project.name}`));
+  const title = uniqueName('Dictée quitter');
+  const text = await createText(request, { title, body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  await page.goto(`/#/p/${id}/parchemins`);
+  await openFromShelves(page, testInfo, title);
+  await startDictation(page, testInfo);
+  await expect.poll(async () => (await spokenLines(page)).length).toBeGreaterThan(0);
+  await page.getByTestId('dictation-textarea').fill('Les fées');
+  const key = `discorde.play.${id}.${text.id}`;
+  const storedDraft = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').draft, key);
+  await expect.poll(storedDraft).toBe('Les fées');
+  await tap(page.getByTestId('btn-quit-dictation'), testInfo);
+  await expect(page.getByText('Veux-tu quitter la dictée\u202f? Ton brouillon sera gardé.')).toBeVisible();
+  // Three answers, « Oui, quitter » first; final review M9: the confirm takes the focus, on it.
+  await expect(page.getByTestId('battle-parchment').locator('.confirm-actions button')).toHaveText(['Oui, quitter', 'Continuer la dictée', 'Tout recommencer']);
+  await expect(page.getByTestId('btn-quit-confirm')).toBeFocused();
+  await watchRibbon(page);
+  // Review M1: a last word typed right before « Oui, quitter » is still waiting for its debounced
+  // save (800 ms) when she confirms; the quit saves it at once. One script: only a 0 ms tick between.
+  const flushed = await page.evaluate(async (k) => {
+    const draft = () => JSON.parse(localStorage.getItem(k) ?? '{}').draft;
+    const ta = document.querySelector<HTMLTextAreaElement>('[data-testid="dictation-textarea"]')!;
+    ta.value = 'Les fées dansent';
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0)); // the draft effect runs: its save is pending
+    const before = draft();
+    document.querySelector<HTMLButtonElement>('[data-testid="btn-quit-confirm"]')!.click();
+    return { before, after: draft() };
+  }, key);
+  expect(flushed).toEqual({ before: 'Les fées', after: 'Les fées dansent' });
+  await expect(page).toHaveURL(new RegExp(`#/p/${id}/parchemins$`));
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
+  await expect(page.getByTestId('scene-battle')).toHaveCount(0);
+  expect(await ribbonSeen(page), 'no resume ribbon on the way out').toBe(false);
+  // Review M4: the shelves take the focus back, as an overlay does when it opens.
+  await expect(page.getByTestId('overlay-shelves')).toBeFocused();
+  // The voice is silent, and stays so.
+  expect((await audioState(page))?.voiceSpeaking).toBe(false);
+  const heard = (await spokenLines(page)).length;
+  const saved = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}'), key);
+  expect(saved).toMatchObject({ phase: 'dictation', draft: 'Les fées dansent' });
+  // Back from the shelves goes where she was before them (the camp), not into the battle.
+  await page.goBack();
+  await expectCamp(page);
+  await expect(page.getByTestId('scene-battle')).toHaveCount(0);
+  expect(await ribbonSeen(page), 'no resume ribbon on Back').toBe(false);
+  // Opening the text again: the ribbon, then the draft.
+  await page.goto(`/#/p/${id}/parchemins`);
+  await openFromShelves(page, testInfo, title);
+  await expect(page.getByTestId('battle-resume')).toContainText('ton brouillon a été gardé.');
+  expect((await spokenLines(page)).length).toBe(heard);
   await resumeSeeded(page);
-  await expect(page.getByTestId('dictation-textarea')).toHaveValue('Les fées');
+  await expect(page.getByTestId('dictation-textarea')).toHaveValue('Les fées dansent');
 });
 
-// Pace-bug report 2026-09-27, open item 1: « Continuer » resumes at the saved pace, so the ribbon names
+// A battle opened as the app's first page (a bookmark, a link from elsewhere) has no place behind it:
+// the camp takes the battle's own entry, so Back leaves for the page before, never into the battle.
+test('a dictation opened by a link of its own leaves for the camp, in its place', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Dic11-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Dictée lien'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/parchemins`);
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
+  // A new document (another search string): the battle is its first entry.
+  await page.goto(`/?lien=1#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await startDictation(page, testInfo);
+  await tap(page.getByTestId('btn-quit-dictation'), testInfo);
+  await tap(page.getByTestId('btn-quit-confirm'), testInfo);
+  await expectCamp(page);
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
+  await expect(page.getByTestId('scene-battle')).toHaveCount(0);
+});
+
+test('« Continuer la dictée » closes the confirm and the dictation goes on, the focus back on « Quitter »', async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
+  const id = await createProfileApi(request, uniqueName(`Dic12-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Dictée continue'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await startDictation(page, testInfo, 1);
+  await page.getByTestId('dictation-textarea').fill('Les fées');
+  await expect(page.getByTestId('btn-next')).toBeEnabled();
+  await tap(page.getByTestId('btn-quit-dictation'), testInfo);
+  await tap(page.getByTestId('btn-quit-cancel'), testInfo);
+  await expect(page.getByTestId('btn-quit-confirm')).toHaveCount(0);
+  await expect(page.getByTestId('btn-quit-dictation')).toBeFocused();
+  await expectBattle(page, 'dictation');
+  await expect(page.getByTestId('dictation-textarea')).toHaveValue('Les fées');
+  // The reading goes on where it was: « Suivant » reads the second group.
+  await tap(page.getByTestId('btn-next'), testInfo);
+  await expect.poll(async () => (await spokenLines(page)).at(-1)?.text ?? '').toContain('Elles chantent');
+});
+
+test('« Tout recommencer » on the quit confirm drops the attempt: a fresh muster, the old draft gone', async ({ page, request }, testInfo) => {
+  await installFastPauses(page);
+  const id = await createProfileApi(request, uniqueName(`Dic13-${testInfo.project.name}`), '10H');
+  const text = await createText(request, { title: uniqueName('Dictée recommencée'), body: BODY, level: '10H' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await startDictation(page, testInfo, 1);
+  await page.getByTestId('dictation-textarea').fill('Les fées');
+  const key = `discorde.play.${id}.${text.id}`;
+  await expect.poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').draft, key)).toBe('Les fées');
+  await tap(page.getByTestId('btn-quit-dictation'), testInfo);
+  await expect(page.getByTestId('btn-quit-restart')).toBeVisible();
+  // Review M2: a word typed right before « Tout recommencer » leaves its debounced save pending; the
+  // restart cancels it (one script: only a 0 ms tick between), or it would save the battle again.
+  await page.evaluate(async () => {
+    const ta = document.querySelector<HTMLTextAreaElement>('[data-testid="dictation-textarea"]')!;
+    ta.value = 'Les fées dansent';
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0)); // the draft effect runs: its save is pending
+    document.querySelector<HTMLButtonElement>('[data-testid="btn-quit-restart"]')!.click();
+  });
+  // The order of battle again, not the ribbon; the medallions at the level's default, the focus on
+  // « Commencer la dictée ».
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('battle-resume')).toHaveCount(0);
+  const sheet = page.getByTestId('battle-parchment');
+  await expect(sheet.getByRole('radio')).toHaveCount(3);
+  await expect(sheet.getByTestId('pace-option-3').locator('input')).toBeChecked();
+  await expect(page.getByTestId('btn-start')).toBeFocused();
+  expect((await audioState(page))?.voiceSpeaking).toBe(false);
+  // Nothing of the old attempt is kept, not even once its pending draft save would have fired.
+  await page.waitForTimeout(1_000);
+  expect(await page.evaluate((k) => localStorage.getItem(k), key)).toBeNull();
+  await page.reload();
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('battle-resume')).toHaveCount(0);
+  await startDictation(page, testInfo, 1);
+  await expect(page.getByTestId('dictation-textarea')).toHaveValue('');
+});
+
+// The confirm's three answers fit the dictation's parchment above the writing area, whatever the
+// screen: 1280×720, 1024×768, and each project's own (the iPad's 1180×820).
+for (const size of [{ width: 1280, height: 720 }, { width: 1024, height: 768 }, null]) {
+  test(`the quit confirm fits the dictation at ${size ? `${size.width}×${size.height}` : "the project's size"}`, async ({ page, request }, testInfo) => {
+    if (size) await page.setViewportSize(size);
+    const id = await createProfileApi(request, uniqueName(`Dic14-${testInfo.project.name}`));
+    const text = await createText(request, { title: uniqueName('Dictée cadre'), body: BODY, level: '10H' });
+    await page.goto(`/#/p/${id}/play/${text.id}`);
+    await expectBattle(page, 'muster');
+    await startDictation(page, testInfo);
+    await tap(page.getByTestId('btn-quit-dictation'), testInfo);
+    await expect(page.getByTestId('btn-quit-confirm')).toBeFocused();
+    const sheet = (await page.getByTestId('battle-parchment').boundingBox())!;
+    const ta = (await page.getByTestId('dictation-textarea').boundingBox())!;
+    const view = page.viewportSize()!;
+    expect(ta.height, 'the writing area keeps its room').toBeGreaterThanOrEqual(100);
+    expect(ta.y + ta.height).toBeLessThanOrEqual(view.height + 1);
+    for (const button of ['btn-quit-confirm', 'btn-quit-cancel', 'btn-quit-restart']) {
+      const b = (await page.getByTestId(button).boundingBox())!;
+      expect(b.height, button).toBeGreaterThanOrEqual(44);
+      expect(b.x, button).toBeGreaterThanOrEqual(sheet.x - 1);
+      expect(b.x + b.width, button).toBeLessThanOrEqual(sheet.x + sheet.width + 1);
+      expect(b.y + b.height, `${button} above the writing area`).toBeLessThanOrEqual(ta.y + 1);
+    }
+  });
+}
+
+// Pace-bug report 2026-09-27, open item 1: « Reprendre mon brouillon » resumes at the saved pace, so the ribbon names
 // it. A 10H hero's muster preselects « D'un bon pas »: the ribbon must say the pace she really chose.
-test('the resume ribbon names the pace the dictation was saved at, and « Recommencer » offers them all', async ({ page, request }, testInfo) => {
+test('the resume ribbon names the pace the dictation was saved at, and « Tout recommencer » offers them all', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Dic8-${testInfo.project.name}`), '10H');
   const text = await createText(request, { title: uniqueName('Dictée rythme'), body: BODY, level: '10H' });
   await page.goto(`/#/p/${id}/play/${text.id}`);
@@ -492,14 +677,15 @@ test('the resume ribbon names the pace the dictation was saved at, and « Recomm
   await startDictation(page, testInfo, 1);
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
   await tap(page.getByTestId('btn-quit-confirm'), testInfo);
-  await expect(page.getByTestId('battle-resume-continue')).toHaveText('Continuer — Pas à pas');
-  // She comes back later: the same ribbon, the same pace named.
+  await reopenAfterQuit(page, `/#/p/${id}/play/${text.id}`);
+  await expect(page.getByTestId('battle-resume-continue')).toHaveText('Reprendre mon brouillon — Pas à pas');
+  // She comes back later still: the same ribbon, the same pace named.
   await page.reload();
   await expectBattle(page, 'muster');
   const ribbon = page.getByTestId('battle-resume');
-  await expect(ribbon).toContainText("Ton brouillon t'attend là où tu l'avais laissé.");
-  await expect(page.getByTestId('battle-resume-continue')).toHaveText('Continuer — Pas à pas');
-  // « Recommencer » is the way to another pace: the medallions are back, at the level's default.
+  await expect(ribbon).toContainText('Tu avais déjà commencé ce texte\u202f: ton brouillon a été gardé.');
+  await expect(page.getByTestId('battle-resume-continue')).toHaveText('Reprendre mon brouillon — Pas à pas');
+  // « Tout recommencer » is the way to another pace: the medallions are back, at the level's default.
   await tap(page.getByTestId('battle-resume-restart'), testInfo);
   const sheet = page.getByTestId('battle-parchment');
   await expect(sheet.getByRole('radio')).toHaveCount(3);
@@ -518,7 +704,7 @@ test('a dictation saved at the retired pace IV resumes as III, and its label fit
   await page.goto(`/#/p/${id}/play/${text.id}`);
   await expectBattle(page, 'muster');
   const button = page.getByTestId('battle-resume-continue');
-  await expect(button).toHaveText("Continuer — D'un bon pas");
+  await expect(button).toHaveText("Reprendre mon brouillon — D'un bon pas");
   const fit = await button.evaluate((el) => {
     const r = el.getBoundingClientRect();
     const sheet = el.closest('[data-testid="battle-parchment"]')!.getBoundingClientRect();
@@ -531,10 +717,10 @@ test('a dictation saved at the retired pace IV resumes as III, and its label fit
     };
   });
   expect(fit.overflow).toBeLessThanOrEqual(0);
-  // One line: as tall as « Recommencer », its one-line neighbour.
+  // One line: as tall as « Tout recommencer », its one-line neighbour.
   expect(Math.abs(fit.height - fit.quietHeight)).toBeLessThanOrEqual(1);
   expect(fit.inside).toBe(true);
-  // « Continuer »: pace III's reading, from its first group (step 9 was pace IV's), her draft kept.
+  // « Reprendre mon brouillon »: pace III's reading, from its first group (step 9 was pace IV's), her draft kept.
   await resumeSeeded(page);
   await expectBattle(page, 'dictation');
   await expect(page.getByTestId('dictation-textarea')).toHaveValue('Le loup');
@@ -543,13 +729,41 @@ test('a dictation saved at the retired pace IV resumes as III, and its label fit
   expect(await said(page)).toEqual([S0, S0, S1, S1, S0, S1]);
 });
 
-test('a saved grimoire names no pace on its ribbon: it has none', async ({ page, request }, testInfo) => {
+// The user's report 2026-10-02: the ribbon's longer words still fit at 1024×768, each button on one
+// line inside the parchment (the project sizes are checked just above).
+test('the resume ribbon fits at 1024×768: « Reprendre mon brouillon — D\'un bon pas » on one line', async ({ page, request }, testInfo) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  const id = await createProfileApi(request, uniqueName(`Dic15-${testInfo.project.name}`));
+  const text = await createText(request, { title: uniqueName('Dictée ruban'), body: BODY, level: '10H' });
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'dictation', pace: 3, draft: 'Les fées' });
+  await page.goto(`/#/p/${id}/play/${text.id}`);
+  await expectBattle(page, 'muster');
+  await expect(page.getByTestId('battle-resume-continue')).toHaveText("Reprendre mon brouillon — D'un bon pas");
+  const fit = await page.getByTestId('battle-resume').evaluate((ribbon) => {
+    const sheet = ribbon.closest('[data-testid="battle-parchment"]')!.getBoundingClientRect();
+    return ['battle-resume-continue', 'battle-resume-restart'].map((id) => {
+      const el = ribbon.querySelector<HTMLElement>(`[data-testid="${id}"]`)!;
+      const r = el.getBoundingClientRect();
+      const line = parseFloat(getComputedStyle(el).lineHeight) || 24;
+      return { id, overflow: el.scrollWidth - el.clientWidth, lines: Math.round((el.clientHeight - parseFloat(getComputedStyle(el).paddingTop) - parseFloat(getComputedStyle(el).paddingBottom)) / line), inside: r.left >= sheet.left && r.right <= sheet.right && r.bottom <= sheet.bottom };
+    });
+  });
+  for (const b of fit) {
+    expect(b.overflow, b.id).toBeLessThanOrEqual(0);
+    expect(b.lines, b.id).toBeLessThanOrEqual(1);
+    expect(b.inside, b.id).toBe(true);
+  }
+});
+
+test('a saved grimoire names no pace on its ribbon: it has none, and its proofreading was kept', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, uniqueName(`Dic9-${testInfo.project.name}`));
   const text = await createText(request, { title: uniqueName('Grimoire rythme'), body: BODY, level: '10H' });
   await seedPlay(page, { profileId: id, textId: text.id, mode: 'grimoire', phase: 'proofreading', draft: BODY, opponent: 'eris' });
   await page.goto(`/#/p/${id}/grimoire/${text.id}`);
   await expectBattle(page, 'muster');
-  await expect(page.getByTestId('battle-resume-continue')).toHaveText('Continuer');
+  await expect(page.getByTestId('battle-resume-continue')).toHaveText('Reprendre ma relecture');
+  await expect(page.getByTestId('battle-resume')).toContainText('ta relecture a été gardée.');
+  await expect(page.getByTestId('battle-resume-restart')).toHaveText('Tout recommencer');
 });
 
 // Ruling M20: a dictation left and resumed reads again the group it had reached, not the first.
@@ -570,7 +784,7 @@ test('a resumed dictation restarts at the group it had reached', async ({ page, 
   await expect.poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').dictationStep, key)).toBe(5);
   await tap(page.getByTestId('btn-quit-dictation'), testInfo);
   await tap(page.getByTestId('btn-quit-confirm'), testInfo);
-  await expect(page.getByTestId('battle-resume')).toBeVisible();
+  await reopenAfterQuit(page, `/#/p/${id}/play/${text.id}`);
   // The first words read after `from`.
   const firstReadFrom = async (from: number) => (await spokenLines(page)).slice(from)[0]?.text ?? '';
   const heard = (await spokenLines(page)).length;
@@ -1096,16 +1310,40 @@ test('without Argus, « J\'ai terminé » validates at once: no passes left to c
   await expectBattle(page, 'victory');
 });
 
-test('the proofreading has a way out: Quitter asks, then the resume ribbon keeps everything', async ({ page, request }, testInfo) => {
-  const { text } = await seededProof(page, request, testInfo, []);
+// The user's report 2026-10-02: « Oui, quitter » on the proofreading leaves the battle too, for the
+// shelves it was opened from, everything kept behind the ribbon.
+test('the proofreading has a way out: Quitter asks, then leaves for the shelves, the ribbon keeping everything', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, uniqueName(`Pro-${testInfo.project.name}`));
+  const title = uniqueName('Relecture quittée');
+  const text = await createText(request, { title, body: LONG_REF, level: '10H' });
+  await seedPlay(page, { profileId: id, textId: text.id, phase: 'proofreading', draft: LONG_DRAFT, opponent: 'chimere', aids: [] });
+  await page.goto(`/#/p/${id}/camp`);
+  await expectCamp(page);
+  await page.goto(`/#/p/${id}/parchemins`);
+  await openFromShelves(page, testInfo, title);
+  await resumeSeeded(page);
+  await expectBattle(page, 'proofreading');
   // UI4 playability #11: the text's title heads the proofreading; with no aid she is asked to say so.
   await expect(page.getByTestId('battle-parchment').getByRole('heading', { name: text.title })).toBeVisible();
   await expect(page.getByTestId('battle-parchment')).toContainText("Traque les pièges d'Éris. À toi de jouer. Quand tout te semble juste, dis-le.");
   await tap(page.getByTestId('btn-quit-proof'), testInfo);
-  await expect(page.getByText('Ta relecture est gardée. Veux-tu vraiment quitter\u202f?')).toBeVisible();
+  await expect(page.getByText('Veux-tu quitter la relecture\u202f? Ta relecture sera gardée.')).toBeVisible();
   await expect(page.getByTestId('btn-quit-proof-confirm')).toBeFocused();
+  await watchRibbon(page);
   await tap(page.getByTestId('btn-quit-proof-confirm'), testInfo);
-  await expect(page.getByTestId('battle-resume')).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`#/p/${id}/parchemins$`));
+  await expect(page.getByRole('heading', { name: 'Tes parchemins' })).toBeVisible();
+  await expect(page.getByTestId('scene-battle')).toHaveCount(0);
+  expect(await ribbonSeen(page), 'no resume ribbon on the way out').toBe(false);
+  await expect(page.getByTestId('overlay-shelves')).toBeFocused();
+  // Review I1: Back from the shelves never comes back into the battle.
+  await page.goBack();
+  await expectCamp(page);
+  await expect(page.getByTestId('scene-battle')).toHaveCount(0);
+  expect(await ribbonSeen(page), 'no resume ribbon on Back').toBe(false);
+  await page.goto(`/#/p/${id}/parchemins`);
+  await openFromShelves(page, testInfo, title);
+  await expect(page.getByTestId('battle-resume')).toContainText('ta relecture a été gardée.');
   await resumeSeeded(page);
   await expectBattle(page, 'proofreading');
 });
