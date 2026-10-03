@@ -74,6 +74,8 @@
   );
   const compact = $derived(layout === 'compact');
   const band = $derived(bandHeight(viewport.height || 820));
+  // The « Revoir » scroll covers the stage: the stage turns inert and the living fighters hold their
+  // frame (final review of the living battle).
   const covered = $derived(overlayState.open > 0);
   // Ruling C12: the particles drift only while no text is read or written: the muster and the victory
   // (M14, the TTS runs on an iPad). The combatants live in every phase (spec 2026-10-03 living battle,
@@ -142,6 +144,7 @@
               testId="battle-dragon"
               living={dragonLiving}
               aspect={1}
+              paused={covered}
               {reduced}
             />
           {/if}
@@ -156,6 +159,7 @@
             testId="battle-opponent"
             living={opponentLiving}
             aspect={FOE_ASPECT}
+            paused={covered}
             {reduced}
           />
           <!-- Particles fires on mount too: it mounts with the first strike, never before. -->
@@ -213,11 +217,19 @@
        screen's height the opponent tucks what its old size implies (7.7 % at 1180x820, 15 % at
        1024x768). B15, the dragon's face first: there the dragon slides off the left screen edge
        instead (its far wing and tail: 8.1 % and 13.6 % of its box), its eye and snout clear (--left-x,
-       below). The height caps keep the opponent under the hold bar and both under the HUD. */
+       below). The height caps keep the opponent under the hold bar and both under the HUD. B16: the
+       opponent's cap reads --foe-top, the HUD band's full height whether or not the HUD shows (the
+       muster and the victory show it, the writing phases do not), so it keeps one size through the
+       battle (it was 861 px against 929 px at 1920x1080); --top, which follows the HUD, still places
+       the parchment and the hold bar. */
     --feet: calc(4vh + env(safe-area-inset-bottom));
     --dragon-feet: var(--feet);
     --hold-room: 96px;
-    --foe-h: min(max(clamp(180px, 50vh, 440px), calc((var(--side) - 8px) * 1.8)), calc(100vh - var(--feet) - var(--top) - var(--hold-room)));
+    --foe-top: calc(var(--hud-band-full) + 8px);
+    --foe-h: min(max(clamp(180px, 50vh, 440px), calc((var(--side) - 8px) * 1.8)), calc(100vh - var(--feet) - var(--foe-top) - var(--hold-room)));
+    /* The opponent's right offset: centred in its column, 8 px from the edge at least. The hit burst
+       follows its middle (it may be wider than its column, 1180x820, 1024x768). */
+    --right-x-foe: max(8px, calc((var(--side) - var(--foe-h) * 0.5713) / 2));
     --dragon-h: min(max(clamp(140px, 36vh, 320px), calc(var(--side) * 1.176)), calc(100vh - var(--dragon-feet) - var(--top) - 16px));
   }
   .battle-stage.has-hud {
@@ -256,7 +268,7 @@
   }
   .battle-scene :global(.combatant.right) {
     --h: var(--foe-h);
-    --right-x: max(8px, calc((var(--side) - var(--h) * 0.5713) / 2));
+    --right-x: var(--right-x-foe);
   }
   /* The exit sign sits in the bottom-left corner: the dragon stands above it, not behind it. */
   .battle-stage.has-exit {
@@ -264,7 +276,7 @@
   }
   .hit-burst {
     position: absolute;
-    right: calc(var(--side) / 2 - 60px);
+    right: calc(var(--right-x-foe) + var(--foe-h) * 0.5713 / 2 - 60px);
     bottom: calc(var(--feet) + var(--foe-h) / 2 - 60px);
     width: 120px;
     height: 120px;

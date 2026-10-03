@@ -29,8 +29,10 @@
      and the 52 px round buttons), 8 px padding (Hud.svelte). Overlays centre below it with an
      18 px margin (Overlay.svelte), so they never cut the hero chip (playability #21) and the
      scroll's rods (11 px above the panel) stay clear of it too. A scene without a HUD (the title)
-     resets the band below. */
-  --hud-band: calc(72px + env(safe-area-inset-top));
+     resets the band below. --hud-band-full is that height whether or not the stage shows its HUD
+     (the battle's opponent keeps one size through its phases, living battle Ruling B16). */
+  --hud-band-full: calc(72px + env(safe-area-inset-top));
+  --hud-band: var(--hud-band-full);
   /* The table overlay's dark wood, the wax of seals, the clay of votive tablets. */
   --wood: #5a3d24;
   --wood-dark: #3b2715;

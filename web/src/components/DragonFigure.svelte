@@ -42,6 +42,7 @@
     className = '',
     style = '',
     living = null,
+    paused = false,
   }: {
     src: string;
     alt: string;
@@ -50,6 +51,8 @@
     className?: string;
     style?: string;
     living?: LivingRig | null;
+    /** The living loop holds its frame (the battle under its « Revoir » scroll). */
+    paused?: boolean;
   } = $props();
 
   let motion = $state<Motion>('pending');
@@ -91,7 +94,7 @@
     {#key livingNow}
       <!-- A dragon stage carries the dragon's tint (the nest's, the camp's and the battle's layers); a
            foe is never tinted (spec 2026-10-03 living battle). -->
-      <Living rig={livingNow} {src} {alt} tint={isFoeRig(livingNow) ? null : (tint ?? 'bronze')} {overlays} onmotion={(m: Motion) => (motion = m)} />
+      <Living rig={livingNow} {src} {alt} tint={isFoeRig(livingNow) ? null : (tint ?? 'bronze')} {overlays} {paused} onmotion={(m: Motion) => (motion = m)} />
     {/key}
   {/if}
   {#if shown !== 'living'}

@@ -44,7 +44,8 @@ and the antagonist there, they kind of look small and don't fill the screen very
   1024 square frame (or the frame gets an aspect) so the mesh, margin and baker work unchanged.
 - **Rigs:** hand-authored per creature in tools/art/rig.json (8 rigs: 7 antagonists + Éris
   flustered), baked by tools/art/rig.py, checked on debug overlays, then a STOP: the user watches
-  each one live in the lab before it reaches the battle.
+  each one live in the lab before it reaches the battle (superseded 2026-10-03: no stop, see The
+  look).
 - **Battle:** Combatant renders the living figure (through DragonFigure's living path or a sibling
   figure) for both fighters; the battle's own layout gets the new sizes.
 - **Cost control** as in the nest: 30 fps, paused when hidden; two canvases at most on screen.
@@ -112,7 +113,7 @@ What to check, per foe:
       | 1024x640 | 230 to 230 | 320 to 336 |
       | 1180x820 (the ipad project) | 295 to 295 | 410 to 410 |
       | 1024x768 | 276 to 276 | 384 to 384 |
-      | 1920x1080 | 320 to 677 | 440 to 861 (929 while she writes) |
+      | 1920x1080 | 320 to 677 | 440 to 861 |
 
       The parchment's width bounds the fighters: each fills its side column and tucks under the
       parchment's edge only where nothing it faces with is hidden (the dragon 15 %, 16 % where its old
@@ -124,16 +125,17 @@ What to check, per foe:
       slides off the left screen edge (24 px, 8.1 % of its box, and 38 px, 13.6 %) so its eye and snout
       stay clear of the parchment; its far wing tip and tail are clipped at that edge. The other way
       (the whole dragon on screen) hides its snout under the parchment. A CSS tweak either way.
-- [ ] Where the screen's height, not the column, bounds the opponent (1920x1080), it is 68 px taller
-      while she writes than in the muster and the victory, where the HUD's band takes the top of the
-      screen: it grows as the battle starts and shrinks back at the victory. Keep it, or hold it at the
-      HUD's size throughout (a CSS tweak).
+- Each fighter keeps one size through the battle (Ruling B16, final review): where the screen's
+  height, not the column, bounds the opponent (1920x1080), its cap reads the HUD's band whether or not
+  the HUD shows, so it is 861 px in the muster, while she writes and at the victory (it was 929 px
+  while she wrote). living-battle.spec.ts asserts it at all six screens.
 
 ## Open items
 
 None blocks the battle; for the user's look and the playtest:
-- The look above and its small adjustments (the gentle foes, the iPad trade-off, the opponent's size
-  change at 1920x1080).
+- The look above and its small adjustments (the gentle foes, the iPad trade-off).
+- The opponent's canvas spans the whole 1024 px frame plus its margin, wider than its 585 px portrait:
+  cropping it to the portrait is deferred to the playtest (final review, minor 7).
 - At 3x amplitude (the lab only; the game plays 1.5x) a soft compression remains on the Hydre's upper
   necks and on Éris's hair beside her elbow; clean at 1.5x.
 - The right Sirène's orange leg lies on the seam between the middle and right wings and follows them a

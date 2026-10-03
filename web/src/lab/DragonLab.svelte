@@ -19,6 +19,7 @@
   import { FOE_RIGS, livingFoe, type FoeRig } from '../lib/living/stages';
   import { FOE_SPRITES } from '../lib/living/foes';
   import { FACES } from '../lib/battle/battle';
+  import { lieutenantName } from '../lib/world/eris';
   import type { Tint } from '../lib/world/types';
 
   const WORN = ['lethe-queue', 'sirenes-dos', 'hydre-cou', 'echo-tete'];
@@ -38,6 +39,8 @@
   const foes = FOE_RIGS.map((r) => ({ rig: r, baked: livingFoe(r) !== null }));
   // The battle mirrors an opponent that does not look left in its file (battle.ts FACES); Éris routed as Éris.
   const mirrored = (r: FoeRig) => FACES[r === 'eris_flustered' ? 'eris' : r] !== 'left';
+  // The foes as the game names them (the camp's names, eris.ts), not their rig ids.
+  const foeName = (r: FoeRig) => (r === 'eris' ? 'Éris' : r === 'eris_flustered' ? 'Éris en déroute' : lieutenantName(r));
   let asInBattle = $state(true);
 </script>
 
@@ -85,17 +88,17 @@
     {#each foes as { rig: r, baked } (r)}
       <figure>
         <figcaption data-rig={r} data-baked={baked}>
-          {r}&#8239;: {baked ? MOTION_WORDS[motions[r] ?? 'pending'] : 'image fixe, pas encore de rig'}
+          {foeName(r)}&#8239;: {baked ? MOTION_WORDS[motions[r] ?? 'pending'] : 'pas encore animée'}
         </figcaption>
         <div class="portrait" class:mirror={asInBattle && mirrored(r)}>
           {#if !baked || motions[r] !== 'living'}
-            <img class="still" src={FOE_SPRITES[r]} alt={r} draggable="false" />
+            <img class="still" src={FOE_SPRITES[r]} alt={foeName(r)} draggable="false" />
           {/if}
           {#if baked}
             <LivingDragon
               rig={r}
               src={FOE_SPRITES[r]}
-              alt={r}
+              alt={foeName(r)}
               tint={null}
               overlays={[]}
               {amplitude}

@@ -2,7 +2,7 @@
 // the 1024 px frame (3.5 % margin around it so wing tips may move out a little), six bones (slot names
 // per creature: pose.ts) as 2D affine maps (y down), linear-blend skinning with an implicit rest
 // bone: p + sum w_i (M_i p - p). The vertex shader (renderer.ts) does the same sum as skinPoint
-// below; the weights are baked per vertex by tools/art/rig.py: weights[(j * VERTS + i) * 6 + b],
+// below; the weights are baked per vertex by tools/art/rig.py: weights[(j * VERTS + i) * SLOTS + b],
 // vertex (i, j) at (i * CELL, j * CELL).
 export const FRAME = 1024;
 export const GRID = 64;

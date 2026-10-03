@@ -11,7 +11,8 @@
   // hidden), `living` from its first frame, `still` on any failure (no WebGL2, a shader, a load, a lost
   // context: plan Ruling R4), after which DragonFigure unmounts it. A new rig or picture starts afresh,
   // `pending` again, on a new canvas (Ruling L2; a disposed canvas's context is lost for good). The loop
-  // draws at most 30 frames a second and stops while the page is hidden or the canvas is off-screen.
+  // draws at most 30 frames a second and stops while the page is hidden, the canvas is off-screen or
+  // its caller says `paused` (the battle under its « Revoir » scroll).
   // `amplitude`, `time`, `showWeights` and `tintSpec` (OKLCH settings in place of the tint's TINT_SPECS
   // entry) serve the lab.
   import { onMount, untrack } from 'svelte';
@@ -35,6 +36,7 @@
     time = null,
     showWeights = false,
     tintSpec = undefined,
+    paused = false,
     onmotion,
   }: {
     rig: LivingRig;
@@ -46,6 +48,7 @@
     time?: number | null;
     showWeights?: boolean;
     tintSpec?: OklchSpec | null;
+    paused?: boolean;
     onmotion: (m: Motion) => void;
   } = $props();
 
@@ -62,6 +65,7 @@
   let frames = 0;
   let visible = !document.hidden;
   let onScreen = true;
+  let held = false; // `paused`, read by the loop
   let piecesKey = '';
   let tintKey = '';
   let piecesToken = 0;
@@ -99,7 +103,7 @@
   }
 
   function schedule(): void {
-    if (!raf && renderer && visible && onScreen) raf = requestAnimationFrame(tick);
+    if (!raf && renderer && visible && onScreen && !held) raf = requestAnimationFrame(tick);
   }
 
   function pause(): void {
@@ -240,6 +244,11 @@
     const url = srcNow;
     if (!el) return;
     return untrack(() => start(el, s, url));
+  });
+
+  $effect(() => {
+    held = paused;
+    untrack(() => (held ? pause() : schedule()));
   });
 
   // A tint picked or a piece changed while the dragon is on screen: in place, no remount.

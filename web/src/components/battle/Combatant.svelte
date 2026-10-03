@@ -26,6 +26,7 @@
     testId,
     reduced,
     hits = 0,
+    paused = false,
   }: {
     src: string;
     alt: string;
@@ -40,6 +41,8 @@
     testId: string;
     reduced: boolean;
     hits?: number;
+    /** Holds the living figure's frame (the « Revoir » scroll covers the stage). */
+    paused?: boolean;
   } = $props();
 
   let actor: HTMLDivElement | undefined = $state();
@@ -60,7 +63,7 @@
 <div class="combatant {side}" data-testid={testId} data-reaction={reaction} data-hits={hits}>
   <div class="actor" bind:this={actor}>
     <div class="facing" class:mirror>
-      <DragonFigure {src} {alt} {tint} {overlays} {living} className="combatant-figure" style="aspect-ratio: {aspect}" />
+      <DragonFigure {src} {alt} {tint} {overlays} {living} {paused} className="combatant-figure" style="aspect-ratio: {aspect}" />
     </div>
   </div>
 </div>

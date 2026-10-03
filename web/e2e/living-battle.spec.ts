@@ -142,12 +142,18 @@ test('the egg stays the still picture beside a living opponent', async ({ page, 
 test('reduced motion and a browser without WebGL2 keep both fighters still, never fetching a rig', async ({ page, request }, testInfo) => {
   const { id, text } = await hero(request, testInfo, 'LB4');
   await mockDragon(page, id, () => ({ stage: 'adult' }));
+  // Every living file asked for, from the first muster on.
+  const living: string[] = [];
+  page.on('request', (r) => {
+    if (LIVING_FILES.test(r.url())) living.push(r.url());
+  });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await muster(page, id, text.id, 'lethe');
   expect(await settledDragon(opponent(page))).toBe('still');
   expect(await settledDragon(dragon(page))).toBe('still');
   await expect(canvases(page)).toHaveCount(0);
   await expect(opponent(page).locator('img.dragon-base')).toHaveAttribute('data-src', '/art/lieutenants/lethe_cut.webp');
+  expect(living, 'reduced motion fetches no living file').toEqual([]);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.addInitScript(() => {
     const get = HTMLCanvasElement.prototype.getContext;
@@ -155,16 +161,12 @@ test('reduced motion and a browser without WebGL2 keep both fighters still, neve
       return type === 'webgl2' ? null : (get as (...a: unknown[]) => unknown).call(this, type, ...rest);
     };
   });
-  const living: string[] = [];
-  page.on('request', (r) => {
-    if (LIVING_FILES.test(r.url())) living.push(r.url());
-  });
   await page.reload();
   await expectBattle(page, 'muster');
   expect(await settledDragon(opponent(page))).toBe('still');
   expect(await settledDragon(dragon(page))).toBe('still');
   await expect(canvases(page)).toHaveCount(0);
-  expect(living).toEqual([]);
+  expect(living, 'a browser without WebGL2 fetches no living file').toEqual([]);
 });
 
 test('a foe rig that fails to load leaves the opponent still and the dragon alive', async ({ page, request }, testInfo) => {
@@ -262,9 +264,11 @@ test('Éris routed swaps to her flustered rig under her held defeat pose', async
   expect(states.findIndex((s) => s.src === STANDING && s.motion === 'living' && s.reaction !== 'defeat'), `standing Éris alive before the defeat: ${told}`).toBeGreaterThanOrEqual(0);
 });
 
-test('a hit plays on the living opponent', async ({ page, request }, testInfo) => {
+test('a hit plays on the living opponent, its burst on her middle; « Revoir » holds both fighters still', async ({ page, request }, testInfo) => {
   const { id, text } = await hero(request, testInfo, 'LB8');
   await mockDragon(page, id, () => ({ stage: 'adult' }));
+  // 1024x768: the opponent keeps its old size there, wider than its column (Ruling B14).
+  await page.setViewportSize({ width: 1024, height: 768 });
   // The hit is caught as it starts (reactions.ts: it flashes to brightness(1.8)), even once the
   // retreat has replaced it.
   await recordReactions(page);
@@ -282,6 +286,23 @@ test('a hit plays on the living opponent', async ({ page, request }, testInfo) =
   await expect.poll(() => opponent(page).locator('.actor').evaluate((el) => getComputedStyle(el).transform)).not.toBe('none');
   const n = await frames(opponent(page));
   await expect.poll(() => frames(opponent(page))).toBeGreaterThan(n + 5);
+  // The burst flies from the opponent's middle, not its column's.
+  const [burst, foe] = await Promise.all([page.locator('.hit-burst').boundingBox(), opponent(page).boundingBox()]);
+  expect(Math.abs(burst!.x + burst!.width / 2 - (foe!.x + foe!.width / 2)), 'the burst on her middle').toBeLessThanOrEqual(2);
+  // The « Revoir » scroll covers the stage: both living loops hold their frame, then resume.
+  await page.getByTestId('battle-revoir').click();
+  await expect(page.getByTestId('overlay-revoir')).toBeVisible();
+  const held = async () => Promise.all([frames(opponent(page)), frames(dragon(page))]);
+  await page.waitForTimeout(300); // a frame already asked for may still land
+  const before = await held();
+  await page.waitForTimeout(1000);
+  expect(await held(), 'no frame drawn under « Revoir »').toEqual(before);
+  await page.goBack();
+  await expect(page.getByTestId('overlay-revoir')).toHaveCount(0);
+  for (const layer of [opponent(page), dragon(page)]) {
+    const m = await frames(layer);
+    await expect.poll(() => frames(layer)).toBeGreaterThan(m + 5);
+  }
 });
 
 test("the keyboard's compact band keeps both fighters alive inside it", async ({ page, request }, testInfo) => {
@@ -420,9 +441,11 @@ test('the bigger fighters keep the battle UI clear at six viewports, the three t
   for (const [i, vp] of VIEWPORTS.entries()) {
     await page.setViewportSize({ width: vp.width, height: vp.height });
     const at = `${vp.width}x${vp.height}`;
+    const foeH: Record<string, number> = {};
     const measure = async (phase: string) => {
       await reactionsDone(page);
       const s = await expectClear(page, `${at} ${phase}`, vp.foeTuck, vp.dragonTuck, vp.dragonOff);
+      foeH[phase] = s.opponent!.h;
       sizes.push(`${at} ${phase}: dragon ${Math.round(s.dragon!.h)} at x ${Math.round(s.dragon!.x)}, opponent ${Math.round(s.opponent!.h)}`);
       await page.screenshot({ path: testInfo.outputPath(`sizes-${at}-${phase}.png`) });
     };
@@ -449,6 +472,12 @@ test('the bigger fighters keep the battle UI clear at six viewports, the three t
     await page.goto(`/#/p/${v.id}/play/${v.text.id}`);
     await expectBattle(page, 'victory');
     await measure('victory');
+    // Ruling B16: the opponent keeps one size through the battle. Its height cap reads a top that
+    // never follows the HUD (shown at the muster and the victory only): at 1920x1080 it was 861 px
+    // in the muster and the victory and 929 px while she wrote.
+    for (const phase of ['proofreading', 'victory']) {
+      expect(Math.abs(foeH[phase] - foeH.muster), `${at}: the opponent is as tall in the ${phase} (${foeH[phase]}) as in the muster (${foeH.muster})`).toBeLessThanOrEqual(1);
+    }
     // Where the opponent tucks more than 3 %, the two foes not seen above, for the eye (Ruling B14:
     // the Chimère's snake head and Protée's trident must stay visible).
     if (vp.foeTuck > 0.03) {

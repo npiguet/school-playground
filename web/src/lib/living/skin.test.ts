@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BONES, CELL, FRAME, GRID, VERTS, buildMesh, frameOffset, rotAbout, scaleAbout, skinPoint, translate, weightsAt, SLOTS, type Affine } from './skin';
+import { BONES, CELL, FRAME, GRID, SLOTS, VERTS, buildMesh, frameOffset, rotAbout, scaleAbout, skinPoint, translate, weightsAt, type Affine } from './skin';
 
 const apply = (m: Affine, [x, y]: readonly [number, number]) => [m[0] * x + m[3] * y + m[6], m[1] * x + m[4] * y + m[7]];
 const bonesOf = (...ms: Affine[]) => Float32Array.from(ms.flat());
