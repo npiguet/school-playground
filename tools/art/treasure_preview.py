@@ -34,6 +34,9 @@ The plaques are modelled on the 640 px art box, where they are largest in art % 
 PLAQUES gives each one's width and height, centred on its polygon's box and kept inside the safe
 zone (geometry.ts plaqueShift). The name plaques, the exit sign, the plaques and the leader are
 read from web/src/lib/world/scenes/treasure-checks.json, the model treasures.test.ts checks too.
+
+Every input path is anchored on the repository (ROOT, two levels above this file), so the tool runs
+from any directory; --out is the caller's path, relative to the current directory.
 """
 import argparse
 import json
@@ -52,8 +55,10 @@ STANDS = {*LIEUTENANTS, *GEAR, "decor:bibliotheque", "decor:trophee", "decor:amp
 HANGS = {"decor:lanterne", "decor:fresque", "decor:mosaique", "decor:bouclier"}
 CUPBOARD = {*LIEUTENANTS, *GEAR}
 TROPHY_FOOT = 0.065
-PLACES = Path("web/src/lib/world/scenes/treasure-places.json")
-SHAPES = Path("web/src/lib/world/scenes/cabin.shapes.ts")
+ROOT = Path(__file__).resolve().parents[2]
+SCENES = ROOT / "web/src/lib/world/scenes"
+PLACES = SCENES / "treasure-places.json"
+SHAPES = SCENES / "cabin.shapes.ts"
 HOUSES = ["cabin", "villa", "palais"]
 PLACE_IDS = ["trophies", "journal", "lyre"]
 SAFE = (12.5, 87.5)
@@ -61,7 +66,7 @@ HUD_LINE = 10.0                     # 71.5 px of a 720 px art box (nest.ts HUD_L
 HUD_LINE_SHORT = 71.5 / 640 * 100   # the same 71.5 px of a 640 px art box (nest.ts HUD_LINE_SHORT)
 # The room's fixed boxes in art % (the name plaques, the exit sign, the places' plaques and leaders):
 # one model shared with treasures.test.ts, its notes in its `_doc`.
-CHECKS = json.loads(Path("web/src/lib/world/scenes/treasure-checks.json").read_text(encoding="utf-8"))
+CHECKS = json.loads((SCENES / "treasure-checks.json").read_text(encoding="utf-8"))
 NAME_PLAQUES = [(n["x"], n["y"], n["w"], n["h"]) for n in CHECKS["nameplates"]]
 EXIT_SIGN = tuple(CHECKS["exitSign"][k] for k in ("x", "y", "w", "h"))
 # Place id -> (width, height) of its plaque in art % of a 640 px art box, the leader's gap included.
@@ -91,10 +96,10 @@ def house_shapes(house: str, src: Path = SHAPES) -> dict:
 
 def piece_file(pid: str, level: int) -> Path:
     if pid in LIEUTENANTS:
-        return Path(f"web/public/art/trophies/large/trophy-{pid}-{level}.webp")
+        return ROOT / f"web/public/art/trophies/large/trophy-{pid}-{level}.webp"
     name = pid.replace(":", "-")
-    staged = Path(f"assets/art/export/treasures/{name}.webp")
-    return staged if staged.exists() else Path(f"web/public/art/treasures/{name}.webp")
+    staged = ROOT / f"assets/art/export/treasures/{name}.webp"
+    return staged if staged.exists() else ROOT / f"web/public/art/treasures/{name}.webp"
 
 
 def place_box(p: dict, aspect: float, foot: float) -> tuple[float, float, float, float]:
@@ -163,7 +168,7 @@ def main():
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--only", help="comma-separated piece ids to paste (default: all)")
     a = ap.parse_args()
-    room = Image.open(f"assets/art/scenes/{a.house}.png").convert("RGBA")
+    room = Image.open(ROOT / f"assets/art/scenes/{a.house}.png").convert("RGBA")
     W, H = room.size
     places = json.loads(PLACES.read_text(encoding="utf-8"))[a.house]
     missing = [pid for pid in PIECES if pid not in places]
