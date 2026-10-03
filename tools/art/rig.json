@@ -1,5 +1,5 @@
 {
-  "_doc": "The living dragon's rigs (the dragon-rig skill). 1024 px frame coordinates, y down, integers only. Per stage: six bones, each with its pivot and an optional region (poly, ellipse, or all: true), times an optional ramp (along y, or by distance from the pivot), pushed into the background and blurred by tools/art/rig.py; the pin rectangle keeps the feet still. Bake with tools/art/run_docker.sh rig bake; never edit web/src/lib/living/rig/*.json by hand.",
+  "_doc": "The living figures' rigs (the dragon-rig skill): the dragon's stages and the battle's foes. 1024 px frame coordinates, y down, integers only; a foe's 585 px portrait sits at x 219-804 of the frame. Per rig: six bones in slot order (four rigid ones, then chest and lift), each with its pivot and an optional region (poly, polys, ellipse, or all: true), times an optional ramp (along y, or by distance from the pivot), pushed into the background and blurred by tools/art/rig.py; the pin rectangle keeps the feet (or base) still. A foe's block names its sprite. Bake with tools/art/run_docker.sh rig bake --stage K; never edit web/src/lib/living/rig/*.json by hand.",
   "hatchling": {
     "bones": {
       "head":  { "pivot": [560, 470], "poly": [[280,20],[700,20],[700,300],[620,320],[625,470],[465,470],[455,330],[280,250]], "ramp": [470, 300], "blur": 12 },

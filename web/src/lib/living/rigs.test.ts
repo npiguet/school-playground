@@ -1,18 +1,33 @@
-// The living dragon's rigs (spec 2026-10-02 living dragon, "Rigs", "Tests"): each authored rig is baked
-// from the rig file and the sprite as they are now, its pinned feet get zero weight, its rigid bones
-// never sum past one, and the ancestral's horn tip takes the head's weight.
+// The living figures' rigs (spec 2026-10-02 living dragon, "Rigs", "Tests"; spec 2026-10-03 living
+// battle, "Tests"): every authored rig, the dragon's stages and the battle's foes, is baked from the rig
+// file and the sprite as they are now, in its creature's bone order; its pinned feet (or base) get zero
+// weight; its rigid bones never sum past one; the probed tips take their bone.
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { BONES, CELL, FRAME, VERTS, weightsAt } from './skin';
-import { decodeRig, LIVING_STAGES, livingStage, type RigFile } from './rigs';
+import { FOE_SPRITES } from './foes';
+import { bonesOf } from './pose';
+import { BONES, CELL, FRAME, SLOTS, VERTS, weightsAt } from './skin';
+import { decodeRig, FOE_RIGS, FOE_WIDTH, LIVING_STAGES, livingStage, motionOf, type FoeRig, type LivingRig, type RigFile } from './rigs';
 
-const FILES = import.meta.glob<RigFile>('./rig/dragon_*.json', { eager: true, import: 'default' });
-const SOURCE = JSON.parse(readFileSync('../tools/art/rig.json', 'utf-8')) as Record<string, { bones: Record<string, Record<string, unknown>>; pin: unknown }>;
-const STAGES = Object.keys(SOURCE).filter((k) => !k.startsWith('_'));
-const fileOf = (stage: string) => FILES[`./rig/dragon_${stage}.json`];
-const rigOf = (stage: string) => decodeRig(fileOf(stage));
+interface RigBlock {
+  sprite?: string;
+  bones: Record<string, Record<string, unknown>>;
+  pin: unknown;
+}
+
+const DRAGON_FILES = import.meta.glob<RigFile>('./rig/dragon_*.json', { eager: true, import: 'default' });
+const FOE_FILES = import.meta.glob<RigFile>('./rig/foe_*.json', { eager: true, import: 'default' });
+const SOURCE = JSON.parse(readFileSync('../tools/art/rig.json', 'utf-8')) as Record<string, RigBlock>;
+const KEYS = Object.keys(SOURCE).filter((k) => !k.startsWith('_'));
+const isDragon = (k: string) => (LIVING_STAGES as readonly string[]).includes(k);
+const DRAGONS = KEYS.filter(isDragon);
+const FOES = KEYS.filter((k) => !isDragon(k));
+const fileOf = (k: string) => (isDragon(k) ? DRAGON_FILES[`./rig/dragon_${k}.json`] : FOE_FILES[`./rig/foe_${k}.json`]);
+const spriteOf = (k: string) => SOURCE[k].sprite ?? `web/public/art/dragon/dragon_${k}_cut.webp`;
+const rigOf = (k: string) => decodeRig(fileOf(k));
 const HEAD = BONES.indexOf('head');
+const PAINTED = ['poly', 'polys', 'ellipse', 'all'];
 
 /** Python's json.dumps(sort_keys=True, separators=(',', ':')) for integers, booleans, strings, lists. */
 function canonical(v: unknown): string {
@@ -36,24 +51,42 @@ describe('the rigs', () => {
     expect(numbers(SOURCE).filter((n) => !Number.isInteger(n))).toEqual([]);
   });
 
-  it.each(STAGES)('%s: baked from the rig and the sprite as they are now', (stage) => {
-    const f = fileOf(stage);
-    expect(f, `${stage}: run tools/art/run_docker.sh rig bake`).toBeDefined();
-    const h = createHash('sha256').update(canonical(SOURCE[stage]), 'utf8').update('\n').update(readFileSync(`public/art/dragon/dragon_${stage}_cut.webp`));
-    expect(f.source, `${stage}: the rig or the sprite changed since the bake (tools/art/run_docker.sh rig bake)`).toBe(h.digest('hex'));
-    expect(f.stage).toBe(stage);
+  it('keys every rig by a dragon stage or a foe', () => {
+    expect(FOES.filter((k) => !(FOE_RIGS as readonly string[]).includes(k))).toEqual([]);
   });
 
-  it.each(STAGES)('%s: every bone has its pivot inside the frame', (stage) => {
-    const rig = rigOf(stage);
-    for (const b of BONES) {
+  it("names each foe's sprite as the game serves it; a dragon stage's is implied", () => {
+    for (const k of FOES) expect(SOURCE[k].sprite, k).toBe(`web/public${FOE_SPRITES[k as FoeRig]}`);
+    for (const k of DRAGONS) expect(SOURCE[k].sprite, k).toBeUndefined();
+  });
+
+  it.each(KEYS)("%s: its bones in its creature's slot order", (k) => {
+    expect(Object.keys(SOURCE[k].bones)).toEqual([...bonesOf(motionOf(k as LivingRig))]);
+  });
+
+  it.each(KEYS)('%s: baked from the rig and the sprite as they are now', (k) => {
+    const f = fileOf(k);
+    expect(f, `${k}: run tools/art/run_docker.sh rig bake --stage ${k}`).toBeDefined();
+    const h = createHash('sha256').update(canonical(SOURCE[k]), 'utf8').update('\n').update(readFileSync(`../${spriteOf(k)}`));
+    expect(f.source, `${k}: the rig or the sprite changed since the bake (tools/art/run_docker.sh rig bake --stage ${k})`).toBe(h.digest('hex'));
+    expect(f.stage).toBe(k);
+  });
+
+  it('gives each foe rig the portrait width, and no dragon one', () => {
+    for (const k of FOES) expect(fileOf(k).width, k).toBe(FOE_WIDTH);
+    for (const k of DRAGONS) expect(fileOf(k).width, k).toBeUndefined();
+  });
+
+  it.each(KEYS)('%s: every bone has its pivot inside the frame', (k) => {
+    const rig = rigOf(k);
+    for (const b of rig.bones) {
       const [x, y] = rig.pivots[b];
-      expect(x >= 0 && x <= FRAME && y >= 0 && y <= FRAME, `${stage} ${b}`).toBe(true);
+      expect(x >= 0 && x <= FRAME && y >= 0 && y <= FRAME, `${k} ${b}`).toBe(true);
     }
   });
 
-  it.each(STAGES)('%s: the feet get zero weight, in a box that reaches the bottom', (stage) => {
-    const rig = rigOf(stage);
+  it.each(KEYS)('%s: the feet get zero weight, in a box that reaches the bottom', (k) => {
+    const rig = rigOf(k);
     const [x0, y0, x1, y1] = rig.feet;
     expect(y1).toBe(FRAME);
     expect(y1 - y0).toBeGreaterThanOrEqual(3 * CELL);
@@ -62,25 +95,25 @@ describe('the rigs', () => {
       for (let i = 0; i < VERTS; i++) {
         const [x, y] = [i * CELL, j * CELL];
         if (x < x0 || x > x1 || y < y0) continue;
-        const w = Array.from(rig.weights.slice((j * VERTS + i) * 6, (j * VERTS + i) * 6 + 6));
-        expect(w, `${stage} vertex (${x}, ${y})`).toEqual([0, 0, 0, 0, 0, 0]);
+        const w = Array.from(rig.weights.slice((j * VERTS + i) * SLOTS, (j * VERTS + i) * SLOTS + SLOTS));
+        expect(w, `${k} vertex (${x}, ${y})`).toEqual([0, 0, 0, 0, 0, 0]);
       }
     }
   });
 
-  it.each(STAGES)('%s: the rigid bones never sum past one; each region carries its bone', (stage) => {
-    const rig = rigOf(stage);
-    const max = new Array(6).fill(0);
-    for (let k = 0; k < VERTS * VERTS; k++) {
-      const w = rig.weights.slice(k * 6, k * 6 + 6);
-      expect(w[0] + w[1] + w[2] + w[3], `${stage} vertex ${k}`).toBeLessThanOrEqual(255 + 2); // rounding of four bytes
-      for (let b = 0; b < 6; b++) max[b] = Math.max(max[b], w[b]);
+  it.each(KEYS)('%s: the rigid bones never sum past one; each region carries its bone', (k) => {
+    const rig = rigOf(k);
+    const max = new Array(SLOTS).fill(0);
+    for (let n = 0; n < VERTS * VERTS; n++) {
+      const w = rig.weights.slice(n * SLOTS, n * SLOTS + SLOTS);
+      expect(w[0] + w[1] + w[2] + w[3], `${k} vertex ${n}`).toBeLessThanOrEqual(255 + 2); // rounding of four bytes
+      for (let b = 0; b < SLOTS; b++) max[b] = Math.max(max[b], w[b]);
     }
-    BONES.forEach((b, i) => {
-      const spec = SOURCE[stage].bones[b];
-      const painted = 'poly' in spec || 'ellipse' in spec || 'all' in spec;
-      if (painted) expect(max[i], `${stage} ${b}`).toBeGreaterThanOrEqual(230);
-      else expect(max[i], `${stage} ${b} has no region`).toBe(0);
+    rig.bones.forEach((b, i) => {
+      const spec = SOURCE[k].bones[b];
+      const painted = PAINTED.some((p) => p in spec);
+      if (painted) expect(max[i], `${k} ${b}`).toBeGreaterThanOrEqual(230);
+      else expect(max[i], `${k} ${b} has no region`).toBe(0);
     });
   });
 
@@ -121,8 +154,8 @@ describe('the rigs', () => {
     expect(livingStage('ancestral')).toBe('ancestral');
   });
 
-  it('rigs every hatched stage, and nothing else', () => {
-    expect([...STAGES].sort()).toEqual([...LIVING_STAGES].sort());
+  it('rigs every hatched stage', () => {
+    expect([...DRAGONS].sort()).toEqual([...LIVING_STAGES].sort());
     for (const s of LIVING_STAGES) expect(livingStage(s), s).toBe(s);
   });
 
