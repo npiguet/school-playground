@@ -61,7 +61,7 @@ often but not every session; low = rare, edge-case, or dev-only.
 |---|---|---|---|---|---|
 | 26 | `web/src/components/ProgressionReveal.svelte:46-55` (`FIXED_GLYPHS`) and `web/src/screens/Cabin.svelte:52-61` (duplicated `FIXED_GLYPHS`) | 👟 🛡️ ⚡ 🏮 🧶 📚 🍎 🎨 — one emoji per non-relic reward (`sandales_hermes`, `egide`, `foudre_zeus`, 4× `decor:*`) | a | 8 painted reward icons — **already in progress**: another agent is generating these into `web/public/art/icons/` per `server/app/world/catalog.py` REWARDS ids. Once landed, swap both duplicated `FIXED_GLYPHS` maps for `ART.icons[id]` lookups. | High |
 | 27 | `web/src/components/juice/Medallion.svelte:22` — reward medallion | Renders whatever `glyph` string it's given (the emoji above) inside a CSS gold-ring medallion; `locked` state swaps it for a plain `?` | a/b | Medallion frame itself (CSS ring) is fine and should stay; only the `glyph` content needs to become an `<img>` once painted icons exist. The `?` mystery state is plain ASCII and is fine as-is. | High |
-| 28 | `web/src/components/places/cabin/TrophiesPanel.svelte` — tint cubbies | `<img>` of `ART.dragon.egg` tinted in OKLCH on a canvas (`use:tintedDragon`), a locked one greyed by a CSS filter | e | Already proper art — no action | — |
+| 28 | `web/src/components/places/cabin/TrophiesPanel.svelte` — tint cubbies | `<img>` of the egg's baked picture in the tint (`dragonArt('egg', tint)`, OKLCH baked offline since 2026-10-03), a locked one the bronze egg greyed by a CSS filter | e | Already proper art — no action | — |
 
 ## 4. Lieutenants and bestiary
 

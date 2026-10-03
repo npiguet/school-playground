@@ -1,5 +1,6 @@
 // The dragon's tint (user, 2026-10-02: the OKLCH tints at full strength): the CPU reference of the
-// living dragon's fragment shader and of the still pictures' canvas tint.
+// baked pictures (tools/art/bake_tints.py, held to it by world/bakedTints.test.ts, amended
+// 2026-10-03) and of the lab's shader preview.
 import { describe, expect, it } from 'vitest';
 import { oklchToRgb, rgbToOklch, tintOklch, tintPixel, tintText, type Rgb } from './tint';
 

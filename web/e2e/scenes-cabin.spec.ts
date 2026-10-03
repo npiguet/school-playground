@@ -83,8 +83,9 @@ test('the trophy shelf: a won tint is an egg painted in its tint, with no filter
   await page.goto(`/#/p/${id}/cabane?panel=tresors`);
   const ecume = page.getByTestId('overlay-trophies').getByTestId('cabin-reward-tint:ecume');
   await expect(ecume).toHaveAttribute('data-owned', 'true');
-  // The OKLCH copy is made on a canvas (`bronze` meanwhile: polled); a won egg carries no CSS filter.
+  // The egg's baked écume picture (amended 2026-10-03, baked tints); a won egg carries no CSS filter.
   await expect(ecume.locator('.tint-egg img')).toHaveAttribute('data-tint', 'ecume');
+  await expect(ecume.locator('.tint-egg img')).toHaveAttribute('src', '/art/dragon/dragon_egg_ecume.webp');
   await expect(ecume.locator('.tint-egg img')).toHaveCSS('filter', 'none');
 });
 

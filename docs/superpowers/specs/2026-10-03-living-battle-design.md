@@ -16,7 +16,9 @@ and the antagonist there, they kind of look small and don't fill the screen very
   on non-repeating periods, the way the dragon does in the nest; its feet / base never move. Today's
   CSS `idle-breathe` on the combatants goes.
 - The hero's dragon in battle is alive too (controller assumption, stated to the user: it reuses the
-  nest's rigs and tint; the egg stays still).
+  nest's rigs and tint; the egg stays still). Amended 2026-10-03, baked tints: its texture is the
+  stage's baked picture in its tint (`art.ts` `dragonArt`), as in the nest; nothing is tinted at run
+  time (`2026-10-02-living-dragon-design.md`, "Tint").
 - Both fighters are bigger: they fill the battle stage's height (today the dragon is
   `clamp(140px, 36vh, 320px)` and the opponent `clamp(180px, 50vh, 440px)`); the new sizes are tuned on
   screenshots at 1280x720, 1366x1024 and 1024x640 so nothing of the battle UI (HP bars, the dictation

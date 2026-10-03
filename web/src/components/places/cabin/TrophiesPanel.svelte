@@ -8,11 +8,10 @@
   // down; a piece put on display or away goes back up through `onUpdated` (final review M15: one
   // /rewards fetch).
   import Medallion from '../../juice/Medallion.svelte';
-  import { ART, trophyIcon } from '../../../lib/world/art';
+  import { dragonArt, trophyIcon } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
   import { campFor, campStore } from '../../../lib/world/campStore.svelte';
   import { LOCKED_EGG_FILTER } from '../../../lib/world/dragon';
-  import { tintedDragon } from '../../../lib/living/stillTint';
   import { lieutenantName, sleepingLine, isAwake } from '../../../lib/world/eris';
   import { MAX_SEAL, highestTrophies, sealHowLine, sealNeedLine, sealTitle, sealTitleOf, trophyId } from '../../../lib/world/seals';
   import { rulesOf } from '../../../lib/rules';
@@ -212,7 +211,9 @@
             {#if section.kind === 'tint'}
               <span class="tint-egg"
                 ><img
-                  use:tintedDragon={{ src: ART.dragon.egg, tint: isOwned ? tintKey(item.id) : 'bronze' }}
+                  src={dragonArt('egg', isOwned ? tintKey(item.id) : 'bronze')}
+                  data-src={dragonArt('egg', isOwned ? tintKey(item.id) : 'bronze')}
+                  data-tint={isOwned ? tintKey(item.id) : 'bronze'}
                   alt=""
                   style:filter={isOwned ? null : LOCKED_EGG_FILTER}
                 /></span

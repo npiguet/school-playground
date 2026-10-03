@@ -10,7 +10,8 @@ describe('the dragon as a speaker (UI1 greeting, reused by every place)', () => 
     expect(dragonSpeaker({ ...egg, stage: 'hatchling' }).name).toBe('Ton dragon');
     expect(dragonSpeaker({ ...egg, stage: 'young', name: 'Braise', tint: 'ecume' })).toMatchObject({
       name: 'Braise',
-      portrait: '/art/dragon/dragon_young_cut.webp',
+      // The baked picture of the stage in its tint (amended 2026-10-03, baked tints).
+      portrait: '/art/dragon/dragon_young_ecume.webp',
       portraitTint: 'ecume',
     });
   });

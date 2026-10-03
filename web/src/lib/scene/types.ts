@@ -138,7 +138,8 @@ export interface DialogueLine {
   speaker: SpeakerId;
   name: string;
   portrait: string;
-  /** The dragon's tint on its portrait (never set for the other speakers). */
+  /** The dragon's tint, baked in its portrait (art.ts dragonArt): the portrait's `data-tint` (never
+   *  set for the other speakers). */
   portraitTint?: Tint;
   text: string;
   /** The content key it came from (spec §8): the dialogue box's data-key, for e2e. */

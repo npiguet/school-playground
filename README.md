@@ -728,16 +728,18 @@ per slot.
 In the nest and on the camp, the hatched dragon moves slowly and slightly: head, wings, tail and
 breath, on periods that never line up, its feet still and its pieces riding along as rigid
 passengers. One WebGL2 canvas per dragon draws its single sprite on a 64 x 64 mesh skinned by six
-bones (`web/src/lib/living/`, `components/LivingDragon.svelte`); the tint is `TINT_SPECS` (OKLCH, the
-same steps as the still pictures' canvas tint), on the dragon only. The egg, reduced motion, a
+bones (`web/src/lib/living/`, `components/LivingDragon.svelte`); its texture is the stage's baked
+picture in the dragon's tint, the same file as the still picture (see "Art and sound"), so the pieces
+stay untinted and nothing is tinted at run time. The egg, reduced motion, a
 browser without WebGL2, a lost context or a shader that fails keep the still picture. The living
 code and each stage's rig load lazily, as their own chunks, the first time a living dragon shows
 (the battle screens are lazy too, so the entry chunk stays under Vite's 500 kB warning). The rigs
 are hand-authored in `tools/art/rig.json` and baked by `tools/art/run_docker.sh rig bake` into
 `web/src/lib/living/rig/` (the `dragon-rig` skill); the lab page (`web/lab.html`, built by
-`vite.lab.config.ts`, never shipped) shows every stage live. Its e2e, `web/e2e/living-dragon.spec.ts`,
+`vite.lab.config.ts`, never shipped) shows every stage live, and its « Teintes » sliders preview a
+tint live on the shader (a preview only: a new setting goes into `tintSpecs.json`, then a re-bake). Its e2e, `web/e2e/living-dragon.spec.ts`,
 runs on its own Playwright project, `chromium-gl` (Chromium with SwiftShader's WebGL2): the frames,
-the feet that stay put, the tint against the still picture's, the failures and the loop's pauses.
+the feet that stay put, the tinted canvas against the still picture, the failures and the loop's pauses.
 
 In battle both fighters live too, in every phase: the hatched dragon on the left and the opponent on
 the right, each on its own canvas (two at most), still under reduced motion, without WebGL2 and for
@@ -751,9 +753,15 @@ while « Revoir » covers the stage.
 ### Art and sound
 
 Art and sound are served from the same origin, bundled in the image: `web/public/art` (WebP, about
-9.8 MB) and `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler
+13.2 MB) and `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler
 (`web/src/lib/world/readmeSizes.test.ts` checks both figures). Dragon tints recolour one cut-out per
-stage in OKLCH (`TINT_SPECS`), on a canvas for the still pictures and in the living dragon's shader.
+stage in OKLCH (`TINT_SPECS`, read from `web/src/lib/world/tintSpecs.json`), baked offline: each
+stage under each tint is its own picture, `web/public/art/dragon/dragon_<stage>_<tint>.webp` (30
+files, about 3.4 MB), written by `tools/art/run_docker.sh bake` (`tools/art/bake_tints.py`; `bake
+--check` compares every pixel with the reference). `web/src/lib/world/bakedTints.test.ts` fails, naming
+that command, when a tint's settings or a sprite change without a re-bake, and checks sampled pixels
+against the CPU reference (`web/src/lib/living/tint.ts`). The game shows them as they are (still
+pictures, the living dragon's texture); only the lab's sliders tint live.
 Every static file is sent with `Cache-Control: no-store` (`server/app/static.py`, §2 "Which version
 is running?").
 

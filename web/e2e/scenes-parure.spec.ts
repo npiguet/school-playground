@@ -100,13 +100,13 @@ test('a tinted dragon keeps its pieces in their own colours; the egg keeps them 
   await page.goto(`/#/p/${id}/dragon`);
   const layer = page.getByTestId('nest-dragon-layer');
   await expect.poll(() => dragonWorn(layer)).toEqual(['lethe-tete']);
-  // The dragon is tinted (OKLCH: painted on a canvas, a blob picture, or by the living dragon's
-  // shader on the dragon only), its piece never (living-dragon.spec.ts compares the canvas's pixels).
+  // The dragon is tinted (its baked picture, the still one or the living dragon's texture, amended
+  // 2026-10-03), its piece never (living-dragon.spec.ts compares the canvas's pixels).
   await expect.poll(() => dragonTint(layer)).toBe('braise');
   expect(await settledDragon(layer)).toBe((await webgl2Available(page)) ? 'living' : 'still');
   stage = 'egg';
   await page.reload();
-  await expect(layer.locator('img.dragon-base')).toHaveAttribute('data-src', '/art/dragon/dragon_egg_cut.webp');
+  await expect(layer.locator('img.dragon-base')).toHaveAttribute('data-src', '/art/dragon/dragon_egg_braise.webp');
   await expect(layer.locator('img.dragon-base')).toHaveAttribute('data-tint', 'braise');
   await expect(layer.locator('img.dragon-overlay')).toHaveCount(0);
   await page.goto(`/#/p/${id}/dragon?panel=soin`);
@@ -116,7 +116,7 @@ test('a tinted dragon keeps its pieces in their own colours; the egg keeps them 
 
 // Living dragon, Task 7 review: the browsers here have WebGL2, so the dragon lives in the tests
 // above; reduced motion forces the still picture, whose pieces are their own untinted pictures inside
-// the dragon's box over a dragon tinted on a canvas (a blob picture, no CSS filter).
+// the dragon's box over the dragon's baked tinted picture (no CSS filter; amended 2026-10-03).
 test("under reduced motion the still picture wears its pieces untinted, inside the dragon's box", async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
   // Every stage already seen: no « grew while you were away » reveal over the camp.
@@ -135,7 +135,7 @@ test("under reduced motion the still picture wears its pieces untinted, inside t
   await expect(layer.locator('canvas')).toHaveCount(0);
   const base = layer.locator('img.dragon-base');
   await expect(base).toHaveAttribute('data-tint', 'braise');
-  await expect(base).toHaveAttribute('src', /^blob:/);
+  await expect(base).toHaveAttribute('src', '/art/dragon/dragon_adult_braise.webp');
   await expect(base).toHaveCSS('filter', 'none');
   expect(await dragonWorn(layer)).toEqual(['hydre-cou', 'lethe-tete']);
   const box = (await base.boundingBox())!;

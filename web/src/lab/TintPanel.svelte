@@ -3,8 +3,12 @@
   // (the game's tint method since the user's choice of 2026-10-02, at full strength) starting at the
   // tint's TINT_SPECS entry, and a copyable line. Each tint keeps its settings while another is looked
   // at.
+  // Amended 2026-10-03, baked tints (the user: "Keep the lab, and keep its sliders. I can use it if I
+  // want to add or modify the tints, to get a preview"): the sliders tint live on the shader, over the
+  // bronze sprite, as a preview only; the game shows the pictures baked by tools/art/bake_tints.py,
+  // shown here beside the preview (« Le jeu »), and a changed tint needs a re-bake (the panel says so).
   import LivingDragon from '../components/LivingDragon.svelte';
-  import { ART } from '../lib/world/art';
+  import { ART, dragonArt } from '../lib/world/art';
   import { TINT_NAMES, TINT_SPECS } from '../lib/world/dragon';
   import type { LivingStage, Motion } from '../lib/living/rigs';
   import { tintText, type OklchSpec } from '../lib/living/tint';
@@ -39,6 +43,11 @@
 
 <section class="tints">
   <h2>Teintes</h2>
+  <p class="baked" data-testid="tints-baked-note">
+    Ces curseurs ne font qu'un aperçu, teint en direct&#8239;: le jeu montre des images cuites d'avance, une par stade et
+    par teinte. Pour changer une teinte du jeu, reporter ses réglages dans <code>web/src/lib/world/tintSpecs.json</code>,
+    puis recuire les images&#8239;: <code>tools/art/run_docker.sh bake</code>
+  </p>
   <div class="controls">
     <label>Stade
       <select bind:value={stage}>
@@ -68,6 +77,12 @@
       <button type="button" onclick={() => (specs[tint] = preset(tint))}>Réinitialiser</button>
     </div>
   </figure>
+  <figure data-mode="baked">
+    <figcaption>Le jeu, image cuite</figcaption>
+    <div class="box">
+      <img class="baked-pic" src={dragonArt(stage, tint)} alt={`${stage} ${tint}`} draggable="false" />
+    </div>
+  </figure>
   <label class="all">Toutes les teintes
     <textarea readonly rows={tints.length} value={lines.join('\n')} onclick={(e) => e.currentTarget.select()}></textarea>
   </label>
@@ -80,6 +95,18 @@
   }
   h2 {
     margin: 0 0 8px;
+  }
+  .baked {
+    max-width: 720px;
+    margin: 0 0 10px;
+    padding: 8px 10px;
+    background: #fff6dc;
+    border-left: 4px solid #b8863b;
+  }
+  .baked-pic {
+    display: block;
+    width: 100%;
+    height: auto;
   }
   .controls {
     display: flex;

@@ -66,7 +66,7 @@ def tint_oklch(rgb: np.ndarray, shift: float, chroma: float, lightness: float) -
 
 def tint_array(arr: np.ndarray, spec) -> np.ndarray:
     """An (H, W, 4) uint8 straight-RGBA array under a tint's (shift, chroma, lightness): the alpha kept,
-    fully transparent pixels left as they are (stillTint.ts's rule, now the bake's)."""
+    fully transparent pixels left as they are (they show nothing)."""
     out = arr.copy()
     seen = arr[..., 3] > 0
     out[seen, :3] = np.round(tint_oklch(arr[seen, :3].astype(np.float64) / 255, *spec) * 255).astype(np.uint8)

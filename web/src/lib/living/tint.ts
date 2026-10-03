@@ -3,9 +3,10 @@
 // Each pixel's colour is taken to OKLCH (Ottosson's perceptual space: a hue turn keeps the perceived
 // lightness), its hue turned by `shift` degrees, its chroma and lightness scaled; a colour the turn
 // takes out of the sRGB gamut keeps its lightness and hue and loses chroma until it fits. TINT_SPECS
-// (world/dragon.ts) hold each tint's settings. These pure functions are the CPU reference: the living
-// dragon's fragment shader (renderer.ts) runs the same steps, and the still pictures are tinted with
-// them on a canvas (stillTint.ts).
+// (world/dragon.ts) hold each tint's settings. These pure functions are the CPU reference. Amended
+// 2026-10-03, baked tints: the game's pictures are tinted offline by tools/art/bake_tints.py (its
+// numpy port, tools/art/tints.py), and world/bakedTints.test.ts proves the baked files equal to this
+// reference; the fragment shader (renderer.ts) runs the same steps for the lab's « Teintes » preview only.
 
 export type Rgb = readonly [number, number, number];
 

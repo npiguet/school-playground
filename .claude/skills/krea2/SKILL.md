@@ -156,7 +156,7 @@ and repainted skin is not kept):
 4. Write an RGBA layer the size of the stage picture: the result's pixels where the object is, alpha
    0 elsewhere, edge softened 1–2 px. It lines up with the stage picture pixel for pixel.
 5. Check it composited on the stage picture and on tinted copies (`tools/art/overlay.py check`,
-   which applies the game's OKLCH tints, `TINT_SPECS` in `web/src/lib/world/dragon.ts`).
+   which applies the game's OKLCH tints, `TINT_SPECS`, read from `web/src/lib/world/tintSpecs.json`).
 
 ## Style files
 

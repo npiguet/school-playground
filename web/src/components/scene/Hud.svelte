@@ -11,8 +11,7 @@
   import Avatar from '../Avatar.svelte';
   import LaurelBar from '../ui/LaurelBar.svelte';
   import SoundPlate from './SoundPlate.svelte';
-  import { ART, MARK_ICONS } from '../../lib/world/art';
-  import { tintedDragon } from '../../lib/living/stillTint';
+  import { MARK_ICONS, dragonArt } from '../../lib/world/art';
   import { hudDrachmes, hudXp } from '../../lib/scene/hud';
   import { href } from '../../lib/routes';
   import type { CampResponse } from '../../lib/world/types';
@@ -37,6 +36,8 @@
 
   const xp = $derived(camp ? hudXp(camp.xp, camp.dragon.stage) : null);
   const purse = $derived(camp ? hudDrachmes(camp.drachmes) : null);
+  // The dragon in its tint, the baked picture (art.ts dragonArt, amended 2026-10-03).
+  const dragonPic = $derived(camp ? dragonArt(camp.dragon.stage, camp.dragon.tint) : '');
 </script>
 
 {#snippet hero()}
@@ -71,7 +72,7 @@
         href={href('dragon', { profileId: String(profile.id) })}
         aria-label="Ton dragon"
       >
-        <img use:tintedDragon={{ src: ART.dragon[camp.dragon.stage], tint: camp.dragon.tint }} alt="" />
+        <img src={dragonPic} data-src={dragonPic} data-tint={camp.dragon.tint} alt="" />
       </a>
     {/if}
     <!-- Playability #9: a bronze lyre (struck through when music and effects are muted), not an emoji. -->

@@ -62,8 +62,8 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(care.getByTestId('dragon-tint-how')).toHaveText("Les autres teintes se gagnent dans les quêtes de l'Oracle.");
   await expect(care.getByTestId('dragon-tint-ecume')).toHaveAccessibleName(/Écume.*quêtes de l'Oracle/);
   await expect(care.getByTestId('dragon-tint-ecume').locator('img[src="/art/icons/lock.webp"]')).toBeVisible();
-  // Fix round 1: the tint is painted on the egg picture itself (OKLCH, use:tintedDragon), and only a
-  // locked egg carries a CSS filter, its grey. Nothing around the egg is filtered, so the ring keeps
+  // Fix round 1: the tint is in the egg picture itself (its baked picture, art.ts dragonArt, amended
+  // 2026-10-03), and only a locked egg carries a CSS filter, its grey over the bronze egg. Nothing around the egg is filtered, so the ring keeps
   // its own colour (a filtered ring turned violet, Éris's colour) and the lock stays readable.
   const token = (name: string) =>
     page.evaluate((n) => {
@@ -89,6 +89,7 @@ test('the dragon opens its care and speaks; locked tints say how to win them', a
   await expect(care.getByTestId('dragon-tint-ecume').locator('.lock')).toHaveCSS('filter', 'none');
   await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveCSS('filter', /grayscale\(1\)/);
   await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveAttribute('data-tint', 'bronze');
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveAttribute('src', '/art/dragon/dragon_egg_cut.webp');
   await expect(care.getByTestId('dragon-tint-bronze').locator('.swatch-egg')).toHaveCSS('filter', 'none');
   await closeOverlay(page);
   await expect(page.getByTestId('nest-dragon')).toBeFocused();
@@ -115,9 +116,11 @@ test('a name being typed survives a tint tapped (a new camp snapshot) (final rev
   await expect(care.getByTestId('dragon-tint-ecume')).toHaveClass(/selected/);
   await expect(input).toHaveValue('Aile');
   // The tinted still pictures (living-dragon final review): the won écume swatch's egg and the HUD's
-  // dragon are painted in écume once their tinted copy is made (`bronze` meanwhile: polled).
+  // dragon show their baked écume pictures (amended 2026-10-03, baked tints).
   await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveAttribute('data-tint', 'ecume');
+  await expect(care.getByTestId('dragon-tint-ecume').locator('.swatch-egg')).toHaveAttribute('src', '/art/dragon/dragon_egg_ecume.webp');
   await expect(page.getByTestId('hud-dragon').locator('img')).toHaveAttribute('data-tint', 'ecume');
+  await expect(page.getByTestId('hud-dragon').locator('img')).toHaveAttribute('src', '/art/dragon/dragon_hatchling_ecume.webp');
   await expect.poll(() => dragonTint(page.getByTestId('nest-dragon-layer'))).toBe('ecume');
   expect(await redScan(page)).toEqual([]);
 });

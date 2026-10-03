@@ -9,19 +9,21 @@
   // (and, for a foe, by the frame's padding on both sides) so a wing tip may move out. It tells
   // DragonFigure how it goes (onmotion): `pending` while loading (the still picture shows, this waits
   // hidden), `living` from its first frame, `still` on any failure (no WebGL2, a shader, a load, a lost
-  // context: plan Ruling R4), after which DragonFigure unmounts it. A new rig or picture starts afresh,
-  // `pending` again, on a new canvas (Ruling L2; a disposed canvas's context is lost for good). The loop
+  // context: plan Ruling R4), after which DragonFigure unmounts it. A new rig starts afresh, `pending`
+  // again, on a new canvas (Ruling L2; a disposed canvas's context is lost for good); a new picture for
+  // the same rig (a tint picked: its baked picture) is swapped into the texture in place. The loop
   // draws at most 30 frames a second and stops while the page is hidden, the canvas is off-screen or
   // its caller says `paused` (the battle under its « Revoir » scroll).
-  // `amplitude`, `time`, `showWeights` and `tintSpec` (OKLCH settings in place of the tint's TINT_SPECS
-  // entry) serve the lab.
+  // The tint is baked in the picture (amended 2026-10-03, baked tints): `src` is the tinted file and
+  // `tint` names it (`data-tint`); the shader tints only for the lab.
+  // `amplitude`, `time`, `showWeights` and `tintSpec` (OKLCH settings tinted live on the shader, over
+  // the bronze sprite: the « Teintes » sliders' preview) serve the lab.
   import { onMount, untrack } from 'svelte';
   import type { OverlayLayer } from '../lib/world/accessories';
   import { buildAtlas, loadImage, padToFrame, pieceDraws, placePieces } from '../lib/living/atlas';
   import { AMPLITUDE, frameDue, poseFor } from '../lib/living/pose';
   import { DragonRenderer } from '../lib/living/renderer';
   import type { OklchSpec } from '../lib/living/tint';
-  import { TINT_SPECS } from '../lib/world/dragon';
   import type { Tint } from '../lib/world/types';
   import { FOE_WIDTH, isFoeRig, loadRig, type LivingRig, type Motion, type Rig } from '../lib/living/rigs';
   import { FRAME, MARGIN, frameOffset } from '../lib/living/skin';
@@ -54,7 +56,7 @@
 
   let host = $state<HTMLDivElement>();
   let motion = $state<Motion>('pending');
-  let applied = $state({ tint: '', worn: '' });
+  let applied = $state({ tint: '', worn: '', src: '' });
 
   let canvas: HTMLCanvasElement | null = null;
   let spriteWidth = FRAME;
@@ -69,6 +71,8 @@
   let piecesKey = '';
   let tintKey = '';
   let piecesToken = 0;
+  let spriteSrc = ''; // the picture on the canvas now
+  let spriteToken = 0;
   let tryId = 0; // the current try at the living path; any teardown or new try moves it on
   const started = performance.now();
 
@@ -133,9 +137,25 @@
     last = null;
   }
 
+  // A new picture for the same rig (a tint picked: the stage's baked picture in it) is swapped into the
+  // texture in place, on the same canvas, the pose going on (amended 2026-10-03, baked tints).
+  async function applySprite(url: string): Promise<void> {
+    if (!renderer || !rig || url === spriteSrc) return;
+    const token = ++spriteToken;
+    const img = await loadImage(url);
+    if (token !== spriteToken || !renderer || !rig) return;
+    renderer.setSprite(padToFrame(img, rig.width));
+    spriteSrc = url;
+    applied.src = url;
+    last = null;
+  }
+
+  // The game's tint is baked in its picture (amended 2026-10-03, baked tints: `src` is art.ts
+  // dragonArt's file), so the shader tints nothing there: `tint` only names the picture. The lab's
+  // « Teintes » sliders pass `tintSpec` over the bronze sprite, the one live tint left.
   function applyTint(name: Tint | null, override: OklchSpec | null | undefined): void {
-    const spec = override === undefined ? (name ? TINT_SPECS[name] : null) : override;
-    // The exact numbers, as the still tint's cache (stillTint.ts): a lab slider's 0.005 apart are two tints.
+    const spec = override ?? null;
+    // The exact numbers: a lab slider's 0.005 apart are two tints.
     const key = spec ? `${name} ${spec.shift} ${spec.chroma} ${spec.lightness}` : `${name ?? 'untinted'} none`;
     if (!renderer || key === tintKey) return;
     renderer.setTint(spec);
@@ -173,8 +193,11 @@
     piecesKey = '';
     piecesToken += 1;
     tintKey = '';
+    spriteSrc = '';
+    spriteToken += 1;
     applied.tint = '';
     applied.worn = '';
+    applied.src = '';
     motion = 'pending';
     onmotion('pending');
     (async () => {
@@ -184,8 +207,13 @@
         if (r.width !== spriteWidth) throw new Error(`rig ${s} is ${r.width} px wide, its box ${spriteWidth}`);
         rig = r;
         renderer = new DragonRenderer(cv, padToFrame(img, r.width), r);
+        spriteSrc = url;
+        applied.src = url;
         applyTint(tint, tintSpec);
         await applyPieces(overlays);
+        if (disposed) return;
+        // A picture given while this one loaded (a tint picked meanwhile).
+        await applySprite(src);
         if (disposed) return;
         resize();
         schedule();
@@ -231,19 +259,32 @@
 
   // The rig and the picture by value: a prop read straight from the parent's expression (the scene
   // layer's `layer.src`) changes with every new camp snapshot, the same string or not (a tint picked,
-  // a piece put on); only a new value may start a new try (Task 8: the canvas was remounted).
+  // a piece put on); only a new rig may start a new try, a new picture swaps the texture (Task 8: the
+  // canvas was remounted).
   const rigNow = $derived(rigId);
   const srcNow = $derived(src);
   // The host's aspect: the portrait's width over the frame's height (a foe), or the square frame.
   const boxWidth = $derived(isFoeRig(rigId) ? FOE_WIDTH : FRAME);
 
-  // The living path, afresh for each rig and picture (Ruling L2: after a failure too).
+  // The living path, afresh for each rig (Ruling L2: after a failure too; DragonFigure remounts this
+  // after a failure, a new picture included).
   $effect(() => {
     const el = host;
     const s = rigNow;
-    const url = srcNow;
     if (!el) return;
-    return untrack(() => start(el, s, url));
+    return untrack(() => start(el, s, srcNow));
+  });
+
+  // A new picture for the same rig, once drawn: swapped in place (a tint picked, its baked picture).
+  $effect(() => {
+    const url = srcNow;
+    untrack(() => {
+      if (!renderer) return; // still loading: start() takes the latest picture when it is ready
+      const id = tryId;
+      applySprite(url).catch(() => {
+        if (id === tryId) still();
+      });
+    });
   });
 
   $effect(() => {
@@ -283,7 +324,7 @@
   class:pending={motion !== 'living'}
   role="img"
   aria-label={alt}
-  data-src={src}
+  data-src={applied.src || src}
   data-tint={applied.tint || undefined}
   style:aspect-ratio="{boxWidth} / {FRAME}"
   data-worn={applied.worn}

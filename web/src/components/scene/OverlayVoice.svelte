@@ -4,7 +4,6 @@
   // at the top of the panel instead. Static, no typewriter, not a control.
   import type { Snippet } from 'svelte';
   import type { DialogueLine } from '../../lib/scene/types';
-  import { tintedDragon } from '../../lib/living/stillTint';
 
   // `testId`: a plate spoken inside a panel's own content (the owl on an empty codex page) keeps
   // `overlay-voice` for the one at the top of the overlay. `children`: a line built from live data
@@ -18,7 +17,7 @@
 </script>
 
 <figure class="overlay-voice" data-testid={testId} data-speaker={line.speaker} data-key={line.key}>
-  <img class="voice-portrait" use:tintedDragon={{ src: line.portrait, tint: line.portraitTint ?? null }} alt="" />
+  <img class="voice-portrait" src={line.portrait} data-src={line.portrait} data-tint={line.portraitTint} alt="" />
   <figcaption class="voice-body">
     <span class="voice-name">{line.name}</span>
     <span class="voice-text">{#if children}{@render children()}{:else}{line.text}{/if}</span>

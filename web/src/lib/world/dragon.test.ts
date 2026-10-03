@@ -40,6 +40,7 @@ describe('dragon helpers', () => {
     });
   });
   it("never tints the dragon violet (reserved for Éris, decision 11)", () => {
+    // On the CPU reference: the baked pictures the game shows are held equal to it (bakedTints.test.ts).
     // Éris's band is 260-329 degrees on the colour wheel (HSV hue). In OKLCH, the hue of a tinted
     // colour, it runs from the OKLCH hue of the wheel's 260 degrees to that of its 329 (full
     // saturation), across 0: about 280 to 1.3 degrees. Éris's own violet (--violet) falls in it.
