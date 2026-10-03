@@ -16,7 +16,6 @@ const SHOP: ShopCatalog = {
     { id: 'house:villa', key: 'villa', stage: 'adult', after: null, price: 300, the: 'la villa' },
     { id: 'house:palais', key: 'palais', stage: 'illustre', after: 'house:villa', price: 800, the: 'le palais' },
   ],
-  max_decor: { cabin: 4, villa: 6, palais: 9 },
 };
 const NAMES = new Proxy({} as Record<string, { name: string }>, { get: (_t, id: string) => ({ name: `Nom ${id}` }) });
 const lt = (key: string, level: number) => ({ key, level }) as unknown as LieutenantState;

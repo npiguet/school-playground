@@ -261,6 +261,45 @@ Seeds and asset lists are in `docs/art/style-guide.md` ("Progression redesign, p
   replacing the materials (plastered walls, Greek-key frieze, arched windows, tiled floor; for the
   palais marble columns, a mosaic floor, a back-wall arch onto a courtyard, a canopy bed). Denoise
   0.6 (14 steps) also kept the plan but stayed busier and closer to the cabin's clutter.
+  (These villa and palais were replaced on 2026-10-02 by the straight-on rooms below.)
+
+### A straight-on room with empty fixtures (the houses, 2026-10-02)
+
+Proven on the cabane, the villa and the palais (seeds 7603, 7709, 7804; the sidecars in
+`assets/art/scenes/` hold the exact prompts, `docs/art/style-guide.md` "House treasures" the
+rejects). Goal: a room whose back wall faces the viewer, so one front-facing cut-out per treasure
+fits every house, with each place painted **empty**.
+
+- **Framing that held:** "medium interior shot with a normal lens, eye level, the camera standing
+  close to the back wall and looking straight at it in one-point perspective, the back wall flat and
+  parallel to the picture" + `(wide angle:-2)`. Every variant came out straight-on.
+- **Name the hero and its size in the frame:** "In the centre, very large, filling two thirds of the
+  width of the picture and reaching from just above the floor almost up to the ceiling, a tall ...
+  open shelving cupboard with three shelves of three big wide open compartments each, a three by
+  three grid of nine big compartments". "Half the width" gave compartments 9-12.5 % wide; "two thirds"
+  gave 12.5-14 % (the cabin's half-width seed was still picked).
+- **Empty and ready:** "every compartment completely empty and deep, with a plain evenly lit back",
+  "an empty bronze hook", "an empty small pedestal", plus `(objects on the shelves:-3)`; add
+  `(books:-3) (cloth:-3) (fabric:-3)` when the room is a home (the villa filled its compartments with
+  folded cloths and a book without them).
+- **Named positions, short:** "Left of the cupboard, a small desk with an open leather journal and a
+  quill; right of the cupboard, a golden lyre on a small stand; a small closed chest on the floor
+  beside the desk; ... a bare stretch of wall at each side; bare floor in front." Krea placed each
+  one where named.
+- **Keep it new:** `(cracks:-3) (ruins:-3)` everywhere, `(moss:-3)` for stone. White plaster is the
+  hard case: "newly built", "brand-new", "fresh whitewashed plaster" and long wear negatives still
+  gave scuffed, streaky or blotchy walls. What worked: "a faithful modern replica ..., smooth walls
+  painted in one flat even warm cream colour, like a freshly painted new house, clean uniform paint"
+  with `(marble veins:-3) (texture:-2) (distressed:-3)` among the wear negatives. Strong marble
+  veins read as cracks: "faint soft veins" and, for gilded frames, `(thick pilasters:-2)`.
+
+**What failed (round 1, seeds 7101-7303):** a wide shot ("wide interior shot ... seen from a little
+distance") with a long list of small fixtures (six arched niches on one long shelf high on the back
+wall, an alcove, two pedestals, a bench, pegs, a wall shelf). Krea did draw every one, straight-on
+and empty, but the niches took ~30 % of the width high on the wall: at the playtest the trophies
+were tiny and far away, and the room read as an open stage with outdoor scenery at the edges. Fewer,
+bigger places (one big cupboard) beat many small ones. Long prompts (~200 words) were followed well;
+the fixture paragraph is the point, keep it whole.
 
 ### Adding an object to a scene: two passes (Hermès's stall in the camp, proven 2026-10-02)
 
@@ -331,7 +370,10 @@ fallback is a hard composite: generate with `mask_blur` 0 and paste only the obj
 - **Silver and polished bronze get multicolour blotches** (blue, green, orange patches) from the
   style's "warm and cool colour variation inside every shape", at every seed, even with
   `(patina:-3) (blotches:-3) (colourful patches:-3) (multicoloured:-3)` and "one even metal colour
-  all over". For bronze the patches read as reflections and were accepted (decor-bouclier). For
+  all over". For bronze the patches read as reflections and were accepted on the 256 px icon
+  (`icons/decor-bouclier`); on the large room piece (`treasures/decor-bouclier`) they read as
+  blotches, and `python tools/art/colorize.py <src.png> <dst.png>` (luminance onto one golden-bronze
+  gradient, blended 0.75) on the generated PNG before the cut-out removed them. For
   silver, which is nearly neutral, desaturate the generated PNG (`ImageEnhance.Color(0.3)`, then
   `Contrast(1.08)`) before the cut-out and say so in the sidecar (`postprocess`): the relief stays
   and it reads as silver (drachme). The trophies' silver level did not need it (small engraved

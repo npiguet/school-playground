@@ -268,7 +268,7 @@ les pièges croisés et la part de pièges déjoués. Quand tout y est, le sceau
 - De la gloire : 100 XP pour le sceau de bois, 200 pour le bronze, et ainsi de suite jusqu'à 500
   pour l'orichalque.
 - Des drachmes : 10 pour le bois, jusqu'à 50 pour l'orichalque.
-- Un **trophée** du lieutenant dans la matière du sceau, posé sur l'étagère de ta maison :
+- Un **trophée** du lieutenant dans la matière du sceau, posé à sa place dans ta maison :
   l'Écaille de l'Hydre, la Voix d'Écho, la Crinière de la Chimère, la Perle de Protée, la Plume de
   Sirène et le Pavot de Léthé, en bois, en bronze, en argent, en or et en orichalque.
 - Dès le sceau de bronze, une **parure** pour ton dragon est mise en vente chez Hermès (voir la
@@ -371,7 +371,7 @@ de guerre). Tu peux mener deux quêtes du mur à la fois, et en ranger une si tu
 
 Une quête du mur rapporte 60 XP, 5 drachmes et la page du lieutenant dans le bestiaire. Toutes les
 deux quêtes du mur terminées, tu gagnes aussi un objet de décor : la Lanterne d'Hestia, le Tapis de
-Pénélope, l'Étagère d'Alexandrie, puis le Trophée de la Pomme.
+Pénélope, l'Étagère d'Alexandrie, puis la Couronne de laurier.
 
 ### Comment se gagne une quête
 
@@ -445,12 +445,14 @@ Si ton dragon a grandi sans que tu le voies, il te le montre à ton retour au ca
 
 ## 14. Ta maison
 
-Ta maison commence en cabane. Avec la villa puis le palais, elle s'agrandit, et ses murs portent
-plus de décor : 4 objets dans la cabane, 6 dans la villa, 9 dans le palais.
+Ta maison commence en cabane. La villa puis le palais sont plus grands et plus beaux, et chaque
+maison a une place pour chacun de tes trésors : le plus beau trophée de chaque lieutenant, les
+armes des dieux et les objets de décor. Une place encore vide attend son trésor.
 
 - **Tes trésors** : l'étagère de tout ce que tu as gagné (trophées, armes des dieux, décor et
   teintes). Rien n'y est caché : chaque trésor pas encore gagné dit comment l'obtenir. Touche
-  « Exposer » pour accrocher un objet de décor au mur, « Ranger » pour l'enlever.
+  « Exposer » pour montrer une arme des dieux ou un objet de décor à sa place dans ta maison,
+  « Ranger » pour l'enlever. Un trophée se montre tout seul, et un sceau plus haut le remplace.
 - **Ton journal** : tes dernières défenses, tes mots-pièges et tout ce que tu as fait depuis le
   début.
 - **La lyre** : la voix de la Pythie, les sons, ta classe, ton objectif de la semaine, ton sceau,

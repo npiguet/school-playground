@@ -1,0 +1,14 @@
+{
+  "_doc": "The room's fixed boxes the treasures must stay clear of, in art %, shared by treasures.test.ts and tools/art/treasure_preview.py (spec 2026-10-02 house treasures). nameplates: SceneStage's name plaque, Ton palais the widest, at 1280x720 and on the shortest art box (a 1024x640 window: 1137.8 x 640, centred). exitSign: SceneExit's Le camp (about 143 x 45 px, 13.5 % from the stage's left, 3 % from its bottom): x 13.5-24.7 at 1280x720, 20.4-30.2 at 1180x820, 22.6-30.4 at 1366x1024, 17.1-29.7 at 1024x640; y from 89.9. plaques: each place's plaque (width, height) on the 640 px art box, where it is largest (Hotspot.svelte: 4 px padding, a 16 px Cinzel name, Tes trésors with its caption line, a 16 px leader gap), centred on its shape's box and kept inside the safe zone. leaderPx: the leader on that art box (1137.8 x 640 px), a 16 px line from the shape's edge to the plaque and its pin, 10 px across and 5 px of it inside the shape.",
+  "nameplates": [
+    { "x": 43, "y": 9.5, "w": 14, "h": 6.1 },
+    { "x": 42.1, "y": 10.7, "w": 15.8, "h": 6.8 }
+  ],
+  "exitSign": { "x": 13.5, "y": 89.9, "w": 17, "h": 7.1 },
+  "plaques": {
+    "trophies": { "w": 15, "h": 10.7 },
+    "journal": { "w": 13, "h": 7.5 },
+    "lyre": { "w": 9.5, "h": 7.5 }
+  },
+  "leaderPx": { "artW": 1137.8, "artH": 640, "len": 16, "pinH": 5, "pinW": 10 }
+}

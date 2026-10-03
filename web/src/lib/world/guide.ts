@@ -65,7 +65,6 @@ export function guideSections(catalog: WorldCatalog): GuideSection[] {
   const house = (k: 'villa' | 'palais') => shop.houses.find((x) => x.key === k)!;
   const villa = house('villa');
   const palais = house('palais');
-  const walls = shop.max_decor;
   const decor = shop.decor[0].price;
   const paces = PACES.map((pace) => ({ pace, bonus: paceBonus(pace, 'dictation', r) })).filter((x) => x.bonus > 0);
   const firstOnSale = Math.min(...SLOT_ORDER.map(slotLevel));
@@ -89,7 +88,7 @@ export function guideSections(catalog: WorldCatalog): GuideSection[] {
         p("Un sceau se gagne sur plusieurs jours de garde, en défendant des textes où le lieutenant se cache\u202f: il faut assez de jours, assez de pièges croisés, et une bonne part de pièges déjoués dans ta copie finale."),
         list(r.levels.map((n, i) => `${sealTitle(i + 1)}\u202f: ${plural(n.days, 'jour', 'jours')} de garde, ${plural(n.chances, 'piège', 'pièges')}, ${rateText(n.correct)} déjoués`)),
         p('Seuls comptent les jours qui suivent le sceau précédent\u202f: chaque sceau demande de nouveaux textes. Un sceau gagné ne se perd jamais.'),
-        p(`Chaque sceau rapporte de la gloire\u202f: ${lx} XP pour le sceau de bois, ${2 * lx} pour le bronze, et ainsi de suite jusqu'à ${MAX_SEAL * lx} pour l'orichalque. Il pose aussi un trophée sur l'étagère de ta cabane.`),
+        p(`Chaque sceau rapporte de la gloire\u202f: ${lx} XP pour le sceau de bois, ${2 * lx} pour le bronze, et ainsi de suite jusqu'à ${MAX_SEAL * lx} pour l'orichalque. Il pose aussi un trophée à sa place dans ta maison.`),
         p('Sous la tente de guerre, trois jauges te montrent où tu en es avec chaque lieutenant.'),
       ],
     },
@@ -112,8 +111,7 @@ export function guideSections(catalog: WorldCatalog): GuideSection[] {
             `Le décor coûte ${drachmesText(decor)} la pièce.`,
             `La villa, ${drachmesText(villa.price)}, est en vente quand je suis ${grown(villa.stage)}\u202f;`,
             `le palais, ${drachmesText(palais.price)}, quand je suis ${grown(palais.stage)}, après la villa.`,
-            'Plus la maison est grande, plus ses murs portent de décor\u202f:',
-            `${walls.cabin} pièces dans la cabane, ${walls.villa} dans la villa, ${walls.palais} dans le palais.`,
+            'Chaque maison a une place pour chacun de tes trésors\u202f: plus elle est grande, plus la pièce est belle.',
           ].join(' '),
         ),
         p('Hermès ne presse personne\u202f: ses prix ne bougent pas, et rien ne quitte son étal.'),

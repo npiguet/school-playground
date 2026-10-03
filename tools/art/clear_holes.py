@@ -54,7 +54,7 @@ def main():
         alpha[grown] = alpha[grown] * (1 - whiteness[grown])
         img[..., 3] = alpha.round().astype(np.uint8)
         cleared += 1
-    print(f"{cleared} hole(s) cleared")
+    print(f"{cleared} hole(s) {'found (dry run, nothing written)' if a.dry_run else 'cleared'}")
     if cleared and not a.dry_run:
         Image.fromarray(img).save(a.image)
 

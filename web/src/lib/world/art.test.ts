@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { DRAGON_STAGES, LIEUTENANT_ORDER, type WorldCatalog } from './types';
 import {
   ADD_ICONS,
@@ -18,27 +18,8 @@ import {
   trophyIcon,
 } from './art';
 import { ACCESSORY_MANIFEST, accessorySrc } from './accessories';
-
-/** A WebP's pixel size from its header (VP8X, VP8L or VP8), without a dependency. Reads only the
- *  first 32 bytes: the accessory test calls it 192 times on pictures up to 300 KB, and reading them
- *  whole through the npm container's bind mount passed vitest's 5 s timeout on a cold cache. */
-function webpSize(file: string): { w: number; h: number } {
-  const b = Buffer.alloc(32);
-  const fd = openSync(file, 'r');
-  try {
-    readSync(fd, b, 0, 32, 0);
-  } finally {
-    closeSync(fd);
-  }
-  const chunk = b.toString('ascii', 12, 16);
-  if (chunk === 'VP8X') return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3) };
-  if (chunk === 'VP8L') {
-    const bits = b.readUInt32LE(21);
-    return { w: (bits & 0x3fff) + 1, h: ((bits >>> 14) & 0x3fff) + 1 };
-  }
-  if (chunk === 'VP8 ') return { w: b.readUInt16LE(26) & 0x3fff, h: b.readUInt16LE(28) & 0x3fff };
-  throw new Error(`${file}: not a WebP`);
-}
+import { DECOR_PIECES, GEAR_PIECES } from './scenes/treasures';
+import { webpSize } from '../../testing/webp';
 
 function flat(o: unknown): string[] {
   return typeof o === 'string' ? [o] : Object.values(o as object).flatMap(flat);
@@ -54,11 +35,21 @@ describe('art map', () => {
     for (const p of nonScene()) expect(statSync('public' + p).size, p).toBeLessThan(150 * 1024);
   });
 
-  it('total non-scene art payload, the accessories included, stays under 4.5 MiB (raised for the 96 overlays, art spec Phase 4)', () => {
-    // Measured when the accessories came in (sub-project 4 Task 6): 4202462 bytes, of which the overlays 716924.
+  it('total non-scene art payload, the accessories included, stays under 4.75 MiB (raised for the 96 overlays, art spec Phase 4, then the twelve room treasures)', () => {
+    // Measured with the twelve room treasures (spec 2026-10-02 house treasures): 4768410 bytes.
     const accessories = readdirSync('public/art/dragon/accessories').map((f) => statSync(`public/art/dragon/accessories/${f}`).size);
     const total = nonScene().reduce((s, p) => s + statSync('public' + p).size, 0) + accessories.reduce((s, n) => s + n, 0);
-    expect(total).toBeLessThan(4.5 * 1024 * 1024);
+    expect(total).toBeLessThan(4.75 * 1024 * 1024);
+  });
+
+  it('ships the twelve treasures of the rooms, each within its budget (spec 2026-10-02 house treasures)', () => {
+    expect(Object.keys(ART.treasures).sort()).toEqual([...GEAR_PIECES, ...DECOR_PIECES].sort());
+    const files = Object.values(ART.treasures);
+    const onDisk = readdirSync('public/art/treasures').filter((f) => f.endsWith('.webp')).map((f) => `/art/treasures/${f}`);
+    expect([...onDisk].sort()).toEqual([...files].sort());
+    for (const p of files) expect(statSync('public' + p).size, p).toBeLessThanOrEqual(90 * 1024);
+    expect(files.reduce((s, p) => s + statSync('public' + p).size, 0)).toBeLessThanOrEqual(700 * 1024);
+    expect(statSync('public/art/icons/decor-trophee.webp').size).toBeLessThanOrEqual(20 * 1024);
   });
 
   // Spec 2026-09-29 drachmes §4, §6: every piece at every wearing stage, inside the stage's picture,
@@ -140,7 +131,7 @@ describe('art map', () => {
     expect(ART.scenes.hubCamp).toBe('/art/scenes/hub_camp.webp');
     expect(existsSync('public/art/scenes/hub_camp_stall.webp')).toBe(false);
     expect(statSync('public' + ART.characters.hermes).size).toBeLessThanOrEqual(80 * 1024);
-    for (const id of ['amphore', 'chouette', 'mosaique', 'bouclier']) expect(statSync(`public/art/icons/decor-${id}.webp`).size, id).toBeLessThanOrEqual(20 * 1024);
+    for (const id of ['amphore', 'chouette', 'mosaique', 'bouclier', 'trophee']) expect(statSync(`public/art/icons/decor-${id}.webp`).size, id).toBeLessThanOrEqual(20 * 1024);
   });
 
   it('ships the overlay textures and objects within their budgets (immersion wave W3)', () => {

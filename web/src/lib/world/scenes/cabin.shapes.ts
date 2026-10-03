@@ -1,29 +1,41 @@
-// Hotspot geometry of the cabin (cabin.webp), art % of the 16:9 frame, authored by hand from
-// docs/art/scenes.md (trophy shelf clipped to x 12.5-41 and below the HUD band; the journal on the
-// desk; the lamp and the lyre on the small table) and checked with `?debug`.
-import type { ShapeMap } from '../../scene/types';
+// Hotspot geometry of the three rooms (spec 2026-10-02 house treasures: repainted straight-on),
+// art % of the 16:9 frame, measured on a 1 % grid (docs/art/scenes.md, tools/art/grid.py) and
+// checked with `?debug`: « Tes trésors » around the cupboard, the journal around the desk, the
+// lyre around its stool or stand. The pieces' places (treasure-places.json) stay clear of them and
+// of their plaques (treasures.test.ts), but for the trophies and the gear, which stand in the
+// cupboard: it is the « Tes trésors » place itself. tools/art/treasure_preview.py reads this file
+// (the `points` lists and HOUSE_LABELS, in this layout), so its --check runs on these very values.
+import type { LabelPos, ShapeMap } from '../../scene/types';
+import type { House } from '../types';
 
 export const CABIN_SHAPES = {
-  trophies: { kind: 'polygon', points: [[12.5, 14], [40, 14], [40, 64], [12.5, 64]] },
-  journal: { kind: 'polygon', points: [[41, 47], [58, 47], [58, 78], [41, 78]] },
-  lyre: { kind: 'polygon', points: [[59, 38], [73, 38], [73, 70], [59, 70]] },
+  trophies: { kind: 'polygon', points: [[29.5, 14], [70.5, 14], [70.5, 80], [29.5, 80]] },
+  journal: { kind: 'polygon', points: [[12.5, 52], [17, 52], [17, 68], [12.5, 68]] },
+  lyre: { kind: 'polygon', points: [[71, 52], [82.5, 52], [82.5, 80], [71, 80]] },
 } satisfies ShapeMap;
 
-// Spec 2026-09-29 drachmes §3: the villa and the palais keep the cabin's room plan (style guide,
-// "Progression redesign, phase 3": landmarks by eye, ±2 %), so the three places keep their roles; each
-// room has its own boxes. The villa's shelf box steps in to x 31 below y 44, so the wall right of its
-// medals stays free for decor. The journal's box starts at x 40 (the desk at x ~= 37, its book at
-// x ~= 43): a place's tappable box is its shape's bounding box, and the shelf's reaches x 40.
+// The villa's cupboard place starts at x 28, inside its left pillar (x 25-29): at 1024x640 the journal's
+// plaque, pushed right by the safe zone's edge, reaches x ~= 26.1 (ruling H8 fix round).
 export const VILLA_SHAPES = {
-  trophies: { kind: 'polygon', points: [[12.5, 14], [40, 14], [40, 44], [31, 44], [31, 62], [12.5, 62]] },
-  journal: { kind: 'polygon', points: [[40, 46], [57.5, 46], [57.5, 78], [40, 78]] },
-  lyre: { kind: 'polygon', points: [[59, 42], [72.5, 42], [72.5, 72], [59, 72]] },
+  trophies: { kind: 'polygon', points: [[28, 18], [74.5, 18], [74.5, 80], [28, 80]] },
+  journal: { kind: 'polygon', points: [[13, 57], [25.5, 57], [25.5, 70], [13, 70]] },
+  lyre: { kind: 'polygon', points: [[75, 55], [84, 55], [84, 75], [75, 75]] },
 } satisfies ShapeMap;
 
-// The palais's shelf box steps in to x 19.5 below its lower shelf (y 45), where its medals begin, so
-// the bare marble left of them holds decor.
+// The palais's cupboard place ends at x 71, inside its right pillar (x 69.5-73): at 1024x640 the
+// lyre's plaque above reaches left to x ~= 71.75 (ruling H8 fix round).
 export const PALAIS_SHAPES = {
-  trophies: { kind: 'polygon', points: [[12.5, 14], [33.5, 14], [33.5, 62], [19.5, 62], [19.5, 45], [12.5, 45]] },
-  journal: { kind: 'polygon', points: [[39, 50], [58, 50], [58, 78], [39, 78]] },
-  lyre: { kind: 'polygon', points: [[59.5, 43], [72, 43], [72, 76], [59.5, 76]] },
+  trophies: { kind: 'polygon', points: [[27.5, 14], [71, 14], [71, 75], [27.5, 75]] },
+  journal: { kind: 'polygon', points: [[13, 54], [27, 54], [27, 66], [13, 66]] },
+  lyre: { kind: 'polygon', points: [[73, 54], [80, 54], [80, 75], [73, 75]] },
 } satisfies ShapeMap;
+
+export type HousePlace = 'trophies' | 'journal' | 'lyre';
+
+/** Each place's plaque side, per house: the journal's plaque goes below in the villa and the
+ *  palais, where the lanterne hangs from the hook above the desk; above in the cabin. */
+export const HOUSE_LABELS: Record<House, Record<HousePlace, LabelPos>> = {
+  cabin: { trophies: 'below', journal: 'above', lyre: 'above' },
+  villa: { trophies: 'below', journal: 'below', lyre: 'above' },
+  palais: { trophies: 'below', journal: 'below', lyre: 'above' },
+};

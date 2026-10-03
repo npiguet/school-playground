@@ -1,13 +1,13 @@
 {
-  "prompt": "wide interior shot, eye level, cosy warm evening light. subject: the inside of a comfortable ancient Greek villa bedroom, a step up from a simple cabin: smooth plastered stone walls in warm cream, a painted frieze band with a terracotta and Aegean blue Greek key pattern running along the top of every wall, dark wooden ceiling beams; on the left wall a long carved wooden trophy shelf with bronze hooks under it holding a golden laurel crown, a trophy cup and bronze medals, and a second shorter wooden shelf higher up on the same wall; in the centre a fine carved wooden desk with an open leather journal and a quill, between two tall arched windows showing a deep blue evening sky with first stars; on the right a small table with a glowing bronze oil lamp and a golden lyre leaning beside it; a bed with a woven blanket and cushions at the right edge; wide stretches of bare smooth plastered wall between the objects; a floor of warm terracotta tiles. Composition: a wide 16:9 game background seen from a little distance, all the important objects are grouped in the middle of the picture, the outer eighth on the far left and on the far right holds only soft background scenery such as plain wall, foliage or sky; the ground in the lower part of the picture continues naturally with the same texture and light but with few small details; the top edge is calm. (people:-2) (text:-3) (letters:-3) (signs:-3) (busy details:-2)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
-  "denoising_strength": 0.72,
-  "steps": 12,
+  "prompt": "medium interior shot with a normal lens, eye level, the camera standing close to the back wall and looking straight at it in one-point perspective, the back wall flat and parallel to the picture, warm golden late-afternoon light from a tall window. subject: the inside of a faithful modern replica of an ancient Greek villa interior, pristine and freshly painted, smooth walls painted in one flat even warm cream colour, like a freshly painted new house, clean uniform paint, a crisp painted frieze of terracotta and Aegean blue Greek key pattern along the top of the walls, slender painted columns, a polished terracotta tile floor, immaculate and new. In the centre, very large, filling two thirds of the width of the picture and reaching from just above the floor almost up to the ceiling, a tall carved and painted wooden open shelving cupboard with three shelves of three big wide open compartments each, a three by three grid of nine big compartments, every compartment completely empty and deep, with a plain evenly lit back. Left of the cupboard, a small desk with an open leather journal and a quill; right of the cupboard, a golden lyre on a small stand; a small closed chest on the floor beside the desk; an empty bronze hook hanging from the ceiling; an empty small white stone pedestal near one edge; a bare stretch of wall at each side; bare floor in front. Composition: a 16:9 game background, the cupboard is the large centrepiece, the top edge of the picture is a calm plain ceiling band, the far left and far right edges are plain wall. (people:-2) (text:-3) (busy details:-2) (objects on the shelves:-3) (wide angle:-2) (cracks:-3) (ruins:-3) (worn plaster:-3) (chipped paint:-3) (stains:-3) (patches:-3) (moss:-3) (old:-2) (scratches:-3) (scuffs:-3) (weathered:-3) (cracked plaster:-3) (dirt:-3) (smudges:-3) (books:-3) (cloth:-3) (fabric:-3) (marble veins:-3) (texture:-2) (distressed:-3)\n\nStyle: a painterly young-adult fantasy novel cover illustration with clean confident linework, soft cel shading with rich painted light, appealing slightly stylised proportions and expressive faces, in a sun-bleached Mediterranean palette of marble white, warm terracotta, olive green and deep Aegean blue with small burnished gold accents; dramatic but never gory or horrific, adventurous and a little theatrical, the feel of a Greek-mythology adventure book for teenagers.",
+  "steps": 8,
   "cfg_scale": 1.0,
   "sampler_name": "Euler",
-  "scheduler": "Simple",
-  "seed": 4401,
+  "scheduler": "simple",
   "width": 2048,
   "height": 1152,
+  "seed": 7709,
+  "tiling": false,
   "override_settings": {
     "sd_model_checkpoint": "krea2_turbo-Q3_K_M.gguf"
   },
@@ -17,10 +17,19 @@
         true,
         1.0
       ]
+    },
+    "krea2 variance": {
+      "args": [
+        false,
+        1.0,
+        1.0,
+        0.3,
+        0,
+        49,
+        1.2,
+        1
+      ]
     }
   },
-  "style": "discorde-illustration",
-  "init_image": "assets/art/scenes/cabin.png",
-  "mask_image": null,
-  "endpoint": "img2img"
+  "style": "discorde-illustration"
 }

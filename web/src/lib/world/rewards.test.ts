@@ -52,6 +52,8 @@ describe('reward words', () => {
     expect(sentence('sandales_hermes', '')).toBe('Bats Éris une première fois pour les gagner.');
     expect(sentence('decor:bouclier', '')).toBe('Hermès le vend à son étal.');
     expect(sentence('decor:chouette', '')).toBe('Hermès la vend à son étal.');
+    // Spec 2026-10-02 house treasures: la couronne de laurier.
+    expect(sentence('decor:trophee', '')).toBe('Termine huit quêtes du mur pour la gagner.');
     expect(sentence('decor:new', 'Dix quêtes du mur')).toBe('À gagner\u202f: dix quêtes du mur.');
     for (const id of HOW_TO_WIN_IDS) expect(sentence(id, '')).not.toMatch(/Comment l'obtenir|Neutraliser|Vaincre/);
   });
