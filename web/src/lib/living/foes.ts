@@ -63,10 +63,10 @@ export const FOE_MOTIONS: Record<FoeRig, CreatureMotion> = {
   echo: {
     rigid: ['ghostL', 'ghostR', 'hairL', 'hairR'],
     moves: {
-      ghostL: { kind: 'drift', x: [w(5, 7.3)], y: [w(3, 5.1, 1.2)] },
-      ghostR: { kind: 'drift', x: [w(-5, 6.7, 1.9)], y: [w(3, 5.9, 0.4)] },
-      hairL: { kind: 'turn', waves: [w(1.5, 4.3, 0.6)] },
-      hairR: { kind: 'turn', waves: [w(-1.5, 4.9, 1.8)] },
+      ghostL: { kind: 'drift', x: [w(5, 7.3)], y: [w(5, 5.1, 1.2)] },
+      ghostR: { kind: 'drift', x: [w(-5, 6.7, 1.9)], y: [w(5, 5.9, 0.4)] },
+      hairL: { kind: 'turn', waves: [w(2.0, 4.3, 0.6)] },
+      hairR: { kind: 'turn', waves: [w(-2.0, 4.9, 1.8)] },
     },
     breath: { period: 5.2, sx: 0.01, sy: 0.006, lift: 1.6 },
   },
@@ -86,7 +86,7 @@ export const FOE_MOTIONS: Record<FoeRig, CreatureMotion> = {
     rigid: ['tentacle', 'beard', 'waveL', 'waveR'],
     moves: {
       tentacle: { kind: 'turn', waves: [w(1.2, 4.2, 0.3), w(0.4, 1.9)] },
-      beard: { kind: 'turn', waves: [w(1.2, 5.6, 1.1)] },
+      beard: { kind: 'turn', waves: [w(1.8, 5.6, 1.1)] },
       waveL: { kind: 'drift', x: [w(4, 3.4)], y: [w(2, 2.3, 1.0)] },
       waveR: { kind: 'drift', x: [w(-4, 3.8, 1.5)], y: [w(2, 2.7, 0.2)] },
     },
