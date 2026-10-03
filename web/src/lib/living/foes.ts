@@ -49,8 +49,11 @@ export const FOE_MOTIONS: Record<FoeRig, CreatureMotion> = {
     moves: {
       lion: { kind: 'turn', waves: [w(1.2, 6.1, 0.5), w(0.4, 2.7)] },
       mane: { kind: 'turn', waves: [w(1.5, 4.4, 1.9)] },
-      goat: { kind: 'turn', waves: [w(1.8, 5.2, 2.8), w(0.5, 2.1)] },
-      snake: { kind: 'turn', waves: [w(2.6, 3.6, 0.2), w(0.8, 1.8, 1.0)] },
+      // The goat's head sits against the lion's mane along a long seam: it sways with the lion (the
+      // lion's two waves) plus a nod of its own, so the seam never folds; the snake's swing stays clear
+      // of the goat's beard (both checked at 3x, the dragon-rig skill's foe notes).
+      goat: { kind: 'turn', waves: [w(1.2, 6.1, 0.5), w(0.4, 2.7), w(0.8, 5.2, 2.8)] },
+      snake: { kind: 'turn', waves: [w(2.0, 3.6, 0.2), w(0.6, 1.8, 1.0)] },
     },
     breath: { period: 4.6, sx: 0.016, sy: 0.008, lift: 2.4 },
   },

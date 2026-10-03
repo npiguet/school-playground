@@ -148,6 +148,43 @@ describe('the rigs', () => {
     expect(weightsAt(rigOf('ancestral').weights, 510, 155)[HEAD]).toBeLessThanOrEqual(0.1);
   });
 
+  // The foes' tips and parts, read off the grid views (rig grid --stage <id>): each takes its bone.
+  const FOE_PROBES: [string, string, string, number, number][] = [
+    ['eris', 'arm', 'apple', 305, 185],
+    ['eris', 'hair', 'streaming strands', 750, 330],
+    ['eris', 'hem', 'left flare', 330, 935],
+    ['eris_flustered', 'head', 'crown spike', 469, 25],
+    ['eris_flustered', 'hairR', 'right locks', 690, 450],
+    ['hydre', 'tail', 'last curl', 700, 930],
+    ['chimere', 'lion', 'eye', 431, 190],
+    ['chimere', 'goat', 'eye', 577, 205],
+    ['chimere', 'snake', 'head', 729, 383],
+    ['chimere', 'mane', 'long lock', 310, 460],
+  ];
+  it.each(FOE_PROBES)('%s: the %s carries its %s (%i, %i)', (rig, bone, _what, x, y) => {
+    const r = rigOf(rig);
+    expect(weightsAt(r.weights, x, y)[r.bones.indexOf(bone)]).toBeGreaterThanOrEqual(0.9);
+  });
+
+  // The Hydra's six heads in three pairs (the user: "make a couple of heads move together as a pair"):
+  // each head's eye carries its pair's bone, and no other pair's.
+  const HYDRA_HEADS: [string, string, number, number][] = [
+    ['pairHaut', 'top head', 539, 78],
+    ['pairHaut', 'upper-left head', 396, 186],
+    ['pairDroite', 'upper-right head', 682, 176],
+    ['pairDroite', 'middle-right head', 657, 308],
+    ['pairBas', 'middle-left head', 412, 333],
+    ['pairBas', 'lower-left head', 417, 510],
+  ];
+  it.each(HYDRA_HEADS)('hydre: the %s bone moves the %s (%i, %i), alone', (pair, _what, x, y) => {
+    const r = rigOf('hydre');
+    const w = weightsAt(r.weights, x, y);
+    for (const p of ['pairHaut', 'pairDroite', 'pairBas']) {
+      if (p === pair) expect(w[r.bones.indexOf(p)], p).toBeGreaterThanOrEqual(0.9);
+      else expect(w[r.bones.indexOf(p)], p).toBeLessThanOrEqual(0.1);
+    }
+  });
+
   it('animates a stage only when its rig is baked, never the egg', () => {
     expect(livingStage('egg')).toBeNull();
     expect(livingStage('adult')).toBe('adult');

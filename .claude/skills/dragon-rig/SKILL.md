@@ -1,6 +1,6 @@
 ---
 name: dragon-rig
-description: Author, bake and check the living dragon's rigs (head, wings, tail, breath on one painted sprite per stage, WebGL2 mesh skinning). Use when a dragon stage picture changes, when a part of the living dragon lags, tears or moves when it should not (a horn, a wing tip, the feet), or to tune a stage's motion regions.
+description: "Author, bake and check the living figures' rigs: the dragon's stages (head, wings, tail, breath) and the battle's foes (spec 2026-10-03 living battle), on one painted sprite each, WebGL2 mesh skinning. Use when a dragon stage or a foe picture changes, when a part lags, tears or moves when it should not (a horn, a wing tip, the feet), or to tune a rig's motion regions."
 ---
 
 # The living dragon's rigs
@@ -103,3 +103,47 @@ weights view, pause and a time slider.
   and right of the claw tip; the ancestral's claw tip keeps under 0.1 of the head (a test checks it).
 - illustre: the left wing's lower finger touches the tail's tip at about (115, 855); the tail polygon
   starts at x 122 so the finger above y 820 stays on the wing.
+
+## The foes
+
+The battle's opponents live on the same engine (spec `docs/superpowers/specs/2026-10-03-living-battle-design.md`).
+
+- Keys in `rig.json` (`stages.ts` `FOE_RIGS`): `eris`, `eris_flustered` (Éris routed), `hydre`, `chimere`,
+  `echo`, `lethe`, `protee`, `sirenes`. Each block names its sprite (`"sprite": "web/public/art/..."`, part of
+  the bake hash) and bakes to `web/src/lib/living/rig/foe_<id>.json` (with `"width": 585`).
+- The 585 x 1024 portrait is padded, centred, into the 1024 frame: it sits at x 219-804. Read every
+  point off `rig grid --stage <id>` (the grid view shows it padded).
+- A region may be several polygons: `"polys": [[...], [...]]`.
+- The four rigid bones are named per foe, in `web/src/lib/living/foes.ts` (`FOE_MOTIONS`, which also
+  holds the motion); the block's key order must match (a test pins it), then `chest` and `lift`:
+  eris `hair, hairFront, arm, hem`; eris_flustered `hairL, hairR, head, hem` (`hem` has a pivot and no
+  region); hydre `pairHaut, pairDroite, pairBas, tail`; chimere `lion, mane, goat, snake`; echo `ghostL,
+  ghostR, hairL, hairR`; lethe `ribbonL, ribbonR, robe, hair`; protee `tentacle, beard, waveL, waveR`;
+  sirenes `wingL, wingInner, wingC, wingR`.
+- `rig foe-sheet` writes `docs/art/foe-rig.png`, the foes' debug views for the record.
+- The lab's « Les adversaires » shows every foe (a rig not baked yet as its still portrait);
+  « Comme au combat » mirrors them as in the battle.
+- The lab tiles are small; to judge a seam at 3x, render the skinned frame at full size offline (the
+  shader's displacement is `sum w_i (B_i p - p)`, linear across each 16 px cell) and look at crops.
+
+Foe notes:
+
+- eris: the hair turns about the back of her head ([30, 200] from the pivot); its polygon stops about
+  15 px right of her raised elbow and forearm (the arm stays still), takes the strands under the
+  bracelet down to y 545 but stays right of x 590, where her robe's edge starts (else the robe swings).
+  The apple arm turns about the elbow (378, 350); its polygon runs left of the locks at her shoulder.
+- eris_flustered: the head's `ramp: [260, 180]` gives the hand at her brow and the forearm the head's
+  weight, fading to the elbow; the chest ellipse is 80 x 90 with blur 24 (at 60 x 70 blur 30 it peaked
+  under 230 / 255 and failed "each region carries its bone").
+- hydre: no necks of different pairs cross; they run side by side. The two upper pairs fade along y
+  (`ramp: [380, 250]` and `[500, 360]`) so each neck bends smoothly into the body, and they take blur 14:
+  at blur 8 the top neck and the upper-right neck folded over each other at 3x. `pairBas` (the two
+  left heads and the curl between them) fades by distance from (360, 640). The tail turns about where
+  it leaves the ground coil (600, 905); its polygon's top stays under the coil above (y 884 and lower),
+  else the coil's edge is dragged along.
+- chimere: the goat's head sits against the lion's mane along a long seam, so the goat sways with the
+  lion (the lion's waves plus a nod of its own, in `foes.ts`) and turns about (520, 400); with motions
+  of their own the seam folded. The lion polygon stops left of the horn's tip (x 488 at the top). The
+  snake's polygon runs down to x 615 so its whole left edge (beside the goat's beard and the rump) is
+  inside; its swing is 2.0 + 0.6 deg (at 2.6 + 0.8 it folded into the beard at 3x). The pin covers the
+  rock and the four paws (the hind paw's toes reach x 725).
