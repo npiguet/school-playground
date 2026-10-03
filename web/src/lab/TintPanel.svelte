@@ -55,7 +55,7 @@
   <figure data-mode="oklch">
     <figcaption>OKLCH&#8239;: {MOTION_WORDS[motion]}</figcaption>
     <div class="box">
-      <LivingDragon {stage} src={ART.dragon[stage]} alt={`${stage} oklch`} {tint} overlays={[]} tintSpec={spec} onmotion={(m) => (motion = m)} />
+      <LivingDragon rig={stage} src={ART.dragon[stage]} alt={`${stage} oklch`} {tint} overlays={[]} tintSpec={spec} onmotion={(m) => (motion = m)} />
     </div>
     <div class="sliders">
       <label>Décalage de teinte <input type="range" min="-180" max="180" step="1" bind:value={specs[tint].shift} /> <output>{spec.shift}°</output></label>

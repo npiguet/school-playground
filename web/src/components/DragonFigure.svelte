@@ -22,15 +22,16 @@
   // and the pieces it wears on top, untinted (a tint recolours the dragon, never its gear). The
   // overlays are percentages of the picture's own box, so the figure scales as one.
   // `className` carries the caller's animation (idle, mood), so the pieces move with the dragon.
-  // Spec 2026-10-02 living dragon: given a `living` stage (the nest's and the camp's layers), it mounts
+  // Spec 2026-10-02 living dragon: given a `living` rig (a dragon stage, or a battle foe), it mounts
   // LivingDragon in place of the picture; the still markup shows while it loads (`data-motion`
   // pending), goes once its first frame is drawn (living) and stays for good if it fails (still),
-  // until the stage or the picture changes or reduced motion is lifted: then a fresh try (Ruling L2).
-  // The egg, reduced motion and every other caller (the battle, the victory, the reveal) pass none.
+  // until the rig or the picture changes or reduced motion is lifted: then a fresh try (Ruling L2).
+  // The egg, reduced motion and every other caller (the victory, the reveal) pass none; the battle
+  // passes its fighters' rigs (spec 2026-10-03 living battle).
   import type { OverlayLayer } from '../lib/world/accessories';
   import { tintedDragon } from '../lib/living/stillTint';
   import { untrack } from 'svelte';
-  import { hasWebGL2, type LivingStage, type Motion } from '../lib/living/stages';
+  import { hasWebGL2, isFoeRig, type LivingRig, type Motion } from '../lib/living/stages';
   import type { Tint } from '../lib/world/types';
 
   let {
@@ -48,7 +49,7 @@
     overlays?: OverlayLayer[];
     className?: string;
     style?: string;
-    living?: LivingStage | null;
+    living?: LivingRig | null;
   } = $props();
 
   let motion = $state<Motion>('pending');
@@ -56,17 +57,17 @@
   // A browser without WebGL2 (asked once, stages.ts) never tries: the still picture at once.
   const livingNow = $derived(living && hasWebGL2() ? living : null);
   const srcNow = $derived(src);
-  // A new stage, a new picture or reduced motion lifted (`living` back from null): a fresh try, even
+  // A new rig, a new picture or reduced motion lifted (`living` back from null): a fresh try, even
   // after a failure. By value: the props read through the parent's expressions change with every
-  // camp snapshot (a tint picked, a piece put on) even when the stage and picture stay the same.
-  // The component's chunk loads on the first living stage; a chunk that fails to load is a failure
+  // camp snapshot (a tint picked, a piece put on) even when the rig and picture stay the same.
+  // The component's chunk loads on the first living rig; a chunk that fails to load is a failure
   // too, and every fresh try (a new picture alone included) asks for it again, so `data-motion`
   // never stays `pending` over a still picture (living-dragon final review).
   $effect(() => {
     void srcNow;
-    const stage = livingNow;
+    const rig = livingNow;
     motion = 'pending';
-    if (!stage || untrack(() => Living)) return;
+    if (!rig || untrack(() => Living)) return;
     let gone = false;
     loadLiving().then(
       (c) => {
@@ -81,17 +82,20 @@
     };
   });
   const shown = $derived<Motion>(livingNow ? motion : 'still');
+  // A foe's still picture is never tinted either, whatever its caller gives (spec 2026-10-03 living battle).
+  const stillTint = $derived(living && isFoeRig(living) ? null : tint);
 </script>
 
 <div class="dragon-figure {className}" {style} data-motion={shown}>
   {#if livingNow && Living && motion !== 'still'}
     {#key livingNow}
-      <!-- A living stage is only ever given with the dragon's tint (the nest's and the camp's layers). -->
-      <Living stage={livingNow} {src} {alt} tint={tint ?? 'bronze'} {overlays} onmotion={(m: Motion) => (motion = m)} />
+      <!-- A dragon stage carries the dragon's tint (the nest's, the camp's and the battle's layers); a
+           foe is never tinted (spec 2026-10-03 living battle). -->
+      <Living rig={livingNow} {src} {alt} tint={isFoeRig(livingNow) ? null : (tint ?? 'bronze')} {overlays} onmotion={(m: Motion) => (motion = m)} />
     {/key}
   {/if}
   {#if shown !== 'living'}
-    <img class="dragon-base" use:tintedDragon={{ src, tint }} {alt} draggable="false" />
+    <img class="dragon-base" use:tintedDragon={{ src, tint: stillTint }} {alt} draggable="false" />
     {#each overlays as o (o.item)}
       <img
         class="dragon-overlay"
