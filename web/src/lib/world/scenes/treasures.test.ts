@@ -11,6 +11,7 @@ import {
   DECOR_PIECES,
   GEAR_PIECES,
   PIECE_IDS,
+  PIECE_SIZES,
   POSES,
   TREASURE_PLACES,
   TROPHY_FOOT,
@@ -19,6 +20,7 @@ import {
   type PieceId,
   type RoomPiece,
 } from './treasures';
+import CHECKS from './treasure-checks.json';
 
 const HOUSES: House[] = ['cabin', 'villa', 'palais'];
 const isTrophy = (id: PieceId): id is LieutenantKey => (LIEUTENANT_ORDER as readonly string[]).includes(id);
@@ -29,32 +31,14 @@ const aspectOf = (id: PieceId) => {
 };
 const boxOf = (house: House, id: PieceId) => placeBox(TREASURE_PLACES[house][id], aspectOf(id), isTrophy(id) ? TROPHY_FOOT : 0);
 
-/** SceneStage's name plaque, « Ton palais » the widest: x 43-57, y 9.5-15.6 at 1280x720; the same
- *  pixels on the shortest art box (a 1024x640 window: 1137.8 x 640, centred) reach x 42.1-57.9,
- *  y 10.7-17.5. */
-const NAME_PLAQUES: Box[] = [
-  { x: 43, y: 9.5, w: 14, h: 6.1 },
-  { x: 42.1, y: 10.7, w: 15.8, h: 6.8 },
-];
-
-/** SceneExit's sign, « Le camp » (about 143 x 45 px, 13.5 % from the stage's left and 3 % from its
- *  bottom), in art % at the e2e sizes and the smallest window: x 13.5-24.7 at 1280x720, 20.4-30.2 at
- *  1180x820, 22.6-30.4 at 1366x1024, 17.1-29.7 at 1024x640; y from 89.9. A piece under it would be
- *  hidden by a button. */
-const EXIT_SIGN: Box = { x: 13.5, y: 89.9, w: 17, h: 7.1 };
-
-/** Each place's plaque in art % of the 640 px art box, where it is largest (Hotspot.svelte: 4 px
- *  padding, a 16 px Cinzel name, « Tes trésors » with its caption line, a 16 px leader gap), centred
- *  on its shape's box and kept inside the safe zone: tools/art/treasure_preview.py's model. */
-const PLAQUES: Record<string, { w: number; h: number }> = {
-  trophies: { w: 15, h: 10.7 },
-  journal: { w: 13, h: 7.5 },
-  lyre: { w: 9.5, h: 7.5 },
-};
-
-/** A place's leader on the 640 px art box (Hotspot.svelte): a 16 px line from the shape's edge to
- *  the plaque, and its pin, 10 px across, centred on that edge. */
-const LEADER = { len: (16 / 640) * 100, pinH: (5 / 640) * 100, pinW: (10 / 1137.8) * 100 };
+/** The room's fixed boxes the pieces stay clear of (the name plaques, the exit sign, the places'
+ *  plaques and leaders), in art %: one model shared with tools/art/treasure_preview.py, its notes
+ *  in its `_doc`. */
+const NAME_PLAQUES: Box[] = CHECKS.nameplates;
+const EXIT_SIGN: Box = CHECKS.exitSign;
+const PLAQUES: Record<string, { w: number; h: number }> = CHECKS.plaques;
+const L = CHECKS.leaderPx;
+const LEADER = { len: (L.len / L.artH) * 100, pinH: (L.pinH / L.artH) * 100, pinW: (L.pinW / L.artW) * 100 };
 
 // Spec 2026-10-02 house treasures, "Tests: unit".
 describe('the places of the treasures', () => {
@@ -74,6 +58,15 @@ describe('the places of the treasures', () => {
     const ids = [...py.matchAll(/_r\("([^"]+)", "(gear|decor)"/g)].map((m) => m[1]);
     expect([...GEAR_PIECES, ...DECOR_PIECES].sort()).toEqual(ids.sort());
     expect(Object.keys(POSES).sort()).toEqual([...PIECE_IDS].sort());
+  });
+
+  it("knows every piece's picture size, so the room sizes its box before the file loads", () => {
+    expect(Object.keys(PIECE_SIZES).sort()).toEqual([...PIECE_IDS].sort());
+    for (const id of PIECE_IDS) {
+      const files = isTrophy(id) ? ART.trophies.large[id] : [ART.treasures[id as RoomPiece]];
+      expect(files.length, id).toBeGreaterThan(0);
+      for (const f of files) expect(webpSize('public' + f), f).toEqual(PIECE_SIZES[id]);
+    }
   });
 
   it('keeps every piece inside the frame and the safe zone, below the HUD, off the room name and the exit sign', () => {

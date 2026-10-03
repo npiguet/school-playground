@@ -446,10 +446,9 @@ export async function labelOverlaps(page: Page, sceneId: string): Promise<string
 
 /** The pieces in the house's room (spec 2026-10-02 house treasures): each one loaded (a missing
  *  file has no natural width), none under a place's plaque or leader, the room's name or the exit
- *  sign, none over
- *  another, and none over a place but the trophies and the gear, which stand in the cupboard that
- *  is « Tes trésors » itself. Read in one evaluate and polled: setViewportSize may return before
- *  WebKit has laid out the new size (two separate reads once straddled it). */
+ *  sign, none over another, and none over a place but the trophies and the gear, which stand in
+ *  the cupboard that is « Tes trésors » itself. Read in one evaluate and polled: setViewportSize
+ *  may return before WebKit has laid out the new size (two separate reads once straddled it). */
 export async function expectPiecesClear(page: Page, size: { width: number; height: number }) {
   const problems = () =>
     page.evaluate(() => {

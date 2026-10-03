@@ -91,7 +91,7 @@
         data-level={p.level ?? undefined}
         style="left:{p.place.x - p.place.w / 2}%;top:{p.place.y}%;width:{p.place.w}%;--foot:{p.foot}"
       >
-        <img src={p.src} alt="" draggable="false" />
+        <img src={p.src} alt="" width={p.size.w} height={p.size.h} decoding="async" draggable="false" />
       </div>
     {/each}
     {#if debug}

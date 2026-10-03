@@ -24,14 +24,16 @@ name plaques and the safe zone. --check prints every problem and exits 1 if ther
   and the smallest window, 1024x640);
 - two pieces whose boxes overlap;
 - a piece on a place's plaque or on its leader (the 16 px bronze line from the shape's edge to the
-  plaque and the 10 px gold pin at the shape's edge, Hotspot.svelte), or a decor piece in a place's tappable box (its polygon's bounding
-  box). The trophies and the gear stand in the cupboard, which is the « Tes trésors » place itself
-  (spec 2026-10-02, the rooms' hero): they may lie inside that one place's box, never on a plaque.
+  plaque and the 10 px gold pin at the shape's edge, Hotspot.svelte), or a decor piece in a place's
+  tappable box (its polygon's bounding box). The trophies and the gear stand in the cupboard, which
+  is the « Tes trésors » place itself (spec 2026-10-02, the rooms' hero): they may lie inside that
+  one place's box, never on a plaque.
 
 The plaques are modelled on the 640 px art box, where they are largest in art % (Hotspot.svelte:
 4 px padding, a 16 px Cinzel name, « Tes trésors » with its caption line, a 16 px leader gap):
 PLAQUES gives each one's width and height, centred on its polygon's box and kept inside the safe
-zone (geometry.ts plaqueShift).
+zone (geometry.ts plaqueShift). The name plaques, the exit sign, the plaques and the leader are
+read from web/src/lib/world/scenes/treasure-checks.json, the model treasures.test.ts checks too.
 """
 import argparse
 import json
@@ -57,17 +59,15 @@ PLACE_IDS = ["trophies", "journal", "lyre"]
 SAFE = (12.5, 87.5)
 HUD_LINE = 10.0                     # 71.5 px of a 720 px art box (nest.ts HUD_LINE)
 HUD_LINE_SHORT = 71.5 / 640 * 100   # the same 71.5 px of a 640 px art box (nest.ts HUD_LINE_SHORT)
-# SceneStage's name plaque, « Ton palais » the widest: x 43-57, y 9.5-15.6 at 1280x720; the same
-# pixels on a 1024x640 window (art box 1137.8 x 640, centred) reach x 42.1-57.9, y 10.7-17.5.
-NAME_PLAQUES = [(43, 9.5, 14, 6.1), (42.1, 10.7, 15.8, 6.8)]
-# SceneExit's sign (about 143 x 45 px, left 13.5 % and bottom 3 % of the stage), in art % of every
-# e2e size: x 13.5-24.7 at 1280x720, 20.4-30.2 at 1180x820, 22.6-30.4 at 1366x1024, and 17.1-29.7 at
-# 1024x640 (art box 1137.8 x 640, centred); y from 89.9.
-EXIT_SIGN = (13.5, 89.9, 17.0, 7.1)
+# The room's fixed boxes in art % (the name plaques, the exit sign, the places' plaques and leaders):
+# one model shared with treasures.test.ts, its notes in its `_doc`.
+CHECKS = json.loads(Path("web/src/lib/world/scenes/treasure-checks.json").read_text(encoding="utf-8"))
+NAME_PLAQUES = [(n["x"], n["y"], n["w"], n["h"]) for n in CHECKS["nameplates"]]
+EXIT_SIGN = tuple(CHECKS["exitSign"][k] for k in ("x", "y", "w", "h"))
 # Place id -> (width, height) of its plaque in art % of a 640 px art box, the leader's gap included.
-PLAQUES = {"trophies": (15.0, 10.7), "journal": (13.0, 7.5), "lyre": (9.5, 7.5)}
-# The leader on the 640 px art box (1137.8 px wide): 16 px long, its pin 10 px across at the shape's edge.
-LEADER_LEN, PIN_H, PIN_W = 16 / 640 * 100, 5 / 640 * 100, 10 / 1137.8 * 100
+PLAQUES = {sid: (p["w"], p["h"]) for sid, p in CHECKS["plaques"].items()}
+_L = CHECKS["leaderPx"]
+LEADER_LEN, PIN_H, PIN_W = _L["len"] / _L["artH"] * 100, _L["pinH"] / _L["artH"] * 100, _L["pinW"] / _L["artW"] * 100
 
 
 def house_shapes(house: str, src: Path = SHAPES) -> dict:

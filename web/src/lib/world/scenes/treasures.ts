@@ -66,6 +66,30 @@ export const POSES: Record<PieceId, Pose> = {
  *  thirty); the new cut-outs are trimmed to the object (foot 0). */
 export const TROPHY_FOOT = 0.065;
 
+/** Each piece's picture in pixels (its WebP's own size; all thirty trophies are 512 px squares), so
+ *  the room sizes its box before the file loads: no piece pops in or grows upward from its line.
+ *  treasures.test.ts reads every file against it. */
+export const PIECE_SIZES: Record<PieceId, { w: number; h: number }> = {
+  hydre: { w: 512, h: 512 },
+  echo: { w: 512, h: 512 },
+  chimere: { w: 512, h: 512 },
+  protee: { w: 512, h: 512 },
+  sirenes: { w: 512, h: 512 },
+  lethe: { w: 512, h: 512 },
+  sandales_hermes: { w: 476, h: 512 },
+  egide: { w: 494, h: 512 },
+  foudre_zeus: { w: 150, h: 512 },
+  'decor:lanterne': { w: 231, h: 512 },
+  'decor:tapis': { w: 768, h: 132 },
+  'decor:bibliotheque': { w: 452, h: 768 },
+  'decor:trophee': { w: 434, h: 512 },
+  'decor:fresque': { w: 768, h: 361 },
+  'decor:amphore': { w: 235, h: 512 },
+  'decor:chouette': { w: 292, h: 512 },
+  'decor:mosaique': { w: 614, h: 672 },
+  'decor:bouclier': { w: 511, h: 512 },
+};
+
 /** The box a piece covers in art %, for a picture of `aspect` (height / width) whose base sits
  *  `foot` of its height above its bottom edge (the room's CSS and tools/art/treasure_preview.py). */
 export function placeBox(p: Place, aspect: number, foot = 0): Box {
@@ -79,6 +103,8 @@ export interface ShownPiece {
   place: Place;
   pose: Pose;
   foot: number;
+  /** Its picture's size in pixels (PIECE_SIZES). */
+  size: { w: number; h: number };
   /** The seal of a trophy (1-5), null for the other pieces. */
   level: number | null;
 }
@@ -96,12 +122,12 @@ export function shownPieces(house: House, owned: readonly Pick<RewardOut, 'id' |
   for (const lt of LIEUTENANT_ORDER) {
     const level = highest[lt];
     const src = level ? trophyIcon(lt, level, true) : null;
-    if (level && src) out.push({ id: lt, src, place: places[lt], pose: 'trophy', foot: TROPHY_FOOT, level });
+    if (level && src) out.push({ id: lt, src, place: places[lt], pose: 'trophy', foot: TROPHY_FOOT, size: PIECE_SIZES[lt], level });
   }
   for (const r of owned) {
     if (!r.equipped || !ROOM_PIECES.has(r.id)) continue;
     const id = r.id as RoomPiece;
-    out.push({ id, src: TREASURE_ART[id], place: places[id], pose: POSES[id], foot: 0, level: null });
+    out.push({ id, src: TREASURE_ART[id], place: places[id], pose: POSES[id], foot: 0, size: PIECE_SIZES[id], level: null });
   }
   return out.sort((a, b) => a.place.y - b.place.y);
 }

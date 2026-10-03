@@ -197,7 +197,7 @@ painted cornice cupboard in the centre, a window at the far left, two bronze wal
 | Desk and journal (« Ton journal ») | 12 | 56 | 14 | 32 | Hotspot `journal`: (13, 57) (25.5, 57) (25.5, 70) (13, 70); plaque **below** (the lanterne hangs above the desk) |
 | Lyre on its stand (« La lyre ») | 75.5 | 55 | 8 | 34 | Hotspot `lyre`: (75, 55) (84, 55) (84, 75) (75, 75); plaque above |
 | Left wall hook | 17 | 35 | 3.5 | 10 | Hook point (18.6, 43.8): the lanterne |
-| Right wall hook | 81 | 35 | 3.5 | 10 | The mosaïque hangs from it (top y 36) |
+| Right wall hook | 81 | 35 | 3.5 | 10 | The mosaïque hangs from it (top y 36), centred at x 84.5 under the hook's knob so its frame covers the arm and its painted shadow (at x 82.7 it read beside the hook) |
 | Pedestal | 85 | 76.5 | 6.5 | 11.5 | ⚠ Mostly past x 87.5: left empty |
 | Chest under the desk | 12 | 80 | 8 | 8 | Painted only |
 | Back wall, left | 13 | 20 | 12 | 36 | The fresque (top y 21.5), above the hook |
