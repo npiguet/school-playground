@@ -13,6 +13,8 @@ import { defineConfig, devices } from '@playwright/test';
 // living dragon: the canvas, its frames, its tint, its failures); the WebKit projects may lack WebGL2,
 // so `desktop` leaves that spec out (the e2e image's WebKit has it: the scene specs read the dragon in
 // either form, web/e2e/dragon.ts, and scenes-nest.spec.ts checks the form matches the browser).
+// `chromium-gl` also runs living-battle.spec.ts (spec 2026-10-03 living battle: the fighters' canvases,
+// their motion and fallbacks, the battle's sizes); `desktop` leaves it out too.
 export default defineConfig({
   testDir: './e2e',
   testIgnore: ['**/playability*.spec.ts', '**/voice-*.spec.ts'],
@@ -48,7 +50,7 @@ export default defineConfig({
     {
       name: 'desktop',
       // A project's testIgnore replaces the top-level one: repeat it.
-      testIgnore: ['**/playability*.spec.ts', '**/voice-*.spec.ts', '**/living-dragon.spec.ts'],
+      testIgnore: ['**/playability*.spec.ts', '**/voice-*.spec.ts', '**/living-dragon.spec.ts', '**/living-battle.spec.ts'],
       use: { ...devices['Desktop Safari'] },
     },
     {
@@ -74,7 +76,7 @@ export default defineConfig({
     },
     {
       name: 'chromium-gl',
-      testMatch: ['**/living-dragon.spec.ts'],
+      testMatch: ['**/living-dragon.spec.ts', '**/living-battle.spec.ts'],
       use: { ...devices['Desktop Chrome'], launchOptions: { args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] } },
     },
   ],

@@ -900,3 +900,20 @@ export function watchNests(page: Page): { fetched: string[]; pending: Set<Reques
   page.on('requestfailed', (r) => out.pending.delete(r));
   return out;
 }
+
+// A victory the Muses have already counted (the play state keeps its progression), so the spoils
+// show exactly this one: a boss won or lost, a hatch, a stage change, a seal.
+export function victoryProgression(o: Record<string, unknown> = {}) {
+  return {
+    xp: { session: 51, bonuses: [], total_before: 487, total_after: 538, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 },
+    quests: [],
+    levels: [],
+    rewards: [],
+    dragon: { stage_before: 'hatchling', stage_after: 'hatchling', needs_name: false },
+    weekly: { target: 5, done: 1, reached_now: false },
+    boss: null,
+    encounter: null,
+    drachmes: { earned: 12, parts: [{ reason: 'session', amount: 12 }], balance: 40 },
+    ...o,
+  };
+}

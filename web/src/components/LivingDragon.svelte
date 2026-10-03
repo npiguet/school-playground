@@ -3,17 +3,17 @@
   // The living dragon (spec 2026-10-02 living dragon, "Component") and, since spec 2026-10-03 living
   // battle (plan Rulings B2, B5), any living rig: a dragon stage or a battle foe, the foe's 585 px
   // portrait padded into the frame and its box kept at the portrait's aspect; a foe is never tinted
-  // (`tint` null). One WebGL2 canvas drawing the rig's
-  // sprite on its skinned mesh with its worn pieces riding along, slowly and slightly alive. It covers
-  // the same box as the still picture (square for a dragon, the portrait's aspect for a foe), the
-  // canvas overflowing it by the 3.5 % margin of the frame (and, for a foe, by the frame's padding on
-  // both sides) so a wing tip may move out. It tells DragonFigure how it goes (onmotion): `pending` while loading (the still
-  // picture shows, this waits hidden), `living` from its first frame, `still` on any failure (no
-  // WebGL2, a shader, a load, a lost context: plan Ruling R4), after which
-  // DragonFigure unmounts it. A new rig or picture starts afresh, `pending` again, on a new canvas
-  // (Ruling L2; a disposed canvas's context is lost for good). The loop draws at most 30 frames a second
-  // and stops while the page is hidden or the canvas is off-screen. `amplitude`, `time`,
-  // `showWeights` and `tintSpec` (OKLCH settings in place of the tint's TINT_SPECS entry) serve the lab.
+  // (`tint` null). One WebGL2 canvas drawing the rig's sprite on its skinned mesh with its worn pieces
+  // riding along, slowly and slightly alive. It covers the same box as the still picture (square for a
+  // dragon, the portrait's aspect for a foe), the canvas overflowing it by the 3.5 % margin of the frame
+  // (and, for a foe, by the frame's padding on both sides) so a wing tip may move out. It tells
+  // DragonFigure how it goes (onmotion): `pending` while loading (the still picture shows, this waits
+  // hidden), `living` from its first frame, `still` on any failure (no WebGL2, a shader, a load, a lost
+  // context: plan Ruling R4), after which DragonFigure unmounts it. A new rig or picture starts afresh,
+  // `pending` again, on a new canvas (Ruling L2; a disposed canvas's context is lost for good). The loop
+  // draws at most 30 frames a second and stops while the page is hidden or the canvas is off-screen.
+  // `amplitude`, `time`, `showWeights` and `tintSpec` (OKLCH settings in place of the tint's TINT_SPECS
+  // entry) serve the lab.
   import { onMount, untrack } from 'svelte';
   import type { OverlayLayer } from '../lib/world/accessories';
   import { buildAtlas, loadImage, padToFrame, pieceDraws, placePieces } from '../lib/living/atlas';

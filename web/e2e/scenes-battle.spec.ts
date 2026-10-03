@@ -282,9 +282,13 @@ test('reduced motion: no particles, no idle motion on the combatants', async ({ 
   await expectBattle(page, 'muster');
   await expect(page.getByTestId('scene-battle')).toHaveAttribute('data-reduced-motion', 'true');
   await expect(page.locator('[data-testid="scene-battle"] [data-testid="fx-canvas"]')).toHaveCount(0);
+  // No Web Animation on the combatants, and no living canvas either (spec 2026-10-03 living battle,
+  // plan Ruling B7): under reduced motion both fighters are their still pictures.
   for (const id of ['battle-dragon', 'battle-opponent']) {
     await expect.poll(() => page.getByTestId(id).evaluate((el) => el.getAnimations({ subtree: true }).length), id).toBe(0);
+    await expect(page.getByTestId(id).locator('.dragon-figure')).toHaveAttribute('data-motion', 'still');
   }
+  await expect(page.locator('[data-testid="scene-battle"] .dragon-living')).toHaveCount(0);
 });
 
 test('the simulated keyboard folds the stage into a band above the parchment, and back', async ({ page, request }, testInfo) => {

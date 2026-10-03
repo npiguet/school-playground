@@ -327,8 +327,8 @@ async function bossSection(w: Walk) {
     await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', pose);
     // UI4 Task A: her defeat swaps in the flustered pose (a sore loser caught off guard); a taunt
     // (she keeps her apple, defiant) keeps her standing card.
-    await expect(page.getByTestId('battle-opponent').locator('img')).toHaveAttribute(
-      'src',
+    await expect(page.getByTestId('battle-opponent').locator('.dragon-base')).toHaveAttribute(
+      'data-src',
       pose === 'defeat' ? '/art/characters/eris_flustered_cut.webp' : '/art/characters/eris_cut.webp',
     );
     await combatantsSettled(page);

@@ -19,6 +19,7 @@ import {
   swissDay,
   tap,
   uniqueName,
+  victoryProgression,
 } from './helpers';
 
 // UI4 lane V (spec §3 "Results -> Victory overlay", §5): the reckoning on the stage, the victory
@@ -55,7 +56,7 @@ test('the reckoning strikes once per trap caught, then the lieutenant falls back
   await expect(page.getByRole('heading', { level: 1 })).toHaveText("L'Hydre");
   // Ruling C6: the sheet unrolls over the dimmed battlefield; the combatants stay lit.
   await expect(page.locator('.battle-backdrop')).toHaveCSS('filter', /brightness\(0\.6\)/);
-  await expect(page.getByTestId('battle-opponent').locator('img')).toHaveCSS('filter', 'none');
+  await expect(page.getByTestId('battle-opponent').locator('.dragon-base')).toHaveCSS('filter', 'none');
   // UI4 playability #1: the tally in the game's words - no percentage (the rate as rateText wrote
   // it, narrow no-break space and all), no « Score », no « x / y ».
   await expect(page.getByTestId('results-catch-rate')).toHaveText('Pièges déjoués\u202f: 1 sur 2');
@@ -383,23 +384,6 @@ const HATCH = {
   dragon: { stage_before: 'egg', stage_after: 'hatchling', needs_name: true },
 };
 
-// A victory the Muses have already counted (the play state keeps its progression), so the spoils
-// show exactly this one: a boss won or lost, a hatch, a stage change, a seal.
-function progression(o: Record<string, unknown> = {}) {
-  return {
-    xp: { session: 51, bonuses: [], total_before: 487, total_after: 538, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 },
-    quests: [],
-    levels: [],
-    rewards: [],
-    dragon: { stage_before: 'hatchling', stage_after: 'hatchling', needs_name: false },
-    weekly: { target: 5, done: 1, reached_now: false },
-    boss: null,
-    encounter: null,
-    drachmes: { earned: 12, parts: [{ reason: 'session', amount: 12 }], balance: 40 },
-    ...o,
-  };
-}
-
 async function counted(
   page: import('@playwright/test').Page,
   request: import('@playwright/test').APIRequestContext,
@@ -427,7 +411,7 @@ async function counted(
 
 // Spec 2026-09-29 drachmes §1 (R15): the victory's chips add the drachmes; a saved victory has none.
 test('the victory adds « +12 drachmes » after the XP chips', async ({ page, request }, testInfo) => {
-  const sheet = await counted(page, request, `Vic40-${testInfo.project.name}`, progression({}));
+  const sheet = await counted(page, request, `Vic40-${testInfo.project.name}`, victoryProgression({}));
   await expect(sheet.getByTestId('drachme-chip')).toHaveText('+12 drachmes');
   await expect(sheet.getByTestId('drachme-chip').locator('img')).toHaveAttribute('src', '/art/icons/drachme.webp');
   // After every XP chip, in the same row of tags: the last child of the chips' container.
@@ -436,7 +420,7 @@ test('the victory adds « +12 drachmes » after the XP chips', async ({ page, re
 });
 
 test('a victory saved before the drachmes shows no drachme chip', async ({ page, request }, testInfo) => {
-  const sheet = await counted(page, request, `Vic41-${testInfo.project.name}`, progression({ drachmes: undefined }));
+  const sheet = await counted(page, request, `Vic41-${testInfo.project.name}`, victoryProgression({ drachmes: undefined }));
   await expect(sheet.getByTestId('xp-chip').first()).toBeVisible();
   await expect(sheet.getByTestId('drachme-chip')).toHaveCount(0);
   await expect(sheet).not.toContainText('undefined');
@@ -448,7 +432,7 @@ test('the XP chips break the session down: text, pace, aids, prophecy, then the 
     page,
     request,
     `Vic20-${testInfo.project.name}`,
-    progression({
+    victoryProgression({
       xp: { session: 94, parts: { text: 57, pace: 8, aids: 13, prophecy: 16 }, bonuses: [{ reason: 'board', amount: 60 }], total_before: 487, total_after: 641, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 },
       quests: [{ id: 3, kind: 'board', target: 'hydre', counted: true, progress: 3, goal: 3, completed: true, reward_id: null }],
     }),
@@ -464,7 +448,7 @@ test("a quest's text that does not count says why: too many of its traps left in
     page,
     request,
     `Vic23-${testInfo.project.name}`,
-    progression({ quests: [{ id: 5, kind: 'board', target: 'hydre', counted: false, reason: 'copy', progress: 1, goal: 3, completed: false, reward_id: null }] }),
+    victoryProgression({ quests: [{ id: 5, kind: 'board', target: 'hydre', counted: false, reason: 'copy', progress: 1, goal: 3, completed: false, reward_id: null }] }),
   );
   const quest = sheet.getByTestId('reveal-quest-5');
   await expect(quest.getByTestId('quest-reason')).toHaveText("Trop de pièges de l'Hydre restent dans ta copie\u202f: ce texte ne compte pas pour la quête.");
@@ -477,7 +461,7 @@ test('a bonus part at zero shows no chip', async ({ page, request }, testInfo) =
     page,
     request,
     `Vic21-${testInfo.project.name}`,
-    progression({ xp: { session: 70, parts: { text: 57, pace: 0, aids: 13, prophecy: 0 }, bonuses: [], total_before: 487, total_after: 557, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 } }),
+    victoryProgression({ xp: { session: 70, parts: { text: 57, pace: 0, aids: 13, prophecy: 0 }, bonuses: [], total_before: 487, total_after: 557, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 } }),
   );
   await expect(sheet.getByTestId('xp-chip')).toHaveText(['Texte +57', 'Sans aides +13']);
 });
@@ -488,7 +472,7 @@ test('the dragon grows on the victory: the laurel ends on the new stage, « Ton 
     page,
     request,
     `Vic24-${testInfo.project.name}`,
-    progression({
+    victoryProgression({
       xp: { session: 51, bonuses: [{ reason: 'board', amount: 60 }], total_before: 1100, total_after: 1211, stage_before: 'hatchling', stage_after: 'young', floor: 1200, next: 5000 },
       dragon: { stage_before: 'hatchling', stage_after: 'young', needs_name: false },
     }),
@@ -511,7 +495,7 @@ test('the dragon grows on the victory under reduced motion: the new stage at onc
     page,
     request,
     `Vic26-${testInfo.project.name}`,
-    progression({
+    victoryProgression({
       xp: { session: 51, bonuses: [{ reason: 'board', amount: 60 }], total_before: 1100, total_after: 1211, stage_before: 'hatchling', stage_after: 'young', floor: 1200, next: 5000 },
       dragon: { stage_before: 'hatchling', stage_after: 'young', needs_name: false },
     }),
@@ -536,7 +520,7 @@ test('a victory saved before the stages resumes on the dragon\'s scale', async (
     page,
     request,
     `Vic25-${testInfo.project.name}`,
-    progression({ xp: { session: 51, bonuses: [], total_before: 487, total_after: 538, rank_before: 3, rank_after: 3, title_after: 'Sentinelle des textes' } }),
+    victoryProgression({ xp: { session: 51, bonuses: [], total_before: 487, total_after: 538, rank_before: 3, rank_after: 3, title_after: 'Sentinelle des textes' } }),
   );
   const laurel = sheet.getByTestId('victory-xp');
   await expect(laurel).toHaveAttribute('aria-label', 'Dragonnet');
@@ -546,7 +530,7 @@ test('a victory saved before the stages resumes on the dragon\'s scale', async (
 });
 
 test('a victory saved before the parts keeps its one text chip', async ({ page, request }, testInfo) => {
-  const old = await counted(page, request, `Vic22-${testInfo.project.name}`, progression());
+  const old = await counted(page, request, `Vic22-${testInfo.project.name}`, victoryProgression());
   await expect(old.getByTestId('xp-chip')).toHaveText(['Texte +51']);
 });
 
@@ -556,7 +540,7 @@ test('a seal on the victory: « Sceau de bronze ! », its trophy, its chip', asy
     page,
     request,
     `Vic25-${testInfo.project.name}`,
-    progression({
+    victoryProgression({
       levels: [{ lieutenant: 'hydre', level: 2, reward_id: 'trophy:hydre:2' }],
       rewards: [{ id: 'trophy:hydre:2', kind: 'trophy', name: "Écaille de l'Hydre en bronze" }],
       xp: { session: 51, bonuses: [{ reason: 'level', amount: 200, lieutenant: 'hydre', level: 2 }], total_before: 487, total_after: 738, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 },
@@ -576,7 +560,7 @@ test('two seals in one victory: both cards and both chips', async ({ page, reque
     page,
     request,
     `Vic27-${testInfo.project.name}`,
-    progression({
+    victoryProgression({
       levels: [
         { lieutenant: 'hydre', level: 2, reward_id: 'trophy:hydre:2' },
         { lieutenant: 'echo', level: 1, reward_id: 'trophy:echo:1' },
@@ -613,7 +597,7 @@ test('a victory saved before the seals shows the first seal', async ({ page, req
     page,
     request,
     `Vic26-${testInfo.project.name}`,
-    progression({ levels: undefined, neutralised: ['echo'], xp: { session: 51, bonuses: [{ reason: 'mastery', amount: 200 }], total_before: 487, total_after: 738, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 } }),
+    victoryProgression({ levels: undefined, neutralised: ['echo'], xp: { session: 51, bonuses: [{ reason: 'mastery', amount: 200 }], total_before: 487, total_after: 738, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 } }),
   );
   await expect(sheet.getByTestId('reveal-level-echo')).toContainText('Sceau de bois\u202f!');
   await expect(sheet.getByTestId('xp-chip')).toContainText(['Premier sceau +200']);
@@ -644,7 +628,7 @@ test('beating Éris: her defeat line and her treasure, once, in the parchment st
     page,
     request,
     `Vic14-${testInfo.project.name}`,
-    progression({
+    victoryProgression({
       xp: { session: 51, bonuses: [{ reason: 'boss', amount: 300 }], total_before: 487, total_after: 838, stage_before: 'hatchling', stage_after: 'hatchling', floor: 100, next: 1200 },
       quests: [{ id: 9, kind: 'boss', target: 'eris', counted: true, progress: 1, goal: 1, completed: true, reward_id: 'sandales_hermes' }],
       rewards: [{ id: 'sandales_hermes', kind: 'gear', name: "Sandales d'Hermès" }],
@@ -680,7 +664,7 @@ test('beating Éris: her defeat line and her treasure, once, in the parchment st
 // Final review I1: the fight is won or lost by the server's verdict on the copy, and the hold agrees
 // with it: a won fight with nothing caught still empties the bar, and Éris takes the defeat pose.
 test('a won fight against Éris empties her hold even with nothing caught', async ({ page, request }, testInfo) => {
-  const sheet = await counted(page, request, `Vic15b-${testInfo.project.name}`, progression({ boss: { tier: 1, won: true }, encounter: 'eris' }), true, DRAFT);
+  const sheet = await counted(page, request, `Vic15b-${testInfo.project.name}`, victoryProgression({ boss: { tier: 1, won: true }, encounter: 'eris' }), true, DRAFT);
   await expect(sheet.getByTestId('results-catch-rate')).toHaveText('Ses pièges se sont bien cachés cette fois');
   await expect(page.getByTestId('victory-title')).toHaveText('Victoire\u202f!');
   await expect(page.getByTestId('battle-hp')).toHaveAttribute('aria-valuenow', '0');
@@ -688,7 +672,7 @@ test('a won fight against Éris empties her hold even with nothing caught', asyn
 });
 
 test('Éris escaping speaks for herself, on her plate', async ({ page, request }, testInfo) => {
-  const sheet = await counted(page, request, `Vic15-${testInfo.project.name}`, progression({ boss: { tier: 1, won: false }, encounter: 'eris' }), true);
+  const sheet = await counted(page, request, `Vic15-${testInfo.project.name}`, victoryProgression({ boss: { tier: 1, won: false }, encounter: 'eris' }), true);
   // Final review I1: a lost fight keeps her hold above zero, even with every trap caught.
   await expect(page.getByTestId('victory-title')).toHaveText('Le combat continue');
   await expect(page.getByTestId('battle-opponent')).toHaveAttribute('data-reaction', 'taunt');
@@ -701,7 +685,7 @@ test('Éris escaping speaks for herself, on her plate', async ({ page, request }
 
 // UI4 playability #9: naming the dragon is a question, answered on the parchment's line.
 test('the egg hatches: « Comment vas-tu l\'appeler ? », and her answer is inked on a line', async ({ page, request }, testInfo) => {
-  const sheet = await counted(page, request, `Vic16-${testInfo.project.name}`, progression(HATCH));
+  const sheet = await counted(page, request, `Vic16-${testInfo.project.name}`, victoryProgression(HATCH));
   await expect(sheet.getByTestId('reveal-dragon')).toContainText("Comment vas-tu l'appeler\u202f?");
   const field = sheet.getByTestId('reveal-name-input');
   await expect(field).toHaveAttribute('placeholder', 'Son nom…');
@@ -714,7 +698,7 @@ test('the egg hatches: « Comment vas-tu l\'appeler ? », and her answer is inke
 // name is written on the victory sheet, which folds with the stage (Ruling C4).
 test('the egg hatches under the keyboard: her dragon\'s name line stays above it', async ({ page, request }, testInfo) => {
   await installKeyboardSim(page);
-  const sheet = await counted(page, request, `Vic17-${testInfo.project.name}`, progression(HATCH));
+  const sheet = await counted(page, request, `Vic17-${testInfo.project.name}`, victoryProgression(HATCH));
   const field = sheet.getByTestId('reveal-name-input');
   await field.click();
   const band = await setKeyboard(page, Math.round((await page.evaluate(() => window.innerHeight)) * 0.45));

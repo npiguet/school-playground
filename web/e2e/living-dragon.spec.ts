@@ -8,7 +8,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './crashGuard';
 import { createProfileApi, expectCamp, expectScene, heroNamer } from './helpers';
-import { compareShots, dragonTint, dragonWorn, isolateDragon, settledDragon } from './dragon';
+import { compareShots, dragonTint, dragonWorn, isolateDragon, mockDragon, settledDragon } from './dragon';
 import { TINT_SPECS } from '../src/lib/world/dragon';
 import MANIFEST from '../src/lib/world/accessories.json' with { type: 'json' };
 import hatchling from '../src/lib/living/rig/dragon_hatchling.json' with { type: 'json' };
@@ -25,16 +25,6 @@ const figure = (page: Page) => nest(page).locator('.dragon-figure');
 // server's `LivingDragon.svelte`) and the baked rigs (`dragon_<stage>-<hash>.js` or `.json`).
 const LIVING_FILES = /\/(LivingDragon[^/]*\.(js|svelte)|dragon_(hatchling|young|adult|illustre|ancestral)[^/]*\.(js|json))(\?|$)/;
 const frames = (page: Page) => nest(page).locator('canvas').evaluate((c) => Number((c as HTMLCanvasElement).dataset.frames ?? 0));
-
-/** This hero's camp says: the dragon as `dragon()` returns it now (stage, tint, worn...). */
-async function mockDragon(page: Page, id: number, dragon: () => Record<string, unknown>) {
-  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
-    const res = await route.fetch();
-    const camp = await res.json();
-    camp.dragon = { ...camp.dragon, name: 'Braise', ...dragon() };
-    await route.fulfill({ response: res, json: camp });
-  });
-}
 
 async function openNest(page: Page, id: number) {
   await page.goto(`/#/p/${id}/dragon`);

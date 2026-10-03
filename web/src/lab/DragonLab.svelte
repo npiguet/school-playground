@@ -3,8 +3,10 @@
   // the worn pieces, the weights view, pause and a time slider. For the rig review and the human look.
   // Above them, the Teintes panel tunes a tint's OKLCH settings (TintPanel.svelte).
   // Below them, every battle foe with a rig, living side by side, mirrored as in the battle (« Comme au
-  // combat »): spec 2026-10-03 living battle, plan Ruling B10. A foe whose rig is not baked yet shows
-  // its still portrait and says so; it lights up once tools/art/rig.py bakes it (stages.ts livingFoe).
+  // combat »): spec 2026-10-03 living battle, plan Ruling B10. Every rig of stages.ts FOE_RIGS is
+  // listed, baked or not (the plan's Task 3 named only the baked ones): a foe whose rig is not baked
+  // yet shows its still portrait and says so, never a hole in the list, and lights up once
+  // tools/art/rig.py bakes it (stages.ts livingFoe).
   // The stage controls drive the foes too (amplitude, weights, pause, time; a foe is never tinted
   // nor dressed). The controls carry ids for the shot script (plan Task 3, lab_foes.py).
   import LivingDragon from '../components/LivingDragon.svelte';

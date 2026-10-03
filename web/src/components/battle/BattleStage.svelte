@@ -25,6 +25,7 @@
   import { reducedMotion, watchReducedMotion } from '../../lib/juice/motion';
   import { ART } from '../../lib/world/art';
   import { accessoryLayers } from '../../lib/world/accessories';
+  import { FOE_ASPECT, foeRigFor, livingFoe, livingStage } from '../../lib/living/stages';
   import type { CampResponse, DragonOut } from '../../lib/world/types';
   import type { Profile } from '../../lib/types';
 
@@ -74,18 +75,23 @@
   const compact = $derived(layout === 'compact');
   const band = $derived(bandHeight(viewport.height || 820));
   const covered = $derived(overlayState.open > 0);
-  // Ruling C12: nothing moves behind the text. The combatants breathe and the particles drift only
-  // while no text is read or written: the muster and the victory (M14, the TTS runs on an iPad).
+  // Ruling C12: the particles drift only while no text is read or written: the muster and the victory
+  // (M14, the TTS runs on an iPad). The combatants live in every phase (spec 2026-10-03 living battle,
+  // plan Ruling B7).
   const idle = $derived(phase === 'muster' || phase === 'victory');
   // Ruling C4 / I4: in compact the HUD and « Le camp » fold into the band (a control may move, never
   // disappear); in full they keep their places.
   const bandTools = $derived(compact && (hud || exit));
   const dragonStage = $derived(dragon?.stage ?? 'egg');
   // UI4 Task A: Éris's routed pose - a sore loser caught off guard - replaces her standing card once
-  // her `defeat` reaction plays, on top of the boss card the muster already showed.
-  const opponentArt = $derived(
-    battle?.opponent.id === 'eris' && battleStage.opponent.reaction === 'defeat' ? ART.erisFlustered : (battle?.opponent.art ?? ''),
-  );
+  // her `defeat` reaction plays, on top of the boss card the muster already showed; she has her own rig
+  // for it (spec 2026-10-03 living battle, plan Ruling B6).
+  const flustered = $derived(battle?.opponent.id === 'eris' && battleStage.opponent.reaction === 'defeat');
+  const opponentArt = $derived(flustered ? ART.erisFlustered : (battle?.opponent.art ?? ''));
+  // Both fighters alive (plan Rulings B7, B8): the dragon's stage (never the egg) and the opponent's
+  // rig, none under reduced motion.
+  const dragonLiving = $derived(reduced ? null : livingStage(dragonStage));
+  const opponentLiving = $derived(reduced || !battle ? null : livingFoe(foeRigFor(battle.opponent.id, flustered)));
 
   $effect(() => {
     if (battle) emitBattle({ kind: 'start', opponent: battle.opponent.id, mode, backdrop: battle.backdrop.id });
@@ -134,7 +140,8 @@
               reaction={battleStage.dragon.reaction}
               nonce={battleStage.dragon.nonce}
               testId="battle-dragon"
-              {idle}
+              living={dragonLiving}
+              aspect={1}
               {reduced}
             />
           {/if}
@@ -147,7 +154,8 @@
             nonce={battleStage.opponent.nonce}
             hits={battleStage.hits}
             testId="battle-opponent"
-            {idle}
+            living={opponentLiving}
+            aspect={FOE_ASPECT}
             {reduced}
           />
           <!-- Particles fires on mount too: it mounts with the first strike, never before. -->
