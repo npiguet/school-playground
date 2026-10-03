@@ -14,14 +14,18 @@ export const CABIN_SHAPES = {
   lyre: { kind: 'polygon', points: [[71, 52], [82.5, 52], [82.5, 80], [71, 80]] },
 } satisfies ShapeMap;
 
+// The villa's cupboard place starts at x 28, inside its left pillar (x 25-29): at 1024x640 the journal's
+// plaque, pushed right by the safe zone's edge, reaches x ~= 26.1 (ruling H8 fix round).
 export const VILLA_SHAPES = {
-  trophies: { kind: 'polygon', points: [[26, 18], [74.5, 18], [74.5, 80], [26, 80]] },
+  trophies: { kind: 'polygon', points: [[28, 18], [74.5, 18], [74.5, 80], [28, 80]] },
   journal: { kind: 'polygon', points: [[13, 57], [25.5, 57], [25.5, 70], [13, 70]] },
   lyre: { kind: 'polygon', points: [[75, 55], [84, 55], [84, 75], [75, 75]] },
 } satisfies ShapeMap;
 
+// The palais's cupboard place ends at x 71, inside its right pillar (x 69.5-73): at 1024x640 the
+// lyre's plaque above reaches left to x ~= 71.75 (ruling H8 fix round).
 export const PALAIS_SHAPES = {
-  trophies: { kind: 'polygon', points: [[27.5, 14], [72.5, 14], [72.5, 75], [27.5, 75]] },
+  trophies: { kind: 'polygon', points: [[27.5, 14], [71, 14], [71, 75], [27.5, 75]] },
   journal: { kind: 'polygon', points: [[13, 54], [27, 54], [27, 66], [13, 66]] },
   lyre: { kind: 'polygon', points: [[73, 54], [80, 54], [80, 75], [73, 75]] },
 } satisfies ShapeMap;

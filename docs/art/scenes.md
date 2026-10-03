@@ -193,7 +193,7 @@ painted cornice cupboard in the centre, a window at the far left, two bronze wal
 
 | Landmark | x | y | w | h | Notes |
 |---|---|---|---|---|---|
-| Cupboard (« Tes trésors ») | 25 | 13 | 50 | 75 | Hotspot `trophies`: (26, 18) (74.5, 18) (74.5, 80) (26, 80); plaque below. Compartments: cols 29.3-41.6, 43.0-57.3, 58.8-72.6; rows 22.2-40.4, 43.6-61.2, 65.1-83.1. Standing lines y 40.3, 60.9, 80.0 (the gear's floor is at 80.5; 80.0 keeps it off the plaque); the égide hangs on the middle compartment's back panel, foot at y 78.8, clear of the plaque's leader and its pin (y 79.2-82.5 at x 50.25) |
+| Cupboard (« Tes trésors ») | 25 | 13 | 50 | 75 | Hotspot `trophies`: (28, 18) (74.5, 18) (74.5, 80) (28, 80) (from x 28, inside the left pillar: the journal's plaque reaches x ~= 26.1 at 1024x640); plaque below. Compartments: cols 29.3-41.6, 43.0-57.3, 58.8-72.6; rows 22.2-40.4, 43.6-61.2, 65.1-83.1. Standing lines y 40.3, 60.9, 80.0 (the gear's floor is at 80.5; 80.0 keeps it off the plaque); the égide hangs on the middle compartment's back panel, foot at y 78.8, clear of the plaque's leader and its pin (y 79.2-82.5 at x 50.25) |
 | Desk and journal (« Ton journal ») | 12 | 56 | 14 | 32 | Hotspot `journal`: (13, 57) (25.5, 57) (25.5, 70) (13, 70); plaque **below** (the lanterne hangs above the desk) |
 | Lyre on its stand (« La lyre ») | 75.5 | 55 | 8 | 34 | Hotspot `lyre`: (75, 55) (84, 55) (84, 75) (75, 75); plaque above |
 | Left wall hook | 17 | 35 | 3.5 | 10 | Hook point (18.6, 43.8): the lanterne |
@@ -211,7 +211,7 @@ marble and gold cupboard in the centre on a plinth, two bronze wall hooks.
 
 | Landmark | x | y | w | h | Notes |
 |---|---|---|---|---|---|
-| Cupboard (« Tes trésors ») | 27 | 10 | 46 | 69 | Hotspot `trophies`: (27.5, 14) (72.5, 14) (72.5, 75) (27.5, 75); plaque below. Compartments: cols 30.6-43.0, 43.5-56.5, 57.0-69.5; rows 18.8-35.4, 37.8-54.4, 56.9-74.2. Standing lines y 35.0, 54.0, 73.4. Plinth y 73-79 |
+| Cupboard (« Tes trésors ») | 27 | 10 | 46 | 69 | Hotspot `trophies`: (27.5, 14) (71, 14) (71, 75) (27.5, 75) (to x 71, inside the right pillar: the lyre's plaque reaches left to x ~= 71.75 at 1024x640); plaque below. Compartments: cols 30.6-43.0, 43.5-56.5, 57.0-69.5; rows 18.8-35.4, 37.8-54.4, 56.9-74.2. Standing lines y 35.0, 54.0, 73.4. Plinth y 73-79 |
 | Desk and journal (« Ton journal ») | 11.5 | 54 | 16 | 26 | Hotspot `journal`: (13, 54) (27, 54) (27, 66) (13, 66); plaque **below** (the lanterne hangs above the desk) |
 | Lyre on its stool (« La lyre ») | 72.5 | 54.5 | 8 | 26 | Hotspot `lyre`: (73, 54) (80, 54) (80, 75) (73, 75); plaque above |
 | Left wall hook | 18 | 32 | 4 | 10 | Hook point (21.2, 41): the lanterne |

@@ -38,8 +38,9 @@ const NAME_PLAQUES: Box[] = [
 ];
 
 /** SceneExit's sign, « Le camp » (about 143 x 45 px, 13.5 % from the stage's left and 3 % from its
- *  bottom), in art % at the e2e sizes: x 13.5-24.7 at 1280x720, 20.4-30.2 at 1180x820, 22.6-30.4 at
- *  1366x1024; y from 89.9. A piece under it would be hidden by a button. */
+ *  bottom), in art % at the e2e sizes and the smallest window: x 13.5-24.7 at 1280x720, 20.4-30.2 at
+ *  1180x820, 22.6-30.4 at 1366x1024, 17.1-29.7 at 1024x640; y from 89.9. A piece under it would be
+ *  hidden by a button. */
 const EXIT_SIGN: Box = { x: 13.5, y: 89.9, w: 17, h: 7.1 };
 
 /** Each place's plaque in art % of the 640 px art box, where it is largest (Hotspot.svelte: 4 px

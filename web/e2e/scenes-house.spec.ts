@@ -11,7 +11,8 @@ const SHOP_DECOR = ['decor:amphore', 'decor:chouette', 'decor:mosaique', 'decor:
 const LTS = ['hydre', 'echo', 'chimere', 'protee', 'sirenes', 'lethe'];
 const GEAR = ['sandales_hermes', 'egide', 'foudre_zeus'];
 const NINE = ['lanterne', 'tapis', 'bibliotheque', 'trophee', 'fresque', 'amphore', 'chouette', 'mosaique', 'bouclier'].map((k) => `decor:${k}`);
-const SIZES = [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }];
+// The e2e sizes, and the smallest supported window (controller ruling N3, ruling H8 fix round).
+const SIZES = [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }, { width: 1024, height: 640 }];
 
 /** Twelve 3 000-word sessions through four board quests against the Hydra: an adult dragon (about
  *  11 000 XP), the lantern and the carpet (two and four quests), about 1 100 drachmes. */

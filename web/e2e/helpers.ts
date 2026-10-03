@@ -368,7 +368,9 @@ export async function expectNoOverlap(page: Page) {
 // DialogueBox's dock (a plaque behind the narrator card would be unreadable while it's open).
 // `labelless`: hotspots with no plaque (the library owl, playability #23), measured without their
 // label checks.
-export async function expectInSafeZone(page: Page, sceneId: string, testIds: string[], labelless: string[] = []) {
+// `inDock`: places whose plaque may sit in the dialogue dock by a written ruling (the caller names
+// the ruling next to the list); every other check still holds for them.
+export async function expectInSafeZone(page: Page, sceneId: string, testIds: string[], labelless: string[] = [], inDock: string[] = []) {
   const sel: Record<string, string> = { art: `[data-testid="scene-${sceneId}"] .art` };
   for (const id of testIds) {
     sel[id] = `[data-testid="${id}"]`;
@@ -400,7 +402,7 @@ export async function expectInSafeZone(page: Page, sceneId: string, testIds: str
     expect(l.x, `${id} label left edge in the safe zone`).toBeGreaterThanOrEqual(Math.max(0, zone.left - EPS));
     expect(l.x + l.width, `${id} label right edge in the safe zone`).toBeLessThanOrEqual(Math.min(vw, zone.right + EPS));
     expect(l.y, `${id} label below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);
-    expect(rectsOverlap(l, dock), `${id} label overlaps the dialogue dock`).toBe(false);
+    if (!inDock.includes(id)) expect(rectsOverlap(l, dock), `${id} label overlaps the dialogue dock`).toBe(false);
   }
 }
 

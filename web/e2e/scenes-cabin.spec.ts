@@ -175,11 +175,27 @@ test('overlay-trophies: an in-world table, clear of the HUD, 48 px targets, kit 
 
 test('places and labels sit in the safe zone, labels never cover another place', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }]) {
-    await page.setViewportSize(size);
-    await openCabin(page, id);
-    await expectInSafeZone(page, 'cabin', PLACES);
-    expect(await labelOverlaps(page, 'cabin'), `${size.width}x${size.height}`).toEqual([]);
+  let house = 'cabin';
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    await route.fulfill({ response: res, json: { ...(await res.json()), house } });
+  });
+  // Controller ruling H8, 2026-10-03: in the three house rooms only, the « Tes trésors » plaque may
+  // sit in the dialogue dock. The cupboard (spec 2026-10-02 house treasures) reaches the dock's top
+  // edge (y 80), so its plaque below can go nowhere else; the dialogue is transient and the plaque
+  // shows again when it closes. Its other checks, and every other plaque's, stay as strict.
+  const H8_IN_DOCK = ['cabin-trophies'];
+  for (const h of ['cabin', 'villa', 'palais']) {
+    house = h;
+    // A fresh page load, so the room asks the camp again (the camp is kept between hash changes).
+    await page.goto('about:blank');
+    for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }, { width: 1024, height: 640 }]) {
+      await page.setViewportSize(size);
+      await openCabin(page, id);
+      await expect(page.locator('[data-testid="scene-cabin"] .art-bg')).toHaveAttribute('src', `/art/scenes/${h}.webp`);
+      await expectInSafeZone(page, 'cabin', PLACES, [], H8_IN_DOCK);
+      expect(await labelOverlaps(page, 'cabin'), `${h} ${size.width}x${size.height}`).toEqual([]);
+    }
   }
 });
 
@@ -379,7 +395,7 @@ test('the pieces on display stand at their places, clear of every plaque and of 
       json: decor.map((rid) => ({ id: rid, kind: 'decor', name: rid, desc: '', source: '', granted_at: '2026-09-21T12:00:00+00:00', equipped: true })),
     }),
   );
-  for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }]) {
+  for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }, { width: 1024, height: 640 }]) {
     await page.setViewportSize(size);
     await openCabin(page, id);
     for (const rid of decor) await expect(page.getByTestId(`cabin-piece-${rid}`)).toBeVisible();

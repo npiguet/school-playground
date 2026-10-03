@@ -20,7 +20,8 @@ name plaques and the safe zone. --check prints every problem and exits 1 if ther
   reaches lowest (71.5 px of the shortest, 640 px, art box: 11.2 %, nest.ts HUD_LINE_SHORT);
 - a piece under the room's name plaque (« Ton palais », at 1280x720 and on the 640 px art box) or
   under the exit sign (« Le camp », SceneExit.svelte: 13.5 % from the stage's left, 3 % from its
-  bottom; on the art box it reaches x 13.5-30.5, y 89.9-97 across 1280x720, 1180x820, 1366x1024);
+  bottom; on the art box it reaches x 13.5-30.5, y 89.9-97 across 1280x720, 1180x820, 1366x1024
+  and the smallest window, 1024x640);
 - two pieces whose boxes overlap;
 - a piece on a place's plaque or on its leader (the 16 px bronze line from the shape's edge to the
   plaque and the 10 px gold pin at the shape's edge, Hotspot.svelte), or a decor piece in a place's tappable box (its polygon's bounding
@@ -60,7 +61,8 @@ HUD_LINE_SHORT = 71.5 / 640 * 100   # the same 71.5 px of a 640 px art box (nest
 # pixels on a 1024x640 window (art box 1137.8 x 640, centred) reach x 42.1-57.9, y 10.7-17.5.
 NAME_PLAQUES = [(43, 9.5, 14, 6.1), (42.1, 10.7, 15.8, 6.8)]
 # SceneExit's sign (about 143 x 45 px, left 13.5 % and bottom 3 % of the stage), in art % of every
-# e2e size: x 13.5-24.7 at 1280x720, 20.4-30.2 at 1180x820, 22.6-30.4 at 1366x1024; y from 89.9.
+# e2e size: x 13.5-24.7 at 1280x720, 20.4-30.2 at 1180x820, 22.6-30.4 at 1366x1024, and 17.1-29.7 at
+# 1024x640 (art box 1137.8 x 640, centred); y from 89.9.
 EXIT_SIGN = (13.5, 89.9, 17.0, 7.1)
 # Place id -> (width, height) of its plaque in art % of a 640 px art box, the leader's gap included.
 PLAQUES = {"trophies": (15.0, 10.7), "journal": (13.0, 7.5), "lyre": (9.5, 7.5)}
