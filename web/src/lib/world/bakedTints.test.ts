@@ -18,7 +18,7 @@ import { TINT_SPECS } from './dragon';
 import { ART, dragonArt } from './art';
 import { tintOklch, type OklchSpec } from '../living/tint';
 import { webpSize } from '../../testing/webp';
-import MANIFEST from './bakedTints.json';
+import MANIFEST from './bakedTints.json' with { type: 'json' };
 
 const REBAKE = `re-bake: ${MANIFEST.command}`;
 const TINTED = (Object.entries(TINT_SPECS) as [Tint, OklchSpec | null][]).filter((e): e is [Tint, OklchSpec] => e[1] !== null);

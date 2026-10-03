@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { TINT_SPECS } from './dragon';
-import TINT_JSON from './tintSpecs.json';
+import TINT_JSON from './tintSpecs.json' with { type: 'json' };
 
 describe('the tints have one source', () => {
   it('TINT_SPECS is tintSpecs.json: the six tints in the game\'s order, the bronze untinted', () => {

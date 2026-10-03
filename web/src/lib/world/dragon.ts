@@ -4,7 +4,8 @@
 // the victory's spoils (`battle/VictorySpoils.svelte`) all share the same wording and this file stays trivially testable.
 import { DRAGON_STAGES, type DragonOut, type DragonStage, type Progression, type Tint } from './types';
 import type { OklchSpec } from '../living/tint';
-import TINT_JSON from './tintSpecs.json';
+// The import attribute: the e2e specs import this module in plain Node ESM, which demands it.
+import TINT_JSON from './tintSpecs.json' with { type: 'json' };
 
 export type Mood = 'idle' | 'happy' | 'sleepy';
 
