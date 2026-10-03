@@ -18,7 +18,8 @@
   import HeroPanel from '../components/places/cabin/HeroPanel.svelte';
   import GuidePanel from '../components/places/cabin/GuidePanel.svelte';
   import { cabinGreeting, guideLine, houseScene, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
-  import { PIECE_IDS, TREASURE_PLACES, shownPieces } from '../lib/world/scenes/treasures';
+  import { PIECE_IDS, TREASURE_PLACES, shownPieces, type ShownPiece } from '../lib/world/scenes/treasures';
+  import { sealTitleOf } from '../lib/world/seals';
   import { campFor } from '../lib/world/campStore.svelte';
   import { isAwake } from '../lib/world/eris';
   import { LIEUTENANT_ORDER } from '../lib/world/types';
@@ -29,7 +30,7 @@
   import { openedFrom } from '../lib/scene/openedFrom.svelte';
   import { OVERLAY_TITLES, sceneHref, type PanelId } from '../lib/world/places';
   import type { HotspotDef } from '../lib/scene/types';
-  import type { CampResponse, RewardOut } from '../lib/world/types';
+  import type { CampResponse, LieutenantKey, RewardOut } from '../lib/world/types';
   import type { Profile } from '../lib/types';
 
   let { profile, panel }: { profile: Profile; panel: PanelId | null } = $props();
@@ -42,8 +43,14 @@
   const house = $derived(campFor(profile.id)?.house ?? 'cabin');
   const scene = $derived(houseScene(house));
   // What stands in the room: nothing while /rewards loads or after it failed (the fixtures only),
-  // then each piece at the places of the house the camp names.
-  const pieces = $derived(owned === null ? [] : shownPieces(house, owned));
+  // nor until /camp names the house (a villa's or a palais's cold reload would first draw the pieces
+  // at the cabin's places), then each piece at the places of the house the camp names.
+  const pieces = $derived(owned === null || !campFor(profile.id) ? [] : shownPieces(house, owned));
+  // Each piece's name for screen readers, the shelf's own words: a trophy's seal title, the gear's
+  // and the decor's French name from its reward row. The room is the first thing a reader meets,
+  // the shelf (an overlay) only once opened, so the two never read out side by side.
+  const pieceName = (p: ShownPiece) =>
+    p.level !== null ? sealTitleOf(p.id as LieutenantKey, p.level) : (owned?.find((r) => r.id === p.id)?.name ?? '');
 
   // Only the hero id is tracked: the rewards reload for a new hero; a piece the shelf puts on
   // display or away comes back as the server answered it (onUpdated), with no second fetch.
@@ -91,7 +98,7 @@
         data-level={p.level ?? undefined}
         style="left:{p.place.x - p.place.w / 2}%;top:{p.place.y}%;width:{p.place.w}%;--foot:{p.foot}"
       >
-        <img src={p.src} alt="" width={p.size.w} height={p.size.h} decoding="async" draggable="false" />
+        <img src={p.src} alt={pieceName(p)} width={p.size.w} height={p.size.h} decoding="async" draggable="false" />
       </div>
     {/each}
     {#if debug}

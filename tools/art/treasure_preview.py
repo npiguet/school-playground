@@ -4,12 +4,12 @@
         [--check] [--only hydre,decor:tapis]
 
 Reads the room (assets/art/scenes/<house>.png), its places (web/src/lib/world/scenes/
-treasure-places.json), the twelve treasures (assets/art/export/treasures/, else web/public/art/
-treasures/) and the trophies (web/public/art/trophies/large/trophy-<lt>-<level>.webp), and pastes
-each piece with the game's maths (treasures.ts placeBox): x the centre, y the bottom edge, w the
+treasure-places.json), the twelve treasures (the shipped web/public/art/treasures/; a staged
+re-export in assets/art/export/treasures/ that differs is warned about) and the trophies
+(web/public/art/trophies/large/trophy-<lt>-<level>.webp), and pastes each piece with the game's maths (treasures.ts placeBox): x the centre, y the bottom edge, w the
 width, art %; the image keeps its own aspect; a trophy sits TROPHY_FOOT of its height lower (its
 transparent margin). Standing pieces get an ellipse like the CSS contact shadow, hanging ones a faint
-drop shadow (ruling R3); the tapis none.
+drop shadow (ruling R3); the tapis none. Which piece stands or hangs is read from treasures.ts POSES.
 
 The three places' polygons and plaque sides are the game's own: read from web/src/lib/world/scenes/
 cabin.shapes.ts (each `<HOUSE>_SHAPES` block's `points` lists and HOUSE_LABELS, in that file's
@@ -51,18 +51,16 @@ GEAR = ["sandales_hermes", "egide", "foudre_zeus"]
 DECOR = ["decor:lanterne", "decor:tapis", "decor:bibliotheque", "decor:trophee", "decor:fresque",
          "decor:amphore", "decor:chouette", "decor:mosaique", "decor:bouclier"]
 PIECES = [*LIEUTENANTS, *GEAR, *DECOR]
-STANDS = {*LIEUTENANTS, *GEAR, "decor:bibliotheque", "decor:trophee", "decor:amphore", "decor:chouette"}
-HANGS = {"decor:lanterne", "decor:fresque", "decor:mosaique", "decor:bouclier"}
 CUPBOARD = {*LIEUTENANTS, *GEAR}
 TROPHY_FOOT = 0.065
 ROOT = Path(__file__).resolve().parents[2]
 SCENES = ROOT / "web/src/lib/world/scenes"
 PLACES = SCENES / "treasure-places.json"
 SHAPES = SCENES / "cabin.shapes.ts"
+TREASURES_TS = SCENES / "treasures.ts"
 HOUSES = ["cabin", "villa", "palais"]
 PLACE_IDS = ["trophies", "journal", "lyre"]
 SAFE = (12.5, 87.5)
-HUD_LINE = 10.0                     # 71.5 px of a 720 px art box (nest.ts HUD_LINE)
 HUD_LINE_SHORT = 71.5 / 640 * 100   # the same 71.5 px of a 640 px art box (nest.ts HUD_LINE_SHORT)
 # The room's fixed boxes in art % (the name plaques, the exit sign, the places' plaques and leaders):
 # one model shared with treasures.test.ts, its notes in its `_doc`.
@@ -73,6 +71,22 @@ EXIT_SIGN = tuple(CHECKS["exitSign"][k] for k in ("x", "y", "w", "h"))
 PLAQUES = {sid: (p["w"], p["h"]) for sid, p in CHECKS["plaques"].items()}
 _L = CHECKS["leaderPx"]
 LEADER_LEN, PIN_H, PIN_W = _L["len"] / _L["artH"] * 100, _L["pinH"] / _L["artH"] * 100, _L["pinW"] / _L["artW"] * 100
+
+
+def poses(src: Path = TREASURES_TS) -> dict:
+    """{piece: "trophy" | "stands" | "hangs" | "lies"}: treasures.ts POSES, the game's own (the
+    tool stops if any piece is missing), so the preview's shadows follow the room's CSS."""
+    block = re.search(r"export const POSES: Record<PieceId, Pose> = \{(.*?)\};", src.read_text(encoding="utf-8"), re.S)
+    found = dict(re.findall(r"'?([\w:]+)'?: '(trophy|stands|hangs|lies)'", block.group(1))) if block else {}
+    if set(found) != set(PIECES):
+        sys.exit(f"{src}: POSES does not list exactly the {len(PIECES)} pieces")
+    return found
+
+
+POSES = poses()
+# A trophy stands too (its shadow is narrower); the tapis lies flat with no shadow.
+STANDS = {pid for pid, pose in POSES.items() if pose in ("trophy", "stands")}
+HANGS = {pid for pid, pose in POSES.items() if pose == "hangs"}
 
 
 def house_shapes(house: str, src: Path = SHAPES) -> dict:
@@ -95,11 +109,16 @@ def house_shapes(house: str, src: Path = SHAPES) -> dict:
 
 
 def piece_file(pid: str, level: int) -> Path:
+    """The shipped picture the game draws; a staged re-export (treasures.py webp) that differs from
+    it is announced loudly, since the preview would not show it until it is moved into place."""
     if pid in LIEUTENANTS:
         return ROOT / f"web/public/art/trophies/large/trophy-{pid}-{level}.webp"
     name = pid.replace(":", "-")
+    shipped = ROOT / f"web/public/art/treasures/{name}.webp"
     staged = ROOT / f"assets/art/export/treasures/{name}.webp"
-    return staged if staged.exists() else ROOT / f"web/public/art/treasures/{name}.webp"
+    if staged.exists() and staged.read_bytes() != shipped.read_bytes():
+        print(f"WARNING {staged} differs from the shipped {shipped}: the preview shows the shipped one", file=sys.stderr)
+    return shipped
 
 
 def place_box(p: dict, aspect: float, foot: float) -> tuple[float, float, float, float]:

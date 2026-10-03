@@ -31,7 +31,10 @@ describe('the three houses', () => {
     }
   });
 
-  it('keeps no display limit (spec 2026-10-02 house treasures)', async () => {
+  // A guard against the old limit's names coming back, not the proof that there is no limit: that is
+  // treasures.test.ts « shows all eighteen at once », the server's all-nine display tests and the
+  // e2e « a fifth piece goes on display » (scenes-cabin.spec.ts).
+  it('exports neither MAX_DISPLAYED_DECOR nor WALLS_FULL_LINE again (spec 2026-10-02 house treasures)', async () => {
     const mod = await import('./cabin');
     expect('MAX_DISPLAYED_DECOR' in mod).toBe(false);
     expect('WALLS_FULL_LINE' in mod).toBe(false);

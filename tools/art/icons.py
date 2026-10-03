@@ -16,7 +16,7 @@ with a small margin (so every icon fills its box the same way), downscaled to
 256x256 and saved with alpha. Quality starts at 80 and steps down by 5 until the
 file is under its budget (20 KiB for the decor-* icons, the cap web/src/lib/world/art.test.ts
 holds them to; 25 KiB for the others), floor 50: an icon still over budget at q50 is an error
-(the file is removed and the tool exits 1), never kept silently.
+(it is not written, the icon already there is kept, and the tool exits 1), never kept silently.
 
 Contact sheet: every icon at 64 px and 128 px, on the dark UI colour and on
 parchment, labelled with its id.
@@ -83,14 +83,20 @@ def budget(icon_id: str) -> int:
 
 def save_webp(img: Image.Image, dst: Path, budget: int, qualities: list[int]) -> tuple[int, int, bool]:
     """Save `img` as WebP at the first quality of `qualities` that fits `budget` bytes.
-    Returns (quality, size, ok); when even the last quality is over budget the file is deleted
-    (never kept silently) and ok is False. Shared with treasures.py."""
-    for q in qualities:
-        img.save(dst, "WEBP", quality=q, method=6)
-        size = dst.stat().st_size
-        if size <= budget:
-            return q, size, True
-    dst.unlink()
+    Returns (quality, size, ok); when even the last quality is over budget nothing is written
+    (an over-budget file is never kept silently) and ok is False. Each try goes to a temporary file
+    beside `dst`, which replaces `dst` only once it fits: a failed re-export never deletes or
+    damages a file already shipped. Shared with treasures.py."""
+    tmp = dst.with_name(dst.name + ".tmp")
+    try:
+        for q in qualities:
+            img.save(tmp, "WEBP", quality=q, method=6)
+            size = tmp.stat().st_size
+            if size <= budget:
+                tmp.replace(dst)
+                return q, size, True
+    finally:
+        tmp.unlink(missing_ok=True)
     return q, size, False
 
 
@@ -109,7 +115,7 @@ def webp(dst_dir: Path = DST, only: list[str] | None = None) -> bool:
             largest = max(largest, size)
         else:
             over.append(icon_id)
-            flag = f"  OVER BUDGET ({cap / 1024:.0f} KiB) at q{q}: removed"
+            flag = f"  OVER BUDGET ({cap / 1024:.0f} KiB) at q{q}: not written"
         print(f"{dst}  q{q}  {size / 1024:.1f} KiB{flag}")
     print(f"largest: {largest / 1024:.1f} KiB")
     if over:

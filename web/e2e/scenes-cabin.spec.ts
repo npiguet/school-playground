@@ -479,6 +479,8 @@ test("a seal won puts its trophy at the lieutenant's place, full size; the next 
   const hydre = page.getByTestId('cabin-piece-hydre');
   await expect(hydre).toHaveAttribute('data-level', '1');
   await expect(hydre.locator('img')).toHaveAttribute('src', '/art/trophies/large/trophy-hydre-1.webp');
+  // Named for screen readers with its seal's title.
+  await expect(hydre.locator('img')).toHaveAttribute('alt', "Sceau de bois de l'Hydre");
   // Full size: the large trophy (512 px), never the shelf's small one.
   await expect.poll(() => hydre.locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(512);
   await expect(page.locator('[data-testid^="cabin-piece-"]')).toHaveCount(1);
@@ -495,6 +497,7 @@ test("a seal won puts its trophy at the lieutenant's place, full size; the next 
   await restedRoom(page, testInfo);
   await expect(hydre).toHaveAttribute('data-level', '2');
   await expect(hydre.locator('img')).toHaveAttribute('src', '/art/trophies/large/trophy-hydre-2.webp');
+  await expect(hydre.locator('img')).toHaveAttribute('alt', "Sceau de bronze de l'Hydre");
   await expect(page.locator('[data-testid^="cabin-piece-"]')).toHaveCount(1);
   // The bronze trophy stands where the wooden one stood: same left edge, same foot, same width.
   await expect.poll(foot).toEqual(before);

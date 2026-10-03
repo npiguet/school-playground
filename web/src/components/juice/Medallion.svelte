@@ -3,9 +3,8 @@
   // colour swatch; `locked` greys the ring and shows the reward's dark silhouette (UI3b playability
   // #13: a « ? » coin looked like a missing picture; the shelf names every reward in advance anyway,
   // ethics: nothing hidden), or a plain « ? » when there is no picture to darken (a tint, an unknown
-  // id, also announced as such - review round 1 #3). `label` names the reward for screen readers when no visible text
-  // sits next to this medallion (review round 1 #2); it never overrides the locked/unknown mystery
-  // state, which must never leak which reward it is. The reward's kind is resolved here, in one
+  // id, also announced as such - review round 1 #3); the locked/unknown mystery state never leaks
+  // which reward it is. The reward's kind is resolved here, in one
   // place, from the server catalog when it is loaded (final review M6: callers used to pass it,
   // some hard-coding « gear », some guessing without the catalog).
   import { rewardIcon, rewardKindOf } from '../../lib/world/art';
@@ -17,8 +16,7 @@
     rewardId,
     size = 72,
     locked = false,
-    label,
-  }: { rewardId: string; size?: number; locked?: boolean; label?: string } = $props();
+  }: { rewardId: string; size?: number; locked?: boolean } = $props();
 
   const kind = $derived(rewardKindOf(rewardId, campStore.catalog));
 
@@ -40,7 +38,7 @@
   {#if !locked && swatch}
     <span class="swatch" style="background:radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.55), {swatch} 62%)" aria-hidden="true"></span>
   {:else if !locked && icon}
-    <img class="icon" src={icon} alt={label ?? ''} draggable="false" />
+    <img class="icon" src={icon} alt="" draggable="false" />
   {:else if locked && icon}
     <img class="icon silhouette" src={icon} alt="" draggable="false" />
   {:else}

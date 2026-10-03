@@ -350,6 +350,7 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     // place in the room, on the cupboard's bottom shelf.
     await expect(page.getByTestId('cabin-piece-sandales_hermes')).toBeVisible();
     await expect(page.getByTestId('cabin-piece-sandales_hermes').locator('img')).toHaveAttribute('src', '/art/treasures/sandales_hermes.webp');
+    await expect(page.getByTestId('cabin-piece-sandales_hermes').locator('img')).toHaveAttribute('alt', "Sandales d'Hermès");
   });
 
   test('8. weekly goal and break nudge', async ({ page }) => {

@@ -1,7 +1,7 @@
 # The house shows its treasures (design)
 
-Date: 2026-10-02. Status: approved in conversation (playtest feedback of 2026-10-02), awaiting the
-written review.
+Date: 2026-10-02. Status: implemented on the house-treasures branch (merging); approved in
+conversation (playtest feedback of 2026-10-02).
 
 ## Why
 

@@ -93,7 +93,10 @@ def test_the_shop_catalog_served_to_the_client():
     assert "max_decor" not in c
 
 
-def test_no_wall_limit_is_left_in_the_shop():
+# A guard against the old wall limit's name coming back, not the proof that there is no limit: that is
+# test_drachmes_api.py test_every_house_displays_all_nine_pieces and test_world_api.py
+# test_decor_on_display_before_the_limit_went_stays_and_all_nine_fit.
+def test_the_shop_never_defines_max_decor_again():
     import app.world.shop as shop
     assert not hasattr(shop, "MAX_DECOR")
 

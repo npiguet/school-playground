@@ -9,7 +9,8 @@ air, so the piece's base is its image's bottom edge (the room's `y`); the long s
 768 px for the big pieces (672 px for the mosaic, whose fine tiles reach the 90 KiB budget only at q50
 at 768 px), 512 px for the others; alpha kept. Quality starts at 82 and steps
 down by 4 until the file is under its budget, floor 50: a piece still over budget at q50 is an
-error (exit 1), never kept silently. Each line printed gives the size and the aspect (height / width).
+error (exit 1), never written (a staged file already there is kept). Each line printed gives the
+size and the aspect (height / width).
 
 Contact sheet: the twelve pieces at one common scale (REAL_CM, the width of each piece in
 centimetres) beside a bronze trophy for reference, on the dark UI colour, a mid grey and parchment.
@@ -25,8 +26,12 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from icons import DARK, PARCHMENT, save_webp
 
 SRC = Path("assets/art/treasures")
-# Staged export: the code task that wires the treasures moves them into web/public/art/treasures/.
+# Staged export: a re-export lands here, never over the shipped pictures the game draws
+# (web/public/art/treasures/, moved there by house treasures Task 6); check it (the sheet,
+# treasure_preview.py, which warns while a staged file differs from the shipped one), then copy it
+# across. The sheet reads the staged file when there is one, else the shipped one.
 DST = Path("assets/art/export/treasures")
+SHIPPED = Path("web/public/art/treasures")
 SHEET = Path("docs/art/treasures-sheet.png")
 TROPHY = Path("web/public/art/trophies/large/trophy-hydre-2.webp")
 TROPHY_CM = 22          # a trophy statuette's height in centimetres, base included
@@ -81,7 +86,7 @@ def webp() -> bool:
         flag = ""
         if not ok:
             over.append(pid)
-            flag = f"  OVER BUDGET ({budget / 1024:.0f} KiB) at q{q}: removed"
+            flag = f"  OVER BUDGET ({budget / 1024:.0f} KiB) at q{q}: not written"
         print(f"{dst}  {img.width}x{img.height}  aspect {img.height / img.width:.4f}  q{q}  {size / 1024:.1f} KiB{flag}")
     print(f"total: {total / 1024:.1f} KiB")
     if over:
@@ -95,7 +100,8 @@ def sheet(px_per_cm: float = 2.4):
     font = ImageFont.load_default(size=16)
     items = []
     for pid, cm in REAL_CM.items():
-        img = Image.open(DST / f"{pid}.webp").convert("RGBA")
+        staged = DST / f"{pid}.webp"
+        img = Image.open(staged if staged.exists() else SHIPPED / f"{pid}.webp").convert("RGBA")
         w = round(cm * px_per_cm)
         items.append((pid, img.resize((w, round(w * img.height / img.width)), Image.LANCZOS)))
     trophy = Image.open(TROPHY).convert("RGBA")

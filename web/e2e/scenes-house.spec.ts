@@ -88,6 +88,35 @@ test('buy the villa at the stall: the room follows the house, a sixth piece from
   expect(await redScan(page)).toEqual([]);
 });
 
+// Final review round: until /camp names the house, the room draws no piece (a villa owner's cold
+// reload never shows the carpet at the cabin's place first); each piece is named for screen readers
+// with its reward row's French name.
+test('a cold reload draws no piece until the camp names the house', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let release = () => {};
+  const campHeld = new Promise<void>((r) => (release = r));
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    await campHeld;
+    const res = await route.fetch();
+    await route.fulfill({ response: res, json: { ...(await res.json()), house: 'villa' } });
+  });
+  const rows = [{ id: 'decor:tapis', kind: 'decor', name: 'Tapis tissé', desc: '', source: '', granted_at: '2026-09-30T10:00:00', equipped: true }];
+  await page.route(`**/api/profiles/${id}/rewards`, (route) => route.fulfill({ json: rows }));
+  await page.setViewportSize({ width: 1280, height: 720 });
+  const rewards = page.waitForResponse((r) => r.url().endsWith(`/api/profiles/${id}/rewards`));
+  await page.goto(`/#/p/${id}/cabane`);
+  await rewards;
+  await expect(page.getByTestId('place-status')).toBeVisible();
+  // Two frames after /rewards answered: the room would have drawn the carpet by now.
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await expect(page.locator('[data-testid^="cabin-piece-"]')).toHaveCount(0);
+  release();
+  await expect(page.locator('[data-testid="scene-cabin"] .art-bg')).toHaveAttribute('src', '/art/scenes/villa.webp');
+  const tapis = page.getByTestId('cabin-piece-decor:tapis');
+  await expect(tapis).toBeVisible();
+  await expect(tapis.locator('img')).toHaveAttribute('alt', 'Tapis tissé');
+});
+
 // Spec 2026-10-02 house treasures, "e2e: screenshots of each house empty and full for review".
 for (const house of ['cabin', 'villa', 'palais'] as const) {
   test(`${house}: the empty fixtures, then every treasure at its place`, async ({ page, request }, testInfo) => {
