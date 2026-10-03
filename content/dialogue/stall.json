@@ -14,8 +14,8 @@
     ],
     "stall.bought.decor": [
       { "speaker": "hermes", "text": "Un bel objet pour une belle demeure. Il t'attend parmi tes trésors." },
-      { "speaker": "hermes", "text": "Livré à tire-d'aile ! Ouvre tes trésors pour l'exposer au mur." },
-      { "speaker": "hermes", "text": "Tes murs vont briller ! L'objet t'attend parmi tes trésors, dans ta maison." },
+      { "speaker": "hermes", "text": "Livré à tire-d'aile ! Ouvre tes trésors pour l'exposer dans ta maison." },
+      { "speaker": "hermes", "text": "Ta maison va briller ! L'objet t'attend parmi tes trésors." },
       { "speaker": "hermes", "text": "Voilà qui fera parler tout le camp. Tu le trouveras parmi tes trésors." }
     ],
     "stall.bought.house": [

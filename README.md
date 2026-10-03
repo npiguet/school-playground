@@ -574,7 +574,7 @@ only), the quest and fight XP (`QUEST_BONUS` in `catalog.py`: board 60, Oracle 1
 Éris fight 300), a seal's XP (`LEVEL_XP` × L, 100), the board quests' decor every second quest done,
 the Oracle's six rewards in order, and the stall's catalogue (`server/app/world/shop.py`: accessories
 on sale from seals 2 to 5 by slot, the villa from the adult dragon, the palais from the illustre one
-after the villa, 4 / 6 / 9 wall slots for cabin / villa / palais).
+after the villa).
 
 ### Seals: the window algorithm
 

@@ -127,3 +127,13 @@ def test_what_the_purse_can_buy():
     assert "house:villa" not in affordable(owned=set(), balance=300, levels={}, awake=SIX, stage="young", rules=r)
     rich = affordable(owned=set(), balance=10_000, levels=lv(protee=5), awake=FIVE, stage="egg", rules=r)
     assert not [i for i in rich if "protee" in i]
+
+
+def test_the_laurel_crown_and_the_houses_say_what_they_are():
+    """Spec 2026-10-02 house treasures: decor:trophee keeps its id and becomes the Couronne de laurier;
+    the houses say what the room is like, never how many pieces it holds."""
+    assert (REWARDS["decor:trophee"]["name"], REWARDS["decor:trophee"]["desc"]) == (
+        "Couronne de laurier", "Une couronne de laurier en or, celle des vainqueurs.")
+    assert REWARDS["house:villa"]["desc"] == "Des murs blanchis de frais, une frise peinte et des colonnes\u202f: une maison toute neuve."
+    assert REWARDS["house:palais"]["desc"] == "Des murs de marbre, des chapiteaux dorés et un sol de mosaïque\u202f: tout y brille."
+    assert [r["id"] for r in REWARDS.values() if "pomme" in (r["name"] + r["desc"]).lower() or "place pour" in r["desc"]] == []
