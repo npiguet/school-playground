@@ -346,8 +346,10 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     await expect(page.getByTestId('cabin-equip-sandales_hermes')).toContainText('Ranger');
     await closeOverlay(page);
     await expectScene(page, 'cabin');
-    // Gear is worn, not hung: it never shows on the cabin's walls.
-    await expect(page.getByTestId('cabin-decor-sandales_hermes')).toHaveCount(0);
+    // Spec 2026-10-02 house treasures (pre-flight ruling H4): the gear put on display stands at its
+    // place in the room, on the cupboard's bottom shelf.
+    await expect(page.getByTestId('cabin-piece-sandales_hermes')).toBeVisible();
+    await expect(page.getByTestId('cabin-piece-sandales_hermes').locator('img')).toHaveAttribute('src', '/art/treasures/sandales_hermes.webp');
   });
 
   test('8. weekly goal and break nudge', async ({ page }) => {

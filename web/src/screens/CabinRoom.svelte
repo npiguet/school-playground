@@ -1,23 +1,24 @@
 <script lang="ts">
   // The hero's cabin (scenes UI spec §3, UI3 Ruling B6): the trophy shelf opens the rewards
   // (#/p/:id/cabane?panel=tresors), the journal the stats (#/p/:id/stats), the lyre the settings
-  // (#/p/:id/settings). Displayed decor hangs on the walls; it reloads when the cabin opens and
-  // whenever the shelf puts something on display or away. The hero panel lives here too
+  // (#/p/:id/settings). Each lieutenant's highest trophy, and the gear and decor on display, stand
+  // at their own place in the room (spec 2026-10-02 house treasures); the rewards load when the room
+  // opens and follow the shelf's « Exposer » / « Ranger ». The hero panel lives here too
   // (#/p/:id/cabane?panel=heros, Ruling B2): the HUD's hero chip is its shortcut from every place.
   // UI3b playability #7: the dragon greets here once per page load and speaks on the shelf's, the
   // journal's and the lyre's voice plates (the hero panel is a short menu, with no plate).
   // The room is the highest house owned: the cabin, the villa or the palais, each with its own
-  // places and walls (spec 2026-09-29 drachmes §3, R21).
+  // places (spec 2026-09-29 drachmes §3, R21).
   import PlaceScene from '../components/scene/PlaceScene.svelte';
   import Hotspot from '../components/scene/Hotspot.svelte';
   import Overlay from '../components/scene/Overlay.svelte';
-  import Medallion from '../components/juice/Medallion.svelte';
   import TrophiesPanel from '../components/places/cabin/TrophiesPanel.svelte';
   import JournalPanel from '../components/places/cabin/JournalPanel.svelte';
   import LyrePanel from '../components/places/cabin/LyrePanel.svelte';
   import HeroPanel from '../components/places/cabin/HeroPanel.svelte';
   import GuidePanel from '../components/places/cabin/GuidePanel.svelte';
-  import { DECOR_SLOTS, cabinGreeting, guideLine, houseScene, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
+  import { cabinGreeting, guideLine, houseScene, journalLine, lyreLine, trophiesLine } from '../lib/world/scenes/cabin';
+  import { PIECE_IDS, TREASURE_PLACES, shownPieces } from '../lib/world/scenes/treasures';
   import { campFor } from '../lib/world/campStore.svelte';
   import { isAwake } from '../lib/world/eris';
   import { LIEUTENANT_ORDER } from '../lib/world/types';
@@ -34,17 +35,15 @@
   let { profile, panel }: { profile: Profile; panel: PanelId | null } = $props();
 
   let debug = $state(false);
-  // The hero's rewards, fetched once here for both the walls and the shelf (final review M15).
+  // The hero's rewards, fetched once here for both the room and the shelf (final review M15).
   let owned = $state<RewardOut[] | null>(null);
   let rewardsError = $state('');
   // Until /camp answers, the cabin (R21): the places arrive from the camp, which has loaded it.
   const house = $derived(campFor(profile.id)?.house ?? 'cabin');
   const scene = $derived(houseScene(house));
-  const slots = $derived(DECOR_SLOTS[house]);
-  // One piece per wall slot (4, 6 or 9 by house; the server sets no limit since spec 2026-10-02 house
-  // treasures, whose Task 6 stands each piece at its own place): a piece on display beyond the slots
-  // stays on the shelf rather than hanging over another.
-  const displayed = $derived((owned ?? []).filter((r) => r.kind === 'decor' && r.equipped).slice(0, slots.length));
+  // What stands in the room: nothing while /rewards loads or after it failed (the fixtures only),
+  // then each piece at the places of the house the camp names.
+  const pieces = $derived(owned === null ? [] : shownPieces(house, owned));
 
   // Only the hero id is tracked: the rewards reload for a new hero; a piece the shelf puts on
   // display or away comes back as the server answered it (onUpdated), with no second fetch.
@@ -85,12 +84,25 @@
 
 <PlaceScene {profile} {scene} bind:debug {greet}>
   {#snippet children(ctx)}
-    {#each displayed as r, i (r.id)}
-      {@const slot = slots[i]}
-      <div class="cabin-decor" data-testid="cabin-decor-{r.id}" style="left:{slot.x}%;top:{slot.y}%">
-        <Medallion rewardId={r.id} size={52} label={r.name} />
+    {#each pieces as p (p.id)}
+      <div
+        class="piece {p.pose}"
+        data-testid="cabin-piece-{p.id}"
+        data-level={p.level ?? undefined}
+        style="left:{p.place.x - p.place.w / 2}%;top:{p.place.y}%;width:{p.place.w}%;--foot:{p.foot}"
+      >
+        <img src={p.src} alt="" draggable="false" />
       </div>
     {/each}
+    {#if debug}
+      <!-- ?debug: every place's bottom edge and width, owned or not, to check them on the painting. -->
+      {#each PIECE_IDS as id (id)}
+        {@const pl = TREASURE_PLACES[house][id]}
+        <div class="place-debug" data-testid="cabin-place-{id}" style="left:{pl.x - pl.w / 2}%;top:{pl.y}%;width:{pl.w}%">
+          <span>{id}</span>
+        </div>
+      {/each}
+    {/if}
     {#each scene.hotspots as def (def.id)}
       <Hotspot {def} status={def.state(ctx)} sceneId="cabin" onActivate={activate} />
     {/each}
@@ -121,11 +133,55 @@
 {/if}
 
 <style>
-  .cabin-decor {
+  /* A piece at its place (spec 2026-10-02 house treasures): its box's bottom edge on the place's
+     line (a trophy sits its transparent foot lower), its width the place's, its height its picture's;
+     under the hotspots (z 3) and their plaques, not tappable, still (no depth, idle or parallax). */
+  .piece {
     position: absolute;
     z-index: 2;
-    transform: translate(-50%, -50%);
+    transform: translateY(calc(-100% + var(--foot) * 100%));
     pointer-events: none;
-    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.4));
+  }
+  .piece img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  /* The contact shadow under a standing piece (CSS, not painted, ruling R3): a soft ellipse on its
+     base line. */
+  .piece:is(.trophy, .stands)::after {
+    content: '';
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: calc(var(--foot) * 100%);
+    aspect-ratio: 6 / 1;
+    transform: translateY(50%);
+    background: radial-gradient(closest-side, rgba(20, 12, 6, 0.45), rgba(20, 12, 6, 0));
+    z-index: -1;
+  }
+  /* A trophy's picture is a square around a narrow statuette: a narrower shadow. */
+  .piece.trophy::after {
+    left: 28%;
+    right: 28%;
+  }
+  /* A hanging piece: a faint drop shadow, so it sits on the wall; the rug lies flat with none. */
+  .piece.hangs img {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+  }
+  .place-debug {
+    position: absolute;
+    z-index: 4;
+    border-top: 2px dashed #ffe14d;
+    pointer-events: none;
+  }
+  .place-debug span {
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    font-size: 10px;
+    color: #ffe14d;
+    text-shadow: 0 0 2px #000;
+    white-space: nowrap;
   }
 </style>

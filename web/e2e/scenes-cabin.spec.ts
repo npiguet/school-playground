@@ -12,6 +12,7 @@ import {
   expectInSafeZone,
   expectInWorldOverlay,
   expectLineOf,
+  expectPiecesClear,
   expectScene,
   labelOverlaps,
   redScan,
@@ -367,10 +368,12 @@ test('a deep link to the hero panel closes onto the cabin, focus on the HUD hero
   await expect(page.getByTestId('hud-hero')).toBeFocused();
 });
 
-test('displayed decor hangs on bare wall, clear of every place and plaque', async ({ page, request }, testInfo) => {
+// Spec 2026-10-02 house treasures: each piece on display at its own place, at three screen sizes
+// (Review Focus 3: the plaques are pixel-sized while the art scales).
+test('the pieces on display stand at their places, clear of every plaque and of each other, not tappable', async ({ page, request }, testInfo) => {
   const id = await createProfileApi(request, heroName(testInfo.project.name));
-  // Four pieces on display: intercepted, so no quest has to be won first.
-  const decor = ['decor:lanterne', 'decor:tapis', 'decor:bibliotheque', 'decor:trophee'];
+  // Five pieces on display: intercepted, so no quest has to be won first.
+  const decor = ['decor:lanterne', 'decor:tapis', 'decor:bibliotheque', 'decor:trophee', 'decor:fresque'];
   await page.route(`**/api/profiles/${id}/rewards`, (route) =>
     route.fulfill({
       json: decor.map((rid) => ({ id: rid, kind: 'decor', name: rid, desc: '', source: '', granted_at: '2026-09-21T12:00:00+00:00', equipped: true })),
@@ -379,21 +382,10 @@ test('displayed decor hangs on bare wall, clear of every place and plaque', asyn
   for (const size of [{ width: 1280, height: 720 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }]) {
     await page.setViewportSize(size);
     await openCabin(page, id);
-    for (const rid of decor) await expect(page.getByTestId(`cabin-decor-${rid}`)).toBeVisible();
-    const boxes = await page.evaluate(() => {
-      const r = (el: Element) => el.getBoundingClientRect();
-      const stage = document.querySelector('[data-testid="scene-cabin"]')!;
-      return {
-        decor: [...stage.querySelectorAll('[data-testid^="cabin-decor-"]')].map(r),
-        others: [...stage.querySelectorAll('.hotspot-label, .hotspot-leader, .stage-plaque, [data-testid^="cabin-"]:not([data-testid^="cabin-decor-"])')].map(r),
-      };
-    });
-    const overlap = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-    for (const [i, d] of boxes.decor.entries()) {
-      for (const o of boxes.others) expect(overlap(d, o), `${size.width}x${size.height} decor ${i}`).toBe(false);
-      for (const e of boxes.decor.slice(i + 1)) expect(overlap(d, e), `${size.width}x${size.height} decor ${i} vs another`).toBe(false);
-    }
+    for (const rid of decor) await expect(page.getByTestId(`cabin-piece-${rid}`)).toBeVisible();
+    await expectPiecesClear(page, size);
   }
+  expect(await page.getByTestId('cabin-piece-decor:tapis').evaluate((e) => getComputedStyle(e).pointerEvents)).toBe('none');
 });
 
 for (const o of [

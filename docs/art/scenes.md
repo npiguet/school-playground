@@ -184,7 +184,7 @@ wooden cupboard in the centre, the desk at the far left, the lyre on a stool at 
 | Chest | 17.5 | 69 | 11.5 | 16 | Lid y 69.5: the couronne |
 | Back wall, left | 17.5 | 14 | 11.5 | 55 | The fresque (panel top y 15.5) above the mosaïque (top y 27) |
 | Back wall, right | 70.5 | 14 | 17 | 38 | The bouclier (top y 15.5), left of the hook |
-| Floor in front | 12.5 | 86 | 75 | 14 | The tapis (centre, near edge y 100), the étagère (front left, y 98), the amphore (front right, y 99.5) |
+| Floor in front | 12.5 | 86 | 75 | 14 | The tapis (centre, near edge y 100), the étagère (front right, x 75, y 99, before the lyre's stool), the amphore (front right, y 99.5). The front-left corner stays empty: « Le camp », the exit sign, covers it |
 
 ## villa: the villa (2026-10-02)
 
@@ -193,16 +193,16 @@ painted cornice cupboard in the centre, a window at the far left, two bronze wal
 
 | Landmark | x | y | w | h | Notes |
 |---|---|---|---|---|---|
-| Cupboard (« Tes trésors ») | 25 | 13 | 50 | 75 | Hotspot `trophies`: (26, 18) (74.5, 18) (74.5, 80) (26, 80); plaque below. Compartments: cols 29.3-41.6, 43.0-57.3, 58.8-72.6; rows 22.2-40.4, 43.6-61.2, 65.1-83.1. Standing lines y 40.3, 60.9, 80.0 (the gear's floor is at 80.5; 80.0 keeps it off the plaque) |
+| Cupboard (« Tes trésors ») | 25 | 13 | 50 | 75 | Hotspot `trophies`: (26, 18) (74.5, 18) (74.5, 80) (26, 80); plaque below. Compartments: cols 29.3-41.6, 43.0-57.3, 58.8-72.6; rows 22.2-40.4, 43.6-61.2, 65.1-83.1. Standing lines y 40.3, 60.9, 80.0 (the gear's floor is at 80.5; 80.0 keeps it off the plaque); the égide hangs on the middle compartment's back panel, foot at y 78.8, clear of the plaque's leader and its pin (y 79.2-82.5 at x 50.25) |
 | Desk and journal (« Ton journal ») | 12 | 56 | 14 | 32 | Hotspot `journal`: (13, 57) (25.5, 57) (25.5, 70) (13, 70); plaque **below** (the lanterne hangs above the desk) |
 | Lyre on its stand (« La lyre ») | 75.5 | 55 | 8 | 34 | Hotspot `lyre`: (75, 55) (84, 55) (84, 75) (75, 75); plaque above |
 | Left wall hook | 17 | 35 | 3.5 | 10 | Hook point (18.6, 43.8): the lanterne |
 | Right wall hook | 81 | 35 | 3.5 | 10 | The mosaïque hangs from it (top y 36) |
 | Pedestal | 85 | 76.5 | 6.5 | 11.5 | ⚠ Mostly past x 87.5: left empty |
-| Chest under the desk | 12 | 80 | 8 | 8 | Behind the étagère |
+| Chest under the desk | 12 | 80 | 8 | 8 | Painted only |
 | Back wall, left | 13 | 20 | 12 | 36 | The fresque (top y 21.5), above the hook |
 | Back wall, right | 75 | 20 | 13 | 35 | The bouclier (top y 20.5), above the hook |
-| Floor in front | 12.5 | 88 | 75 | 12 | The tapis (centre), the étagère (front left, y 99), the amphore (front right, y 99); the couronne (x 29) and the chouette (x 71.5) at the cupboard's feet, y 92 |
+| Floor in front | 12.5 | 88 | 75 | 12 | The tapis (centre), the étagère (front right, x 78.5, y 99), the amphore (front right, y 99); the couronne (x 29, y 89.5, clear of the exit sign) and the chouette (x 71.5, y 92) at the cupboard's feet. The front-left corner stays empty: « Le camp », the exit sign, covers it |
 
 ## palais: the palais (2026-10-02)
 
@@ -217,10 +217,10 @@ marble and gold cupboard in the centre on a plinth, two bronze wall hooks.
 | Left wall hook | 18 | 32 | 4 | 10 | Hook point (21.2, 41): the lanterne |
 | Right wall hook | 79 | 32 | 3.5 | 10 | The mosaïque hangs from it (top y 33) |
 | Pedestal | 82 | 66.5 | 4.5 | 13 | Top y 66.5: the chouette (x 84.3) |
-| Chest under the desk | 17.5 | 76 | 8 | 7 | Behind the étagère |
+| Chest under the desk | 17.5 | 76 | 8 | 7 | Painted only |
 | Marble panel, left | 14 | 20 | 13 | 60 | The fresque (top y 22), above the hook |
 | Marble panel, right | 74 | 20 | 13 | 58 | The bouclier (top y 21.5), above the hook |
-| Floor in front | 12.5 | 79 | 75 | 21 | The couronne at the plinth's left foot (x 30, y 85); the tapis (centre, y 99.5), the étagère (front left, y 99), the amphore (front right, y 98.5) |
+| Floor in front | 12.5 | 79 | 75 | 21 | The couronne at the plinth's left foot (x 30, y 85); the tapis (centre, y 99.5), the étagère (front right, x 74, y 99), the amphore (front right, y 98.5). The front-left corner stays empty: « Le camp », the exit sign, covers it |
 
 Places: web/src/lib/world/scenes/treasure-places.json (x centre, y bottom edge, w width, art %), measured with tools/art/grid.py and checked with tools/art/treasure_preview.py --check.
 
@@ -228,7 +228,8 @@ The trophies and the gear are sized to their compartment (about 80 % of its heig
 one that binds first, centred, on the standing line), not by the contact sheet's REAL_CM; the
 trophies' box keeps its 6.5 % transparent margin (TROPHY_FOOT). They stand inside the « Tes
 trésors » hotspot by design (the cupboard is that place); every decor piece is clear of the three
-hotspots' boxes, and every piece of the plaques, the HUD and the room's name.
+hotspots' boxes, and every piece of the plaques and their leaders, the HUD, the room's name and the
+exit sign (« Le camp », x 13.5-30.5, y 89.9-97 in art % across the e2e screen sizes).
 
 ## eris_lair: Éris's lair
 

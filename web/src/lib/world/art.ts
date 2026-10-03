@@ -25,6 +25,25 @@ export const REWARD_ICONS: Record<string, string> = {
   'decor:bouclier': icon('decor-bouclier'),
 };
 
+const treasure = (name: string) => `/art/treasures/${name}.webp`;
+
+/** The twelve pieces that stand in the rooms (spec 2026-10-02 house treasures), front-facing
+ *  cut-outs trimmed to the object, keyed by reward id like REWARD_ICONS (the same file names). */
+export const TREASURE_ART = {
+  sandales_hermes: treasure('sandales_hermes'),
+  egide: treasure('egide'),
+  foudre_zeus: treasure('foudre_zeus'),
+  'decor:lanterne': treasure('decor-lanterne'),
+  'decor:tapis': treasure('decor-tapis'),
+  'decor:bibliotheque': treasure('decor-bibliotheque'),
+  'decor:trophee': treasure('decor-trophee'),
+  'decor:fresque': treasure('decor-fresque'),
+  'decor:amphore': treasure('decor-amphore'),
+  'decor:chouette': treasure('decor-chouette'),
+  'decor:mosaique': treasure('decor-mosaique'),
+  'decor:bouclier': treasure('decor-bouclier'),
+} as const;
+
 /** The hero emblems (was AVATAR_GLYPHS, UI3 Ruling A13). */
 export const AVATAR_ICONS: Record<Avatar, string> = {
   chouette: icon('avatar-chouette'),
@@ -115,6 +134,8 @@ export const ART = {
     lethe: '/art/lieutenants/lethe_cut.webp',
   },
   trophies: { icons: TROPHY_ICONS, large: TROPHY_LARGE },
+  // Spec 2026-10-02 house treasures: the gear and decor standing in the rooms (scenes/treasures.ts).
+  treasures: TREASURE_ART,
   emblems: {
     argus: '/art/emblems/argus_cut.webp',
     ariane: '/art/emblems/ariane_cut.webp',

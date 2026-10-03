@@ -1050,6 +1050,8 @@ Report to the controller the paths of the nine `full` previews (they can be show
 
 ### Task 6: The room draws its treasures
 
+> **As built (2026-10-03):** following Task 5 as built, `treasures.test.ts` checks the six trophies on **two** shelves (two `y` values, one `w`), models the plaques as `tools/art/treasure_preview.py` does (each place's plaque size on the 640 px art box, centred on its shape's box, kept in the safe zone; the room's name at 1280x720 and on the 640 px art box) and keeps every decor piece off the three shapes' boxes, the cupboard's nine exempt from the `trophies` shape only. The plaque side is per house: `cabin.shapes.ts` exports `HOUSE_LABELS` beside the polygons and `houseHotspots(shapes, labels)` takes it (the journal's plaque below in the villa and the palais). `treasure_preview.py` reads the polygons and the sides from `cabin.shapes.ts` itself (no `--shapes` file any more), so its `--check` is reproducible from the repo. `webpSize` keeps its 32-byte read in `testing/webp.ts`. `expectPiecesClear` also keeps each piece off the leaders and the places' tappable boxes (the cupboard's nine excepted). The villa e2e puts its sixth piece on display from the shelf in the villa. `world.spec.ts`'s Sandales now stand in the room (pre-flight ruling H4).
+
 **Files:**
 - Create: `web/src/lib/world/scenes/treasures.ts`, `web/src/lib/world/scenes/treasures.test.ts`, `web/src/testing/webp.ts`
 - Modify: `web/src/lib/world/art.ts`, `web/src/lib/world/art.test.ts`
