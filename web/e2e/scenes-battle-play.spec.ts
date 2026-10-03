@@ -295,7 +295,9 @@ test('the dictation writes on the parchment, in Literata, with bronze controls',
   await expectOverlayTapTargets(page, 'battle-parchment');
   await expect(page.locator('[data-testid="scene-battle"] [data-testid="stage-hud"] *')).toHaveCount(0);
   expect(await redScan(page)).toEqual([]);
-  // Final review M14: while she writes, nothing moves behind the text: no particles, no breathing.
+  // Final review M14: while she writes, nothing moves behind the text by CSS or Web Animations: no
+  // particles, no breathing; the combatants live on canvases (spec 2026-10-03 living battle), which run
+  // no animation of the document's.
   await expect(page.locator('[data-testid="scene-battle"] [data-testid="fx-canvas"]')).toHaveCount(0);
   for (const c of ['battle-dragon', 'battle-opponent']) {
     await expect.poll(() => page.getByTestId(c).evaluate((el) => el.getAnimations({ subtree: true }).length), c).toBe(0);

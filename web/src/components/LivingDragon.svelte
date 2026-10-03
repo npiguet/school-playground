@@ -1,28 +1,33 @@
 <!-- web/src/components/LivingDragon.svelte -->
 <script lang="ts">
-  // The living dragon (spec 2026-10-02 living dragon, "Component"): one WebGL2 canvas drawing the stage's
-  // sprite on its skinned mesh with its worn pieces riding along, slowly and slightly alive. It covers
-  // the same square box as the still picture, the canvas overflowing it by the 3.5 % margin so a wing
-  // tip may move out. It tells DragonFigure how it goes (onmotion): `pending` while loading (the still
-  // picture shows, this waits hidden), `living` from its first frame, `still` on any failure (no
-  // WebGL2, a shader, a load, a lost context: plan Ruling R4), after which
-  // DragonFigure unmounts it. A new stage or picture starts afresh, `pending` again, on a new canvas
-  // (Ruling L2; a disposed canvas's context is lost for good). The loop draws at most 30 frames a second
-  // and stops while the page is hidden or the canvas is off-screen. `amplitude`, `time`,
-  // `showWeights` and `tintSpec` (OKLCH settings in place of the tint's TINT_SPECS entry) serve the lab.
+  // The living dragon (spec 2026-10-02 living dragon, "Component") and, since spec 2026-10-03 living
+  // battle (plan Rulings B2, B5), any living rig: a dragon stage or a battle foe, the foe's 585 px
+  // portrait padded into the frame and its box kept at the portrait's aspect; a foe is never tinted
+  // (`tint` null). One WebGL2 canvas drawing the rig's sprite on its skinned mesh with its worn pieces
+  // riding along, slowly and slightly alive. It covers the same box as the still picture (square for a
+  // dragon, the portrait's aspect for a foe), the canvas overflowing it by the 3.5 % margin of the frame
+  // (and, for a foe, by the frame's padding on both sides) so a wing tip may move out. It tells
+  // DragonFigure how it goes (onmotion): `pending` while loading (the still picture shows, this waits
+  // hidden), `living` from its first frame, `still` on any failure (no WebGL2, a shader, a load, a lost
+  // context: plan Ruling R4), after which DragonFigure unmounts it. A new rig or picture starts afresh,
+  // `pending` again, on a new canvas (Ruling L2; a disposed canvas's context is lost for good). The loop
+  // draws at most 30 frames a second and stops while the page is hidden, the canvas is off-screen or
+  // its caller says `paused` (the battle under its « Revoir » scroll).
+  // `amplitude`, `time`, `showWeights` and `tintSpec` (OKLCH settings in place of the tint's TINT_SPECS
+  // entry) serve the lab.
   import { onMount, untrack } from 'svelte';
   import type { OverlayLayer } from '../lib/world/accessories';
-  import { buildAtlas, loadImage, pieceDraws, placePieces } from '../lib/living/atlas';
-  import { AMPLITUDE, frameDue, poseAt } from '../lib/living/pose';
+  import { buildAtlas, loadImage, padToFrame, pieceDraws, placePieces } from '../lib/living/atlas';
+  import { AMPLITUDE, frameDue, poseFor } from '../lib/living/pose';
   import { DragonRenderer } from '../lib/living/renderer';
   import type { OklchSpec } from '../lib/living/tint';
   import { TINT_SPECS } from '../lib/world/dragon';
   import type { Tint } from '../lib/world/types';
-  import { loadRig, type LivingStage, type Motion, type Rig } from '../lib/living/rigs';
-  import { MARGIN } from '../lib/living/skin';
+  import { FOE_WIDTH, isFoeRig, loadRig, type LivingRig, type Motion, type Rig } from '../lib/living/rigs';
+  import { FRAME, MARGIN, frameOffset } from '../lib/living/skin';
 
   let {
-    stage,
+    rig: rigId,
     src,
     alt,
     tint,
@@ -31,17 +36,19 @@
     time = null,
     showWeights = false,
     tintSpec = undefined,
+    paused = false,
     onmotion,
   }: {
-    stage: LivingStage;
+    rig: LivingRig;
     src: string;
     alt: string;
-    tint: Tint;
+    tint: Tint | null;
     overlays: OverlayLayer[];
     amplitude?: number;
     time?: number | null;
     showWeights?: boolean;
     tintSpec?: OklchSpec | null;
+    paused?: boolean;
     onmotion: (m: Motion) => void;
   } = $props();
 
@@ -50,6 +57,7 @@
   let applied = $state({ tint: '', worn: '' });
 
   let canvas: HTMLCanvasElement | null = null;
+  let spriteWidth = FRAME;
   let renderer: DragonRenderer | null = null;
   let rig: Rig | null = null;
   let raf = 0;
@@ -57,6 +65,7 @@
   let frames = 0;
   let visible = !document.hidden;
   let onScreen = true;
+  let held = false; // `paused`, read by the loop
   let piecesKey = '';
   let tintKey = '';
   let piecesToken = 0;
@@ -74,7 +83,7 @@
 
   function draw(now: number): void {
     if (!renderer || !rig || !canvas) return;
-    renderer.draw(poseAt(time ?? (now - started) / 1000, rig.pivots, amplitude), showWeights);
+    renderer.draw(poseFor(rig.motion, time ?? (now - started) / 1000, rig.pivots, amplitude), showWeights);
     frames += 1;
     canvas.dataset.frames = String(frames);
     if (motion === 'pending') {
@@ -94,7 +103,7 @@
   }
 
   function schedule(): void {
-    if (!raf && renderer && visible && onScreen) raf = requestAnimationFrame(tick);
+    if (!raf && renderer && visible && onScreen && !held) raf = requestAnimationFrame(tick);
   }
 
   function pause(): void {
@@ -105,7 +114,9 @@
   function resize(): void {
     if (!renderer || !host) return;
     const width = host.getBoundingClientRect().width;
-    renderer.resize(Math.max(1, Math.round(width * (1 + 2 * MARGIN) * Math.min(2, window.devicePixelRatio || 1))));
+    // The canvas spans the whole frame plus its margin; the host spans the sprite's own width.
+    const scale = (FRAME * (1 + 2 * MARGIN)) / spriteWidth;
+    renderer.resize(Math.max(1, Math.round(width * scale * Math.min(2, window.devicePixelRatio || 1))));
     last = null; // a resized canvas is blank: draw at the next frame
   }
 
@@ -122,26 +133,35 @@
     last = null;
   }
 
-  function applyTint(name: Tint, override: OklchSpec | null | undefined): void {
-    const spec = override === undefined ? TINT_SPECS[name] : override;
+  function applyTint(name: Tint | null, override: OklchSpec | null | undefined): void {
+    const spec = override === undefined ? (name ? TINT_SPECS[name] : null) : override;
     // The exact numbers, as the still tint's cache (stillTint.ts): a lab slider's 0.005 apart are two tints.
-    const key = spec ? `${name} ${spec.shift} ${spec.chroma} ${spec.lightness}` : `${name} none`;
+    const key = spec ? `${name} ${spec.shift} ${spec.chroma} ${spec.lightness}` : `${name ?? 'untinted'} none`;
     if (!renderer || key === tintKey) return;
     renderer.setTint(spec);
     tintKey = key;
-    applied.tint = name;
+    applied.tint = name ?? '';
     last = null;
   }
 
-  /** One try at the living path for this stage and picture, on a fresh canvas; returns its teardown. */
-  function start(el: HTMLDivElement, s: LivingStage, url: string): () => void {
+  /** One try at the living path for this rig and picture, on a fresh canvas; returns its teardown. */
+  function start(el: HTMLDivElement, s: LivingRig, url: string): () => void {
     let disposed = false;
     const id = ++tryId;
+    spriteWidth = isFoeRig(s) ? FOE_WIDTH : FRAME;
     const cv = document.createElement('canvas');
     cv.setAttribute('aria-hidden', 'true');
-    const edge = `${-MARGIN * 100}%`;
-    const side = `${100 + 2 * MARGIN * 100}%`;
-    Object.assign(cv.style, { position: 'absolute', display: 'block', left: edge, top: edge, width: side, height: side });
+    // The host spans the sprite (the frame's middle `spriteWidth` px), the canvas the whole frame and
+    // its margin: for a dragon left -3.5 % and 107 % wide, as before the living battle.
+    const m = MARGIN * FRAME;
+    Object.assign(cv.style, {
+      position: 'absolute',
+      display: 'block',
+      left: `${(-(frameOffset(spriteWidth) + m) / spriteWidth) * 100}%`,
+      top: `${-MARGIN * 100}%`,
+      width: `${((FRAME + 2 * m) / spriteWidth) * 100}%`,
+      height: `${(1 + 2 * MARGIN) * 100}%`,
+    });
     const onLost = () => {
       if (!disposed) still();
     };
@@ -159,10 +179,11 @@
     onmotion('pending');
     (async () => {
       try {
-        const [r, sprite] = await Promise.all([loadRig(s), loadImage(url)]);
+        const [r, img] = await Promise.all([loadRig(s), loadImage(url)]);
         if (disposed) return;
+        if (r.width !== spriteWidth) throw new Error(`rig ${s} is ${r.width} px wide, its box ${spriteWidth}`);
         rig = r;
-        renderer = new DragonRenderer(cv, sprite, r);
+        renderer = new DragonRenderer(cv, padToFrame(img, r.width), r);
         applyTint(tint, tintSpec);
         await applyPieces(overlays);
         if (disposed) return;
@@ -208,19 +229,26 @@
     };
   });
 
-  // The stage and the picture by value: a prop read straight from the parent's expression (the scene
+  // The rig and the picture by value: a prop read straight from the parent's expression (the scene
   // layer's `layer.src`) changes with every new camp snapshot, the same string or not (a tint picked,
   // a piece put on); only a new value may start a new try (Task 8: the canvas was remounted).
-  const stageNow = $derived(stage);
+  const rigNow = $derived(rigId);
   const srcNow = $derived(src);
+  // The host's aspect: the portrait's width over the frame's height (a foe), or the square frame.
+  const boxWidth = $derived(isFoeRig(rigId) ? FOE_WIDTH : FRAME);
 
-  // The living path, afresh for each stage and picture (Ruling L2: after a failure too).
+  // The living path, afresh for each rig and picture (Ruling L2: after a failure too).
   $effect(() => {
     const el = host;
-    const s = stageNow;
+    const s = rigNow;
     const url = srcNow;
     if (!el) return;
     return untrack(() => start(el, s, url));
+  });
+
+  $effect(() => {
+    held = paused;
+    untrack(() => (held ? pause() : schedule()));
   });
 
   // A tint picked or a piece changed while the dragon is on screen: in place, no remount.
@@ -239,7 +267,7 @@
     const list = overlays;
     untrack(() => {
       if (!renderer) return;
-      // A rejection from a try since torn down (a new stage, or unmounted) must not touch the current one.
+      // A rejection from a try since torn down (a new rig, or unmounted) must not touch the current one.
       const id = tryId;
       applyPieces(list).catch(() => {
         if (id === tryId) still();
@@ -256,7 +284,8 @@
   role="img"
   aria-label={alt}
   data-src={src}
-  data-tint={applied.tint}
+  data-tint={applied.tint || undefined}
+  style:aspect-ratio="{boxWidth} / {FRAME}"
   data-worn={applied.worn}
 ></div>
 
@@ -265,7 +294,6 @@
     position: relative;
     display: block;
     width: 100%;
-    aspect-ratio: 1 / 1;
     pointer-events: none;
   }
   /* Loading: the still picture holds the box; the canvas waits, hidden, over it. */

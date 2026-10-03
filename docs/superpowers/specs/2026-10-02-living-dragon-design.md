@@ -48,7 +48,8 @@ small wing lift, a tail swish, a breathing chest.
 - **Component:** `LivingDragon` replaces the base `<img>` inside `DragonFigure` for the nest and
   camp layers, keeps the box, sizing and `.dragon-figure` wrapper (mood animations still apply);
   `role="img"` and the alt as `aria-label`; the worn pieces listed in a data attribute for tests.
-  The battle combatants keep their still picture (later).
+  The battle combatants keep their still picture (later; amended by
+  `2026-10-03-living-battle-design.md`: both fighters live in battle).
 - **Cost control:** the loop stops when the page is hidden or the canvas is off-screen, and runs at
   30 fps.
 - **Tooling:** the weight baker and its debug helpers move into the art-overlays skill (or a sibling
@@ -67,8 +68,9 @@ small wing lift, a tail swish, a breathing chest.
 
 ## Out of scope
 
-Big flaps or a true head turn (they need the art split into parts); the battle combatants; the camp
-dragon's size (later).
+Big flaps or a true head turn (they need the art split into parts); the battle combatants (amended
+by `2026-10-03-living-battle-design.md`: both fighters live in battle); the camp dragon's size
+(later).
 
 ## Open item noticed (resolved)
 

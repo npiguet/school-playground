@@ -106,6 +106,15 @@ describe('art map', () => {
     expect(() => artFor('lieutenant', 'medusa')).toThrow();
   });
 
+  // The living engine's frame (spec 2026-10-03 living battle, plan Ruling B2): atlas.ts padToFrame
+  // throws (the still picture) on any other size, so a re-cut picture of another size is caught here.
+  it('draws every dragon stage on the 1024 x 1024 frame and every battle foe on a 585 x 1024 portrait', () => {
+    for (const stage of DRAGON_STAGES) expect(webpSize('public' + ART.dragon[stage]), stage).toEqual({ w: 1024, h: 1024 });
+    const foes = [ART.eris, ART.erisFlustered, ...Object.values(ART.lieutenants)];
+    expect(foes).toHaveLength(8);
+    for (const p of foes) expect(webpSize('public' + p), p).toEqual({ w: 585, h: 1024 });
+  });
+
   it('maps the UI2 scenes, characters and props (docs/art/scenes.md)', () => {
     expect(ART.scenes.titleGates).toBe('/art/scenes/title_gates.webp');
     expect(ART.scenes.hubCamp).toBe('/art/scenes/hub_camp.webp');

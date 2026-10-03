@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BONES, CELL, FRAME, GRID, VERTS, buildMesh, rotAbout, scaleAbout, skinPoint, translate, weightsAt, type Affine } from './skin';
+import { BONES, CELL, FRAME, GRID, SLOTS, VERTS, buildMesh, frameOffset, rotAbout, scaleAbout, skinPoint, translate, weightsAt, type Affine } from './skin';
 
 const apply = (m: Affine, [x, y]: readonly [number, number]) => [m[0] * x + m[3] * y + m[6], m[1] * x + m[4] * y + m[7]];
 const bonesOf = (...ms: Affine[]) => Float32Array.from(ms.flat());
@@ -53,5 +53,20 @@ describe('the vertex grid', () => {
     const k = 7 * VERTS + 9;
     expect(m.w0[4 * k + 3]).toBeCloseTo(w[k * 6 + 3] / 255, 6);
     expect(m.w1[2 * k + 1]).toBeCloseTo(w[k * 6 + 5] / 255, 6);
+  });
+});
+
+describe('the frame and its slots', () => {
+  it('centres a narrower portrait in whole px, as tools/art/rig.py pads it', () => {
+    expect(frameOffset(1024)).toBe(0);
+    expect(frameOffset(585)).toBe(219);
+    expect(() => frameOffset(1100)).toThrow();
+    expect(() => frameOffset(0)).toThrow();
+  });
+
+  it("has six slots, the dragon's bones ending with the breath's two", () => {
+    expect(SLOTS).toBe(6);
+    expect(BONES).toHaveLength(SLOTS);
+    expect(BONES.slice(4)).toEqual(['chest', 'lift']);
   });
 });

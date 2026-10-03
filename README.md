@@ -739,6 +739,15 @@ are hand-authored in `tools/art/rig.json` and baked by `tools/art/run_docker.sh 
 runs on its own Playwright project, `chromium-gl` (Chromium with SwiftShader's WebGL2): the frames,
 the feet that stay put, the tint against the still picture's, the failures and the loop's pauses.
 
+In battle both fighters live too, in every phase: the hatched dragon on the left and the opponent on
+the right, each on its own canvas (two at most), still under reduced motion, without WebGL2 and for
+the egg; a foe is never tinted. Each foe has its rig, `foe_<id>.json` (Éris routed has her own), its
+585 px portrait padded into the 1024 px frame, and its motion table in `web/src/lib/living/foes.ts`
+(which parts move, on which periods: the Hydre's heads in pairs). The lab shows them under « Les
+adversaires », mirrored as in battle. `web/e2e/living-battle.spec.ts`, on `chromium-gl` too, checks
+them in every phase, the sizes that keep the battle's tools clear on six screens, and the loops held
+while « Revoir » covers the stage.
+
 ### Art and sound
 
 Art and sound are served from the same origin, bundled in the image: `web/public/art` (WebP, about

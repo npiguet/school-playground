@@ -57,7 +57,8 @@ describe('UI kit (scenes spec §6)', () => {
   });
 
   it('reserves the HUD band for the HUD (Ruling W11)', () => {
-    expect(css).toMatch(/--hud-band:\s*calc\(72px \+ env\(safe-area-inset-top\)\)/);
+    expect(css).toMatch(/--hud-band-full:\s*calc\(72px \+ env\(safe-area-inset-top\)\)/);
+    expect(css).toMatch(/--hud-band:\s*var\(--hud-band-full\)/);
   });
 
   it('points every art url of the kit stylesheets at a shipped file (Ruling W3)', () => {

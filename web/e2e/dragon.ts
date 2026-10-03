@@ -91,3 +91,13 @@ export async function compareShots(page: Page, a: Buffer, b: Buffer, region: Reg
     [a.toString('base64'), b.toString('base64'), region] as const,
   );
 }
+
+/** This hero's camp says: the dragon as `dragon()` returns it now (stage, tint, worn...). */
+export async function mockDragon(page: Page, id: number, dragon: () => Record<string, unknown>) {
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, name: 'Braise', ...dragon() };
+    await route.fulfill({ response: res, json: camp });
+  });
+}

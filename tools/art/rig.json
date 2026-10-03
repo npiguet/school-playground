@@ -1,5 +1,5 @@
 {
-  "_doc": "The living dragon's rigs (the dragon-rig skill). 1024 px frame coordinates, y down, integers only. Per stage: six bones, each with its pivot and an optional region (poly, ellipse, or all: true), times an optional ramp (along y, or by distance from the pivot), pushed into the background and blurred by tools/art/rig.py; the pin rectangle keeps the feet still. Bake with tools/art/run_docker.sh rig bake; never edit web/src/lib/living/rig/*.json by hand.",
+  "_doc": "The living figures' rigs (the dragon-rig skill): the dragon's stages and the battle's foes. 1024 px frame coordinates, y down, integers only; a foe's 585 px portrait sits at x 219-804 of the frame. Per rig: six bones in slot order (four rigid ones, then chest and lift), each with its pivot and an optional region (poly, polys, ellipse, or all: true), times an optional ramp (along y, or by distance from the pivot), pushed into the background and blurred by tools/art/rig.py; the pin rectangle keeps the feet (or base) still. A foe's block names its sprite. Bake with tools/art/run_docker.sh rig bake --stage K; never edit web/src/lib/living/rig/*.json by hand.",
   "hatchling": {
     "bones": {
       "head":  { "pivot": [560, 470], "poly": [[280,20],[700,20],[700,300],[620,320],[625,470],[465,470],[455,330],[280,250]], "ramp": [470, 300], "blur": 12 },
@@ -54,5 +54,101 @@
       "lift":  { "pivot": [650, 920], "all": true, "ramp": [915, 560], "blur": 0 }
     },
     "pin": { "rect": [182, 854, 874, 1024], "blur": 14 }
+  },
+  "eris": {
+    "sprite": "web/public/art/characters/eris_cut.webp",
+    "bones": {
+      "hair":      { "pivot": [585, 150], "poly": [[575,40],[660,80],[740,120],[810,170],[810,560],[700,570],[620,560],[592,545],[590,465],[630,448],[682,410],[686,360],[672,305],[642,255],[612,225],[580,180]], "ramp_from_pivot": [30, 200], "blur": 8 },
+      "hairFront": { "pivot": [440, 100], "poly": [[400,80],[458,80],[460,180],[458,250],[440,270],[412,282],[385,270],[362,250],[350,205],[380,140]], "ramp_from_pivot": [20, 140], "blur": 8 },
+      "arm":       { "pivot": [378, 350], "poly": [[230,110],[335,110],[340,235],[388,290],[394,330],[400,400],[340,400],[300,300],[225,235]], "ramp_from_pivot": [20, 140], "blur": 8 },
+      "hem":       { "pivot": [520, 600], "poly": [[290,600],[720,600],[820,920],[820,1000],[285,1000]], "ramp": [640, 900], "blur": 14 },
+      "chest":     { "pivot": [505, 300], "ellipse": [505, 300, 70, 80], "blur": 30 },
+      "lift":      { "pivot": [510, 900], "all": true, "ramp": [900, 600], "blur": 0 }
+    },
+    "pin": { "rect": [360, 890, 740, 1024], "blur": 12 }
+  },
+  "eris_flustered": {
+    "sprite": "web/public/art/characters/eris_flustered_cut.webp",
+    "bones": {
+      "hairL": { "pivot": [420, 285], "poly": [[320,295],[438,295],[438,420],[430,490],[360,495],[320,450]], "ramp_from_pivot": [20, 150], "blur": 8 },
+      "hairR": { "pivot": [590, 140], "poly": [[575,90],[650,90],[720,180],[735,420],[720,560],[640,560],[640,440],[636,300],[628,265],[600,245],[575,230],[565,180]], "ramp_from_pivot": [30, 250], "blur": 8 },
+      "head":  { "pivot": [499, 250], "poly": [[295,190],[330,165],[400,90],[415,0],[600,0],[600,110],[580,200],[548,235],[520,250],[470,250],[440,262],[340,262],[295,245]], "ramp": [260, 180], "blur": 10 },
+      "hem":   { "pivot": [500, 800] },
+      "chest": { "pivot": [520, 320], "ellipse": [520, 320, 80, 90], "blur": 24 },
+      "lift":  { "pivot": [500, 900], "all": true, "ramp": [900, 600], "blur": 0 }
+    },
+    "pin": { "rect": [360, 890, 760, 1024], "blur": 12 }
+  },
+  "hydre": {
+    "sprite": "web/public/art/lieutenants/hydre_cut.webp",
+    "bones": {
+      "pairHaut":   { "pivot": [460, 420], "poly": [[245,100],[400,100],[405,0],[625,0],[625,128],[545,140],[522,170],[516,240],[522,300],[535,380],[475,380],[468,300],[455,288],[350,286],[300,290],[245,300]], "ramp": [380, 250], "blur": 14 },
+      "pairDroite": { "pivot": [650, 540], "poly": [[515,148],[560,140],[628,130],[640,100],[800,100],[810,640],[640,640],[600,500],[565,480],[548,400],[530,300],[520,240]], "ramp": [500, 360], "blur": 14 },
+      "pairBas":    { "pivot": [360, 640], "poly": [[240,292],[350,290],[455,292],[478,318],[480,392],[440,420],[470,470],[480,515],[480,560],[400,575],[300,585],[240,570]], "ramp_from_pivot": [50, 150], "blur": 6 },
+      "tail":       { "pivot": [600, 905], "poly": [[595,884],[700,892],[770,905],[770,1010],[530,1010],[528,980],[560,952],[600,942],[596,930]], "ramp_from_pivot": [20, 100], "blur": 6 },
+      "chest":      { "pivot": [500, 650], "ellipse": [500, 650, 160, 90], "blur": 30 },
+      "lift":       { "pivot": [480, 900], "all": true, "ramp": [900, 600], "blur": 0 }
+    },
+    "pin": { "rect": [250, 900, 520, 1024], "blur": 8 }
+  },
+  "chimere": {
+    "sprite": "web/public/art/lieutenants/chimere_cut.webp",
+    "bones": {
+      "lion":  { "pivot": [470, 470], "poly": [[350,20],[488,20],[490,62],[505,92],[540,104],[577,112],[578,172],[556,182],[553,330],[548,420],[440,440],[378,420],[368,250],[352,170],[350,90]], "ramp": [480, 360], "blur": 12 },
+      "mane":  { "pivot": [380, 200], "poly": [[255,60],[350,60],[350,90],[352,170],[368,250],[378,420],[385,530],[320,535],[255,440]], "ramp_from_pivot": [30, 220], "blur": 10 },
+      "goat":  { "pivot": [520, 400], "poly": [[486,30],[580,30],[660,55],[690,140],[700,220],[665,300],[640,330],[628,400],[622,445],[580,445],[575,330],[558,325],[556,182],[580,172],[579,112],[540,100],[505,86]], "ramp_from_pivot": [20, 110], "blur": 12 },
+      "snake": { "pivot": [685, 615], "poly": [[620,320],[800,320],[800,620],[720,650],[685,615],[668,560],[650,510],[627,470],[615,440],[622,410],[618,330]], "ramp_from_pivot": [30, 200], "blur": 6 },
+      "chest": { "pivot": [500, 540], "ellipse": [500, 540, 90, 90], "blur": 30 },
+      "lift":  { "pivot": [500, 760], "all": true, "ramp": [740, 480], "blur": 0 }
+    },
+    "pin": { "rect": [300, 725, 800, 1024], "blur": 12 }
+  },
+  "echo": {
+    "sprite": "web/public/art/lieutenants/echo_cut.webp",
+    "bones": {
+      "ghostL": { "pivot": [340, 500], "poly": [[255,30],[430,30],[430,95],[418,135],[405,170],[392,205],[375,235],[355,270],[345,300],[350,330],[375,340],[378,380],[372,420],[395,440],[397,860],[350,885],[290,860],[255,330]], "ramp": [900, 420], "blur": 8 },
+      "ghostR": { "pivot": [660, 500], "poly": [[595,30],[770,30],[770,330],[725,860],[650,885],[632,860],[625,440],[657,420],[655,380],[655,345],[672,330],[678,300],[665,270],[648,235],[632,205],[620,170],[610,135],[595,95]], "ramp": [900, 420], "blur": 8 },
+      "hairL":  { "pivot": [425, 310], "poly": [[392,318],[455,318],[455,400],[440,445],[392,448]], "ramp_from_pivot": [10, 100], "blur": 6 },
+      "hairR":  { "pivot": [615, 310], "poly": [[598,318],[642,318],[647,400],[640,445],[598,448]], "ramp_from_pivot": [10, 100], "blur": 6 },
+      "chest":  { "pivot": [512, 330], "ellipse": [512, 330, 75, 70], "blur": 24 },
+      "lift":   { "pivot": [500, 900], "all": true, "ramp": [900, 500], "blur": 0 }
+    },
+    "pin": { "rect": [340, 860, 690, 1024], "blur": 12 }
+  },
+  "lethe": {
+    "sprite": "web/public/art/lieutenants/lethe_cut.webp",
+    "bones": {
+      "ribbonL": { "pivot": [385, 410], "poly": [[285,400],[405,395],[412,480],[400,560],[395,640],[415,720],[425,830],[285,830]], "ramp": [850, 690], "ramp_from_pivot": [30, 220], "blur": 16 },
+      "ribbonR": { "pivot": [640, 390], "poly": [[625,375],[715,385],[750,560],[755,800],[650,830],[645,640],[630,500]], "ramp": [860, 720], "ramp_from_pivot": [30, 220], "blur": 16 },
+      "robe":    { "pivot": [520, 560], "poly": [[430,560],[620,560],[635,850],[425,850]], "ramp": [560, 780], "blur": 18 },
+      "hair":    { "pivot": [515, 60], "polys": [[[388,140],[452,140],[450,240],[432,300],[395,312],[378,250]],[[578,140],[635,140],[652,250],[642,312],[605,302],[585,240]]], "ramp": [140, 290], "blur": 8 },
+      "chest":   { "pivot": [515, 280], "ellipse": [515, 280, 70, 70], "blur": 30 },
+      "lift":    { "pivot": [515, 880], "all": true, "ramp": [880, 560], "blur": 0 }
+    },
+    "pin": { "rect": [280, 860, 730, 1024], "blur": 12 }
+  },
+  "protee": {
+    "sprite": "web/public/art/lieutenants/protee_cut.webp",
+    "bones": {
+      "tentacle": { "pivot": [668, 425], "poly": [[642,432],[700,415],[765,415],[795,540],[792,716],[690,712],[668,690],[664,620],[650,580],[650,520],[642,470]], "ramp_from_pivot": [30, 200], "blur": 10 },
+      "beard":    { "pivot": [515, 230], "poly": [[445,220],[575,220],[580,350],[560,500],[480,505],[445,380]], "ramp_from_pivot": [30, 200], "blur": 10 },
+      "waveL":    { "pivot": [285, 880], "poly": [[240,790],[300,790],[300,960],[240,960]], "ramp": [950, 880], "blur": 4 },
+      "waveR":    { "pivot": [670, 850], "poly": [[570,730],[770,780],[770,950],[580,950]], "ramp": [960, 760], "blur": 10 },
+      "chest":    { "pivot": [610, 400], "ellipse": [610, 400, 70, 80], "blur": 24 },
+      "lift":     { "pivot": [500, 900] }
+    },
+    "pin": { "rect": [250, 940, 780, 1024], "blur": 8 }
+  },
+  "sirenes": {
+    "sprite": "web/public/art/lieutenants/sirenes_cut.webp",
+    "bones": {
+      "wingL":     { "pivot": [340, 260], "poly": [[222,240],[330,225],[336,300],[332,440],[326,520],[324,600],[318,700],[318,800],[300,860],[245,860],[226,700],[222,500]], "ramp_from_pivot": [40, 300], "blur": 12 },
+      "wingInner": { "pivot": [440, 430], "poly": [[418,440],[474,440],[480,560],[458,582],[425,545]], "ramp_from_pivot": [15, 120], "blur": 6 },
+      "wingC":     { "pivot": [520, 380], "poly": [[515,362],[600,358],[650,420],[668,560],[700,625],[730,700],[730,905],[612,905],[620,880],[645,830],[668,780],[685,720],[688,660],[650,640],[600,615],[560,530],[525,430]], "ramp_from_pivot": [40, 300], "blur": 10 },
+      "wingR":     { "pivot": [690, 320], "poly": [[660,305],[730,315],[775,420],[795,705],[765,725],[705,640],[688,560],[668,450]], "ramp_from_pivot": [40, 300], "blur": 10 },
+      "chest":     { "pivot": [500, 380], "ellipse": [500, 380, 220, 120], "blur": 30 },
+      "lift":      { "pivot": [500, 620], "all": true, "ramp": [600, 300], "blur": 0 }
+    },
+    "pin": { "rect": [330, 580, 668, 1024], "blur": 8 }
   }
 }

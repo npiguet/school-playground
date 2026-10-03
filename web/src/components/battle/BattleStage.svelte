@@ -25,6 +25,7 @@
   import { reducedMotion, watchReducedMotion } from '../../lib/juice/motion';
   import { ART } from '../../lib/world/art';
   import { accessoryLayers } from '../../lib/world/accessories';
+  import { FOE_ASPECT, foeRigFor, livingFoe, livingStage } from '../../lib/living/stages';
   import type { CampResponse, DragonOut } from '../../lib/world/types';
   import type { Profile } from '../../lib/types';
 
@@ -73,19 +74,26 @@
   );
   const compact = $derived(layout === 'compact');
   const band = $derived(bandHeight(viewport.height || 820));
+  // The « Revoir » scroll covers the stage: the stage turns inert and the living fighters hold their
+  // frame (final review of the living battle).
   const covered = $derived(overlayState.open > 0);
-  // Ruling C12: nothing moves behind the text. The combatants breathe and the particles drift only
-  // while no text is read or written: the muster and the victory (M14, the TTS runs on an iPad).
+  // Ruling C12: the particles drift only while no text is read or written: the muster and the victory
+  // (M14, the TTS runs on an iPad). The combatants live in every phase (spec 2026-10-03 living battle,
+  // plan Ruling B7).
   const idle = $derived(phase === 'muster' || phase === 'victory');
   // Ruling C4 / I4: in compact the HUD and « Le camp » fold into the band (a control may move, never
   // disappear); in full they keep their places.
   const bandTools = $derived(compact && (hud || exit));
   const dragonStage = $derived(dragon?.stage ?? 'egg');
   // UI4 Task A: Éris's routed pose - a sore loser caught off guard - replaces her standing card once
-  // her `defeat` reaction plays, on top of the boss card the muster already showed.
-  const opponentArt = $derived(
-    battle?.opponent.id === 'eris' && battleStage.opponent.reaction === 'defeat' ? ART.erisFlustered : (battle?.opponent.art ?? ''),
-  );
+  // her `defeat` reaction plays, on top of the boss card the muster already showed; she has her own rig
+  // for it (spec 2026-10-03 living battle, plan Ruling B6).
+  const flustered = $derived(battle?.opponent.id === 'eris' && battleStage.opponent.reaction === 'defeat');
+  const opponentArt = $derived(flustered ? ART.erisFlustered : (battle?.opponent.art ?? ''));
+  // Both fighters alive (plan Rulings B7, B8): the dragon's stage (never the egg) and the opponent's
+  // rig, none under reduced motion.
+  const dragonLiving = $derived(reduced ? null : livingStage(dragonStage));
+  const opponentLiving = $derived(reduced || !battle ? null : livingFoe(foeRigFor(battle.opponent.id, flustered)));
 
   $effect(() => {
     if (battle) emitBattle({ kind: 'start', opponent: battle.opponent.id, mode, backdrop: battle.backdrop.id });
@@ -134,7 +142,9 @@
               reaction={battleStage.dragon.reaction}
               nonce={battleStage.dragon.nonce}
               testId="battle-dragon"
-              {idle}
+              living={dragonLiving}
+              aspect={1}
+              paused={covered}
               {reduced}
             />
           {/if}
@@ -147,7 +157,9 @@
             nonce={battleStage.opponent.nonce}
             hits={battleStage.hits}
             testId="battle-opponent"
-            {idle}
+            living={opponentLiving}
+            aspect={FOE_ASPECT}
+            paused={covered}
             {reduced}
           />
           <!-- Particles fires on mount too: it mounts with the first strike, never before. -->
@@ -192,6 +204,33 @@
     --parchment-w: min(62vw, 48rem);
     --side: calc((100vw - var(--parchment-w)) / 2);
     --top: calc(12px + env(safe-area-inset-top));
+    /* Spec 2026-10-03 living battle, plan Rulings B9 and B13-B15: each fighter fills its side column
+       and may tuck under the parchment's edge (drawn above it) by a bounded share of its box, measured
+       on the pictures (living-battle.spec.ts, six viewports). B13, the tucks: the opponent faces the
+       parchment with what it holds (Éris's apple, the Hydre's and the Chimère's snake heads, Protée's
+       trident, the Sirènes' lyre reach to 5 % of its box on that side), so it tucks its transparent
+       margin only, 3 % of a box 585 / 1024 as wide as high: 1.8 = 1 / (0.5713 x 0.97). The dragon
+       faces it with its snout (the ancestral's beard reaches 81 % of its box): it tucks 15 %, 1.176 =
+       1 / 0.85, and up to 16 % where its floor binds (15.5 % at 1024x640). B14: neither is ever
+       smaller than before this spec (the opponent clamp(180px, 50vh, 440px), the dragon
+       clamp(140px, 36vh, 320px)); the floor wins over the tuck, so where the column is narrow for the
+       screen's height the opponent tucks what its old size implies (7.7 % at 1180x820, 15 % at
+       1024x768). B15, the dragon's face first: there the dragon slides off the left screen edge
+       instead (its far wing and tail: 8.1 % and 13.6 % of its box), its eye and snout clear (--left-x,
+       below). The height caps keep the opponent under the hold bar and both under the HUD. B16: the
+       opponent's cap reads --foe-top, the HUD band's full height whether or not the HUD shows (the
+       muster and the victory show it, the writing phases do not), so it keeps one size through the
+       battle (it was 861 px against 929 px at 1920x1080); --top, which follows the HUD, still places
+       the parchment and the hold bar. */
+    --feet: calc(4vh + env(safe-area-inset-bottom));
+    --dragon-feet: var(--feet);
+    --hold-room: 96px;
+    --foe-top: calc(var(--hud-band-full) + 8px);
+    --foe-h: min(max(clamp(180px, 50vh, 440px), calc((var(--side) - 8px) * 1.8)), calc(100vh - var(--feet) - var(--foe-top) - var(--hold-room)));
+    /* The opponent's right offset: centred in its column, 8 px from the edge at least. The hit burst
+       follows its middle (it may be wider than its column, 1180x820, 1024x768). */
+    --right-x-foe: max(8px, calc((var(--side) - var(--foe-h) * 0.5713) / 2));
+    --dragon-h: min(max(clamp(140px, 36vh, 320px), calc(var(--side) * 1.176)), calc(100vh - var(--dragon-feet) - var(--top) - 16px));
   }
   .battle-stage.has-hud {
     --top: calc(var(--hud-band) + 8px);
@@ -218,23 +257,27 @@
     filter: brightness(0.6) saturate(0.8);
   }
   .battle-scene :global(.combatant.left) {
-    --h: clamp(140px, 36vh, 320px);
-    --left-x: max(8px, calc(var(--side) / 2 - 0.35 * var(--h)));
-    --feet: calc(4vh + env(safe-area-inset-bottom));
+    --h: var(--dragon-h);
+    --feet: var(--dragon-feet);
+    /* Against the screen's edge once it is wider than its column (its wing's transparent margin).
+       Ruling B15, its face first: where the never-smaller floor makes it too wide for its column
+       (1180x820, 1024x768) it slides off the left edge (its far wing and tail) until it tucks 16 % at
+       most under the parchment, its snout (81 % of its box) clear. 16 %, not 15 %: at 1024x640 the
+       floor tucks 15.5 % and the dragon stays on screen there. */
+    --left-x: min(max(env(safe-area-inset-left), calc((var(--side) - var(--h)) / 2)), calc(var(--side) - 0.84 * var(--h)));
   }
   .battle-scene :global(.combatant.right) {
-    --h: clamp(180px, 50vh, 440px);
-    --right-x: max(8px, calc(var(--side) / 2 - 0.3 * var(--h)));
-    --feet: calc(4vh + env(safe-area-inset-bottom));
+    --h: var(--foe-h);
+    --right-x: var(--right-x-foe);
   }
   /* The exit sign sits in the bottom-left corner: the dragon stands above it, not behind it. */
-  .battle-stage.has-exit .battle-scene :global(.combatant.left) {
-    --feet: calc(84px + env(safe-area-inset-bottom));
+  .battle-stage.has-exit {
+    --dragon-feet: calc(84px + env(safe-area-inset-bottom));
   }
   .hit-burst {
     position: absolute;
-    right: calc(var(--side) / 2 - 60px);
-    bottom: 30vh;
+    right: calc(var(--right-x-foe) + var(--foe-h) * 0.5713 / 2 - 60px);
+    bottom: calc(var(--feet) + var(--foe-h) / 2 - 60px);
     width: 120px;
     height: 120px;
     pointer-events: none;

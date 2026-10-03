@@ -1,6 +1,6 @@
 ---
 name: dragon-rig
-description: Author, bake and check the living dragon's rigs (head, wings, tail, breath on one painted sprite per stage, WebGL2 mesh skinning). Use when a dragon stage picture changes, when a part of the living dragon lags, tears or moves when it should not (a horn, a wing tip, the feet), or to tune a stage's motion regions.
+description: "Author, bake and check the living figures' rigs: the dragon's stages (head, wings, tail, breath) and the battle's foes (spec 2026-10-03 living battle), on one painted sprite each, WebGL2 mesh skinning. Use when a dragon stage or a foe picture changes, when a part lags, tears or moves when it should not (a horn, a wing tip, the feet), or to tune a rig's motion regions."
 ---
 
 # The living dragon's rigs
@@ -77,8 +77,9 @@ STACK=<s> scripts/npm.sh exec -- vite build --config vite.lab.config.ts
 python -m http.server 8744 --directory web/dist-lab     # then open http://localhost:8744/lab.html
 ```
 
-Every stage with a rig, living side by side: amplitude (1.5x by default), tint, worn pieces, the
-weights view, pause and a time slider.
+Every stage with a rig, living side by side, then every foe (« Les adversaires », below): amplitude
+(1.5x by default, the game's), tint, worn pieces, the weights view (« Poids »), pause and a time
+slider.
 
 ## Stage notes
 
@@ -103,3 +104,75 @@ weights view, pause and a time slider.
   and right of the claw tip; the ancestral's claw tip keeps under 0.1 of the head (a test checks it).
 - illustre: the left wing's lower finger touches the tail's tip at about (115, 855); the tail polygon
   starts at x 122 so the finger above y 820 stays on the wing.
+
+## The foes
+
+The battle's opponents live on the same engine (spec `docs/superpowers/specs/2026-10-03-living-battle-design.md`).
+
+- Keys in `rig.json` (`stages.ts` `FOE_RIGS`): `eris`, `eris_flustered` (Éris routed), `hydre`, `chimere`,
+  `echo`, `lethe`, `protee`, `sirenes`. Each block names its sprite (`"sprite": "web/public/art/..."`, part of
+  the bake hash) and bakes to `web/src/lib/living/rig/foe_<id>.json` (with `"width": 585`).
+- The 585 x 1024 portrait is padded, centred, into the 1024 frame: it sits at x 219-804. Read every
+  point off `rig grid --stage <id>` (the grid view shows it padded).
+- A region may be several polygons: `"polys": [[...], [...]]`.
+- The four rigid bones are named per foe, in `web/src/lib/living/foes.ts` (`FOE_MOTIONS`, which also
+  holds the motion); the block's key order must match (a test pins it), then `chest` and `lift`:
+  eris `hair, hairFront, arm, hem`; eris_flustered `hairL, hairR, head, hem` (`hem` has a pivot and no
+  region); hydre `pairHaut, pairDroite, pairBas, tail`; chimere `lion, mane, goat, snake`; echo `ghostL,
+  ghostR, hairL, hairR`; lethe `ribbonL, ribbonR, robe, hair`; protee `tentacle, beard, waveL, waveR`;
+  sirenes `wingL, wingInner, wingC, wingR`.
+- `rig foe-sheet` writes `docs/art/foe-rig.png`, the foes' debug views for the record.
+- The lab's « Les adversaires » shows every foe (a rig not baked yet as its still portrait);
+  « Comme au combat » mirrors them as in the battle.
+- The lab tiles are small; to judge a seam at 3x, render the skinned frame at full size offline (the
+  shader's displacement is `sum w_i (B_i p - p)`, linear across each 16 px cell) and look at crops.
+
+Foe notes:
+
+- eris: the hair turns about the back of her head ([30, 200] from the pivot); its polygon stops about
+  15 px right of her raised elbow and forearm (the arm stays still), takes the strands under the
+  bracelet down to y 545 but stays right of x 590, where her robe's edge starts (else the robe swings).
+  The apple arm turns about the elbow (378, 350); its polygon runs left of the locks at her shoulder.
+- eris_flustered: the head's `ramp: [260, 180]` gives the hand at her brow and the forearm the head's
+  weight, fading to the elbow; the chest ellipse is 80 x 90 with blur 24 (at 60 x 70 blur 30 it peaked
+  under 230 / 255 and failed "each region carries its bone").
+- hydre: no necks of different pairs cross; they run side by side. The two upper pairs fade along y
+  (`ramp: [380, 250]` and `[500, 360]`) so each neck bends smoothly into the body, and they take blur 14:
+  at blur 8 the top neck and the upper-right neck folded over each other at 3x. `pairBas` (the two
+  left heads and the curl between them) fades by distance from (360, 640). The tail turns about where
+  it leaves the ground coil (600, 905); its polygon's top stays under the coil above (y 884 and lower),
+  else the coil's edge is dragged along. The two left snouts touch the top neck: `pairBas` runs to x 478-480
+  there with blur 6 (at blur 12 the snout tips stayed under 0.85 and lagged; run past x 480 and the top
+  neck's outline is dragged along), and a test probes each head's eye and snout. The pairs swing 1.1 to
+  1.2 deg (plus 0.3): at 1.6 to 2.0 deg the top neck tore from the upper-right one at 3x.
+- chimere: the goat's head sits against the lion's mane along a long seam, so the goat sways with the
+  lion (the lion's waves plus a nod of its own, in `foes.ts`) and turns about (520, 400); with motions
+  of their own the seam folded. The lion polygon stops left of the horn's tip (x 488 at the top). The
+  snake's polygon runs down to x 615 so its whole left edge (beside the goat's beard and the rump) is
+  inside; its swing is 2.0 + 0.6 deg (at 2.6 + 0.8 it folded into the beard at 3x). The pin covers the
+  rock and the four paws (the hind paw's toes reach x 725).
+- echo: the ghosts drift (frame px, no turn), ramped along y (`[900, 420]`) so their feet stay. Their
+  polygons follow the main figure's outline about 20 to 25 px outside it (her hair, her raised hands,
+  her arms down to the elbows, her robe), blur 8, so the ghost takes the stretch and her dark outline
+  stays put; her side locks (`hairL`, `hairR`) are only the hair below her elbows. The chest ellipse is
+  75 x 70, blur 24 (60 x 60, blur 30 peaked at 0.87).
+- lethe: the ribbons turn about where they leave the sleeves, faded both by distance (`ramp_from_pivot`)
+  and toward the pool (`ramp`, zero at y 850), blur 16; the robe drifts 3 px at 1x, blur 18. With
+  1.8 + 0.6 deg ribbons and a 4 px robe, blur 10 and 14, the seams between the robe and the bands folded
+  at 3x; now 1.2 + 0.4 deg. `hair` is only the locks beside her face and on her shoulders (y 140-312),
+  never the sleeves below.
+- protee: the trident, its three tips, its shaft through the waves and the hand holding it carry nothing
+  (a test probes them); `lift` has no region, so the breath is the chest's alone. The tentacle turns
+  about the elbow (668, 425) by 1.2 + 0.4 deg (at 2.8 + 0.9 its curl folded into the net at 3x); its
+  polygon's edge stays at x 664-668 beside the curl so the curl's own rim takes the stretch, not the
+  net. The left crest lies only 16 to 24 px left of the shaft (x 291-329 against 345 at y 880), so `waveL`
+  holds only its left part (polygon to x 300, blur 4, full from y 880 down): every vertex carrying weight
+  stays at least 30 px off the shaft, and a test checks every vertex of the trident's two boxes is zero.
+- sirenes: the wings hang beside the still rock and lie against the sisters' bodies along long seams, so
+  they turn about a degree (wingL 1.0, wingInner 0.8, wingC 0.9); at 1.6 to 1.8 deg their tips (500 px
+  below the shoulders) swung 50 px at 3x and folded into the bodies and the rock. The middle and right
+  wings touch along one seam: the right one sways with the middle one plus a beat of its own (as the
+  Chimère's goat). Polygon edges stay 20 to 30 px off the rock's edges and off the left sister's body;
+  the pin runs to x 668, the rock's right corner. The right sister's orange leg (about x 685-705,
+  y 560-620, beside the rock) lies on the seam between the middle and right wings and takes about half
+  of each (wingR 0.5-0.6, wingC 0.06-0.3), so it follows them a little; no test pins it.

@@ -4,7 +4,7 @@
 // at its anchor, the box's centre, less the breath: a rigid passenger that never stretches, the saddle
 // included.
 import type { OverlayLayer } from '../world/accessories';
-import { BONES, FRAME, weightsAt } from './skin';
+import { BONES, FRAME, frameOffset, weightsAt } from './skin';
 
 export const ATLAS = 1024;
 export const ATLAS_CELL = 512;
@@ -66,6 +66,21 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
   img.decoding = 'async';
   img.src = src;
   return img.decode().then(() => img);
+}
+
+/** The sprite as the frame its rig was baked on (plan Ruling B2): a portrait narrower than the frame is
+ *  drawn into a FRAME square, centred (skin.ts frameOffset, as tools/art/rig.py pads it). A picture of
+ *  another size than the rig's throws: the caller shows the still picture. */
+export function padToFrame(img: HTMLImageElement, width: number): TexImageSource {
+  if (img.naturalHeight !== FRAME || img.naturalWidth !== width) throw new Error(`a ${img.naturalWidth} x ${img.naturalHeight} picture, the rig wants ${width} x ${FRAME}`);
+  if (width === FRAME) return img;
+  const canvas = document.createElement('canvas');
+  canvas.width = FRAME;
+  canvas.height = FRAME;
+  const g = canvas.getContext('2d');
+  if (!g) throw new Error('no 2D canvas to frame the sprite');
+  g.drawImage(img, frameOffset(width), 0);
+  return canvas;
 }
 
 export async function buildAtlas(placed: readonly PiecePlacement[]): Promise<HTMLCanvasElement> {
