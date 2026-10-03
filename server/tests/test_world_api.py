@@ -228,10 +228,14 @@ def test_decor_on_display_before_the_limit_went_stays_and_all_nine_fit(client, s
 
 def test_two_pieces_of_one_slot_put_on_at_once_leave_exactly_one_worn(client, settings):
     # Final review M18, ruling R7: putting an accessory on takes the other of its slot off in the same
-    # transaction, under the write lock. Each request here pauses between the two (the others taken
-    # off, its own not yet on) until the other request has got there too, or a second has passed. Were
-    # they two transactions, both would take the others off first and then both put theirs on: two
-    # collars worn. As one, the second request only starts once the first has committed.
+    # transaction as it puts its own on. Each request here pauses between the two (the others taken
+    # off, its own not yet on) until the other request has got there too. Were they two transactions,
+    # both would take the others off and meet at the pause within milliseconds, then both put theirs
+    # on: two collars worn. As one, the first request holds SQLite's write lock from its first UPDATE
+    # to its commit, so the second cannot get there before the first has committed: the first stops
+    # waiting after PAUSE_S and carries on. (This guards the single transaction; begin_write's early
+    # lock is not needed for it, since a deferred transaction takes the lock at that first UPDATE.)
+    # PAUSE_S only costs time on the passing path; the failing path meets at once.
     import threading
     from app.db import connect
     from app.routers import world
@@ -244,6 +248,7 @@ def test_two_pieces_of_one_slot_put_on_at_once_leave_exactly_one_worn(client, se
         conn.execute("INSERT INTO reward(profile_id, reward_id, source, granted_at, equipped) VALUES (?,?,?,?,?)",
                      (pid, rid, "test", "2026-09-21T12:00:00+00:00", 0))
     conn.commit(); conn.close()
+    PAUSE_S = 0.2
     taken_off = threading.Barrier(2)
 
     class PausesBeforePuttingOn:
@@ -256,7 +261,7 @@ def test_two_pieces_of_one_slot_put_on_at_once_leave_exactly_one_worn(client, se
         def execute(self, sql, *args):
             if sql.startswith("UPDATE reward SET equipped = ?"):  # its own piece, put on next
                 try:
-                    taken_off.wait(timeout=1)
+                    taken_off.wait(timeout=PAUSE_S)
                 except threading.BrokenBarrierError:
                     pass
             return self._c.execute(sql, *args)
