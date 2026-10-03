@@ -275,6 +275,18 @@ No interactive landmarks. They all share the same layout for the battle stage:
 | Treasure chest, closed (cut-out, UI4 Task A) | `assets/art/battle/chest_closed.png` + `_cut.png` | `web/public/art/battle/chest_closed.webp` (45 KB) | 1024² |
 | Treasure chest, open (cut-out, UI4 Task A, same seed 706) | `assets/art/battle/chest_open.png` + `_cut.png` | `web/public/art/battle/chest_open.webp` (57 KB) | 1024² |
 | Éris, flustered/routed pose (cut-out, UI4 Task A) | `assets/art/characters/eris_flustered.png` + `_cut.png` | `web/public/art/characters/eris_flustered_cut.webp` (71 KB) | 768×1344 |
+| Lanterne d'Hestia (house treasure) | `assets/art/treasures/decor-lanterne.png` + `_cut.png` | `web/public/art/treasures/decor-lanterne.webp` (29 KB) | 1024² → 231×512 |
+| Tapis de Pénélope (house treasure) | `assets/art/treasures/decor-tapis.png` + `_cut.png` | `web/public/art/treasures/decor-tapis.webp` (34 KB) | 1344×768 → 768×132 |
+| Étagère d'Alexandrie (house treasure) | `assets/art/treasures/decor-bibliotheque.png` + `_cut.png` | `web/public/art/treasures/decor-bibliotheque.webp` (68 KB) | 768×1344 → 452×768 |
+| Couronne de laurier (house treasure, `decor:trophee`) | `assets/art/treasures/decor-trophee.png` + `_cut.png` | `web/public/art/treasures/decor-trophee.webp` (49 KB) | 1024² → 434×512 |
+| Fresque des Muses (house treasure) | `assets/art/treasures/decor-fresque.png` + `_cut.png` | `web/public/art/treasures/decor-fresque.webp` (57 KB) | 1344×768 → 768×361 |
+| Amphore peinte (house treasure) | `assets/art/treasures/decor-amphore.png` + `_cut.png` | `web/public/art/treasures/decor-amphore.webp` (33 KB) | 768×1344 → 235×512 |
+| Chouette de marbre (house treasure) | `assets/art/treasures/decor-chouette.png` + `_cut.png` | `web/public/art/treasures/decor-chouette.webp` (28 KB) | 1024² → 292×512 |
+| Mosaïque des Muses (house treasure) | `assets/art/treasures/decor-mosaique.png` + `_cut.png` | `web/public/art/treasures/decor-mosaique.webp` (90 KB) | 1024² → 614×672 |
+| Bouclier d'apparat (house treasure) | `assets/art/treasures/decor-bouclier.png` + `_cut.png` | `web/public/art/treasures/decor-bouclier.webp` (47 KB) | 1024² → 511×512 |
+| Sandales d'Hermès (house treasure) | `assets/art/treasures/sandales_hermes.png` + `_cut.png` | `web/public/art/treasures/sandales_hermes.webp` (48 KB) | 1024² → 476×512 |
+| Égide (house treasure) | `assets/art/treasures/egide.png` + `_cut.png` | `web/public/art/treasures/egide.webp` (50 KB) | 1024² → 494×512 |
+| Foudre de Zeus (house treasure) | `assets/art/treasures/foudre_zeus.png` + `_cut.png` | `web/public/art/treasures/foudre_zeus.webp` (19 KB) | 768×1344 → 150×512 |
 
 The marble tile is "seamless-ish": soft veins with no hard border, which is fine behind a plaque. No
 bronze texture is shipped: it came out as a honeycomb pattern, so CSS gradients or noise do better.

@@ -205,7 +205,7 @@ export const ART = {
     libraryTent: '/art/scenes/library_tent.webp',
     warTent: '/art/scenes/war_tent.webp',
     cabin: '/art/scenes/cabin.webp',
-    // Spec 2026-09-29 drachmes §3: the houses bought from Hermès, the cabin's room plan.
+    // The houses (spec 2026-10-02 house treasures): three rooms painted straight-on with one place per treasure.
     villa: '/art/scenes/villa.webp',
     palais: '/art/scenes/palais.webp',
   },

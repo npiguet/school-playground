@@ -156,7 +156,7 @@ web/public/art/scenes --max-px 2048 --quality 88` from a staging folder, so the 
 not rewritten.
 
 **Seeds** (the sidecars hold the exact prompts): title_gates 602, hub_camp 601, nest 603 (replaced by the nest by stage, 2026-10-02),
-delphi 604, library_tent 605, war_tent 806, cabin 507, eris_lair 608, battle_river 509,
+delphi 604, library_tent 605, war_tent 806, cabin 507 (replaced by the house treasures room, 2026-10-02), eris_lair 608, battle_river 509,
 battle_coast 510, battle_temple 511, pythia 701, owl 802, votive_tablets 703,
 codex_lectern 704, trophy_shelf 705, marble 902 (style `discorde-texture`). 28 generations in total.
 
@@ -535,7 +535,7 @@ the way: brown wood, "every surface silver", gold leading the subject, rose-gold
 the skill). Known weak spot, accepted: at 64 px wood and bronze are both brown and differ mostly by
 the base (block vs round) and the shine.
 
-**Interiors** `assets/art/scenes/villa.png` (seed 4401) and `palais.png` (seed 4501), 2048×1152,
+**Interiors** (replaced by the straight-on rooms, "House treasures (2026-10-02)" below) `assets/art/scenes/villa.png` (seed 4401) and `palais.png` (seed 4501), 2048×1152,
 `discorde-illustration`: img2img of `scenes/cabin.png`, denoise 0.72, 12 steps, V-scale 1 (villa
 at 0.60 was rejected: busier, closer to the cabin's clutter). Landmarks (percent of the picture,
 by eye, ±2 %, like `docs/art/scenes.md`):
@@ -587,6 +587,96 @@ rejected, blotchy multicolour silver), decor-amphore 1015 (black-figure amphora 
 hero), decor-chouette 1017 (a small white marble owl on a plinth), decor-mosaique 1020 (a framed
 tile mosaic of three Muses with lyre, scroll and mask), decor-bouclier 1026 (a polished bronze
 hoplite shield with a Pegasus relief; 1021 and 1027 rejected, blotchier). All under 17 KiB.
+
+### House treasures (2026-10-02)
+
+Spec `docs/superpowers/specs/2026-10-02-house-treasures-design.md`: three rooms painted straight-on
+with one place per treasure, and twelve front-facing pieces that stand at those places. Recipe:
+`krea2` skill "A straight-on room with empty fixtures". Landmarks, hotspots and places:
+`docs/art/scenes.md` (cabin, villa, palais). **The phase-3 villa and palais (seeds 4401, 4501) and
+the 2026-09-24 cabin (507) are replaced.**
+
+**Rooms** `assets/art/scenes/{cabin,villa,palais}.png` (+ sidecar), 2048×1152,
+`discorde-illustration`, txt2img (not img2img from the cabin), 8 steps, V-scale 1, krea2 variance
+off. Prompt structure: the framing sentence ("medium interior shot with a normal lens, eye level,
+the camera standing close to the back wall and looking straight at it in one-point perspective, the
+back wall flat and parallel to the picture") + the house's light + `subject:` the house's room
+sentence + **the shared fixture paragraph** ("In the centre, filling half [cabin] / very large,
+filling two thirds [villa, palais] of the width of the picture and reaching from just above the
+floor almost up to the ceiling, a tall ... open shelving cupboard with three shelves of three ...
+open compartments each, a three by three grid of nine big compartments, every compartment
+completely empty and deep, with a plain evenly lit back. Left of the cupboard, a small desk with an
+open leather journal and a quill; right of the cupboard, a golden lyre on a small stand; a small
+closed chest on the floor beside the desk; an empty bronze hook hanging from the ceiling; an empty
+small pedestal near one edge; a bare stretch of wall at each side; bare floor in front.") + a short
+composition sentence (the cupboard as centrepiece, a calm ceiling band, plain wall at the far
+edges) + negatives `(people:-2) (text:-3) (busy details:-2) (objects on the shelves:-3) (wide
+angle:-2) (cracks:-3) (ruins:-3)`. The sidecars hold the exact text.
+
+- Materials: cabane, honey plank walls, a plain wooden ceiling with straw, a plank floor, a sturdy
+  warm wooden cupboard; villa, "a faithful modern replica of an ancient Greek villa interior,
+  pristine and freshly painted, smooth walls painted in one flat even warm cream colour, like a
+  freshly painted new house", a Greek-key frieze, slender painted columns, a polished terracotta
+  floor, a carved and painted wooden cupboard, plus a long list of wear negatives (`worn plaster`,
+  `chipped paint`, `stains`, `patches`, `scratches`, `scuffs`, `weathered`, `smudges`, `marble
+  veins`, `texture:-2`, `distressed`, `books`, `cloth`, `fabric`...); palais, polished white marble
+  with faint veins, gilded columns, a mosaic floor, a white marble and gold cupboard "separated by
+  thin gilded dividers", `(moss:-3) (thick pilasters:-2) (chipped:-3)`.
+- **Picked by the user:** cabin **7603**, villa **7709**, palais **7804**. No fixture inpainted:
+  the decor places use the painted hooks, pedestal, chest, walls and floor.
+- **Round 1 rejected** (seeds 7101-7104, 7201-7205, 7301-7303, the plan's first prompt: a wide
+  shot, six arched niches on one long shelf high on the back wall): at the user's playtest the
+  trophies were too far away and tiny (the niches ~30 % of the width, high up), the rooms read as
+  open stages with outdoor edges. The spec then made a floor-to-ceiling 3x3 cupboard the hero.
+- **Round 2 rejected:** villa 7701-7702 and 7705-7706 ("newly built": scuffed, streaky plaster,
+  distressed cupboard paint), 7703-7704 and 7707-7708 ("replica, white plaster": blotchy or cracked
+  plaster, a book or folded cloths in the compartments); the flat cream paint wording (7709-7710)
+  was the first clean villa. Palais 7801-7803 (half width: compartments narrow, strong veins that
+  read as cracks); cabin 7601, 7602, 7604, 7605 kept as alternates, not picked.
+- WebPs q88: `web/public/art/scenes/{cabin,villa,palais}.webp`, each under the 600 KB budget.
+
+**Pieces** `assets/art/treasures/<id>.png` (+ `_cut.png`, sidecar), `discorde-inked-clean`, V-scale
+1, krea2 variance off. The **treasure composition sentence**: "a single object centred in the frame
+with plenty of empty white room on every side, seen straight from the front at eye level, soft even
+warm light from the upper left. subject: <SUBJECT> One clear silhouette with a clean dark ink
+outline all around and rich saturated colours, the whole object visible from its top down to its
+base with empty white room below, (scenery:-3) (text:-3) (letters:-3) (cast shadow on the
+ground:-3), isolated on a flat plain white background." (the icons' "slight three-quarter angle"
+becomes "straight from the front": one cut-out fits every straight-on room). Picked seeds, source
+size and weak spots:
+
+- decor-lanterne 7410, 1024²: the flame is a solid inked shape (nothing glows).
+- decor-tapis 7421, 1344x768: a flat foreshortened strip; reads as a rug only on the floor.
+- decor-bibliotheque 7431, 768x1344.
+- decor-trophee 7445, 1024²: the Couronne de laurier; with `(green leaves:-3)` the palette's olive
+  still stained some leaves (7440-7442); `(green:-3)` (7443-7445) made them all gold. Also the 256 px icon `icons/decor-trophee`.
+- decor-fresque 7455, 1344x768: "set in a plain straight-edged carved wooden frame" added (7450-7452
+  were torn plaster fragments with ragged edges, which read as a ruin).
+- decor-amphore 7461, 768x1344.
+- decor-chouette 7470, 1024².
+- decor-mosaique 7481, 1024²: exported at 672 px (768 px was 90.5 KiB even at q50).
+- decor-bouclier 7490, 1024²: the style's multicolour blotches on polished bronze, removed with
+  `tools/art/colorize.py` (golden-bronze gradient map, blend 0.75) before the cut-out, see its
+  sidecar; the "cast in smooth polished warm golden-brown bronze" retry (7493-7495) was worse (bigger
+  patches, painted cracks).
+- sandales_hermes 7501, 1024².
+- egide 7510, 1024².
+- foudre_zeus 7520, 768x1344: one bolt with a spearhead at each end; the classical three-bolt
+  bundle (7523-7525) became a sheaf of arrowheads that no longer read as lightning. The thinnest piece (150 px wide).
+
+**Export** `python tools/art/treasures.py all`: trimmed to the solid object with 4 px of air (the
+piece's base is its image's bottom edge), the long side 768 px for the four big pieces (budget 90
+KiB) and 512 px for the others (50 KiB), quality from q82 down to a floor of q50 (a piece still
+over budget is an error). The contact sheet `docs/art/treasures-sheet.png` shows the twelve at one
+scale (`REAL_CM`, the sheet's scale only) beside a bronze trophy, on dark, mid grey and parchment.
+
+**Measuring** `python tools/art/grid.py` draws the 1 % art grid on a room (with the HUD lines at
+10 % and 11.2 %); places are read off it into `web/src/lib/world/scenes/treasure-places.json`
+(x centre, y bottom edge, w width). The plan's scale (the desk as 120 cm) gave way to the cupboard:
+trophies and gear are sized to their compartment (about 80 % of its height or width), decor to its
+painted fixture. `python tools/art/treasure_preview.py --check` pastes every piece with the game's
+maths and refuses a piece off the safe zone, under the HUD or the room's name, on another piece, a
+plaque, a leader or the exit sign.
 
 ## Accessories: echo
 
