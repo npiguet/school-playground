@@ -368,7 +368,9 @@ export async function expectNoOverlap(page: Page) {
 // DialogueBox's dock (a plaque behind the narrator card would be unreadable while it's open).
 // `labelless`: hotspots with no plaque (the library owl, playability #23), measured without their
 // label checks.
-export async function expectInSafeZone(page: Page, sceneId: string, testIds: string[], labelless: string[] = []) {
+// `inDock`: places whose plaque may sit in the dialogue dock by a written ruling (the caller names
+// the ruling next to the list); every other check still holds for them.
+export async function expectInSafeZone(page: Page, sceneId: string, testIds: string[], labelless: string[] = [], inDock: string[] = []) {
   const sel: Record<string, string> = { art: `[data-testid="scene-${sceneId}"] .art` };
   for (const id of testIds) {
     sel[id] = `[data-testid="${id}"]`;
@@ -400,7 +402,7 @@ export async function expectInSafeZone(page: Page, sceneId: string, testIds: str
     expect(l.x, `${id} label left edge in the safe zone`).toBeGreaterThanOrEqual(Math.max(0, zone.left - EPS));
     expect(l.x + l.width, `${id} label right edge in the safe zone`).toBeLessThanOrEqual(Math.min(vw, zone.right + EPS));
     expect(l.y, `${id} label below the HUD band`).toBeGreaterThanOrEqual(zone.top - EPS);
-    expect(rectsOverlap(l, dock), `${id} label overlaps the dialogue dock`).toBe(false);
+    if (!inDock.includes(id)) expect(rectsOverlap(l, dock), `${id} label overlaps the dialogue dock`).toBe(false);
   }
 }
 
@@ -440,6 +442,35 @@ export async function labelOverlaps(page: Page, sceneId: string): Promise<string
     }
     return out;
   }, sceneId);
+}
+
+/** The pieces in the house's room (spec 2026-10-02 house treasures): each one loaded (a missing
+ *  file has no natural width), none under a place's plaque or leader, the room's name or the exit
+ *  sign, none over another, and none over a place but the trophies and the gear, which stand in
+ *  the cupboard that is « Tes trésors » itself. Read in one evaluate and polled: setViewportSize
+ *  may return before WebKit has laid out the new size (two separate reads once straddled it). */
+export async function expectPiecesClear(page: Page, size: { width: number; height: number }) {
+  const problems = () =>
+    page.evaluate(() => {
+      const stage = document.querySelector('[data-testid="scene-cabin"]')!;
+      const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      const pieces = [...stage.querySelectorAll('[data-testid^="cabin-piece-"]')];
+      const plaques = [...stage.querySelectorAll('.hotspot-label, .hotspot-leader, .stage-plaque, .scene-exit')].map((e) => e.getBoundingClientRect());
+      const places = [...stage.querySelectorAll('button.hotspot')].map((e) => ({ id: e.getAttribute('data-testid'), r: e.getBoundingClientRect() }));
+      const inCupboard = /^cabin-piece-(hydre|echo|chimere|protee|sirenes|lethe|sandales_hermes|egide|foudre_zeus)$/;
+      const out: string[] = [];
+      pieces.forEach((p, i) => {
+        const name = p.getAttribute('data-testid')!;
+        const img = p.querySelector('img');
+        if (!img || !img.complete || img.naturalWidth === 0) out.push(`${name} not loaded`);
+        const r = p.getBoundingClientRect();
+        for (const q of plaques) if (hit(r, q)) out.push(`${name} on a plaque`);
+        for (const pl of places) if (hit(r, pl.r) && !(pl.id === 'cabin-trophies' && inCupboard.test(name))) out.push(`${name} on ${pl.id}`);
+        for (const o of pieces.slice(i + 1)) if (hit(r, o.getBoundingClientRect())) out.push(`${name} on ${o.getAttribute('data-testid')}`);
+      });
+      return out;
+    });
+  await expect.poll(problems, { message: `${size.width}x${size.height}` }).toEqual([]);
 }
 
 // Strict rectangle overlap (mirrors web/src/lib/scene/geometry.ts's boxesOverlap): rects that only

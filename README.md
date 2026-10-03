@@ -574,7 +574,7 @@ only), the quest and fight XP (`QUEST_BONUS` in `catalog.py`: board 60, Oracle 1
 Éris fight 300), a seal's XP (`LEVEL_XP` × L, 100), the board quests' decor every second quest done,
 the Oracle's six rewards in order, and the stall's catalogue (`server/app/world/shop.py`: accessories
 on sale from seals 2 to 5 by slot, the villa from the adult dragon, the palais from the illustre one
-after the villa, 4 / 6 / 9 wall slots for cabin / villa / palais).
+after the villa).
 
 ### Seals: the window algorithm
 
@@ -742,7 +742,7 @@ the feet that stay put, the tint against the still picture's, the failures and t
 ### Art and sound
 
 Art and sound are served from the same origin, bundled in the image: `web/public/art` (WebP, about
-9.3 MB) and `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler
+9.8 MB) and `web/public/audio` (15 AAC `.m4a` files, about 4.9 MB), played through Howler
 (`web/src/lib/world/readmeSizes.test.ts` checks both figures). Dragon tints recolour one cut-out per
 stage in OKLCH (`TINT_SPECS`), on a canvas for the still pictures and in the living dragon's shader.
 Every static file is sent with `Cache-Control: no-store` (`server/app/static.py`, §2 "Which version

@@ -32,15 +32,15 @@ REWARDS = {r["id"]: r for r in [
     _r("decor:lanterne", "decor", "Lanterne d'Hestia", "Une lanterne qui éclaire ta maison.", "Deux quêtes du mur"),
     _r("decor:tapis", "decor", "Tapis de Pénélope", "Un tapis tissé avec patience.", "Quatre quêtes du mur"),
     _r("decor:bibliotheque", "decor", "Étagère d'Alexandrie", "Une étagère pour tes parchemins préférés.", "Six quêtes du mur"),
-    _r("decor:trophee", "decor", "Trophée de la Pomme", "Une pomme d'or… en bois peint.", "Huit quêtes du mur"),
+    _r("decor:trophee", "decor", "Couronne de laurier", "Une couronne de laurier en or, celle des vainqueurs.", "Huit quêtes du mur"),
     _r("decor:fresque", "decor", "Fresque des Muses", "Les neuf Muses peintes sur ton mur.", "Sixième quête de l'Oracle"),
     # Spec 2026-09-29 drachmes §2: Hermès's four pieces of decor and the two houses, sold at his stall.
     _r("decor:amphore", "decor", "Amphore peinte", "Un héros y court en figures noires, sans jamais s'arrêter.", "L'étal d'Hermès"),
     _r("decor:chouette", "decor", "Chouette de marbre", "La chouette d'Athéna veille sur tes parchemins, même la nuit.", "L'étal d'Hermès"),
     _r("decor:mosaique", "decor", "Mosaïque des Muses", "Trois Muses en petites tuiles\u202f: la lyre, le rouleau et le masque.", "L'étal d'Hermès"),
     _r("decor:bouclier", "decor", "Bouclier d'apparat", "Un bouclier de bronze poli, orné de Pégase. Il brille plus qu'il ne protège.", "L'étal d'Hermès"),
-    _r("house:villa", "house", "La villa", "Des murs peints d'une frise, deux fenêtres, et de la place pour six décors.", "L'étal d'Hermès"),
-    _r("house:palais", "house", "Le palais", "Des colonnes, un sol de mosaïque, une cour sous les arcades, et de la place pour neuf décors.", "L'étal d'Hermès"),
+    _r("house:villa", "house", "La villa", "Des murs blanchis de frais, une frise peinte et des colonnes\u202f: une maison toute neuve.", "L'étal d'Hermès"),
+    _r("house:palais", "house", "Le palais", "Des murs de marbre, des chapiteaux dorés et un sol de mosaïque\u202f: tout y brille.", "L'étal d'Hermès"),
 ]}
 # Spec 2026-09-29 lieutenant levels §1: five seals per lieutenant, each a material, each paying the
 # lieutenant's keepsake in that material (the art track's trophies: the old relic as a statuette).

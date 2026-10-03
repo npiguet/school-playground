@@ -3,9 +3,10 @@
   // in its cubby before it's earned (decision 12, ethics - no gamble, nothing hidden). Owned gear
   // and decor can be put on display or away; trophies and tints are keepsakes with no toggle (a
   // trophy stands on its lieutenant's plinth, spec 2026-09-29 lieutenant levels §5; a tint is applied
-  // from the dragon's care, in the nest). Displayed decor hangs on the
-  // cabin's walls: the cabin owns the list of rewards (it hangs them) and hands it down; a piece
-  // put on display or away goes back up through `onUpdated` (final review M15: one /rewards fetch).
+  // from the dragon's care, in the nest). Gear and decor on display stand at their own place in the
+  // room (spec 2026-10-02 house treasures, no limit): the room owns the list of rewards and hands it
+  // down; a piece put on display or away goes back up through `onUpdated` (final review M15: one
+  // /rewards fetch).
   import Medallion from '../../juice/Medallion.svelte';
   import { ART, trophyIcon } from '../../../lib/world/art';
   import { worldApi } from '../../../lib/world/api';
@@ -15,29 +16,25 @@
   import { lieutenantName, sleepingLine, isAwake } from '../../../lib/world/eris';
   import { MAX_SEAL, highestTrophies, sealHowLine, sealNeedLine, sealTitle, sealTitleOf, trophyId } from '../../../lib/world/seals';
   import { rulesOf } from '../../../lib/rules';
-  import { WALLS_FULL_LINE } from '../../../lib/world/scenes/cabin';
   import { howToEarn, nextFightTier } from '../../../lib/world/rewards';
   import { houseDecorTitle, houseEmptyLine } from '../../../lib/world/shop';
   import { LIEUTENANT_ORDER, type House, type LieutenantKey, type RewardKind, type RewardOut, type Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import type { Profile } from '../../../lib/types';
 
-  // `owned`: null while the cabin's /rewards has not answered; `loadError` when it could not;
-  // `house`: the house the hero lives in, whose name the shelf's own words follow; `maxDecor`: the
-  // pieces its walls hold, null while /camp has not said which house it is (the server decides then)
-  // (spec 2026-09-29 drachmes §3).
+  // `owned`: null while the room's /rewards has not answered; `loadError` when it could not;
+  // `house`: the house the hero lives in, whose name the shelf's own words follow (spec 2026-09-29
+  // drachmes §3).
   let {
     profile,
     owned,
     house,
-    maxDecor,
     loadError = '',
     onUpdated,
   }: {
     profile: Profile;
     owned: RewardOut[] | null;
     house: House;
-    maxDecor: number | null;
     loadError?: string;
     onUpdated: (reward: RewardOut) => void;
   } = $props();
@@ -89,28 +86,16 @@
 
   let equippingId = $state<string | null>(null);
   let equipError = $state('');
-  // The walls of the house hold `maxDecor` pieces (spec 2026-09-29 drachmes §3). One more « Exposer » stays tappable
-  // and says why nothing is hung, instead of being disabled without a word; the server refuses
-  // it too (409, the same line).
-  let wallsFull = $state(false);
-  const displayedDecor = $derived((owned ?? []).filter((r) => r.kind === 'decor' && r.equipped).length);
 
   async function toggleEquip(id: string) {
     const current = ownedById.get(id);
     if (!current) return;
     equipError = '';
-    wallsFull = false;
-    if (current.kind === 'decor' && !current.equipped && maxDecor !== null && displayedDecor >= maxDecor) {
-      wallsFull = true;
-      return;
-    }
     equippingId = id;
     try {
-      const updated = await worldApi.patchReward(profile.id, id, !current.equipped);
-      onUpdated(updated);
+      onUpdated(await worldApi.patchReward(profile.id, id, !current.equipped));
     } catch (e) {
-      if (e instanceof ApiError && e.status === 409 && current.kind === 'decor') wallsFull = true;
-      else equipError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
+      equipError = e instanceof ApiError ? e.detail : 'Une erreur est survenue.';
     } finally {
       equippingId = null;
     }
@@ -219,9 +204,6 @@
   {#each sections as section (section.kind)}
     <section>
       <h3 class="kit-section">{section.title}</h3>
-      {#if section.kind === 'decor' && wallsFull}
-        <p class="kit-note walls-full" role="status" data-testid="cabin-walls-full">{WALLS_FULL_LINE}</p>
-      {/if}
       <ul class="cubbies">
         {#each itemsFor(section.kind) as item (item.id)}
           {@const rewardRow = ownedById.get(item.id)}

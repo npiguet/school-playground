@@ -2,7 +2,7 @@
 from app.rules import Rules
 from app.world.catalog import REWARDS, SLOT_LEVEL, SLOTS, accessory_id
 from app.world.drachmes import earned_drachmes, session_drachmes
-from app.world.shop import (DRAW_ORDER, MAX_DECOR, SHOP_DECOR, THE, affordable, house_of, is_item, on_sale, parse_accessory, price_of,
+from app.world.shop import (DRAW_ORDER, SHOP_DECOR, THE, affordable, house_of, is_item, on_sale, parse_accessory, price_of,
                             shop_catalog, worn)
 
 FIVE = ["hydre", "echo", "chimere", "sirenes", "lethe"]          # 5H to 7H
@@ -34,7 +34,6 @@ def test_the_shop_decor_and_the_two_houses():
     assert all(REWARDS[d]["kind"] == "decor" and REWARDS[d]["source"] == "L'étal d'Hermès" for d in SHOP_DECOR)
     assert (REWARDS["house:villa"]["name"], REWARDS["house:palais"]["name"]) == ("La villa", "Le palais")
     assert REWARDS["house:villa"]["kind"] == REWARDS["house:palais"]["kind"] == "house"
-    assert MAX_DECOR == {"cabin": 4, "villa": 6, "palais": 9}
     assert house_of(set()) == "cabin" and house_of({"house:villa"}) == "villa" and house_of({"house:villa", "house:palais"}) == "palais"
     assert is_item("house:villa") and is_item("decor:bouclier") and is_item("accessory:echo-cou")
     assert not is_item("decor:tapis") and not is_item("egide") and not is_item("trophy:hydre:1")
@@ -89,7 +88,17 @@ def test_the_shop_catalog_served_to_the_client():
                            {"id": "house:palais", "key": "palais", "stage": "illustre", "after": "house:villa", "price": 800,
                             "the": "le palais"}]
     assert c["slots"] == ["cou", "queue", "dos", "tete"] and c["draw_order"] == ["queue", "dos", "cou", "tete"]
-    assert c["slot_levels"] == {"cou": 2, "queue": 3, "dos": 4, "tete": 5} and c["max_decor"] == {"cabin": 4, "villa": 6, "palais": 9}
+    assert c["slot_levels"] == {"cou": 2, "queue": 3, "dos": 4, "tete": 5}
+    # Spec 2026-10-02 house treasures: every house has a place for every piece, so no wall limit is served.
+    assert "max_decor" not in c
+
+
+# A guard against the old wall limit's name coming back, not the proof that there is no limit: that is
+# test_drachmes_api.py test_every_house_displays_all_nine_pieces and test_world_api.py
+# test_decor_on_display_before_the_limit_went_stays_and_all_nine_fit.
+def test_the_shop_never_defines_max_decor_again():
+    import app.world.shop as shop
+    assert not hasattr(shop, "MAX_DECOR")
 
 
 # Review focus 2: Python's round() gives round(2.5) == 2; the purse rounds halves up.
@@ -121,3 +130,13 @@ def test_what_the_purse_can_buy():
     assert "house:villa" not in affordable(owned=set(), balance=300, levels={}, awake=SIX, stage="young", rules=r)
     rich = affordable(owned=set(), balance=10_000, levels=lv(protee=5), awake=FIVE, stage="egg", rules=r)
     assert not [i for i in rich if "protee" in i]
+
+
+def test_the_laurel_crown_and_the_houses_say_what_they_are():
+    """Spec 2026-10-02 house treasures: decor:trophee keeps its id and becomes the Couronne de laurier;
+    the houses say what the room is like, never how many pieces it holds."""
+    assert (REWARDS["decor:trophee"]["name"], REWARDS["decor:trophee"]["desc"]) == (
+        "Couronne de laurier", "Une couronne de laurier en or, celle des vainqueurs.")
+    assert REWARDS["house:villa"]["desc"] == "Des murs blanchis de frais, une frise peinte et des colonnes\u202f: une maison toute neuve."
+    assert REWARDS["house:palais"]["desc"] == "Des murs de marbre, des chapiteaux dorés et un sol de mosaïque\u202f: tout y brille."
+    assert [r["id"] for r in REWARDS.values() if "pomme" in (r["name"] + r["desc"]).lower() or "place pour" in r["desc"]] == []

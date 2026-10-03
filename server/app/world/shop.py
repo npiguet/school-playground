@@ -21,9 +21,6 @@ HOUSES: dict[str, dict[str, Any]] = {
     "house:villa": {"key": "villa", "stage": "adult", "after": None},
     "house:palais": {"key": "palais", "stage": "illustre", "after": "house:villa"},
 }
-# Spec §3: the walls of each house hold this many pieces of decor (web/src/lib/world/scenes/cabin.ts
-# DECOR_SLOTS has one slot per piece; cabin.test.ts reads this line).
-MAX_DECOR = {"cabin": 4, "villa": 6, "palais": 9}
 # Spec §4: the order the overlays are drawn in, back to front.
 DRAW_ORDER = ("queue", "dos", "cou", "tete")
 # Each item with its article, for « Acheter la couronne de pavots pour 130 drachmes ? ».
@@ -101,5 +98,4 @@ def shop_catalog(rules: "Rules") -> dict[str, Any]:
         "decor": [{"id": d, "price": rules.prices["decor"], "the": THE[d]} for d in SHOP_DECOR],
         "houses": [{"id": h, "key": v["key"], "stage": v["stage"], "after": v["after"], "price": rules.prices[v["key"]], "the": THE[h]}
                    for h, v in HOUSES.items()],
-        "max_decor": dict(MAX_DECOR),
     }

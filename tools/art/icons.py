@@ -13,8 +13,10 @@ overwrite the painted PNGs.
 
 WebP: the cut-out is trimmed to its alpha bounding box, padded to a square
 with a small margin (so every icon fills its box the same way), downscaled to
-256x256 and saved with alpha. Quality starts at 80 and steps down until the
-file is under 25 KB (floor 50).
+256x256 and saved with alpha. Quality starts at 80 and steps down by 5 until the
+file is under its budget (20 KiB for the decor-* icons, the cap web/src/lib/world/art.test.ts
+holds them to; 25 KiB for the others), floor 50: an icon still over budget at q50 is an error
+(it is not written, the icon already there is kept, and the tool exits 1), never kept silently.
 
 Contact sheet: every icon at 64 px and 128 px, on the dark UI colour and on
 parchment, labelled with its id.
@@ -23,6 +25,7 @@ Runs inside the throwaway Docker container (tools/art/run_docker.sh icons).
 Requires: pillow
 """
 import argparse
+import sys
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -44,6 +47,8 @@ SHEET = Path("docs/art/icons-sheet.png")
 SIZE = 256
 MARGIN = 0.06          # empty border on each side, as a fraction of the square
 BUDGET = 25 * 1024
+DECOR_BUDGET = 20 * 1024   # the decor-* icons: art.test.ts caps them at 20 KiB
+QUALITIES = list(range(80, 49, -5))   # 80, 75, ..., 50
 DARK = (27, 20, 33)    # Discord violet-black #1B1421
 PARCHMENT = (236, 223, 193)
 
@@ -72,22 +77,51 @@ def square(img: Image.Image) -> Image.Image:
     return canvas
 
 
-def webp(dst_dir: Path = DST, only: list[str] | None = None):
+def budget(icon_id: str) -> int:
+    return DECOR_BUDGET if icon_id.startswith("decor-") else BUDGET
+
+
+def save_webp(img: Image.Image, dst: Path, budget: int, qualities: list[int]) -> tuple[int, int, bool]:
+    """Save `img` as WebP at the first quality of `qualities` that fits `budget` bytes.
+    Returns (quality, size, ok); when even the last quality is over budget nothing is written
+    (an over-budget file is never kept silently) and ok is False. Each try goes to a temporary file
+    beside `dst`, which replaces `dst` only once it fits: a failed re-export never deletes or
+    damages a file already shipped. Shared with treasures.py."""
+    tmp = dst.with_name(dst.name + ".tmp")
+    try:
+        for q in qualities:
+            img.save(tmp, "WEBP", quality=q, method=6)
+            size = tmp.stat().st_size
+            if size <= budget:
+                tmp.replace(dst)
+                return q, size, True
+    finally:
+        tmp.unlink(missing_ok=True)
+    return q, size, False
+
+
+def webp(dst_dir: Path = DST, only: list[str] | None = None) -> bool:
     dst_dir.mkdir(parents=True, exist_ok=True)
-    largest = 0
+    largest, over = 0, []
     for icon_id, src in sources():
         if only and icon_id not in only:
             continue
         img = square(Image.open(src)).resize((SIZE, SIZE), Image.LANCZOS)
         dst = dst_dir / f"{icon_id}.webp"
-        for q in range(80, 45, -5):
-            img.save(dst, "WEBP", quality=q, method=6)
-            if dst.stat().st_size <= BUDGET:
-                break
-        size = dst.stat().st_size
-        largest = max(largest, size)
-        print(f"{dst}  q{q}  {size / 1024:.1f} KiB")
+        cap = budget(icon_id)
+        q, size, ok = save_webp(img, dst, cap, QUALITIES)
+        flag = ""
+        if ok:
+            largest = max(largest, size)
+        else:
+            over.append(icon_id)
+            flag = f"  OVER BUDGET ({cap / 1024:.0f} KiB) at q{q}: not written"
+        print(f"{dst}  q{q}  {size / 1024:.1f} KiB{flag}")
     print(f"largest: {largest / 1024:.1f} KiB")
+    if over:
+        print(f"error: over budget at the q{QUALITIES[-1]} floor: {', '.join(over)}", file=sys.stderr)
+        return False
+    return True
 
 
 def sheet():
@@ -154,8 +188,8 @@ def main():
     ap.add_argument("--dst", type=Path, default=DST, help="webp: output folder (default web/public/art/icons)")
     ap.add_argument("--only", nargs="+", help="webp: export only these icon ids")
     a = ap.parse_args()
-    if a.what in ("webp", "all"):
-        webp(a.dst, a.only)
+    if a.what in ("webp", "all") and not webp(a.dst, a.only):
+        sys.exit(1)
     if a.what in ("sheet", "all"):
         sheet()
     if a.what in ("app", "all"):
