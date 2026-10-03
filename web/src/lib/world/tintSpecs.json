@@ -1,0 +1,8 @@
+{
+  "bronze": null,
+  "ecume": { "shift": 165, "chroma": 0.9, "lightness": 1 },
+  "olivier": { "shift": 50, "chroma": 0.8, "lightness": 1 },
+  "braise": { "shift": -33, "chroma": 1.3, "lightness": 1 },
+  "jade": { "shift": 101, "chroma": 0.9, "lightness": 1 },
+  "argent": { "shift": -166, "chroma": 0.52, "lightness": 1.36 }
+}

@@ -11,6 +11,7 @@
 #   tools/art/run_docker.sh icons   [webp|sheet|app|all]     # web/public/art/icons/*.webp (256 px), docs/art/icons-sheet.png, web/public/icons/*.png
 #   tools/art/run_docker.sh uiart   [webp|sheet]              # web/public/art/{textures,ui}/*.webp, docs/art/ui-art-sheet.png
 #   tools/art/run_docker.sh rig     grid|bake|debug|sheet|foe-sheet [--stage K]   # the living figures' rigs: dragon stages and foes (the dragon-rig skill)
+#   tools/art/run_docker.sh bake    [--check]                 # the dragon's baked tints, web/public/art/dragon/dragon_<stage>_<tint>.webp (bake_tints.py)
 #   tools/art/run_docker.sh all
 set -eu
 REPO=$(cd "$(dirname "$0")/../.." && (pwd -W 2>/dev/null || pwd))
@@ -30,8 +31,9 @@ case "$MODE" in
   icons)  CMD="python tools/art/icons.py ${*:-all}" ;;
   uiart)  CMD="python tools/art/uiart.py ${*:-webp}" ;;
   rig)    CMD="python tools/art/rig.py $*" ;;
+  bake)   CMD="python tools/art/bake_tints.py $*" ;;
   all)    CMD="python tools/art/cutout.py $TARGETS && python tools/art/webify.py && python tools/art/icons.py all" ;;
-  *) echo "usage: $0 cutout|webify|icons|uiart|rig|all [args]" >&2; exit 2 ;;
+  *) echo "usage: $0 cutout|webify|icons|uiart|rig|bake|all [args]" >&2; exit 2 ;;
 esac
 MSYS_NO_PATHCONV=1 docker run --rm -v "$REPO:/work" -w /work \
   -v art-pip-cache:/root/.cache/pip -v art-rembg-cache:/root/.rembg \

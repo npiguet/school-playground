@@ -4,6 +4,7 @@
 // the victory's spoils (`battle/VictorySpoils.svelte`) all share the same wording and this file stays trivially testable.
 import { DRAGON_STAGES, type DragonOut, type DragonStage, type Progression, type Tint } from './types';
 import type { OklchSpec } from '../living/tint';
+import TINT_JSON from './tintSpecs.json';
 
 export type Mood = 'idle' | 'happy' | 'sleepy';
 
@@ -15,14 +16,12 @@ export type Mood = 'idle' | 'happy' | 'sleepy';
 // variations, with strength at 100%. It looks more natural than the CSS shift."), with Argent at shift
 // -166, chroma 0.52, lightness 1.36, Olivier at 50 and Écume at 165; Braise and Jade keep the panel's
 // starting values (the hue the old CSS filter gave the bronze), which the user left as they were.
-export const TINT_SPECS: Record<Tint, OklchSpec | null> = {
-  bronze: null,
-  ecume: { shift: 165, chroma: 0.9, lightness: 1 },
-  olivier: { shift: 50, chroma: 0.8, lightness: 1 },
-  braise: { shift: -33, chroma: 1.3, lightness: 1 },
-  jade: { shift: 101, chroma: 0.9, lightness: 1 },
-  argent: { shift: -166, chroma: 0.52, lightness: 1.36 },
-};
+// The settings live in tintSpecs.json, the one source the art tools read too (tools/art/tints.py).
+// Amended 2026-10-03, baked tints (the user: "for production, we'll use the baked tints"): the game
+// never tints at run time; tools/art/bake_tints.py writes each stage under each tint as its own
+// picture (art.ts dragonArt), and a changed entry here needs a re-bake (`tools/art/run_docker.sh
+// bake`; bakedTints.test.ts fails until then). Only the lab's « Teintes » sliders tint live, on the shader.
+export const TINT_SPECS: Record<Tint, OklchSpec | null> = TINT_JSON;
 
 /** The CSS filter of a locked tint's egg picture (the care panel's swatches, the trophy shelf's tint
  *  cubbies): grey, never tinted; a won tint's egg is tinted like the dragon (TINT_SPECS). Applied to
