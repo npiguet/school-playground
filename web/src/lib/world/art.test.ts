@@ -12,14 +12,19 @@ import {
   TOOL_ICONS,
   artFor,
   avatarIcon,
+  dragonArt,
   lieutenantIcon,
   rewardIcon,
   rewardKindOf,
   trophyIcon,
 } from './art';
 import { ACCESSORY_MANIFEST, accessorySrc } from './accessories';
+import { TINT_SPECS } from './dragon';
+import type { Tint } from './types';
 import { DECOR_PIECES, GEAR_PIECES } from './scenes/treasures';
 import { webpSize } from '../../testing/webp';
+
+const TINTS_BAKED = (Object.keys(TINT_SPECS) as Tint[]).filter((t) => TINT_SPECS[t] !== null);
 
 function flat(o: unknown): string[] {
   return typeof o === 'string' ? [o] : Object.values(o as object).flatMap(flat);
@@ -40,6 +45,18 @@ describe('art map', () => {
     const accessories = readdirSync('public/art/dragon/accessories').map((f) => statSync(`public/art/dragon/accessories/${f}`).size);
     const total = nonScene().reduce((s, p) => s + statSync('public' + p).size, 0) + accessories.reduce((s, n) => s + n, 0);
     expect(total).toBeLessThan(4.75 * 1024 * 1024);
+  });
+
+  it('ships the baked tints within their own budget (amended 2026-10-03, baked tints)', () => {
+    // Each stage under each of the five tints, baked at the sources' WebP quality (bake_tints.py), so
+    // each file stays near its sprite (0.95x to 1.07x) and under the sprites' own 150 KB cap. Measured
+    // 2026-10-03: the 30 files total 3,449,604 bytes, the largest 142,284 (ancestral, argent); the cap
+    // leaves about 6 % for a re-bake of the same sprites. A re-cut sprite that bakes larger raises these
+    // caps (measured again, here); they are never to be met by lowering the bake's WebP quality.
+    const baked = DRAGON_STAGES.flatMap((s) => TINTS_BAKED.map((t) => 'public' + dragonArt(s, t)));
+    expect(baked).toHaveLength(30);
+    for (const p of baked) expect(statSync(p).size, p).toBeLessThan(150 * 1024);
+    expect(baked.reduce((s, p) => s + statSync(p).size, 0)).toBeLessThan(3.5 * 1024 * 1024);
   });
 
   it('ships the twelve treasures of the rooms, each within its budget (spec 2026-10-02 house treasures)', () => {

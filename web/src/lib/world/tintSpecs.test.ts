@@ -1,27 +1,27 @@
-// tools/art/overlay.py paints its tinted previews with a hand copy of TINT_SPECS (its TINTS table,
-// bronze left out as it is no tint): the two must never drift apart (living-dragon final review).
+// The tints' settings have one source, tintSpecs.json: dragon.ts builds TINT_SPECS from it and the art
+// tools read it (tools/art/tints.py, for bake_tints.py and overlay.py). Before the baked tints
+// (2026-10-03) overlay.py kept a hand copy, pinned here; now no art tool may keep one.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { TINT_SPECS } from './dragon';
+import TINT_JSON from './tintSpecs.json' with { type: 'json' };
 
-function overlayTints(): Record<string, { shift: number; chroma: number; lightness: number }> {
-  const source = readFileSync('../tools/art/overlay.py', 'utf-8');
-  const block = /^TINTS = \{\n([\s\S]*?)^\}/m.exec(source);
-  if (!block) throw new Error('no TINTS table in tools/art/overlay.py');
-  const out: Record<string, { shift: number; chroma: number; lightness: number }> = {};
-  for (const line of block[1].split('\n')) {
-    if (!line.trim()) continue;
-    const m = /^\s*"(\w+)":\s*\(\s*(-?[\d.]+),\s*(-?[\d.]+),\s*(-?[\d.]+)\s*\),\s*$/.exec(line);
-    if (!m) throw new Error(`unreadable TINTS line: ${line}`);
-    out[m[1]] = { shift: Number(m[2]), chroma: Number(m[3]), lightness: Number(m[4]) };
-  }
-  return out;
-}
-
-describe('overlay.py TINTS', () => {
-  it('is TINT_SPECS exactly, every tint but the untinted bronze', () => {
-    const expected = Object.fromEntries(Object.entries(TINT_SPECS).filter(([, spec]) => spec !== null));
+describe('the tints have one source', () => {
+  it('TINT_SPECS is tintSpecs.json: the six tints in the game\'s order, the bronze untinted', () => {
+    expect(TINT_SPECS).toBe(TINT_JSON);
+    expect(Object.keys(TINT_SPECS)).toEqual(['bronze', 'ecume', 'olivier', 'braise', 'jade', 'argent']);
     expect(TINT_SPECS.bronze).toBeNull();
-    expect(overlayTints()).toEqual(expected);
+    for (const [k, spec] of Object.entries(TINT_SPECS)) {
+      if (spec) expect(Object.keys(spec).sort(), k).toEqual(['chroma', 'lightness', 'shift']);
+    }
+  });
+
+  it('the art tools read the JSON and keep no hand copy of the settings', () => {
+    expect(readFileSync('../tools/art/tints.py', 'utf-8')).toContain('web/src/lib/world/tintSpecs.json');
+    for (const tool of ['overlay.py', 'bake_tints.py', 'accessories_sheet.py']) {
+      const source = readFileSync(`../tools/art/${tool}`, 'utf-8');
+      expect(source, tool).not.toMatch(/^TINTS\s*=\s*\{/m);
+      expect(source, tool).not.toMatch(/"argent":\s*\(/);
+    }
   });
 });

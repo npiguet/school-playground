@@ -23,7 +23,7 @@
 - New sizes "tuned on screenshots at 1280x720, 1366x1024 and 1024x640 so nothing of the battle UI (HP bars, the dictation and proofreading panels, the dialogue dock, the HUD) is covered and the opponent stays the larger".
 - "Out of scope: antagonists outside the battle (war tent, codex, oracle, victory thumbs, portraits); new art; big moves that need the pictures split into parts."
 - Rigs: `tools/art/rig.json` holds integers only; the baked `web/src/lib/living/rig/*.json` are never edited by hand; the dragon stages' blocks and baked files stay byte-identical.
-- Lazy loading (`web/src/lib/living/lazy.test.ts`): no module outside `living/` imports a `living/` module statically other than `stillTint`, `tint`, `stages`; `stages.ts` imports no other `living/` module; `DragonFigure` imports `LivingDragon` dynamically; Play and Boss stay their own chunk. `stages.ts` may `import type` from elsewhere only. The game's `vite build` prints no warning.
+- Lazy loading (`web/src/lib/living/lazy.test.ts`): no module outside `living/` imports a `living/` module statically other than `stillTint`, `tint`, `stages`; `stages.ts` imports no other `living/` module; `DragonFigure` imports `LivingDragon` dynamically; Play and Boss stay their own chunk. `stages.ts` may `import type` from elsewhere only. The game's `vite build` prints no warning. (Amended 2026-10-03, baked tints: `stillTint` is removed; only `stages` may be imported eagerly.)
 - The e2e specs run in Node: they must never import `web/src/lib/living/stages.ts` or anything that reaches `import.meta.glob` (`rigs.ts`, `foes.ts`); copy a constant with a comment naming its source instead.
 - Guards that must stay green: `frenchSpacing`, `literalSpaces`, `noEmoji` (vitest), `lazy.test.ts`, a warning-free game build.
 - Git: local only, never push or open a PR. Commit with the attribution trailer `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`.
@@ -1147,6 +1147,8 @@ In `web/src/components/LivingDragon.svelte`:
 ```
 
 7. `applyTint`:
+
+(Amended 2026-10-03, baked tints: `stillTint` is removed and the game passes no shader tint; `applyTint` takes the lab's override only.)
 
 ```ts
   function applyTint(name: Tint | null, override: OklchSpec | null | undefined): void {

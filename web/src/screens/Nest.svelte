@@ -11,7 +11,7 @@
   import Overlay from '../components/scene/Overlay.svelte';
   import CarePanel from '../components/places/nest/CarePanel.svelte';
   import { NEST_STAGES, SHEET_TOP, SHEET_X, careLine, growth, nestDragonLayer, nestGreeting, nestScene } from '../lib/world/scenes/nest';
-  import { ART } from '../lib/world/art';
+  import { dragonArt } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
   import { dragonCaption, stageActivity, stageLabel } from '../lib/world/dragon';
   import { livingStage } from '../lib/living/stages';
@@ -41,7 +41,7 @@
       {@const g = growth(ctx.camp.xp, d.stage)}
       {@const side = NEST_STAGES[d.stage].sheet}
       <SceneLayer
-        layer={{ id: 'dragon', src: ART.dragon[d.stage], alt: dragonCaption(d), ...nestDragonLayer(d.stage) }}
+        layer={{ id: 'dragon', src: dragonArt(d.stage, d.tint), alt: dragonCaption(d), ...nestDragonLayer(d.stage) }}
         tint={d.tint}
         overlays={accessoryLayers(d.worn, d.stage)}
         living={livingStage(d.stage)}

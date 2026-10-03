@@ -2,7 +2,7 @@
 // Only the cut (alpha) variants are served for characters/dragon/lieutenants/emblems;
 // scenes are full-bleed backgrounds and keep their flat background.
 import type { Avatar } from '../levels';
-import { LIEUTENANT_ORDER, type LieutenantKey, type RewardKind, type WorldCatalog } from './types';
+import { LIEUTENANT_ORDER, type DragonStage, type LieutenantKey, type RewardKind, type Tint, type WorldCatalog } from './types';
 
 const icon = (name: string) => `/art/icons/${name}.webp`;
 
@@ -229,6 +229,14 @@ export function artFor(kind: 'lieutenant' | 'dragon' | 'scene' | 'emblem', key: 
   const path = table[kind][key];
   if (!path) throw new Error(`Unknown ${kind} art key: ${key}`);
   return path;
+}
+
+/** The dragon's picture as the game shows it (amended 2026-10-03, baked tints): the stage's own sprite
+ *  for the bronze (no tint), else the stage under that tint, baked offline from it by
+ *  tools/art/bake_tints.py (`dragon_<stage>_<tint>.webp`, next to the sprite; bakedTints.test.ts
+ *  keeps them fresh). Every still dragon or egg picture and the living dragon's texture use it. */
+export function dragonArt(stage: DragonStage, tint: Tint | null | undefined): string {
+  return !tint || tint === 'bronze' ? ART.dragon[stage] : `/art/dragon/dragon_${stage}_${tint}.webp`;
 }
 
 /** A lieutenant's trophy for a seal (1-5), or null for an unknown lieutenant or seal. */

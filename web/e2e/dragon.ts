@@ -2,8 +2,9 @@
 // 2026-10-02 living dragon) or the still picture (img.dragon-base + img.dragon-overlay): which one
 // depends on the browser's WebGL2, reduced motion and the stage. These helpers wait for it to settle
 // and read its picture, tint and pieces from whichever form it took. Both forms carry `data-src` (the
-// picture asked for) and `data-tint` (the tint applied; on the still picture, `bronze` while its tinted
-// copy is being made: poll it), Ruling L9.
+// picture shown: since the baked tints, amended 2026-10-03, the stage's baked picture in its tint,
+// `dragon_<stage>_<tint>.webp`, or the sprite itself for the bronze) and `data-tint` (its tint's
+// name), Ruling L9.
 import { expect, type Locator, type Page } from '@playwright/test';
 
 export type Settled = 'living' | 'still';

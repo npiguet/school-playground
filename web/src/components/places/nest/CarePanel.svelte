@@ -7,14 +7,13 @@
   // in advance (the locked ones say once, under the row, how to win them; ethics: nothing is a
   // gamble) and changing one is instant/optimistic. And its parure: one owned piece or nothing per slot
   // (spec 2026-09-29 drachmes §4, R20), optimistic like the tints.
-  import { ART, MARK_ICONS } from '../../../lib/world/art';
+  import { MARK_ICONS, dragonArt } from '../../../lib/world/art';
   import { SLOTS, SLOT_NAMES, accessoryPicture, wears, wornAfter } from '../../../lib/world/accessories';
   import { worldApi } from '../../../lib/world/api';
   import { tick, untrack } from 'svelte';
   import { campFor, campStore, refreshCamp, replaceCamp } from '../../../lib/world/campStore.svelte';
   import { useToast } from '../../../lib/ui/toast.svelte';
   import { LOCKED_EGG_FILTER, TINT_NAMES, validName } from '../../../lib/world/dragon';
-  import { tintedDragon } from '../../../lib/living/stillTint';
   import type { RewardOut, Slot, Tint } from '../../../lib/world/types';
   import { ApiError } from '../../../lib/api';
   import { playSfx, unlockAudio } from '../../../lib/juice/sfx';
@@ -207,7 +206,9 @@
             <span class="swatch-circle">
               <img
                 class="swatch-egg"
-                use:tintedDragon={{ src: ART.dragon.egg, tint: unlocked ? t : 'bronze' }}
+                src={dragonArt('egg', unlocked ? t : 'bronze')}
+                data-src={dragonArt('egg', unlocked ? t : 'bronze')}
+                data-tint={unlocked ? t : 'bronze'}
                 alt=""
                 style:filter={unlocked ? null : LOCKED_EGG_FILTER}
               />

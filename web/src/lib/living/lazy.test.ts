@@ -1,7 +1,8 @@
 // The living dragon stays out of the game's entry chunk (Task 7, ruling O1: `vite build` must print no
 // "chunks larger than 500 kB" warning): only DragonFigure loads LivingDragon, through a dynamic
-// import, and the rest of the game reaches living/ only for the still pictures' tint (stillTint.ts,
-// tint.ts) and the baked stages (stages.ts). The renderer, the rigs, the mesh, the pose and the atlas
+// import, and the rest of the game reaches living/ only for the baked stages (stages.ts); since the
+// baked tints (amended 2026-10-03) no still picture is tinted at run time, so the CPU reference
+// (tint.ts) serves the tests and the lab, and the game imports only its types. The renderer, the rigs, the mesh, the pose and the atlas
 // arrive with LivingDragon's chunk; each rig is its own lazily imported JSON chunk (rigs.ts). The
 // battle screens (Play, Boss) are their own chunk too, loaded by App.svelte alone.
 import { describe, expect, it } from 'vitest';
@@ -24,7 +25,7 @@ function walk(dir: string, out: string[] = []): string[] {
 const STATIC_IMPORT =
   /^\s*(?:import\s+(?!type\s)(?:[\w$*{},\s]+?\s+from\s+)?|export\s+(?!type\s)(?:\*(?:\s+as\s+[\w$]+)?|\{[^}]*\})\s*from\s+)['"]([^'"]+)['"]/gm;
 const staticImports = (source: string): string[] => [...source.matchAll(STATIC_IMPORT)].map((m) => m[1]);
-const EAGER_OK = /\/living\/(stillTint|tint|stages)$/;
+const EAGER_OK = /\/living\/stages$/;
 const LAZY = /(\/LivingDragon\.svelte|\/living\/[\w]+)$/;
 
 describe('the import scan', () => {
@@ -55,7 +56,7 @@ describe('the import scan', () => {
 });
 
 describe('the living dragon is lazily loaded', () => {
-  it('no game module outside living/ imports LivingDragon or a living/ module other than the still tint and the stages statically', () => {
+  it('no game module outside living/ imports LivingDragon or a living/ module other than the stages statically', () => {
     const files = walk('src').filter((f) => !f.startsWith('src/lab/') && !f.startsWith('src/lib/living/') && !f.endsWith('/LivingDragon.svelte'));
     const bad: string[] = [];
     for (const f of files) {
@@ -67,8 +68,8 @@ describe('the living dragon is lazily loaded', () => {
     expect(bad).toEqual([]);
   });
 
-  it('the still tint and the stages pull no other living/ module in', () => {
-    for (const f of ['src/lib/living/stillTint.ts', 'src/lib/living/tint.ts', 'src/lib/living/stages.ts']) {
+  it('the stages and the CPU tint reference pull no other living/ module in', () => {
+    for (const f of ['src/lib/living/tint.ts', 'src/lib/living/stages.ts']) {
       const specs = staticImports(readFileSync(f, 'utf-8'));
       expect(specs.filter((s) => s.startsWith('./') && !/^\.\/(tint|stages)$/.test(s)), f).toEqual([]);
     }

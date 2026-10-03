@@ -1,7 +1,9 @@
 <script lang="ts">
   // Every stage with a rig, living side by side (the dragon-rig skill, "The lab"): amplitude, tint,
   // the worn pieces, the weights view, pause and a time slider. For the rig review and the human look.
-  // Above them, the Teintes panel tunes a tint's OKLCH settings (TintPanel.svelte).
+  // Above them, the Teintes panel tunes a tint's OKLCH settings (TintPanel.svelte), a live preview.
+  // The stages show what the game shows: each tint is its baked picture (art.ts dragonArt, amended
+  // 2026-10-03), never tinted on the shader here.
   // Below them, every battle foe with a rig, living side by side, mirrored as in the battle (« Comme au
   // combat »): spec 2026-10-03 living battle, plan Ruling B10. Every rig of stages.ts FOE_RIGS is
   // listed, baked or not (the plan's Task 3 named only the baked ones): a foe whose rig is not baked
@@ -11,7 +13,7 @@
   // nor dressed). The controls carry ids for the shot script (plan Task 3, lab_foes.py).
   import LivingDragon from '../components/LivingDragon.svelte';
   import TintPanel from './TintPanel.svelte';
-  import { ART } from '../lib/world/art';
+  import { dragonArt } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
   import { TINT_NAMES, TINT_SPECS } from '../lib/world/dragon';
   import { AMPLITUDE } from '../lib/living/pose';
@@ -67,7 +69,7 @@
         <div class="box">
           <LivingDragon
             rig={s}
-            src={ART.dragon[s]}
+            src={dragonArt(s, tint)}
             alt={s}
             {tint}
             overlays={pieces ? accessoryLayers(WORN, s) : []}

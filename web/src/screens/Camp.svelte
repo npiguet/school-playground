@@ -29,7 +29,7 @@
   import { overlayState } from '../lib/scene/overlayState.svelte';
   import { VICTORY } from '../lib/battle/lines';
   import { dragonCaption } from '../lib/world/dragon';
-  import { ART } from '../lib/world/art';
+  import { dragonArt } from '../lib/world/art';
   import { accessoryLayers } from '../lib/world/accessories';
   import { livingStage } from '../lib/living/stages';
   import type { CampResponse } from '../lib/world/types';
@@ -89,7 +89,7 @@
   }
 
   function dragonLayer(camp: CampResponse): SceneLayerDef {
-    return { id: 'dragon', src: ART.dragon[camp.dragon.stage], alt: dragonCaption(camp.dragon), ...campDragonLayer(camp.dragon.stage) };
+    return { id: 'dragon', src: dragonArt(camp.dragon.stage, camp.dragon.tint), alt: dragonCaption(camp.dragon), ...campDragonLayer(camp.dragon.stage) };
   }
 
   // Playability #12: leaving the hub fades through the night before the next screen appears

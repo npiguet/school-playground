@@ -22,9 +22,9 @@ need only Pillow and numpy.
             --box): per pixel the part with the highest alpha. Sidecar: the parts' sidecars.
   check     STAGE_cut.png OVERLAY.png [OVERLAY2 ...] --out sheet.png
             The overlay composited on the cut-out stage, untinted and under the game's tints
-            (web/src/lib/world/dragon.ts TINT_SPECS applied to the dragon only, overlay untinted, the
-            OKLCH steps of web/src/lib/living/tint.ts reproduced), on dark, mid and parchment
-            grounds, plus a 2x zoom on the overlay's area.
+            (web/src/lib/world/tintSpecs.json, the game's TINT_SPECS, applied to the dragon only,
+            overlay untinted, the OKLCH steps of web/src/lib/living/tint.ts: tints.py), on dark, mid
+            and parchment grounds, plus a 2x zoom on the overlay's area.
   crop      OVERLAY.png --webp out.webp [--manifest m.json --item ID --stage KEY] [--pixels]
             Crops to the alpha bounding box (+2 px), saves WebP (q88, alpha) and records
             {"src", "x", "y", "w", "h"} in the manifest under item -> stage. x/y/w/h are fractions
@@ -38,7 +38,6 @@ need only Pillow and numpy.
 """
 import argparse
 import json
-import math
 import sys
 from pathlib import Path
 
@@ -47,61 +46,11 @@ from PIL import Image, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-# web/src/lib/world/dragon.ts TINT_SPECS (bronze = none): the OKLCH hue shift in degrees, then the
-# chroma and lightness factors, at full strength (the user's choice of 2026-10-02).
-TINTS = {
-    "ecume": (165, 0.9, 1.0),
-    "olivier": (50, 0.8, 1.0),
-    "braise": (-33, 1.3, 1.0),
-    "jade": (101, 0.9, 1.0),
-    "argent": (-166, 0.52, 1.36),
-}
+# The tints (TINTS, read from web/src/lib/world/tintSpecs.json: the game's TINT_SPECS) and the numpy
+# port of web/src/lib/living/tint.ts tintOklch live in tints.py, shared with bake_tints.py.
+from tints import TINTS, tint, tint_oklch  # noqa: E402,F401
+
 GROUNDS = {"dark": (27, 20, 33), "mid": (120, 112, 104), "parchment": (236, 223, 193)}
-
-_M1 = np.array([[0.4122214708, 0.5363325363, 0.0514459929], [0.2119034982, 0.6806995451, 0.1073969566],
-                [0.0883024619, 0.2817188376, 0.6299787005]])
-_M2 = np.array([[0.2104542553, 0.793617785, -0.0040720468], [1.9779984951, -2.428592205, 0.4505937099],
-                [0.0259040371, 0.7827717662, -0.808675766]])
-_N1 = np.array([[1.0, 0.3963377774, 0.2158037573], [1.0, -0.1055613458, -0.0638541728], [1.0, -0.0894841775, -1.291485548]])
-_N2 = np.array([[4.0767416621, -3.3077115913, 0.2309699292], [-1.2684380046, 2.6097574011, -0.3413193965],
-                [-0.0041960863, -0.7034186147, 1.707614701]])
-
-
-def _lch_linear(L, C, h):
-    lab = np.stack([L, C * np.cos(h), C * np.sin(h)], -1)
-    return ((lab @ _N1.T) ** 3) @ _N2.T
-
-
-def tint_oklch(rgb: np.ndarray, shift: float, chroma: float, lightness: float) -> np.ndarray:
-    """web/src/lib/living/tint.ts tintOklch on an (..., 3) array of straight sRGB colours (0..1): the
-    OKLCH hue turned, chroma and lightness scaled, an out-of-gamut colour's chroma bisected down."""
-    lin = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
-    lab = np.cbrt(lin @ _M1.T) @ _M2.T
-    L = np.clip(lab[..., 0] * lightness, 0, 1)
-    C = np.hypot(lab[..., 1], lab[..., 2]) * chroma
-    h = np.arctan2(lab[..., 2], lab[..., 1]) + math.radians(shift)
-
-    def ok(c):
-        lin = _lch_linear(L, c, h)
-        return np.all((lin >= -1e-4) & (lin <= 1 + 1e-4), -1)
-
-    out = ~ok(C)
-    lo, hi = np.zeros_like(C), C.copy()
-    for _ in range(16):
-        mid = (lo + hi) / 2
-        good = ok(mid)
-        lo, hi = np.where(good, mid, lo), np.where(good, hi, mid)
-    C = np.where(out, lo, C)
-    c = np.clip(_lch_linear(L, C, h), 0, 1)
-    return np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1 / 2.4) - 0.055)
-
-
-def tint(img: Image.Image, name: str) -> Image.Image:
-    """Apply a TINT_SPECS tint to an RGBA picture (straight colours; the alpha kept)."""
-    arr = np.asarray(img.convert("RGBA")).astype(np.float64)
-    seen = arr[..., 3] > 0
-    arr[seen, :3] = tint_oklch(arr[seen, :3] / 255, *TINTS[name]) * 255
-    return Image.fromarray(arr.round().astype(np.uint8), "RGBA")
 
 
 def dilate(mask: np.ndarray, px: int) -> np.ndarray:

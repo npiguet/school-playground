@@ -1,7 +1,7 @@
 import { test, expect } from './crashGuard';
 import type { Page } from '@playwright/test';
 import { chooseLevel, closeOverlay, enterTitle, expectBattle, expectCamp, expectScene, installFastPauses, nextLine, createText, makeResult, postSession, redScan, spokenLines, swissDay, uniqueName } from './helpers';
-import { dragonTint } from './dragon';
+import { dragonSrc, dragonTint } from './dragon';
 
 // SP3 Task 9 (spec §6.1): the full camp -> Oracle -> quest -> session -> reward loop, the first seal
 // over three days driven through the `X-Discorde-Day` test-clock header (Decision 5, enabled only
@@ -216,8 +216,9 @@ test.describe.serial('world: camp, Oracle, quests, the dragon hatching from XP, 
     await page.goto(`/#/p/${profileId}/dragon?panel=soin`);
     await expect(page.getByTestId('dragon-tint-ecume')).toBeEnabled();
     await page.getByTestId('dragon-tint-ecume').click();
-    // The tint is OKLCH, painted once on a canvas (user, 2026-10-02), or by the living dragon's shader.
+    // The tint is OKLCH (user, 2026-10-02), baked in the stage's picture (amended 2026-10-03).
     await expect.poll(() => dragonTint(page.getByTestId('nest-dragon-layer'))).toBe('ecume');
+    await expect.poll(() => dragonSrc(page.getByTestId('nest-dragon-layer'))).toMatch(/_ecume\.webp$/);
 
     await page.goto(`/#/p/${profileId}/cabane?panel=tresors`);
     await expect(page.getByTestId('cabin-reward-tint:ecume')).toHaveAttribute('data-owned', 'true');

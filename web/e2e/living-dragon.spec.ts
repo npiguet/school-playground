@@ -2,7 +2,8 @@
 // Spec 2026-10-02 living dragon, "Tests" (e2e) and the plan's Review Focus: the nest and the camp draw a
 // hatched dragon on a canvas and the egg as the still picture; reduced motion and no WebGL2 keep the
 // still picture; the worn pieces are listed; two frames differ over time and the feet do not; the tint
-// matches the still picture's (both OKLCH, Ruling L9) and never touches the pieces; a lost context or a failing
+// matches the still picture's (both the stage's baked picture since 2026-10-03, Ruling L9) and never
+// touches the pieces; a lost context or a failing
 // shader fall back; the loop stops when hidden or off-screen; twenty visits never exhaust contexts.
 // chromium-gl only (SwiftShader WebGL2).
 import type { Page } from '@playwright/test';
@@ -60,7 +61,8 @@ test('reduced motion and a browser without WebGL2 keep the still picture, its ti
   await openNest(page, id);
   expect(await settledDragon(nest(page))).toBe('still');
   await expect(nest(page).locator('canvas')).toHaveCount(0);
-  await expect(nest(page).locator('img.dragon-base')).toHaveAttribute('data-src', '/art/dragon/dragon_adult_cut.webp');
+  await expect(nest(page).locator('img.dragon-base')).toHaveAttribute('data-src', '/art/dragon/dragon_adult_braise.webp');
+  await expect(nest(page).locator('img.dragon-base')).toHaveAttribute('src', '/art/dragon/dragon_adult_braise.webp');
   await expect(nest(page).locator('img.dragon-base')).toHaveAttribute('data-tint', 'braise');
   await expect(nest(page).locator('img.dragon-overlay[data-item="hydre-cou"]')).toHaveCSS('filter', 'none');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -150,31 +152,39 @@ test('the tint on the canvas matches the still picture under the same tint, and 
   const saddle = { x0: e.x + 0.2 * e.w, y0: e.y + 0.2 * e.h, x1: e.x + 0.8 * e.w, y1: e.y + 0.8 * e.h };
   let before: { tint: string; still: Buffer } | null = null;
   const controls: string[] = [];
+  const measured: string[] = [];
   for (const t of Object.keys(TINT_SPECS)) {
     tint = t;
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openNest(page, id);
     await isolateDragon(page, 'nest', 'nest-dragon-layer');
     await expect(figure(page)).toHaveAttribute('data-motion', 'still');
-    // The still picture's tinted copy is made on a canvas: wait for it (Ruling L9).
+    // The still picture is the stage's baked picture in the tint (amended 2026-10-03, Ruling L9).
     await expect(nest(page).locator('img.dragon-base')).toHaveAttribute('data-tint', t);
+    await expect(nest(page).locator('img.dragon-base')).toHaveAttribute('src', t === 'bronze' ? '/art/dragon/dragon_adult_cut.webp' : `/art/dragon/dragon_adult_${t}.webp`);
     const still = await nest(page).locator('.dragon-base').screenshot();
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await expect(figure(page)).toHaveAttribute('data-motion', 'living');
     await expect(nest(page).locator('.dragon-base')).toHaveAttribute('data-tint', t);
+    // The canvas's texture is the same baked file as the still picture.
+    await expect(nest(page).locator('.dragon-base')).toHaveAttribute('data-src', t === 'bronze' ? '/art/dragon/dragon_adult_cut.webp' : `/art/dragon/dragon_adult_${t}.webp`);
     const living = await nest(page).locator('.dragon-base').screenshot();
     const whole = await compareShots(page, still, living);
     const piece = await compareShots(page, still, living, saddle);
-    // Measured 2026-10-02 (mean channel gap, still against living): over the dragon 0.45 to 0.71 for
-    // every tint but argent, whose channels reach 0.79, 0.85 and 1.05; over the saddle 0.43 to 0.63. The gap is the idle pose
-    // (the living frame is never the rest pose), not the tint: a tinted saddle, or a tint off by a
-    // preset, moves these means by tens.
+    const gaps = (r: typeof whole) => [0, 1, 2].map((k) => Math.abs(r.meanA[k] - r.meanB[k]).toFixed(2)).join('/');
+    measured.push(`${t}: dragon ${gaps(whole)}, saddle ${gaps(piece)}`);
+    // Measured 2026-10-03 with the baked textures (chromium-gl, SwiftShader; mean channel gap, still
+    // against living): over the dragon 0.20 to 0.31 for every tint (argent the highest, 0.30, 0.31,
+    // 0.29); over the saddle 0.01 to 0.18. The gap is the idle pose (the living frame is never the rest
+    // pose), not the tint: both show the same baked file. A tinted saddle, or a tint off by a preset,
+    // moves these means by tens.
     for (let k = 0; k < 3; k++) expect(Math.abs(whole.meanA[k] - whole.meanB[k]), `${t}: channel ${k} over the dragon`).toBeLessThan(2.5);
     for (let k = 0; k < 3; k++) expect(Math.abs(piece.meanA[k] - piece.meanB[k]), `${t}: channel ${k} over the saddle`).toBeLessThan(4);
     // The negative control: the living dragon under this tint against the still picture under the
-    // previous one. Measured 2026-10-03 (chromium-gl, SwiftShader; largest mean channel gap): bronze /
-    // écume 27.59, écume / olivier 23.08, olivier / braise 16.21, braise / jade 29.07, jade / argent
-    // 35.18. The closest pair sits six times above the 2.5 above, so that threshold tells tints apart.
+    // previous one. Measured 2026-10-03 with the baked textures (chromium-gl, SwiftShader; largest mean
+    // channel gap): bronze / écume 27.60, écume / olivier 23.22, olivier / braise 16.17, braise / jade
+    // 29.15, jade / argent 34.84. The closest pair sits six times above the 2.5 above, so that threshold
+    // tells tints apart.
     if (before) {
       const off = await compareShots(page, before.still, living);
       const gap = Math.max(...[0, 1, 2].map((k) => Math.abs(off.meanA[k] - off.meanB[k])));
@@ -184,6 +194,7 @@ test('the tint on the canvas matches the still picture under the same tint, and 
     before = { tint: t, still };
   }
   testInfo.annotations.push({ type: 'tint controls', description: controls.join('; ') });
+  testInfo.annotations.push({ type: 'tint gaps', description: measured.join('; ') });
 });
 
 test('a lost context brings the still picture back, never a blank box', async ({ page, request }, testInfo) => {
@@ -314,7 +325,54 @@ test('a tint picked in the care panel recolours the living dragon in place', asy
   await nest(page).locator('canvas').evaluate((c) => ((c as HTMLCanvasElement).dataset.mark = 'first'));
   await page.getByTestId('dragon-tint-ecume').click();
   await expect.poll(() => dragonTint(nest(page))).toBe('ecume');
+  // Its baked écume picture, swapped into the texture on the same canvas (amended 2026-10-03).
+  await expect(nest(page).locator('.dragon-base')).toHaveAttribute('data-src', '/art/dragon/dragon_adult_ecume.webp');
   await expect(nest(page).locator('canvas')).toHaveAttribute('data-mark', 'first');
+  await expect(figure(page)).toHaveAttribute('data-motion', 'living');
+});
+
+// Baked tints review (Important 1): a tint picked and taken back while its picture is still loading
+// (bronze, écume, bronze again: CarePanel's optimistic pick puts the old snapshot back on a failed
+// PATCH) never leaves the late écume picture on the canvas under a bronze `data-tint`.
+test('a tint taken back before its picture arrives leaves the picture of the tint shown', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  let tint = 'bronze';
+  let dragon: Record<string, unknown> = {};
+  await page.route(`**/api/profiles/${id}/camp`, async (route) => {
+    const res = await route.fetch();
+    const camp = await res.json();
+    camp.dragon = { ...camp.dragon, stage: 'adult', name: 'Braise', tint, unlocked_tints: ['bronze', 'ecume'] };
+    dragon = camp.dragon;
+    await route.fulfill({ response: res, json: camp });
+  });
+  await page.route(`**/api/profiles/${id}/dragon`, async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    tint = (route.request().postDataJSON() as { tint?: string }).tint ?? tint;
+    await route.fulfill({ json: { ...dragon, tint } });
+  });
+  // The écume picture is held back until the test lets it through.
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/art/dragon/dragon_adult_ecume.webp', async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.goto(`/#/p/${id}/dragon?panel=soin`);
+  await expect(figure(page)).toHaveAttribute('data-motion', 'living');
+  const living = nest(page).locator('.dragon-base');
+  await expect(living).toHaveAttribute('data-src', '/art/dragon/dragon_adult_cut.webp');
+  await page.getByTestId('dragon-tint-ecume').click();
+  await expect(living).toHaveAttribute('data-tint', 'ecume');
+  await expect(page.getByTestId('dragon-tint-bronze')).toBeEnabled();
+  await page.getByTestId('dragon-tint-bronze').click();
+  await expect(living).toHaveAttribute('data-tint', 'bronze');
+  const arrived = page.waitForResponse('**/art/dragon/dragon_adult_ecume.webp');
+  release();
+  await arrived;
+  // Give the late picture time to decode and be drawn: it must not land.
+  await page.waitForTimeout(1000);
+  await expect(living).toHaveAttribute('data-src', '/art/dragon/dragon_adult_cut.webp');
+  await expect(living).toHaveAttribute('data-tint', 'bronze');
   await expect(figure(page)).toHaveAttribute('data-motion', 'living');
 });
 

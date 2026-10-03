@@ -1,7 +1,8 @@
 // The living dragon's WebGL2 drawing (spec 2026-10-02 living dragon, "Technique"), ported from the
-// spike: the sprite on the 64 x 64 mesh, skinned in the vertex shader with the per-vertex weights; the
-// tint in the fragment shader on the dragon only (a TINT_SPECS entry in OKLCH, at full strength: the
-// steps of tint.ts's CPU reference; alpha below about 4 % dropped so the cut-out's background haze
+// spike: the sprite on the 64 x 64 mesh, skinned in the vertex shader with the per-vertex weights; an
+// optional tint in the fragment shader on the dragon only (OKLCH, the steps of tint.ts's CPU
+// reference; amended 2026-10-03, baked tints: the game's sprite comes already tinted and sets none,
+// only the lab's « Teintes » sliders do); alpha below about 4 % dropped so the cut-out's background haze
 // never smears into streaks); then each worn piece as its own quad from the atlas, back to front, skinned rigidly with uniform weights and never
 // tinted. Every failure throws: the caller shows the still picture. No unit test (no GL in node):
 // living-dragon.spec.ts proves it.
@@ -211,7 +212,14 @@ export class DragonRenderer {
     return t;
   }
 
-  /** The dragon's tint: a TINT_SPECS entry (OKLCH, full strength), or null for none (the bronze). */
+  /** Another picture on the same mesh (the same size): the dragon's baked picture in a newly picked
+   *  tint, swapped in place (amended 2026-10-03, baked tints). */
+  setSprite(sprite: TexImageSource): void {
+    this.texture(0, sprite, this.baseTex);
+  }
+
+  /** A live tint (OKLCH, full strength), or null for none: always none in the game (its tints are
+   *  baked in the sprite), the lab's slider settings in the « Teintes » panel. */
   setTint(spec: OklchSpec | null): void {
     const gl = this.gl;
     gl.useProgram(this.program);

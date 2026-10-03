@@ -10,6 +10,11 @@ with a 64 x 64 mesh and six bones (spec `docs/superpowers/specs/2026-10-02-livin
 A rig says, per stage, where each bone turns and what it moves. The motion itself (periods and
 amplitudes) is code: `web/src/lib/living/pose.ts`.
 
+The tints are baked (amended 2026-10-03): the game's texture for a tinted dragon is the stage's baked
+picture `dragon_<stage>_<tint>.webp` (the same size, the same alpha, so the same rig), and the shader
+tints nothing in the game. A re-cut stage sprite therefore needs both a rig bake and a tint bake:
+`tools/art/run_docker.sh bake` (`web/src/lib/world/bakedTints.test.ts` fails until it is done).
+
 ## Files
 
 | File | What |
@@ -78,8 +83,10 @@ python -m http.server 8744 --directory web/dist-lab     # then open http://local
 ```
 
 Every stage with a rig, living side by side, then every foe (« Les adversaires », below): amplitude
-(1.5x by default, the game's), tint, worn pieces, the weights view (« Poids »), pause and a time
-slider.
+(1.5x by default, the game's), tint (the baked pictures, as in the game), worn pieces, the weights
+view (« Poids »), pause and a time slider. Above them the « Teintes » panel previews a tint live on
+the shader with its sliders, beside the baked picture; a new setting goes into
+`web/src/lib/world/tintSpecs.json`, then a re-bake.
 
 ## Stage notes
 

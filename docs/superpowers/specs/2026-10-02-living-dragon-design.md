@@ -45,6 +45,17 @@ small wing lift, a tail swish, a breathing chest.
   `web/src/lib/living/stillTint.ts`), so the canvas and the still picture match. `LivingDragon` takes
   the tint's name (`tint: Tint`) and shows it in `data-tint`; a still picture's `img` carries
   `data-src` and `data-tint` too. The CSS filters (`TINT_FILTERS`) and their colour matrices are gone.
+  **Amended 2026-10-03: baked tints** (the user: "for production, we'll use the baked tints"; "Keep
+  the lab, and keep its sliders"). Every stage under every tint is baked offline into its own picture,
+  `web/public/art/dragon/dragon_<stage>_<tint>.webp`, by `tools/art/run_docker.sh bake`
+  (`tools/art/bake_tints.py`, the numpy port of the CPU reference in `tools/art/tints.py`), from the
+  settings now in `web/src/lib/world/tintSpecs.json` (`TINT_SPECS` reads it). The game shows those
+  files (`art.ts` `dragonArt`): the still pictures with a plain `src` (`use:tintedDragon` and
+  `stillTint.ts` are gone; `data-src` is the picture shown, `data-tint` its tint), and the living
+  dragon as its texture, untinted by the shader (a newly picked tint's picture is swapped into the
+  texture in place). The shader's tint stays for the lab's « Teintes » sliders, a preview only.
+  `web/src/lib/world/bakedTints.test.ts` fails, naming the command, when a tint or a sprite changes
+  without a re-bake, and holds sampled pixels of each file to the CPU reference.
 - **Component:** `LivingDragon` replaces the base `<img>` inside `DragonFigure` for the nest and
   camp layers, keeps the box, sizing and `.dragon-figure` wrapper (mood animations still apply);
   `role="img"` and the alt as `aria-label`; the worn pieces listed in a data attribute for tests.
@@ -57,7 +68,8 @@ small wing lift, a tail swish, a breathing chest.
 
 ## Tests
 
-- Unit: the presets are exact; the still tint equals the CPU reference; no preset turns the
+- Unit: the presets are exact; the still tint equals the CPU reference (amended 2026-10-03: the
+  baked pictures do, bakedTints.test.ts); no preset turns the
   dragon's colours into Éris's violet (OKLCH hue band, a chroma under 0.04 read as grey; the known
   exceptions were accepted by the user on 2026-10-02); each rig bakes; pinned feet get zero weight; a
   piece's weights are rigid.

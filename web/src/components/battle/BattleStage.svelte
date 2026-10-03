@@ -23,7 +23,7 @@
   import { overlayState } from '../../lib/scene/overlayState.svelte';
   import { go, heroPanelHref } from '../../lib/scene/panelNav';
   import { reducedMotion, watchReducedMotion } from '../../lib/juice/motion';
-  import { ART } from '../../lib/world/art';
+  import { ART, dragonArt } from '../../lib/world/art';
   import { accessoryLayers } from '../../lib/world/accessories';
   import { FOE_ASPECT, foeRigFor, livingFoe, livingStage } from '../../lib/living/stages';
   import type { CampResponse, DragonOut } from '../../lib/world/types';
@@ -133,7 +133,7 @@
           <!-- The dragon waits for the camp: an egg standing in for a grown dragon would flash. -->
           {#if dragon}
             <Combatant
-              src={ART.dragon[dragonStage]}
+              src={dragonArt(dragonStage, dragon.tint)}
               alt={dragon.name ?? STAGE.dragonAlt}
               side="left"
               mirror={FACES.dragon[dragonStage] !== 'right'}
