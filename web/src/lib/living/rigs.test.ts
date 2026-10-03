@@ -129,4 +129,22 @@ describe('the rigs', () => {
   it('refuses a rig file of the wrong size', () => {
     expect(() => decodeRig({ ...fileOf('adult'), weights: 'AAAA' })).toThrow();
   });
+
+  it('refuses a rig whose pivots miss a bone of its creature', () => {
+    const f = fileOf('adult');
+    const { head: _gone, ...pivots } = f.pivots;
+    expect(() => decodeRig({ ...f, pivots: pivots as typeof f.pivots })).toThrow(/head/);
+  });
+
+  it('refuses a rig that is neither a dragon stage nor a foe, or wider than the frame', () => {
+    expect(() => decodeRig({ ...fileOf('adult'), stage: 'griffon' })).toThrow(/griffon/);
+    expect(() => decodeRig({ ...fileOf('adult'), width: 1100 })).toThrow(/1100/);
+  });
+
+  it("decodes a dragon rig with the dragon's bones and the whole frame's width", () => {
+    const rig = rigOf('adult');
+    expect(rig.id).toBe('adult');
+    expect(rig.bones).toEqual(['head', 'wingL', 'wingR', 'tail', 'chest', 'lift']);
+    expect(rig.width).toBe(1024);
+  });
 });
