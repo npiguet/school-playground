@@ -77,8 +77,9 @@ STACK=<s> scripts/npm.sh exec -- vite build --config vite.lab.config.ts
 python -m http.server 8744 --directory web/dist-lab     # then open http://localhost:8744/lab.html
 ```
 
-Every stage with a rig, living side by side: amplitude (1.5x by default), tint, worn pieces, the
-weights view, pause and a time slider.
+Every stage with a rig, living side by side, then every foe (« Les adversaires », below): amplitude
+(1.5x by default, the game's), tint, worn pieces, the weights view (« Poids »), pause and a time
+slider.
 
 ## Stage notes
 
