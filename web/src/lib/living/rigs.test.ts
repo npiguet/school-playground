@@ -217,6 +217,30 @@ describe('the rigs', () => {
     expect(Math.max(...w)).toBeLessThanOrEqual(0.02);
   });
 
+  // The whole trident, vertex by vertex (measured on the sprite's alpha): the prongs (x 263-416, y 15-200),
+  // the top of the shaft, the hand and the arm holding it (x 304-395, y 320-400) inside x 256-416,
+  // y 0-416; the shaft below it, through the waves, inside x 336-368 down to y 944 (its edges run
+  // x 336-367 there). Every bone's weight is exactly zero at every vertex of both boxes, and every vertex
+  // that carries any weight stays at least 30 px from the shaft (the waves' crest at its left, the beard).
+  it("protee: no vertex of the trident's boxes carries any weight, and every weighted vertex keeps 30 px off the shaft", () => {
+    const r = rigOf('protee');
+    const at = (i: number, j: number) => Array.from(r.weights.slice((j * VERTS + i) * SLOTS, (j * VERTS + i) * SLOTS + SLOTS));
+    const boxes = [[256, 0, 416, 416], [336, 416, 368, 944]];
+    for (const [x0, y0, x1, y1] of boxes) {
+      for (let j = y0 / CELL; j <= y1 / CELL; j++) {
+        for (let i = x0 / CELL; i <= x1 / CELL; i++) expect(at(i, j), `vertex (${i * CELL}, ${j * CELL})`).toEqual([0, 0, 0, 0, 0, 0]);
+      }
+    }
+    for (let j = 0; j < VERTS; j++) {
+      for (let i = 0; i < VERTS; i++) {
+        if (Math.max(...at(i, j)) === 0) continue;
+        const [x, y] = [i * CELL, j * CELL];
+        const gap = Math.hypot(Math.max(336 - x, 0, x - 368), Math.max(200 - y, 0, y - 944));
+        expect(gap, `vertex (${x}, ${y})`).toBeGreaterThanOrEqual(30);
+      }
+    }
+  });
+
   it('rigs every foe', () => {
     expect([...FOES].sort()).toEqual([...FOE_RIGS].sort());
   });

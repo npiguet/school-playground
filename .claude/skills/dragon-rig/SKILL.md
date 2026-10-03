@@ -164,11 +164,14 @@ Foe notes:
   (a test probes them); `lift` has no region, so the breath is the chest's alone. The tentacle turns
   about the elbow (668, 425) by 1.2 + 0.4 deg (at 2.8 + 0.9 its curl folded into the net at 3x); its
   polygon's edge stays at x 664-668 beside the curl so the curl's own rim takes the stretch, not the
-  net. `waveL` stays 30 px left of the shaft.
+  net. The left crest lies only 16 to 24 px left of the shaft (x 291-329 against 345 at y 880), so `waveL`
+  holds only its left part (polygon to x 300, blur 4, full from y 880 down): every vertex carrying weight
+  stays at least 30 px off the shaft, and a test checks every vertex of the trident's two boxes is zero.
 - sirenes: the wings hang beside the still rock and lie against the sisters' bodies along long seams, so
   they turn about a degree (wingL 1.0, wingInner 0.8, wingC 0.9); at 1.6 to 1.8 deg their tips (500 px
   below the shoulders) swung 50 px at 3x and folded into the bodies and the rock. The middle and right
   wings touch along one seam: the right one sways with the middle one plus a beat of its own (as the
   Chimère's goat). Polygon edges stay 20 to 30 px off the rock's edges and off the left sister's body;
-  the pin runs to x 668, the rock's right corner. The right sister's leg lies inside her wing and sways
-  with it (it stands beside the rock).
+  the pin runs to x 668, the rock's right corner. The right sister's orange leg (about x 685-705,
+  y 560-620, beside the rock) lies on the seam between the middle and right wings and takes about half
+  of each (wingR 0.5-0.6, wingC 0.06-0.3), so it follows them a little; no test pins it.
