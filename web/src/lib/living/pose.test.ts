@@ -62,9 +62,28 @@ describe('the 30 fps gate', () => {
 });
 
 describe('the motion tables', () => {
-  it("plays the dragon's table exactly as poseAt", () => {
-    for (const t of [0, 1.3, 7.7, 41.9]) expect(poseFor(DRAGON_MOTION, t, PIVOTS)).toEqual(poseAt(t, PIVOTS));
+  it("plays the dragon's table in the dragon's bone order", () => {
     expect(bonesOf(DRAGON_MOTION)).toEqual(['head', 'wingL', 'wingR', 'tail', 'chest', 'lift']);
+  });
+
+  // The dragon's idle as it shipped before motion became data (poseAt's closed form at d123050): the
+  // head 1.5 deg on 6.2 s (phase 0.7) + 0.5 deg on 2.9 s; wingL 1.8 deg on 4.8 s (phase -0.9); wingR
+  // -1.6 deg on 4.8 s (phase -1.15); the tail 2.4 deg on 3.7 s (phase 1.3) + 0.6 deg on 1.9 s; the breath
+  // on 4.8 s, chest x 0.016 and y 0.008, lift 2.4 px. Each row: t, then at 1.5x the four turns (rad), the
+  // chest's scales and the lift (px), from that formula.
+  const OLD_POSE: [number, number, number, number, number, number, number, number][] = [
+    [1.3, 0.03959721732, 0.03386024369, -0.02195480561, -0.03687216332, 1.023794677, 1.011897338, -3.569201501],
+    [7.7, 0.02044365012, 0.01145312437, -0.01991656321, 0.06615142249, 0.9853897257, 0.9926948629, 2.191541144],
+  ];
+  it.each(OLD_POSE)('plays the dragon at %s s exactly as the old closed-form poseAt', (t, head, wingL, wingR, tail, sx, sy, lift) => {
+    const near = (got: number, want: number, what: string) => expect(Math.abs(got - want), `${what} at ${t} s: ${got}, not ${want}`).toBeLessThanOrEqual(1e-6);
+    for (const p of [poseFor(DRAGON_MOTION, t, PIVOTS), poseAt(t, PIVOTS)]) {
+      [head, wingL, wingR, tail].forEach((want, b) => near(Math.atan2(p[b * 9 + 1], p[b * 9]), want, DRAGON_MOTION.rigid[b]));
+      near(p[4 * 9], sx, 'chest x');
+      near(p[4 * 9 + 4], sy, 'chest y');
+      near(p[5 * 9 + 6], 0, 'lift x');
+      near(p[5 * 9 + 7], lift, 'lift');
+    }
   });
 });
 
