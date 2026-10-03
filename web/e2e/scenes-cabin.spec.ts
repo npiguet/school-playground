@@ -1,5 +1,5 @@
 import { test, expect } from './crashGuard';
-import type { Page } from '@playwright/test';
+import type { Page, TestInfo } from '@playwright/test';
 import {
   closeOverlay,
   createProfileApi,
@@ -450,5 +450,109 @@ test('a fifth piece goes on display; a refusal from the server is said word for 
   await expect(shelf.getByRole('alert')).toHaveText("Ta maison n'est pas un objet à exposer.");
   await expect(amphore).toHaveText('Exposer');
   expect(patches, 'both asked the server').toHaveLength(2);
+  expect(await redScan(page)).toEqual([]);
+});
+
+/** The room at rest: the first visit's tour or the greeting skipped (no tour zoom), the art filling
+ *  the 1280-wide frame. Never with ?debug, which neither tours nor greets (PlaceScene). */
+async function restedRoom(page: Page, testInfo: TestInfo) {
+  await expect(page.getByTestId('dialogue-box')).toBeVisible();
+  await tap(page.getByTestId('dialogue-skip'), testInfo);
+  await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
+  await expect.poll(() => page.locator('[data-testid="scene-cabin"] .art-bg').evaluate((e) => Math.round(e.getBoundingClientRect().width))).toBe(1280);
+}
+
+// Spec 2026-10-02 house treasures: real seals from posted sessions (the test clock): three days win
+// the Hydra's wooden seal, four more days after it the bronze one.
+test("a seal won puts its trophy at the lieutenant's place, full size; the next seal replaces it there", async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const text = await createText(request, { title: uniqueName(`Trophée ${testInfo.project.name}`), body: 'Les fées dansent dans la clairière.', level: '10H' });
+  const days = ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-08', '2026-08-09'];
+  const play = async (list: string[]) => {
+    for (const day of list) await postSession(request, { profileId: id, textId: text.id, day, result: makeResult({ draft: 4, caught: 4, category: 'agreement:verb' }) });
+  };
+  await play(days.slice(0, 3));
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(`/#/p/${id}/cabane`);
+  await expectScene(page, 'cabin');
+  await restedRoom(page, testInfo);
+  const hydre = page.getByTestId('cabin-piece-hydre');
+  await expect(hydre).toHaveAttribute('data-level', '1');
+  await expect(hydre.locator('img')).toHaveAttribute('src', '/art/trophies/large/trophy-hydre-1.webp');
+  // Full size: the large trophy (512 px), never the shelf's small one.
+  await expect.poll(() => hydre.locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(512);
+  await expect(page.locator('[data-testid^="cabin-piece-"]')).toHaveCount(1);
+  expect(await hydre.evaluate((e) => getComputedStyle(e).pointerEvents)).toBe('none');
+  const foot = async () => {
+    const b = await hydre.boundingBox();
+    return b && [Math.round(b.x), Math.round(b.y + b.height), Math.round(b.width)];
+  };
+  const before = await foot();
+  expect(before, 'the wooden trophy is laid out').not.toBeNull();
+  await play(days.slice(3));
+  await page.reload();
+  await expectScene(page, 'cabin');
+  await restedRoom(page, testInfo);
+  await expect(hydre).toHaveAttribute('data-level', '2');
+  await expect(hydre.locator('img')).toHaveAttribute('src', '/art/trophies/large/trophy-hydre-2.webp');
+  await expect(page.locator('[data-testid^="cabin-piece-"]')).toHaveCount(1);
+  // The bronze trophy stands where the wooden one stood: same left edge, same foot, same width.
+  await expect.poll(foot).toEqual(before);
+});
+
+// Spec 2026-10-02 house treasures: gear stands in the room only when exposed (ruling R8), decor leaves
+// it when put away, and the piece the shelf did not touch stays.
+test('« Exposer » puts a piece at its place in the room, « Ranger » takes it away', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  const kinds: Record<string, string> = { egide: 'gear', 'decor:tapis': 'decor', 'decor:chouette': 'decor' };
+  const state = new Map<string, boolean>([['egide', false], ['decor:tapis', true], ['decor:chouette', true]]);
+  const row = (rid: string) => ({ id: rid, kind: kinds[rid], name: rid, desc: '', source: '', granted_at: '2026-09-21T12:00:00+00:00', equipped: state.get(rid) });
+  await page.route(`**/api/profiles/${id}/rewards**`, (route) => {
+    const req = route.request();
+    if (req.method() === 'PATCH') {
+      const rid = decodeURIComponent(req.url().split('/rewards/')[1]);
+      state.set(rid, (req.postDataJSON() as { equipped: boolean }).equipped);
+      return route.fulfill({ json: row(rid) });
+    }
+    return route.fulfill({ json: [...state.keys()].map(row) });
+  });
+  await openCabin(page, id);
+  await tap(page.getByTestId('dialogue-skip'), testInfo);
+  await expect(page.getByTestId('dialogue-box')).toHaveCount(0);
+  await expect(page.getByTestId('cabin-piece-decor:tapis')).toBeVisible();
+  await expect(page.getByTestId('cabin-piece-decor:chouette')).toBeVisible();
+  await expect(page.getByTestId('cabin-piece-egide')).toHaveCount(0);
+  await tap(page.getByTestId('cabin-trophies'), testInfo);
+  const shelf = page.getByTestId('overlay-trophies');
+  await expect(shelf.getByTestId('cabin-equip-egide')).toHaveText('Exposer');
+  await tap(shelf.getByTestId('cabin-equip-egide'), testInfo);
+  await expect(shelf.getByTestId('cabin-equip-egide')).toHaveText('Ranger');
+  await expect(shelf.getByTestId('cabin-equip-decor:tapis')).toHaveText('Ranger');
+  await tap(shelf.getByTestId('cabin-equip-decor:tapis'), testInfo);
+  await expect(shelf.getByTestId('cabin-equip-decor:tapis')).toHaveText('Exposer');
+  await closeOverlay(page);
+  await expect(page.getByTestId('cabin-piece-egide')).toBeVisible();
+  await expect(page.getByTestId('cabin-piece-egide').locator('img')).toHaveAttribute('src', '/art/treasures/egide.webp');
+  await expect(page.getByTestId('cabin-piece-decor:tapis')).toHaveCount(0);
+  await expect(page.getByTestId('cabin-piece-decor:chouette')).toBeVisible();
+  await expect(page.locator('[data-testid^="cabin-piece-"]')).toHaveCount(2);
+});
+
+// Review Focus 2: the rewards out of reach leave the fixtures empty and the shelf says why. Ruling H5:
+// api.ts's handleResponse throws ApiError(status, body.detail) when the detail is a string, and
+// CabinRoom hands that detail to the shelf as its loadError: the shelf says the server's own words,
+// and not the empty house's line.
+test('the rewards failing leave the room empty, the shelf says why', async ({ page, request }, testInfo) => {
+  const id = await createProfileApi(request, heroName(testInfo.project.name));
+  await page.route(`**/api/profiles/${id}/rewards`, (route) => route.fulfill({ status: 500, json: { detail: 'Les trésors sont introuvables.' } }));
+  await page.goto(`/#/p/${id}/cabane?debug`);
+  await expectScene(page, 'cabin');
+  // The painted fixtures stay (every place's debug line, owned or not), with no piece on them.
+  await expect(page.locator('[data-testid^="cabin-place-"]')).toHaveCount(18);
+  await expect(page.locator('[data-testid^="cabin-piece-"]')).toHaveCount(0);
+  await page.goto(`/#/p/${id}/cabane?panel=tresors`);
+  const shelf = page.getByTestId('overlay-trophies');
+  await expect(shelf.locator('.panel-trophies > .kit-note')).toHaveText(['Les trésors sont introuvables.']);
+  await expect(page.locator('[data-testid^="cabin-piece-"]')).toHaveCount(0);
   expect(await redScan(page)).toEqual([]);
 });
