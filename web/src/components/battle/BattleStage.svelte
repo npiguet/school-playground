@@ -211,7 +211,7 @@
        at 1024x640: 15.5 %). Neither is ever smaller than before (Ruling B14 over the 3 %): where the
        column is narrow for the screen's height (1180x820, 1024x768) the opponent keeps its old size,
        clamp(180px, 50vh, 440px), and tucks what that size implies, as it did. The height caps keep the opponent under the hold bar and both under the
-       HUD. */
+       HUD. The dragon's floor may push its box off the left edge instead (Ruling B15, below). */
     --feet: calc(4vh + env(safe-area-inset-bottom));
     --dragon-feet: var(--feet);
     --hold-room: 96px;
@@ -245,8 +245,12 @@
   .battle-scene :global(.combatant.left) {
     --h: var(--dragon-h);
     --feet: var(--dragon-feet);
-    /* Against the screen's edge once it is wider than its column (its wing's transparent margin). */
-    --left-x: max(env(safe-area-inset-left), calc((var(--side) - var(--h)) / 2));
+    /* Against the screen's edge once it is wider than its column (its wing's transparent margin).
+       Ruling B15, its face first: where the never-smaller floor makes it too wide for its column
+       (1180x820, 1024x768) it slides off the left edge (its far wing and tail) until it tucks 16 % at
+       most under the parchment, its snout (81 % of its box) clear. 16 %, not 15 %: at 1024x640 the
+       floor tucks 15.5 % and the dragon stays on screen there. */
+    --left-x: min(max(env(safe-area-inset-left), calc((var(--side) - var(--h)) / 2)), calc(var(--side) - 0.84 * var(--h)));
   }
   .battle-scene :global(.combatant.right) {
     --h: var(--foe-h);

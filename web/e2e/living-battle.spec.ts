@@ -339,19 +339,21 @@ test('ten battles in a row never run out of WebGL contexts', async ({ page, requ
 // than the ruling's 20 % / 15 % (measured on the pictures, BattleStage.svelte): the dragon faces the
 // parchment with its snout (81 % of its box), the opponent with what it holds (5 %): 15 % and 3 %,
 // but for the old size's floor below.
-// `foeTuck`, `dragonTuck`: Ruling B14, "never smaller than before" wins over the 3 % and the 15 %.
-// Where the column is narrow for the screen's height each fighter keeps its old size (the opponent
-// clamp(180px, 50vh, 440px), the dragon clamp(140px, 36vh, 320px)) and tucks what that size implies:
-// at 1180x820 (the ipad project's size), a 224 px column, the opponent 410 px 7.7 %, the dragon 295 px
-// 24 %; at 1024x768, a 195 px column, the opponent 384 px 15 %, the dragon 276 px 29.6 % (it tucked as
-// much before this spec). 1920x1080: the widest column, where the ratio 1.15 is the closest.
+// `foeTuck`, `dragonTuck`, `dragonOff`: Ruling B14, "never smaller than before" wins over the 3 %
+// and the 15 %. Where the column is narrow for the screen's height each fighter keeps its old size (the
+// opponent clamp(180px, 50vh, 440px), the dragon clamp(140px, 36vh, 320px)). The opponent tucks what
+// that size implies: at 1180x820 (the ipad project's size), a 224 px column, 410 px, 7.7 %; at
+// 1024x768, a 195 px column, 384 px, 15 % (as before this spec). Ruling B15, the dragon's face first:
+// it tucks 16 % at most and slides off the left screen edge instead (its far wing and tail, at most
+// 20 % of its box): 295 px, 8.1 % off at 1180x820; 276 px, 13.6 % off at 1024x768. Elsewhere it stays
+// on screen. 1920x1080: the widest column, where the ratio 1.15 is the closest.
 const VIEWPORTS = [
-  { width: 1280, height: 720, foeTuck: 0.03, dragonTuck: 0.15 },
-  { width: 1366, height: 1024, foeTuck: 0.03, dragonTuck: 0.15 },
-  { width: 1024, height: 640, foeTuck: 0.03, dragonTuck: 0.15 },
-  { width: 1180, height: 820, foeTuck: 0.08, dragonTuck: 0.25 },
-  { width: 1024, height: 768, foeTuck: 0.15, dragonTuck: 0.3 },
-  { width: 1920, height: 1080, foeTuck: 0.03, dragonTuck: 0.15 },
+  { width: 1280, height: 720, foeTuck: 0.03, dragonTuck: 0.15, dragonOff: 0 },
+  { width: 1366, height: 1024, foeTuck: 0.03, dragonTuck: 0.15, dragonOff: 0 },
+  { width: 1024, height: 640, foeTuck: 0.03, dragonTuck: 0.15, dragonOff: 0 },
+  { width: 1180, height: 820, foeTuck: 0.08, dragonTuck: 0.16, dragonOff: 0.09 },
+  { width: 1024, height: 768, foeTuck: 0.15, dragonTuck: 0.16, dragonOff: 0.14 },
+  { width: 1920, height: 1080, foeTuck: 0.03, dragonTuck: 0.15, dragonOff: 0 },
 ];
 
 interface Box {
@@ -392,12 +394,12 @@ const down = (a: Box, b: Box) => Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Ma
 const meets = (a: Box, b: Box) => across(a, b) > 1 && down(a, b) > 1;
 const clamp = (lo: number, v: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-async function expectClear(page: Page, where: string, foeTuck: number, dragonTuck: number) {
+async function expectClear(page: Page, where: string, foeTuck: number, dragonTuck: number, dragonOff: number) {
   const s = await stageBoxes(page);
   const d = s.dragon!;
   const o = s.opponent!;
-  for (const [name, f, tuck] of [['dragon', d, dragonTuck], ['opponent', o, foeTuck]] as const) {
-    expect(f.x, `${where}: the ${name} stays on screen`).toBeGreaterThanOrEqual(-1);
+  for (const [name, f, tuck, off] of [['dragon', d, dragonTuck, dragonOff], ['opponent', o, foeTuck, 0]] as const) {
+    expect(f.x, `${where}: the ${name} passes the left edge by at most ${off * 100} % of its box`).toBeGreaterThanOrEqual(-off * f.w - 1);
     expect(f.x + f.w, `${where}: the ${name} stays on screen`).toBeLessThanOrEqual(s.vw + 1);
     expect(f.y, `${where}: the ${name} stays on screen`).toBeGreaterThanOrEqual(-1);
     expect(f.y + f.h, `${where}: the ${name} stays on screen`).toBeLessThanOrEqual(s.vh + 1);
@@ -420,8 +422,8 @@ test('the bigger fighters keep the battle UI clear at six viewports, the three t
     const at = `${vp.width}x${vp.height}`;
     const measure = async (phase: string) => {
       await reactionsDone(page);
-      const s = await expectClear(page, `${at} ${phase}`, vp.foeTuck, vp.dragonTuck);
-      sizes.push(`${at} ${phase}: dragon ${Math.round(s.dragon!.h)}, opponent ${Math.round(s.opponent!.h)}`);
+      const s = await expectClear(page, `${at} ${phase}`, vp.foeTuck, vp.dragonTuck, vp.dragonOff);
+      sizes.push(`${at} ${phase}: dragon ${Math.round(s.dragon!.h)} at x ${Math.round(s.dragon!.x)}, opponent ${Math.round(s.opponent!.h)}`);
       await page.screenshot({ path: testInfo.outputPath(`sizes-${at}-${phase}.png`) });
     };
     // The muster: the HUD and the exit sign are on the stage.
