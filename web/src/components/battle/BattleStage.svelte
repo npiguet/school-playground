@@ -200,6 +200,21 @@
     --parchment-w: min(62vw, 48rem);
     --side: calc((100vw - var(--parchment-w)) / 2);
     --top: calc(12px + env(safe-area-inset-top));
+    /* Spec 2026-10-03 living battle, plan Ruling B9: each fighter fills its side column and may tuck
+       under the parchment's edge (drawn above it) by a bounded share of its box, measured on the
+       pictures (living-battle.spec.ts, at 1280x720, 1366x1024 and 1024x640). The opponent faces the
+       parchment with what it holds (Éris's apple, the Hydre's and the Chimère's snake heads, Protée's
+       trident, the Sirènes' lyre reach to 5 % of its box on that side): it tucks its transparent margin
+       only, 3 % of a box 585 / 1024 as wide as high, 1.8 = 1 / (0.5713 x 0.97). The dragon faces it
+       with its snout (the ancestral's beard reaches 81 % of its box): it tucks 15 % at most, 1.176 =
+       1 / 0.85, and never less than its size before this spec (clamp(140px, 36vh, 320px), which binds
+       at 1024x640: 15.5 %). The height caps keep the opponent under the hold bar and both under the
+       HUD. */
+    --feet: calc(4vh + env(safe-area-inset-bottom));
+    --dragon-feet: var(--feet);
+    --hold-room: 96px;
+    --foe-h: min(calc((var(--side) - 8px) * 1.8), calc(100vh - var(--feet) - var(--top) - var(--hold-room)));
+    --dragon-h: min(max(clamp(140px, 36vh, 320px), calc(var(--side) * 1.176)), calc(100vh - var(--dragon-feet) - var(--top) - 16px));
   }
   .battle-stage.has-hud {
     --top: calc(var(--hud-band) + 8px);
@@ -226,23 +241,23 @@
     filter: brightness(0.6) saturate(0.8);
   }
   .battle-scene :global(.combatant.left) {
-    --h: clamp(140px, 36vh, 320px);
-    --left-x: max(8px, calc(var(--side) / 2 - 0.35 * var(--h)));
-    --feet: calc(4vh + env(safe-area-inset-bottom));
+    --h: var(--dragon-h);
+    --feet: var(--dragon-feet);
+    /* Against the screen's edge once it is wider than its column (its wing's transparent margin). */
+    --left-x: max(env(safe-area-inset-left), calc((var(--side) - var(--h)) / 2));
   }
   .battle-scene :global(.combatant.right) {
-    --h: clamp(180px, 50vh, 440px);
-    --right-x: max(8px, calc(var(--side) / 2 - 0.3 * var(--h)));
-    --feet: calc(4vh + env(safe-area-inset-bottom));
+    --h: var(--foe-h);
+    --right-x: max(8px, calc((var(--side) - var(--h) * 0.5713) / 2));
   }
   /* The exit sign sits in the bottom-left corner: the dragon stands above it, not behind it. */
-  .battle-stage.has-exit .battle-scene :global(.combatant.left) {
-    --feet: calc(84px + env(safe-area-inset-bottom));
+  .battle-stage.has-exit {
+    --dragon-feet: calc(84px + env(safe-area-inset-bottom));
   }
   .hit-burst {
     position: absolute;
     right: calc(var(--side) / 2 - 60px);
-    bottom: 30vh;
+    bottom: calc(var(--feet) + var(--foe-h) / 2 - 60px);
     width: 120px;
     height: 120px;
     pointer-events: none;
