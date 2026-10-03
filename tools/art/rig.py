@@ -203,11 +203,16 @@ def debug_image(key, rig):
         px, py = rig['bones'][k]['pivot']
         d.ellipse([px - 9, py - 9, px + 9, py + 9], fill=(255, 255, 255), outline=(0, 0, 0), width=3)
         d.text((px + 12, py - 10), k, fill=(0, 0, 0), font=font)
-    d.text((12, 10), key, fill=(0, 0, 0), font=ImageFont.load_default(size=32))
+    draw_legend(d, key, bones, 12)
+    return out
+
+
+def draw_legend(d, key, bones, x):
+    """The rig's name and its four rigid bones in their slot colours, from the left edge at x."""
+    d.text((x, 10), key, fill=(0, 0, 0), font=ImageFont.load_default(size=32))
     legend = ImageFont.load_default(size=20)
     for i, (k, c) in enumerate(zip(bones[:4], SLOT_COLOURS)):
-        d.text((12, 50 + 24 * i), k, fill=c, font=legend)
-    return out
+        d.text((x, 50 + 24 * i), k, fill=c, font=legend)
 
 
 def grid_image(key, rig):
@@ -255,7 +260,8 @@ def main():
             sheet.paste(debug_image(s, all_rigs[s]).resize((tile, tile), Image.LANCZOS), ((n % 3) * tile, (n // 3) * tile))
         sheet.save(SHEET, optimize=True)
     else:
-        # The foes' portraits, each cropped to its column of the frame (20 px either side), four a row.
+        # The foes' portraits, each cropped to its column of the frame (20 px either side), four a row;
+        # the name and the legend, drawn at the frame's left edge, are drawn again inside the crop.
         th = 512
         order = [k for k in all_rigs if not is_dragon(k)]
         tiles = []
@@ -264,6 +270,8 @@ def main():
             w = load_sprite(k, all_rigs[k])[1]
             x0 = max(0, (N - w) // 2 - 20)
             crop = img.crop((x0, 0, min(N, x0 + w + 40), N))
+            if x0 > 0:
+                draw_legend(ImageDraw.Draw(crop), k, bones_of(k, all_rigs[k]), 8)
             tiles.append(crop.resize((round(crop.width * th / N), th), Image.LANCZOS))
         tw = max((t.width for t in tiles), default=1)
         rows = max(1, math.ceil(len(tiles) / 4))

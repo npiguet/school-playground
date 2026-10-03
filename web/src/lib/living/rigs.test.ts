@@ -160,6 +160,15 @@ describe('the rigs', () => {
     ['chimere', 'goat', 'eye', 577, 205],
     ['chimere', 'snake', 'head', 729, 383],
     ['chimere', 'mane', 'long lock', 310, 460],
+    ['echo', 'ghostL', 'face', 375, 125],
+    ['echo', 'ghostR', 'face', 628, 125],
+    ['lethe', 'ribbonL', 'band', 320, 650],
+    ['lethe', 'ribbonR', 'band', 705, 700],
+    ['protee', 'tentacle', 'curl', 690, 650],
+    ['protee', 'beard', 'tip', 510, 480],
+    ['sirenes', 'wingL', 'tip', 263, 800],
+    ['sirenes', 'wingC', 'tip', 690, 860],
+    ['sirenes', 'wingR', 'tip', 770, 680],
   ];
   it.each(FOE_PROBES)('%s: the %s carries its %s (%i, %i)', (rig, bone, _what, x, y) => {
     const r = rigOf(rig);
@@ -167,14 +176,22 @@ describe('the rigs', () => {
   });
 
   // The Hydra's six heads in three pairs (the user: "make a couple of heads move together as a pair"):
-  // each head's eye carries its pair's bone, and no other pair's.
+  // each head's eye and snout carry its pair's bone, and no other pair's (a snout left short of its
+  // region lags behind its head). The two left snouts touch the top neck: probed at the nostril, the
+  // last few px of the tip share a 16 px mesh cell with that neck.
   const HYDRA_HEADS: [string, string, number, number][] = [
     ['pairHaut', 'top head', 539, 78],
+    ['pairHaut', "top head's snout", 600, 95],
     ['pairHaut', 'upper-left head', 396, 186],
+    ['pairHaut', "upper-left head's snout", 445, 215],
     ['pairDroite', 'upper-right head', 682, 176],
+    ['pairDroite', "upper-right head's snout", 730, 205],
     ['pairDroite', 'middle-right head', 657, 308],
+    ['pairDroite', "middle-right head's snout", 608, 330],
     ['pairBas', 'middle-left head', 412, 333],
+    ['pairBas', "middle-left head's snout", 460, 350],
     ['pairBas', 'lower-left head', 417, 510],
+    ['pairBas', "lower-left head's snout", 460, 532],
   ];
   it.each(HYDRA_HEADS)('hydre: the %s bone moves the %s (%i, %i), alone', (pair, _what, x, y) => {
     const r = rigOf('hydre');
@@ -183,6 +200,25 @@ describe('the rigs', () => {
       if (p === pair) expect(w[r.bones.indexOf(p)], p).toBeGreaterThanOrEqual(0.9);
       else expect(w[r.bones.indexOf(p)], p).toBeLessThanOrEqual(0.1);
     }
+  });
+
+  // Spec 2026-10-03: "the trident stays steady". Its three tips, its shaft, the hand holding it and the
+  // shaft through the waves, read off the grid view (rig grid --stage protee): no bone at all.
+  it.each([
+    [285, 90],
+    [329, 20],
+    [380, 60],
+    [340, 300],
+    [345, 355],
+    [346, 600],
+    [350, 850],
+  ])("protee: the trident (%i, %i) carries no bone's weight", (x, y) => {
+    const w = weightsAt(rigOf('protee').weights, x, y);
+    expect(Math.max(...w)).toBeLessThanOrEqual(0.02);
+  });
+
+  it('rigs every foe', () => {
+    expect([...FOES].sort()).toEqual([...FOE_RIGS].sort());
   });
 
   it('animates a stage only when its rig is baked, never the egg', () => {

@@ -1,6 +1,5 @@
 // The battle's foes (spec 2026-10-03 living battle; plan Rulings B3, B6): every opponent has a rig of its
-// own name, Éris routed has hers, a foe lives only once its rig is baked, and each sprite is the game's.
-import { existsSync } from 'node:fs';
+// own name, Éris routed has hers, every foe lives (its rig baked), and each sprite is the game's.
 import { describe, expect, it } from 'vitest';
 import { ART } from '../world/art';
 import { LIEUTENANT_ORDER } from '../world/types';
@@ -24,8 +23,8 @@ describe('the foes', () => {
     expect(isLivingRig('griffon')).toBe(false);
   });
 
-  it('lives only once its rig is baked', () => {
-    for (const r of FOE_RIGS) expect(livingFoe(r), r).toBe(existsSync(`src/lib/living/rig/foe_${r}.json`) ? r : null);
+  it('lives, every one of them', () => {
+    for (const r of FOE_RIGS) expect(livingFoe(r), r).toBe(r);
   });
 
   it("draws each foe from the game's own picture, a 585 x 1024 portrait", () => {

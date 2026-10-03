@@ -140,10 +140,35 @@ Foe notes:
   at blur 8 the top neck and the upper-right neck folded over each other at 3x. `pairBas` (the two
   left heads and the curl between them) fades by distance from (360, 640). The tail turns about where
   it leaves the ground coil (600, 905); its polygon's top stays under the coil above (y 884 and lower),
-  else the coil's edge is dragged along.
+  else the coil's edge is dragged along. The two left snouts touch the top neck: `pairBas` runs to x 478-480
+  there with blur 6 (at blur 12 the snout tips stayed under 0.85 and lagged; run past x 480 and the top
+  neck's outline is dragged along), and a test probes each head's eye and snout. The pairs swing 1.1 to
+  1.2 deg (plus 0.3): at 1.6 to 2.0 deg the top neck tore from the upper-right one at 3x.
 - chimere: the goat's head sits against the lion's mane along a long seam, so the goat sways with the
   lion (the lion's waves plus a nod of its own, in `foes.ts`) and turns about (520, 400); with motions
   of their own the seam folded. The lion polygon stops left of the horn's tip (x 488 at the top). The
   snake's polygon runs down to x 615 so its whole left edge (beside the goat's beard and the rump) is
   inside; its swing is 2.0 + 0.6 deg (at 2.6 + 0.8 it folded into the beard at 3x). The pin covers the
   rock and the four paws (the hind paw's toes reach x 725).
+- echo: the ghosts drift (frame px, no turn), ramped along y (`[900, 420]`) so their feet stay. Their
+  polygons follow the main figure's outline about 20 to 25 px outside it (her hair, her raised hands,
+  her arms down to the elbows, her robe), blur 8, so the ghost takes the stretch and her dark outline
+  stays put; her side locks (`hairL`, `hairR`) are only the hair below her elbows. The chest ellipse is
+  75 x 70, blur 24 (60 x 60, blur 30 peaked at 0.87).
+- lethe: the ribbons turn about where they leave the sleeves, faded both by distance (`ramp_from_pivot`)
+  and toward the pool (`ramp`, zero at y 850), blur 16; the robe drifts 3 px at 1x, blur 18. With
+  1.8 + 0.6 deg ribbons and a 4 px robe, blur 10 and 14, the seams between the robe and the bands folded
+  at 3x; now 1.2 + 0.4 deg. `hair` is only the locks beside her face and on her shoulders (y 140-312),
+  never the sleeves below.
+- protee: the trident, its three tips, its shaft through the waves and the hand holding it carry nothing
+  (a test probes them); `lift` has no region, so the breath is the chest's alone. The tentacle turns
+  about the elbow (668, 425) by 1.2 + 0.4 deg (at 2.8 + 0.9 its curl folded into the net at 3x); its
+  polygon's edge stays at x 664-668 beside the curl so the curl's own rim takes the stretch, not the
+  net. `waveL` stays 30 px left of the shaft.
+- sirenes: the wings hang beside the still rock and lie against the sisters' bodies along long seams, so
+  they turn about a degree (wingL 1.0, wingInner 0.8, wingC 0.9); at 1.6 to 1.8 deg their tips (500 px
+  below the shoulders) swung 50 px at 3x and folded into the bodies and the rock. The middle and right
+  wings touch along one seam: the right one sways with the middle one plus a beat of its own (as the
+  Chimère's goat). Polygon edges stay 20 to 30 px off the rock's edges and off the left sister's body;
+  the pin runs to x 668, the rock's right corner. The right sister's leg lies inside her wing and sways
+  with it (it stands beside the rock).

@@ -36,9 +36,11 @@ export const FOE_MOTIONS: Record<FoeRig, CreatureMotion> = {
   hydre: {
     rigid: ['pairHaut', 'pairDroite', 'pairBas', 'tail'],
     moves: {
-      pairHaut: { kind: 'turn', waves: [w(2.0, 5.7), w(0.5, 2.6, 0.9)] },
-      pairDroite: { kind: 'turn', waves: [w(-1.8, 6.3, 1.4), w(0.5, 2.2)] },
-      pairBas: { kind: 'turn', waves: [w(1.6, 4.9, 2.6), w(0.4, 3.1, 0.3)] },
+      // The top neck lies against the upper-right one, and the middle-left snout against the top neck:
+      // at 2.0 / 1.8 / 1.6 deg those seams tore at 3x (the dragon-rig skill's foe notes).
+      pairHaut: { kind: 'turn', waves: [w(1.2, 5.7), w(0.3, 2.6, 0.9)] },
+      pairDroite: { kind: 'turn', waves: [w(-1.1, 6.3, 1.4), w(0.3, 2.2)] },
+      pairBas: { kind: 'turn', waves: [w(1.1, 4.9, 2.6), w(0.3, 3.1, 0.3)] },
       tail: { kind: 'turn', waves: [w(3.0, 3.9, 0.8), w(0.8, 1.7)] },
     },
     breath: { period: 5.0, sx: 0.012, sy: 0.006, lift: 1.8 },
@@ -72,9 +74,9 @@ export const FOE_MOTIONS: Record<FoeRig, CreatureMotion> = {
   lethe: {
     rigid: ['ribbonL', 'ribbonR', 'robe', 'hair'],
     moves: {
-      ribbonL: { kind: 'turn', waves: [w(1.8, 6.4), w(0.6, 2.9, 1.3)] },
-      ribbonR: { kind: 'turn', waves: [w(-1.8, 5.8, 1.6), w(0.6, 2.5)] },
-      robe: { kind: 'drift', x: [w(4, 7.1, 0.7)], y: [] },
+      ribbonL: { kind: 'turn', waves: [w(1.2, 6.4), w(0.4, 2.9, 1.3)] },
+      ribbonR: { kind: 'turn', waves: [w(-1.2, 5.8, 1.6), w(0.4, 2.5)] },
+      robe: { kind: 'drift', x: [w(3, 7.1, 0.7)], y: [] },
       hair: { kind: 'turn', waves: [w(1.0, 4.6, 2.2)] },
     },
     breath: { period: 5.4, sx: 0.01, sy: 0.006, lift: 1.6 },
@@ -83,7 +85,7 @@ export const FOE_MOTIONS: Record<FoeRig, CreatureMotion> = {
   protee: {
     rigid: ['tentacle', 'beard', 'waveL', 'waveR'],
     moves: {
-      tentacle: { kind: 'turn', waves: [w(2.8, 4.2, 0.3), w(0.9, 1.9)] },
+      tentacle: { kind: 'turn', waves: [w(1.2, 4.2, 0.3), w(0.4, 1.9)] },
       beard: { kind: 'turn', waves: [w(1.2, 5.6, 1.1)] },
       waveL: { kind: 'drift', x: [w(4, 3.4)], y: [w(2, 2.3, 1.0)] },
       waveR: { kind: 'drift', x: [w(-4, 3.8, 1.5)], y: [w(2, 2.7, 0.2)] },
@@ -95,10 +97,14 @@ export const FOE_MOTIONS: Record<FoeRig, CreatureMotion> = {
   sirenes: {
     rigid: ['wingL', 'wingInner', 'wingC', 'wingR'],
     moves: {
-      wingL: { kind: 'turn', waves: [w(1.8, 4.6)] },
-      wingInner: { kind: 'turn', waves: [w(-1.4, 5.2, 0.8)] },
-      wingC: { kind: 'turn', waves: [w(1.6, 4.9, 1.9)] },
-      wingR: { kind: 'turn', waves: [w(-1.8, 5.5, 2.7)] },
+      // The wings hang beside the still rock and lie against the sisters' bodies along long seams: a
+      // degree is enough (their tips sit 500 px below the shoulders). The middle and right wings touch
+      // along one seam, so the right one sways with the middle one plus a beat of its own (checked at
+      // 3x, the dragon-rig skill's foe notes).
+      wingL: { kind: 'turn', waves: [w(1.0, 4.6)] },
+      wingInner: { kind: 'turn', waves: [w(-0.8, 5.2, 0.8)] },
+      wingC: { kind: 'turn', waves: [w(0.9, 4.9, 1.9)] },
+      wingR: { kind: 'turn', waves: [w(0.9, 4.9, 1.9), w(-0.4, 5.5, 2.7)] },
     },
     breath: { period: 4.4, sx: 0.012, sy: 0.006, lift: 1.8 },
   },
