@@ -200,18 +200,20 @@
     --parchment-w: min(62vw, 48rem);
     --side: calc((100vw - var(--parchment-w)) / 2);
     --top: calc(12px + env(safe-area-inset-top));
-    /* Spec 2026-10-03 living battle, plan Ruling B9: each fighter fills its side column and may tuck
-       under the parchment's edge (drawn above it) by a bounded share of its box, measured on the
-       pictures (living-battle.spec.ts, at 1280x720, 1366x1024 and 1024x640). The opponent faces the
+    /* Spec 2026-10-03 living battle, plan Rulings B9 and B13-B15: each fighter fills its side column
+       and may tuck under the parchment's edge (drawn above it) by a bounded share of its box, measured
+       on the pictures (living-battle.spec.ts, six viewports). B13, the tucks: the opponent faces the
        parchment with what it holds (Éris's apple, the Hydre's and the Chimère's snake heads, Protée's
-       trident, the Sirènes' lyre reach to 5 % of its box on that side): it tucks its transparent margin
-       only, 3 % of a box 585 / 1024 as wide as high, 1.8 = 1 / (0.5713 x 0.97). The dragon faces it
-       with its snout (the ancestral's beard reaches 81 % of its box): it tucks 15 % at most, 1.176 =
-       1 / 0.85, and never less than its size before this spec (clamp(140px, 36vh, 320px), which binds
-       at 1024x640: 15.5 %). Neither is ever smaller than before (Ruling B14 over the 3 %): where the
-       column is narrow for the screen's height (1180x820, 1024x768) the opponent keeps its old size,
-       clamp(180px, 50vh, 440px), and tucks what that size implies, as it did. The height caps keep the opponent under the hold bar and both under the
-       HUD. The dragon's floor may push its box off the left edge instead (Ruling B15, below). */
+       trident, the Sirènes' lyre reach to 5 % of its box on that side), so it tucks its transparent
+       margin only, 3 % of a box 585 / 1024 as wide as high: 1.8 = 1 / (0.5713 x 0.97). The dragon
+       faces it with its snout (the ancestral's beard reaches 81 % of its box): it tucks 15 %, 1.176 =
+       1 / 0.85, and up to 16 % where its floor binds (15.5 % at 1024x640). B14: neither is ever
+       smaller than before this spec (the opponent clamp(180px, 50vh, 440px), the dragon
+       clamp(140px, 36vh, 320px)); the floor wins over the tuck, so where the column is narrow for the
+       screen's height the opponent tucks what its old size implies (7.7 % at 1180x820, 15 % at
+       1024x768). B15, the dragon's face first: there the dragon slides off the left screen edge
+       instead (its far wing and tail: 8.1 % and 13.6 % of its box), its eye and snout clear (--left-x,
+       below). The height caps keep the opponent under the hold bar and both under the HUD. */
     --feet: calc(4vh + env(safe-area-inset-bottom));
     --dragon-feet: var(--feet);
     --hold-room: 96px;
