@@ -61,6 +61,8 @@ def fmt(v) -> str:
 
 
 def spec_line(spec) -> str:
+    # The settings must be plain decimals (165, 0.52, -33): fmt and JavaScript's String() agree on
+    # those, but not on exponent forms (1e-7 vs 1e-07, 1e21), which no tint should ever need.
     shift, chroma, lightness = spec
     return f"oklch-v1 shift {fmt(shift)} chroma {fmt(chroma)} lightness {fmt(lightness)}\n"
 
@@ -112,8 +114,9 @@ def errors(base: np.ndarray, baked: np.ndarray, spec) -> tuple:
     return bool(np.array_equal(base[..., 3], baked[..., 3])), float(err.mean()), float(np.percentile(err, 99))
 
 
-def bake(quality: int) -> None:
+def bake(quality: int) -> int:
     files = {}
+    problems = []
     total = 0
     for stage in STAGES:
         src = DRAGON / f"dragon_{stage}_cut.webp"
@@ -132,6 +135,8 @@ def bake(quality: int) -> None:
             same_alpha, mean, p99 = errors(base, baked, spec)
             print(f"{out.name}: {len(baked_bytes) / 1024:.1f} KiB (source {len(data) / 1024:.1f}), "
                   f"alpha {'kept' if same_alpha else 'CHANGED'}, error mean {mean:.2f} p99 {p99:.0f}")
+            if not same_alpha or mean > MEAN_MAX or p99 > P99_MAX:
+                problems.append(f"{out.name}: off the reference (alpha kept {same_alpha}, mean {mean:.2f}, p99 {p99:.0f})")
             files[out.name] = {
                 "source": src.name,
                 "tint": name,
@@ -139,6 +144,13 @@ def bake(quality: int) -> None:
                 "sha256": hashlib.sha256(baked_bytes).hexdigest(),
                 "samples": samples(base, baked, out.name),
             }
+    if problems:
+        # The pictures are written, the manifest is not: the freshness test keeps failing until a
+        # bake within tolerance (a higher --quality, or a sprite that needs a look).
+        for p in problems:
+            print(p, file=sys.stderr)
+        print("manifest not written: the bake is off the reference", file=sys.stderr)
+        return 1
     manifest = {
         "about": "Baked dragon tints (tools/art/bake_tints.py): hash = sha256(spec line + source bytes).",
         "command": COMMAND,
@@ -147,6 +159,7 @@ def bake(quality: int) -> None:
     }
     MANIFEST.write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
     print(f"{len(files)} files, {total} bytes ({total / 1e6:.2f} MB); manifest {MANIFEST.relative_to(REPO)}")
+    return 0
 
 
 def check() -> int:
@@ -189,7 +202,7 @@ def main() -> None:
     a = ap.parse_args()
     if a.check:
         sys.exit(check())
-    bake(a.quality)
+    sys.exit(bake(a.quality))
 
 
 if __name__ == "__main__":

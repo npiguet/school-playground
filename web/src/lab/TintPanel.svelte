@@ -46,7 +46,7 @@
   <p class="baked" data-testid="tints-baked-note">
     Ces curseurs ne font qu'un aperçu, teint en direct&#8239;: le jeu montre des images cuites d'avance, une par stade et
     par teinte. Pour changer une teinte du jeu, reporter ses réglages dans <code>web/src/lib/world/tintSpecs.json</code>,
-    puis recuire les images&#8239;: <code>tools/art/run_docker.sh bake</code>
+    puis recuire les images&#8239;: <code>tools/art/run_docker.sh bake</code>.
   </p>
   <div class="controls">
     <label>Stade

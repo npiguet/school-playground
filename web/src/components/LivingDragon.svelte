@@ -140,8 +140,9 @@
   // A new picture for the same rig (a tint picked: the stage's baked picture in it) is swapped into the
   // texture in place, on the same canvas, the pose going on (amended 2026-10-03, baked tints).
   async function applySprite(url: string): Promise<void> {
-    if (!renderer || !rig || url === spriteSrc) return;
+    // The token moves first: a picture asked back (tint A, B, A while B loads) cancels B's late load.
     const token = ++spriteToken;
+    if (!renderer || !rig || url === spriteSrc) return;
     const img = await loadImage(url);
     if (token !== spriteToken || !renderer || !rig) return;
     renderer.setSprite(padToFrame(img, rig.width));

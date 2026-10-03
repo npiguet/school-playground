@@ -51,7 +51,8 @@ describe('art map', () => {
     // Each stage under each of the five tints, baked at the sources' WebP quality (bake_tints.py), so
     // each file stays near its sprite (0.95x to 1.07x) and under the sprites' own 150 KB cap. Measured
     // 2026-10-03: the 30 files total 3,449,604 bytes, the largest 142,284 (ancestral, argent); the cap
-    // leaves about 6 % for a re-bake of the same sprites.
+    // leaves about 6 % for a re-bake of the same sprites. A re-cut sprite that bakes larger raises these
+    // caps (measured again, here); they are never to be met by lowering the bake's WebP quality.
     const baked = DRAGON_STAGES.flatMap((s) => TINTS_BAKED.map((t) => 'public' + dragonArt(s, t)));
     expect(baked).toHaveLength(30);
     for (const p of baked) expect(statSync(p).size, p).toBeLessThan(150 * 1024);
