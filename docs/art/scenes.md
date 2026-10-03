@@ -11,8 +11,11 @@ under the 600 KB budget).
   Scenes are rendered `object-fit: cover`, so these are "art %" in the spec's terms.
 - The boxes were measured by eye on a 5 % grid overlay, so treat them as ±2 %. Tighten the final
   polygons by hand in `camp.shapes.ts` and check them with the read-only `?debug` hotspot overlay.
-- **Safe zone** (visible on a landscape iPad): x 12.5–87.5. The top ~8 % is kept for the HUD and the
-  bottom ~22 % (y > 78) for the dialogue box.
+- **Safe zone** (visible on a landscape iPad): x 12.5–87.5. The HUD's bottom edge is y 10 (71.5 px of a
+  720 px art box; 11.2 % of the shortest, 640 px, one), and the bottom ~22 % (y > 78) is kept for the
+  dialogue box.
+- The three rooms (cabin, villa, palais) were measured on a 1 % grid (`tools/art/grid.py`), so their
+  boxes are ±0.5 %.
 - ⚠ marks a landmark that sticks out of the safe zone. Clip its hotspot to the range given.
 
 ## title_gates: camp gates at dusk
@@ -166,15 +169,66 @@ the lieutenants' portraits (crops of the lieutenant cut-outs) and their locked o
 | Map table (Éris's file) | 20 | 62 | 48 | 20 | Map of Greece with bronze figurines. The tabletop reaches y 86, so keep the hotspot above y 78 |
 | Lectern with the bestiary codex | 68 | 42 | 17 | 50 | Codex itself at x 70–82, y 42–56. `props/codex_lectern_cut` can replace it for an opening animation |
 
-## cabin: the hero's cabin
+## cabin: the hero's cabin (2026-10-02)
 
-Evening, white-washed room, warm lamplight.
+The rustic cabane redone straight-on (seed 7603): honey plank walls, a straw ceiling, a 3x3 open
+wooden cupboard in the centre, the desk at the far left, the lyre on a stool at the right.
 
 | Landmark | x | y | w | h | Notes |
 |---|---|---|---|---|---|
-| Trophy shelf (rewards, perks) | 10 | 12 | 31 | 52 | Laurel crown, cup, medals. The left 2.5 % falls outside the safe zone, so use a hotspot of x 12.5–41. `props/trophy_shelf_cut` exists for an overlay close-up |
-| Journal on the desk (stats) | 35 | 47 | 24 | 31 | Open journal at x 42–54, y 51–59 |
-| Lamp and lyre (settings, audio) | 58 | 38 | 15 | 37 | Lamp at x 60–66, lyre at x 67–73 |
+| Cupboard (« Tes trésors ») | 29.5 | 12 | 41 | 74 | Hotspot `trophies`: (29.5, 14) (70.5, 14) (70.5, 80) (29.5, 80); plaque below. Compartments: cols 31.4-42.6, 44.3-55.5, 57.0-68.1; rows 17.5-36.9, 39.6-59.1, 61.8-80.4. Standing lines y 36.8 (hydre, echo, chimere), 58.8 (protee, sirenes, lethe), 78.6 (sandales, égide, foudre) |
+| Desk and journal (« Ton journal ») | 0 | 43 | 16.5 | 44 | ⚠ Mostly left of the safe zone. Hotspot `journal`: (12.5, 52) (17, 52) (17, 68) (12.5, 68); plaque above |
+| Lyre on its stool (« La lyre ») | 71 | 52 | 11.5 | 34 | Hotspot `lyre`: (71, 52) (82.5, 52) (82.5, 80) (71, 80); plaque above |
+| Wall hook | 79.5 | 22 | 5 | 13 | Hook point (83.3, 33.6): the lanterne hangs from it |
+| Pedestal | 84 | 69.5 | 7 | 14 | ⚠ Right half past x 87.5. Top y 69.6: the chouette stands on its left part (x 86) |
+| Chest | 17.5 | 69 | 11.5 | 16 | Lid y 69.5: the couronne |
+| Back wall, left | 17.5 | 14 | 11.5 | 55 | The fresque (panel top y 15.5) above the mosaïque (top y 27) |
+| Back wall, right | 70.5 | 14 | 17 | 38 | The bouclier (top y 15.5), left of the hook |
+| Floor in front | 12.5 | 86 | 75 | 14 | The tapis (centre, near edge y 100), the étagère (front left, y 98), the amphore (front right, y 99.5) |
+
+## villa: the villa (2026-10-02)
+
+A newly built villa (seed 7709): whitewashed walls under a Greek-key frieze, terracotta tiles, a
+painted cornice cupboard in the centre, a window at the far left, two bronze wall hooks.
+
+| Landmark | x | y | w | h | Notes |
+|---|---|---|---|---|---|
+| Cupboard (« Tes trésors ») | 25 | 13 | 50 | 75 | Hotspot `trophies`: (26, 18) (74.5, 18) (74.5, 80) (26, 80); plaque below. Compartments: cols 29.3-41.6, 43.0-57.3, 58.8-72.6; rows 22.2-40.4, 43.6-61.2, 65.1-83.1. Standing lines y 40.3, 60.9, 80.0 (the gear's floor is at 80.5; 80.0 keeps it off the plaque) |
+| Desk and journal (« Ton journal ») | 12 | 56 | 14 | 32 | Hotspot `journal`: (13, 57) (25.5, 57) (25.5, 70) (13, 70); plaque **below** (the lanterne hangs above the desk) |
+| Lyre on its stand (« La lyre ») | 75.5 | 55 | 8 | 34 | Hotspot `lyre`: (75, 55) (84, 55) (84, 75) (75, 75); plaque above |
+| Left wall hook | 17 | 35 | 3.5 | 10 | Hook point (18.6, 43.8): the lanterne |
+| Right wall hook | 81 | 35 | 3.5 | 10 | The mosaïque hangs from it (top y 36) |
+| Pedestal | 85 | 76.5 | 6.5 | 11.5 | ⚠ Mostly past x 87.5: left empty |
+| Chest under the desk | 12 | 80 | 8 | 8 | Behind the étagère |
+| Back wall, left | 13 | 20 | 12 | 36 | The fresque (top y 21.5), above the hook |
+| Back wall, right | 75 | 20 | 13 | 35 | The bouclier (top y 20.5), above the hook |
+| Floor in front | 12.5 | 88 | 75 | 12 | The tapis (centre), the étagère (front left, y 99), the amphore (front right, y 99); the couronne (x 29) and the chouette (x 71.5) at the cupboard's feet, y 92 |
+
+## palais: the palais (2026-10-02)
+
+The palais at its prime (seed 7804): veined marble walls between gilded columns, a mosaic floor, a
+marble and gold cupboard in the centre on a plinth, two bronze wall hooks.
+
+| Landmark | x | y | w | h | Notes |
+|---|---|---|---|---|---|
+| Cupboard (« Tes trésors ») | 27 | 10 | 46 | 69 | Hotspot `trophies`: (27.5, 14) (72.5, 14) (72.5, 75) (27.5, 75); plaque below. Compartments: cols 30.6-43.0, 43.5-56.5, 57.0-69.5; rows 18.8-35.4, 37.8-54.4, 56.9-74.2. Standing lines y 35.0, 54.0, 73.4. Plinth y 73-79 |
+| Desk and journal (« Ton journal ») | 11.5 | 54 | 16 | 26 | Hotspot `journal`: (13, 54) (27, 54) (27, 66) (13, 66); plaque **below** (the lanterne hangs above the desk) |
+| Lyre on its stool (« La lyre ») | 72.5 | 54.5 | 8 | 26 | Hotspot `lyre`: (73, 54) (80, 54) (80, 75) (73, 75); plaque above |
+| Left wall hook | 18 | 32 | 4 | 10 | Hook point (21.2, 41): the lanterne |
+| Right wall hook | 79 | 32 | 3.5 | 10 | The mosaïque hangs from it (top y 33) |
+| Pedestal | 82 | 66.5 | 4.5 | 13 | Top y 66.5: the chouette (x 84.3) |
+| Chest under the desk | 17.5 | 76 | 8 | 7 | Behind the étagère |
+| Marble panel, left | 14 | 20 | 13 | 60 | The fresque (top y 22), above the hook |
+| Marble panel, right | 74 | 20 | 13 | 58 | The bouclier (top y 21.5), above the hook |
+| Floor in front | 12.5 | 79 | 75 | 21 | The couronne at the plinth's left foot (x 30, y 85); the tapis (centre, y 99.5), the étagère (front left, y 99), the amphore (front right, y 98.5) |
+
+Places: web/src/lib/world/scenes/treasure-places.json (x centre, y bottom edge, w width, art %), measured with tools/art/grid.py and checked with tools/art/treasure_preview.py --check.
+
+The trophies and the gear are sized to their compartment (about 80 % of its height or width, the
+one that binds first, centred, on the standing line), not by the contact sheet's REAL_CM; the
+trophies' box keeps its 6.5 % transparent margin (TROPHY_FOOT). They stand inside the « Tes
+trésors » hotspot by design (the cupboard is that place); every decor piece is clear of the three
+hotspots' boxes, and every piece of the plaques, the HUD and the room's name.
 
 ## eris_lair: Éris's lair
 

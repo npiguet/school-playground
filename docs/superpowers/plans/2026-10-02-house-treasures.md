@@ -50,7 +50,7 @@
 - R8. Gear is shown only when exposed (`equipped`, default 0), as the spec says; no migration. Displayed decor keeps its `equipped = 1` rows (read `server/app/routers/world.py` `patch_reward`, `get_rewards`, migration `004_world.sql`: no slot is stored, only the flag).
 - R9. Words that contradict "a bigger house is a grander room, not a bigger shelf" are reworded too: the guide's « 4 pièces dans la cabane, 6 dans la villa, 9 dans le palais » and « l'étagère de ta cabane », the cabin tour's « avec davantage de murs pour ton décor », MANUEL §14, the README's « 4 / 6 / 9 wall slots ». `HOW_TO_WIN['decor:trophee']` becomes « pour la gagner » (la couronne).
 - R10. The three rooms are three txt2img paintings from one shared fixture paragraph (not img2img from the cabin), so each can be picked on its own; img2img from the picked cabin is the fallback if a house fails its acceptance twice.
-- R11. Pieces must stay inside x 12.5-87.5, below y 8 (the HUD) and clear of the room's name plaque (x 43-57, y 9.5-15.6); they may sit under the dialogue dock (the tapis), which is not interactive.
+- R11. Pieces must stay inside x 12.5-87.5, below the HUD (pre-flight ruling H3: its bottom edge is y 10 at 720 px, 11.2 % of a 640 px art box, nest.ts `HUD_LINE_SHORT`; a piece's box starts at or below that) and clear of the room's name plaque (x 43-57, y 9.5-15.6); they may sit under the dialogue dock (the tapis), which is not interactive.
 
 ## File Structure
 
@@ -755,6 +755,8 @@ EOF
 
 ### Task 5: Measure the places and the hotspots on the chosen rooms
 
+> **As built (2026-10-03):** the rooms are the round-2 picks around a 3x3 cupboard, so the cupboard *is* « Tes trésors »: its hotspot holds the six trophies (top two shelves) and the three gear pieces (bottom shelf), sized to their compartment (about 80 % of its height or width, centred, on the shelf), not by REAL_CM; every decor piece is clear of the three hotspots' boxes and every piece of every plaque (Task 6's "clear of the three places" test exempts the cupboard's nine from the `trophies` shape only). The journal's plaque is **below** in the villa and the palais (the lanterne hangs from the hook above the desk), above in the cabin; the plaque side is per house in `docs/art/scenes.md`. `grid.py` and `treasure_preview.py` draw and check the HUD at 10 % and 11.2 % (ruling H3) and the name plaque at 1280x720 and on the 640 px art box, with plaques modelled on the 640 px art box (see the tool's docstring). The code below is the first draft; the files in `tools/art/` are the reference.
+
 **Files:**
 - Create: `tools/art/grid.py`, `tools/art/treasure_preview.py`
 - Create: `web/src/lib/world/scenes/treasure-places.json` (not imported until Task 6)
@@ -1331,7 +1333,7 @@ describe('the places of the treasures', () => {
         const where = `${h} ${id} ${JSON.stringify(b)}`;
         expect(b.x, where).toBeGreaterThanOrEqual(12.5);
         expect(b.x + b.w, where).toBeLessThanOrEqual(87.5);
-        expect(b.y, where).toBeGreaterThanOrEqual(8);
+        expect(b.y, where).toBeGreaterThanOrEqual(HUD_LINE_SHORT); // ruling H3 (nest.ts), 11.2 %
         expect(b.y + b.h, where).toBeLessThanOrEqual(100);
         // SceneStage's name plaque: « Ton palais », the widest, x 43-57, y 9.5-15.6 at 1280x720.
         expect(boxesOverlap(b, { x: 43, y: 9.5, w: 14, h: 6.1 }), where).toBe(false);
