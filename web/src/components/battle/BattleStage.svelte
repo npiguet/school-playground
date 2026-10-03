@@ -208,12 +208,14 @@
        only, 3 % of a box 585 / 1024 as wide as high, 1.8 = 1 / (0.5713 x 0.97). The dragon faces it
        with its snout (the ancestral's beard reaches 81 % of its box): it tucks 15 % at most, 1.176 =
        1 / 0.85, and never less than its size before this spec (clamp(140px, 36vh, 320px), which binds
-       at 1024x640: 15.5 %). The height caps keep the opponent under the hold bar and both under the
+       at 1024x640: 15.5 %). Neither is ever smaller than before (Ruling B14 over the 3 %): where the
+       column is narrow for the screen's height (1180x820, 1024x768) the opponent keeps its old size,
+       clamp(180px, 50vh, 440px), and tucks what that size implies, as it did. The height caps keep the opponent under the hold bar and both under the
        HUD. */
     --feet: calc(4vh + env(safe-area-inset-bottom));
     --dragon-feet: var(--feet);
     --hold-room: 96px;
-    --foe-h: min(calc((var(--side) - 8px) * 1.8), calc(100vh - var(--feet) - var(--top) - var(--hold-room)));
+    --foe-h: min(max(clamp(180px, 50vh, 440px), calc((var(--side) - 8px) * 1.8)), calc(100vh - var(--feet) - var(--top) - var(--hold-room)));
     --dragon-h: min(max(clamp(140px, 36vh, 320px), calc(var(--side) * 1.176)), calc(100vh - var(--dragon-feet) - var(--top) - 16px));
   }
   .battle-stage.has-hud {

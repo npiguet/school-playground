@@ -337,13 +337,22 @@ test('ten battles in a row never run out of WebGL contexts', async ({ page, requ
 // nor off the screen; the opponent stays the larger; neither is smaller than before this spec (the
 // dragon clamp(140px, 36vh, 320px), the opponent clamp(180px, 50vh, 440px)). The shares are tighter
 // than the ruling's 20 % / 15 % (measured on the pictures, BattleStage.svelte): the dragon faces the
-// parchment with its snout (81 % of its box), the opponent with what it holds (5 %): 15 % and 3 %.
+// parchment with its snout (81 % of its box), the opponent with what it holds (5 %): 15 % and 3 %,
+// but for the old size's floor below.
+// `foeTuck`, `dragonTuck`: Ruling B14, "never smaller than before" wins over the 3 % and the 15 %.
+// Where the column is narrow for the screen's height each fighter keeps its old size (the opponent
+// clamp(180px, 50vh, 440px), the dragon clamp(140px, 36vh, 320px)) and tucks what that size implies:
+// at 1180x820 (the ipad project's size), a 224 px column, the opponent 410 px 7.7 %, the dragon 295 px
+// 24 %; at 1024x768, a 195 px column, the opponent 384 px 15 %, the dragon 276 px 29.6 % (it tucked as
+// much before this spec). 1920x1080: the widest column, where the ratio 1.15 is the closest.
 const VIEWPORTS = [
-  { width: 1280, height: 720 },
-  { width: 1366, height: 1024 },
-  { width: 1024, height: 640 },
+  { width: 1280, height: 720, foeTuck: 0.03, dragonTuck: 0.15 },
+  { width: 1366, height: 1024, foeTuck: 0.03, dragonTuck: 0.15 },
+  { width: 1024, height: 640, foeTuck: 0.03, dragonTuck: 0.15 },
+  { width: 1180, height: 820, foeTuck: 0.08, dragonTuck: 0.25 },
+  { width: 1024, height: 768, foeTuck: 0.15, dragonTuck: 0.3 },
+  { width: 1920, height: 1080, foeTuck: 0.03, dragonTuck: 0.15 },
 ];
-const TUCK = { dragon: 0.15, opponent: 0.03 };
 
 interface Box {
   x: number;
@@ -383,11 +392,11 @@ const down = (a: Box, b: Box) => Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Ma
 const meets = (a: Box, b: Box) => across(a, b) > 1 && down(a, b) > 1;
 const clamp = (lo: number, v: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-async function expectClear(page: Page, where: string) {
+async function expectClear(page: Page, where: string, foeTuck: number, dragonTuck: number) {
   const s = await stageBoxes(page);
   const d = s.dragon!;
   const o = s.opponent!;
-  for (const [name, f, tuck] of [['dragon', d, TUCK.dragon], ['opponent', o, TUCK.opponent]] as const) {
+  for (const [name, f, tuck] of [['dragon', d, dragonTuck], ['opponent', o, foeTuck]] as const) {
     expect(f.x, `${where}: the ${name} stays on screen`).toBeGreaterThanOrEqual(-1);
     expect(f.x + f.w, `${where}: the ${name} stays on screen`).toBeLessThanOrEqual(s.vw + 1);
     expect(f.y, `${where}: the ${name} stays on screen`).toBeGreaterThanOrEqual(-1);
@@ -403,15 +412,15 @@ async function expectClear(page: Page, where: string) {
   return s;
 }
 
-test('the bigger fighters keep the battle UI clear at 1280x720, 1366x1024 and 1024x640', async ({ page, request }, testInfo) => {
-  test.setTimeout(300_000);
+test('the bigger fighters keep the battle UI clear at six viewports, the three tuned ones first', async ({ page, request }, testInfo) => {
+  test.setTimeout(480_000);
   const sizes: string[] = [];
   for (const [i, vp] of VIEWPORTS.entries()) {
-    await page.setViewportSize(vp);
+    await page.setViewportSize({ width: vp.width, height: vp.height });
     const at = `${vp.width}x${vp.height}`;
     const measure = async (phase: string) => {
       await reactionsDone(page);
-      const s = await expectClear(page, `${at} ${phase}`);
+      const s = await expectClear(page, `${at} ${phase}`, vp.foeTuck, vp.dragonTuck);
       sizes.push(`${at} ${phase}: dragon ${Math.round(s.dragon!.h)}, opponent ${Math.round(s.opponent!.h)}`);
       await page.screenshot({ path: testInfo.outputPath(`sizes-${at}-${phase}.png`) });
     };
@@ -438,6 +447,14 @@ test('the bigger fighters keep the battle UI clear at 1280x720, 1366x1024 and 10
     await page.goto(`/#/p/${v.id}/play/${v.text.id}`);
     await expectBattle(page, 'victory');
     await measure('victory');
+    // Where the opponent tucks more than 3 %, the two foes not seen above, for the eye (Ruling B14:
+    // the Chimère's snake head and Protée's trident must stay visible).
+    if (vp.foeTuck > 0.03) {
+      for (const foe of ['chimere', 'protee']) {
+        await muster(page, m.id, m.text.id, foe, true);
+        await measure(foe);
+      }
+    }
   }
   testInfo.annotations.push({ type: 'fighter sizes', description: sizes.join('; ') });
   console.log(`fighter sizes: ${sizes.join('; ')}`);
