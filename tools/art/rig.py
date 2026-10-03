@@ -277,7 +277,8 @@ def main():
         rows = max(1, math.ceil(len(tiles) / 4))
         sheet = Image.new('RGB', (tw * 4, th * rows), (255, 255, 255))
         for n, t in enumerate(tiles):
-            sheet.paste(t, ((n % 4) * tw, (n // 4) * th))
+            # Centred in its cell (every foe is 585 px wide today, so the cells are their own widths).
+            sheet.paste(t, ((n % 4) * tw + (tw - t.width) // 2, (n // 4) * th))
         sheet.save(FOE_SHEET, optimize=True)
     print('done', args.mode, keys)
 

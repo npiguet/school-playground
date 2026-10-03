@@ -77,10 +77,21 @@ describe('the motion tables', () => {
   ];
   it.each(OLD_POSE)('plays the dragon at %s s exactly as the old closed-form poseAt', (t, head, wingL, wingR, tail, sx, sy, lift) => {
     const near = (got: number, want: number, what: string) => expect(Math.abs(got - want), `${what} at ${t} s: ${got}, not ${want}`).toBeLessThanOrEqual(1e-6);
+    // Translations in frame px (float32 matrices): each turn about its own bone's pivot, the chest's
+    // scale about the chest's.
+    const nearPx = (got: number, want: number, what: string) => expect(Math.abs(got - want), `${what} at ${t} s: ${got}, not ${want}`).toBeLessThanOrEqual(1e-3);
     for (const p of [poseFor(DRAGON_MOTION, t, PIVOTS), poseAt(t, PIVOTS)]) {
-      [head, wingL, wingR, tail].forEach((want, b) => near(Math.atan2(p[b * 9 + 1], p[b * 9]), want, DRAGON_MOTION.rigid[b]));
+      [head, wingL, wingR, tail].forEach((want, b) => {
+        const bone = DRAGON_MOTION.rigid[b];
+        const [cx, cy] = PIVOTS[bone];
+        near(Math.atan2(p[b * 9 + 1], p[b * 9]), want, bone);
+        nearPx(p[b * 9 + 6], cx - (Math.cos(want) * cx - Math.sin(want) * cy), `${bone} x`);
+        nearPx(p[b * 9 + 7], cy - (Math.sin(want) * cx + Math.cos(want) * cy), `${bone} y`);
+      });
       near(p[4 * 9], sx, 'chest x');
       near(p[4 * 9 + 4], sy, 'chest y');
+      nearPx(p[4 * 9 + 6], PIVOTS.chest[0] * (1 - sx), 'chest about x');
+      nearPx(p[4 * 9 + 7], PIVOTS.chest[1] * (1 - sy), 'chest about y');
       near(p[5 * 9 + 6], 0, 'lift x');
       near(p[5 * 9 + 7], lift, 'lift');
     }
